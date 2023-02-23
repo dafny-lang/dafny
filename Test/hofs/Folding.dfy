@@ -234,7 +234,7 @@ method FoldL_Use_Direct(xs: List<int>)
   assert r % 2 == 0;
 }
 
-method FoldL_Use_Direct_lambda(xs: List<int>)
+method {:vcs_split_on_every_assert} FoldL_Use_Direct_lambda(xs: List<int>)
 {
   var f := (b,a) => 3*b + 2*a;
   var r := foldl(f, 0, xs);

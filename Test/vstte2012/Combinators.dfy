@@ -110,12 +110,12 @@ function Step(t: Term): Term
     case K => t
     case Apply(m, n) =>
       if m == K && IsValue(n) && IsValue(y) then
-        // this is the case t == Apply(Apply(K, n), y)
+        assert {:focus} t == Apply(Apply(K, n), y);
         assert !ContainsS(t) ==> !ContainsS(x);
         assert TermSize(n) < TermSize(Apply(m, n));
         n
       else if m.Apply? && m.car == S && IsValue(m.cdr) && IsValue(n) && IsValue(y) then
-        // t == Apply(Apply(Apply(S, m.cdr), n), y)
+        assert {:focus} t == Apply(Apply(Apply(S, m.cdr), n), y);
         assert ContainsS(m) && ContainsS(t);
         Apply(Apply(m.cdr, y), Apply(n, y))
       else

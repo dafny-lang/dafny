@@ -52,6 +52,7 @@ ghost function DivergentPost(n: int): int
   ensures DivergentPost(2*n - n) == DivergentPost(2*(n+5) - 10 - n);  // these are legal ways to denote the result value of the function
   ensures DivergentPost(n+1) == DivergentPost(n+1);  // error: call may not terminate
 {
+  assert 2*n - n == 2*(n+5) - 10 - n;
   if n < 2 then n else
   DivergentPost(n-2) + DivergentPost(n-1)
 }

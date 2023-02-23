@@ -690,7 +690,7 @@ class ClaimIncreasingCounterGreaterThanConstant extends OwnedObject {
 //   assert!(i == 10);
 // }
 
-method Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
+method {:vcs_split_on_every_assert} Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
    requires universe.globalInv() && running in universe.content && counter in universe.content && remaining in universe.content
    requires remaining.owner == running && remaining.value == 10 // USER precondition
    modifies universe, universe.content

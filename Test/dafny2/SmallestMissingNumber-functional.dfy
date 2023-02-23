@@ -217,7 +217,7 @@ ghost function IntRange(lo: nat, len: nat): set<nat>
 
 // ----- Proofs of alternative versions
 
-lemma SMN'_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:vcs_split_on_every_assert} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
@@ -252,7 +252,7 @@ lemma SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   }
 }
 
-lemma SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:vcs_split_on_every_assert} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)

@@ -16,7 +16,7 @@ ghost function length(xs: List): nat
 
 // If "0 <= n < length(xs)", then return the element of "xs" that is preceded by
 // "n" elements; otherwise, return an arbitrary value.
-ghost function nth<T(00)>(n: int, xs: List<T>): T
+ghost opaque function nth<T(00)>(n: int, xs: List<T>): T
 {
   if 0 <= n < length(xs) then
     nthWorker(n, xs)
@@ -75,6 +75,7 @@ lemma ExtractorTheorem<T(00)>(xs: List)
   forall i | 0 <= i < length(xs)
     ensures nth(i, a) == nth(i, b);
   {
+    reveal nth();
     ExtractorLemma(i, xs);
   }
   EqualElementsMakeEqualLists(a, b);
@@ -121,6 +122,7 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
   requires forall i :: 0 <= i < length(xs) ==> nth(i, xs) == nth(i, ys)
   ensures xs == ys
 {
+  reveal nth();
   match xs {
     case Nil =>
     case Cons(x, rest) =>
@@ -139,7 +141,7 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
 
 // here is the theorem, but applied to the ith element
 
-lemma ExtractorLemma<T(00)>(i: int, xs: List)
+lemma {:vcs_split_on_every_assert} ExtractorLemma<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs);
   ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
 {
@@ -150,7 +152,7 @@ lemma ExtractorLemma<T(00)>(i: int, xs: List)
     nth(nth(i, nats(length(xs))), xs);
     { NthNats(i, length(xs)); }
     nth(length(xs) - 1 - i, xs);
-    { RevLength(xs); NthRev(i, xs); }
+    { reveal nth(); RevLength(xs); NthRev(i, xs); }
     nth(i, rev(xs));
   }
 }
@@ -161,6 +163,7 @@ lemma NthXtr<T(00)>(i: int, mp: List<int>, lst: List<T>)
   requires 0 <= i < length(mp);
   ensures nth(i, xtr(mp, lst)) == nth(nth(i, mp), lst);
 {
+  reveal nth();
   XtrLength(mp, lst);
   assert nth(i, xtr(mp, lst)) == nthWorker(i, xtr(mp, lst));
   if i == 0 {
@@ -179,6 +182,7 @@ lemma NthNats(i: int, n: nat)
   requires 0 <= i < n;
   ensures nth(i, nats(n)) == n - 1 - i;
 {
+  reveal nth();
   NatsLength(n);
   NthNatsWorker(i, n);
 }
@@ -193,6 +197,7 @@ lemma NthRev<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs) == length(rev(xs));
   ensures nthWorker(i, rev(xs)) == nthWorker(length(xs) - 1 - i, xs);
 {
+  reveal nth();
   assert xs.Cons?;
   assert 1 <= length(rev(xs)) && rev(xs).Cons?;
   RevLength(xs.tail);
@@ -234,6 +239,7 @@ lemma NthAppendA<T(00)>(i: int, xs: List, ys: List)
   requires 0 <= i < length(xs);
   ensures nth(i, append(xs, ys)) == nth(i, xs);
 {
+  reveal nth();
   if i == 0 {
     calc {
       nth(0, append(xs, ys));
@@ -255,6 +261,7 @@ lemma NthAppendB<T(00)>(i: int, xs: List, ys: List)
   requires length(xs) <= i < length(xs) + length(ys);
   ensures nth(i, append(xs, ys)) == nth(i - length(xs), ys);
 {
+  reveal nth();
   AppendLength(xs, ys);
   match xs {
     case Nil =>
