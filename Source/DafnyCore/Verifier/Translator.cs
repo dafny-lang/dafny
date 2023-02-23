@@ -5675,15 +5675,16 @@ namespace Microsoft.Dafny {
         functionHandles[f] = name;
         var args = new List<Bpl.Expr>();
         var vars = MkTyParamBinders(GetTypeParams(f), out args);
-        var formals = MkTyParamFormals(GetTypeParams(f), false, false);
+        var formals = MkTyParamFormals(GetTypeParams(f), false, true);
         var tyargs = new List<Bpl.Expr>();
         foreach (var fm in f.Formals) {
           tyargs.Add(TypeToTy(fm.Type));
         }
         tyargs.Add(TypeToTy(f.ResultType));
         if (f.IsFuelAware()) {
-          Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
-          formals.Add(BplFormalVar(null, predef.LayerType, true));
+          vars.Add(BplBoundVar("$ly", predef.LayerType, out var ly));
+          args.Add(ly);
+          formals.Add(BplFormalVar("$fuel", predef.LayerType, true));
           AddFuelSuccSynonymAxiom(f, true);
         }
 
