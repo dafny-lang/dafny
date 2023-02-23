@@ -3140,7 +3140,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         dtorName = $"dtor__{dtor.NameForCompilation}()";
-        wr = EmitCoercionIfNecessary(NativeObjectType, dtor.Type, dtor.tok, wr);
+        wr = EmitCoercionIfNecessary(NativeObjectType, bvType, dtor.tok, wr);
       } else {
         dtorName = FieldName(dtor, formalNonGhostIndex);
       }
