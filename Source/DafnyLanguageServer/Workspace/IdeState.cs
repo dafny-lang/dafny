@@ -30,3 +30,9 @@ public record IdeState(
   public IEnumerable<Diagnostic> Diagnostics =>
     ResolutionDiagnostics.Concat(ImplementationIdToView.Values.Select(v => v.Diagnostics).SelectMany(x => x));
 }
+
+static class Util {
+  public static Diagnostic ToLspDiagnostic(this DafnyDiagnostic dafnyDiagnostic) {
+    
+  }
+}

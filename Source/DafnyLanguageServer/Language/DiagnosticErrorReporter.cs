@@ -16,9 +16,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const string RelatedLocationMessage = RelatedLocationCategory;
 
     private readonly DocumentUri entryDocumentUri;
-    private readonly Dictionary<DocumentUri, IDictionary<DafnyDiagnostic, Diagnostic>> diagnostics = new();
-    private readonly Dictionary<DiagnosticSeverity, int> counts = new();
-    private readonly Dictionary<DiagnosticSeverity, int> countsNotVerificationOrCompiler = new();
+    private readonly Dictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics = new();
+    private readonly Dictionary<ErrorLevel, int> counts = new();
+    private readonly Dictionary<ErrorLevel, int> countsNotVerificationOrCompiler = new();
     private readonly ReaderWriterLockSlim rwLock = new();
 
     /// <summary>
@@ -33,16 +33,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IDictionary<DafnyDiagnostic, Diagnostic>> AllDiagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnostics => diagnostics;
 
-    public IReadOnlyList<Diagnostic> GetDiagnostics(DocumentUri documentUri) {
+    public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
       try {
         // Concurrency: Return a copy of the list not to expose a reference to an object that requires synchronization.
         // LATER: Make the Diagnostic type immutable, since we're not protecting it from concurrent accesses
-        return new List<Diagnostic>(
-          diagnostics.GetValueOrDefault(documentUri)?.Values ??
-          Enumerable.Empty<Diagnostic>());
+        return new List<DafnyDiagnostic>(
+          diagnostics.GetValueOrDefault(documentUri) ??
+          Enumerable.Empty<DafnyDiagnostic>());
       }
       finally {
         rwLock.ExitReadLock();
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var dafnyToken = Translator.ToDafnyToken(error.Tok);
       var uri = GetDocumentUriOrDefault(dafnyToken);
-      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg, VerifierMessageSource);
+      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg, VerifierMessageSource, ErrorLevel.Error);
       var diagnostic = new Diagnostic {
         Severity = DiagnosticSeverity.Error,
         Message = error.Msg,
@@ -80,7 +80,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
       AddDiagnosticForFile(
         dafnyDiagnostic,
-        diagnostic,
         VerifierMessageSource,
         uri
       );
@@ -160,7 +159,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source);
+      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level);
       var item = new Diagnostic {
         Code = errorId,
         Severity = ToSeverity(level),
@@ -170,14 +169,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         RelatedInformation = relatedInformation,
         CodeDescription = errorId == null ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId) },
       };
-      AddDiagnosticForFile(dafnyDiagnostic, item, source, GetDocumentUriOrDefault(rootTok));
+      AddDiagnosticForFile(dafnyDiagnostic, source, GetDocumentUriOrDefault(rootTok));
       return true;
     }
 
     public override int Count(ErrorLevel level) {
       rwLock.EnterReadLock();
       try {
-        return counts.GetValueOrDefault(ToSeverity(level), 0);
+        return counts.GetValueOrDefault(level, 0);
       }
       finally {
         rwLock.ExitReadLock();
@@ -187,23 +186,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
       rwLock.EnterReadLock();
       try {
-        return countsNotVerificationOrCompiler.GetValueOrDefault(ToSeverity(level), 0);
+        return countsNotVerificationOrCompiler.GetValueOrDefault(level, 0);
       }
       finally {
         rwLock.ExitReadLock();
       }
     }
 
-    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, Diagnostic item, MessageSource messageSource, DocumentUri documentUri) {
+    private void AddDiagnosticForFile(DafnyDiagnostic dafnyDiagnostic, MessageSource messageSource, DocumentUri documentUri) {
       rwLock.EnterWriteLock();
       try {
-        var severity = item.Severity!.Value; // All our diagnostics have a severity.
-        counts[severity] = counts.GetValueOrDefault(severity, 0) + 1;
+        counts[dafnyDiagnostic.Level] = counts.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         if (messageSource != MessageSource.Verifier && messageSource != MessageSource.Compiler) {
-          countsNotVerificationOrCompiler[severity] =
-            countsNotVerificationOrCompiler.GetValueOrDefault(severity, 0) + 1;
+          countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
+            countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }
-        diagnostics.GetOrCreate(documentUri, () => new Dictionary<DafnyDiagnostic, Diagnostic>()).Add(dafnyDiagnostic, item);
+        diagnostics.GetOrCreate(documentUri, () => new List<DafnyDiagnostic>()).Add(dafnyDiagnostic);
       }
       finally {
         rwLock.ExitWriteLock();

@@ -20,7 +20,7 @@ public class BatchErrorReporter : ErrorReporter {
       // discard the message
       return false;
     }
-    AllMessages[level].Add(new DafnyDiagnostic(errorId, tok, msg, source));
+    AllMessages[level].Add(new DafnyDiagnostic(errorId, tok, msg, source, level));
     return true;
   }
 

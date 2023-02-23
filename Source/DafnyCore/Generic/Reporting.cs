@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
     Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
   }
 
-  public record DafnyDiagnostic(string ErrorId, IToken Token, string Message, MessageSource Source);
+  public record DafnyDiagnostic(string ErrorId, IToken Token, string Message, MessageSource Source, ErrorLevel Level);
 
   public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }

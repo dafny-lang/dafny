@@ -62,16 +62,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   }
 
   public class DocumentAfterParsing : Document {
-    private readonly IDictionary<DafnyDiagnostic, Diagnostic> parseDiagnostics;
+    private readonly IReadOnlyList<DafnyDiagnostic> parseDiagnostics;
 
     public DocumentAfterParsing(DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
-      IDictionary<DafnyDiagnostic, Diagnostic> parseDiagnostics) : base(textDocumentItem) {
+      IReadOnlyList<DafnyDiagnostic> parseDiagnostics) : base(textDocumentItem) {
       this.parseDiagnostics = parseDiagnostics;
       Program = program;
     }
 
-    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics.Values;
+    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics.Select(d => d.ToLspDiagnostic());
 
     public Dafny.Program Program { get; }
 
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IServiceProvider services,
       DocumentTextBuffer textDocumentItem,
       Dafny.Program program,
-      IReadOnlyList<Diagnostic> parseAndResolutionDiagnostics,
+      IReadOnlyList<DafnyDiagnostic> parseAndResolutionDiagnostics,
       SymbolTable? symbolTable,
       SignatureAndCompletionTable signatureAndCompletionTable,
       IReadOnlyList<Diagnostic> ghostDiagnostics,
