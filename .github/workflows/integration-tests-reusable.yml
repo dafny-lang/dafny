@@ -118,6 +118,8 @@ jobs:
         mkdir dafny/Binaries/z3
         wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
         chmod +x dafny/Binaries/z3/bin/z3
+        mkdir -p unzippedRelease/dafny/z3/bin
+        ln dafny/Binaries/z3/bin/z3 unzippedRelease/dafny/z3/bin/z3
     - name: Run integration tests
       if: runner.os == 'Windows'
       env:
@@ -125,6 +127,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe
         dotnet test --logger trx --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
