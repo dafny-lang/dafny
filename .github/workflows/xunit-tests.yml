@@ -28,24 +28,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
+          - os: macos-11
             suffix: osx
-            z3: z3-4.8.5-x64-osx-10.14.2
             chmod: true
             coverage: false
           - os: windows-2019
             suffix: win
-            z3: z3-4.8.5-x64-win
             chmod: false
             coverage: false
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
-            z3: z3-4.8.5-x64-ubuntu-16.04
             chmod: true
             coverage: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v3
@@ -60,19 +57,17 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.8.5-${{matrix.os}}-bin.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} Binaries/z3 -Recurse
-    - name: Set Z3 Permissions and move (non-Windows)
+    - name: Move Z3
+      run: |
+        mkdir -p Binaries/z3/bin
+        mv z3-* Binaries/z3/bin/
+    - name: Set Z3 Permissions
       if: ${{matrix.chmod}}
       run: |
-        mv Binaries/z3/bin/z3 Binaries/z3/bin/z3-4.8.5
         chmod +x Binaries/z3/bin/z3*
-    - name: Move Z3 (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        mv Binaries/z3/bin/z3.exe Binaries/z3/bin/z3-4.8.5.exe
     - name: Build
       run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
     - name: Run DafnyLanguageServer Tests
