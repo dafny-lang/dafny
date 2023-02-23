@@ -158,8 +158,8 @@ ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
 ResolutionErrors.dfy(1150,13): Error: new can be applied only to class types (got JJ)
-ResolutionErrors.dfy(1158,37): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(1159,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1158,37): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1159,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
@@ -344,13 +344,13 @@ ResolutionErrors.dfy(2324,20): Error: a ghost const field is allowed only in spe
 ResolutionErrors.dfy(2327,18): Error: a ghost const field is allowed only in specification contexts
 ResolutionErrors.dfy(2343,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2346,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2361,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 ResolutionErrors.dfy(2362,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2368,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2368,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2374,37): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2377,49): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2378,47): Error: a subset type definition is not allowed to depend on the set of allocated references
