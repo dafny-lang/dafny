@@ -49,9 +49,6 @@
     <None Update="Synchronization\TestFiles\b.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Synchronization\TestFiles\c.dfy">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Various\TestFiles\multi1.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
