@@ -9,9 +9,6 @@
 name: Nightly test and release workflow
 
 on:
-  push:
-    branches:
-      [ cok-3459-dafny4test ]
   schedule:
     # Chosen to be hopefully outside of business hours for most contributors'
     # time zones, and not on the hour to avoid heavy scheduled-job times:
