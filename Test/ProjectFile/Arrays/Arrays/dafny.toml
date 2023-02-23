@@ -1,0 +1,28 @@
+##############################################################################
+#                        Dafny project file
+#
+# Comments:
+# This file is authored in TOML (see https://github.com/toml-lang/toml)
+# Configurations engine reads and override variables.
+
+#[Project]
+#Enter Project name and description, Project name will be used for naming directories as part of build.
+#Name = "Test-Dafny"
+#Description = ''' This is a test project file, which will be used to enable CLI to accept project files as argument and will pass given options for all the files in the project.'''
+# Default value is latest version of Dafny which currently is : 3.9.1
+#Dafny_version = "3.9.1"
+
+# Dafny Command :
+[Command]
+"Command" = "verify"
+[Arguments]
+"relax-definite-assignment" = true
+
+
+# Default values for some of the Dafny CLI options is mentioned below, chnage it to remove "#" before that for configuration engine to override the variable.
+#[Options]
+#timeLimit = 20
+#warnShadowing = null
+
+#options for verifacation logger are trx, csv or text.
+#verificationLogger = "csv"

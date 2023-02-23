@@ -63,6 +63,7 @@ static class CommandRegistry {
     dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
 
+
     foreach (var option in Commands.SelectMany(c => c.Options)) {
       if (!allowHidden) {
         option.IsHidden = false;

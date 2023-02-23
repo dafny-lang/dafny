@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
 
     public static int ThreadMain(string[] args) {
       Contract.Requires(cce.NonNullElements(args));
-
+      
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
@@ -189,8 +189,13 @@ namespace Microsoft.Dafny {
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
-
+      
       try {
+        var projectArgs = ProjectFileTools.ProjectParser();
+        if (projectArgs != null) {
+           args = projectArgs.Concat(args).ToArray();
+        }
+        
         switch (CommandRegistry.Create(args)) {
           case ParseArgumentSuccess success:
             options = success.DafnyOptions;
