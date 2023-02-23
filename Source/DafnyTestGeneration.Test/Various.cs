@@ -366,10 +366,10 @@ module Test {
     public async Task FunctionMethod() {
       var source = @"
 module Math {
-  function method Max(a:int, b:int):int {
+  function Max(a:int, b:int):int {
     if (a > b) then a else b
   }
-  function method Min(a:int, b:int):int {
+  function Min(a:int, b:int):int {
     -Max(-a, -b)
   }
 }
@@ -392,10 +392,10 @@ module Math {
     public async Task FunctionMethodShortCircuit() {
       var source = @"
 module ShortCircuit {
-  function method Or(a:bool):bool {
+  function Or(a:bool):bool {
     a || OnlyFalse(a)
   }
-  function method OnlyFalse(a:bool):bool
+  function OnlyFalse(a:bool):bool
     requires !a
   {
     false
@@ -423,13 +423,13 @@ module ShortCircuit {
     public async Task MultipleModules() {
       var source = @"
 module A {
-  function method m(i:int):int requires i == 0 { i }
+  function m(i:int):int requires i == 0 { i }
 }
 module B {
-  function method m(c:char):char requires c == '0' { c }
+  function m(c:char):char requires c == '0' { c }
 }
 module C {
-  function method m(r:real):real requires r == 0.0 { r }
+  function m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
       var program = Utils.Parse(source);

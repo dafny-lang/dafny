@@ -4,13 +4,13 @@
 datatype List<X> = Nil | Cons(Node<X>, List<X>)
 datatype Node<X> = Element(X) | Nary(List<X>)
 
-function FlattenMain<M>(list: List<M>): List<M>
+ghost function FlattenMain<M>(list: List<M>): List<M>
   ensures IsFlat(FlattenMain(list));
 {
   Flatten(list, Nil)
 }
 
-function Flatten<X>(list: List<X>, ext: List<X>): List<X>
+ghost function Flatten<X>(list: List<X>, ext: List<X>): List<X>
   requires IsFlat(ext);
   ensures IsFlat(Flatten(list, ext));
 {
@@ -22,7 +22,7 @@ function Flatten<X>(list: List<X>, ext: List<X>): List<X>
     case Nary(nn) => Flatten(nn, Flatten(rest, ext))
 }
 
-function IsFlat<F>(list: List<F>): bool
+ghost function IsFlat<F>(list: List<F>): bool
 {
   match list
   case Nil => true
@@ -32,7 +32,7 @@ function IsFlat<F>(list: List<F>): bool
     case Nary(nn) => false
 }
 
-function ToSeq<X>(list: List<X>): seq<X>
+ghost function ToSeq<X>(list: List<X>): seq<X>
 {
   match list
   case Nil => []
@@ -67,7 +67,7 @@ lemma Lemma<X>(list: List<X>, ext: List<X>)
 
 // ---------------------------------------------
 
-function NegFac(n: int): int
+ghost function NegFac(n: int): int
   decreases -n;
 {
   if -1 <= n then -1 else - NegFac(n+1) * n

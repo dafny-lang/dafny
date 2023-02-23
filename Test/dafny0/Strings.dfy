@@ -151,4 +151,4 @@ method AllCharsTest() {
   expect |allChars| == |allUTF16CodeUnits|;
 }
 
-function method Identity<T>(x: T): T { x }
+function Identity<T>(x: T): T { x }

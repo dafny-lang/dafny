@@ -15,7 +15,7 @@ class Map<Key(==),Value> {
   var head: Node?<Key,Value>
   ghost var Spine: set<Node<Key,Value>>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -27,13 +27,13 @@ class Map<Key(==),Value> {
     (forall n :: n in Spine ==> n.next != head) &&
     (forall n,n' :: n in Spine && n' in Spine && n.next == n'.next ==> n == n')
   }
-  static predicate SpineValid(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
+  static ghost predicate SpineValid(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
     reads spine
   {
     (n == null && spine == {}) ||
     (n != null && n in spine && n.Spine == spine - {n} && SpineValid(n.Spine, n.next))
   }
-  static predicate SpineValid_One(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
+  static ghost predicate SpineValid_One(spine: set<Node<Key,Value>>, n: Node?<Key,Value>)
     reads spine
   {
     (n == null && spine == {}) ||

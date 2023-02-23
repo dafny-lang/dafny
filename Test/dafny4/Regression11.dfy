@@ -6,7 +6,7 @@
 
 class MyClass<O> { }
 
-function F<Y>(x: int, Y: Y): int { x }
+ghost function F<Y>(x: int, Y: Y): int { x }
 
 
 type Subset0<A> = x: int | var s: seq<A> := []; |s| == 0

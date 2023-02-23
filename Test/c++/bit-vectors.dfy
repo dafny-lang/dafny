@@ -3,7 +3,7 @@
 
 newtype uint64 = i:int | 0 <= i < 0x10000000000000000
 
-function method bit(i: uint64) : bv64
+function bit(i: uint64) : bv64
   requires i < 64
   {
     1 as bv64 << i

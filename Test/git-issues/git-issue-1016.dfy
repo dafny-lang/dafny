@@ -2,15 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<T> = Some(value: T) | None {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     None?
   }
-  function method PropagateFailure<U>(): Option<U>
+  function PropagateFailure<U>(): Option<U>
     requires None?
   {
     None
   }
-  function method Extract(): T
+  function Extract(): T
     requires Some?
   {
     value
@@ -23,10 +23,10 @@ type State(==)
 
 datatype Event = Event(process: Process, state: State)
 
-function method Find(process: Process, log: seq<Event>): (r: Option<nat>)
+function Find(process: Process, log: seq<Event>): (r: Option<nat>)
   ensures r.Some? ==> r.value < |log|
 
-function method Gimmie(): Option<int>
+function Gimmie(): Option<int>
 
 method Test0(process: Process, m: map<Process, State>, log: seq<Event>)
   requires process in m.Keys

@@ -4,7 +4,7 @@
 datatype Block<Hash,Transaction,VProof> =
   Block(prevBlockHash:Hash, txs:seq<Transaction>, proof:VProof)
 
-function method GenesisBlock() : Block<int,int,int> {
+function GenesisBlock() : Block<int,int,int> {
   Block(0, [], 0)
 }
 
@@ -28,7 +28,7 @@ newtype ntNative = x | -100 <= x < 100
 class MyClass { var u: int }
 datatype X = X(bool, char, int, real, nt, ntNative, bv8, bv167, ORDINAL, MyClass)
 
-predicate method TestAny<G(==)>(a: G, b: G)
+predicate TestAny<G(==)>(a: G, b: G)
   requires a == b
 {
   a == b

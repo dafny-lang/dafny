@@ -6,20 +6,20 @@
 abstract module M0 {
   /******* State *******/
   type State(!new)
-  function DomSt(st: State): set<Path>
-  function GetSt(p: Path, st: State): Artifact
+  ghost function DomSt(st: State): set<Path>
+  ghost function GetSt(p: Path, st: State): Artifact
     requires p in DomSt(st);
 
   // cached part of state
   type HashValue
-  function DomC(st: State): set<HashValue>
-  function Hash(p: Path): HashValue
+  ghost function DomC(st: State): set<HashValue>
+  ghost function Hash(p: Path): HashValue
   /* Note, in this version of the formalization and proof, we only record which things are in the
      cache.  The actual cache values can be retrieved from the system state.
   type Cmd
-  function GetC(h: HashValue, st: State): Cmd
+  ghost function GetC(h: HashValue, st: State): Cmd
   */
-  function UpdateC(cmd: string, deps: set<Path>, exps: set<string>, st: State): State
+  ghost function UpdateC(cmd: string, deps: set<Path>, exps: set<string>, st: State): State
     ensures
       var st' := UpdateC(cmd, deps, exps, st);
       DomSt(st) == DomSt(st') && (forall p :: p in DomSt(st) ==> GetSt(p, st) == GetSt(p, st')) &&
@@ -30,17 +30,17 @@ abstract module M0 {
       forall e :: e in exps ==> Hash(Loc(cmd, deps, e)) in DomC(st');
 
 
-  predicate ValidState(st: State)
+  ghost predicate ValidState(st: State)
   {
     forall p :: p in DomSt(st) ==> WellFounded(p)
   }
-  predicate WellFounded(p: Path)
+  ghost predicate WellFounded(p: Path)
 
   // The specification given for this Union is liberal enough to allow incompatible
   // states, that is, st and st' are allowed to disagree on some paths.  Any such disagreement
   // will be resolved in favor of st.  For the purpose of supporting function Combine, we are
   // only ever interested in combining/unioning compatible states anyhow.
-  function Union(st: State, st': State, useCache: bool): State
+  ghost function Union(st: State, st': State, useCache: bool): State
     ensures
       var result := Union(st, st', useCache);
       DomSt(result) == DomSt(st) + DomSt(st') &&
@@ -49,7 +49,7 @@ abstract module M0 {
       (useCache ==> DomC(result) == DomC(st) + DomC(st'));
 
 
-  predicate Compatible(sts: set<State>)
+  ghost predicate Compatible(sts: set<State>)
   {
     forall st, st' :: st in sts && st' in sts ==>
       forall p :: p in DomSt(st) && p in DomSt(st') ==> GetSt(p, st) == GetSt(p, st')
@@ -61,7 +61,7 @@ abstract module M0 {
     reveal Extends();
   }
 
-  function {:opaque} Combine(sts: set<State>, useCache: bool): State
+  ghost function {:opaque} Combine(sts: set<State>, useCache: bool): State
     requires sts != {};
   {
     var st := PickOne(sts);
@@ -70,7 +70,7 @@ abstract module M0 {
     else
       Union(Combine(sts - {st}, useCache), st, useCache)
   }
-  function PickOne<T>(s: set<T>): T
+  ghost function PickOne<T>(s: set<T>): T
     requires s != {};
   {
     var x :| x in s; x
@@ -111,12 +111,12 @@ abstract module M0 {
     }
   }
 
-  predicate ConsistentCache(stC: State)
+  ghost predicate ConsistentCache(stC: State)
   {
     forall cmd, deps, e :: Hash(Loc(cmd, deps, e)) in DomC(stC) ==>
       Loc(cmd, deps, e) in DomSt(stC)
   }
-  predicate {:opaque} StateCorrespondence(st: State, stC: State)
+  ghost predicate {:opaque} StateCorrespondence(st: State, stC: State)
   {
     // This definition, it turns out, is the same as Extends(st, stC)
     DomSt(st) <= DomSt(stC) &&
@@ -126,18 +126,18 @@ abstract module M0 {
 
   /******* Environment *******/
   type Env
-  predicate ValidEnv(env: Env)
-  function EmptyEnv(): Env
+  ghost predicate ValidEnv(env: Env)
+  ghost function EmptyEnv(): Env
     ensures ValidEnv(EmptyEnv());
-  function GetEnv(id: Identifier, env: Env): Expression
+  ghost function GetEnv(id: Identifier, env: Env): Expression
     requires ValidEnv(env);
     ensures Value(GetEnv(id, env));
-  function SetEnv(id: Identifier, expr: Expression, env: Env): Env
+  ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
     requires ValidEnv(env) && Value(expr);
     ensures ValidEnv(SetEnv(id, expr, env));
 
   /******* Primitive function 'exec' *******/
-  function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
 
   lemma ExecProperty(cmd: string, deps: set<Path>, exps: set<string>, st: State)
     requires
@@ -153,13 +153,13 @@ abstract module M0 {
       OneToOne(cmd, deps, exps, paths) &&
       Post(cmd, deps, exps, st');
 
-  predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) ==> GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
   }
 
-  predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
+  ghost predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
   {
     // KRML:  The previous definition only gave a lower bound on the member inclusion in "paths":
     //    forall e :: e in exps ==> Loc(cmd, deps, e) in paths
@@ -168,13 +168,13 @@ abstract module M0 {
     paths == set e | e in exps :: Loc(cmd, deps, e)
   }
 
-  predicate {:opaque} Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate {:opaque} Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) && GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
   }
 
-  predicate ExtendsLimit(cmd: string, deps: set<Path>, exps: set<string>, st: State, st': State)
+  ghost predicate ExtendsLimit(cmd: string, deps: set<Path>, exps: set<string>, st: State, st': State)
   {
     DomSt(st') == DomSt(st) + set e | e in exps :: Loc(cmd, deps, e)
   }
@@ -183,7 +183,7 @@ abstract module M0 {
   // that may live at that path.  This is less magical than it seems, because Loc is injective,
   // and therefore one can extract a unique (cmd,deps,exp) from p, and it's not so hard to see
   // how the oracle may "know" the artifact that results from that.
-  function Oracle(p: Path, st: State): Artifact
+  ghost function Oracle(p: Path, st: State): Artifact
 
   // The oracle never changes its mind.  Therefore, if st0 is extended into st1 only by following
   // what the oracle predicts, then no predictions change.
@@ -191,7 +191,7 @@ abstract module M0 {
     requires Extends(st0, st1);
     ensures Oracle(p, st0) == Oracle(p, st1);
 
-  predicate {:opaque} Extends(st: State, st': State)
+  ghost predicate {:opaque} Extends(st: State, st': State)
   {
     DomSt(st) <= DomSt(st') &&
     (forall p :: p in DomSt(st) ==> GetSt(p, st') == GetSt(p, st)) &&
@@ -206,7 +206,7 @@ abstract module M0 {
     forall p { OracleProperty(p, st0, st1); }
   }
 
-  function execC(cmd: string, deps: set<Path>, exps: set<string>, stC: State): Tuple<set<Path>, State>
+  ghost function execC(cmd: string, deps: set<Path>, exps: set<string>, stC: State): Tuple<set<Path>, State>
   {
     if forall e | e in exps :: Hash(Loc(cmd, deps, e)) in DomC(stC) then
       var paths := set e | e in exps :: Loc(cmd, deps, e);
@@ -245,7 +245,7 @@ abstract module M0 {
   datatype Reason = rCompatibility | rValidity | rInconsistentCache
 
   type Path(==,!new)
-  function Loc(cmd: string, deps: set<Path>, exp: string): Path
+  ghost function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact
   type Identifier
@@ -254,7 +254,7 @@ abstract module M0 {
   datatype Triple<A, B, C> = Tri(0: A, 1: B, 2: C)
 
   /******* Values *******/
-  predicate Value(expr: Expression)
+  ghost predicate Value(expr: Expression)
   {
     expr.exprLiteral?
   }
@@ -262,14 +262,14 @@ abstract module M0 {
   /******* Semantics *******/
 
   /******* Function 'build' *******/
-  function build(prog: Program, st: State, useCache: bool): Tuple<Expression, State>
+  ghost function build(prog: Program, st: State, useCache: bool): Tuple<Expression, State>
     requires Legal(prog.stmts);
   {
     do(prog.stmts, st, EmptyEnv(), useCache)
   }
 
   /******* Function 'do' *******/
-  function do(stmts: seq<Statement>, st: State, env: Env, useCache: bool): Tuple<Expression, State>
+  ghost function do(stmts: seq<Statement>, st: State, env: Env, useCache: bool): Tuple<Expression, State>
     requires Legal(stmts) && ValidEnv(env);
   {
     var stmt := stmts[0];
@@ -289,13 +289,13 @@ abstract module M0 {
       eval(stmt.ret, st, env, useCache)
   }
 
-  predicate Legal(stmts: seq<Statement>)
+  ghost predicate Legal(stmts: seq<Statement>)
   {
     |stmts| != 0
   }
 
   /******* Function 'eval' *******/
-  function {:opaque} eval(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
+  ghost function {:opaque} eval(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
      requires ValidEnv(env);
      decreases expr;
   {
@@ -373,7 +373,7 @@ abstract module M0 {
       Pair(exprError(rValidity), st)
   }
 
-  function evalFunArgs(expr: Expression, st: State, env: Env, useCache: bool): Triple<Expression, seq<Expression>, set<State>>
+  ghost function evalFunArgs(expr: Expression, st: State, env: Env, useCache: bool): Triple<Expression, seq<Expression>, set<State>>
     requires expr.exprInvocation? && ValidEnv(env);
   {
     var resultFun := eval(expr.fun, st, env, useCache);
@@ -468,7 +468,7 @@ abstract module M0 {
     reveal eval();
   }
 
-  function evalSuperCore(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
+  ghost function evalSuperCore(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
     requires expr.exprInvocation? && ValidEnv(env);
   {
     var tri := evalFunArgs(expr, st, env, useCache);
@@ -476,7 +476,7 @@ abstract module M0 {
     evalCompatCheckCore(st, sts'', fun', args', useCache)
   }
 
-  function evalCompatCheckCore(stOrig: State, sts: set<State>, fun: Expression, args: seq<Expression>, useCache: bool): Tuple<Expression, State>
+  ghost function evalCompatCheckCore(stOrig: State, sts: set<State>, fun: Expression, args: seq<Expression>, useCache: bool): Tuple<Expression, State>
     requires sts != {};
   {
     if !Compatible(sts) then
@@ -492,7 +492,7 @@ abstract module M0 {
         Pair(exprError(rValidity), stOrig)
   }
 
-  function evalCore(stOrig: State, stCombined: State, args: seq<Expression>, useCache: bool): Tuple<Expression, State>
+  ghost function evalCore(stOrig: State, stCombined: State, args: seq<Expression>, useCache: bool): Tuple<Expression, State>
   {
     if |args| == Arity(primExec) && ValidArgs(primExec, args, stCombined) then
       var cmd, deps, exps := args[0].lit.str, args[1].lit.paths, args[2].lit.strs;
@@ -508,7 +508,7 @@ abstract module M0 {
       Pair(exprError(rInconsistentCache), stOrig)
   }
 
-  function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env, useCache: bool):
+  ghost function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env, useCache: bool):
            Tuple<seq<Expression>, set<State>>
     requires
       ValidEnv(env) &&
@@ -523,14 +523,14 @@ abstract module M0 {
       Pair([r.fst] + rr.fst, {r.snd} + rr.snd)
   }
 
-  function Arity(prim: Primitive): nat
+  ghost function Arity(prim: Primitive): nat
   {
     match prim
     case primCreatePath => 1
     case primExec => 3
   }
 
-  predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
+  ghost predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
     requires prim.primExec? ==> |args| == 3;
     requires prim.primCreatePath? ==> |args| == 1;
   {
@@ -1110,7 +1110,7 @@ abstract module M0 {
     }
   }
 
-  function DomSt_Union(sts: set<State>): set<Path>
+  ghost function DomSt_Union(sts: set<State>): set<Path>
   {
     if sts == {} then {} else
     var st := PickOne(sts); DomSt(st) + DomSt_Union(sts - {st})
