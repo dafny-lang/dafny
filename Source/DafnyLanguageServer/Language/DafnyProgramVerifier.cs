@@ -64,8 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
 
-    public void Dispose()
-    {
+    public void Dispose() {
       engine.Dispose();
     }
   }

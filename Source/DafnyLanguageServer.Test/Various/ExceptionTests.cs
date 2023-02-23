@@ -110,8 +110,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
 
     public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
 
-    public void Dispose()
-    {
+    public void Dispose() {
       verifier?.Dispose();
     }
   }

@@ -63,8 +63,7 @@ class SlowVerifier : IProgramVerifier {
     }
   }
 
-  public void Dispose()
-  {
+  public void Dispose() {
     verifier?.Dispose();
   }
 }
