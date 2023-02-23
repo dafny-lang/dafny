@@ -1878,7 +1878,9 @@ the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
 To help the user not forget about that last step, a warning is emitted for any assume statement.
-Adding the `{:axiom}` attribute to the assume will negate the warning.
+Adding the `{:axiom}` attribute to the assume will negate the warning,
+indicating the user takes responsibility for being absolutely sure 
+that the proposition is indeed true.
 
 Using `...` as the argument of the statement is deprecated.
 
