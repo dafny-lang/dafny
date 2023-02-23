@@ -508,7 +508,9 @@ Usage: dafny [ option ... ] [ filename ... ]
   Multiple .bpl files supplied on the command line are concatenated into one
   Boogie program.
 
-  /lib           : Include library definitions
+  /lib:<name>    : Include definitions in library <name>. The file <name>.bpl
+                   must be an included resource in Core.dll. Currently, the
+                   following libraries are supported---base, node.
   /proc:<p>      : Only check procedures matched by pattern <p>. This option
                    may be specified multiple times to match multiple patterns.
                    The pattern <p> matches the whole procedure name and may
@@ -603,6 +605,8 @@ Usage: dafny [ option ... ] [ filename ... ]
 
   ---- Debugging and general tracing options ---------------------------------
 
+  /silent       print nothing at all
+  /quiet        print nothing but warnings and errors
   /trace        blurt out various debug trace information
   /traceTimes   output timing information at certain points in the pipeline
   /tracePOs     output information about the number of proof obligations
@@ -710,25 +714,23 @@ Usage: dafny [ option ... ] [ filename ... ]
                 a linear number of splits. The default way (top-down) is more
                 aggressive and it may create an exponential number of splits.
 
-  /randomSeed:<n>
-                Turn on randomization of the input that Boogie passes to the 
+  /randomSeed:<s>
+                Supply the random seed for /randomizeVcIterations option.
+
+  /randomizeVcIterations:<n>
+                Turn on randomization of the input that Boogie passes to the
                 SMT solver and turn on randomization in the SMT solver itself.
- 
+                Attempt to randomize and prove each VC n times using the random
+                seed s provided by the option /randomSeed:<s>. If /randomSeed option
+                is not provided, s is chosen to be zero.
+
                 Certain Boogie inputs are unstable in the sense that changes to 
                 the input that preserve its meaning may cause the output to change.
-                The /randomSeed option simulates meaning-preserving changes to 
-                the input without requiring the user to actually make those changes.
-
-                The /randomSeed option is implemented by renaming variables and 
-                reordering declarations in the input, and by setting 
-                solver options that have similar effects.
-
-  /randomSeedIterations:<n>
-                Attempt to prove each VC n times with n random seeds. If
-                /randomSeed has been provided, each proof attempt will use
-                a new random seed derived from this original seed. If not,
-                it will implicitly use /randomSeed:0 to ensure a difference
-                between iterations.
+                This option simulates meaning-preserving changes to the input
+                without requiring the user to actually make those changes.
+                This option is implemented by renaming variables and reordering
+                declarations in the input, and by setting solver options that have
+                similar effects.
 
   ---- Verification-condition splitting --------------------------------------
 
