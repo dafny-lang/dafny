@@ -163,7 +163,7 @@ class BreadthFirstSearch<Vertex(==)>
 
   // Reachability
 
-  function {:opaque} R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
+  opaque function R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
   {
     if n == 0 then {source} else
     R(source, n-1, AllVertices) + Successors(R(source, n-1, AllVertices), AllVertices)
