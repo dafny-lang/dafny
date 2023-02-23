@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\Binaries\z3\**\*" LinkBase="z3">
+    <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
 

@@ -24,10 +24,10 @@ method Foo()
 
     await GetLastDiagnostics(documentItem, CancellationToken);
     var processes2 = Process.GetProcessesByName(solverProcessName);
-    Assert.AreEqual(processes2.Length - 1, processes1.Length);
+    Assert.AreEqual(processes1.Length, processes2.Length - 1);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "\n");
     await GetLastDiagnostics(documentItem, CancellationToken);
     var processes3 = Process.GetProcessesByName(solverProcessName);
-    Assert.AreEqual(processes3.Length, processes2.Length);
+    Assert.AreEqual(processes2.Length, processes3.Length);
   }
 }
