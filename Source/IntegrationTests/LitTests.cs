@@ -33,7 +33,7 @@ namespace IntegrationTests {
       "/proverOpt:O:smt.qi.eager_threshold=100",
       "/proverOpt:O:smt.delay_units=true",
       "/proverOpt:O:smt.arith.solver=2",
-      "/proverOpt:PROVER_PATH:" + RepositoryRoot + "../unzippedRelease/dafny/z3/bin/z3"
+      "/proverOpt:PROVER_PATH:" + RepositoryRoot + "../unzippedRelease/dafny/z3/bin/z3-${DafnyOptions.DefaultZ3Version}"
     };
 
     private static readonly LitTestConfiguration Config;
@@ -58,7 +58,7 @@ namespace IntegrationTests {
         { "%diff", "diff" },
         { "%trargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         { "%binaryDir", "." },
-        { "%z3", Path.Join("z3", "bin", "z3") },
+        { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
 
