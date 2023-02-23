@@ -489,11 +489,7 @@ module SnapTree {
     var initialized: bool
     var stack: List
 
-<<<<<<< HEAD
-    predicate {:opaque} Valid()
-=======
     opaque predicate Valid()
->>>>>>> upstream/master
       reads this, IterRepr, T
       reads if T != null then T.Repr else {}
       ensures Valid() ==> T != null && IterRepr !! T.Repr
@@ -514,11 +510,7 @@ module SnapTree {
     //  * for Cons(p, rest), fragment [p.data]+p.right.Contents
     // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
     // Nodes is (an overapproximation of) the set of nodes read by R.
-<<<<<<< HEAD
-    static predicate {:opaque} R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
-=======
     static opaque predicate R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
->>>>>>> upstream/master
       reads Nodes
       decreases wlist
     {
