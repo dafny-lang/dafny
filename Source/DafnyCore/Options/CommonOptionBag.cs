@@ -11,6 +11,9 @@ public class CommonOptionBag {
   public static readonly Option<int> VerificationErrorLimit =
     new("--error-limit", () => 5, "Set the maximum number of verification errors to report (0 for unlimited).");
 
+  public static readonly Option<Boogie.CoreOptions.VerbosityLevel> Verbosity =
+    new("--verbosity", () => CoreOptions.VerbosityLevel.Normal, "Set the level of output produced. Ranges from nothing (Silent) to detailed (Trace). With 'Normal', produce warnings, errors, and some extra information. With 'Quiet', produce only errors and warnings.");
+
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
 
@@ -28,10 +31,6 @@ true - In the compiled target code, transform any non-extern
     non-ghost parameter into just that parameter. For example, the type
         datatype Record = Record(x: int)
     is transformed into just 'int' in the target code.".TrimStart());
-
-  public static readonly Option<bool> Verbose = new("--verbose",
-    "Print additional information such as which files are emitted where.") {
-  };
 
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
     @"
@@ -186,6 +185,10 @@ Functionality is still being expanded. Currently only checks contracts on every 
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
     DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
+    DafnyOptions.RegisterLegacyBinding(Verbosity, (options, value) => {
+      options.Verbosity = value;
+      options.CompileVerbose = value >= CoreOptions.VerbosityLevel.Trace;
+    });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
 
@@ -217,7 +220,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
       (options, value) => { options.LibraryFiles = value.ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
-    DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);

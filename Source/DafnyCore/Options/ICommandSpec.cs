@@ -18,7 +18,6 @@ public interface ICommandSpec {
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
     DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
@@ -60,6 +59,7 @@ public interface ICommandSpec {
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.WarningAsErrors,
+    CommonOptionBag.Verbosity
   });
 
   public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
