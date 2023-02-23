@@ -302,8 +302,8 @@ namespace Microsoft.Dafny.Compilers {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var files = assembly.GetManifestResourceNames();
       const string header = "DafnyPipeline.java";
+      // Files in 'files' have the form 'DafnyPipeline.java.dafny.Array.java'
       foreach (var file in files.Where(f => f.StartsWith(header))) {
-        // DafnyPipeline.java.dafny.Array.java
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
         var fileNode = wr.NewFile(realName);
