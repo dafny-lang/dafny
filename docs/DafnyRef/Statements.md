@@ -1877,14 +1877,8 @@ the program required the proposition. By using the `assume` statement
 the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
-An `assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an `assume` anywhere.
-
-Using an `{:axiom}` attribute makes the claim that the assume statement is
-OK because it is known outside the Dafny program to be true.
-The verifier will not complain about it, but it is the user's 
-responsibility to be absolutely sure that the proposition is
-indeed true.
+To help the user not forget about that last step, a warning is emitted for any assume statement.
+Adding the `{:axiom}` attribute to the assume will negate the warning.
 
 Using `...` as the argument of the statement is deprecated.
 
