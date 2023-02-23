@@ -64,9 +64,7 @@ public class JavaBackend : ExecutableBackend {
     }
 
     var targetDirectory = Path.GetDirectoryName(targetFilename);
-    if (!DafnyOptions.O.UseRuntimeLib) {
-      EmitRuntimeJar(targetDirectory);
-    }
+    EmitRuntimeJar(targetDirectory);
 
     var files = new List<string>();
     foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
@@ -81,13 +79,11 @@ public class JavaBackend : ExecutableBackend {
       return false;
     }
 
-    if (!DafnyOptions.O.UseRuntimeLib) {
-      // If the built-in runtime library is used, unpack it so it can be repacked into the final jar
-      var libUnpackProcess = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
-      libUnpackProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      if (0 != RunProcess(libUnpackProcess, outputWriter, "Error while creating jar file (unzipping runtime library).")) {
-        return false;
-      }
+    // If the built-in runtime library is used, unpack it so it can be repacked into the final jar
+    var libUnpackProcess = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
+    libUnpackProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+    if (0 != RunProcess(libUnpackProcess, outputWriter, "Error while creating jar file (unzipping runtime library).")) {
+      return false;
     }
 
     var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)

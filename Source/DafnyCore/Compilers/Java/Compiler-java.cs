@@ -298,6 +298,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
+
+      var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+      var files = assembly.GetManifestResourceNames();
+      const string header = "DafnyPipeline.java";
+      foreach (var file in files.Where(f => f.StartsWith(header))) {
+        // DafnyPipeline.java.dafny.Array.java
+        var parts = file.Split('.');
+        var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+        var fileNode = wr.NewFile(realName);
+        ReadRuntimeSystem(program, file, fileNode);
+      }
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
       ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
@@ -2814,7 +2825,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
       // Emit tuples
       foreach (int i in tuples) {
-        if (i == 2 || i == 3) {
+        if (i <= 20) {
           continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
         }
         CreateTuple(i, wr);

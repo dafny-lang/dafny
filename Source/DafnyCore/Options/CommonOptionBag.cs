@@ -180,7 +180,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
         options.Induction = 1;
       }
     });
-    DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => { options.UseRuntimeLib = !value; });
+    DafnyOptions.RegisterLegacyBinding(IncludeRuntime, (options, value) => { options.IncludeRuntimeSource = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
