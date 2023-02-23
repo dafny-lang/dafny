@@ -31,7 +31,7 @@ A refining module import (`import D : C`) may only occur in an abstract module i
 Generally speaking, suppose you have an underspecified module that is imported using ':', as in
 ```
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -48,7 +48,7 @@ Here `A` is abstract because it stands for any concrete module that adheres to t
 Now we can implement a concrete version of `Interface`:
 ```
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1

@@ -3736,7 +3736,8 @@ namespace Microsoft.Dafny.Compilers {
       var funcBlock = wr.NewBlock("func()", close: BlockStyle.Brace);
       var deferBlock = funcBlock.NewBlock("defer func()", close: BlockStyle.Brace);
       var ifRecoverBlock = deferBlock.NewBlock("if r := recover(); r != nil");
-      ifRecoverBlock.WriteLine($"var {haltMessageVarName} = {HelperModulePrefix}SeqOfString(r.(string))");
+      var stringMaker = UnicodeCharEnabled ? "UnicodeSeqOfUtf8Bytes" : "SeqOfString";
+      ifRecoverBlock.WriteLine($"var {haltMessageVarName} = {HelperModulePrefix}{stringMaker}(r.(string))");
       TrStmt(recoveryBody, ifRecoverBlock);
       funcBlock.WriteLine("()");
       TrStmt(body, funcBlock);
