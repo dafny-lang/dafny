@@ -106,7 +106,7 @@ https://github.com/dafny-lang/dafny/blob/master/Source/DafnyLanguageServer/READM
         }
       }
 
-      return QuantifierSyntaxOptions.Version3;
+      return QuantifierSyntaxOptions.Version4;
     }, true, @"
 The syntax for quantification domains is changing from Dafny version 3 to version 4, more specifically where quantifier ranges (|
 <Range>) are allowed. This switch gives early access to the new syntax.

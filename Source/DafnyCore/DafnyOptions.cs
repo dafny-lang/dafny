@@ -1256,10 +1256,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     4. This switch gives early access to the new syntax, and also
     provides a mode to help with migration.
 
-    3 (default) - Compiled functions are written `function method` and
+    3 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `function` and
         `predicate`.
-    4 - Compiled functions are written `function` and `predicate`. Ghost
+    4 (default) - Compiled functions are written `function` and `predicate`. Ghost
         functions are written `ghost function` and `ghost predicate`.
     migration3to4 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `ghost function`
