@@ -59,7 +59,7 @@ namespace IntegrationTests {
         { "%trargs", "--use-basename-for-filename --cores:2 --verification-time-limit:300" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
-        { "%repositoryRoot", repositoryRoot.Replace(@"\", "/") },
+        { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
       };
 
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
