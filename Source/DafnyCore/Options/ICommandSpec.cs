@@ -35,6 +35,7 @@ public interface ICommandSpec {
     CommonOptionBag.SolverResourceLimit,
     CommonOptionBag.SolverPlugin,
     CommonOptionBag.SolverLog,
+    CommonOptionBag.SolverOpt,
     CommonOptionBag.VerificationErrorLimit,
   }.ToList();
 

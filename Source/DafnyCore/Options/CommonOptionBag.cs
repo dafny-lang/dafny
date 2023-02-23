@@ -62,6 +62,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof effort, which you can use to determine an appropriate limit for your program. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
   public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+  public static readonly Option<IList<string>> SolverOpt = new("--solver-opt", @"Specify an option to control how the solver works.");
 
   public static readonly Option<IList<string>> Libraries = new("--library",
     @"
@@ -232,6 +233,11 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+    DafnyOptions.RegisterLegacyBinding(SolverOpt, (o, v) => {
+      if (v is not null) {
+        o.ProverOptions.AddRange(v);
+      }
+    });
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
