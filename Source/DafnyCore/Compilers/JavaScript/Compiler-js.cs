@@ -2486,7 +2486,14 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(body, tryBlock);
       var catchBlock = wr.NewBlock("catch (e)");
       var ifBlock = catchBlock.NewBlock("if (e instanceof _dafny.HaltException)");
-      ifBlock.WriteLine($"let {haltMessageVarName} = e.message;");
+      ifBlock.Write($"let {haltMessageVarName} = ");
+      if (UnicodeCharEnabled) {
+        ifBlock.Write("_dafny.Seq.UnicodeFromString(e.message)");
+      } else {
+        ifBlock.Write("e.message");
+      }
+      ifBlock.WriteLine(";");
+
       TrStmt(recoveryBody, ifBlock);
       var elseBlock = catchBlock.NewBlock("else");
       elseBlock.WriteLine("throw e");
