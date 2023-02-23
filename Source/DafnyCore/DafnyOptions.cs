@@ -1289,10 +1289,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     <Range>) are allowed. This switch gives early access to the new
     syntax.
 
-    3 (default) - Ranges are only allowed after all quantified variables
+    3 - Ranges are only allowed after all quantified variables
         are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
         y :: y)
-    4 - Ranges are allowed after each quantified variable declaration.
+    4 (default) - Ranges are allowed after each quantified variable declaration.
         (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
 
     Note that quantifier variable domains (<- <Domain>) are available in
