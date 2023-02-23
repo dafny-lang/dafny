@@ -138,12 +138,6 @@ public class InferDecreasesClause {
     return anyChangeToDecreases;
   }
 
-  public Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    return ArrowType.FrameArrowToObjectSet(e, idGen, resolver.builtIns);
-  }
-
   public Expression FrameToObjectSet(List<FrameExpression> fexprs) {
     Contract.Requires(fexprs != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
@@ -156,7 +150,7 @@ public class InferDecreasesClause {
       if (fe.E is WildcardExpr) {
         // drop wildcards altogether
       } else {
-        Expression e = FrameArrowToObjectSet(fe.E, idGen); // keep only fe.E, drop any fe.Field designation
+        Expression e = fe.E; // keep only fe.E, drop any fe.Field designation
         Contract.Assert(e.Type != null); // should have been resolved already
         var eType = e.Type.NormalizeExpand();
         if (eType.IsRefType) {
@@ -170,6 +164,7 @@ public class InferDecreasesClause {
           // e represents a sequence or multiset
           var collectionType = (CollectionType)eType;
           var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+          var boundedPool = collectionType.GetBoundedPool(e);
 
           // Add:  set x :: x in e
           var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg);
@@ -183,6 +178,7 @@ public class InferDecreasesClause {
           };
           var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE, null) {
             Type = new SetType(true, resolver.builtIns.ObjectQ()),
+            Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
           };
           sets.Add(s);
         } else {
