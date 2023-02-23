@@ -1348,7 +1348,7 @@ Rhs =
   | HavocRhs_
   )
   { Attribute }
-</pre>
+````
 
 #### 17.2.7.16. Array allocation right-hand-side expression {#g-array-allocation-expression}
 ([discussion](#sec-array-allocation)) 
