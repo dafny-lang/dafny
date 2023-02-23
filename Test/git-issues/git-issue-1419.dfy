@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module FromBugReport {
-  predicate P() { 
+  ghost predicate P() { 
     // The following expression depends on the allocation state, so it should not be allowed
     // in a function.
     exists o: set<object> :: |o| > 10 // error: function body is not allowed to depend on allocation state
@@ -10,7 +10,7 @@ module FromBugReport {
 
   type SetOfObjects = set<object>
 
-  predicate Q() {
+  ghost predicate Q() {
     // The following expression is the same as the one in the body of P() above. Thus, an
     // error should be generated for it as well. (Previously, the type synonym had caused
     // no error to be generated, which was buggy.)
@@ -86,35 +86,35 @@ module A {
 module B {
   import A`Everything
 
-  predicate F() {
+  ghost predicate F() {
     exists o: A.Int :: o == o
   }
 
-  predicate G() {
+  ghost predicate G() {
     exists o: A.Reference :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate H0() {
+  ghost predicate H0() {
     exists o: A.IntX<int> :: o == o
   }
 
-  predicate H1() {
+  ghost predicate H1() {
     exists o: A.IntX<object> :: o == o
   }
 
-  predicate I0() {
+  ghost predicate I0() {
     exists o: A.ReferenceX<int> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate I1() {
+  ghost predicate I1() {
     exists o: A.ReferenceX<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate J0() {
+  ghost predicate J0() {
     exists o: A.Param<int> :: o == o
   }
 
-  predicate J1() {
+  ghost predicate J1() {
     exists o: A.Param<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 }
@@ -122,35 +122,35 @@ module B {
 module C {
   import A`Limited
 
-  predicate F() {
+  ghost predicate F() {
     exists o: A.Int :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate G() {
+  ghost predicate G() {
     exists o: A.Reference :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate H0() {
+  ghost predicate H0() {
     exists o: A.IntX<int> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate H1() {
+  ghost predicate H1() {
     exists o: A.IntX<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate I0() {
+  ghost predicate I0() {
     exists o: A.ReferenceX<int> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate I1() {
+  ghost predicate I1() {
     exists o: A.ReferenceX<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate J0() {
+  ghost predicate J0() {
     exists o: A.Param<int> :: o == o // error: function body is not allowed to depend on allocation state
   }
 
-  predicate J1() {
+  ghost predicate J1() {
     exists o: A.Param<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 }
@@ -167,23 +167,23 @@ module AA {
 module D {
   import A = AA`Limited
 
-  predicate F() {
+  ghost predicate F() {
     exists o: A.Int :: o == o
   }
 
-  predicate H0() {
+  ghost predicate H0() {
     exists o: A.IntX<int> :: o == o
   }
 
-  predicate H1() {
+  ghost predicate H1() {
     exists o: A.IntX<object> :: o == o
   }
 
-  predicate J0() {
+  ghost predicate J0() {
     exists o: A.Param<int> :: o == o
   }
 
-  predicate J1() {
+  ghost predicate J1() {
     exists o: A.Param<object> :: o == o // error: function body is not allowed to depend on allocation state
   }
 }
@@ -191,7 +191,7 @@ module D {
 module DatatypeSet {
   datatype Obs = Obs(s: set<object>)
 
-  predicate LotsOfObjects() {
+  ghost predicate LotsOfObjects() {
     exists o: Obs :: |o.s| > 10 // error: function body is not allowed to depend on allocation state
   }
 }
@@ -219,20 +219,20 @@ module DatatypeWithMembers {
       NoReferencesPlease<object>(); // error: type argument contains references
     }
 
-    function ApplyToXSet(S: set<X>, f: X ~> X): set<X>
+    ghost function ApplyToXSet(S: set<X>, f: X ~> X): set<X>
       requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
 
-    function ApplyToYSet(S: set<Y>, f: Y ~> Y): set<Y>
+    ghost function ApplyToYSet(S: set<Y>, f: Y ~> Y): set<Y>
       requires forall y :: y in S ==> f.reads(y) == {} && f.requires(y)
   }
 
   method NoReferencesPlease<X(!new)>() {
   }
 
-  function ApplyToSetNoReferences<X(!new)>(S: set<X>, f: X ~> X): set<X>
+  ghost function ApplyToSetNoReferences<X(!new)>(S: set<X>, f: X ~> X): set<X>
     requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
 
-  function ApplyToSet<Y>(S: set<Y>, f: Y ~> Y): set<Y>
+  ghost function ApplyToSet<Y>(S: set<Y>, f: Y ~> Y): set<Y>
     requires forall y :: y in S ==> f.reads(y) == {} && f.requires(y)
 }
 

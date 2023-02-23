@@ -30,13 +30,13 @@ trait Universe {
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe,
   // without having to check the object invariants.
-  predicate globalBaseInv() reads this, content {
+  ghost predicate globalBaseInv() reads this, content {
     && (forall o: Object | o in content :: o.universe == this && o as object != this)
     && (forall o: Object | o in content :: o.triggerAxioms())
   }
 
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate globalInv() reads * {
+  ghost predicate globalInv() reads * {
     globalBaseInv() && (forall o: Object | o in content :: o.inv())
   }
 
@@ -240,7 +240,7 @@ trait Object {
   const universe: Universe
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
-  predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
+  ghost predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
 
   // Join the universe
   method join()
@@ -261,22 +261,22 @@ trait Object {
   }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
+  ghost predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { baseInv() && universe.globalInv2() }
 
-  predicate triggerAxioms() reads this ensures triggerAxioms() {
+  ghost predicate triggerAxioms() reads this ensures triggerAxioms() {
     assume (this is OwnedObject || this is Thread) && !(this is OwnedObject && this is Thread);
     && (this is OwnedObject || this is Thread)
     && !(this is OwnedObject && this is Thread)
   }
 
   // To be implemented: 1-state invariant, 2-state invariant, admissibility proof...
-  predicate isOwnedObject() // To prevent a class from extending both OwnedObject and Thread
-  predicate localInv() reads *
+  ghost predicate isOwnedObject() // To prevent a class from extending both OwnedObject and Thread
+  ghost predicate localInv() reads *
   twostate predicate localInv2() reads *
-  predicate inv() ensures inv() ==> localInv() reads *
+  ghost predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate transitiveInv2() reads * // Assuming universe.baseLegalTransitionsSequence(), this should be transitive. This can be checked with a method. See `CheckTransitiveInv2` below.
   twostate predicate inv2() ensures inv2() ==> localInv2() && transitiveInv2() reads *
   lemma ProveReflexiveTransitiveInv2() ensures transitiveInv2()
@@ -285,12 +285,12 @@ trait Object {
 
 class Thread extends Object {
   // To prevent a class from extending both OwnedObject and Thread
-  predicate isOwnedObject() { false }
+  ghost predicate isOwnedObject() { false }
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
   }
 
@@ -341,19 +341,19 @@ trait OwnedObject extends Object {
   ghost var owner: Object // nonvolatile
 
   // To prevent a class from extending both OwnedObject and Thread
-  predicate isOwnedObject() { true }
+  ghost predicate isOwnedObject() { true }
 
   twostate predicate unchangedNonvolatileFields() reads this {
     old(owner) == owner && unchangedNonvolatileUserFields()
   }
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
     && owner in universe.content
     && baseUserInv()
     && localUserInv()
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
     && userInv()
   }
@@ -427,10 +427,10 @@ trait OwnedObject extends Object {
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, admissibility proof...
   twostate predicate unchangedNonvolatileUserFields() reads this // Checking transitivity is up to the classes that implement this trait.
-  predicate baseUserInv() reads *
-  predicate localUserInv() reads *
+  ghost predicate baseUserInv() reads *
+  ghost predicate localUserInv() reads *
   twostate predicate localUserInv2() reads *
-  predicate userInv() reads * ensures userInv() ==> localUserInv()
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv()
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2()
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields()
 
@@ -454,10 +454,10 @@ class EmptyType extends OwnedObject {
   twostate predicate unchangedNonvolatileUserFields() reads this { true }
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields() {}
 
-  predicate baseUserInv() reads * { true }
+  ghost predicate baseUserInv() reads * { true }
 
-  predicate localUserInv() reads * { true }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() { localUserInv() }
+  ghost predicate localUserInv() reads * { true }
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() { localUserInv() }
   twostate predicate localUserInv2() reads * { true }
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2() { localUserInv2() }
 
@@ -495,14 +495,14 @@ class IncreasingCounter extends OwnedObject {
   twostate predicate unchangedNonvolatileUserFields() reads this { true }
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields() {}
 
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && true
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && true
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 
@@ -540,14 +540,14 @@ class Integer extends OwnedObject {
   }
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields() {}
 
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && true
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && true
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 
@@ -585,14 +585,14 @@ class ConstantInteger extends OwnedObject {
   }
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields() {}
 
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && true
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && true
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 
@@ -632,15 +632,15 @@ class ClaimIncreasingCounterGreaterThanConstant extends OwnedObject {
   }
   twostate lemma ProveUnchangedNonvolatileUserFields() requires unchanged(this) ensures unchangedNonvolatileUserFields() {}
 
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && counter in universe.content
     && constant in universe.content
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && counter.value >= constant.value
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 

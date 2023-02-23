@@ -47,7 +47,7 @@ method M(n: int) returns (r: int)
 
 // Same as above, but as a function
 
-function method mc91(n: int): int
+function mc91(n: int): int
   ensures n <= 100 ==> mc91(n) == 91
   decreases 100 - n
 {
@@ -59,7 +59,7 @@ function method mc91(n: int): int
 
 // Iterating a function f e times starting from n
 
-function method iter(e: nat, f: int -> int, n: int): int
+function iter(e: nat, f: int -> int, n: int): int
 {
   if e == 0 then n else iter(e-1, f, f(n))
 }

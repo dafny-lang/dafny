@@ -5,5 +5,5 @@ module m1 {
  export reveals f
 
  type T = int
- function f(x:T) : T { x }
+ ghost function f(x:T) : T { x }
 }

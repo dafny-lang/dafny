@@ -111,7 +111,7 @@ class A {
     }
   }
 
-  function BadRangeReads(a: array<int>, all: bool): bool
+  ghost function BadRangeReads(a: array<int>, all: bool): bool
   {
     allocated(a) && a.Length == 10 &&
     if all then
@@ -121,7 +121,7 @@ class A {
       a[..5] +        // error: not allowed to read the elements of a
       a[2..] == []    // error: not allowed to read the elements of a
   }
-  function GoodRangeReads(a: array<int>, all: bool): bool
+  ghost function GoodRangeReads(a: array<int>, all: bool): bool
     reads a
   {
     allocated(a) && a.Length == 10 &&
@@ -130,14 +130,14 @@ class A {
     else
       a[2..5] + a[..5] + a[2..] == []  // no prob, since we now have a reads clause
   }
-  function AnotherGoodRangeReads(a: array<int>, j: int): bool
+  ghost function AnotherGoodRangeReads(a: array<int>, j: int): bool
   {
     allocated(a) && 0 <= j && j <= a.Length &&
     a[j..j] == []
   }
 
-  predicate Q0(s: seq<int>)
-  predicate Q1(s: seq<int>)
+  ghost predicate Q0(s: seq<int>)
+  ghost predicate Q1(s: seq<int>)
   method FrameTest(a: array<int>) returns (b: array<int>)
     requires Q0(a[..])
   {
@@ -154,21 +154,21 @@ class B { }
 // -------------------------------
 
 class ArrayTests {
-  function F0(a: array<int>): bool
+  ghost function F0(a: array<int>): bool
   {
     allocated(a) && 10 <= a.Length &&
     a[7] == 13  // error: reads on something outside reads clause
   }
 
   var b: array<int>
-  function F1(): bool
+  ghost function F1(): bool
     reads this
   {
     10 <= b.Length &&
     b[7] == 13  // error: reads on something outside reads clause
   }
 
-  function F2(a: array<int>): bool
+  ghost function F2(a: array<int>): bool
     reads this, b, a
   {
     allocated(a) && 10 <= a.Length &&
@@ -272,8 +272,8 @@ class Cdefg<T> {
 
 class MyClass {
   ghost var Repr: set<object>
-  predicate ValidPrivate()
-  predicate Valid()
+  ghost predicate ValidPrivate()
+  ghost predicate Valid()
     reads this, Repr
   {
     ValidPrivate() && (forall o :: o in Repr ==> allocated(o))
@@ -307,7 +307,7 @@ method AllocationBusiness2(a: array2<MyClass>, i: int, j: int)
 // ------- a regression test, testing that dtype is set correctly after allocation ------
 
 module DtypeRegression {
-  predicate array_equal(a: array<int>, b: array<int>)
+  ghost predicate array_equal(a: array<int>, b: array<int>)
     requires allocated(a) && allocated(b)
     reads a, b
   {

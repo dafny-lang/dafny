@@ -8,7 +8,7 @@ module NativeTypes {
 module ConversionModule {
   import opened NativeTypes
 
-  predicate method Uint64ToBytes(u:uint64) { true }
+  predicate Uint64ToBytes(u:uint64) { true }
 }
 
 abstract module AppStateMachine_s {
@@ -18,7 +18,7 @@ abstract module AppStateMachine_s {
 module AppStateMachine_i refines AppStateMachine_s {
   import ConversionModule
 
-  predicate method F(response:uint64)
+  predicate F(response:uint64)
   {
     ConversionModule.Uint64ToBytes(response)
   }

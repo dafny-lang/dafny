@@ -7,8 +7,8 @@
 
 module ErrorLocation {
   type neg = x | x < 0 witness -1
-  predicate P(n: nat) { true }
-  predicate Q(y: neg) { true }
+  ghost predicate P(n: nat) { true }
+  ghost predicate Q(y: neg) { true }
   lemma Test()
   {
     assert forall x :: (0 <= x ==> P(x)) && (100 < x ==> Q(x));  // error:
@@ -53,7 +53,7 @@ module MemberCall {
 
 module HomegrownNonNullType {
   class C { var u: int }
-  function method F(): C
+  function F(): C
   type MyNonNullC = c: C? | c != null witness F()
 
   method M(c: MyNonNullC)
@@ -97,7 +97,7 @@ module NullLiterals {
 }
 
 module XJ {
-  predicate method Z(z: real) { z == 3.14 }
+  predicate Z(z: real) { z == 3.14 }
   class Cell { var data: int }
   method D(k: int, seven: Cell)
     requires seven.data == 7

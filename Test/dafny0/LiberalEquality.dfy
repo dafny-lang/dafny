@@ -9,7 +9,7 @@ class Array<T>
 class Test<T> {
   var a: Array<int>;
   var b: Array<T>;
-  predicate valid()
+  ghost predicate valid()
       reads this, a, b;
   {
     a != null && b != null &&

@@ -6,7 +6,7 @@
 
 datatype List<T> = Nil | Cons(car: T, cdr: List)
 
-function method funkyNil(l: List): List
+function funkyNil(l: List): List
 {
   match l
   case Cons(x,y) => funkyNil(y)

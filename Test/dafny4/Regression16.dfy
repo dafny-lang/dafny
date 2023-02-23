@@ -3,7 +3,7 @@
 
 datatype Tree = Leaf | Node(x: int, left: Tree, right: Tree)
 
-function method Insert(t: Tree, y: int): Tree
+function Insert(t: Tree, y: int): Tree
 {
   match t
   case Leaf => Node(y, Leaf, Leaf)
@@ -14,14 +14,14 @@ function method Insert(t: Tree, y: int): Tree
       Node(x, Insert(right, y), left)
 }
 
-function Elements(t: Tree): multiset<int>
+ghost function Elements(t: Tree): multiset<int>
 {
   match t
   case Leaf =>  multiset {}
   case Node(x, left, right) => multiset {x} + Elements(left) + Elements(right)
 }
 
-predicate IsBalanced(t: Tree)
+ghost predicate IsBalanced(t: Tree)
 {
   match t
   case Leaf => true

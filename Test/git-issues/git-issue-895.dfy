@@ -2,11 +2,11 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  predicate Init(s: int) {
+  ghost predicate Init(s: int) {
     s == 0
   }
 
-  predicate Next(s: int, s': int) {
+  ghost predicate Next(s: int, s': int) {
     s' == s + 1
   }
 

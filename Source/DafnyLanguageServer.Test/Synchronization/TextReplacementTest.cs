@@ -244,8 +244,8 @@ function GetConstant(): int {
 
     [TestMethod]
     public async Task ReplaceCompleteDocumentContent() {
-      var source = "function GetConstant(): int { 1 }";
-      var change = "function method ReturnSame(x: int): int { x }";
+      var source = "ghost function GetConstant(): int { 1 }";
+      var change = "function ReturnSame(x: int): int { x }";
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);

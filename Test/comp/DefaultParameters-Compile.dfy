@@ -35,7 +35,7 @@ method Main() {
   GG(); // 6 6 7
 }
 
-function method F(x: int := 5): int { x }
+function F(x: int := 5): int { x }
 
 method FF(w: int := x, x: int := F(), y: int := w + 1) {
   print w, " ", x, " ", y, "\n";
@@ -45,5 +45,5 @@ method GG(w: int := x, x: int := G(), y: int := w + 1) {
   print w, " ", x, " ", y, "\n";
 }
 
-function method G(x: int := 6): int { x }
+function G(x: int := 6): int { x }
 

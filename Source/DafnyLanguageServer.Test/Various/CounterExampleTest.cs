@@ -1027,7 +1027,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       newtype nat64 = x | 0 <= x <= NAT64_MAX
 
-      function method plus(a: nat64, b: nat64): nat64 {
+      function plus(a: nat64, b: nat64): nat64 {
         a + b
       }".TrimStart();
       var documentItem = CreateTestDocument(source);

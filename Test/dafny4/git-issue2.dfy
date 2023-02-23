@@ -4,9 +4,9 @@
 type sp_state
 type operand = int
 
-function sp_op_const(c:int) : int { c }
+ghost function sp_op_const(c:int) : int { c }
 
-predicate {:opaque} InBounds(s:sp_state, o:operand, v:int)
+ghost predicate {:opaque} InBounds(s:sp_state, o:operand, v:int)
 {
     0 <= o < 0x1_0000_0000
 }

@@ -13,7 +13,7 @@ method {:extern "Util.Conversions", "ToJavaString"} ToJavaString(s: string) retu
   ensures js.value == s
 
 // The conversion this way can be a function.
-function method {:extern "dafny.DafnySequence", "asString"} ToDafnyString(js: JavaString): string
+function {:extern "dafny.DafnySequence", "asString"} ToDafnyString(js: JavaString): string
   ensures ToDafnyString(js) == js.value
 
 method {:extern "dafny.ExternJavaString", "getStringFromFile"} GetStringFromFile() returns (js: JavaString)
