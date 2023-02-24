@@ -33,13 +33,15 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   private bool scopeIsInherited = false;
 
   public override IEnumerable<AssumptionDescription> Assumptions() {
-    if (Attributes.Contains(Attributes, "axiom")) {
+    if (Attributes.Contains(Attributes, "axiom") &&
+        !Attributes.Contains(Attributes, "auto_generated")) {
       yield return AssumptionDescription.HasAxiomAttribute;
     }
 
     if (Attributes.Find(Attributes, "verify") is Attributes va &&
         va.Args.Count == 1 && Expression.IsBoolLiteral(va.Args[0], out var verify) &&
-        verify == false) {
+        verify == false &&
+        !Attributes.Contains(Attributes, "auto_generated")) {
       yield return AssumptionDescription.HasVerifyFalseAttribute;
     }
   }
