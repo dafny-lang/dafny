@@ -145,21 +145,6 @@ namespace IntegrationTests {
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
-        commands["%resolve"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, AddExtraArgs(defaultResolveArgs, args)), config.PassthroughEnvironmentVariables);
-        commands["%translate"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, AddExtraArgs(defaultResolveArgs, args)), config.PassthroughEnvironmentVariables);
-        commands["%verify"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, AddExtraArgs(defaultVerifyeArgs, args)), config.PassthroughEnvironmentVariables);
-        commands["%build"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, AddExtraArgs(defaultResolveArgs, args)), config.PassthroughEnvironmentVariables);
-        commands["%run"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath,
-            AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, AddExtraArgs(defaultResolveArgs, args)), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config,
