@@ -170,6 +170,10 @@ class Release:
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
+                        if self.os_name != 'windows':
+                            # http://stackoverflow.com/questions/434641/
+                            fileinfo.external_attr = 0o100755 << 16
+                            fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
                         archive.writestr(fileinfo, contents)
             uppercaseDafny = path.join(self.buildDirectory, "Dafny")
             if os.path.exists(uppercaseDafny):
@@ -182,7 +186,7 @@ class Release:
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if self.os_name != 'win':
+                    if self.os_name != 'windows':
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
