@@ -1376,7 +1376,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           prefixWr.Write(") -> ");
           wr.Write(")");
-          
+
           // TODO: Need to check arguments as well. Probably could use something like EmitCoercionIfNecessary
           // that works in this context too?
           if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
@@ -3668,7 +3668,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool IsCharBasedType(Type type) {
       return type switch {
         { IsCharType: true } => true,
-        UserDefinedType { ResolvedClass: SubsetTypeDecl std } => 
+        UserDefinedType { ResolvedClass: SubsetTypeDecl std } =>
           IsCharBasedType(std.RhsWithArgument(type.TypeArgs)),
         _ => false
       };
@@ -4000,7 +4000,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, boxedBvType, BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wrRhs = EmitCoercionIfNecessary(bvType, NativeObjectType, bvTok, wrRhs);
-      
+
       var boxedBvName = idGenerator.FreshId("boxed");
       wr.Write($", {boxedBvName} ->");
       var wrBodyWithCoercion = wr.NewBlock();
