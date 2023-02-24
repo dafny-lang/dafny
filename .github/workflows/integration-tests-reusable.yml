@@ -137,6 +137,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
+        echo $DAFNY_RELEASE
         dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
     - uses: actions/upload-artifact@v3
       if: always()
