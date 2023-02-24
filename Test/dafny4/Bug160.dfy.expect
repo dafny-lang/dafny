@@ -1,4 +1,4 @@
-Bug160.dfy(26,18): Error: A postcondition might not hold on this return path.
+Bug160.dfy(26,18): Error: a postcondition could not be proved on this return path
 Bug160.dfy(27,13): Related location: This is the postcondition that might not hold.
 Bug160.dfy(27,29): Related location
 

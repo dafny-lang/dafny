@@ -12,33 +12,33 @@ Iterators.dfy(106,13): Error: assertion might not hold
 Iterators.dfy(177,27): Error: assertion might not hold
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
 Iterators.dfy(212,20): Error: assertion might not hold
-Iterators.dfy(436,18): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(436,18): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(436,18): Related message: loop invariant violation
-Iterators.dfy(437,23): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(437,23): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(437,23): Related message: loop invariant violation
-Iterators.dfy(438,23): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(438,23): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(438,23): Related message: loop invariant violation
-Iterators.dfy(459,16): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(459,16): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(459,16): Related message: loop invariant violation
-Iterators.dfy(460,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(460,21): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(460,21): Related message: loop invariant violation
-Iterators.dfy(461,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(461,21): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(461,21): Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
-Iterators.dfy(40,21): Error: A precondition for this call might not hold.
+Iterators.dfy(40,21): Error: a precondition for this call could not be proved
 Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
 Iterators.dfy(89,13): Error: assertion might not hold
 Iterators.dfy(119,15): Error: assertion might not hold
 Iterators.dfy(150,15): Error: assertion might not hold
-Iterators.dfy(155,23): Error: A precondition for this call might not hold.
+Iterators.dfy(155,23): Error: a precondition for this call could not be proved
 Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
 Iterators.dfy(234,20): Error: assertion might not hold
-Iterators.dfy(413,16): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(413,16): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(413,16): Related message: loop invariant violation
-Iterators.dfy(414,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(414,21): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(414,21): Related message: loop invariant violation
-Iterators.dfy(415,21): Error: This loop invariant might not be maintained by the loop.
+Iterators.dfy(415,21): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(415,21): Related message: loop invariant violation
 
 Dafny program verifier finished with 35 verified, 30 errors

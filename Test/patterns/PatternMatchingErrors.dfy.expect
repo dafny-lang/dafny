@@ -5,9 +5,9 @@ PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Leaf
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Branch(_, c: bool, _), _, _) (not all possibilities for constant 'c' have been covered)
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Leaf, _, Branch(_, _, _))
 PatternMatchingErrors.dfy(53,18): Error: value does not satisfy the subset constraints of 'nat'
-PatternMatchingErrors.dfy(78,2): Error: A postcondition might not hold on this return path.
+PatternMatchingErrors.dfy(78,2): Error: a postcondition could not be proved on this return path
 PatternMatchingErrors.dfy(75,12): Related location: This is the postcondition that might not hold.
-PatternMatchingErrors.dfy(99,33): Error: A postcondition might not hold on this return path.
+PatternMatchingErrors.dfy(99,33): Error: a postcondition could not be proved on this return path
 PatternMatchingErrors.dfy(96,12): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 0 verified, 9 errors

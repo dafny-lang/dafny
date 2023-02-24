@@ -1,5 +1,5 @@
 TraitOverride1.dfy(200,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
-TraitOverride1.dfy(205,2): Error: A postcondition might not hold on this return path.
+TraitOverride1.dfy(205,2): Error: a postcondition could not be proved on this return path
 TraitOverride1.dfy(204,40): Related location: This is the postcondition that might not hold.
 TraitOverride1.dfy(188,26): Related location
 

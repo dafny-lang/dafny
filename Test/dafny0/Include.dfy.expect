@@ -1,21 +1,21 @@
 Include.dfy(32,7): Warning: the ... refinement feature in statements is deprecated
-Include.dfy(20,18): Error: A postcondition might not hold on this return path.
+Include.dfy(20,18): Error: a postcondition could not be proved on this return path
 Includee.dfy(17,19): Related location: This is the postcondition that might not hold.
 Includee.dfy[Concrete](22,15): Error: assertion might not hold
-Include.dfy(28,6): Error: A postcondition might not hold on this return path.
+Include.dfy(28,6): Error: a postcondition could not be proved on this return path
 Includee.dfy[Concrete](20,14): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 1 verified, 3 errors
 Include.dfy(32,7): Warning: the ... refinement feature in statements is deprecated
-Includee.dfy(21,2): Error: A postcondition might not hold on this return path.
+Includee.dfy(21,2): Error: a postcondition could not be proved on this return path
 Includee.dfy(20,14): Related location: This is the postcondition that might not hold.
 Includee.dfy(24,17): Error: assertion might not hold
-Include.dfy(20,18): Error: A postcondition might not hold on this return path.
+Include.dfy(20,18): Error: a postcondition could not be proved on this return path
 Includee.dfy(17,19): Related location: This is the postcondition that might not hold.
 Includee.dfy[Concrete](22,15): Error: assertion might not hold
-Include.dfy(28,6): Error: A postcondition might not hold on this return path.
+Include.dfy(28,6): Error: a postcondition could not be proved on this return path
 Includee.dfy[Concrete](20,14): Related location: This is the postcondition that might not hold.
-Includee.dfy(6,0): Error: A postcondition might not hold on this return path.
+Includee.dfy(6,0): Error: a postcondition could not be proved on this return path
 Includee.dfy(5,12): Related location: This is the postcondition that might not hold.
 Includee.dfy(7,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
 

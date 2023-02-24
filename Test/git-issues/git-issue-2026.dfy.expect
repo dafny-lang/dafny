@@ -1,6 +1,6 @@
-git-issue-2026.dfy(11,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(11,18): Error: this invariant could not be proved to be maintained by the loop
 git-issue-2026.dfy(11,18): Related message: loop invariant violation
-git-issue-2026.dfy(12,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(12,18): Error: this invariant could not be proved to be maintained by the loop
 git-issue-2026.dfy(12,18): Related message: loop invariant violation
 
 Dafny program verifier finished with 0 verified, 2 errors

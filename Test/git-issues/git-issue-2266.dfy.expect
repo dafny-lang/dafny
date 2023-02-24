@@ -1,2 +1,1 @@
-
-Boogie program verifier finished with 1 verified, 0 errors
+Fatal Error: ProverException: Cannot find specified prover: /Users/aarotomb/Repositories/dafny/../unzippedRelease/dafny/z3/bin/z3-4.8.5
