@@ -1347,8 +1347,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
-        // TODO: needs to be ... && !AnyCoersionsNeeded(...)
-        if (typeArgs.Count == 0 && additionalCustomParameter == null && false) {
+        // TODO: needs to check for argument conversions as well
+        if (typeArgs.Count == 0 && additionalCustomParameter == null && !IsCharBasedType(fn.ResultType)) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
@@ -1378,7 +1378,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(")");
           
           // TODO: Need to check arguments as well. Probably could use something like EmitCoercionIfNecessary
-          // That works in this context too?
+          // that works in this context too?
           if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
             prefixWr.Write("dafny.CodePoint.valueOf(");
             wr.Write(")");
