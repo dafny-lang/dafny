@@ -120,7 +120,7 @@ jobs:
         chmod +x dafny/Binaries/z3/bin/z3
         mkdir -p unzippedRelease/dafny/z3/bin
         ln dafny/Binaries/z3/bin/z3 unzippedRelease/dafny/z3/bin/z3
-    - name: Run integration tests
+    - name: Run integration tests (Windows)
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
@@ -129,7 +129,7 @@ jobs:
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
-    - name: Run integration tests
+    - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
