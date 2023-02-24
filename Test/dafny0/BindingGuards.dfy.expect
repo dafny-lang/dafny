@@ -302,7 +302,7 @@ method AltSyntax9(x: int, y: int, c: Color)
   }
   z := x + y;
 }
-BindingGuards.dfy(85,10): Error: A postcondition might not hold on this return path.
+BindingGuards.dfy(85,10): Error: a postcondition could not be proved on this return path
 BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 BindingGuards.dfy(134,9): Error: assertion might not hold
 BindingGuards.dfy(6,8): Related location

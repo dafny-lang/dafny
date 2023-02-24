@@ -3,7 +3,7 @@ ShowSnippets.dfy(13,9): Error: assertion might not hold
 13 |   assert false;
    |          ^^^^^
 
-ShowSnippets.dfy(17,2): Error: A precondition for this call might not hold.
+ShowSnippets.dfy(17,2): Error: a precondition for this call could not be proved
    |
 17 |   Never();
    |   ^^^^^^^^

@@ -1,5 +1,5 @@
 TypeAntecedents.dfy(35,12): Error: assertion might not hold
-TypeAntecedents.dfy(58,0): Error: A postcondition might not hold on this return path.
+TypeAntecedents.dfy(58,0): Error: a postcondition could not be proved on this return path
 TypeAntecedents.dfy(57,14): Related location: This is the postcondition that might not hold.
 TypeAntecedents.dfy(66,15): Error: assertion might not hold
 TypeAntecedents.dfy(80,47): Error: target object might not be allocated

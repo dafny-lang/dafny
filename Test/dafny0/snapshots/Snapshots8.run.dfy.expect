@@ -5,11 +5,11 @@ Processing command (at Snapshots8.v0.dfy(3,12)) assert x#0 < 10;
 Processing command (at Snapshots8.v0.dfy(4,8)) assert LitInt(0) <= call0formal#AT#y#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(3,11): Error: assertion might not hold
-Snapshots8.v0.dfy(4,7): Error: A precondition for this call might not hold.
+Snapshots8.v0.dfy(4,7): Error: a precondition for this call could not be proved
 Snapshots8.v0.dfy(8,13): Related location: This is the precondition that might not hold.
 Processing command (at Snapshots8.v0.dfy(13,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
-Snapshots8.v0.dfy(17,9): Error: A postcondition might not hold on this return path.
+Snapshots8.v0.dfy(17,9): Error: a postcondition could not be proved on this return path
 Snapshots8.v0.dfy(13,12): Related location: This is the postcondition that might not hold.
 Processing command (at Snapshots8.v0.dfy(23,12)) assert u#0 != 53;
   >>> DoNothingToAssert
@@ -30,14 +30,14 @@ Processing command (at Snapshots8.v1.dfy(6,8)) assert LitInt(0) <= call0formal#A
 Processing command (at Snapshots8.v1.dfy(7,12)) assert x#0 == LitInt(7);
   >>> DoNothingToAssert
 Snapshots8.v1.dfy(5,16): Error: assertion might not hold
-Snapshots8.v1.dfy(6,7): Error: A precondition for this call might not hold.
+Snapshots8.v1.dfy(6,7): Error: a precondition for this call could not be proved
 Snapshots8.v1.dfy(12,20): Related location: This is the precondition that might not hold.
 Snapshots8.v1.dfy(7,11): Error: assertion might not hold
 Processing command (at Snapshots8.v1.dfy(23,12)) assert Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v1.dfy(19,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
-Snapshots8.v1.dfy(24,9): Error: A postcondition might not hold on this return path.
+Snapshots8.v1.dfy(24,9): Error: a postcondition could not be proved on this return path
 Snapshots8.v1.dfy(19,12): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 1 verified, 5 errors
