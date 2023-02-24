@@ -3,8 +3,7 @@ name: Build and Test Dafny Runtimes
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ master ]
-  push:
+    branches: [ master, main-* ]
 
 jobs:
   check-deep-tests:
