@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify %args --error-limit=2 "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --error-limit=0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 method m(x: int) {
   if x == 1 {
@@ -7,5 +7,11 @@ method m(x: int) {
     assert x != 2;
   } else if x == 3 {
     assert x != 3;
+  } else if x == 4 {
+    assert x != 4;
+  } else if x == 5 {
+    assert x != 5;
+  } else if x == 6 {
+    assert x != 6;
   }
 }
