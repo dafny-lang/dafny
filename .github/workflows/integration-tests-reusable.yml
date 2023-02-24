@@ -104,15 +104,18 @@ jobs:
       if: inputs.all_platforms
       run: |
         python dafny/Scripts/package.py 0.0.0-CI --platform x64 --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
-    - if: runner.os == 'Windows' && inputs.all_platforms
+    - name: Unpack release (Windows)
+      if: runner.os == 'Windows' && inputs.all_platforms
       shell: pwsh
       run: |
         Expand-Archive dafny/Package/CI.zip unzippedRelease
-    - if: runner.os != 'Windows' && inputs.all_platforms
+        Copy-Item -Path "D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe" -Destination "D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe"
+    - name: Unpack release (non-Windows)
+      if: runner.os != 'Windows' && inputs.all_platforms
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
         ln -s unzippedRelease/dafny/z3/bin/z3 unzippedRelease/dafny/z3/bin/z3-4.8.5
-    - name: Load Z3
+    - name: Load Z3 (just Ubuntu)
       if: "!inputs.all_platforms"
       run: |
         sudo apt-get install -qq libarchive-tools
@@ -129,7 +132,6 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
