@@ -71,7 +71,7 @@ class Release:
 
     def __init__(self, os, platform, version, out):
         self.z3_zips = [ "z3-{}-{}-bin.zip".format(z3_version, os) for z3_version in Z3_VERSIONS ]
-        self.platform, self.os, self.directory = platform, os, out
+        self.platform, self.os = platform, os
         self.os_name = self.os.split("-")[0]
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         if out != None:
@@ -166,7 +166,7 @@ class Release:
             for z3_zip in self.z3_zips:
                 with zipfile.ZipFile(self.local_zip(z3_zip)) as Z3_archive:
                     for fileinfo in Z3_archive.infolist():
-                        fname = path.relpath(fileinfo.filename, self.directory)
+                        fname = fileinfo.filename
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))

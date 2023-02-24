@@ -32,7 +32,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
