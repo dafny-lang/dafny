@@ -1610,7 +1610,8 @@ namespace Microsoft.Dafny.Compilers {
         TrExpr(index, wr, inLetExprBody, wStmts);
       }
       wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody, wStmts);
+      var coercedWr = EmitCoercionIfNecessary(value.Type, NativeObjectType, Token.NoToken, wr);
+      TrExpr(value, coercedWr, inLetExprBody, wStmts);
       wr.Write(")");
     }
 
@@ -2559,7 +2560,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, IToken tok,
       Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
-      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, ConcreteSyntaxTree errorWr) {
+      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, out bool coerceE1, ConcreteSyntaxTree errorWr) {
       opString = null;
       preOpString = "";
       postOpString = "";
@@ -2568,7 +2569,8 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
-
+      coerceE1 = false;
+      
       void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
         out string postOpS, out string callS) {
         if (AsNativeType(resultType) != null) {
@@ -2763,6 +2765,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
           reverseArguments = true;
+          coerceE1 = true;
           break;
 
         case BinaryExpr.ResolvedOpcode.Union:
@@ -2802,10 +2805,11 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "contains";
           reverseArguments = true;
+          coerceE1 = true;
           break;
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
       }
@@ -3255,9 +3259,19 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateForeachLoop(
       string tmpVarName, Type collectionElementType, IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
 
-      wr.Write("for ({1} {0} : ", tmpVarName, TypeName(collectionElementType, wr, tok));
+      // We may have to coerce from the boxed type used in collections
+      var needsCoercion = IsCoercionNecessary(NativeObjectType, collectionElementType);
+      var boxedType = BoxedTypeName(collectionElementType, wr, tok);
+      var loopVarName = needsCoercion ? ProtectedFreshId(tmpVarName + "_boxed") : tmpVarName;
+      wr.Write($"for ({boxedType} {loopVarName} : ");
       collectionWriter = wr.Fork();
       var wwr = wr.NewBlock(")");
+      if (needsCoercion) {
+        wwr.Write($"{TypeName(collectionElementType, wr, tok)} {tmpVarName} = ");
+        var coercedWwr = EmitCoercionIfNecessary(NativeObjectType, collectionElementType, tok, wwr);
+        coercedWwr.Write(loopVarName);
+        wwr.WriteLine(";");
+      }
       return wwr;
     }
 
