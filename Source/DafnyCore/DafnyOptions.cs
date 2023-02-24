@@ -64,7 +64,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
-1 (default) - The char type represents any Unicode scalar value.".TrimStart());
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
