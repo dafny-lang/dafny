@@ -111,6 +111,7 @@ jobs:
     - if: runner.os != 'Windows' && inputs.all_platforms
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
+        ln -s unzippedRelease/dafny/z3/bin/z3 unzippedRelease/dafny/z3/bin/z3-4.8.5
     - name: Load Z3
       if: "!inputs.all_platforms"
       run: |
@@ -128,7 +129,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests
       if: runner.os != 'Windows'
