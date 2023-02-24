@@ -1402,9 +1402,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = DatatypeWrapperEraser.SimplifyType(type);
-      if (xType is SpecialNativeType snt) {
-        return snt.Name;
-      } else if (xType is BoolType) {
+      if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
         return CharTypeName;
@@ -1674,21 +1672,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(formal.HasName);
       return Capitalize(formal.CompileName);
     }
-
-    protected override Type NativeForm(Type type) {
-      if (type.IsStringType) {
-        return NativeStringType;
-      } else {
-        return type;
-      }
-    }
-
-    /// A type which is rendered to Go exactly as specified.  Used to represent the native string type.
-    private class SpecialNativeType : UserDefinedType {
-      internal SpecialNativeType(string name) : base(Token.NoToken, name, null) { }
-    }
-
-    private readonly static SpecialNativeType NativeStringType = new SpecialNativeType("string");
 
     // ----- Declarations -------------------------------------------------------------
 
