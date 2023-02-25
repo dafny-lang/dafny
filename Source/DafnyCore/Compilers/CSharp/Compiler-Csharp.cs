@@ -3039,8 +3039,13 @@ namespace Microsoft.Dafny.Compilers {
           ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write($"({CharTypeName})");
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          if (UnicodeCharEnabled) {
+            wr.Write($"new {CharTypeName}((int)");
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Write(")");
+          } else {
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          }
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
