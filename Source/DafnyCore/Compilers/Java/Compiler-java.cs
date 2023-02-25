@@ -2515,6 +2515,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
+      // TODO: there may be an opportunity to share code with CreateIIFE,
+      // which may be worth it given all the necessary coercions.
+      
       if (inTypes.Count != 1) {
         functions.Add(inTypes.Count);
       }
@@ -2522,9 +2525,18 @@ namespace Microsoft.Dafny.Compilers {
       if (!untyped) {
         wr.Write("({0}<{1}{2}>)", DafnyFunctionIface(inTypes.Count), Util.Comma("", inTypes, t => BoxedTypeName(t, wr, tok) + ", "), BoxedTypeName(resultType, wr, tok));
       }
-      wr.Write($"({inNames.Comma(nm => nm)}) ->");
+      var boxedInNames = inNames.Select(inName => ProtectedFreshId(inName + "_boxed")).ToList();
+      wr.Write($"({boxedInNames.Comma(nm => nm)}) ->");
       var w = wr.NewExprBlock("");
       wr.Write(")");
+
+      for (var i = 0; i < inNames.Count; i++) {
+        w.Write($"{TypeName(inTypes[i], w, tok)} {inNames[i]} = ");
+        var coercedW = EmitCoercionIfNecessary(NativeObjectType, inTypes[i], tok, w);
+        coercedW.Write(boxedInNames[i]);
+        w.WriteLine(";");
+      }
+      
       return w;
     }
 
