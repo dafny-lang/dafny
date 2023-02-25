@@ -16,11 +16,11 @@ jobs:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
-        - os:  'ubuntu-22.04'
-          osn: 'ubuntu\-22.04'
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu\-20.04'
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-        - os:  'macos-11'
+        - os:  'macos-latest'
           osn: 'x64-osx-.*'
         - os:  'windows-2019'
           osn: 'win'
@@ -62,8 +62,7 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        dafny/z3/bin/z3-4.8.5 -version
-        dafny/z3/bin/z3-4.12.1 -version
+        dafny/z3/bin/z3 -version
         dafny/dafny -version
     - name: Check
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy

@@ -18,7 +18,7 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
+  z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
 
 jobs:
   test-dafny-cli-tool:
@@ -28,16 +28,20 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
-        - os:  'ubuntu-22.04'
-          osn: 'ubuntu\-22.04'
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu\-20.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'macos-latest'
-          osn: 'osx-11'
+          osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
         - os:  'windows-2019'
           osn: 'win'
+          z3: z3-4.8.5-x64-win
 
     steps:
     - name: OS
@@ -54,20 +58,14 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.8.5-${{matrix.os}}-bin.zip -OutFile z3-4.8.5.zip
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
-        Expand-Archive z3-4.8.5.zip .
-        Expand-Archive z3-4.12.1.zip .
-        Remove-Item z3-4.8.5.zip
-        Remove-Item z3-4.12.1.zip
-    - name: Set up Z3
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+    - name: Set Z3 permissions
       run: |
         mkdir bin
-        mv z3-* bin/
-    - name: Make Z3 executable (non-Windows)
-      run: |
-        chmod +x bin/z3-*
-      if: runner.os != 'Windows'
+        mv ${{matrix.z3}}/bin/z3* bin/
+        chmod +x bin/z3*
     - name: Set Path
       if: runner.os != 'Windows'
       run: echo "${PWD}/bin" >> $GITHUB_PATH
@@ -85,8 +83,7 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        z3-4.8.5 -version
-        z3-4.12.1 -version
+        z3 -version
         dafny -version
     - name: Fatch latest release version string
       id: dafny
@@ -142,14 +139,18 @@ jobs:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
-        - os:  'ubuntu-22.04'
-          osn: 'ubuntu\-22.04'
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu\-20.04'
+          z3: z3-4.8.5-x64-ubuntu-16.04
         - os:  'ubuntu-20.04'
           osn: 'ubuntu\-20.04'
-        - os:  'macos-11'
+          z3: z3-4.8.5-x64-ubuntu-16.04
+        - os:  'macos-latest'
           osn: 'osx-.*'
+          z3: z3-4.8.5-x64-osx-10.14.2
         - os:  'windows-2019'
           osn: 'win'
+          z3: z3-4.8.5-x64-win
 
     steps:
     ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
