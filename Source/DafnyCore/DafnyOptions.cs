@@ -315,7 +315,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int OptimizeResolution = 2;
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
-    public int Allocated = 3;
+    public int Allocated = 4;
     public bool UseStdin = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
@@ -1428,8 +1428,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     2 - Assert/assume allocated(x) on all variables, even bound
         variables in quantifiers. This option is the easiest to use for
         heapful code.
-    3 - (default) Frugal use of heap parameters.
-    4 - Mode 3 but with alloc antecedents when ranges don't imply
+    3 - Frugal use of heap parameter (not sound).
+    4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
         allocatedness.
 
 /definiteAssignment:<n>
