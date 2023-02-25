@@ -2901,6 +2901,15 @@ namespace Microsoft.Dafny.Compilers {
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
+    protected string DefaultValueCoercedIfNecessary(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+
+      var tempWr = new ConcreteSyntaxTree();
+      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, tempWr);
+      coercedWr.Write(DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
+      return tempWr.ToString();
+    }
+
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
@@ -4318,6 +4327,7 @@ namespace Microsoft.Dafny.Compilers {
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Tok, wrRhs);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
         wArray.Write(nw);
         EndStmt(w);
