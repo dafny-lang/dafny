@@ -21,8 +21,8 @@ type List<T>
 function Elements(list: List): set
 ```
 In the latter case, Dafny knows that the already defined types `set` and `List` each take one type parameter
-so it fills in `<T>` (using some unique type parameter name) and then determines the the function itself needs
-a type parameter `<T>` also.
+so it fills in `<T>` (using some unique type parameter name) and then determines that the function itself needs
+a type parameter `<T>` as well.
 
 Dafny also accepts
 <!-- %check-resolve -->
@@ -218,7 +218,7 @@ These statements always non-ghost:
 The following expressions are ghost, which is used in some of the tests above:
 
 - All [specification expressions](#sec-list-of-specification-expressions)
-- All calls to functions and predicates not marked as `method`
+- All calls to functions and predicates marked as `ghost`
 - All variables, [constants](#sec-constant-field-declaration) and [fields](#sec-field-declaration) declared using the `ghost` keyword
 
 Note that inferring ghostness can uncover other errors, such as updating non-ghost variables in ghost contexts.
@@ -1033,10 +1033,19 @@ through `if`, `match`, loop statements and expressions, checking for
 definite assignment can require some program flow analysis.
 
 Dafny will issue an error message if it cannot assure itself that a variable 
-has been given a value. This may be a conservative warning: Dafny may issue an error message even if it is possible to prove, but Dafny does not, that a
+has been given a value. This may be a conservative warning: Dafny may issue an 
+error message even if it is possible to prove, but Dafny does not, that a
 variable will always be initialized.
 
-If the type of a variable is _auto-initializable_, then a default value is used
+Dafny has two definite assignment modes: 
+- a strict mode (the default) in which 
+assignments are required even for auto-initializable types, and 
+- a relaxed mode,
+enabled by the option `--relax-definite-assignment`, in which the
+auto-initialization is sufficient to satisfy the definite assignment rules.
+
+In relaxed definite assignment mode,
+if the type of a variable is _auto-initializable_, then a default value is used
 implicitly even if the declaration of the variable does not have an 
 explicit initializer. For example, a `bool` variable is initialized by default
 to `false` and a variable with an int-based type for which `0` is a valid value
@@ -1054,9 +1063,6 @@ having been initialized.
 
 [This document](../Compilation/AutoInitialization) has more detail on
 auto-initialization.
-
-The `--strict-definite-assignment` option will cause definite assignment rules
-to be enforced even for auto-initializable types.
 
 ## 12.7. Well-founded Orders {#sec-well-founded-orders}
 

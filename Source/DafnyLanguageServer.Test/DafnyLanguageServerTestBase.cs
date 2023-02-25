@@ -152,6 +152,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 #pragma warning disable VSTHRD110 // Observe result of async calls
       Server.Initialize(CancellationToken);
 #pragma warning restore VSTHRD110 // Observe result of async calls
+
+      Disposable.Add(Server);
+      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
