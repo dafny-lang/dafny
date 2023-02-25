@@ -14,7 +14,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts0(cs: seq<C>): seq<int> {
+function Firsts0(cs: seq<C>): seq<int> {
   seq(|cs|, i => cs[i].p.0) // Two errors: `[i]` and `.p`
 }
 ```
@@ -31,7 +31,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts0(cs: seq<C>): seq<int> {
+function Firsts0(cs: seq<C>): seq<int> {
   seq(|cs|, i requires 0 <= i < |cs| => cs[i].p.0) // Two errors: `[i]` and `.p`
 }
 ```
@@ -46,7 +46,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts2(cs: seq<C>): seq<int>
+function Firsts2(cs: seq<C>): seq<int>
   reads set i | 0 <= i < |cs| :: cs[i]
 {
   seq(|cs|, i

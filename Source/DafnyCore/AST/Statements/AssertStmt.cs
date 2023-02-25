@@ -16,6 +16,16 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Tok(original.Label.Tok), original.Label.Name);
   }
 
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
+    var errorMessage = new StringLiteralExpr(node.Tok, message, true);
+    errorMessage.Type = new SeqType(Type.Char);
+    var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
+    guard ??= Expression.CreateBoolLiteral(node.Tok, false);
+    var assertFalse = new AssertStmt(node.RangeToken, guard, null, null, attr);
+    assertFalse.IsGhost = true;
+    return assertFalse;
+  }
+
   public AssertStmt(RangeToken rangeToken, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
     : base(rangeToken, expr, attrs) {
     Contract.Requires(rangeToken != null);
@@ -23,6 +33,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Proof = proof;
     Label = label;
   }
+
   public override IEnumerable<Statement> SubStatements {
     get {
       if (Proof != null) {

@@ -50,11 +50,6 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
     return idGen.FreshId(prefix);
   }
 
-  public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
-    var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.VarianceSyntax, p.Characteristics);
-    cp.Parent = this;
-    return cp;
-  }
   public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
@@ -79,6 +74,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   }
 
   public override IEnumerable<Node> PreResolveChildren => base.SubExpressions;
+  public IEnumerable<Expression> PreResolveSubExpressions => base.SubExpressions;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

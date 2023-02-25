@@ -7,7 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BuiltIns {
-  public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
+  public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, new Name("_System"), new List<IToken>(), false, false, null, null, null, true, true, true);
   readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -29,7 +29,7 @@ public class BuiltIns {
   public BuiltIns() {
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
-    var str = new TypeSynonymDecl(Token.NoToken, "string",
+    var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
     SystemModule.TopLevelDecls.Add(str);
@@ -37,12 +37,12 @@ public class BuiltIns {
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
     var ax = AxiomAttribute();
-    NatDecl = new SubsetTypeDecl(Token.NoToken, "nat",
+    NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
     SystemModule.TopLevelDecls.Add(NatDecl);
     // create trait 'object'
-    ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
+    ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
     SystemModule.TopLevelDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -80,7 +80,7 @@ public class BuiltIns {
       ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
-        Field len = new SpecialField(Token.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
+        Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
         len.EnclosingClass = arrayClass;  // resolve here
         arrayClass.Members.Add(len);
       }
@@ -110,8 +110,8 @@ public class BuiltIns {
     if (!ArrowTypeDecls.ContainsKey(arity)) {
       IToken tok = Token.NoToken;
       var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
       var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
@@ -120,12 +120,12 @@ public class BuiltIns {
         Type = new SetType(true, ObjectQ()),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var req = new Function(tok, "requires", false, true, false,
+      var req = new Function(RangeToken.NoToken, new Name("requires"), false, true, false,
         new List<TypeParameter>(), args, null, Type.Bool,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
-      var reads = new Function(tok, "reads", false, true, false,
+      var reads = new Function(RangeToken.NoToken, new Name("reads"), false, true, false,
         new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
@@ -139,11 +139,11 @@ public class BuiltIns {
 
       // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
       tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
       tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
       var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-      var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
+      var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
         id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
       PartialArrowTypeDecls.Add(arity, partialArrow);
@@ -152,11 +152,11 @@ public class BuiltIns {
       // declaration of total arrow-type
 
       tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
+        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
+        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
       tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
       id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-      var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
+      var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
         new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
         id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
       TotalArrowTypeDecls.Add(arity, totalArrow);

@@ -56,7 +56,7 @@ namespace DafnyTestGeneration {
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
     public static Program/*?*/ Parse(string source, string fileName = "") {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       var builtIns = new BuiltIns();
       var reporter = new ConsoleErrorReporter();
       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
@@ -64,7 +64,7 @@ namespace DafnyTestGeneration {
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = new Program(fileName, module, builtIns, reporter);
+        program = new Program(fileName, module, builtIns, reporter, DafnyOptions.Create());
       }
       if (program == null) {
         return null;

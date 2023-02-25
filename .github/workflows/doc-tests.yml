@@ -9,8 +9,7 @@ name: Test documentation
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ master ]
-  push:
+    branches: [ master, main-* ]
 
 jobs:
   check-deep-tests:
@@ -20,7 +19,7 @@ jobs:
 
   doctests:
     needs: check-deep-tests
-    if: always() && ((needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests')) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
 
     steps:
@@ -44,8 +43,10 @@ jobs:
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
+        chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples OnlineTutorial/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
     - name: Check Reference Manual examples
       run: |
         cd dafny/docs
+        chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded

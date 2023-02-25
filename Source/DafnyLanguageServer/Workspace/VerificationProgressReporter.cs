@@ -11,18 +11,19 @@ using VerificationResult = Microsoft.Boogie.VerificationResult;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class VerificationProgressReporter : IVerificationProgressReporter {
-
+  private DafnyOptions options;
   private readonly DocumentAfterTranslation document;
   private readonly ILogger<VerificationProgressReporter> logger;
   private readonly INotificationPublisher notificationPublisher;
 
   public VerificationProgressReporter(ILogger<VerificationProgressReporter> logger,
     DocumentAfterTranslation document,
-    INotificationPublisher notificationPublisher
-  ) {
+    INotificationPublisher notificationPublisher,
+    DafnyOptions options) {
     this.document = document;
     this.logger = logger;
     this.notificationPublisher = notificationPublisher;
+    this.options = options;
   }
 
   /// <summary>
@@ -208,7 +209,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   public void ReportRealtimeDiagnostics(bool verificationStarted, DocumentAfterResolution? document = null) {
     lock (LockProcessing) {
       document ??= this.document;
-      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(), verificationStarted);
+      notificationPublisher.PublishGutterIcons(this.document.InitialIdeState(options), verificationStarted);
     }
   }
 
@@ -223,6 +224,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       if (targetMethodNode == null) {
         logger.LogError($"No method node at {implementation.tok.filename}:{implementation.tok.line}:{implementation.tok.col}");
       } else {
+        var implementationNodeHadStarted = implementationNode != null && implementationNode.Started;
         if (!targetMethodNode.Started) {
           // The same method could be started multiple times for each implementation
           targetMethodNode.Start();
@@ -230,6 +232,11 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         if (implementationNode == null) {
           logger.LogError($"No implementation at {implementation.tok}");
+        } else if (implementationNodeHadStarted) {
+          // Race condition explained here https://github.com/dafny-lang/dafny/issues/3502
+          // We just ignore this as an early assertion batch already
+          // made this implementation to start to run.
+          return;
         } else {
           implementationNode.Start();
         }
@@ -300,6 +307,12 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           && assertionNode.AssertionBatchNum == result.vcNum);
         if (wasAlreadyProcessed) {
           return;
+        }
+
+        if (!implementationNode.Started) {
+          // Race condition identified in https://github.com/dafny-lang/dafny/issues/3502
+          // We first need to mark the implementation as it started to verify
+          ReportVerifyImplementationRunning(implementation);
         }
 
         result.ComputePerAssertOutcomes(out var perAssertOutcome, out var perAssertCounterExample);

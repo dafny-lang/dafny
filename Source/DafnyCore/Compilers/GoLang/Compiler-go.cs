@@ -2956,7 +2956,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
-      var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.tok, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
+      var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.RangeToken, new Name("X"), TypeParameter.TPVarianceSyntax.NonVariant_Strict));
       var toType = new ArrowType(expr.tok, atd, new List<Type>() { Type.Int }, tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody, wStmts);
@@ -3736,7 +3736,8 @@ namespace Microsoft.Dafny.Compilers {
       var funcBlock = wr.NewBlock("func()", close: BlockStyle.Brace);
       var deferBlock = funcBlock.NewBlock("defer func()", close: BlockStyle.Brace);
       var ifRecoverBlock = deferBlock.NewBlock("if r := recover(); r != nil");
-      ifRecoverBlock.WriteLine($"var {haltMessageVarName} = {HelperModulePrefix}SeqOfString(r.(string))");
+      var stringMaker = UnicodeCharEnabled ? "UnicodeSeqOfUtf8Bytes" : "SeqOfString";
+      ifRecoverBlock.WriteLine($"var {haltMessageVarName} = {HelperModulePrefix}{stringMaker}(r.(string))");
       TrStmt(recoveryBody, ifRecoverBlock);
       funcBlock.WriteLine("()");
       TrStmt(body, funcBlock);

@@ -169,6 +169,23 @@ namespace Microsoft.Dafny {
       OK_EXIT_EARLY
     }
 
+    static HashSet<string> SplitOptionValueIntoFiles(HashSet<string> inputs) {
+      var result = new HashSet<string>();
+      foreach (var input in inputs) {
+        var values = input.Split(',');
+        foreach (var slice in values) {
+          var name = slice.Trim();
+          if (Directory.Exists(name)) {
+            var files = Directory.GetFiles(name, "*.dfy", SearchOption.AllDirectories);
+            foreach (var file in files) { result.Add(file); }
+          } else {
+            result.Add(name);
+          }
+        }
+      }
+      return result;
+    }
+
     public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
@@ -238,7 +255,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files.Concat(options.LibraryFiles)) {
+      foreach (string file in options.Files.Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -258,26 +275,34 @@ namespace Microsoft.Dafny {
           // Fall through and try to handle the file as an "other file"
         }
 
+        var relative = System.IO.Path.GetFileName(file);
+        bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
+        var nameToShow = useRelative ? relative : file;
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes
           if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);
           } else {
-            options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {file} not found");
+            options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {nameToShow} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         } else if (options.Format && Directory.Exists(file)) {
           options.FoldersToFormat.Add(file);
         } else if (!isDafnyFile) {
-          if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
             options.Printer.ErrorWriteLine(Console.Out,
               "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
-              file, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
+              nameToShow,
+              string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
+          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+            options.Printer.ErrorWriteLine(Console.Out,
+              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
+              nameToShow, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
           } else {
             options.Printer.ErrorWriteLine(Console.Out,
               "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
-              file, extension, string.Join(", ", supportedExtensions));
+              nameToShow, extension, string.Join(", ", supportedExtensions));
           }
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
@@ -441,7 +466,8 @@ namespace Microsoft.Dafny {
         // Might not be totally optimized but let's do that for now
         var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
-          File.ReadAllText(dafnyFile.FilePath);
+          File.Exists(dafnyFile.FilePath) ?
+          File.ReadAllText(dafnyFile.FilePath) : null;
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           Console.Error.WriteLine(err);
