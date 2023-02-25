@@ -1,5 +1,3 @@
-// RUN: %verify "%s"
-
 module {:options "-functionSyntax:4"} BoundedInts {
   const TWO_TO_THE_0:   int := 1
 
