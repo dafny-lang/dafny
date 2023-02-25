@@ -3,7 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "Wrappers.dfy"
+include "../libraries/src/Wrappers.dfy"
 import opened Wrappers
 
 method id<T>(r: T) returns (r2: T)  {

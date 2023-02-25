@@ -1,7 +1,7 @@
 // RUN: %exits-with 0 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "BoundedInts.dfy"
+include "../libraries/src/BoundedInts.dfy"
 
 module {:options "-functionSyntax:4"} DafnyNaCl
 {
