@@ -1334,7 +1334,7 @@ namespace Microsoft.Dafny.Compilers {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
-            if (member.EnclosingClass is TupleTypeDecl && IsCharBasedType(sf.Type.Subst(typeMap)) && UnicodeCharEnabled) {
+            if (member.EnclosingClass is TupleTypeDecl && sf.Type.Subst(typeMap).IsCharType && UnicodeCharEnabled) {
               return SuffixLvalue(obj, $".{compiledName}().value()");
             } else {
               return SuffixLvalue(obj, $".{compiledName}()");
@@ -1350,7 +1350,7 @@ namespace Microsoft.Dafny.Compilers {
         var wr = new ConcreteSyntaxTree();
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
         // TODO: needs to check for argument conversions as well
-        if (typeArgs.Count == 0 && additionalCustomParameter == null && !IsCharBasedType(fn.ResultType)) {
+        if (typeArgs.Count == 0 && additionalCustomParameter == null && !fn.ResultType.IsCharType) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
@@ -3693,15 +3693,6 @@ namespace Microsoft.Dafny.Compilers {
       return type == NativeObjectType || type.IsTypeParameter;
     }
 
-    private bool IsCharBasedType(Type type) {
-      return type switch {
-        { IsCharType: true } => true,
-        UserDefinedType { ResolvedClass: SubsetTypeDecl std } =>
-          IsCharBasedType(std.RhsWithArgument(type.TypeArgs)),
-        _ => false
-      };
-    }
-
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(from);
       to = to == null ? null : DatatypeWrapperEraser.SimplifyType(to);
@@ -3709,14 +3700,14 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
-        if (IsObjectType(from) && IsCharBasedType(to)) {
+        if (IsObjectType(from) && to is { IsCharType: true }) {
           wr.Write("((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
-        if (IsCharBasedType(from) && IsObjectType(to)) {
+        if (from is { IsCharType: true } && IsObjectType(to)) {
           wr.Write("dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
