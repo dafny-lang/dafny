@@ -3044,6 +3044,7 @@ namespace Microsoft.Dafny.Compilers {
             TrParenExpr(e.E, wr, inLetExprBody, wStmts);
             wr.Write(")");
           } else {
+            wr.Write($"({CharTypeName})");
             TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           }
         } else {
