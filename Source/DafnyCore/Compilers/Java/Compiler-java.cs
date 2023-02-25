@@ -1164,6 +1164,8 @@ namespace Microsoft.Dafny.Compilers {
     // Note the (semantically iffy) distinction between a *primitive type*,
     // being one of the eight Java primitive types, and a NativeType, which can
     // only be one of the integer types.
+    // Note also that in --unicode-char mode, we have our own CodePoint boxing type
+    // that boxes int values that are actually Dafny char values.
     private bool IsJavaPrimitiveType(Type type) {
       return type.IsBoolType || type.IsCharType || AsNativeType(type) != null;
     }
