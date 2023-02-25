@@ -697,6 +697,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "allocated": {
             ps.GetIntArgument(ref Allocated, 5);
+            if (Allocated != 4) {
+              Printer.AdvisoryWriteLine(Console.Out, "The /allocated:<n> option is deprecated");
+            }
             return true;
           }
 
@@ -1410,6 +1413,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
        print effects only if it is marked with {{:print}}.
 
 /allocated:<n>
+    This option is deprecated. Going forward, only what is /allocated:4
+    will be supported.
     Specify defaults for where Dafny should assert and assume
     allocated(x) for various parameters x, local variables x, bound
     variables x, etc. Lower <n> may require more manual allocated(x)
