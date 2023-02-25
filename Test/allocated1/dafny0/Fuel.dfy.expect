@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Fuel.dfy(3,8): Error: the included file Fuel.dfy contains error(s)
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.

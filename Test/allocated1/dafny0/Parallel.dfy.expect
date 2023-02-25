@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Parallel.dfy(267,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(279,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(286,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
