@@ -3660,7 +3660,7 @@ namespace Microsoft.Dafny.Compilers {
         return true;
       }
 
-      if (UnicodeCharEnabled && ((IsObjectType(from) && to.IsCharType) || (from.IsCharType && IsObjectType(to)))) {
+      if (UnicodeCharEnabled && ((IsNativeObjectType(from) && to.IsCharType) || (from.IsCharType && IsNativeObjectType(to)))) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
         return true;
       }
@@ -3692,7 +3692,7 @@ namespace Microsoft.Dafny.Compilers {
     // (see for example https://github.com/dafny-lang/dafny/issues/2989).
     private static readonly Type NativeObjectType = null;
 
-    private bool IsObjectType(Type type) {
+    private bool IsNativeObjectType(Type type) {
       return type == NativeObjectType || type.IsTypeParameter;
     }
 
@@ -3703,14 +3703,14 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
-        if (IsObjectType(from) && to is { IsCharType: true }) {
+        if (IsNativeObjectType(from) && to is { IsCharType: true }) {
           wr.Write("((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
-        if (from is { IsCharType: true } && IsObjectType(to)) {
+        if (from is { IsCharType: true } && IsNativeObjectType(to)) {
           wr.Write("dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
