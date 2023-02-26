@@ -1,6 +1,6 @@
 // RUN: %baredafny verify %args "%s" > "%t" || true
 // RUN: %diff "%s.expect" "%t"
-
+// Note, despite the name of this file, this file really tests definite assignment, but see ForbidNondeterminismCompile.dfy.
 class C {
   var f: real
 }
@@ -42,9 +42,18 @@ method OutputParameters1(x: int) returns (s: int, t: int)
 
 method DeclWithHavoc()
 {
-  var a: int := *;
-  var b: int := *;  // fine, since b is never used
-  var c := a;  // error: a is used before given a definite value
+  var a: int := *; // this counts as a definite assignment
+  var b: int;  // fine, since b is never used
+  var c := a;
+}
+
+type PossiblyEmpty = x: int | true witness *
+
+method MoreDeclWithHavoc()
+{
+  var a: PossiblyEmpty := *; // this does NOT count as a definite assignment for a possibly-empty type
+  var b: PossiblyEmpty;  // fine, since b is never used
+  var c := a; // error: a is used without being definitely assigned
 }
 
 class CK {
@@ -52,11 +61,11 @@ class CK {
   var y: int
   constructor Init() {
     x := 10;
-  }  // error: value of y left nondeterministic
+  } // definite-assignment rules allow fields to be left unassigned
 }
 
 method ArrayAllocation(n: nat, p: nat, q: nat)
 {
-  var a := new int[n];  // error: the array elements will be assigned nondeterministically
-  var m := new bool[p,q];  // error: the matrix elements will be assigned nondeterministically
+  var a := new int[n]; // definite-assignment rules allow array elements to be left unassigned
+  var m := new bool[p,q]; // definite-assignment rules allow array elements to be left unassigned
 }
