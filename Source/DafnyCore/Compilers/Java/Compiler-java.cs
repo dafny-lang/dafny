@@ -1824,8 +1824,8 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
         wr.Write($"public static{justTypeArgs} {DtT_protected} {DtCreateName(ctor)}(");
         WriteFormals("", ctor.Formals, wr);
-        var w = wr.NewBlock(")");
-        w.Write($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+        wr.NewBlock(")")
+          .WriteLine($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
       }
 
       if (dt.IsRecordType) {
@@ -1836,7 +1836,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"public static{justTypeArgs} {DtT_protected} create_{ctor.CompileName}(");
         WriteFormals("", ctor.Formals, wr);
         wr.NewBlock(")")
-          .Write($"return create({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+          .WriteLine($"return create({ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
       }
 
       // query properties
