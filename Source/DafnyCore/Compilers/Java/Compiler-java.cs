@@ -1351,8 +1351,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
         var needsEtaConversion = typeArgs.Any()
                || additionalCustomParameter != null
-               || UnicodeCharEnabled && 
-                  (fn.ResultType.IsCharType || fn.Formals.Any(f => f.Type.IsCharType));
+               || (UnicodeCharEnabled &&
+                  (fn.ResultType.IsCharType || fn.Formals.Any(f => f.Type.IsCharType)));
         if (!needsEtaConversion) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
@@ -1383,7 +1383,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           prefixWr.Write(") -> ");
           wr.Write(")");
-          
+
           if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
             prefixWr.Write("dafny.CodePoint.valueOf(");
             wr.Write(")");
