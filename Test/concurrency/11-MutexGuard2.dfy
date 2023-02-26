@@ -261,7 +261,7 @@ class Thread extends Object {
   }
   twostate lemma baseFieldsInvMonotonicity() requires old(baseFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseFieldsInv() {}
 
-  ghost predicate localInv() reads * {
+  ghost predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
   }
   ghost predicate inv() reads * ensures inv() ==> localInv() {
@@ -332,7 +332,7 @@ trait OwnedObject extends Object {
     && unchangedNonvolatileUserFields()
   }
 
-  ghost predicate localInv() reads * {
+  ghost predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
     && localUserInv()
   }

@@ -3661,7 +3661,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("_dafny.SeqOf");
         }
       }
-      TrExprList(elements, wr, inLetExprBody, wStmts, type: ct.TypeArgs[0]);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.TypeArgs[0]);
     }
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,

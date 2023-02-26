@@ -242,3 +242,19 @@ method CharQuantification() {
 
 // Dummy identity function just to enable triggers that Dafny and Boogie are happy with
 function Identity<T>(x: T): T { x }
+
+method CharsAndArrows() {
+  var lambda := (c: char) requires c <= 'Z' => c + 1 as char;
+  var fromLambda := lambda('C');
+  print fromLambda, "\n";
+
+  var funcRef := IncrementChar;
+  var fromFuncRef := funcRef('C');
+  print fromFuncRef, "\n";
+}
+
+function method IncrementChar(c: char): char 
+  requires c <= 'Z'
+{
+  c + 1 as char
+}

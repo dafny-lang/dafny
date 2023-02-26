@@ -2904,10 +2904,10 @@ namespace Microsoft.Dafny.Compilers {
     protected string DefaultValueCoercedIfNecessary(Type type, ConcreteSyntaxTree wr, IToken tok,
       bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
 
-      var tempWr = new ConcreteSyntaxTree();
-      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, tempWr);
+      var resultWr = new ConcreteSyntaxTree();
+      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, resultWr);
       coercedWr.Write(DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
-      return tempWr.ToString();
+      return resultWr.ToString();
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -4713,22 +4713,20 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Type/*?*/ type = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
-      string sep = "";
-      foreach (Expression e in exprs) {
-        wr.Write(sep);
+
+      wr.Comma(exprs, (e, index) => {
         ConcreteSyntaxTree w;
-        if (type != null) {
+        if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, type, e.tok, w);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
         } else {
           w = wr;
         }
         TrExpr(e, w, inLetExprBody, wStmts);
-        sep = ", ";
-      }
+      });
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
