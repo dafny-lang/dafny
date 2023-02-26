@@ -1334,7 +1334,7 @@ namespace Microsoft.Dafny.Compilers {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
-            if (member.EnclosingClass is TupleTypeDecl && IsCharBasedType(sf.Type.Subst(typeMap)) && UnicodeCharEnabled) {
+            if (member.EnclosingClass is TupleTypeDecl && sf.Type.Subst(typeMap).IsCharType && UnicodeCharEnabled) {
               return SuffixLvalue(obj, $".{compiledName}().value()");
             } else {
               return SuffixLvalue(obj, $".{compiledName}()");
@@ -1349,12 +1349,15 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
-        // TODO: needs to check for argument conversions as well
-        if (typeArgs.Count == 0 && additionalCustomParameter == null && !IsCharBasedType(fn.ResultType)) {
+        var needsEtaConversion = typeArgs.Any()
+               || additionalCustomParameter != null
+               || UnicodeCharEnabled && 
+                  (fn.ResultType.IsCharType || fn.Formals.Any(f => f.Type.IsCharType));
+        if (!needsEtaConversion) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
-          // We need an eta conversion to adjust for the difference in arity.
+          // We need an eta conversion to adjust for the difference in arity or coerce inputs/outputs.
           // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
           wr.Write("(");
           var sep = "";
@@ -1371,16 +1374,16 @@ namespace Microsoft.Dafny.Compilers {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);
               prefixWr.Write($"{prefixSep}{BoxedTypeName(ty, prefixWr, arg.tok)} {name}");
-              wr.Write("{0}{1}", sep, name);
+              wr.Write(sep);
+              var coercedWr = EmitCoercionIfNecessary(NativeObjectType, ty, arg.tok, wr);
+              coercedWr.Write(name);
               sep = ", ";
               prefixSep = ", ";
             }
           }
           prefixWr.Write(") -> ");
           wr.Write(")");
-
-          // TODO: Need to check arguments as well. Probably could use something like EmitCoercionIfNecessary
-          // that works in this context too?
+          
           if (fn.ResultType.IsCharType && UnicodeCharEnabled) {
             prefixWr.Write("dafny.CodePoint.valueOf(");
             wr.Write(")");
@@ -2519,7 +2522,7 @@ namespace Microsoft.Dafny.Compilers {
         Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false) {
       // TODO: there may be an opportunity to share code with CreateIIFE,
       // which may be worth it given all the necessary coercions.
-      
+
       if (inTypes.Count != 1) {
         functions.Add(inTypes.Count);
       }
@@ -2538,7 +2541,7 @@ namespace Microsoft.Dafny.Compilers {
         coercedW.Write(boxedInNames[i]);
         w.WriteLine(";");
       }
-      
+
       return w;
     }
 
@@ -2601,7 +2604,7 @@ namespace Microsoft.Dafny.Compilers {
       truncateResult = false;
       convertE1_to_int = false;
       coerceE1 = false;
-      
+
       void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
         out string postOpS, out string callS) {
         if (AsNativeType(resultType) != null) {
@@ -3637,7 +3640,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(NativeObjectType, functionType.AsArrowType.Result, tok, wr);
       TrParenExpr(function, wr, inLetExprBody, wStmts);
       wr.Write(".apply");
-      TrExprList(arguments, wr, inLetExprBody, wStmts);
+      TrExprList(arguments, wr, inLetExprBody, wStmts, typeOf: _ => NativeObjectType);
     }
 
     protected override bool NeedsCastFromTypeParameter => true;
@@ -3693,15 +3696,6 @@ namespace Microsoft.Dafny.Compilers {
       return type == NativeObjectType || type.IsTypeParameter;
     }
 
-    private bool IsCharBasedType(Type type) {
-      return type switch {
-        { IsCharType: true } => true,
-        UserDefinedType { ResolvedClass: SubsetTypeDecl std } =>
-          IsCharBasedType(std.RhsWithArgument(type.TypeArgs)),
-        _ => false
-      };
-    }
-
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(from);
       to = to == null ? null : DatatypeWrapperEraser.SimplifyType(to);
@@ -3709,14 +3703,14 @@ namespace Microsoft.Dafny.Compilers {
       if (UnicodeCharEnabled) {
         // Need to box from int to CodePoint, or unbox from CodePoint to int
 
-        if (IsObjectType(from) && IsCharBasedType(to)) {
+        if (IsObjectType(from) && to is { IsCharType: true }) {
           wr.Write("((dafny.CodePoint)(");
           var w = wr.Fork();
           wr.Write(")).value()");
           return w;
         }
 
-        if (IsCharBasedType(from) && IsObjectType(to)) {
+        if (from is { IsCharType: true } && IsObjectType(to)) {
           wr.Write("dafny.CodePoint.valueOf(");
           var w = wr.Fork();
           wr.Write(")");
