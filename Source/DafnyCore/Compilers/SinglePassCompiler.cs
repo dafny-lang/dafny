@@ -4713,15 +4713,15 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Func<int, Type> typeOf = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
 
       wr.Comma(exprs, (e, index) => {
         ConcreteSyntaxTree w;
-        if (typeOf != null) {
+        if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, typeOf(index), e.tok, w);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
         } else {
           w = wr;
         }

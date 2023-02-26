@@ -3640,7 +3640,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(NativeObjectType, functionType.AsArrowType.Result, tok, wr);
       TrParenExpr(function, wr, inLetExprBody, wStmts);
       wr.Write(".apply");
-      TrExprList(arguments, wr, inLetExprBody, wStmts, typeOf: _ => NativeObjectType);
+      TrExprList(arguments, wr, inLetExprBody, wStmts, typeAt: _ => NativeObjectType);
     }
 
     protected override bool NeedsCastFromTypeParameter => true;
