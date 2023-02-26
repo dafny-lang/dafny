@@ -17,7 +17,7 @@ method Foo()
 {
     assert false;
 }";
-    string solverProcessName = $"z3-{DafnyOptions.DefaultZ3Version}";
+    const string solverProcessName = "z3";
     var processes1 = Process.GetProcessesByName(solverProcessName);
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
