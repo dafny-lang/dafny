@@ -3263,12 +3263,12 @@ namespace Microsoft.Dafny {
 
     #region Definite-assignment tracking
 
-    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type) {
+    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type, bool isFIeld) {
       Contract.Requires(type != null);
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return false;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 || (DafnyOptions.O.DefiniteAssignmentLevel == 4 && isFIeld)) {
         if (isGhost && type.IsNonempty) {
           return false;
         } else if (!isGhost && type.HasCompilableValue) {
@@ -3282,7 +3282,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type)) {
+      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
         return null;
       }
       Bpl.Variable tracker;
@@ -3300,7 +3300,7 @@ namespace Microsoft.Dafny {
     void AddExistingDefiniteAssignmentTracker(IVariable p, bool forceGhostVar) {
       Contract.Requires(p != null);
 
-      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type)) {
+      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
         var ie = new Bpl.IdentifierExpr(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool);
         definiteAssignmentTrackers.Add(p.UniqueName, ie);
       }
@@ -3311,7 +3311,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(localVariables != null);
 
       var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
-      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type)) {
+      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
         return;
       }
       var nm = SurrogateName(field);
