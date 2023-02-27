@@ -109,6 +109,10 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
+
+    public void Dispose() {
+      verifier?.Dispose();
+    }
   }
 
   class CrashingLoader : ITextDocumentLoader {

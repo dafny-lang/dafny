@@ -26,7 +26,7 @@ class BreadthFirstSearch<Vertex(==)>
   // this method returns, as a ghost out-parameter, that existential
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
-  method BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
+  method {:vcs_split_on_every_assert} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
     requires source in AllVertices && dest in AllVertices;
@@ -52,6 +52,10 @@ class BreadthFirstSearch<Vertex(==)>
     // N - vertices encountered and reachable from "source" in "d+1" steps
     //     (but no less)
     d := 0;
+    assert dest in R(source, d, AllVertices) ==> dest in C by { reveal R(); }
+    assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
+    assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
+    assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
     while C != {}
       // V, Processed, C, N are all subsets of AllVertices:
       invariant V <= AllVertices && Processed <= AllVertices && C <= AllVertices && N <= AllVertices;
@@ -88,6 +92,7 @@ class BreadthFirstSearch<Vertex(==)>
         forall p | IsPath(source, dest, p)
           ensures length(pathToV) <= length(p);
         {
+          reveal R();
           Lemma_IsPath_R(source, dest, p, AllVertices);
           if length(p) < length(pathToV) {
             // show that this branch is impossible
@@ -105,6 +110,11 @@ class BreadthFirstSearch<Vertex(==)>
       if C == {} {
         C, N, d := N, {}, d+1;
       }
+
+      assert dest in R(source, d, AllVertices) ==> dest in C by { reveal R(); }
+      assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
+      assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
+      assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
     }
 
     // show that "dest" in not in any reachability set, no matter
@@ -112,6 +122,7 @@ class BreadthFirstSearch<Vertex(==)>
     forall n: nat
       ensures dest !in R(source, n, AllVertices);
     {
+      reveal R();
       if n < d {
         RMonotonicity(source, n, d, AllVertices);
       } else {
@@ -126,6 +137,7 @@ class BreadthFirstSearch<Vertex(==)>
       // absurdity of a "p" satisfying IsPath(source, dest, p)
       ensures false;
     {
+      reveal R();
       Lemma_IsPath_R(source, dest, p, AllVertices);
       // a consequence of Lemma_IsPath_R is:
       // dest in R(source, |p|), AllVertices)
@@ -151,7 +163,7 @@ class BreadthFirstSearch<Vertex(==)>
 
   // Reachability
 
-  function R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
+  opaque function R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
   {
     if n == 0 then {source} else
     R(source, n-1, AllVertices) + Successors(R(source, n-1, AllVertices), AllVertices)
@@ -167,17 +179,19 @@ class BreadthFirstSearch<Vertex(==)>
     ensures R(source, m, AllVertices) <= R(source, n, AllVertices);
     decreases n - m;
   {
+    reveal R();
     if m < n {
       RMonotonicity(source, m + 1, n, AllVertices);
     }
   }
 
-  lemma IsReachFixpoint(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
+  lemma {:vcs_split_on_every_assert} IsReachFixpoint(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
     requires R(source, m, AllVertices) == R(source, m+1, AllVertices);
     requires m <= n;
     ensures R(source, m, AllVertices) == R(source, n, AllVertices);
     decreases n - m;
   {
+    reveal R();
     if m < n {
       IsReachFixpoint(source, m + 1, n, AllVertices);
     }
@@ -187,6 +201,7 @@ class BreadthFirstSearch<Vertex(==)>
     requires IsPath(source, x, p) && source in AllVertices && IsClosed(AllVertices);
     ensures x in R(source, length(p), AllVertices);
   {
+    reveal R();
     match p {
       case Nil =>
       case Cons(v, tail) =>

@@ -83,19 +83,17 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     /// </summary>
     public abstract int Preference(); // higher is better
 
-    public static BoundedPool GetBest(List<BoundedPool> bounds, PoolVirtues requiredVirtues) {
+    public static BoundedPool GetBest(List<BoundedPool> bounds) {
       Contract.Requires(bounds != null);
       bounds = CombineIntegerBounds(bounds);
       BoundedPool best = null;
       foreach (var bound in bounds) {
-        if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
-          if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
-            best = new IntBoundedPool(
-              ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
-              ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
-          } else if (best == null || bound.Preference() > best.Preference()) {
-            best = bound;
-          }
+        if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
+          best = new IntBoundedPool(
+            ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
+            ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
+        } else if (best == null || bound.Preference() > best.Preference()) {
+          best = bound;
         }
       }
       return best;
