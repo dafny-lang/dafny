@@ -3268,7 +3268,8 @@ namespace Microsoft.Dafny {
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return false;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 || (DafnyOptions.O.DefiniteAssignmentLevel == 4 && isFIeld)) {
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 ||
+                 (DafnyOptions.O.DefiniteAssignmentLevel == 4 && isFIeld && !DafnyOptions.O.ForbidNondeterminism)) {
         if (isGhost && type.IsNonempty) {
           return false;
         } else if (!isGhost && type.HasCompilableValue) {

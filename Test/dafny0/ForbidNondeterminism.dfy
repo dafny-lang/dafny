@@ -1,6 +1,7 @@
 // RUN: %baredafny verify %args "%s" > "%t" || true
+// RUN: %baredafny run %args --enforce-determinism "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
-// Note, despite the name of this file, this file really tests definite assignment, but see ForbidNondeterminismCompile.dfy.
+
 class C {
   var f: real
 }
@@ -14,7 +15,7 @@ method M(c: C, u: int) returns (r: int)
   var x := 3;  // fine
   var y;  // this statement by itself is nondeterministic, but by itself is not an error
   if u < 10 {
-    r := y;  // error: nondeterministic value in y
+    r := y;  // error: definite-assignment violation
   } else if u < 20 {
     y := 4;
     r := y;  // fine
@@ -34,7 +35,7 @@ method OutputParameters0(x: int) returns (s: int, t: int)
 method OutputParameters1(x: int) returns (s: int, t: int)
 {
   if x < 100 {
-    return;  // error: this may leave s and t undefined
+    return;  // error (x2): this may leave s and t undefined
   } else {
     var y := x + s;  // error: this uses s before it may be defined
   }
@@ -61,11 +62,19 @@ class CK {
   var y: int
   constructor Init() {
     x := 10;
-  } // definite-assignment rules allow fields to be left unassigned
+  } // definite-assignment rules allow fields to be left unassigned [error: determinism]
 }
 
 method ArrayAllocation(n: nat, p: nat, q: nat)
 {
-  var a := new int[n]; // definite-assignment rules allow array elements to be left unassigned
-  var m := new bool[p,q]; // definite-assignment rules allow array elements to be left unassigned
+  var a := new int[n]; // definite-assignment rules allow array elements to be left unassigned [error: determinism]
+  var m := new bool[p,q]; // definite-assignment rules allow array elements to be left unassigned [error: determinism]
+}
+
+class Cell {
+  var data: int
+
+  constructor () {
+    // .data is auto-initialized here
+  } // [error: determinism]
 }

@@ -1,6 +1,6 @@
 ForbidNondeterminismCompile.dfy(52,2): Warning: the modify statement with a block statement is deprecated
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 ForbidNondeterminismCompile.dfy(4,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(79,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
 ForbidNondeterminismCompile.dfy(90,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
