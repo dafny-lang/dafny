@@ -5,7 +5,7 @@
 
 type G(==)
 
-predicate IsFilter(f: set<set<G>>, S: set<G>)
+ghost predicate IsFilter(f: set<set<G>>, S: set<G>)
 {
   (forall A, B :: A in f && A <= B ==> B in f) &&
   (forall C, D :: C in f && D in f ==> C * D in f) &&
@@ -13,7 +13,7 @@ predicate IsFilter(f: set<set<G>>, S: set<G>)
   {} !in f
 }
 
-predicate IsUltraFilter(f: set<set<G>>, S: set<G>)
+ghost predicate IsUltraFilter(f: set<set<G>>, S: set<G>)
 {
   IsFilter(f, S) &&
   (forall g :: IsFilter(g, S) && f <= g ==> f == g)

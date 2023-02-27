@@ -3,19 +3,19 @@
 
 datatype Option<V> = Some(value: V) | None
 
-predicate IsGoodInt(x: int)
+ghost predicate IsGoodInt(x: int)
 {
   && 0 <= x
   && x != 5  // related location
 }
 
-predicate IsGoodOpt_Impl(opt: Option<int>)
+ghost predicate IsGoodOpt_Impl(opt: Option<int>)
 {
   && (opt.Some? ==> IsGoodInt(opt.value))  // related location
   && (opt.None? ==> true)
 }
 
-predicate IsGoodOpt_IfThenElse(opt: Option<int>)
+ghost predicate IsGoodOpt_IfThenElse(opt: Option<int>)
 {
   if opt.Some? then
     var x := opt.value;
@@ -24,7 +24,7 @@ predicate IsGoodOpt_IfThenElse(opt: Option<int>)
     true
 }
 
-predicate IsGoodOpt_Match(opt: Option<int>)
+ghost predicate IsGoodOpt_Match(opt: Option<int>)
 {
   match opt {
     case Some(x) => IsGoodInt(x)  // related location
@@ -47,7 +47,7 @@ method Main() {
 
 datatype Number = Succ(prev: Number) | Zero
 
-function ToNumber(n: nat): Number {
+ghost function ToNumber(n: nat): Number {
   if n == 0 then Zero else Succ(ToNumber(n - 1))
 }
 
@@ -81,7 +81,7 @@ lemma About_NumNat(k: nat, num: Number)
 {
 }
 
-predicate Pred(num: Number) {
+ghost predicate Pred(num: Number) {
   match num
   case Succ(prev) => Pred(prev)
   case Zero => true
@@ -126,7 +126,7 @@ lemma Test4(k: nat, n: int)
   assert GreatestPredNat#[k](ToNumber(if n < 0 then 0 else n));  // info: not inlined
 }
 
-predicate GreatestManualOrd(k: ORDINAL, num: Number)
+ghost predicate GreatestManualOrd(k: ORDINAL, num: Number)
 {
   if k == 0 then
     true
@@ -143,7 +143,7 @@ lemma Test5(k: ORDINAL, n: int)
   assert GreatestManualOrd(k, ToNumber(if n < 0 then 0 else n));  // info: not inlined
 }
 
-predicate GreatestManualNat(k: nat, num: Number)
+ghost predicate GreatestManualNat(k: nat, num: Number)
 {
   if k == 0 then
     true
@@ -158,7 +158,7 @@ lemma Test10(k: nat, n: int)
   assert GreatestManualNat(k, ToNumber(if n < 0 then 0 else n));  // info: not inlined
 }
 
-predicate RicochetOrd(k: ORDINAL, n: Number) {
+ghost predicate RicochetOrd(k: ORDINAL, n: Number) {
   GreatestPredOrd#[k](n)  // info: not inlined
 }
 lemma Test6(k: ORDINAL, n: int)
@@ -169,7 +169,7 @@ lemma Test6(k: ORDINAL, n: int)
   assert RicochetOrd(k, ToNumber(if n < 0 then 0 else n));  // info: not inlined
 }
 
-predicate RicochetNat(k: nat, n: Number) {
+ghost predicate RicochetNat(k: nat, n: Number) {
   GreatestPredNat#[k](n)  // info: not inlined
 }
 lemma Test7(k: nat, n: int)
@@ -224,7 +224,7 @@ module PrefixBodyInlining {
 
   codatatype IList = ICons(head: int, tail: IList)
 
-  function UpIList(n: int): IList
+  ghost function UpIList(n: int): IList
   {
     ICons(n, UpIList(n+1))
   }

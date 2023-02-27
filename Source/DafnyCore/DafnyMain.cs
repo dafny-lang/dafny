@@ -43,11 +43,18 @@ namespace Microsoft.Dafny {
         return (new Uri(filePath)).LocalPath;
       }
 
-      if (filePath.StartsWith("file:\\")) {
-        // Recovery mechanisms for the language server
-        return filePath.Substring("file:\\".Length);
+      var potentialPrefixes = new List<string>() { "file:\\", "file:/", "file:" };
+      foreach (var potentialPrefix in potentialPrefixes) {
+        if (filePath.StartsWith(potentialPrefix)) {
+          var withoutPrefix = filePath.Substring(potentialPrefix.Length);
+          var tentativeURI = "file:///" + withoutPrefix.Replace("\\", "/");
+          if (Uri.IsWellFormedUriString(tentativeURI, UriKind.RelativeOrAbsolute)) {
+            return (new Uri(tentativeURI)).LocalPath;
+          }
+          // Recovery mechanisms for the language server
+          return filePath.Substring(potentialPrefix.Length);
+        }
       }
-
       return filePath.Substring("file:".Length);
     }
     public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {

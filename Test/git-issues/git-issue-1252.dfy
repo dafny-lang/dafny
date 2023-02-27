@@ -83,7 +83,7 @@ method Test6(n: nat) {
   }
 }
 
-function method F(c: C?): int
+function F(c: C?): int
   reads c, c.more // error: c may be null
 {
   5

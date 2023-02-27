@@ -9,16 +9,16 @@ trait S {
   ghost var obs: set<O>
 
   // Workaround Dafny not supporting _ as object
-  function upCast(o: object): object {o}
+  ghost function upCast(o: object): object {o}
   
   // Universe invariant: the universe doesn't contain itself, 
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
   // without having to check the object invariants.
-  predicate i0() reads this, obs { forall o: O | o in obs :: o.s == this && upCast(o) != this }
+  ghost predicate i0() reads this, obs { forall o: O | o in obs :: o.s == this && upCast(o) != this }
   
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate i() reads * { i0() && forall o: O | o in obs :: o.i() }
+  ghost predicate i() reads * { i0() && forall o: O | o in obs :: o.i() }
   
   // Global 2-state invariant: all old objects satisfy their 2-state invariants.
   twostate predicate i2() reads * { forall o: O | o in old(obs) :: o in obs && o.i2() }
@@ -46,7 +46,7 @@ trait O {
   ghost const s: S
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
-  predicate i0() reads * { this in s.obs && s.i0() }
+  ghost predicate i0() reads * { this in s.obs && s.i0() }
   
   // Join universe s
   ghost method join()
@@ -62,13 +62,13 @@ trait O {
   twostate predicate admPre() reads * { i0() && old(i0() && s.i()) && unchanged(this) && s.legal() }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate gi() reads * { i0() && s.i() }
+  ghost predicate gi() reads * { i0() && s.i() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate gi2() requires old(gi()) reads * { i0() && s.i2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
-  predicate i() reads *
+  ghost predicate i() reads *
   twostate predicate i2() reads *
   twostate lemma adm() requires admPre() ensures i2() && i()
 }
@@ -77,14 +77,14 @@ class Inner extends O {
   var data: int
 
   // Invariant
-  predicate i() reads * {
+  ghost predicate i() reads * {
     && i0()
   }
   twostate predicate i2() reads * {
     && old(data) <= data
   }
 
-  twostate lemma adm() {}
+  twostate lemma adm() requires admPre() {}
 
   constructor (ghost s: S, initial_data: int)
     requires s.i()
@@ -103,7 +103,7 @@ class Outer extends O {
   var inner: Inner
 
   // Invariant
-  predicate i() reads * {
+  ghost predicate i() reads * {
     && i0()
     && s == inner.s
     && inner.i()

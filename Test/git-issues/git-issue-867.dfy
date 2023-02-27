@@ -3,7 +3,7 @@
 
 // The following compiled function was always handled correctly:
 
-function method PickOne0(s: set<int>): int
+function PickOne0(s: set<int>): int
   requires s != {}
 {
   var u :| u in s;  // error: u is not picked uniquely
@@ -14,7 +14,7 @@ function method PickOne0(s: set<int>): int
 // wasn't checked properly for compile restrictions. In other words, the
 // outer let expression had masked any such errors in its body.
 
-function method PickOne1(s: set<int>): int
+function PickOne1(s: set<int>): int
   requires s != {}
 {
   var w := 10;
@@ -22,7 +22,7 @@ function method PickOne1(s: set<int>): int
   u
 }
 
-function method PickOne2(s: set<int>): int
+function PickOne2(s: set<int>): int
   requires s != {}
 {
   var w :| w == 10;
@@ -33,13 +33,13 @@ function method PickOne2(s: set<int>): int
 // Here are the two larger examples given in the bug report:
 
 module M0 {
-  predicate setIsSeq<T>(t: set<T>, q: seq<T>) {
+  ghost predicate setIsSeq<T>(t: set<T>, q: seq<T>) {
     |t| == |q| ==>
       (forall i :: 0 <= i < |q| ==> q[i] in t) &&
       (forall x :: x in t ==> x in q)
   }
 
-  function method fSetToSeq<T>(t: set<T>): (r: seq<T>)
+  function fSetToSeq<T>(t: set<T>): (r: seq<T>)
     ensures setIsSeq(t, r)
   {
     var inner := t;
@@ -74,13 +74,13 @@ module M0 {
 }
 
 module M1 {
-  predicate setIsSeq(t: set, q: seq) {
+  ghost predicate setIsSeq(t: set, q: seq) {
     |t| == |q| ==>
       (forall i :: 0 <= i < |q| ==> q[i] in t) &&
       (forall x :: x in t ==> x in q)
   }
 
-  function method fSetToSeq(t: set): (r: seq)
+  function fSetToSeq(t: set): (r: seq)
     ensures setIsSeq(t, r)
    {
     var notUsed := t;

@@ -21,7 +21,7 @@ method Main() {
   print s, "\n";  // 0
 }
 
-predicate Has<T>(a: array<T>, x: T)
+ghost predicate Has<T>(a: array<T>, x: T)
   reads a
 {
   exists i :: 0 <= i < a.Length && a[i] == x

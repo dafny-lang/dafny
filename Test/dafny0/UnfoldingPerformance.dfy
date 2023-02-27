@@ -3,14 +3,14 @@
 
 class C {
   var x: nat
-  function method IgnoreFuel(): nat
+  function IgnoreFuel(): nat
     reads this
   {
     x
   }
 }
 
-function method Fib(n: int): int
+function Fib(n: int): int
 {
   if n < 2 then n else Fib(n-2) + Fib(n-1)
 }

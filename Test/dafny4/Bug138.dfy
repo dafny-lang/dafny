@@ -11,7 +11,7 @@ method R(xs: List)
   case Cons(x, Cons(y, tail)) =>
 }
 
-function F(xs: List) : int
+ghost function F(xs: List) : int
 {
   match xs
   case Nil() =>  0  // currently produces a parsing error, but shouldn't
