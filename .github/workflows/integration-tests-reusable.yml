@@ -98,8 +98,10 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: dafny
-        submodules: true
-    - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+        submodules: false # Until the libraries work again
+#    - name: Clean up libraries for testing
+#      run: |
+#        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       if: inputs.all_platforms
       run: |
@@ -120,7 +122,7 @@ jobs:
         chmod +x dafny/Binaries/z3/bin/z3
         mkdir -p unzippedRelease/dafny/z3/bin
         ln dafny/Binaries/z3/bin/z3 unzippedRelease/dafny/z3/bin/z3
-    - name: Run integration tests
+    - name: Run integration tests (Windows)
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
@@ -129,7 +131,7 @@ jobs:
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3.exe
         dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
-    - name: Run integration tests
+    - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}

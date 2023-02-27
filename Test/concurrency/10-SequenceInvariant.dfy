@@ -256,7 +256,7 @@ class Thread extends Object {
   }
   twostate lemma baseFieldsInvMonotonicity() requires old(baseFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseFieldsInv() {}
 
-  predicate localInv() reads * {
+  predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
   }
   predicate inv() reads * ensures inv() ==> localInv() {
@@ -322,7 +322,7 @@ trait OwnedObject extends Object {
     assert owner in universe.content;
   }
 
-  predicate localInv() reads * {
+  predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
     && localUserInv()
   }
@@ -614,7 +614,7 @@ class ClaimIncreasingCounterGreaterThanConstant extends OwnedObject {
 //   assert!(i == 10);
 // }
 
-method Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
+method {:vcs_split_on_every_assert} Incrementer(universe: Universe, running: Thread, counter: IncreasingCounter, remaining: Integer)
    requires universe.globalInv() && running in universe.content && counter in universe.content && remaining in universe.content
    requires remaining.owner == running && remaining.value == 10 // USER precondition
    modifies universe, universe.content
