@@ -1034,6 +1034,7 @@ func (_this arrayForByte) ArrayGet1CodePoint(index int) CodePoint {
 func (_this arrayForByte) ArraySet1CodePoint(value CodePoint, index int) {
   panic("Expected specialized array type that contains code points, but found general-purpose array of interface{}")
 }
+
 func (_this arrayForByte) anySlice(lo, hi Int) []interface{} {
   if lo.IsNilInt() {
     lo = Zero
