@@ -43,10 +43,10 @@
     <None Update="Synchronization\TestFiles\syntaxError.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Synchronization\TestFiles\a.dfy">
+    <None Update="Synchronization\TestFiles\A.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Synchronization\TestFiles\b.dfy">
+    <None Update="Synchronization\TestFiles\B.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Various\TestFiles\multi1.dfy">
