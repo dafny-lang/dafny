@@ -324,6 +324,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public bool AuditProgram = false;
 
+    public static string DefaultZ3Version = "4.8.5";
+
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
@@ -1096,12 +1098,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       var platform = System.Environment.OSVersion.Platform;
       var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
-      var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
+        var z3LocalBinName = isUnix
+          ? $"z3-{DefaultZ3Version}"
+          : $"z3-{DefaultZ3Version}.exe";
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1109,11 +1113,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       // Finally, try looking in the system PATH variable.
+      var z3GlobalBinName = isUnix ? "z3" : "z3.exe";
       if (confirmedProverPath is null) {
         confirmedProverPath = System.Environment
           .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
-          .Select(s => Path.Combine(s, z3binName))
+          .Select(s => Path.Combine(s, z3GlobalBinName))
           .FirstOrDefault(File.Exists);
       }
 
