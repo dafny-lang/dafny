@@ -339,11 +339,11 @@ namespace Microsoft.Dafny {
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
-      var z3NotFoundMessage = @"
+      var z3NotFoundMessage = $@"
 Z3 not found. Please either provide a path to the `z3` executable using
 the `--solver-path <path>` option, manually place the `z3` directory
 next to the `dafny` executable you are using (this directory should
-contain `bin/z3` or `bin/z3.exe`), or set the PATH environment variable
+contain `bin/z3-{DafnyOptions.DefaultZ3Version}` or `bin/z3-{DafnyOptions.DefaultZ3Version}.exe`), or set the PATH environment variable
 to also include a directory containing the `z3` executable.
 ";
 
