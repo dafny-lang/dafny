@@ -34,13 +34,13 @@ namespace Microsoft.Dafny {
     // make the path absolute -- detecting case and canonicalizing symbolic and hard
     // links are difficult across file systems (which may mount parts of other filesystems,
     // with different characteristics) and is not supported by .Net libraries
-    public static string Canonicalize(String filePath) {
+    public static Uri Canonicalize(string filePath) {
       if (filePath == null || !filePath.StartsWith("file:")) {
-        return Path.GetFullPath(filePath);
+        return new Uri(Path.GetFullPath(filePath));
       }
 
       if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
-        return (new Uri(filePath)).LocalPath;
+        return new Uri(filePath);
       }
 
       var potentialPrefixes = new List<string>() { "file:\\", "file:/", "file:" };
@@ -49,13 +49,13 @@ namespace Microsoft.Dafny {
           var withoutPrefix = filePath.Substring(potentialPrefix.Length);
           var tentativeURI = "file:///" + withoutPrefix.Replace("\\", "/");
           if (Uri.IsWellFormedUriString(tentativeURI, UriKind.RelativeOrAbsolute)) {
-            return (new Uri(tentativeURI)).LocalPath;
+            return new Uri(tentativeURI);
           }
           // Recovery mechanisms for the language server
-          return filePath.Substring(potentialPrefix.Length);
+          return new Uri(filePath.Substring(potentialPrefix.Length));
         }
       }
-      return filePath.Substring("file:".Length);
+      return new Uri(filePath.Substring("file:".Length));
     }
     public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
-      CanonicalPath = !useStdin ? Canonicalize(filePath) : "<stdin>";
+      CanonicalPath = !useStdin ? Canonicalize(filePath).AbsolutePath : "<stdin>";
       filePath = CanonicalPath;
 
       if (extension == ".dfy" || extension == ".dfyi") {
