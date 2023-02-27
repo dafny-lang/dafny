@@ -1449,7 +1449,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     4 - Like 1, but enforces definite assignment for all local variables
         and out-parameters, regardless of their types. (Whether or not
         fields and new arrays are subject to definite assignments depends
-        on their types.)  
+        on their types.)
 
 /noAutoReq
     Ignore autoReq attributes.
