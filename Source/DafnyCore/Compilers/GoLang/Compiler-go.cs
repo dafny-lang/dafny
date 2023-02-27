@@ -3114,6 +3114,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -3124,6 +3125,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
@@ -3368,7 +3370,7 @@ namespace Microsoft.Dafny.Compilers {
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
       }
@@ -3659,7 +3661,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("_dafny.SeqOf");
         }
       }
-      TrExprList(elements, wr, inLetExprBody, wStmts, type: ct.TypeArgs[0]);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.TypeArgs[0]);
     }
 
     protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements,
