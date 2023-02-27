@@ -253,7 +253,7 @@ method CharsAndArrows() {
   print fromFuncRef, "\n";
 }
 
-function method IncrementChar(c: char): char 
+function IncrementChar(c: char): char 
   requires c <= 'Z'
 {
   c + 1 as char
