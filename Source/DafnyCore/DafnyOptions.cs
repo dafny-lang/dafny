@@ -64,7 +64,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
-1 (default) - The char type represents any Unicode scalar value.".TrimStart());
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
@@ -284,7 +284,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
-    public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
@@ -323,8 +322,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> VerificationLoggerConfigs = new();
 
     public bool AuditProgram = false;
-
-    public static string DefaultZ3Version = "4.8.5";
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
@@ -654,15 +651,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
           return true;
-
-        case "countVerificationErrors": {
-            int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetIntArgument(ref countErrors, 2)) {
-              CountVerificationErrors = countErrors == 1;
-            }
-
-            return true;
-          }
 
         case "printTooltips":
           PrintTooltips = true;
@@ -1101,14 +1089,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       var platform = System.Environment.OSVersion.Platform;
       var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
+      var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3LocalBinName = isUnix
-          ? $"z3-{DefaultZ3Version}"
-          : $"z3-{DefaultZ3Version}.exe";
-        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1116,12 +1102,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       // Finally, try looking in the system PATH variable.
-      var z3GlobalBinName = isUnix ? "z3" : "z3.exe";
       if (confirmedProverPath is null) {
         confirmedProverPath = System.Environment
           .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
-          .Select(s => Path.Combine(s, z3GlobalBinName))
+          .Select(s => Path.Combine(s, z3binName))
           .FirstOrDefault(File.Exists);
       }
 

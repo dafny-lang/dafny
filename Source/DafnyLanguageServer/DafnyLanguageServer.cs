@@ -71,11 +71,17 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static void HandleZ3Version(ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+      if (z3Version is null) {
+        return;
+      }
+      var major = z3Version.Major;
+      var minor = z3Version.Minor;
+      var patch = z3Version.Build;
+      if (major <= 4 && (major < 4 || minor <= 8) && (minor < 8 || patch <= 6)) {
         return;
       }
 
-      telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
+      telemetryPublisher.PublishZ3Version("Z3 version {major}.{minor}.{patch}");
 
       var toReplace = "O:model_compress=false";
       var i = DafnyOptions.O.ProverOptions.IndexOf(toReplace);

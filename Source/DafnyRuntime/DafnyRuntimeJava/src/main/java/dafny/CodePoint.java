@@ -48,9 +48,13 @@ public final class CodePoint {
         return value == ((CodePoint)obj).value;
     }
 
+    public static int hashCode(int value) {
+        return Integer.hashCode(value);
+    }
+
     @Override
     public int hashCode() {
-        return Integer.hashCode(value);
+        return hashCode(value);
     }
 
     public int value() {

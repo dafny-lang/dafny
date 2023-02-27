@@ -3,8 +3,7 @@ name: Build and Test
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ master , main-4.0 ]
-  push:
+    branches: [ master, main-* ]
 
 concurrency:
   group: build-${{ github.event.pull_request.number || github.ref }}

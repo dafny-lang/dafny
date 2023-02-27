@@ -529,6 +529,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -539,6 +540,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:
