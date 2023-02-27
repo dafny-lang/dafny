@@ -122,7 +122,7 @@ public abstract class TypeDescriptor<T> {
         return new CharType(d);
     }
 
-    public static TypeDescriptor<CodePoint> unicodeCharWithDefault(char d) {
+    public static TypeDescriptor<CodePoint> unicodeCharWithDefault(int d) {
         return new UnicodeCharType(CodePoint.valueOf(d));
     }
 

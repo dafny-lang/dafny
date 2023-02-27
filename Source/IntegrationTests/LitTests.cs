@@ -155,7 +155,7 @@ namespace IntegrationTests {
           new DotnetToolCommand("boogie",
             args.Concat(DefaultBoogieArguments),
             config.PassthroughEnvironmentVariables);
-        substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", "z3");
+        substitutions["%z3"] = Path.Join(dafnyReleaseDir, "z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}");
       }
 
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);

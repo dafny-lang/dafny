@@ -3,8 +3,11 @@ name: Run XUnit tests
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ master ]
-  push:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: unit-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 ## In the matrix:
 ##  os - name of the Github actions runner

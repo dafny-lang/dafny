@@ -18,10 +18,10 @@ tests-verbose:
 ${DIR}/boogie/Binaries/Boogie.exe:
 	(cd ${DIR}/boogie ; dotnet build -c Release Source/Boogie.sln )
 
-refman:
+refman: exe
 	make -C ${DIR}/docs/DafnyRef
 
-refman-release:
+refman-release: exe
 	make -C ${DIR}/docs/DafnyRef release
 
 z3-mac:

@@ -84,7 +84,7 @@ class Inner extends O {
     && old(data) <= data
   }
 
-  twostate lemma adm() {}
+  twostate lemma adm() requires admPre() {}
 
   constructor (ghost s: S, initial_data: int)
     requires s.i()
