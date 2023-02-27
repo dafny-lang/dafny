@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         }
 
         method test(c: C?) {
-          assert c == null || c.c1 != c.c2 || c.c1 != '\u1023';
+          assert c == null || c.c1 != c.c2 || c.c1 != '\U{1023}';
         }
       }".TrimStart();
       var documentItem = CreateTestDocument(source);

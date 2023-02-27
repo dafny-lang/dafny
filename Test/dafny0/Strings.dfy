@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:0
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {
