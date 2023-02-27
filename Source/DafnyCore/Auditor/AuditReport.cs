@@ -115,7 +115,7 @@ public class AuditReport {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
-      if (module.Name.Equals("_module")) {
+      if (module.IsDefaultModule) {
         text.AppendLine($"# Default module");
       } else {
         text.AppendLine($"# Module `{module.Name}`");
@@ -125,7 +125,7 @@ public class AuditReport {
           continue;
         }
         text.AppendLine("");
-        if (topLevelDecl.Name.Equals("_default")) {
+        if (topLevelDecl is ClassDecl classDecl && classDecl.IsDefaultClass) {
           text.AppendLine($"## Top level");
         } else {
           text.AppendLine($"## Type `{topLevelDecl.Name}`");
