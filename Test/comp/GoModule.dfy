@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 "%s" /compileTarget:go > "%t"
+// RUN: %dafny /compile:3 /unicodeChar:0 /spillTargetCode:2 "%s" /compileTarget:go > "%t"
 // note: putting /compileTarget:go after "%s" overrides user-provided option
 // RUN: %diff "%s.expect" "%t"
 
