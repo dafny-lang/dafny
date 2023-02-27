@@ -62,18 +62,14 @@ namespace XUnitExtensions.Lit {
     }
 
     private static IEnumerable<string> UseInProgressArgument(LitTestConfiguration config, StringBuilder inProgressArgument,
-      bool hasGlobCharacters)
-    {
+      bool hasGlobCharacters) {
       var newArguments = config.ApplySubstitutions(inProgressArgument.ToString());
-      foreach (var newArgument in newArguments)
-      {
-        if (hasGlobCharacters)
-        {
+      foreach (var newArgument in newArguments) {
+        if (hasGlobCharacters) {
           foreach (var result in ExpandGlobs(newArgument)) {
             yield return result;
           }
-        }
-        else {
+        } else {
           yield return newArgument;
         }
       }
