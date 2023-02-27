@@ -87,14 +87,14 @@ class Release:
         return path.join(CACHE_DIRECTORY, z3_zip)
 
     @property
-    def cached(self):
+    def z3_is_cached(self):
         for z3_zip in self.z3_zips:
           if not path.exists(self.local_zip(z3_zip)):
               return False
         return True
 
-    def download(self):
-        if self.cached:
+    def download_z3(self):
+        if self.z3_is_cached:
             print("cached!")
         else:
             flush("downloading ...")
@@ -155,6 +155,12 @@ class Release:
         self.run_publish("DafnyRuntime", "net452")
         self.run_publish("Dafny")
 
+    def fix_permissions(self, fileinfo):
+        if self.os_name != 'windows':
+            # http://stackoverflow.com/questions/434641/
+            fileinfo.external_attr = 0o100755 << 16
+            fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
+
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -170,10 +176,7 @@ class Release:
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
-                        if self.os_name != 'windows':
-                            # http://stackoverflow.com/questions/434641/
-                            fileinfo.external_attr = 0o100755 << 16
-                            fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
+                        self.fix_permissions(fileinfo)
                         archive.writestr(fileinfo, contents)
             uppercaseDafny = path.join(self.buildDirectory, "Dafny")
             if os.path.exists(uppercaseDafny):
@@ -186,10 +189,7 @@ class Release:
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if self.os_name != 'windows':
-                        # http://stackoverflow.com/questions/434641/
-                        fileinfo.external_attr = 0o100755 << 16
-                        fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
+                    self.fix_permissions(fileinfo)
                     contents = open(fpath, mode='rb').read()
                     fileinfo.compress_type = zipfile.ZIP_DEFLATED
                     fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
@@ -209,11 +209,11 @@ def path_leaf(path):
 def pathsInDirectory(directory):
     return [path.join(directory, file) for file in os.listdir(directory)]
 
-def download(releases):
+def download_z3(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
     for release in releases:
         flush("    + {}-{}:".format(release.os, release.platform), end=' ')
-        release.download()
+        release.download_z3()
 
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
@@ -292,7 +292,7 @@ def main():
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     if args.platform:
         releases = list(filter(lambda release: release.platform == args.platform, releases))
-    download(releases)
+    download_z3(releases)
 
     flush("* Building and packaging Dafny")
     pack(args, releases)
