@@ -2,7 +2,7 @@ package GoModuleConversions
 
 import (
   "dafny"
-	url "net/url"
+  url "net/url"
 )
 
 func ParseURL(dafnyAddress dafny.Sequence) (*url.URL, error) {
