@@ -151,7 +151,7 @@ method AllCharsTest() {
   expect |allChars| == |allUTF16CodeUnits|;
 }
 
-function method Identity<T>(x: T): T { x }
+function Identity<T>(x: T): T { x }
 
 method CharsAndArrows() {
   var lambda := (c: char) requires c <= 'Z' => c + 1 as char;
@@ -163,7 +163,7 @@ method CharsAndArrows() {
   print fromFuncRef, "\n";
 }
 
-function method IncrementChar(c: char): char 
+function IncrementChar(c: char): char 
   requires c <= 'Z'
 {
   c + 1 as char

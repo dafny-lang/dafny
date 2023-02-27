@@ -7,7 +7,7 @@ class Node {
   var data: int
   var next: Node?
 
-  function Repr(list: List<int>): bool
+  ghost function Repr(list: List<int>): bool
     reads *
     decreases list
   { match list
@@ -38,7 +38,7 @@ class AnotherNode {
   var data: int
   var next: AnotherNode?
 
-  predicate Repr(n: AnotherNode?, list: List<int>)
+  ghost predicate Repr(n: AnotherNode?, list: List<int>)
     reads *
     decreases list
   { match list
@@ -95,7 +95,7 @@ method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode
 }
 
 class NestedMatchExpr {
-  function Cadr<T>(a: List<T>, Default: T): T
+  ghost function Cadr<T>(a: List<T>, Default: T): T
   {
     match a
     case Nil => Default
@@ -105,7 +105,7 @@ class NestedMatchExpr {
       case Cons(y,tail) => y
   }
   // CadrAlt is the same as Cadr, but it writes its two outer cases in the opposite order
-  function CadrAlt<T>(a: List<T>, Default: T): T
+  ghost function CadrAlt<T>(a: List<T>, Default: T): T
   {
     match a
     case Cons(x,t) => (
@@ -240,7 +240,7 @@ method FwdBug(f: Fwd, initialized: bool)
   }
 }
 
-function FwdBugFunction(f: Fwd): bool
+ghost function FwdBugFunction(f: Fwd): bool
   requires !f.FwdCons?;
 {
   match f
@@ -271,14 +271,14 @@ class ContainsFwd {
   }
 }
 
-function foo(f: Fwd): int
+ghost function foo(f: Fwd): int
 {
   if f.FwdNil? then 0 else f.k
 }
 
 // -- regression test --
 
-predicate F(xs: List, vs: map<int,int>)
+ghost predicate F(xs: List, vs: map<int,int>)
 {
   match xs
   case Nil => true
@@ -307,7 +307,7 @@ module MatchExpressionsInArbitraryPositions {
     }
   }
 
-  function F(xs: List<int>, ys: List<int>): int
+  ghost function F(xs: List<int>, ys: List<int>): int
   {
     match xs
     case Cons(x, _) =>
@@ -320,7 +320,7 @@ module MatchExpressionsInArbitraryPositions {
        case Cons(y, _) => y)
   }
 
-  function G(xs: List<int>, ys: List<int>, k: int): int
+  ghost function G(xs: List<int>, ys: List<int>, k: int): int
   {
     match xs
     case Cons(x, _) =>
@@ -335,7 +335,7 @@ module MatchExpressionsInArbitraryPositions {
         case Cons(y, _) => 3 + y)
   }
 
-  function H(xs: List<int>, ys: List<int>, k: int): int
+  ghost function H(xs: List<int>, ys: List<int>, k: int): int
   {
     if 0 <= k then
       (if k < 10 then 0 else 3) + (if k < 100 then 2 else 5)
@@ -344,12 +344,12 @@ module MatchExpressionsInArbitraryPositions {
         (if k < -110 then 0 else 3) + (if k < -200 then 2 else 5)
   }
 
-  function J(xs: List<int>): int
+  ghost function J(xs: List<int>): int
   {
     match xs  // error: missing cases
   }
 
-  function K(xs: List<int>): int
+  ghost function K(xs: List<int>): int
   {
     match xs
     case Cons(_, ys) =>
@@ -363,7 +363,7 @@ module MatchExpressionsInArbitraryPositions {
 module LetPatterns {
   datatype MyDt = AAA(x: int) | BBB(y: int)
 
-  function M(m: MyDt): int
+  ghost function M(m: MyDt): int
     requires m.AAA?
   {
     var AAA(u) := m;  // u: int

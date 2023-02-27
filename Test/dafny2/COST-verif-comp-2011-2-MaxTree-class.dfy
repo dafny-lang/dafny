@@ -77,7 +77,7 @@ class Tree {
 
   ghost var Contents: seq<int>
   ghost var Repr: set<object>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -90,7 +90,7 @@ class Tree {
       Contents == left.Contents + [value] + right.Contents))
   }
 
-  function method IsEmpty(): bool
+  function IsEmpty(): bool
     requires Valid();
     reads this, Repr;
     ensures IsEmpty() <==> Contents == [];

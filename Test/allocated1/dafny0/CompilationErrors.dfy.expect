@@ -6,8 +6,8 @@ CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i
 Dafny program verifier finished with 5 verified, 0 errors
 CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
-CompilationErrors.dfy(19,9): Error: Function _module._default.F has no body
-CompilationErrors.dfy(20,16): Error: Function _module._default.H has no body
+CompilationErrors.dfy(19,15): Error: Function _module._default.F has no body
+CompilationErrors.dfy(20,9): Error: Function _module._default.H has no body
 CompilationErrors.dfy(23,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 CompilationErrors.dfy(27,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 CompilationErrors.dfy(33,2): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)

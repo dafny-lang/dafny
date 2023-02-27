@@ -9,7 +9,7 @@ class List<T> {
     ghost var spine: seq<Node<T>>
     ghost var repr: set<object>
 
-    predicate Valid()
+    ghost predicate Valid()
         reads this, repr
     {
         && forall i | 0 <= i < |spine| ::

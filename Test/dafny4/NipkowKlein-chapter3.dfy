@@ -8,7 +8,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 
-function append(xs: List, ys: List): List
+ghost function append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
@@ -23,7 +23,7 @@ datatype aexp = N(n: int) | V(vname) | Plus(aexp, aexp)  // arithmetic expressio
 type val = int
 type state = vname -> val
 
-function aval(a: aexp, s: state): val
+ghost function aval(a: aexp, s: state): val
 {
   match a
   case N(n) => n
@@ -49,7 +49,7 @@ lemma Example0()
 
 // ----- constant folding -----
 
-function asimp_const(a: aexp): aexp
+ghost function asimp_const(a: aexp): aexp
 {
   match a
   case N(n) => a
@@ -82,7 +82,7 @@ lemma AsimpConst(a: aexp, s: state)
 
 // more constant folding
 
-function plus(a0: aexp, a1: aexp): aexp
+ghost function plus(a0: aexp, a1: aexp): aexp
 {
   if a0.N? && a1.N? then
     N(a0.n + a1.n)
@@ -100,7 +100,7 @@ lemma AvalPlus(a0: aexp, a1: aexp, s: state)
   // this proof is done automatically
 }
 
-function asimp(a: aexp): aexp
+ghost function asimp(a: aexp): aexp
 {
   match a
   case N(n) => a
@@ -125,7 +125,7 @@ lemma ASimplInvolutive(a: aexp)
 
 datatype bexp = Bc(v: bool) | Not(bexp) | And(bexp, bexp) | Less(aexp, aexp)
 
-function bval(b: bexp, s: state): bool
+ghost function bval(b: bexp, s: state): bool
 {
   match b
   case Bc(v) => v
@@ -136,7 +136,7 @@ function bval(b: bexp, s: state): bool
 
 // constant folding for booleans
 
-function not(b: bexp): bexp
+ghost function not(b: bexp): bexp
 {
   match b
   case Bc(b0) => Bc(!b0)
@@ -145,7 +145,7 @@ function not(b: bexp): bexp
   case Less(_, _) => Not(b)
 }
 
-function and(b0: bexp, b1: bexp): bexp
+ghost function and(b0: bexp, b1: bexp): bexp
 {
   if b0.Bc? then
     if b0.v then b1 else b0
@@ -155,7 +155,7 @@ function and(b0: bexp, b1: bexp): bexp
     And(b0, b1)
 }
 
-function less(a0: aexp, a1: aexp): bexp
+ghost function less(a0: aexp, a1: aexp): bexp
 {
   if a0.N? && a1.N? then
     Bc(a0.n < a1.n)
@@ -163,7 +163,7 @@ function less(a0: aexp, a1: aexp): bexp
     Less(a0, a1)
 }
 
-function bsimp(b: bexp): bexp
+ghost function bsimp(b: bexp): bexp
 {
   match b
   case Bc(v) => b
@@ -200,7 +200,7 @@ datatype instr = LOADI(val) | LOAD(vname) | ADD
 
 type stack = List<val>
 
-function exec1(i: instr, s: state, stk: stack): stack
+ghost function exec1(i: instr, s: state, stk: stack): stack
 {
   match i
   case LOADI(n) => Cons(n, stk)
@@ -213,7 +213,7 @@ function exec1(i: instr, s: state, stk: stack): stack
       Nil  // an alternative would be to return Cons(n, Nil) for an arbitrary value n--that is what Nipkow and Klein do
 }
 
-function exec(ii: List<instr>, s: state, stk: stack): stack
+ghost function exec(ii: List<instr>, s: state, stk: stack): stack
 {
   match ii
   case Nil => stk
@@ -222,7 +222,7 @@ function exec(ii: List<instr>, s: state, stk: stack): stack
 
 // ----- compilation -----
 
-function comp(a: aexp): List<instr>
+ghost function comp(a: aexp): List<instr>
 {
   match a
   case N(n) => Cons(LOADI(n), Nil)

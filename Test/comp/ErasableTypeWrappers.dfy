@@ -221,7 +221,7 @@ method TestTypeParameters<X, Y, Z>(x: GenericGhostOrNot<X>, y: GenericGhostOrNot
 }
 
 datatype Memberful<T> = MakeMemberful(tt: T) {
-  function method G<U>(t: T, u: U): (T, T, U) {
+  function G<U>(t: T, u: U): (T, T, U) {
     (tt, t, u)
   }
   method M<U>(t: T, u: U) {
@@ -236,7 +236,7 @@ datatype HasConst<T> = MakeC(tt: T) {
 
 // This type is similar to HasConst, but has a function instead of a const, so it is optimized
 datatype HasFunction<T> = MakeF(tt: T) {
-  function method F(): (T, T) {
+  function F(): (T, T) {
     (tt, tt)
   }
 }

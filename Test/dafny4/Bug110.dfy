@@ -2,14 +2,14 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Io {
-  predicate AdvanceTime(oldTime:int) { oldTime > 2 }
+  ghost predicate AdvanceTime(oldTime:int) { oldTime > 2 }
   class Time
   {
     static method GetTime()
         ensures AdvanceTime(1);
   }
 
-  function MaxPacketSize() : int { 65507 }
+  ghost function MaxPacketSize() : int { 65507 }
 
   class UdpClient
   {

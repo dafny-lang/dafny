@@ -151,7 +151,7 @@ method m12()
    assert x[0] == 0 && x[2] == 4;
 }
 
-function domain<U, V>(m: map<U,V>): set<U>
+ghost function domain<U, V>(m: map<U,V>): set<U>
    ensures forall i :: i in domain(m) ==> i in m
    ensures forall i :: i in domain(m) <== i in m
 {
@@ -166,7 +166,7 @@ method m13()
    assert domain(x) == s;
 }
 
-function union<U, V>(m: map<U,V>, m': map<U,V>): map<U,V>
+ghost function union<U, V>(m: map<U,V>, m': map<U,V>): map<U,V>
    requires m.Keys !! m'.Keys
    // ensures forall i :: i in union(m, m') <==> i in m || i in m'
    ensures forall i :: i in union(m, m') ==> i in m.Keys + m'.Keys
@@ -195,7 +195,7 @@ method m15(b: set<A>)
   assert aa !in m;
 }
 
-function method Plus(x: int, y: int): int { x + y }  // a symbol to appear in trigger
+function Plus(x: int, y: int): int { x + y }  // a symbol to appear in trigger
 method GeneralMaps0() {
   var m := map x | 2 <= x < 6 :: x+1;
   assert 5 in m.Keys;
@@ -211,9 +211,9 @@ method GeneralMaps0() {
   assert (6,8) in m.Items;
 }
 
-function method f(x: int): int  // uninterpreted function
+function f(x: int): int  // uninterpreted function
   requires 0 <= x
-function method g(x: int): int  // uninterpreted function
+function g(x: int): int  // uninterpreted function
 
 method GeneralMaps1() {
   if * {
@@ -244,7 +244,7 @@ method GeneralMaps3() {
   }
 }
 
-function UnboxTest(s: seq<seq<int>>) : map<seq<int>, seq<int>>
+ghost function UnboxTest(s: seq<seq<int>>) : map<seq<int>, seq<int>>
 {
   map i: int | 0 <= i < |s| :: s[i] := s[i] // fine, make sure unboxing doesn't unwrap the int from the nested seq<int> on the LHS
 }
@@ -265,8 +265,8 @@ method GeneralMaps5(u: seq<int>) {
   }
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Odd(y: int) { y % 2 == 1 }
+predicate Thirteen(x: int) { x == 13 }
+predicate Odd(y: int) { y % 2 == 1 }
 
 method GeneralMaps6() {
   var c2 := map x,y | 12 <= x < y < 17 && Thirteen(x) && Odd(y) :: x := y;
@@ -280,7 +280,7 @@ method GeneralMaps7() {
   assert c3[5] == 13;
 }
 
-predicate method P8(x: int) { true }
+predicate P8(x: int) { true }
 
 method GeneralMaps8() {
   ghost var c4 := map x: int | true :: P8(x) := 6;

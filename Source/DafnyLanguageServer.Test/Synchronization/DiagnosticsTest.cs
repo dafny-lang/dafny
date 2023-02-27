@@ -98,7 +98,7 @@ predicate P(i: int) {
   i <= 0
 }
 
-function method Call(i: int): int
+function Call(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: int)
@@ -171,7 +171,7 @@ module N refines M
     [TestMethod]
     public async Task NoCrashWhenPressingEnterAfterSelectingAllTextAndInputtingText() {
       var source = @"
-predicate method {:opaque} m() {
+predicate {:opaque} m() {
   true
 }
 ".TrimStart();
@@ -191,7 +191,7 @@ predicate method {:opaque} m() {
     [TestMethod]
     public async Task OpeningOpaqueFunctionWorks() {
       var source = @"
-predicate method {:opaque} m() {
+predicate {:opaque} m() {
   true
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
@@ -785,7 +785,7 @@ module Parser {
     [TestMethod]
     public async Task OpeningDocumentWithTimeoutReportsTimeoutDiagnostic() {
       var source = @"
-function method {:unroll 100} Ack(m: nat, n: nat): nat
+function {:unroll 100} Ack(m: nat, n: nat): nat
   decreases m, n
 {
   if m == 0 then
@@ -855,7 +855,7 @@ method test() {
 //             ^^^^^^^^^^^
 }
 
-function method other(i: int, j: int): int
+function other(i: int, j: int): int
   requires i < j {
   2
 }

@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function Fib(n: int): int
+ghost function Fib(n: int): int
   requires 0 <= n;
   ensures 0 <= Fib(n);
 {
@@ -11,7 +11,7 @@ function Fib(n: int): int
 
 datatype List = Nil | Cons(int, List)
 
-function Sum(a: List): int
+ghost function Sum(a: List): int
   ensures 0 <= Sum(a);
 {
   match a
@@ -19,14 +19,14 @@ function Sum(a: List): int
   case Cons(x, tail) => if x < 0 then 0 else Fib(x)
 }
 
-function FibWithoutPost(n: int): int
+ghost function FibWithoutPost(n: int): int
   requires 0 <= n;
 {
   if n < 2 then n else
   FibWithoutPost(n-2) + FibWithoutPost(n-1)
 }
 
-function SumBad(a: List): int
+ghost function SumBad(a: List): int
   ensures 0 <= Sum(a);  // this is still okay, because this is calling the good Sum
   ensures 0 <= SumBad(a);  // error: cannot prove postcondition
 {
@@ -35,7 +35,7 @@ function SumBad(a: List): int
   case Cons(x, tail) => if x < 0 then 0 else FibWithoutPost(x)
 }
 
-function FibWithExtraPost(n: int): int
+ghost function FibWithExtraPost(n: int): int
   ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1); // This is fine, because the definition of the function is discovered via canCall
   ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1); // Error: In the current implementation of Dafny, one needs to actually call the
                                                  // function in order to benefit from canCall.  This may be improved in the future.
@@ -46,7 +46,7 @@ function FibWithExtraPost(n: int): int
   FibWithExtraPost(n-2) + FibWithExtraPost(n-1)
 }
 
-function DivergentPost(n: int): int
+ghost function DivergentPost(n: int): int
   requires 0 <= n;
   ensures 1 <= n ==> DivergentPost(n-1) == DivergentPost(n-1);
   ensures DivergentPost(2*n - n) == DivergentPost(2*(n+5) - 10 - n);  // these are legal ways to denote the result value of the function
@@ -57,7 +57,7 @@ function DivergentPost(n: int): int
   DivergentPost(n-2) + DivergentPost(n-1)
 }
 
-function HoldsAtLeastForZero(x: int): bool
+ghost function HoldsAtLeastForZero(x: int): bool
   ensures x == 0 ==> HoldsAtLeastForZero(x);
 {
   x < -2  // error: this does not hold for 0
@@ -66,7 +66,7 @@ function HoldsAtLeastForZero(x: int): bool
 // ----- Some functions that deal with let-such-that and if-then-else expressions and having them pass
 // ----- the subrange test (which they didn't always do).
 
-function IncA(x: nat): nat
+ghost function IncA(x: nat): nat
   ensures x < IncA(x);
 {
   if x == 17 then
@@ -81,12 +81,12 @@ ghost method M() {
   assert z != 0;
 }
 
-function IncB(i: nat): nat
+ghost function IncB(i: nat): nat
 {
   var n :| n>i; n
 }
 
-function IncC(i: nat): int
+ghost function IncC(i: nat): int
   ensures IncC(i)>=0;
 {
   var n :| n>i; n
@@ -98,7 +98,7 @@ function IncC(i: nat): int
 /////////////////////////////////////////////////////////////
 
 // Test basic function hiding
-function {:opaque} secret(x:int, y:int) : int
+ghost function {:opaque} secret(x:int, y:int) : int
   requires 0 <= x < 5;
   requires 0 <= y < 5;
   ensures secret(x, y) < 10;
@@ -114,7 +114,7 @@ method test_secret()
 
 // Check that opaque doesn't break recursion unrolling
 // Also checks that opaque functions that do terminate are verified as such
-function {:opaque} recursive_f(x:int) : int
+ghost function {:opaque} recursive_f(x:int) : int
   requires x >= 0;
 {
   if x == 0 then 0
@@ -133,7 +133,7 @@ method test_recursive_f()
 }
 
 // Check that opaque doesn't interfere with ensures checking
-function {:opaque} bad_ensures(x:int, y:int):int
+ghost function {:opaque} bad_ensures(x:int, y:int):int
   requires x >= 0 && y >= 0;
   ensures bad_ensures(x, y) > 0;
 {
@@ -141,20 +141,20 @@ function {:opaque} bad_ensures(x:int, y:int):int
 }
 
 // Check that opaque doesn't interfere with termination checking
-function {:opaque} f(i:int):int
+ghost function {:opaque} f(i:int):int
   decreases i;
 {
   f(i) + 1
 }
 
 // Try a sneakier (nested) version of the test above
-function {:opaque} g(i:int):int
+ghost function {:opaque} g(i:int):int
   decreases i;
 {
   h(i) + 1
 }
 
-function h(i:int):int
+ghost function h(i:int):int
 {
   g(i)
 }
