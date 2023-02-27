@@ -2874,6 +2874,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -2884,6 +2885,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
@@ -3015,7 +3017,7 @@ namespace Microsoft.Dafny.Compilers {
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
       }
@@ -3037,8 +3039,14 @@ namespace Microsoft.Dafny.Compilers {
           ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write($"({CharTypeName})");
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          if (UnicodeCharEnabled) {
+            wr.Write($"new {CharTypeName}((int)");
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Write(")");
+          } else {
+            wr.Write($"({CharTypeName})");
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          }
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);

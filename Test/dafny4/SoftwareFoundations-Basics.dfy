@@ -269,7 +269,7 @@ lemma plus_lemma(a: Nat, b: Nat, c: Nat)
 {}
 
 // This lemma expresses:  m*(2*n) == (2*m)*n
-lemma mult_lemma(m: Nat, n: Nat)
+lemma {:vcs_split_on_every_assert} mult_lemma(m: Nat, n: Nat)
   ensures mult(m, plus(n, n)) == mult(plus(m, m), n)
 {
   match m {

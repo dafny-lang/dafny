@@ -37,23 +37,23 @@ class C extends T {
   { 5 + y }
 }
 
-// class D is like C, but in each case, the spec is NOT weaker than that in T
+// class D is like C, but in each case, the spec is NOT stronger than that in T
 class D extends T {
   // d does not name the result in either trait or class
   function d(y: nat): nat
-    ensures d(y) < 20 + y  // error: specification is not weaker
+    ensures d(y) < 20 + y  // error: specification is not stronger
   { 11 + y }
   // f names the result in both trait and class
   function f(y: nat): (result: nat)
-    ensures result < 20 + y  // error: specification is not weaker
+    ensures result < 20 + y  // error: specification is not stronger
   { 11 + y }
   // g names the result in just the class
   function g(y: nat): (result: nat)
-    ensures result < 20 + y  // error: specification is not weaker
+    ensures result < 20 + y  // error: specification is not stronger
   { 11 + y }
   // h names the result in just the trait
   function h(y: nat): nat
-    ensures h(y) < 20 + y  // error: specification is not weaker
+    ensures h(y) < 20 + y  // error: specification is not stronger
   { 11 + y }
 }
 
@@ -62,19 +62,19 @@ class D extends T {
 class E extends T {
   // d does not name the result in either trait or class
   function d(y: nat): nat
-    ensures d(y) < 20 + y
+    ensures d(y) < 20 + y  // error: specification is not stronger
   { 5 + y }
   // f names the result in both trait and class
   function f(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not stronger
   { 5 + y }
   // g names the result in just the class
   function g(y: nat): (result: nat)
-    ensures result < 20 + y
+    ensures result < 20 + y  // error: specification is not stronger
   { 5 + y }
   // h names the result in just the trait
   function h(y: nat): nat
-    ensures h(y) < 20 + y
+    ensures h(y) < 20 + y  // error: specification is not stronger
   { 5 + y }
 }
 
