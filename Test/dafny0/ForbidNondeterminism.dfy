@@ -1,5 +1,5 @@
-// RUN: %baredafny verify %args "%s" > "%t" || true
-// RUN: %baredafny run %args --enforce-determinism "%s" >> "%t"
+// RUN: ! %baredafny verify %args "%s" > "%t"
+// RUN: ! %baredafny run %args --enforce-determinism "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
