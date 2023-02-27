@@ -128,15 +128,14 @@ namespace Microsoft.Dafny {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename);
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).AbsolutePath;
       this.ErrorReported = false;
       CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
-      var i = obj as Include;
-      if (i != null) {
-        return this.CanonicalPath.CompareTo(i.CanonicalPath);
+      if (obj is Include include) {
+        return CanonicalPath.CompareTo(include.CanonicalPath);
       } else {
         throw new NotImplementedException();
       }
