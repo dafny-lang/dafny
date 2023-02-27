@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public abstract class RunCommand {
     public static ILitCommand Parse(string line, LitTestConfiguration config) {
-      return ParseArguments(ILitCommand.Tokenize(line), config);
+      return ParseArguments(ILitCommand.Tokenize(line, config), config);
     }
 
     private static ILitCommand ParseArguments(string[] tokens, LitTestConfiguration config) {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Text;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
@@ -28,9 +29,9 @@ namespace XUnitExtensions.Lit {
       return null;
     }
 
-    public static string[] Tokenize(string line) {
-      var arguments = new List<string>();
-      var argument = new StringBuilder();
+    public static string[] Tokenize(string line, LitTestConfiguration config) {
+      var result = new List<string>();
+      var inProgressArgument = new StringBuilder();
       var singleQuoted = false;
       var doubleQuoted = false;
       var hasGlobCharacters = false;
@@ -41,40 +42,48 @@ namespace XUnitExtensions.Lit {
         } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          if (argument.Length != 0) {
-            if (hasGlobCharacters) {
-              arguments.AddRange(ExpandGlobs(argument.ToString()));
-            } else {
-              arguments.Add(argument.ToString());
-            }
+          if (inProgressArgument.Length != 0) {
+            result.AddRange(UseInProgressArgument(config, inProgressArgument, hasGlobCharacters));
 
-            argument.Clear();
+            inProgressArgument.Clear();
             hasGlobCharacters = false;
           }
         } else {
           if (c is '*' or '?' && !singleQuoted) {
             hasGlobCharacters = true;
           }
-          argument.Append(c);
+          inProgressArgument.Append(c);
         }
       }
 
-      if (argument.Length != 0) {
-        if (hasGlobCharacters) {
-          arguments.AddRange(ExpandGlobs(argument.ToString()));
-        } else {
-          arguments.Add(argument.ToString());
+      result.AddRange(UseInProgressArgument(config, inProgressArgument, hasGlobCharacters));
+
+      return result.ToArray();
+    }
+
+    private static IEnumerable<string> UseInProgressArgument(LitTestConfiguration config, StringBuilder inProgressArgument,
+      bool hasGlobCharacters)
+    {
+      var newArguments = config.ApplySubstitutions(inProgressArgument.ToString());
+      foreach (var newArgument in newArguments)
+      {
+        if (hasGlobCharacters)
+        {
+          foreach (var result in ExpandGlobs(newArgument)) {
+            yield return result;
+          }
+        }
+        else {
+          yield return newArgument;
         }
       }
-
-      return arguments.ToArray();
     }
 
     protected static IEnumerable<string> ExpandGlobs(string chunk) {
       var matcher = new Matcher();
       matcher.AddInclude(chunk);
-      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
-      return result.Files.Select(f => f.Path);
+      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo("/")));
+      return result.Files.Select(f => "/" + f.Path);
     }
 
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);

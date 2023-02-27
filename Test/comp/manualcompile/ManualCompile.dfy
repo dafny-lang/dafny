@@ -9,7 +9,7 @@
 // RUN: env GO111MODULE=auto GOPATH=%S/ManualCompile-go go run %S/ManualCompile-go/src/ManualCompile.go >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: javac %S/ManualCompile-java/ManualCompile.java %S/ManualCompile-java/*/*.java
+// RUN: javac %S/ManualCompile-java/ManualCompile.java %S/ManualCompile-java/**/*.java
 // RUN: java -cp %S/ManualCompile-java ManualCompile >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
