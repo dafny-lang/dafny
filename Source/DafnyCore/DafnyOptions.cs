@@ -284,7 +284,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
-    public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
@@ -652,15 +651,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
           return true;
-
-        case "countVerificationErrors": {
-            int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetIntArgument(ref countErrors, 2)) {
-              CountVerificationErrors = countErrors == 1;
-            }
-
-            return true;
-          }
 
         case "printTooltips":
           PrintTooltips = true;
