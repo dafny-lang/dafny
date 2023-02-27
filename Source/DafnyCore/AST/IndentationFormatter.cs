@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Formatting;
@@ -320,10 +321,10 @@ public class IndentationFormatter : IIndentationFormatter {
     return indentationBefore + capturedComment;
   }
 
-  private static readonly Dictionary<int, string> WhitespaceCache = new();
+  private static readonly ConcurrentDictionary<int, string> WhitespaceCache = new();
 
   private static string Whitespace(int characters) {
-    return WhitespaceCache.GetOrCreate(characters, () => new string(' ', characters));
+    return WhitespaceCache.GetOrAdd(characters, _ => new string(' ', characters));
   }
 
   public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
