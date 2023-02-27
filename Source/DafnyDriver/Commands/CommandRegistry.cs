@@ -22,7 +22,7 @@ record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
 record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
 
 static class CommandRegistry {
-  private const string ToolchainDebuggingHelpName = "--toolchain-debugging-help";
+  private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly HashSet<ICommandSpec> Commands = new();
 
   static void AddCommand(ICommandSpec command) {
