@@ -266,6 +266,8 @@ Usage: dafny [ option ... ] [ filename ... ]
          print effects only if it is marked with {:print}.
   
   /allocated:<n>
+      This option is deprecated. Going forward, only what is /allocated:4
+      will be supported.
       Specify defaults for where Dafny should assert and assume
       allocated(x) for various parameters x, local variables x, bound
       variables x, etc. Lower <n> may require more manual allocated(x)
@@ -284,8 +286,8 @@ Usage: dafny [ option ... ] [ filename ... ]
       2 - Assert/assume allocated(x) on all variables, even bound
           variables in quantifiers. This option is the easiest to use for
           heapful code.
-      3 - (default) Frugal use of heap parameters.
-      4 - Mode 3 but with alloc antecedents when ranges don't imply
+      3 - Frugal use of heap parameter (not sound).
+      4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
           allocatedness.
   
   /definiteAssignment:<n>
