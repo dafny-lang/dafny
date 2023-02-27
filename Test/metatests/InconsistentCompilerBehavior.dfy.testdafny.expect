@@ -11,3 +11,39 @@ Diff (changing expected into actual):
 +      }
  
 
+Executing on Go...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ 
+ Dafny program verifier did not attempt verification
+-System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
++func(dafny.Int) dafny.Int
+ 
+
+Executing on Java...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ 
+ Dafny program verifier did not attempt verification
+-System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
++Function
+ 
+
+Executing on Python...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ 
+ Dafny program verifier did not attempt verification
+-System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
++Function
+ 
+
+Executing on C++...
+Execution failed, for reasons other than known unsupported features. Output:
+
+Dafny program verifier did not attempt verification
+(0,-1): Error: UserDefinedTypeName _#Func1
+
+Error:
+
+Executing on Dafny...

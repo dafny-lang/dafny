@@ -1427,6 +1427,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -1437,6 +1438,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.And:
@@ -1560,7 +1562,7 @@ namespace Microsoft.Dafny.Compilers {
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments,
-            out truncateResult, out convertE1_to_int,
+            out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
       }
@@ -1737,7 +1739,13 @@ namespace Microsoft.Dafny.Compilers {
       var tryBlock = wr.NewBlockPy("try:");
       TrStmt(body, tryBlock);
       var exceptBlock = wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:");
-      exceptBlock.WriteLine($"{IdProtect(haltMessageVarName)} = e.message");
+      exceptBlock.Write($"{IdProtect(haltMessageVarName)} = ");
+      if (UnicodeCharEnabled) {
+        exceptBlock.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, e.message))");
+      } else {
+        exceptBlock.Write("e.message");
+      }
+      exceptBlock.WriteLine();
       TrStmt(recoveryBody, exceptBlock);
     }
   }

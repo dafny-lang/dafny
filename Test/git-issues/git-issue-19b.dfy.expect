@@ -1,0 +1,14 @@
+git-issue-19b.dfy(36,11): Error: assertion might not hold
+git-issue-19b.dfy(43,11): Error: assertion might not hold
+git-issue-19b.dfy(50,11): Error: assertion might not hold
+git-issue-19b.dfy(57,11): Error: assertion might not hold
+git-issue-19b.dfy(64,11): Error: assertion might not hold
+git-issue-19b.dfy(71,11): Error: assertion might not hold
+git-issue-19b.dfy(102,11): Error: assertion might not hold
+git-issue-19b.dfy(115,4): Error: A postcondition might not hold on this return path.
+git-issue-19b.dfy(113,14): Related location: This is the postcondition that might not hold.
+git-issue-19b.dfy(113,36): Related location
+git-issue-19b.dfy(131,36): Error: A precondition for this call might not hold.
+git-issue-19b.dfy(124,17): Related location: This is the precondition that might not hold.
+
+Dafny program verifier finished with 19 verified, 9 errors

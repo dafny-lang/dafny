@@ -753,6 +753,12 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
+      var result = new ConcreteSyntaxTree();
+      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      return result;
+    }
+
     protected ConcreteSyntaxTree EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -1182,6 +1188,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       // This default implementation does not handle all cases. It handles some cases that look the same
@@ -1195,6 +1202,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
       BinaryExpr.ResolvedOpcode negatedOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no negated op"
@@ -1265,13 +1273,13 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
           e1, e0, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
           e0, e1, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
       }
@@ -2913,6 +2921,15 @@ namespace Microsoft.Dafny.Compilers {
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
+    protected string DefaultValueCoercedIfNecessary(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+
+      var resultWr = new ConcreteSyntaxTree();
+      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, resultWr);
+      coercedWr.Write(DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
+      return resultWr.ToString();
+    }
+
     // ----- Stmt ---------------------------------------------------------------------------------
 
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
@@ -2925,7 +2942,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       private void RejectAssume(IToken tok, Attributes attributes, ConcreteSyntaxTree wr) {
         if (!Attributes.Contains(attributes, "axiom")) {
-          compiler.Error(tok, "an assume statement without an {{:axiom}} attribute cannot be compiled", wr);
+          compiler.Error(tok, "an assume statement cannot be compiled (use the {{:axiom}} attribute to let the compiler ignore the statement)", wr);
         }
       }
       protected override void VisitOneStmt(Statement stmt) {
@@ -4330,6 +4347,7 @@ namespace Microsoft.Dafny.Compilers {
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Tok, wrRhs);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
         wArray.Write(nw);
         EndStmt(w);
@@ -4715,22 +4733,20 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Type/*?*/ type = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
-      string sep = "";
-      foreach (Expression e in exprs) {
-        wr.Write(sep);
+
+      wr.Comma(exprs, (e, index) => {
         ConcreteSyntaxTree w;
-        if (type != null) {
+        if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, type, e.tok, w);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
         } else {
           w = wr;
         }
         w.Append(Expr(e, inLetExprBody, wStmts));
-        sep = ", ";
-      }
+      });
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
@@ -4972,7 +4988,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sign.ToString());
         } else {
           string opString, preOpString, postOpString, callString, staticCallString;
-          bool reverseArguments, truncateResult, convertE1_to_int;
+          bool reverseArguments, truncateResult, convertE1_to_int, coerceE1;
           CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
             out opString,
             out preOpString,
@@ -4982,6 +4998,7 @@ namespace Microsoft.Dafny.Compilers {
             out reverseArguments,
             out truncateResult,
             out convertE1_to_int,
+            out coerceE1,
             wr);
 
           if (truncateResult && e.Type.IsBitVectorType) {
@@ -4991,9 +5008,15 @@ namespace Microsoft.Dafny.Compilers {
           var e1 = reverseArguments ? e.E0 : e.E1;
 
           var left = Expr(e0, inLetExprBody, wStmts);
-          var right = convertE1_to_int
-            ? ExprAsNativeInt(e1, inLetExprBody, wStmts)
-            : Expr(e1, inLetExprBody, wStmts);
+          ConcreteSyntaxTree right;
+          if (convertE1_to_int) {
+            right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
+          } else {
+            right = Expr(e1, inLetExprBody, wStmts);
+            if (coerceE1) {
+              right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
+            }
+          }
 
           wr.Write(preOpString);
           if (opString != null) {
