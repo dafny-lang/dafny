@@ -1,8 +1,20 @@
-ForbidNondeterminism.dfy(55,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-ForbidNondeterminism.dfy(17,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
-ForbidNondeterminism.dfy(37,4): Error: out-parameter 's', which is subject to definite-assignment rules, might be uninitialized at this return point
-ForbidNondeterminism.dfy(37,4): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
-ForbidNondeterminism.dfy(39,17): Error: variable 's', which is subject to definite-assignment rules, might be uninitialized here
-ForbidNondeterminism.dfy(41,0): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(18,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+ForbidNondeterminism.dfy(38,4): Error: out-parameter 's', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(38,4): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(40,17): Error: variable 's', which is subject to definite-assignment rules, might be uninitialized here
+ForbidNondeterminism.dfy(42,0): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(57,11): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
 
 Dafny program verifier finished with 3 verified, 6 errors
+ForbidNondeterminism.dfy(65,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+ForbidNondeterminism.dfy(79,2): Error: field 'data', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+ForbidNondeterminism.dfy(18,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+ForbidNondeterminism.dfy(38,4): Error: out-parameter 's', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(38,4): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(40,17): Error: variable 's', which is subject to definite-assignment rules, might be uninitialized here
+ForbidNondeterminism.dfy(42,0): Error: out-parameter 't', which is subject to definite-assignment rules, might be uninitialized at this return point
+ForbidNondeterminism.dfy(57,11): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
+ForbidNondeterminism.dfy(70,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
+ForbidNondeterminism.dfy(71,11): Error: unless an initializer is provided for the array elements, a new array of 'bool' must have empty size
+
+Dafny program verifier finished with 2 verified, 10 errors
