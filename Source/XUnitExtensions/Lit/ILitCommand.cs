@@ -43,7 +43,7 @@ namespace XUnitExtensions.Lit {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
           if (inProgressArgument.Length != 0) {
-            result.AddRange(UseInProgressArgument(config, inProgressArgument, hasGlobCharacters));
+            UseInProgressArgument(config, inProgressArgument, hasGlobCharacters, result);
 
             inProgressArgument.Clear();
             hasGlobCharacters = false;
@@ -56,21 +56,20 @@ namespace XUnitExtensions.Lit {
         }
       }
 
-      result.AddRange(UseInProgressArgument(config, inProgressArgument, hasGlobCharacters));
+      UseInProgressArgument(config, inProgressArgument, hasGlobCharacters, result);
 
       return result.ToArray();
     }
 
-    private static IEnumerable<string> UseInProgressArgument(LitTestConfiguration config, StringBuilder inProgressArgument,
-      bool hasGlobCharacters) {
-      var newArguments = config.ApplySubstitutions(inProgressArgument.ToString());
+    private static void UseInProgressArgument(LitTestConfiguration config,
+      StringBuilder inProgressArgument,
+      bool hasGlobCharacters, List<string> result) {
+      var newArguments = result.Count > 0 ? config.ApplySubstitutions(inProgressArgument.ToString()) : new[] {inProgressArgument.ToString()};
       foreach (var newArgument in newArguments) {
         if (hasGlobCharacters) {
-          foreach (var result in ExpandGlobs(newArgument)) {
-            yield return result;
-          }
+          result.AddRange(ExpandGlobs(newArgument));
         } else {
-          yield return newArgument;
+          result.Add(newArgument);
         }
       }
     }
