@@ -167,7 +167,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Range = rootTok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
-        CodeDescription = errorId == null ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId) },
+        CodeDescription = errorId == null ? null : new CodeDescription { Href = new Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId) },
       };
       AddDiagnosticForFile(dafnyDiagnostic, source, GetDocumentUriOrDefault(rootTok));
       return true;
@@ -212,15 +212,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return token.Filename == null
         ? entryDocumentUri
         : token.GetDocumentUri();
-    }
-
-    private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
-      return level switch {
-        ErrorLevel.Error => DiagnosticSeverity.Error,
-        ErrorLevel.Warning => DiagnosticSeverity.Warning,
-        ErrorLevel.Info => DiagnosticSeverity.Hint,
-        _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
-      };
     }
   }
 }

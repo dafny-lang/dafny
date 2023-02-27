@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -33,6 +35,25 @@ public record IdeState(
 
 static class Util {
   public static Diagnostic ToLspDiagnostic(this DafnyDiagnostic dafnyDiagnostic) {
-    
+    return new Diagnostic {
+      Code = dafnyDiagnostic.ErrorId,
+      Severity = ToSeverity(dafnyDiagnostic.Level),
+      Message = dafnyDiagnostic.Message,
+      Range = dafnyDiagnostic.Token.GetLspRange(),
+      Source = dafnyDiagnostic.Source.ToString(),
+      RelatedInformation = relatedInformation,
+      CodeDescription = dafnyDiagnostic.ErrorId == null
+        ? null
+        : new CodeDescription {Href = new Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + dafnyDiagnostic.ErrorId)},
+    };
+  }
+
+  private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
+    return level switch {
+      ErrorLevel.Error => DiagnosticSeverity.Error,
+      ErrorLevel.Warning => DiagnosticSeverity.Warning,
+      ErrorLevel.Info => DiagnosticSeverity.Hint,
+      _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
+    };
   }
 }
