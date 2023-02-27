@@ -3592,32 +3592,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitCoercionToNativeForm(Type from, IToken tok, ConcreteSyntaxTree wr) {
-      // Don't expand!  We want to distinguish string from seq<char> here
-      from = from.Normalize();
-      if (from is UserDefinedType udt && udt.Name == "string") {
-        wr.Write('(');
-        var w = wr.Fork();
-        wr.Write(").String()");
-        return w;
-      } else {
-        return wr;
-      }
-    }
-
-    protected override ConcreteSyntaxTree EmitCoercionFromNativeForm(Type to, IToken tok, ConcreteSyntaxTree wr) {
-      // Don't expand! We want to distinguish string from seq<char> here
-      to = to.Normalize();
-      if (to is UserDefinedType udt && udt.Name == "string") {
-        wr.Write($"{HelperModulePrefix}SeqOfString(");
-        var w = wr.Fork();
-        wr.Write(")");
-        return w;
-      } else {
-        return wr;
-      }
-    }
-
     protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       wr.Write(".(int)");

@@ -827,12 +827,6 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    protected virtual ConcreteSyntaxTree EmitCoercionToNativeForm(Type/*?*/ from, IToken tok, ConcreteSyntaxTree wr) {
-      return wr;
-    }
-    protected virtual ConcreteSyntaxTree EmitCoercionFromNativeForm(Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
-      return wr;
-    }
     protected virtual ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
       return wr;
     }
@@ -4450,9 +4444,6 @@ namespace Microsoft.Dafny.Compilers {
             } else {
               type = instantiatedType;
             }
-            if (s.Method.IsExtern(out _, out _)) {
-              type = NativeForm(type);
-            }
             outTypes.Add(type);
             outFormalTypes.Add(p.Type);
             outLhsTypes.Add(s.Lhs[i].Type);
@@ -4512,12 +4503,8 @@ namespace Microsoft.Dafny.Compilers {
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
             var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
-            // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
             var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
-            if (s.Method.IsExtern(out _, out _)) {
-              w = EmitCoercionToNativeForm(toType, s.Tok, w);
-            }
             TrExpr(s.Args[i], w, false, wStmts);
             sep = ", ";
           }
@@ -4546,9 +4533,6 @@ namespace Microsoft.Dafny.Compilers {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
               ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
-              if (s.Method.IsExtern(out _, out _)) {
-                wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
-              }
               wRhs.Write(outTmps[l]);
               // Coercion from the out type to the LHS type is the responsibility
               // of the EmitAssignment above
