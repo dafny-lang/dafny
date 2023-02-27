@@ -115,7 +115,7 @@ method FindWinner<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns 
 
 datatype Result<Candidate> = NoWinner | Winner(cand: Candidate)
 
-method DetermineElection<Candidate(==,0)>(a: seq<Candidate>) returns (result: Result<Candidate>)
+method DetermineElection<Candidate(==,0,!new)>(a: seq<Candidate>) returns (result: Result<Candidate>)
   ensures result.Winner? ==> 2 * Count(a, 0, |a|, result.cand) > |a|
   ensures result.NoWinner? ==> forall c :: 2 * Count(a, 0, |a|, c) <= |a|
 {

@@ -16,7 +16,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
 
-      var constructorFunctions = dt.Ctors.ToDictionary(ctor => ctor, ctor => AddDataTypeConstructor(dt, ctor));
+      var mayInvolveReferences = UserDefinedType.FromTopLevelDecl(dt.tok, dt).MayInvolveReferences;
+      var constructorFunctions = dt.Ctors.ToDictionary(ctor => ctor, ctor => AddDataTypeConstructor(dt, ctor, mayInvolveReferences));
+      if (!mayInvolveReferences) {
+        AddCommonIsAllocConstructorAxiom(dt);
+      }
 
       AddDepthOneCaseSplitFunction(dt);
 
@@ -376,7 +380,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
     }
 
-    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
+    private Bpl.Function AddDataTypeConstructor(DatatypeDecl dt, DatatypeCtor ctor, bool includeIsAllocAxiom) {
       // Add:  function #dt.ctor(tyVars, paramTypes) returns (DatatypeType);
 
       List<Bpl.Variable> argTypes = new List<Bpl.Variable>();
@@ -451,7 +455,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor questionmark has arguments"));
       }
 
-      AddConstructorAxioms(dt, ctor, fn);
+      AddConstructorAxioms(dt, ctor, fn, includeIsAllocAxiom);
 
       if (dt is IndDatatypeDecl) {
         // Add Lit axiom:
@@ -628,14 +632,16 @@ namespace Microsoft.Dafny {
       return fn;
     }
 
-    private void AddConstructorAxioms(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction) {
+    private void AddConstructorAxioms(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, bool includeIsAllocAxiom) {
       var tyvars = MkTyParamBinders(dt.TypeArgs, out var tyexprs);
       CreateBoundVariables(ctor.Formals, out var bvs, out var args);
       bvs.InsertRange(0, tyvars);
       var c_params = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
       var c_ty = ClassTyCon(dt, tyexprs);
       AddsIsConstructorAxiom(ctor, ctorFunction, args, bvs, c_params, c_ty);
-      AddIsAllocConstructorAxiom(dt, ctor, ctorFunction, args, bvs, c_params, c_ty);
+      if (includeIsAllocAxiom) {
+        AddIsAllocConstructorAxiom(dt, ctor, ctorFunction, args, bvs, c_params, c_ty);
+      }
       AddDestructorAxiom(dt, ctor, ctorFunction, tyvars, c_ty);
     }
 
@@ -667,6 +673,33 @@ namespace Microsoft.Dafny {
             BplImp(isGoodHeap, BplIff(c_alloc, conj))),
           "Constructor $IsAlloc");
         AddOtherDefinition(ctorFunction, constructorIsAllocAxiom);
+      }
+    }
+
+    /// <summary>
+    /// If no value of the datatype depends on allocation, then this axiom states the property
+    /// for all datatype values. It can be used in place of one axiom per constructor.
+    ///
+    /// (forall d: DatatypeValue, T0,T1,...: Ty, H: Heap •
+    ///   { $IsAlloc(d, T(T0,T1,...), H) }
+    ///   IsGoodHeap(H) && $Is(d, T(T0,T1,...)) ==>
+    ///     $IsAlloc(d, T(T0,T1,...), H))
+    /// </summary>
+    private void AddCommonIsAllocConstructorAxiom(DatatypeDecl dt) {
+
+      MkIsPredicateForDatatype(dt, out var boundVariables, out var d, out var tyExpr, out var isPredicate);
+
+      var hVar = BplBoundVar("$h", predef.HeapType, out var h);
+      var isGoodHeap = FunctionCall(dt.tok, BuiltinFunction.IsGoodHeap, null, h);
+
+      var isAlloc = MkIsAlloc(d, tyExpr, h);
+
+      var body = BplImp(BplAnd(isGoodHeap, isPredicate), isAlloc);
+
+      if (CommonHeapUse || NonGhostsUseHeap) {
+        var tr = BplTrigger(isAlloc);
+        var ax = new Bpl.Axiom(dt.tok, BplForall(Snoc(boundVariables, hVar), tr, body), "Datatype $IsAlloc");
+        sink.AddTopLevelDeclaration(ax);
       }
     }
 
