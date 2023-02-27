@@ -1,4 +1,4 @@
-text.dfy(15,0): Error: A postcondition might not hold on this return path.
+text.dfy(15,0): Error: a postcondition could not be proved on this return path
 text.dfy(14,10): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 6 verified, 1 error
