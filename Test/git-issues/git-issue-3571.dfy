@@ -8,6 +8,7 @@
 // RUN: %verify --resource-limit 100 --resource-limit 200  "%s" >> "%t"
 // RUN: %verify --solver-path x --solver-path y  "%s" >> "%t"
 // RUN: %verify --verification-time-limit 300 --verification-time-limit 500  "%s" >> "%t"
+// RUN: %resolve --error-limit:10 --error-limit:5  "%s" >> "%t"
 // RUN: %translate cs --output x --output y  "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // Crashes size x is nothing real

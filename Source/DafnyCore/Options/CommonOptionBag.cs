@@ -8,8 +8,8 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
-  public static readonly Option<int> VerificationErrorLimit =
-    new("--error-limit", () => 5, "Set the maximum number of verification errors to report (0 for unlimited).");
+  public static readonly Option<int> ErrorLimit =
+    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
@@ -185,7 +185,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
-    DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
+    DafnyOptions.RegisterLegacyBinding(ErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
       (options, value) => { options.VerifyAllModules = value; });
 
