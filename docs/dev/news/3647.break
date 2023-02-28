@@ -1,0 +1,1 @@
+Compilation to Go no longer attempts to use the Dafny `string` type and the Go `string` type interchangably when calling external methods (which was buggy and unsound).
