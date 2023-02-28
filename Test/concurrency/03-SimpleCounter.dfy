@@ -112,7 +112,7 @@ class ArcAtomicIsize extends Object {
   }
 
   // Admissibility proof
-  twostate lemma adm() {}
+  twostate lemma adm() requires admPre() {}
 
   constructor (ghost universe: Universe, initial_data: int)
     requires universe.i()

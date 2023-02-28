@@ -2460,7 +2460,7 @@ namespace Microsoft.Dafny {
       ResolveNamesAndInferTypes(declarations, true);
       ResolveNamesAndInferTypes(declarations, false);
 
-      // Check that all types have been determined. During this process, fill in all .ResolvedOp fields.
+      // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var checkTypeInferenceVisitor = new CheckTypeInferenceVisitor(this);
         checkTypeInferenceVisitor.VisitDeclarations(declarations);
@@ -2471,6 +2471,7 @@ namespace Microsoft.Dafny {
 
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
+      // * desugar functions used in reads clauses
       // * discovers bounds
       // * builds the module's call graph.
       // * compute and checks ghosts (this makes use of bounds discovery, as done above)
@@ -2481,6 +2482,8 @@ namespace Microsoft.Dafny {
 
       // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
       // be done before building the call graph.
+      // The BoundsDiscoveryVisitor also desugars FrameExpressions, so that bounds discovery can
+      // apply to the desugared versions.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
@@ -2711,6 +2714,7 @@ namespace Microsoft.Dafny {
           currentClass = null;
           new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
           CallGraphBuilder.VisitMethod(prefixLemma, reporter);
+          new BoundsDiscoveryVisitor(reporter).VisitMethod(prefixLemma);
         }
       }
 

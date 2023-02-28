@@ -2,9 +2,8 @@ name: Build DafnyRef.pdf
 
 on:
   workflow_dispatch:
-  push:
   pull_request:
-    branches: [ master ]
+    branches: [ master, main-* ]
 
 jobs:
   check-deep-tests:

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 9 verified, 0 errors
+Dafny program verifier finished with 11 verified, 0 errors
 ch = D
 The string is: DDD
 Escape X: I say "hello" \ you say 'good bye'

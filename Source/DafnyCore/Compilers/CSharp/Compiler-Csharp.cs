@@ -1091,10 +1091,8 @@ namespace Microsoft.Dafny.Compilers {
         wEnum.WriteLine($"for (var j = lo; j < hi; j++) {{ yield return ({GetNativeTypeName(nt.NativeType)})j; }}");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var wrWitness = new ConcreteSyntaxTree();
         var wStmts = w.Fork();
-        TrExpr(nt.Witness, wrWitness, false, wStmts);
-        var witness = wrWitness.ToString();
+        var witness = Expr(nt.Witness, false, wStmts).ToString();
         string typeName;
         if (nt.NativeType == null) {
           typeName = TypeName(nt.BaseType, cw.StaticMemberWriter, nt.tok);
@@ -1113,7 +1111,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
-        TrExpr(sst.Witness, sw, false, wStmts);
+        sw.Append(Expr(sst.Witness, false, wStmts));
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
         if (sst.TypeArgs.Count == 0) {
@@ -1893,18 +1891,14 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      wr.Write("throw new Dafny.HaltException(");
+      var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        wr.Write(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + ");
+        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + "));
       }
-
-      TrExpr(messageExpr, wr, false, wStmts);
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
-        wr.Write(".ToVerbatimString(false)");
+        exceptionMessage.Write(".ToVerbatimString(false)");
       }
-
-      wr.WriteLine(");");
+      wr.Format($"throw new Dafny.HaltException({exceptionMessage});");
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
@@ -2598,9 +2592,9 @@ namespace Microsoft.Dafny.Compilers {
       var xType = source.Type.NormalizeExpand();
       if (xType is MapType) {
         var inner = wr.Write(TypeHelperName(xType, wr, source.tok) + ".Select").ForkInParens();
-        TrExpr(source, inner, inLetExprBody, wStmts);
+        inner.Append(Expr(source, inLetExprBody, wStmts));
         inner.Write(",");
-        TrExpr(index, inner, inLetExprBody, wStmts);
+        inner.Append(Expr(index, inLetExprBody, wStmts));
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         TrParenExpr(".Select", index, wr, inLetExprBody, wStmts);
@@ -2874,6 +2868,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -2884,6 +2879,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
@@ -3015,7 +3011,7 @@ namespace Microsoft.Dafny.Compilers {
 
         default:
           base.CompileBinOp(op, e0, e1, tok, resultType,
-            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
       }
@@ -3037,8 +3033,14 @@ namespace Microsoft.Dafny.Compilers {
           ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write($"({CharTypeName})");
-          TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          if (UnicodeCharEnabled) {
+            wr.Write($"new {CharTypeName}((int)");
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+            wr.Write(")");
+          } else {
+            wr.Write($"({CharTypeName})");
+            TrParenExpr(e.E, wr, inLetExprBody, wStmts);
+          }
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -3050,7 +3052,7 @@ namespace Microsoft.Dafny.Compilers {
               ConvertFromChar(e.E, wr, inLetExprBody, wStmts);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-              TrExpr(e.E, wr, inLetExprBody, wStmts);
+              wr.Append(Expr(e.E, inLetExprBody, wStmts));
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
@@ -3096,7 +3098,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(e.E, inLetExprBody, wStmts));
         } else {
           // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
@@ -3109,7 +3111,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int) || e.ToType.IsBigOrdinalType) {
-          TrExpr(e.E, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(e.E, inLetExprBody, wStmts));
         } else if (e.ToType.IsCharType) {
           wr.Write($"({CharTypeName})");
           TrParenExpr(e.E, wr, inLetExprBody, wStmts);
