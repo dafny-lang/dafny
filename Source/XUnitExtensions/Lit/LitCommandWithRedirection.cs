@@ -47,9 +47,9 @@ namespace XUnitExtensions.Lit {
       }
 
       ILitCommand CreateCommand() {
-        var arguments = argumentList.SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with {Value = v}))
+        var arguments = argumentList.SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with { Value = v }))
           .ToList()
-          .SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] {a.Value})
+          .SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] { a.Value })
           .ToList();
         if (config.Commands.TryGetValue(commandSymbol, out var command)) {
           return command(arguments, config);
