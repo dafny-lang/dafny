@@ -1044,7 +1044,7 @@ explicitly provide an initializing assignment.
 
 In a ghost context, one can an imagine a "ghost" that initializes variables. Unlike the compiler, such
 a "ghost" does not need to emit code that constructs an initializing value; it suffices for the ghost to
-know that a value exists. Therefore, in a ghost context, a variable of nonempty type can be used immediately
+know that a value exists. Therefore, in a ghost context, a variable of a nonempty type can be used immediately
 after declaration.
 
 Before a variable of a possibly empty type can be used, the program must initialize it.
@@ -1055,7 +1055,7 @@ if it cannot assure itself that the variable has been given a value.
 
 The elements of an array must be assured to have values already in the statement that allocates the array.
 This is achieved in any of the following four ways:
-- If the array is allocated to be empty (that is, one of its dimensions is required to be 0), then
+- If the array is allocated to be empty (that is, one of its dimensions is requested to be 0), then
   the array allocation trivially satisfies the requirement.
 - If the element type of the array is an auto-init type, then nothing further is required by the program.
 - If the array allocation occurs in a ghost context and the element type is a nonempty type, then nothing
@@ -1095,9 +1095,10 @@ declarations is not necessarily the value chosen by auto-initialization, though 
 the type is an auto-init type.
 
 In some programs (for example, in some test programs), it is desirable to avoid nondeterminism.
-For that purpose, Dafny provides a `--enforce-determinism` option. It forbids use of any program
+For that purpose, Dafny provides an `--enforce-determinism` option. It forbids use of any program
 statement that may have nondeterministic behavior and it disables auto-initialization.
-Since this mode enforces definite assignments everywhere, it forbids the use of `iterator` declarations
+This mode enforces definite assignments everywhere, going beyond what the strict mode does by enforcing
+definite assignment also for fields and array elements. It also forbids the use of `iterator` declarations
 and `constructor`-less `class` declarations. It is up to a user's build process to ensure that
 `--enforce-determinism` is used consistently throughout the program. (In the legacy CLI, this
 mode is enabled by `/definiteAssignment:3`.)
