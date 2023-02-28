@@ -668,7 +668,7 @@ class Example<A(0), X> {
 In the example above, the class fields do not need to be explicitly initialized
 in the constructor because they are auto-initialized to an arbitrary value.
 
-Local variables are out-parameters are however, subject to definite assignment
+Local variables and out-parameters are however, subject to definite assignment
 rules. The following example requires `--relax-definite-assignment`,
 which is not the default.
 <!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
