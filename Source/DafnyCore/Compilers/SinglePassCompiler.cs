@@ -1445,6 +1445,13 @@ namespace Microsoft.Dafny.Compilers {
                 include = false;
               }
             }
+            if (DafnyOptions.O.ForbidNondeterminism &&
+                !cl.IsDefaultClass &&
+                !classIsExtern &&
+                !cl.Members.Exists(member => member is Constructor) &&
+                cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+              Error(cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
+            }
             if (include) {
               var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
