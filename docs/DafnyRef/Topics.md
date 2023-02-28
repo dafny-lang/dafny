@@ -1061,7 +1061,7 @@ This is achieved in any of the following four ways:
 - If the array allocation occurs in a ghost context and the element type is a nonempty type, then nothing
   further is required by the program.
 - Otherwise, the array allocation must provide an initialization display or an initialization function.
-See [section 0.0.0](#sec-array-type) for information about array initialization.
+See [section 5.10](#sec-array-type) for information about array initialization.
 
 The fields of a class must have values by the end of the first phase of each constructor (that is, at
 the explicit or implicit `new;` statement in the constructor). If a class has a compiled field that is
