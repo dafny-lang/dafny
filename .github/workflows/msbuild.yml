@@ -79,29 +79,32 @@ jobs:
         with:
           dotnet-version: ${{env.dotnet-version}}
 
-      - name: Install dotnet-reportgenerator
-        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+      - name: Install dotnet-reportgenerator and coverage
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet tool install dotnet-coverage
 
       - name: Download integration test artifacts
         uses: actions/download-artifact@v3
         with:
           name: integration-test-results-ubuntu-20.04
 
-      # TODO: this currently fails to find any artifacts. Figure out why.
-      #- name: Download unit test artifacts
-        #uses: dawidd6/action-download-artifact@v2
-        #with:
-           #pr: ${{github.event.pull_request.number}}
-           #workflow: Run XUnit tests
-           #name: unit-test-results-ubuntu-20.04
+      - name: Download unit test artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+           pr: ${{github.event.pull_request.number}}
+           workflow: xunit-tests.yml
+           workflow_conclusion: success
+           name: unit-test-results-ubuntu-20.04
 
       - name: Show files
         run: ls -lR
 
       - name: Merge reports
         run: |
-          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Cobertura -targetdir:coverage-cobertura
-          reportgenerator -reports:"./**/coverage.cobertura.xml" -reporttypes:Html -targetdir:coverage-html
+          dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.cobertura.xml -f cobertura
+          reportgenerator -reports:"./**/coverage.cobertura.xml;*.cobertura.xml" -reporttypes:Cobertura -targetdir:coverage-cobertura
+          reportgenerator -reports:"./coverage-cobertura/Cobertura.xml" -reporttypes:Html -targetdir:coverage-html
 
       - name: Code coverage report
         uses: irongut/CodeCoverageSummary@v1.3.0
