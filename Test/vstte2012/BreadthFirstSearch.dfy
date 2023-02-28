@@ -111,10 +111,7 @@ class BreadthFirstSearch<Vertex(==)>
         C, N, d := N, {}, d+1;
       }
 
-      assert dest in R(source, d, AllVertices) ==> dest in C by { reveal R(); }
-      assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
       assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
-      assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
     }
 
     // show that "dest" in not in any reachability set, no matter

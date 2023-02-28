@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This program models the ownership of a Rust-like MutexGuard using lifetimes to reason about allocation.
