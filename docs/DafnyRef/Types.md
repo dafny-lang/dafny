@@ -649,7 +649,7 @@ If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
 that is, the variable is _auto-initialized_, but to an arbitrary value.
 For example,
-<!-- %check-verify -->
+<!-- %check-verify Types.21.expect -->
 ```dafny
 class Example<A(0), X> {
   var n: nat
@@ -658,6 +658,7 @@ class Example<A(0), X> {
   var x: X
 
   constructor () {
+    new;
     assert n >= 0; // true, regardless of the value of 'n'
     assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
     // 'a' does not require an explicit initialization, since 'A' is auto-init
