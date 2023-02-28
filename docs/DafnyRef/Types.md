@@ -658,11 +658,10 @@ class Example<A(0), X> {
   var x: X
 
   constructor () {
-    new;
+    new; // error: field 'x' has not been given a value`
     assert n >= 0; // true, regardless of the value of 'n'
     assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
     // 'a' does not require an explicit initialization, since 'A' is auto-init
-    // error: field 'x' has not been given a value
   }
 }
 ```
