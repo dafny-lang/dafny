@@ -13,35 +13,34 @@ namespace XUnitExtensions.Lit {
     public static LitCommandWithRedirection Parse(Token[] tokens, LitTestConfiguration config) {
       var commandSymbol = tokens[0].Value;
       var argumentList = tokens[1..].ToList();
-      var argumentValueList = argumentList.Select(t => t.Value).ToList();
       string? inputFile = null;
       string? outputFile = null;
       var appendOutput = false;
       string? errorFile = null;
-      var redirectInIndex = argumentValueList.IndexOf("<");
+      var redirectInIndex = argumentList.FindIndex(t => t.Value == "<");
       if (redirectInIndex >= 0) {
-        inputFile = config.ApplySubstitutions(argumentValueList[redirectInIndex + 1]).Single();
+        inputFile = config.ApplySubstitutions(argumentList[redirectInIndex + 1].Value).Single();
         argumentList.RemoveRange(redirectInIndex, 2);
       }
-      var redirectOutIndex = argumentValueList.IndexOf(">");
+      var redirectOutIndex = argumentList.FindIndex(t => t.Value == ">");
       if (redirectOutIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentValueList[redirectOutIndex + 1]).Single();
+        outputFile = config.ApplySubstitutions(argumentList[redirectOutIndex + 1].Value).Single();
         argumentList.RemoveRange(redirectOutIndex, 2);
       }
-      var redirectAppendIndex = argumentValueList.IndexOf(">>");
+      var redirectAppendIndex = argumentList.FindIndex(t => t.Value == ">>");
       if (redirectAppendIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentValueList[redirectAppendIndex + 1]).Single();
+        outputFile = config.ApplySubstitutions(argumentList[redirectAppendIndex + 1].Value).Single();
         appendOutput = true;
         argumentList.RemoveRange(redirectAppendIndex, 2);
       }
-      var redirectErrorIndex = argumentValueList.IndexOf("2>");
+      var redirectErrorIndex = argumentList.FindIndex(t => t.Value == "2>");
       if (redirectErrorIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentValueList[redirectErrorIndex + 1]).Single();
+        errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
         argumentList.RemoveRange(redirectErrorIndex, 2);
       }
-      var redirectErrorAppendIndex = argumentValueList.IndexOf("2>>");
+      var redirectErrorAppendIndex = argumentList.FindIndex(t => t.Value == "2>>");
       if (redirectErrorAppendIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentValueList[redirectErrorAppendIndex + 1]).Single();
+        errorFile = config.ApplySubstitutions(argumentList[redirectErrorAppendIndex + 1].Value).Single();
         appendOutput = true;
         argumentList.RemoveRange(redirectErrorAppendIndex, 2);
       }

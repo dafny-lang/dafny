@@ -29,7 +29,7 @@ namespace XUnitExtensions.Lit {
 
 
       // Just supporting || for now since it's a precise way to ignore an exit code
-      var seqOperatorIndex = Array.IndexOf(tokens, "||");
+      var seqOperatorIndex = Array.FindIndex(tokens, t => t.Value == "||");
       if (seqOperatorIndex >= 0) {
         var lhs = LitCommandWithRedirection.Parse(tokens[0..seqOperatorIndex], config);
         var rhs = ParseArguments(tokens[(seqOperatorIndex + 1)..], config);
