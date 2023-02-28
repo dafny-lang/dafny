@@ -35,9 +35,10 @@ jobs:
     - name: Load Z3
       run: |
         sudo apt-get install -qq libarchive-tools
-        mkdir dafny/Binaries/z3
-        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
-        chmod +x dafny/Binaries/z3/bin/z3
+        mkdir -p dafny/Binaries/z3/bin
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip | bsdtar -xf -
+        mv z3-* dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check OnlineTutorial examples
