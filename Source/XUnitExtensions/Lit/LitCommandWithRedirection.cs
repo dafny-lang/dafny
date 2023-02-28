@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -45,19 +46,21 @@ namespace XUnitExtensions.Lit {
         argumentList.RemoveRange(redirectErrorAppendIndex, 2);
       }
 
-      var arguments = argumentList.
-        SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with { Value = v })).
-        SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] { a.Value }).ToList();
+      ILitCommand CreateCommand() {
+        var arguments = argumentList.SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with {Value = v}))
+          .ToList()
+          .SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] {a.Value})
+          .ToList();
+        if (config.Commands.TryGetValue(commandSymbol, out var command)) {
+          return command(arguments, config);
+        }
 
-      if (config.Commands.TryGetValue(commandSymbol, out var command)) {
-        return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
+        commandSymbol = config.ApplySubstitutions(commandSymbol).Single();
+        return new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables);
       }
 
-      commandSymbol = config.ApplySubstitutions(commandSymbol).Single();
-
-      return new LitCommandWithRedirection(
-        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
-        inputFile, outputFile, appendOutput, errorFile);
+      // Use a DelayedLitCommand so the glob expansion is done only after previous commands have executed
+      return new LitCommandWithRedirection(new DelayedLitCommand(CreateCommand), inputFile, outputFile, appendOutput, errorFile);
     }
 
     private readonly ILitCommand command;

@@ -14,6 +14,19 @@ namespace XUnitExtensions.Lit {
 
   public enum Kind { Verbatim, MustGlob }
 
+  class DelayedLitCommand : ILitCommand {
+    private readonly Func<ILitCommand> factory;
+
+    public DelayedLitCommand(Func<ILitCommand> factory) {
+      this.factory = factory;
+    }
+
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+      TextWriter? errorWriter) {
+      var command = factory();
+      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+    }
+  }
   public interface ILitCommand {
 
     private static readonly Dictionary<string, Func<string, LitTestConfiguration, ILitCommand>> CommandParsers = new();
