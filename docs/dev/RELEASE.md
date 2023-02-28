@@ -13,8 +13,9 @@
    incremented since the last release, so they do not necessarily need
    to be updated. However, you may want to increment them further
    depending the types of changes that are in the release.
-1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>` from the root of the
-   repository. The script will check that the repository is in a good
+1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>`
+   (`--source-branch` is optional and defaults to 'master')
+   from the root of the repository. The script will check that the repository is in a good
    state, create and check out a new release branch, update
    `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
    and push it.
