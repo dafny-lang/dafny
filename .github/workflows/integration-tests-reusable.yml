@@ -130,7 +130,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
