@@ -1402,9 +1402,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = DatatypeWrapperEraser.SimplifyType(type);
-      if (xType is SpecialNativeType snt) {
-        return snt.Name;
-      } else if (xType is BoolType) {
+      if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
         return CharTypeName;
@@ -1674,21 +1672,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(formal.HasName);
       return Capitalize(formal.CompileName);
     }
-
-    protected override Type NativeForm(Type type) {
-      if (type.IsStringType) {
-        return NativeStringType;
-      } else {
-        return type;
-      }
-    }
-
-    /// A type which is rendered to Go exactly as specified.  Used to represent the native string type.
-    private class SpecialNativeType : UserDefinedType {
-      internal SpecialNativeType(string name) : base(Token.NoToken, name, null) { }
-    }
-
-    private readonly static SpecialNativeType NativeStringType = new SpecialNativeType("string");
 
     // ----- Declarations -------------------------------------------------------------
 
@@ -3605,32 +3588,6 @@ namespace Microsoft.Dafny.Compilers {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
         Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
-        return wr;
-      }
-    }
-
-    protected override ConcreteSyntaxTree EmitCoercionToNativeForm(Type from, IToken tok, ConcreteSyntaxTree wr) {
-      // Don't expand!  We want to distinguish string from seq<char> here
-      from = from.Normalize();
-      if (from is UserDefinedType udt && udt.Name == "string") {
-        wr.Write('(');
-        var w = wr.Fork();
-        wr.Write(").String()");
-        return w;
-      } else {
-        return wr;
-      }
-    }
-
-    protected override ConcreteSyntaxTree EmitCoercionFromNativeForm(Type to, IToken tok, ConcreteSyntaxTree wr) {
-      // Don't expand! We want to distinguish string from seq<char> here
-      to = to.Normalize();
-      if (to is UserDefinedType udt && udt.Name == "string") {
-        wr.Write($"{HelperModulePrefix}SeqOfString(");
-        var w = wr.Fork();
-        wr.Write(")");
-        return w;
-      } else {
         return wr;
       }
     }
