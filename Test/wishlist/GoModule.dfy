@@ -1,6 +1,7 @@
 // RUN: %exits-with 3 %dafny /compile:3 /unicodeChar:0 /spillTargetCode:2 "%s" /compileTarget:go 2> "%t"
 // note: putting /compileTarget:go after "%s" overrides user-provided option
-// RUN: %diff "%s.expect" "%t"
+// RUN: %OutputCheck --file-to-check "%t" "%s"
+// CHECK: GoModuleConversions.go:10:3: imported and not used: "net/url"
 
 // This test used to work only because of a questionable Go-only feature
 // of mapping a Dafny string directly to a Go string when passed in or out of
