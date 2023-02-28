@@ -292,9 +292,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version4;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
+    public int DefiniteAssignmentLevel = 1; // [0..5] 2 and 3 have the same effect, 4 turns off an array initialisation check and field initialization check, unless --enforce-determinism is used.
     public HashSet<string> LibraryFiles { get; set; } = new();
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
@@ -322,6 +322,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> VerificationLoggerConfigs = new();
 
     public bool AuditProgram = false;
+
+    public static string DefaultZ3Version = "4.8.5";
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
@@ -702,7 +704,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetIntArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 5)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -1089,12 +1091,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       var platform = System.Environment.OSVersion.Platform;
       var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
-      var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
+        var z3LocalBinName = isUnix
+          ? $"z3-{DefaultZ3Version}"
+          : $"z3-{DefaultZ3Version}.exe";
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1102,11 +1106,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       // Finally, try looking in the system PATH variable.
+      var z3GlobalBinName = isUnix ? "z3" : "z3.exe";
       if (confirmedProverPath is null) {
         confirmedProverPath = System.Environment
           .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
-          .Select(s => Path.Combine(s, z3binName))
+          .Select(s => Path.Combine(s, z3GlobalBinName))
           .FirstOrDefault(File.Exists);
       }
 
@@ -1427,7 +1432,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         only--it is not sound.
     1 (default) - Enforces definite-assignment rules for compiled
         variables and fields whose types do not support
-        auto-initialization and for ghost variables and fields whose
+        auto-initialization, and for ghost variables and fields whose
         type is possibly empty.
     2 - Enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types.
@@ -1436,6 +1441,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         passes at this level 3 is one that the language guarantees that
         values seen during execution will be the same in every run of
         the program.
+    4 - Like 1, but enforces definite assignment for all local variables
+        and out-parameters, regardless of their types. (Whether or not
+        fields and new arrays are subject to definite assignments depends
+        on their types.)
 
 /noAutoReq
     Ignore autoReq attributes.

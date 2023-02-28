@@ -295,7 +295,7 @@ Usage: dafny [ option ... ] [ filename ... ]
           only--it is not sound.
       1 (default) - Enforces definite-assignment rules for compiled
           variables and fields whose types do not support
-          auto-initialization and for ghost variables and fields whose
+          auto-initialization, and for ghost variables and fields whose
           type is possibly empty.
       2 - Enforces definite-assignment for all non-yield-parameter
           variables and fields, regardless of their types.
@@ -304,6 +304,10 @@ Usage: dafny [ option ... ] [ filename ... ]
           passes at this level 3 is one that the language guarantees that
           values seen during execution will be the same in every run of
           the program.
+      4 - Like 1, but enforces definite assignment for all local variables
+          and out-parameters, regardless of their types. (Whether or not
+          fields and new arrays are subject to definite assignments depends
+          on their types.)
   
   /noAutoReq
       Ignore autoReq attributes.

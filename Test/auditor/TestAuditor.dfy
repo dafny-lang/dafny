@@ -100,3 +100,7 @@ abstract module M {
   method AbstractMethod(x: int) returns (y: int)
     ensures y > x
 }
+
+opaque function f(): int {
+  0
+}
