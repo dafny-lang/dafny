@@ -1,10 +1,7 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Reactive.Subjects;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using VC;
 using VCGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
