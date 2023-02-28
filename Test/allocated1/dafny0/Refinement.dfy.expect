@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Refinement.dfy(156,13): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(161,9): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(162,13): Warning: the ... refinement feature in statements is deprecated

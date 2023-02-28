@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 one-message-per-failed-precondition.dfy(13,3): Error: A precondition for this call might not hold.
 one-message-per-failed-precondition.dfy(8,13): Related location: This is the precondition that might not hold.
 one-message-per-failed-precondition.dfy(13,3): Error: A precondition for this call might not hold.

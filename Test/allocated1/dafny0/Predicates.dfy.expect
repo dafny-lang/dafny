@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Predicates.dfy(62,15): Error: assertion might not hold
 Predicates.dfy(66,13): Error: assertion might not hold
 Predicates.dfy(94,31): Error: target object might not be allocated

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Superposition.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
 
 Verifying M0.C.M (correctness) ...

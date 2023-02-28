@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 TypeParameters.dfy(376,20): Error: assertion might not hold
 TypeParameters.dfy(153,11): Error: assertion might not hold
 TypeParameters.dfy(153,27): Related location
