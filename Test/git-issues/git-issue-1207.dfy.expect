@@ -3,16 +3,16 @@ git-issue-1207.dfy(29,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(41,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(47,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(48,9): Warning: /!\ No terms found to trigger on.
+git-issue-1207.dfy(10,9): Error: assertion might not hold
 git-issue-1207.dfy(11,9): Error: assertion might not hold
 git-issue-1207.dfy(14,9): Error: assertion might not hold
 git-issue-1207.dfy(15,9): Error: assertion might not hold
 git-issue-1207.dfy(16,9): Error: assertion might not hold
-git-issue-1207.dfy(17,9): Error: assertion might not hold
+git-issue-1207.dfy(22,9): Error: assertion might not hold
 git-issue-1207.dfy(23,9): Error: assertion might not hold
 git-issue-1207.dfy(24,9): Error: assertion might not hold
 git-issue-1207.dfy(26,9): Error: assertion might not hold
 git-issue-1207.dfy(27,9): Error: assertion might not hold
-git-issue-1207.dfy(28,9): Error: assertion might not hold
 git-issue-1207.dfy(34,9): Error: assertion might not hold
 git-issue-1207.dfy(35,9): Error: assertion might not hold
 git-issue-1207.dfy(38,9): Error: assertion might not hold

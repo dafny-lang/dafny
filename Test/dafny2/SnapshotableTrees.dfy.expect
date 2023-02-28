@@ -3,4 +3,4 @@ SnapshotableTrees.dfy(457,17): Related location: This is the postcondition that 
 SnapshotableTrees.dfy(71,25): Error: A precondition for this call might not hold.
 SnapshotableTrees.dfy(610,15): Related location: This is the precondition that might not hold.
 
-Dafny program verifier finished with 52 verified, 2 errors
+Dafny program verifier finished with 51 verified, 2 errors
