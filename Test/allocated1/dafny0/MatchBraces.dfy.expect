@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 // MatchBraces.dfy
 
 method Main()

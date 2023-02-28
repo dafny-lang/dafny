@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 FunctionSpecifications.dfy(35,24): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(31,12): Related location: This is the postcondition that might not hold.
 FunctionSpecifications.dfy(45,2): Error: A postcondition might not hold on this return path.

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 BitvectorsMore.dfy(13,9): Error: possible division by zero
 BitvectorsMore.dfy(17,13): Error: possible division by zero
 BitvectorsMore.dfy(21,13): Error: possible division by zero
