@@ -25,7 +25,7 @@ jobs:
       num_shards: 5
 
   determine-vars:
-    if: github.repository_owner == 'dafny-lang'
+    if: github.repository_owner == 'dafny-lang' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Dafny
@@ -43,7 +43,6 @@ jobs:
       name: nightly-${{ env.date }}-${{ env.sha_short }}
 
   publish-release:
-    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/publish-release-reusable.yml
     needs: [deep-integration-tests, determine-vars]
     with:
