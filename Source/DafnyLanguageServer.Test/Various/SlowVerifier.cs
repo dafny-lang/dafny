@@ -60,4 +60,8 @@ class SlowVerifier : IProgramVerifier {
       source.OnError(new TaskCanceledException());
     }
   }
+
+  public void Dispose() {
+    verifier?.Dispose();
+  }
 }

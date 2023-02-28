@@ -1,1 +1,0 @@
-The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas.

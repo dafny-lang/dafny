@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>
-  public interface IProgramVerifier {
+  public interface IProgramVerifier : IDisposable {
     /// <summary>
     /// Applies the program verification to the specified dafny program.
     /// </summary>

@@ -107,6 +107,10 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       }
       return verifier.GetVerificationTasksAsync(document, cancellationToken);
     }
+
+    public void Dispose() {
+      verifier?.Dispose();
+    }
   }
 
   class CrashingLoader : ITextDocumentLoader {
