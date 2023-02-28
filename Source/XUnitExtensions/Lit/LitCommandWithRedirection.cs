@@ -10,42 +10,45 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public class LitCommandWithRedirection : ILitCommand {
 
-    public static LitCommandWithRedirection Parse(string[] tokens, LitTestConfiguration config) {
-      var commandSymbol = tokens[0];
-      var argumentsList = tokens[1..].ToList();
+    public static LitCommandWithRedirection Parse(Token[] tokens, LitTestConfiguration config) {
+      var commandSymbol = tokens[0].Value;
+      var argumentList = tokens[1..].ToList();
+      var argumentValueList = argumentList.Select(t => t.Value).ToList();
       string? inputFile = null;
       string? outputFile = null;
       var appendOutput = false;
       string? errorFile = null;
-      var redirectInIndex = argumentsList.IndexOf("<");
+      var redirectInIndex = argumentValueList.IndexOf("<");
       if (redirectInIndex >= 0) {
-        inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]).Single();
-        argumentsList.RemoveRange(redirectInIndex, 2);
+        inputFile = config.ApplySubstitutions(argumentValueList[redirectInIndex + 1]).Single();
+        argumentList.RemoveRange(redirectInIndex, 2);
       }
-      var redirectOutIndex = argumentsList.IndexOf(">");
+      var redirectOutIndex = argumentValueList.IndexOf(">");
       if (redirectOutIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentsList[redirectOutIndex + 1]).Single();
-        argumentsList.RemoveRange(redirectOutIndex, 2);
+        outputFile = config.ApplySubstitutions(argumentValueList[redirectOutIndex + 1]).Single();
+        argumentList.RemoveRange(redirectOutIndex, 2);
       }
-      var redirectAppendIndex = argumentsList.IndexOf(">>");
+      var redirectAppendIndex = argumentValueList.IndexOf(">>");
       if (redirectAppendIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentsList[redirectAppendIndex + 1]).Single();
+        outputFile = config.ApplySubstitutions(argumentValueList[redirectAppendIndex + 1]).Single();
         appendOutput = true;
-        argumentsList.RemoveRange(redirectAppendIndex, 2);
+        argumentList.RemoveRange(redirectAppendIndex, 2);
       }
-      var redirectErrorIndex = argumentsList.IndexOf("2>");
+      var redirectErrorIndex = argumentValueList.IndexOf("2>");
       if (redirectErrorIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]).Single();
-        argumentsList.RemoveRange(redirectErrorIndex, 2);
+        errorFile = config.ApplySubstitutions(argumentValueList[redirectErrorIndex + 1]).Single();
+        argumentList.RemoveRange(redirectErrorIndex, 2);
       }
-      var redirectErrorAppendIndex = argumentsList.IndexOf("2>>");
+      var redirectErrorAppendIndex = argumentValueList.IndexOf("2>>");
       if (redirectErrorAppendIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorAppendIndex + 1]).Single();
+        errorFile = config.ApplySubstitutions(argumentValueList[redirectErrorAppendIndex + 1]).Single();
         appendOutput = true;
-        argumentsList.RemoveRange(redirectErrorAppendIndex, 2);
+        argumentList.RemoveRange(redirectErrorAppendIndex, 2);
       }
 
-      var arguments = argumentsList.SelectMany(config.ApplySubstitutions);
+      var arguments = argumentList.
+        SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with { Value = v })).
+        SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] { a.Value }).ToList();
 
       if (config.Commands.TryGetValue(commandSymbol, out var command)) {
         return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
@@ -81,6 +84,13 @@ namespace XUnitExtensions.Lit {
       outputWriter?.Close();
       errorWriter?.Close();
       return result;
+    }
+
+    protected static IEnumerable<string> ExpandGlobs(string chunk) {
+      var matcher = new Matcher();
+      matcher.AddInclude(chunk);
+      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo("/")));
+      return result.Files.Select(f => "/" + f.Path);
     }
 
     public override string ToString() {
