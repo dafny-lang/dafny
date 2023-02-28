@@ -1055,7 +1055,7 @@ if it cannot assure itself that the variable has been given a value.
 
 The elements of an array must be assured to have values already in the statement that allocates the array.
 This is achieved in any of the following four ways:
-- If the array is allocated to be empty (that is, one of its dimensions is required to be 0), then
+- If the array is allocated to be empty (that is, one of its dimensions is requested to be 0), then
   the array allocation trivially satisfies the requirement.
 - If the element type of the array is an auto-init type, then nothing further is required by the program.
 - If the array allocation occurs in a ghost context and the element type is a nonempty type, then nothing
