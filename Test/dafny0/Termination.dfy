@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Termination {
@@ -162,7 +162,7 @@ class Node {
   var next: Node?
   var footprint: set<Node?>
 
-  function Valid(): bool
+  ghost function Valid(): bool
     reads this, footprint
     // In a previous (and weaker) axiomatization of sets, there had been two problems
     // with trying to prove the termination of this function.  First, the default
@@ -248,14 +248,14 @@ class TopElements {
 }
 // -------------------------- decrease either datatype value -----------------
 
-function Zipper0<T>(a: List<T>, b: List<T>): List<T>
+ghost function Zipper0<T>(a: List<T>, b: List<T>): List<T>
 {
   match a
   case Nil => b
   case Cons(x, c) => List.Cons(x, Zipper0(b, c))  // error: cannot prove termination
 }
 
-function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
+ghost function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
   decreases if k then a else b, if k then b else a
 {
   match a
@@ -263,7 +263,7 @@ function Zipper1<T>(a: List<T>, b: List<T>, k: bool): List<T>
   case Cons(x, c) => List.Cons(x, Zipper1(b, c, !k))
 }
 
-function Zipper2<T>(a: List<T>, b: List<T>): List<T>
+ghost function Zipper2<T>(a: List<T>, b: List<T>): List<T>
   decreases /* max(a,b) */ if a < b then b else a,
             /* min(a,b) */ if a < b then a else b
 {
@@ -314,7 +314,7 @@ method WhileStar2()
 
 // -----------------
 
-function ReachBack(n: int): bool
+ghost function ReachBack(n: int): bool
   requires 0 <= n
   ensures ReachBack(n)
 {
@@ -323,7 +323,7 @@ function ReachBack(n: int): bool
   forall m {:induction false} :: 0 <= m && m < n ==> ReachBack(m)
 }
 
-function ReachBack_Alt(n: int): bool
+ghost function ReachBack_Alt(n: int): bool
   requires 0 <= n
 {
   n == 0 || ReachBack_Alt(n-1)
@@ -340,27 +340,27 @@ class DefaultDecreasesFunction {
   var data: int
   ghost var Repr: set<object?>
   var next: DefaultDecreasesFunction?
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
   {
     this in Repr && null !in Repr &&
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
-  function F(x: int): int
+  ghost function F(x: int): int
     requires Valid()
     reads this, Repr
     // the default reads clause is: decreases Repr, x
   {
     if next == null || x < 0 then x else next.F(x + data)
   }
-  function G(x: int): int
+  ghost function G(x: int): int
     requires Valid()
     reads this, Repr
     decreases x
   {
     if next == null || x < 0 then x else next.G(x + data)  // error: failure to reduce 'decreases' measure
   }
-  function H(x: int): int
+  ghost function H(x: int): int
     requires Valid() && 0 <= x
     reads this, Repr
     // the default reads clause is: decreases Repr, x
@@ -372,7 +372,7 @@ class DefaultDecreasesFunction {
     else
       H(x - 1)  // this recursive call decreases x
   }
-  function Abs(x: int): int
+  ghost function Abs(x: int): int
   {
     if x < 0 then -x else x
   }
@@ -381,13 +381,13 @@ class DefaultDecreasesFunction {
 // ----------------- multisets and maps ----------
 
 module MultisetTests {
-  function F(a: multiset<int>, n: nat): int
+  ghost function F(a: multiset<int>, n: nat): int
     decreases a, n
   {
     if n == 0 then 0 else F(a, n-1)
   }
 
-  function F'(a: multiset<int>, n: nat): int  // inferred decreases clause
+  ghost function F'(a: multiset<int>, n: nat): int  // inferred decreases clause
   {
     if n == 0 then 0 else F'(a, n-1)
   }
@@ -399,13 +399,13 @@ module MultisetTests {
 }
 
 module MapTests {
-  function F(a: map<int,int>, n: nat): int
+  ghost function F(a: map<int,int>, n: nat): int
     decreases a, n
   {
     if n == 0 then 0 else F(a, n-1)
   }
 
-  function F'(a: map<int,int>, n: nat): int  // inferred decreases clause
+  ghost function F'(a: map<int,int>, n: nat): int  // inferred decreases clause
   {
     if n == 0 then 0 else F'(a, n-1)
   }
@@ -455,7 +455,7 @@ module TerminationRefinement1 refines TerminationRefinement0 {
 
 datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
 {
-  function Elements(): set<int>
+  ghost function Elements(): set<int>
     // auto: decreases this
   {
     match this
@@ -463,7 +463,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
     case Node(x, left, right) => {x} + left.Elements() + right.Elements()
   }
 
-  function Sum(): int
+  ghost function Sum(): int
     // auto: decreases this
   {
     match this

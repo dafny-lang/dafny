@@ -1,6 +1,7 @@
+The /allocated:<n> option is deprecated
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
@@ -18,7 +19,7 @@ AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return p
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy[N1](65,14): Related location
+AutoContracts.dfy[N1](65,20): Related location
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location

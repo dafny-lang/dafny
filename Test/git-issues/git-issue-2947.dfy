@@ -30,7 +30,7 @@ least predicate G2<Y>(s: Stream<Y>) {
   s == Identity<Stream<Y>>(s)
 }
 
-function Identity<W>(w: W): W { w }
+ghost function Identity<W>(w: W): W { w }
 
 least lemma About<Z>(s: Stream<Z>)
   requires s == Nil

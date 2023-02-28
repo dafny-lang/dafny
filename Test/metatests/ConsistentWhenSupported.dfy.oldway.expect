@@ -14,7 +14,7 @@ Dafny program verifier did not attempt verification
 ConsistentWhenSupported.dfy(17,9): Error: Feature not supported for this compilation target: Iterators
 
 Dafny program verifier did not attempt verification
-ConsistentWhenSupported.dfy(17,9): Error: Feature not supported for this compilation target: Iterators
+ConsistentWhenSupported.dfy(17,0): Error: Feature not supported for this compilation target: Unicode chars
 
 Dafny program verifier did not attempt verification
 All done iterating!

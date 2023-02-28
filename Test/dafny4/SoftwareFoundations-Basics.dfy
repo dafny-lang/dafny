@@ -17,8 +17,8 @@ datatype day =
   | sunday
 
 // See method test_next_weekday() below for an explanation of why this function
-// is declared a non-ghost (by "function method").
-function method next_weekday (d:day) : day
+// is declared a non-ghost (by "function ").
+function next_weekday (d:day) : day
 {
   match d
   case monday    => tuesday
@@ -53,7 +53,7 @@ method test_next_weekday()
   // default, functions in Dafny of "ghost", which means they don't turn
   // into compiled code.  If you want to compile code for next_weekday, so
   // that you can use it in a print statement, change "function" to
-  // "function method" in the declaration of next_weekday.)  To try this
+  // "function " in the declaration of next_weekday.)  To try this
   // out:  (0) comment out (or fix!) the assert above
   // so that the program will verify, (1) fill in a body of the uninterpreted
   // function f on line 396 below (any body will do; for example, uncomment
@@ -70,21 +70,21 @@ method test_next_weekday()
 
 datatype Bool = True | False
 
-function negb (b:Bool) : Bool
+ghost function negb (b:Bool) : Bool
 {
   match b
   case True => False
   case False => True
 }
 
-function andb (b1:Bool, b2:Bool) : Bool
+ghost function andb (b1:Bool, b2:Bool) : Bool
 {
   match b1
   case True => b2
   case False => False
 }
 
-function orb (b1:Bool, b2:Bool) : Bool
+ghost function orb (b1:Bool, b2:Bool) : Bool
 {
   match b1
   case True => True
@@ -101,7 +101,7 @@ method test_orb()
 
 // Exercise: 1 star (nandb)
 
-function nandb (b1:Bool, b2:Bool) : Bool
+ghost function nandb (b1:Bool, b2:Bool) : Bool
 {
   negb(andb(b1, b2))
 }
@@ -116,7 +116,7 @@ method test_nandb()
 
 // Exercise: 1 star (andb3)
 
-function andb3 (b1:Bool, b2:Bool, b3:Bool) : Bool
+ghost function andb3 (b1:Bool, b2:Bool, b3:Bool) : Bool
 {
   andb(andb(b1, b2), b3)
 }
@@ -137,14 +137,14 @@ datatype Nat =
     O
   | S(Nat)
 
-function pred (n : Nat) : Nat
+ghost function pred (n : Nat) : Nat
 {
   match n
   case O => O
   case S(n') => n'
 }
 
-function minustwo (n : Nat) : Nat
+ghost function minustwo (n : Nat) : Nat
 {
   match n
   case O => O
@@ -156,7 +156,7 @@ function minustwo (n : Nat) : Nat
     case S(n') => n'
 }
 
-function evenb (n:Nat) : Bool
+ghost function evenb (n:Nat) : Bool
 {
   match n
   case O       => True
@@ -166,7 +166,7 @@ function evenb (n:Nat) : Bool
     case S(n') => evenb(n')
 }
 
-function oddb (n:Nat) : Bool
+ghost function oddb (n:Nat) : Bool
 {
   negb(evenb(n))
 }
@@ -177,7 +177,7 @@ method test_oddb()
   assert oddb(S(S(S(S(O))))) == False;
 }
 
-function plus (n : Nat, m : Nat) : Nat
+ghost function plus (n : Nat, m : Nat) : Nat
 {
   match n
   case O => m
@@ -189,7 +189,7 @@ method test_plus()
   assert plus(S(S(S(O))), S(S(O))) == S(S(S(S(S(O)))));
 }
 
-function mult (n: Nat, m: Nat) : Nat
+ghost function mult (n: Nat, m: Nat) : Nat
 {
   match n
   case O => O
@@ -203,7 +203,7 @@ method test_mult()
   assert mult(n3, n3) == n9;
 }
 
-function minus (n: Nat, m: Nat) : Nat
+ghost function minus (n: Nat, m: Nat) : Nat
 {
   match n
   case O => O
@@ -213,7 +213,7 @@ function minus (n: Nat, m: Nat) : Nat
     case S(m') => minus(n', m')
 }
 
-function exp (base: Nat, power: Nat) : Nat
+ghost function exp (base: Nat, power: Nat) : Nat
 {
   match power
   case O => S(O)
@@ -222,7 +222,7 @@ function exp (base: Nat, power: Nat) : Nat
 
 // Exercise: 1 star (factorial)
 
-function factorial(n: Nat): Nat
+ghost function factorial(n: Nat): Nat
 {
   match n
   case O => S(O)
@@ -293,7 +293,7 @@ lemma {:vcs_split_on_every_assert} mult_lemma(m: Nat, n: Nat)
   }
 }
 
-function beq_nat (n: Nat, m: Nat) : Bool
+ghost function beq_nat (n: Nat, m: Nat) : Bool
 {
   match n
   case O => (
@@ -307,7 +307,7 @@ function beq_nat (n: Nat, m: Nat) : Bool
          case S(m') => beq_nat(n', m')
 }
 
-function ble_nat (n: Nat, m: Nat) : Bool
+ghost function ble_nat (n: Nat, m: Nat) : Bool
 {
   match n
   case O => True
@@ -328,7 +328,7 @@ method test_ble_nat1()
 
 // Exercise: 2 stars (blt_nat)
 
-function blt_nat (n: Nat, m: Nat) : Bool
+ghost function blt_nat (n: Nat, m: Nat) : Bool
 {
   andb(ble_nat(n, m), negb(beq_nat(n, m)))
 }
@@ -417,7 +417,7 @@ lemma zero_nbeq_plus_1 (n: Nat)
 // Since Dafny currently does not allow functions as parameters, we instead declare
 // a global function f for use in the following lemmas.  Since f is given no body,
 // it will be treated as an uninterpreted function.
-function f(x: Bool): Bool
+ghost function f(x: Bool): Bool
 // Note:  If you want to compile and run the program, as suggested above in method
 // test_next_weekday, then you must supply some body for f.  Here is one way to do
 // that:
@@ -457,7 +457,7 @@ lemma andb_eq_orb (b: Bool, c: Bool)
 
 datatype bin = Zero | Twice(bin) | TwicePlusOne(bin)
 
-function increment(b: bin): bin
+ghost function increment(b: bin): bin
 {
   match b
   case Zero => TwicePlusOne(Zero)
@@ -465,7 +465,7 @@ function increment(b: bin): bin
   case TwicePlusOne(b') => Twice(increment(b'))
 }
 
-function BinToUnary(b: bin): Nat
+ghost function BinToUnary(b: bin): Nat
 {
   match b
   case Zero => O
@@ -501,7 +501,7 @@ method test_increment()
 
 // [Fixpoint]s and Structural Recursion
 
-function plus' (n : Nat, m : Nat) : Nat
+ghost function plus' (n : Nat, m : Nat) : Nat
 {
   match n
   case O => m
@@ -510,7 +510,7 @@ function plus' (n : Nat, m : Nat) : Nat
 
 // Exercise: 2 stars, optional (decreasing)
 
-function decreasingOnTwo (n: Nat, m: Nat, p: Nat) : Nat
+ghost function decreasingOnTwo (n: Nat, m: Nat, p: Nat) : Nat
 {
   match p
   case O => (

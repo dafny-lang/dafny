@@ -91,7 +91,7 @@ newtype EvenInt = x | x % 2 == 0
 newtype SmallReal = r | -4.0 <= r < 300.0
 newtype Handful = x | 0 <= x < 0x50
 
-predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+ghost predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
 {
   x == x && n == n && r == r && even == even && small == small &&
   b67 == b67 && w == w && seven == seven && bb == bb && noll == noll && h == h

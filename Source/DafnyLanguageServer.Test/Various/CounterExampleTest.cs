@@ -1027,7 +1027,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       newtype nat64 = x | 0 <= x <= NAT64_MAX
 
-      function method plus(a: nat64, b: nat64): nat64 {
+      function plus(a: nat64, b: nat64): nat64 {
         a + b
       }".TrimStart();
       var documentItem = CreateTestDocument(source);
@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         }
 
         method test(c: C?) {
-          assert c == null || c.c1 != c.c2 || c.c1 != '\u1023';
+          assert c == null || c.c1 != c.c2 || c.c1 != '\U{1023}';
         }
       }".TrimStart();
       var documentItem = CreateTestDocument(source);
