@@ -5,14 +5,15 @@
 1. Ensure that you are in a repository that:
    * is clean and up-to-date with no uncommitted changes,
    * was cloned with SSH so that you can push to it, and
-   * has the `master` branch checked out.
+   * has the intended branch checked out (usually `master`,
+     but may be another mainline branch such as `main-3.x`).
 
 1. Select a version number `$VER` (e.g., "3.0.0" or "3.0.0-alpha"). 
    The `major`.`minor`.`patch` numbers may already have been
    incremented since the last release, so they do not necessarily need
    to be updated. However, you may want to increment them further
    depending the types of changes that are in the release.
-1. Run `Scripts/prepare_release.py $VER prepare` from the root of the
+1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>` from the root of the
    repository. The script will check that the repository is in a good
    state, create and check out a new release branch, update
    `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
@@ -43,7 +44,7 @@
    on multiple platforms. Again you can watch for this workflow at
    <https://github.com/dafny-lang/dafny/actions>.
 
-1. Create a pull request to merge the newly created branch into `master` (the
+1. Create a pull request to merge the newly created branch into the source branch (the
    script will give you a link to do so).  Get it approved and merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`

@@ -213,11 +213,12 @@ class Version(NamedTuple):
 
 class Release:
     REMOTE = "origin"
-    MASTER_BRANCH = "refs/heads/master"
     NEWSFRAGMENTS_PATH = "docs/dev/news"
 
-    def __init__(self, version: str) -> None:
+    def __init__(self, version: str, source_branch: str) -> None:
         self.version = version
+        self.source_branch_name = source_branch
+        self.source_branch_path = f"refs/heads/{self.source_branch_name}"
         self.branch_name = f"release-{version}"
         self.branch_path = f"refs/heads/{self.branch_name}"
         self.tag = f"v{version}"
@@ -275,7 +276,7 @@ class Release:
         return Version.from_string(self.version)
 
     def _is_release_branch(self) -> bool:
-        return self._get_branch(check=False) in (self.MASTER_BRANCH, self.branch_path)
+        return self._get_branch(check=False) in (self.source_branch_path, self.branch_path)
 
     @staticmethod
     def _is_repo_clean() -> bool:
@@ -368,7 +369,7 @@ class Release:
                    self._version_number_is_fresh)
         assert_one(f"Do we have news in {self.NEWSFRAGMENTS_PATH}?",
                    self._has_news)
-        assert_one(f"Is the current branch `master` or `{self.branch_name}`?",
+        assert_one(f"Is the current branch `{self.source_branch_name}` or `{self.branch_name}`?",
                    self._is_release_branch)
         assert_one("Is repo clean (all changes committed)?",
                    self._is_repo_clean)
@@ -450,6 +451,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dafny release helper")
     parser.add_argument("--dry-run", help="Do not make any modifications (no file updates, no git commands).",
                         action="store_true")
+    parser.add_argument("--source-branch", help="Which branch to release", default="master")
     parser.add_argument("version", help="Version number for this release (A.B.C-xyz)")
     parser.add_argument("action", help="Which part of the release process to run",
                         choices=["prepare", "release"])
@@ -458,7 +460,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     args = parse_arguments()
     try:
-        release = (DryRunRelease if args.dry_run else Release)(args.version)
+        release = (DryRunRelease if args.dry_run else Release)(args.version, args.source_branch)
         {"prepare": release.prepare,
          "release": release.release}[args.action]()
     except CannotReleaseError:
