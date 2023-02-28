@@ -647,8 +647,30 @@ At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
 If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
-that is, the variable is _auto-initialized_.
+that is, the variable is _auto-initialized_, but to an arbitrary value.
 For example,
+<!-- %check-verify -->
+```dafny
+class Example<A(0), X> {
+  var n: nat
+  var i: int
+  var a: A
+  var x: X
+
+  constructor () {
+    assert n >= 0; // true, regardless of the value of 'n'
+    assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
+    // 'a' does not require an explicit initialization, since 'A' is auto-init
+    // error: field 'x' has not been given a value
+  }
+}
+```
+In the example above, the class fields do not need to be explicitly initialized
+in the constructor because they are auto-initialized to an arbitrary value.
+
+Local variables are out-parameters are however, subject to definite assignment
+rules. The following example requires `--relax-definite-assignment`,
+which is not the default.
 <!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
 ```dafny
 method m() {
@@ -658,13 +680,16 @@ method m() {
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
+With the default behavior of definite assignment, `n` and `i` need to be initialized
+to an explicit value of their type or to an arbitrary value using, for example,
+`var n: nat := *;`.
 
 For some types (known as _auto-init types_), the compiler can choose an
 initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 12.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
+For more details see [Section 12.6](#sec-definite-assignment) and the `--relax-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
