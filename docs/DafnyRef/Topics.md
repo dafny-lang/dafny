@@ -1044,7 +1044,7 @@ explicitly provide an initializing assignment.
 
 In a ghost context, one can an imagine a "ghost" that initializes variables. Unlike the compiler, such
 a "ghost" does not need to emit code that constructs an initializing value; it suffices for the ghost to
-know that a value exists. Therefore, in a ghost context, a variable of nonempty type can be used immediately
+know that a value exists. Therefore, in a ghost context, a variable of a nonempty type can be used immediately
 after declaration.
 
 Before a variable of a possibly empty type can be used, the program must initialize it.
