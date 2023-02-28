@@ -1,4 +1,5 @@
-// RUN: %baredafny verify %args "%s" > "%t" || true
+// RUN: ! %baredafny verify %args "%s" > "%t"
+// RUN: ! %baredafny run %args --enforce-determinism "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -14,7 +15,7 @@ method M(c: C, u: int) returns (r: int)
   var x := 3;  // fine
   var y;  // this statement by itself is nondeterministic, but by itself is not an error
   if u < 10 {
-    r := y;  // error: nondeterministic value in y
+    r := y;  // error: definite-assignment violation
   } else if u < 20 {
     y := 4;
     r := y;  // fine
@@ -34,7 +35,7 @@ method OutputParameters0(x: int) returns (s: int, t: int)
 method OutputParameters1(x: int) returns (s: int, t: int)
 {
   if x < 100 {
-    return;  // error: this may leave s and t undefined
+    return;  // error (x2): this may leave s and t undefined
   } else {
     var y := x + s;  // error: this uses s before it may be defined
   }
@@ -42,9 +43,18 @@ method OutputParameters1(x: int) returns (s: int, t: int)
 
 method DeclWithHavoc()
 {
-  var a: int := *;
-  var b: int := *;  // fine, since b is never used
-  var c := a;  // error: a is used before given a definite value
+  var a: int := *; // this counts as a definite assignment
+  var b: int;  // fine, since b is never used
+  var c := a;
+}
+
+type PossiblyEmpty = x: int | true witness *
+
+method MoreDeclWithHavoc()
+{
+  var a: PossiblyEmpty := *; // this does NOT count as a definite assignment for a possibly-empty type
+  var b: PossiblyEmpty;  // fine, since b is never used
+  var c := a; // error: a is used without being definitely assigned
 }
 
 class CK {
@@ -52,11 +62,19 @@ class CK {
   var y: int
   constructor Init() {
     x := 10;
-  }  // error: value of y left nondeterministic
+  } // definite-assignment rules allow fields to be left unassigned [error: determinism]
 }
 
 method ArrayAllocation(n: nat, p: nat, q: nat)
 {
-  var a := new int[n];  // error: the array elements will be assigned nondeterministically
-  var m := new bool[p,q];  // error: the matrix elements will be assigned nondeterministically
+  var a := new int[n]; // definite-assignment rules allow array elements to be left unassigned [error: determinism]
+  var m := new bool[p,q]; // definite-assignment rules allow array elements to be left unassigned [error: determinism]
+}
+
+class Cell {
+  var data: int
+
+  constructor () {
+    // .data is auto-initialized here
+  } // [error: determinism]
 }

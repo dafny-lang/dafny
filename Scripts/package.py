@@ -19,13 +19,9 @@ import ntpath
 
 # Configuration
 
-## Where do we fetch the list of releases from?
-## Get the latest Z3 release like this:
-## Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
-## Get a specific Z3 release like this:
-Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/Z3-4.8.5"
-## How do we extract info from the name of a Z3 release file?
-Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64|arm64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+Z3_VERSIONS = [ "4.8.5", "4.12.1" ]
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17"
+
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
 
@@ -43,10 +39,7 @@ DESTINATION_DIRECTORY = "Package"
 ## What's the root folder of the archive?
 DAFNY_PACKAGE_PREFIX = path.join("dafny")
 ## What sub-folder of the packages does z3 go into?
-Z3_PACKAGE_PREFIX = path.join("z3")
-
-## What do we take from the z3 archive? (Glob syntax)
-Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
+Z3_PACKAGE_PREFIX = path.join("z3", "bin")
 
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
@@ -63,11 +56,10 @@ CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out", "Scripts/allow_on_mac.sh" ] ) ## Other files to include in zip
 OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
-z3ToDotNetOSMapping = {
+gitHubToDotNetOSMapping = {
     "ubuntu": "linux",
-    "debian": "linux",
-    "osx": "osx",
-    "win": "win"
+    "macos": "osx",
+    "windows": "win"
 }
 
 
@@ -76,50 +68,47 @@ def flush(*args, **kwargs):
     sys.stdout.flush()
 
 class Release:
-    @staticmethod
-    def parse_zip_name(name):
-        m = Z3_RELEASE_REGEXP.match(name)
-        if not m:
-            raise Exception("{} does not match Z3_RELEASE_REGEXP".format(name))
-        return m.group('platform'), m.group('os'), m.group("directory")
 
-    def __init__(self, js, version, out):
-        self.z3_name = js["name"]
-        self.size = js["size"]
-        self.url = js["browser_download_url"]
-        self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
+    def __init__(self, os, platform, version, out):
+        self.z3_zips = [ "z3-{}-{}-bin.zip".format(z3_version, os) for z3_version in Z3_VERSIONS ]
+        self.platform, self.os = platform, os
         self.os_name = self.os.split("-")[0]
-        self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
         if out != None:
             self.dafny_name = out
-        self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
+        self.target = "{}-{}".format(gitHubToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
         self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
 
-    @property
-    def cached(self):
-        return path.exists(self.z3_zip) and path.getsize(self.z3_zip) == self.size
+    def url(self, z3_zip):
+        return "{}/{}".format(Z3_URL_BASE, z3_zip)
+
+    def local_zip(self, z3_zip):
+        return path.join(CACHE_DIRECTORY, z3_zip)
 
     @property
-    def MB(self):
-        return self.size / 1e6
+    def z3_is_cached(self):
+        for z3_zip in self.z3_zips:
+          if not path.exists(self.local_zip(z3_zip)):
+              return False
+        return True
 
-    def download(self):
-        if self.cached:
+    def download_z3(self):
+        if self.z3_is_cached:
             print("cached!")
         else:
-            flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            for currentAttempt in range(Z3_MAX_DOWNLOAD_ATTEMPTS):
-                try:
-                    with request.urlopen(self.url) as reader:
-                        with open(self.z3_zip, mode="wb") as writer:
-                            writer.write(reader.read())
-                    flush("done!")
-                    break
-                except (IncompleteRead, HTTPError):
-                    if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
-                        raise
+            flush("downloading ...")
+            for z3_zip in self.z3_zips:
+                for currentAttempt in range(Z3_MAX_DOWNLOAD_ATTEMPTS):
+                    try:
+                        with request.urlopen(self.url(z3_zip)) as reader:
+                            with open(self.local_zip(z3_zip), mode="wb") as writer:
+                                writer.write(reader.read())
+                        flush("done!")
+                        break
+                    except (IncompleteRead, HTTPError):
+                        if currentAttempt == Z3_MAX_DOWNLOAD_ATTEMPTS - 1:
+                            raise
 
 
     @staticmethod
@@ -166,6 +155,12 @@ class Release:
         self.run_publish("DafnyRuntime", "net452")
         self.run_publish("Dafny")
 
+    def fix_permissions(self, fileinfo):
+        if self.os_name != 'windows':
+            # http://stackoverflow.com/questions/434641/
+            fileinfo.external_attr = 0o100755 << 16
+            fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
+
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -173,17 +168,15 @@ class Release:
             pass
         missing = []
         with zipfile.ZipFile(self.dafny_zip, 'w',  zipfile.ZIP_DEFLATED) as archive:
-            with zipfile.ZipFile(self.z3_zip) as Z3_archive:
-                #changing directory value for osx-arm64 to copyover files from z3-4.8.5-x64-osx-10.14.2.zip
-                if self.target == "osx-arm64":
-                    self.directory = "z3-4.8.5-x64-osx-10.14.2"
-                z3_files_count = 0
-                for fileinfo in Z3_archive.infolist():
-                    fname = path.relpath(fileinfo.filename, self.directory)
-                    if any(fnmatch(fname, pattern) for pattern in Z3_INTERESTING_FILES):
+            z3_files_count = 0
+            for z3_zip in self.z3_zips:
+                with zipfile.ZipFile(self.local_zip(z3_zip)) as Z3_archive:
+                    for fileinfo in Z3_archive.infolist():
+                        fname = fileinfo.filename
                         z3_files_count += 1
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
+                        self.fix_permissions(fileinfo)
                         archive.writestr(fileinfo, contents)
             uppercaseDafny = path.join(self.buildDirectory, "Dafny")
             if os.path.exists(uppercaseDafny):
@@ -196,10 +189,7 @@ class Release:
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if self.os_name != 'win':
-                        # http://stackoverflow.com/questions/434641/
-                        fileinfo.external_attr = 0o100755 << 16
-                        fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
+                    self.fix_permissions(fileinfo)
                     contents = open(fpath, mode='rb').read()
                     fileinfo.compress_type = zipfile.ZIP_DEFLATED
                     fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
@@ -212,27 +202,6 @@ class Release:
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
-def discover(args):
-    flush("  - Getting information about latest release")
-    options = {"Authorization": "Bearer " + args.github_secret} if args.github_secret else {}
-    req = request.Request(Z3_RELEASES_URL, None, options)
-    with request.urlopen(req) as reader:
-        js = json.loads(reader.read().decode("utf-8"))
-
-        for release_js in js["assets"]:
-            release = Release(release_js, args.version, args.out)
-            # Copying assets of osx and chnaging value of "name" to include "arm64" as architecture and then add it to same list of releases. 
-            if release.os_name == "osx":
-                tmp_release_js = release_js
-                tmp_release_js.update({'name': 'z3-4.8.5-arm64-osx-11.0.zip'})
-                tmp_release = Release(tmp_release_js, args.version, args.out)
-                yield tmp_release
-            if release.platform == "x64":
-                flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
-                yield release
-            else:
-                flush("    + Rejecting {}".format(release.z3_name))
-
 def path_leaf(path):
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
@@ -240,11 +209,11 @@ def path_leaf(path):
 def pathsInDirectory(directory):
     return [path.join(directory, file) for file in os.listdir(directory)]
 
-def download(releases):
+def download_z3(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
     for release in releases:
-        flush("    + {}:".format(release.z3_name), end=' ')
-        release.download()
+        flush("    + {}-{}:".format(release.os, release.platform), end=' ')
+        release.download_z3()
 
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
@@ -314,13 +283,16 @@ def main():
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
-    flush("* Finding and downloading Z3 releases")
-    releases = list(discover(args))
+    flush("* Downloading Z3 releases")
+    releases = [ Release("macos-11",       "x64", args.version, args.out),
+                 Release("macos-11",     "arm64", args.version, args.out),
+                 Release("ubuntu-20.04",   "x64", args.version, args.out),
+                 Release("windows-2019",   "x64", args.version, args.out) ]
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     if args.platform:
         releases = list(filter(lambda release: release.platform == args.platform, releases))
-    download(releases)
+    download_z3(releases)
 
     flush("* Building and packaging Dafny")
     pack(args, releases)
