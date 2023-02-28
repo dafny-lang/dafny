@@ -1032,7 +1032,7 @@ an initializing assignment. However, for many useful programs, it would be too s
 to require an initializing assignment at the time a variable is declared.
 Instead, Dafny ensures the property through _auto-initialization_ and rules for _definite assignment_.
 
-As explained in section 5.3.1, each type in Dafny is one of the following:
+As explained in [section 5.3.1](#sec-type-characteristics), each type in Dafny is one of the following:
 
 - _auto-init type_: the type is nonempty and the compiler has some way to emit code that constructs a value
 - _nonempty type_: the type is nonempty, but the compiler does not know how perform automatic initialization
@@ -1061,6 +1061,7 @@ This is achieved in any of the following four ways:
 - If the array allocation occurs in a ghost context and the element type is a nonempty type, then nothing
   further is required by the program.
 - Otherwise, the array allocation must provide an initialization display or an initialization function.
+See [section 0.0.0](#sec-array-type) for information about array initialization.
 
 The fields of a class must have values by the end of the first phase of each constructor (that is, at
 the explicit or implicit `new;` statement in the constructor). If a class has a compiled field that is
