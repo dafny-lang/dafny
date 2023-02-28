@@ -1,3 +1,5 @@
+SnapshotableTrees.dfy(459,4): Error: A postcondition might not hold on this return path.
+SnapshotableTrees.dfy(457,17): Related location: This is the postcondition that might not hold.
 SnapshotableTrees.dfy(71,25): Error: A precondition for this call might not hold.
 SnapshotableTrees.dfy(610,15): Related location: This is the precondition that might not hold.
 
