@@ -1094,7 +1094,7 @@ declarations is not necessarily the value chosen by auto-initialization, though 
 the type is an auto-init type.
 
 In some programs (for example, in some test programs), it is desirable to avoid nondeterminism.
-For that purpose, Dafny provides a `--enforce-determinism` option. It forbids use of any program
+For that purpose, Dafny provides an `--enforce-determinism` option. It forbids use of any program
 statement that may have nondeterministic behavior and it disables auto-initialization.
 Since this mode enforces definite assignments everywhere, it forbids the use of `iterator` declarations
 and `constructor`-less `class` declarations. It is up to a user's build process to ensure that
