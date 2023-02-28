@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 CompilationErrors.dfy(71,2): Warning: note, this loop has no body (loop frame: x)
 CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i, x)
 CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
