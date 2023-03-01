@@ -199,12 +199,5 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
     }
-
-    protected async Task WithNoopSolver(Func<Task> action) {
-      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
-      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
-      await action();
-      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
-    }
   }
 }

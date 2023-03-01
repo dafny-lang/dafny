@@ -9,19 +9,21 @@ namespace Microsoft.Dafny;
 /// The source statement and the given "k" are assumed to have been resolved.
 /// </summary>
 class ExtremeLemmaBodyCloner : ExtremeCloner {
+  private DafnyOptions options;
   readonly ExtremeLemma context;
   readonly ISet<ExtremePredicate> focalPredicates;
-  public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter)
+  public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter, DafnyOptions options)
     : base(k, reporter) {
     Contract.Requires(context != null);
     Contract.Requires(k != null);
     Contract.Requires(reporter != null);
     this.context = context;
     this.focalPredicates = focalPredicates;
+    this.options = options;
   }
 
   public override Expression CloneExpr(Expression expr) {
-    if (DafnyOptions.O.RewriteFocalPredicates) {
+    if (options.RewriteFocalPredicates) {
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
 #if DEBUG_PRINT

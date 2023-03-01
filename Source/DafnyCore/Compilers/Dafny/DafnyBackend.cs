@@ -20,7 +20,7 @@ public class DafnyBackend : ExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   protected override SinglePassCompiler CreateCompiler() {
-    return new DafnyCompiler(Reporter);
+    return new DafnyCompiler(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
@@ -53,7 +53,7 @@ public class DafnyBackend : ExecutableBackend {
     where = System.IO.Path.GetDirectoryName(where);
     var dafny = where + "/Dafny.dll";
 
-    var opt = DafnyOptions.O;
+    var opt = Options;
     var psi = PrepareProcessStartInfo("dotnet", opt.MainArgs
       .Prepend("/compileTarget:cs")
       .Prepend("/compile:4")
@@ -100,5 +100,9 @@ public class DafnyBackend : ExecutableBackend {
 
     return true;
 
+  }
+
+  public DafnyBackend(DafnyOptions options) : base(options)
+  {
   }
 }

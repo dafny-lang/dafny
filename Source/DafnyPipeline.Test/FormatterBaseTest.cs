@@ -53,7 +53,7 @@ namespace DafnyPipeline.Test {
 
         ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         if (reporter.ErrorCount > 0) {
@@ -76,7 +76,7 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns();
+        builtIns = new BuiltIns(options);
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
         dafnyProgram = new Program("programName", module, builtIns, reporter, options);
         Assert.Equal(0, reporter.ErrorCount);

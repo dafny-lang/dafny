@@ -175,7 +175,7 @@ namespace Microsoft.Dafny.Triggers {
         bool rewritten = false;
         foreach (var q in quantifiers) {
           if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
-            var matchingLoopRewriter = new MatchingLoopRewriter();
+            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options);
             var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
             splits.Add(qq);
             l.Add(new QuantifierWithTriggers(qq));
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny.Triggers {
       return expr;
     }
 
-    private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
+    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
@@ -316,7 +316,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
+        var WARN_TAG = options.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
@@ -359,9 +359,9 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal void CommitTriggers() {
+    internal void CommitTriggers(DafnyOptions options) {
       foreach (var q in quantifiers) {
-        CommitOne(q, quantifiers.Count > 1);
+        CommitOne(options, q, quantifiers.Count > 1);
       }
     }
   }

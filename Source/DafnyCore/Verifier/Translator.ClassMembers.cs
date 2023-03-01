@@ -359,12 +359,12 @@ namespace Microsoft.Dafny {
       Bpl.Expr is_hf, isalloc_hf = null;
       if (is_array) {
         is_hf = MkIs(oDotF, tyexprs[0], true);
-        if (CommonHeapUse || NonGhostsUseHeap) {
+        if (options.CommonHeapUse || options.NonGhostsUseHeap) {
           isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
         }
       } else {
         is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
-        if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
+        if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
           isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
         }
       }
@@ -443,7 +443,7 @@ namespace Microsoft.Dafny {
       var isAxiom = new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
-      if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
+      if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
         Boogie.Expr h;
         var hVar = BplBoundVar("$h", predef.HeapType, out h);
         bvsAllocationAxiom.Add(hVar);
@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
         AddFuelZeroSynonymAxiom(f);
       }
       // add frame axiom
-      if (AlwaysUseHeap || f.ReadsHeap) {
+      if (options.AlwaysUseHeap || f.ReadsHeap) {
         AddFrameAxiom(f);
       }
       // add consequence axiom
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
+      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok);
       InitializeFuelConstant(m.tok, builder, etran);
@@ -626,8 +626,8 @@ namespace Microsoft.Dafny {
           };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this);
-          var exporter = new BoogieStmtListBuilder(this);
+          var definedness = new BoogieStmtListBuilder(this, options);
+          var exporter = new BoogieStmtListBuilder(this, options);
           TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
@@ -744,7 +744,7 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      var builder = new BoogieStmtListBuilder(this);
+      var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, m.tok);
       var localVariables = new List<Variable>();
 
@@ -906,7 +906,7 @@ namespace Microsoft.Dafny {
 
       //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
+      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
       List<Variable> localVariables = new List<Variable>();
 
       // assume traitTypeParameter == G(overrideTypeParameters);
@@ -1013,7 +1013,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Ensures(Contract.Result<Boogie.Axiom>() != null);
 
-      bool readsHeap = AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap;
+      bool readsHeap = options.AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap;
 
       ExpressionTranslator etran;
       Boogie.BoundVariable bvPrevHeap = null;
@@ -1063,13 +1063,13 @@ namespace Microsoft.Dafny {
         argsJF.Add(etran.Old.HeapExpr);
         moreArgsCF.Add(etran.Old.HeapExpr);
       }
-      if (AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap) {
+      if (options.AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap) {
         var heap = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
         forallFormals.Add(heap);
-        if (AlwaysUseHeap || f.ReadsHeap) {
+        if (options.AlwaysUseHeap || f.ReadsHeap) {
           argsJF.Add(new Boogie.IdentifierExpr(f.tok, heap));
         }
-        if (AlwaysUseHeap || overridingFunction.ReadsHeap) {
+        if (options.AlwaysUseHeap || overridingFunction.ReadsHeap) {
           moreArgsCF.Add(new Boogie.IdentifierExpr(overridingFunction.tok, heap));
         }
       }
@@ -1512,7 +1512,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(VisibleInScope(m));
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
-        var printer = new Printer(writer);
+        var printer = new Printer(writer, options);
         printer.PrintAttributes(m.Attributes);
         printer.PrintFormals(m.Ins, m);
         if (m.Outs.Any()) {

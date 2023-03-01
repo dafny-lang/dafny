@@ -78,13 +78,13 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
 
       var toReplace = "O:model_compress=false";
-      var i = DafnyOptions.O.ProverOptions.IndexOf(toReplace);
+      var i = options.ProverOptions.IndexOf(toReplace);
       if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", DafnyOptions.O.ProverOptions)));
+        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", options.ProverOptions)));
         return;
       }
 
-      DafnyOptions.O.ProverOptions[i] = "O:model.compact=false";
+      options.ProverOptions[i] = "O:model.compact=false";
     }
 
     /// <summary>

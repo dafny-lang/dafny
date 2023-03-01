@@ -21,7 +21,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
@@ -70,16 +70,16 @@ namespace DafnyTestGeneration {
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      DafnyOptions.O.PrintInstrumented = true;
+      var oldPrintInstrumented = options.PrintInstrumented;
+      options.PrintInstrumented = true;
       var boogiePrograms = Translator
         .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      options.PrintInstrumented = oldPrintInstrumented;
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
-        DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
+        options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
           : new BlockBasedModifier();
       return programModifier.GetModifications(boogiePrograms, dafnyInfo);
@@ -91,7 +91,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
@@ -117,7 +117,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);

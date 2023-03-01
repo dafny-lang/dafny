@@ -5,12 +5,14 @@ using static Microsoft.Dafny.ErrorDetail;
 namespace Microsoft.Dafny;
 
 public class InductionRewriter : IRewriter {
-  internal InductionRewriter(ErrorReporter reporter) : base(reporter) {
+  private DafnyOptions options;
+  internal InductionRewriter(ErrorReporter reporter, DafnyOptions options) : base(reporter) {
     Contract.Requires(reporter != null);
+    this.options = options;
   }
 
   internal override void PostDecreasesResolve(ModuleDefinition m) {
-    if (DafnyOptions.O.Induction == 0) {
+    if (options.Induction == 0) {
       // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
     } else {
       foreach (var decl in m.TopLevelDecls) {
@@ -87,18 +89,18 @@ public class InductionRewriter : IRewriter {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(searchExprs != null);
-    Contract.Requires(DafnyOptions.O.Induction != 0);
+    Contract.Requires(options.Induction != 0);
 
     var args = Attributes.FindExpressions(attributes,
       "induction"); // we only look at the first one we find, since it overrides any other ones
     if (args == null) {
-      if (DafnyOptions.O.Induction < 2) {
+      if (options.Induction < 2) {
         // No explicit induction variables and we're asked not to infer anything, so we're done
         return;
-      } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
+      } else if (options.Induction == 2 && lemma != null) {
         // We're asked to infer induction variables only for quantifiers, not for lemmas
         return;
-      } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+      } else if (options.Induction == 4 && lemma == null) {
         // We're asked to infer induction variables only for lemmas, not for quantifiers
         return;
       }
@@ -171,7 +173,7 @@ public class InductionRewriter : IRewriter {
 
     foreach (IVariable n in boundVars) {
       if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null ||
-            searchExprs.Exists(expr => InductionHeuristic.VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+            searchExprs.Exists(expr => InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, expr, n)))) {
         inductionVariables.Add(new IdentifierExpr(n.Tok, n));
       }
     }

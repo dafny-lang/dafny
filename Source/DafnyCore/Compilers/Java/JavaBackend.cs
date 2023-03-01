@@ -32,7 +32,7 @@ public class JavaBackend : ExecutableBackend {
   }
 
   protected override SinglePassCompiler CreateCompiler() {
-    return new JavaCompiler(Reporter);
+    return new JavaCompiler(Options, Reporter);
   }
 
   private void EmitRuntimeJar(string targetDirectory) {
@@ -64,7 +64,7 @@ public class JavaBackend : ExecutableBackend {
     }
 
     var targetDirectory = Path.GetDirectoryName(targetFilename);
-    if (!DafnyOptions.O.UseRuntimeLib) {
+    if (!Options.UseRuntimeLib) {
       EmitRuntimeJar(targetDirectory);
     }
 
@@ -81,7 +81,7 @@ public class JavaBackend : ExecutableBackend {
       return false;
     }
 
-    if (!DafnyOptions.O.UseRuntimeLib) {
+    if (!Options.UseRuntimeLib) {
       // If the built-in runtime library is used, unpack it so it can be repacked into the final jar
       var libUnpackProcess = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
       libUnpackProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
@@ -106,15 +106,15 @@ public class JavaBackend : ExecutableBackend {
 
     // Keep the build artifacts if --spill-translation is true
     // But keep them for legacy CLI so as not to break old behavior
-    if (DafnyOptions.O.UsingNewCli) {
-      if (DafnyOptions.O.SpillTargetCode == 0) {
+    if (Options.UsingNewCli) {
+      if (Options.SpillTargetCode == 0) {
         Directory.Delete(targetDirectory, true);
       } else {
         classFiles.ForEach(f => File.Delete(f));
       }
     }
 
-    if (DafnyOptions.O.CompileVerbose) {
+    if (Options.CompileVerbose) {
       // For the sake of tests, just write out the filename and not the directory path
       var fileKind = callToMain != null ? "executable" : "library";
       outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
@@ -139,7 +139,7 @@ public class JavaBackend : ExecutableBackend {
     string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar"); // Must match that in CompileTargetProgram
     var psi = PrepareProcessStartInfo("java",
       new List<string> { "-Dfile.encoding=UTF-8", "-jar", jarPath }
-        .Concat(DafnyOptions.O.MainArgs));
+        .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
     return 0 == RunProcess(psi, outputWriter);
@@ -156,7 +156,7 @@ public class JavaBackend : ExecutableBackend {
     }
   }
 
-  static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var pkgName = FindPackageName(externFilename);
     if (pkgName == null) {
@@ -171,7 +171,7 @@ public class JavaBackend : ExecutableBackend {
     Directory.CreateDirectory(tgtDir);
     FileInfo file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
-    if (DafnyOptions.O.CompileVerbose) {
+    if (Options.CompileVerbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;
@@ -189,4 +189,8 @@ public class JavaBackend : ExecutableBackend {
   }
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
+
+  public JavaBackend(DafnyOptions options) : base(options)
+  {
+  }
 }

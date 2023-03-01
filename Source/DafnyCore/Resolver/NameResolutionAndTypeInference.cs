@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
 
     [System.Diagnostics.Conditional("TI_DEBUG_PRINT")]
     void PrintTypeConstraintState(int lbl) {
-      if (!DafnyOptions.O.TypeInferenceDebug) {
+      if (!Options.TypeInferenceDebug) {
         return;
       }
       Console.WriteLine("DEBUG: ---------- type constraints ---------- {0} {1}", lbl, lbl == 0 && currentMethod != null ? currentMethod.Name : "");
@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
-            if (2 <= DafnyOptions.O.Allocated &&
+            if (2 <= Options.Allocated &&
               ((resolutionContext.CodeContext is Function && !resolutionContext.InOld) || resolutionContext.CodeContext is ConstantField || CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl)) {
               var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
@@ -1222,14 +1222,14 @@ namespace Microsoft.Dafny {
 
       var proxy = a.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(b, proxy, 1, new HashSet<TypeProxy>())) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
         }
         proxy.T = b;
       }
       proxy = b.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(a, proxy, 1, new HashSet<TypeProxy>())) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
         }
         proxy.T = a;
@@ -1448,7 +1448,7 @@ namespace Microsoft.Dafny {
             // unless...
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
-              if (DafnyOptions.O.TypeInferenceDebug) {
+              if (Options.TypeInferenceDebug) {
                 Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
@@ -1456,7 +1456,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
-            if (DafnyOptions.O.TypeInferenceDebug) {
+            if (Options.TypeInferenceDebug) {
               Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
             }
             t = Type.Int;
@@ -1469,7 +1469,7 @@ namespace Microsoft.Dafny {
             // unless...
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
-              if (DafnyOptions.O.TypeInferenceDebug) {
+              if (Options.TypeInferenceDebug) {
                 Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
@@ -1477,7 +1477,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular real variety now
-            if (DafnyOptions.O.TypeInferenceDebug) {
+            if (Options.TypeInferenceDebug) {
               Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
             }
             t = Type.Real;
@@ -1487,7 +1487,7 @@ namespace Microsoft.Dafny {
         }
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
-      if (DafnyOptions.O.TypeInferenceDebug) {
+      if (Options.TypeInferenceDebug) {
         Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
@@ -2264,15 +2264,15 @@ namespace Microsoft.Dafny {
       /// is a collection type, then returns the element/domain type of that collection.
       /// Otherwise, returns null.
       /// </summary>
-      static Type FindCollectionType(Type t, bool towardsSub, ISet<TypeProxy> visited) {
+      Type FindCollectionType(Type t, bool towardsSub, ISet<TypeProxy> visited) {
         Contract.Requires(t != null);
         Contract.Requires(visited != null);
         t = t.NormalizeExpand();
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
         }
         if (t is CollectionType) {
-          if (DafnyOptions.O.TypeInferenceDebug) {
+          if (Options.TypeInferenceDebug) {
             Console.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
           }
           return ((CollectionType)t).Arg;
@@ -2531,7 +2531,7 @@ namespace Microsoft.Dafny {
                   continue;
                 } else if (super is TypeProxy && sub is TypeProxy) {
                   var proxy = (TypeProxy)super;
-                  if (DafnyOptions.O.TypeInferenceDebug) {
+                  if (Options.TypeInferenceDebug) {
                     Console.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
                   }
                   proxy.T = sub;
@@ -2728,7 +2728,7 @@ namespace Microsoft.Dafny {
     private bool ProcessAssignable(TypeProxy lhs, List<Type> rhss) {
       Contract.Requires(lhs != null && lhs.T == null);
       Contract.Requires(rhss != null);
-      if (DafnyOptions.O.TypeInferenceDebug) {
+      if (Options.TypeInferenceDebug) {
         Console.Write("DEBUG: ProcessAssignable: {0} with rhss:", lhs);
         foreach (var rhs in rhss) {
           Console.Write(" {0}", rhs);
@@ -2754,7 +2754,7 @@ namespace Microsoft.Dafny {
         // would cause a cycle, so don't do it
         return false;
       } else {
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
         }
         lhs.T = join;
@@ -3034,7 +3034,7 @@ namespace Microsoft.Dafny {
           } else {
             CloseOverAssignableRhss(proxySubs);
             if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
-              if (DafnyOptions.O.TypeInferenceDebug) {
+              if (Options.TypeInferenceDebug) {
                 Console.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
               }
               AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
@@ -3364,10 +3364,10 @@ namespace Microsoft.Dafny {
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
       // make note of the warnShadowing attribute
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowingOption = Options.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = false;
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
-        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+        Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
 
       scope.PushMarker();
@@ -3441,7 +3441,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+      Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
 
     void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
@@ -3494,10 +3494,10 @@ namespace Microsoft.Dafny {
         currentMethod = m;
 
         // make note of the warnShadowing attribute
-        bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+        bool warnShadowingOption = Options.WarnShadowing;  // save the original warnShadowing value
         bool warnShadowing = false;
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
-          DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+          Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
         }
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
@@ -3590,7 +3590,7 @@ namespace Microsoft.Dafny {
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
         ResolveAttributes(m, new ResolutionContext(m, m is TwoStateLemma), true);
 
-        DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+        Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
         scope.PopMarker();  // for the out-parameters and outermost-level locals
         scope.PopMarker();  // for the in-parameters
 
@@ -4386,7 +4386,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
           var prevLblStmts = enclosingStatementLabels;
           var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>();
+          enclosingStatementLabels = new Scope<Statement>(Options);
           loopStack = new List<Statement>();
           ResolveStatement(assertStmt.Proof, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
@@ -4736,7 +4736,7 @@ namespace Microsoft.Dafny {
         if (s is WhileStmt whileS && whileS.Guard != null) {
           ResolveExpression(whileS.Guard, resolutionContext);
           Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          FreeVariablesUtil.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(Options, whileS.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else if (s is ForLoopStmt forS) {
           var loopIndex = forS.LoopIndex;
@@ -4747,11 +4747,11 @@ namespace Microsoft.Dafny {
           fvs.Add(loopIndex);
 
           ResolveExpression(forS.Start, resolutionContext);
-          FreeVariablesUtil.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(Options, forS.Start, fvs, ref usesHeap);
           AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.End != null) {
             ResolveExpression(forS.End, resolutionContext);
-            FreeVariablesUtil.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
+            FreeVariablesUtil.ComputeFreeVariables(Options, forS.End, fvs, ref usesHeap);
             AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
             if (forS.Decreases.Expressions.Count != 0) {
               reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
@@ -4829,7 +4829,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
           var prevLblStmts = enclosingStatementLabels;
           var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>();
+          enclosingStatementLabels = new Scope<Statement>(Options);
           loopStack = new List<Statement>();
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
@@ -4961,7 +4961,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = enclosingStatementLabels;
           var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>();
+          enclosingStatementLabels = new Scope<Statement>(Options);
           loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {
@@ -5012,7 +5012,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(inv.E, resolutionContext);
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
         if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(inv.E, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(Options, inv.E, fvs, ref usesHeap);
         }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
@@ -5024,7 +5024,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
         if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(e, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(Options, e, fvs, ref usesHeap);
         }
         // any type is fine
       }
@@ -5562,14 +5562,14 @@ namespace Microsoft.Dafny {
             // One more try
             var r = GetBaseTypeFromProxy((TypeProxy)t, new Dictionary<TypeProxy, Type>());
             if (r != null) {
-              if (DafnyOptions.O.TypeInferenceDebug) {
+              if (Options.TypeInferenceDebug) {
                 Console.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
               }
               return r;
             }
           }
 
-          if (DafnyOptions.O.TypeInferenceDebug) {
+          if (Options.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
           return t;
@@ -5582,7 +5582,7 @@ namespace Microsoft.Dafny {
       if (proxy == null) {
         return t;  // simplification did the trick
       }
-      if (DafnyOptions.O.TypeInferenceDebug) {
+      if (Options.TypeInferenceDebug) {
         Console.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
@@ -5594,14 +5594,14 @@ namespace Microsoft.Dafny {
       if (JoinOfAllSubtypes(proxy, ref joinType, new HashSet<TypeProxy>()) && joinType != null) {
         DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
-          if (DafnyOptions.O.TypeInferenceDebug) {
+          if (Options.TypeInferenceDebug) {
             Console.WriteLine("  ----> join is a datatype: {0}", joinType);
           }
           ConstrainSubtypeRelation(t, joinType, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, joinType);
           return joinType;
         } else if (headIsRoot) {
           // we're good to go -- by picking "join" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
-          if (DafnyOptions.O.TypeInferenceDebug) {
+          if (Options.TypeInferenceDebug) {
             Console.WriteLine("  ----> improved to {0} through join", joinType);
           }
           AssignProxyAndHandleItsConstraints(proxy, joinType, true);
@@ -5610,7 +5610,7 @@ namespace Microsoft.Dafny {
           var generalArrowType = joinType.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
           if (generalArrowType != null) {
             // pick the supertype "generalArrowType" of "join"
-            if (DafnyOptions.O.TypeInferenceDebug) {
+            if (Options.TypeInferenceDebug) {
               Console.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
             }
             ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
@@ -5629,7 +5629,7 @@ namespace Microsoft.Dafny {
                 if (plausibleMembers.Count == 1) {
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
-                    if (DafnyOptions.O.TypeInferenceDebug) {
+                    if (Options.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through member-selection join", joinType);
                     }
                     var joinRoot = joinType.NormalizeExpand();  // blow passed any constraints
@@ -5652,7 +5652,7 @@ namespace Microsoft.Dafny {
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.Subst(joinMapping));
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
-                    if (DafnyOptions.O.TypeInferenceDebug) {
+                    if (Options.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
                     }
                     ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
@@ -5663,7 +5663,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because join does not determine type enough");
         }
       }
@@ -5678,12 +5678,12 @@ namespace Microsoft.Dafny {
         if (meet is TypeProxy) {
           if (proxy == meet.Normalize()) {
             // can this really ever happen?
-            if (DafnyOptions.O.TypeInferenceDebug) {
+            if (Options.TypeInferenceDebug) {
               Console.WriteLine("  ----> found no improvement (other than the proxy itself)");
             }
             return t;
           } else {
-            if (DafnyOptions.O.TypeInferenceDebug) {
+            if (Options.TypeInferenceDebug) {
               Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
             Contract.Assert(proxy != meet);
@@ -5693,7 +5693,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (!(meet is ArtificialType)) {
-          if (DafnyOptions.O.TypeInferenceDebug) {
+          if (Options.TypeInferenceDebug) {
             Console.WriteLine("  ----> improved to {0} through meet", meet);
           }
           if (memberName != null) {
@@ -5708,14 +5708,14 @@ namespace Microsoft.Dafny {
       // as a last resort, act on any artificial type nearby the proxy
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
       if (artificialSuper != null) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
+        if (Options.TypeInferenceDebug) {
           Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
         }
         return artificialSuper;
       }
 
       // we weren't able to do it
-      if (DafnyOptions.O.TypeInferenceDebug) {
+      if (Options.TypeInferenceDebug) {
         Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
       }
       return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
@@ -5811,7 +5811,7 @@ namespace Microsoft.Dafny {
       if (proxy == null || proxies.Contains(proxy)) {
         return;
       }
-      if (DafnyOptions.O.TypeInferenceDebug) {
+      if (Options.TypeInferenceDebug) {
         Console.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
       }
       proxies.Add(proxy);
@@ -6900,7 +6900,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = DafnyOptions.O.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
+                var tok = Options.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
                 var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {

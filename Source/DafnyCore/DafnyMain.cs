@@ -10,8 +10,6 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Reactive.Disposables;
-using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
@@ -169,7 +167,7 @@ namespace Microsoft.Dafny {
       }
 
       var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
-      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgram(program, afterResolver);
     }
 
@@ -177,7 +175,7 @@ namespace Microsoft.Dafny {
     /// Returns null on success, or an error string otherwise.
     /// </summary>
     public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
-    //modifies Bpl.DafnyOptions.O.XmlSink.*;
+    //modifies Bpl.options.XmlSink.*;
     {
       string err = Parse(files, programName, reporter, out program);
       if (err != null) {
@@ -192,14 +190,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(files != null);
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      BuiltIns builtIns = new BuiltIns();
+      BuiltIns builtIns = new BuiltIns(reporter.Options);
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (DafnyOptions.O.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
-          DafnyOptions.O.XmlSink.WriteFileFragment(dafnyFile.FilePath);
+        if (reporter.Options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
+          reporter.Options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (DafnyOptions.O.Trace) {
+        if (reporter.Options.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -210,32 +208,32 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
+      if (!(reporter.Options.DisallowIncludes || reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
         string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
       }
 
-      if (DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
+      if (reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
         dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
         dmap.PrintMap();
       }
 
-      program = new Program(programName, module, builtIns, reporter, DafnyOptions.O);
+      program = new Program(programName, module, builtIns, reporter, reporter.Options);
 
-      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintFile, false);
+      MaybePrintProgram(program, reporter.Options.DafnyPrintFile, false);
 
       return null; // success
     }
 
     public static string Resolve(Program program, ErrorReporter reporter) {
-      if (DafnyOptions.O.NoResolve || DafnyOptions.O.NoTypecheck) { return null; }
+      if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
 
-      Dafny.Resolver r = new Dafny.Resolver(program);
+      var r = new Resolver(program);
       r.ResolveProgram(program);
-      MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile, true);
+      MaybePrintProgram(program, reporter.Options.DafnyPrintResolvedFile, true);
 
       if (reporter.ErrorCountUntilResolver != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
@@ -272,7 +270,7 @@ namespace Microsoft.Dafny {
         return compiledResult;
       }
 
-      if (DafnyOptions.O.PrintIncludesMode != DafnyOptions.IncludesModes.None) {
+      if (builtIns.Options.PrintIncludesMode != DafnyOptions.IncludesModes.None) {
         var dependencyMap = new DependencyMap();
         dependencyMap.AddIncludes(allIncludes);
         dependencyMap.PrintMap();
@@ -318,7 +316,7 @@ namespace Microsoft.Dafny {
     }
 
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
-      var fn = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
+      var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
         int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
@@ -333,6 +331,7 @@ namespace Microsoft.Dafny {
     }
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
+      DafnyOptions options,
       TextWriter output,
       ExecutionEngine engine,
       string baseFile,
@@ -347,15 +346,15 @@ contain `bin/z3-{DafnyOptions.DefaultZ3Version}` or `bin/z3-{DafnyOptions.Defaul
 to also include a directory containing the `z3` executable.
 ";
 
-      var proverPath = DafnyOptions.O.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
-      if (proverPath is null && DafnyOptions.O.Verify) {
+      var proverPath = options.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
+      if (proverPath is null && options.Verify) {
         Console.WriteLine(z3NotFoundMessage);
         return (PipelineOutcome.FatalError, new PipelineStatistics());
       }
 
       string bplFilename;
-      if (DafnyOptions.O.PrintFile != null) {
-        bplFilename = DafnyOptions.O.PrintFile;
+      if (options.PrintFile != null) {
+        bplFilename = options.PrintFile;
       } else {
         string baseName = cce.NonNull(Path.GetFileName(baseFile));
         baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
@@ -363,8 +362,9 @@ to also include a directory containing the `z3` executable.
       }
 
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
-      var (outcome, stats) = await BoogiePipelineWithRerun(output, engine, boogieProgram, bplFilename,
-        1 < DafnyOptions.O.VerifySnapshots ? moduleId : null);
+      var (outcome, stats) = await BoogiePipelineWithRerun(options, 
+        output, engine, boogieProgram, bplFilename,
+        1 < options.VerifySnapshots ? moduleId : null);
       return (outcome, stats);
     }
 
@@ -393,6 +393,7 @@ to also include a directory containing the `z3` executable.
     /// their error code.
     /// </summary>
     private static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogiePipelineWithRerun(
+      DafnyOptions options,
       TextWriter output, ExecutionEngine engine, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
         string programId) {
       Contract.Requires(program != null);
@@ -406,7 +407,7 @@ to also include a directory containing the `z3` executable.
 
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
-          engine.PrintBplFile(bplFileName, program, false, false, DafnyOptions.O.PrettyPrint);
+          engine.PrintBplFile(bplFileName, program, false, false, options.PrettyPrint);
           Console.WriteLine();
           Console.WriteLine(
             "*** Encountered internal translation error - re-running Boogie to get better debug information");

@@ -8,9 +8,11 @@ namespace Microsoft.Dafny;
 /// where Y = X*default-time-limit or Y = X*command-line-time-limit
 /// </summary>
 public class TimeLimitRewriter : IRewriter {
-  public TimeLimitRewriter(ErrorReporter reporter)
+  private DafnyOptions options;
+  public TimeLimitRewriter(ErrorReporter reporter, DafnyOptions options)
     : base(reporter) {
     Contract.Requires(reporter != null);
+    this.options = options;
   }
 
   internal override void PreResolve(ModuleDefinition m) {
@@ -29,13 +31,13 @@ public class TimeLimitRewriter : IRewriter {
                     if (value.Sign > 0) {
                       uint current_limit = 0;
                       string name = "";
-                      if (DafnyOptions.O.ResourceLimit > 0) {
+                      if (options.ResourceLimit > 0) {
                         // Interpret this as multiplying the resource limit
-                        current_limit = DafnyOptions.O.ResourceLimit;
+                        current_limit = options.ResourceLimit;
                         name = "rlimit";
                       } else {
                         // Interpret this as multiplying the time limit
-                        current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
+                        current_limit = options.TimeLimit > 0 ? options.TimeLimit : 10;  // Default to 10 seconds
                         name = "timeLimit";
                       }
                       Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);

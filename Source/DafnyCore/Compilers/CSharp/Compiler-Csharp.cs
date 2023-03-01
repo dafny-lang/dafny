@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.TuplesWiderThan20
     };
 
-    public CsharpCompiler(ErrorReporter reporter) : base(reporter) {
+    public CsharpCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
     }
 
     const string DafnyISet = "Dafny.ISet";
@@ -104,10 +104,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var stringWriter = new StringWriter();
       stringWriter.NewLine = Environment.NewLine;
-      var oldValue = DafnyOptions.O.ShowEnv;
-      DafnyOptions.O.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
-      new Printer(stringWriter, PrintModes.DllEmbed).PrintProgram(program, true);
-      DafnyOptions.O.ShowEnv = oldValue;
+      var oldValue = Options.ShowEnv;
+      Options.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
+      new Printer(stringWriter, Options, PrintModes.DllEmbed).PrintProgram(program, true);
+      Options.ShowEnv = oldValue;
       var programString = stringWriter.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
       wr.WriteLine($"[assembly: DafnyAssembly.DafnySourceAttribute(@\"{programString}\")]");
@@ -476,7 +476,7 @@ namespace Microsoft.Dafny.Compilers {
       var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
       var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(dt.tok, dt));
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.tok, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       // ContreteSyntaxTree for the interface
@@ -508,7 +508,7 @@ namespace Microsoft.Dafny.Compilers {
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
         wDefault.Write(ForcePlaceboValue(simplifiedType, wDefault, dt.tok));
-      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+      } else if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
         wDefault.Write(DefaultValue(innerType, wDefault, dt.tok));
       } else {
         if (dt is CoDatatypeDecl) {
@@ -618,7 +618,7 @@ namespace Microsoft.Dafny.Compilers {
         tp => tp,
         tp => (Type)new UserDefinedType(tp.tok, new TypeParameter(tp.RangeToken, tp.NameNode.Prepend("_"), tp.VarianceSyntax)));
 
-      var resultType = DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(datatype, out var innerType)
+      var resultType = DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, datatype, out var innerType)
         ? TypeName(innerType.Subst(typeSubstMap), wr, datatype.tok)
         : "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
@@ -640,7 +640,7 @@ namespace Microsoft.Dafny.Compilers {
       if (!(toInterface && customReceiver)) {
         string receiver;
         if (customReceiver) {
-          var simplifiedType = DatatypeWrapperEraser.SimplifyType(UserDefinedType.FromTopLevelDecl(datatype.tok, datatype));
+          var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(datatype.tok, datatype));
           receiver = $"{TypeName(simplifiedType, wr, datatype.tok)} _this";
         } else {
           receiver = "";
@@ -953,7 +953,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
             var nm = FieldName(arg, i);
-            w.Write(IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(arg.Type))
+            w.Write(IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, arg.Type))
               ? $" && this.{nm} == oth.{nm}"
               : $" && object.Equals(this.{nm}, oth.{nm})");
 
@@ -1364,7 +1364,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
 
       var dllimportsArgs = Attributes.FindExpressions(decl.Attributes, "dllimport");
-      if (!DafnyOptions.O.DisallowExterns && dllimportsArgs != null) {
+      if (!Options.DisallowExterns && dllimportsArgs != null) {
         StringLiteralExpr libName = null;
         StringLiteralExpr entryPoint = null;
         if (dllimportsArgs.Count == 2) {
@@ -1411,7 +1411,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
-      var xType = DatatypeWrapperEraser.SimplifyType(type);
+      var xType = DatatypeWrapperEraser.SimplifyType(Options, type);
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
@@ -1469,9 +1469,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // To improve readability
-    private static bool CharIsRune => UnicodeCharEnabled;
-    private static string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
-    private static string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
+    private bool CharIsRune => UnicodeCharEnabled;
+    private string CharTypeName => UnicodeCharEnabled ? "Dafny.Rune" : "char";
+    private string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (e.Type.IsCharType && UnicodeCharEnabled) {
@@ -1643,7 +1643,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      type = DatatypeWrapperEraser.SimplifyType(type, true);
+      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       if (type is BoolType) {
         return "Dafny.Helpers.BOOL";
       } else if (type is CharType) {
@@ -2081,7 +2081,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
         if (UnicodeCharEnabled) {
-          var codePoint = Util.UnescapedCharacters(v, false).Single();
+          var codePoint = Util.UnescapedCharacters(Options, v, false).Single();
           if (codePoint > char.MaxValue) {
             // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
             // For such values we construct the Rune value directly from the unescaped codepoint.
@@ -2474,7 +2474,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(member);
+      var memberStatus = DatatypeWrapperEraser.GetMemberStatus(Options, member);
       if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.Identity) {
         return SimpleLvalue(obj);
       } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
@@ -2750,7 +2750,7 @@ namespace Microsoft.Dafny.Compilers {
 
     bool DowncastCloneNeedsCustomReceiver(DatatypeDecl dt) {
       return SelectNonGhost(dt, dt.TypeArgs).Any(ty => ty.Variance == TypeParameter.TPVariance.Contra) ||
-             DatatypeWrapperEraser.IsErasableDatatypeWrapper(dt, out _);
+             DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _);
     }
 
     string DowncastConverter(Type from, Type to, ConcreteSyntaxTree errorWr, IToken tok) {
@@ -2782,7 +2782,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(ctor.EnclosingDatatype, out var coreDtor)) {
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
         wr.Write(source);
@@ -2883,7 +2883,7 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
             } else if (eqType.IsRefType) {
@@ -2899,7 +2899,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
             } else if (eqType.IsRefType) {
@@ -3230,7 +3230,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void AddTestCheckerIfNeeded(string name, Declaration decl, ConcreteSyntaxTree wr) {
-      if (DafnyOptions.O.Compile || DafnyOptions.O.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
+      if (Options.Compile || Options.RunAllTests || !Attributes.Contains(decl.Attributes, "test")) {
         return;
       }
 

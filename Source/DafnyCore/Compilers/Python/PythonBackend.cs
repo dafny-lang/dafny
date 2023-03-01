@@ -25,7 +25,7 @@ public class PythonBackend : ExecutableBackend {
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
   protected override SinglePassCompiler CreateCompiler() {
-    return new PythonCompiler(Reporter);
+    return new PythonCompiler(Options, Reporter);
   }
 
   private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
@@ -43,7 +43,7 @@ public class PythonBackend : ExecutableBackend {
     return externFilename.EndsWith(".py") ? externFilename[..^3] : null;
   }
 
-  static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var moduleName = FindModuleName(externFilename);
     if (moduleName == null) {
@@ -55,7 +55,7 @@ public class PythonBackend : ExecutableBackend {
     var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
     var file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
-    if (DafnyOptions.O.CompileVerbose) {
+    if (Options.CompileVerbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;
@@ -80,8 +80,12 @@ public class PythonBackend : ExecutableBackend {
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-    var psi = PrepareProcessStartInfo("python3", DafnyOptions.O.MainArgs.Prepend(targetFilename));
+    var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
     return 0 == RunProcess(psi, outputWriter);
+  }
+
+  public PythonBackend(DafnyOptions options) : base(options)
+  {
   }
 }

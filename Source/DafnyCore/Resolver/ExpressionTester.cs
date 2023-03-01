@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public class ExpressionTester {
+  private DafnyOptions options;
   private bool ReportErrors => reporter != null;
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
@@ -18,18 +19,19 @@ public class ExpressionTester {
   /// </summary>
   [CanBeNull] private readonly Resolver resolver; // if non-null, CheckIsCompilable will update some fields in the resolver
 
-  private ExpressionTester([CanBeNull] Resolver resolver, [CanBeNull] ErrorReporter reporter) {
+  private ExpressionTester([CanBeNull] Resolver resolver, [CanBeNull] ErrorReporter reporter, DafnyOptions options) {
     this.resolver = resolver;
     this.reporter = reporter;
+    this.options = options;
   }
 
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable([CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, resolver?.Reporter).CheckIsCompilable(expr, codeContext);
+    return new ExpressionTester(resolver, resolver?.Reporter, resolver.Options).CheckIsCompilable(expr, codeContext);
   }
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter).CheckIsCompilable(expr, codeContext);
+    return new ExpressionTester(resolver, reporter, resolver.Options).CheckIsCompilable(expr, codeContext);
   }
 
   /// <summary>
@@ -107,7 +109,7 @@ public class ExpressionTester {
           } else {
             var what = callExpr.Function.WhatKind;
             string compiledDeclHint;
-            if (DafnyOptions.O.FunctionSyntax == FunctionSyntaxOptions.Version4) {
+            if (options.FunctionSyntax == FunctionSyntaxOptions.Version4) {
               compiledDeclHint = "without the 'ghost' keyword";
             } else {
               compiledDeclHint = $"with '{what} method'";

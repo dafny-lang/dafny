@@ -98,14 +98,14 @@ namespace DafnyTestGeneration {
     }
 
     public static string GetStringRepresentation(Microsoft.Boogie.Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
+      var oldPrintInstrumented = options.PrintInstrumented;
+      var oldPrintFile = options.PrintFile;
+      options.PrintInstrumented = true;
+      options.PrintFile = "-";
       var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
+      program.Emit(new TokenTextWriter(output, options));
+      options.PrintInstrumented = oldPrintInstrumented;
+      options.PrintFile = oldPrintFile;
       return output.ToString();
     }
 

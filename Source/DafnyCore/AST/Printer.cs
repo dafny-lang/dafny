@@ -25,6 +25,7 @@ namespace Microsoft.Dafny {
   }
 
   public class Printer {
+    private DafnyOptions options;
     static Printer() {
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
@@ -54,9 +55,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Invariant(wr != null);
     }
 
-    public Printer(TextWriter wr, PrintModes printMode = PrintModes.Everything) {
+    public Printer(TextWriter wr, DafnyOptions options, PrintModes printMode = PrintModes.Everything) {
       Contract.Requires(wr != null);
       this.wr = wr;
+      this.options = options;
       this.printMode = printMode;
     }
 
@@ -194,17 +196,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
-      if (DafnyOptions.O.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
-        wr.WriteLine("// " + DafnyOptions.O.Version);
-        wr.WriteLine("// " + DafnyOptions.O.Environment);
+      if (options.ShowEnv != Bpl.ExecutionEngineOptions.ShowEnvironment.Never) {
+        wr.WriteLine("// " + options.Version);
+        wr.WriteLine("// " + options.Environment);
       }
-      if (DafnyOptions.O.PrintMode != PrintModes.DllEmbed) {
+      if (options.PrintMode != PrintModes.DllEmbed) {
         wr.WriteLine("// {0}", prog.Name);
       }
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
+      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -225,7 +227,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintCallGraph(ModuleDefinition module, int indent) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
+      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
@@ -367,7 +369,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine();
           }
 
-          if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          if (options.DafnyPrintResolvedFile != null) {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             Indent(indent); wr.WriteLine("/*---------- iterator members ----------");
@@ -527,7 +529,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("{0} ", bodyKind ? "provides" : "reveals");
         wr.WriteLine(Util.Comma(i - start, j => m.Exports[start + j].ToString()));
 
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (options.DafnyPrintResolvedFile != null) {
           Contract.Assert(!printingExportSet);
           printingExportSet = true;
           Indent(indent);
@@ -582,9 +584,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
       var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
-      if (afterResolver && DafnyOptions.O.DafnyPrintExportedViews.Count != 0) {
+      if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
         decls = new List<TopLevelDecl>();
-        foreach (var nameOfView in DafnyOptions.O.DafnyPrintExportedViews) {
+        foreach (var nameOfView in options.DafnyPrintExportedViews) {
           foreach (var decl in module.TopLevelDecls) {
             if (decl.FullName.Equals(nameOfView)) {
               decls.Add(decl);
@@ -668,7 +670,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.WriteLine("}");
       }
 
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null && c.NonNullTypeDecl != null) {
+      if (options.DafnyPrintResolvedFile != null && c.NonNullTypeDecl != null) {
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("/*-- non-null type");
         }
@@ -837,7 +839,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       var name = nameSubstitution ?? a.Name;
-      var usAttribute = name.StartsWith("_") || (DafnyOptions.O.DisallowExterns && (name == "extern" || name == "dllimport"));
+      var usAttribute = name.StartsWith("_") || (options.DisallowExterns && (name == "extern" || name == "dllimport"));
       wr.Write("{1}{{:{0}", name, usAttribute ? "/*" : "");
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);
@@ -898,7 +900,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
       Indent(indent);
-      PrintClassMethodHelper(f.FunctionDeclarationKeywords, f.Attributes, f.Name, f.TypeArgs);
+      PrintClassMethodHelper(f.GetFunctionDeclarationKeywords(), f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
       } else {
@@ -932,7 +934,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write("}");
         if (f.ByMethodBody != null) {
           wr.Write(" by method ");
-          if (DafnyOptions.O.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
+          if (options.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
             Contract.Assert(f.ByMethodDecl.Ens.Count == 1);
             wr.Write("/* ensures");
             PrintAttributedExpression(f.ByMethodDecl.Ens[0]);
@@ -1147,7 +1149,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintType(string prefix, Type ty) {
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
-      if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+      if (options.DafnyPrintResolvedFile != null) {
         ty = ty.Normalize();
       }
       string s = ty.TypeName(null, true);
@@ -1159,7 +1161,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
-        (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
+        (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && options.DafnyPrintResolvedFile != null)) {
         s = "==";
       }
       if (characteristics.HasCompiledValue) {
@@ -1182,7 +1184,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     bool ShowType(Type t) {
       Contract.Requires(t != null);
-      return !(t is TypeProxy) || DafnyOptions.O.DafnyPrintResolvedFile != null;
+      return !(t is TypeProxy) || options.DafnyPrintResolvedFile != null;
     }
 
     // ----------------------------- PrintStatement -----------------------------
@@ -1365,7 +1367,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
+        if (options.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
           foreach (var expr in s.ForallExpressions) {
             PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
           }
@@ -1406,7 +1408,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (s.UserSuppliedOp != null) {
           PrintCalcOp(s.UserSuppliedOp);
           wr.Write(" ");
-        } else if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null) {
+        } else if (options.DafnyPrintResolvedFile != null && s.Op != null) {
           PrintCalcOp(s.Op);
           wr.Write(" ");
         }
@@ -1429,7 +1431,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             break;
           }
           // print the operator, if any
-          if (op != null || (DafnyOptions.O.DafnyPrintResolvedFile != null && s.Op != null)) {
+          if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
             Indent(indent);  // this lines up with the "calc"
             PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
@@ -1447,7 +1449,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
-        if (s.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (s.Flattened != null && options.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("/*---------- flattened ----------");
@@ -1697,7 +1699,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write(", ");
           PrintRhs(rhs);
         }
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
+        if (options.DafnyPrintResolvedFile != null && stmt.ResolvedStatements.Count > 0) {
           wr.WriteLine();
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           foreach (Statement r in stmt.ResolvedStatements) {
@@ -1835,7 +1837,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (ShowType(t.EType)) {
             PrintType(t.EType);
           }
-          if (DafnyOptions.O.DafnyPrintResolvedFile == null &&
+          if (options.DafnyPrintResolvedFile == null &&
             t.InitDisplay != null && t.ArrayDimensions.Count == 1 &&
             AutoGeneratedToken.Is(t.ArrayDimensions[0].tok)) {
             // elide the size
@@ -1936,7 +1938,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.Flattened != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (e.Flattened != null && options.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
           if (!printingDesugared) {
             Indent(indent); wr.WriteLine("/*---------- flattened ----------");
@@ -1984,7 +1986,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
+        if (options.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
           PrintExtendedExpr(e.OrigUnresolved, indent, isRightmost, endWithCloseParen);
         } else {
           Indent(indent);
@@ -2204,7 +2206,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
           if (e.Lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             Contract.Assert(e.Lhs is NameSegment || e.Lhs is ExprDotName);  // these are the only expressions whose .Type can be ResolverType_Type
-            if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
+            if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
               // The printing of e.Lhs printed the type arguments only if they were given explicitly in the input.
               var optionalTypeArgs = e.Lhs is NameSegment ns ? ns.OptTypeArguments : ((ExprDotName)e.Lhs).OptTypeArguments;
               if (optionalTypeArgs == null && e.Lhs.Resolved is Resolver_IdentifierExpr ri) {
@@ -2324,7 +2326,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           sep = ", ";
         }
         wr.Write(")");
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == PrintModes.Everything) {
+        if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
           if (e.ResolvedExpression != null) {
             wr.Write("/*");
             PrintExpression(e.ResolvedExpression, false);
@@ -2810,7 +2812,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
-        if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
+        if (options.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
           PrintExpr(e.OrigUnresolved, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
         } else {
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
@@ -2873,7 +2875,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       var v = pat.Var;
       if (v != null) {
         wr.Write(v.DisplayName);
-        if (v.OptionalType is NonProxyType || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (v.OptionalType is NonProxyType || options.DafnyPrintResolvedFile != null) {
           PrintType(": ", v.OptionalType);
         }
       } else {
@@ -2965,7 +2967,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("(");
       string sep = "";
-      if (DafnyOptions.O.DafnyPrintResolvedFile == null || !bindings.WasResolved) {
+      if (options.DafnyPrintResolvedFile == null || !bindings.WasResolved) {
         for (; i < bindings.ArgumentBindings.Count; i++) {
           var binding = bindings.ArgumentBindings[i];
           wr.Write(sep);

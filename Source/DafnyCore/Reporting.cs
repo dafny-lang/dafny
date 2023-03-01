@@ -26,6 +26,12 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class ErrorReporter {
+    public DafnyOptions Options { get; }
+
+    protected ErrorReporter(DafnyOptions options) {
+      this.Options = options;
+    }
+
     public bool ErrorsOnly { get; set; }
 
     public bool HasErrors => ErrorCount > 0;
@@ -117,7 +123,7 @@ namespace Microsoft.Dafny {
     public void Warning(MessageSource source, ErrorID errorID, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (DafnyOptions.O.WarningsAsErrors) {
+      if (Options.WarningsAsErrors) {
         Error(source, errorID, tok, msg);
       } else {
         Message(source, ErrorLevel.Warning, errorID, tok, msg);
@@ -135,7 +141,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      if (DafnyOptions.O.DeprecationNoise != 0) {
+      if (Options.DeprecationNoise != 0) {
         Warning(source, errorID, tok, String.Format(msg, args));
       }
     }
@@ -144,7 +150,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      if (DafnyOptions.O.DeprecationNoise == 2) {
+      if (Options.DeprecationNoise == 2) {
         Warning(source, errorID, tok, String.Format(msg, args));
       }
     }
@@ -175,7 +181,7 @@ namespace Microsoft.Dafny {
   public class BatchErrorReporter : ErrorReporter {
     public Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages;
 
-    public BatchErrorReporter() {
+    public BatchErrorReporter(DafnyOptions options) : base(options) {
       ErrorsOnly = false;
       AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
         [ErrorLevel.Error] = new(),
@@ -218,7 +224,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
-      if (base.Message(source, level, errorID, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+      if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
@@ -236,7 +242,7 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {TokenToString(tok)}";
         }
 
-        if (DafnyOptions.O.CompileVerbose && false) { // Need to control tests better before we enable this
+        if (Options.CompileVerbose && false) { // Need to control tests better before we enable this
           var info = ErrorDetail.GetDetail(errorID);
           if (info != null) {
             errorLine += "\n" + info;
@@ -250,10 +256,14 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
+
+    public ConsoleErrorReporter(DafnyOptions options) : base(options)
+    {
+    }
   }
 
   public class ErrorReporterSink : ErrorReporter {
-    public ErrorReporterSink() { }
+    public ErrorReporterSink(DafnyOptions options) : base(options) { }
 
     public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
       return false;
@@ -273,7 +283,7 @@ namespace Microsoft.Dafny {
     private string msgPrefix;
     public readonly ErrorReporter WrappedReporter;
 
-    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) {
+    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) : base(reporter.Options) {
       this.msgPrefix = msgPrefix;
       this.WrappedReporter = reporter;
     }

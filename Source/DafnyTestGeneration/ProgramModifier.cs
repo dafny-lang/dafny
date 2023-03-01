@@ -43,29 +43,29 @@ namespace DafnyTestGeneration {
       program = new FunctionToMethodCallRewriter(this).VisitProgram(program);
       program = new AddImplementationsForCalls().VisitProgram(program);
       program = new RemoveChecks().VisitProgram(program);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(DafnyOptions.O);
+      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
-      if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
+      if (options.TestGenOptions.TargetMethod != null) {
         ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
           i.Name.StartsWith("Impl$$")
           && i.VerboseName.StartsWith(
-            DafnyOptions.O.TestGenOptions.TargetMethod));
+            options.TestGenOptions.TargetMethod));
       } else {
         ImplementationToTarget = null;
       }
       var callGraphVisitor = new CallGraph();
       callGraphVisitor.VisitProgram(program);
-      // DafnyOptions.O.TestGenOptions.TestInlineDepth is multiplied by two
+      // options.TestGenOptions.TestInlineDepth is multiplied by two
       // because inlining a method call in Dafny is equivalent to inlining
       // two procedures in Boogie (Call$$- and Impl$$-prefixed procedures)
       toModify = callGraphVisitor.GetCallees(
         ImplementationToTarget?.Name,
-        DafnyOptions.O.TestGenOptions.TestInlineDepth * 2);
+        options.TestGenOptions.TestInlineDepth * 2);
       var annotator = new AnnotationVisitor(this);
       program = annotator.VisitProgram(program);
       AddAxioms(program);
-      if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
-        File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl,
+      if (options.TestGenOptions.PrintBpl != null) {
+        File.WriteAllText(options.TestGenOptions.PrintBpl,
           Utils.GetStringRepresentation(program));
       }
       return GetModifications(program);
@@ -82,10 +82,10 @@ namespace DafnyTestGeneration {
     /// Add axioms necessary for counterexample generation to work efficiently
     /// </summary>
     private static void AddAxioms(Program program) {
-      if (DafnyOptions.O.TestGenOptions.SeqLengthLimit == 0) {
+      if (options.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
-      var limit = (uint)DafnyOptions.O.TestGenOptions.SeqLengthLimit;
+      var limit = (uint)options.TestGenOptions.SeqLengthLimit;
       Parser.Parse($"axiom (forall<T> y: Seq T :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
@@ -119,7 +119,7 @@ namespace DafnyTestGeneration {
         }
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
-      return Utils.DeepCloneProgramAndReresolve(program, DafnyOptions.O);
+      return Utils.DeepCloneProgramAndReresolve(program, options);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ namespace DafnyTestGeneration {
         implsToAdd = new();
         node = base.VisitProgram(node);
         node.AddTopLevelDeclarations(implsToAdd);
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneProgramAndReresolve(node, options);
       }
     }
 
@@ -321,18 +321,18 @@ namespace DafnyTestGeneration {
         data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
-        var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
+        var toTest = options.TestGenOptions.TargetMethod;
         if (toTest == null) {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
         } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if ((DafnyOptions.O.TestGenOptions.TestInlineDepth > 0) &&
+        } else if ((options.TestGenOptions.TestInlineDepth > 0) &&
                    modifier.toModify.Contains(node.Name)) {
           // This method is inlined (and hence tested)
           var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(DafnyOptions.O.TestGenOptions.TestInlineDepth));
+            new LiteralExpr(new Token(), BigNum.FromUInt(options.TestGenOptions.TestInlineDepth));
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
@@ -470,7 +470,7 @@ namespace DafnyTestGeneration {
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
           .Iter(i => VisitImplementation(i));
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneProgramAndReresolve(node, options);
       }
 
       public FunctionToMethodCallRewriter(ProgramModifier modifier) {
@@ -634,7 +634,7 @@ namespace DafnyTestGeneration {
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
           .Iter(i => VisitImplementation(i));
-        node.Resolve(DafnyOptions.O);
+        node.Resolve(options);
         return node;
       }
 
@@ -672,7 +672,7 @@ namespace DafnyTestGeneration {
 
       public override Program VisitProgram(Program node) {
         VisitDeclarationList(node.TopLevelDeclarations.ToList());
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneProgramAndReresolve(node, options);
       }
     }
   }

@@ -12,6 +12,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public partial class Resolver {
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      private DafnyOptions options;
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
         readonly bool inLambdaExpression;
@@ -55,8 +56,9 @@ namespace Microsoft.Dafny {
 
       private readonly ErrorReporter reporter;
 
-      public BoundsDiscoveryVisitor(ErrorReporter reporter) {
+      public BoundsDiscoveryVisitor(ErrorReporter reporter, DafnyOptions options) {
         this.reporter = reporter;
+        this.options = options;
       }
 
       public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
@@ -189,7 +191,7 @@ namespace Microsoft.Dafny {
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
-            if (2 <= DafnyOptions.O.Allocated && !context.AllowedToDependOnAllocationState) {
+            if (2 <= options.Allocated && !context.AllowedToDependOnAllocationState) {
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
                          ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";

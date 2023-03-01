@@ -14,7 +14,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   }
 
   public static string IdProtect(string name) {
-    return DafnyOptions.O.Backend.PublicIdProtect(name);
+    return options.Backend.PublicIdProtect(name);
   }
 
   public IToken BodyStartTok = Token.NoToken;
@@ -116,7 +116,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
     qualification = null;
     name = null;
-    if (!DafnyOptions.O.DisallowExterns) {
+    if (!options.DisallowExterns) {
       var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
       if (externArgs != null) {
         if (externArgs.Count == 0) {
@@ -861,7 +861,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public string CompileName {
     get {
       if (compileName == null) {
-        var externArgs = DafnyOptions.O.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+        var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
         if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
           compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
         } else if (externArgs != null) {
@@ -1150,13 +1150,13 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public string FullCompileName {
     get {
       var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
-      if (!DafnyOptions.O.DisallowExterns && externArgs != null) {
+      if (!options.DisallowExterns && externArgs != null) {
         if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
           return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
         }
       }
 
-      return DafnyOptions.O.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
+      return options.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
         EnclosingModuleDefinition.CompileName, CompileName);
     }
   }

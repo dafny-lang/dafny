@@ -62,7 +62,7 @@ public class GhostStateDiagnosticCollectorTest {
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
     var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter, DafnyOptions.O);
+    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter, options);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);

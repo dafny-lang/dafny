@@ -79,13 +79,13 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
-      options.Prune = !DafnyOptions.O.TestGenOptions.DisablePrune;
-      options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
-      options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
-      options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
-      options.WarnShadowing = DafnyOptions.O.WarnShadowing;
-      options.VerifyAllModules = DafnyOptions.O.VerifyAllModules;
-      options.TimeLimit = DafnyOptions.O.TimeLimit;
+      options.Prune = !options.TestGenOptions.DisablePrune;
+      options.ProverOptions.AddRange(options.ProverOptions);
+      options.LoopUnrollCount = options.LoopUnrollCount;
+      options.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
+      options.WarnShadowing = options.WarnShadowing;
+      options.VerifyAllModules = options.VerifyAllModules;
+      options.TimeLimit = options.TimeLimit;
       return options;
     }
 
@@ -99,7 +99,7 @@ namespace DafnyTestGeneration {
           (coversBlocks.Count != 0 && IsCovered)) {
         return counterexampleLog;
       }
-      var oldOptions = DafnyOptions.O;
+      var oldOptions = options;
       var options = SetupOptions(procedure);
       DafnyOptions.Install(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
@@ -120,7 +120,7 @@ namespace DafnyTestGeneration {
       counterexampleLog = null;
       DafnyOptions.Install(oldOptions);
       if (result is not Task<PipelineOutcome>) {
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
+        if (options.TestGenOptions.Verbose) {
           Console.WriteLine(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
@@ -136,12 +136,12 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (DafnyOptions.O.TestGenOptions.Verbose) {
+          if (options.TestGenOptions.Verbose) {
             Console.WriteLine($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
-      if (DafnyOptions.O.TestGenOptions.Verbose && counterexampleLog == null) {
+      if (options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           Console.WriteLine(
             $"// No test can be generated for {uniqueId} " +
@@ -164,7 +164,7 @@ namespace DafnyTestGeneration {
     }
 
     public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
-      if (DafnyOptions.O.TestGenOptions.Verbose) {
+      if (options.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
@@ -182,7 +182,7 @@ namespace DafnyTestGeneration {
       if (duplicate == null) {
         return testMethod;
       }
-      if (DafnyOptions.O.TestGenOptions.Verbose) {
+      if (options.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}.");
@@ -194,7 +194,7 @@ namespace DafnyTestGeneration {
       ModificationsForImplementation(Implementation implementation) =>
       idToModification.Values.Where(modification =>
         modification.implementation == implementation ||
-        DafnyOptions.O.TestGenOptions.TargetMethod != null);
+        options.TestGenOptions.TargetMethod != null);
 
     private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>

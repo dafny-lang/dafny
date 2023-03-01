@@ -24,7 +24,7 @@ public class PluginsTest : PluginsTestBase {
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, DafnyOptions.O.Plugins.Count,
+    Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, options.Plugins.Count,
                     "Not exactly 1 plugin loaded");
     Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Impossible to continue because\\ \"whatever", diagnostics[0].Message);

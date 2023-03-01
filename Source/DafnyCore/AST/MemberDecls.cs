@@ -676,7 +676,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     get {
       // Lemma from included files do not need to be resolved and translated
       // so we return emptyBody. This is to speed up resolver and translator.
-      if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
+      if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !options.VerifyAllModules) {
         return Method.emptyBody;
       } else {
         return methodBody;

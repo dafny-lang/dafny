@@ -61,7 +61,7 @@ namespace DafnyTestGeneration {
         return new List<Type>
           { Utils.UseFullName(functions[callable].ResultType) };
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
       SetNonZeroExitCode = true;
       return new List<Type>();
     }
@@ -73,7 +73,7 @@ namespace DafnyTestGeneration {
       if (functions.ContainsKey(callable)) {
         return functions[callable].TypeArgs;
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
       SetNonZeroExitCode = true;
       return new List<TypeParameter>();
     }
@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
         result.AddRange(functions[callable].TypeArgs);
         clazz = functions[callable].EnclosingClass;
       } else {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+        options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
         SetNonZeroExitCode = true;
         return result;
       }
@@ -105,7 +105,7 @@ namespace DafnyTestGeneration {
         return functions[callable].Formals.Select(arg =>
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
       SetNonZeroExitCode = true;
       return new List<Type>();
     }
@@ -117,7 +117,7 @@ namespace DafnyTestGeneration {
       if (functions.ContainsKey(callable)) {
         return functions[callable].IsStatic;
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callable}");
       SetNonZeroExitCode = true;
       return true;
     }
@@ -196,7 +196,7 @@ namespace DafnyTestGeneration {
             new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
           .Where(e => e != null);
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
       SetNonZeroExitCode = true;
       return new List<Expression>();
     }
@@ -219,7 +219,7 @@ namespace DafnyTestGeneration {
             new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
           .Where(e => e != null);
       }
-      DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
+      options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify callable {callableName}");
       SetNonZeroExitCode = true;
       return new List<Expression>();
     }
@@ -237,7 +237,7 @@ namespace DafnyTestGeneration {
 
     public List<(string name, Type type, bool mutable, string/*?*/ defValue)> GetNonGhostFields(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
         return new List<(string name, Type type, bool mutable, string/*?*/ defValue)>();
       }
@@ -267,7 +267,7 @@ namespace DafnyTestGeneration {
 
     public bool IsTrait(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
         return true;
       }
@@ -329,7 +329,7 @@ namespace DafnyTestGeneration {
     }
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
         return true;
       }
@@ -338,7 +338,7 @@ namespace DafnyTestGeneration {
 
     public Constructor/*?*/ GetConstructor(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
+        options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
         return null;
       }
@@ -382,13 +382,13 @@ namespace DafnyTestGeneration {
         Type baseType, Expression/*?*/ witness, List<TypeParameter> typeArgs) {
         if (witness != null) {
           info.witnessForType[newTypeName] = witness;
-          if (DafnyOptions.O.TestGenOptions.Verbose) {
+          if (options.TestGenOptions.Verbose) {
             Console.Out.WriteLine($"// Values of type {newTypeName} will be " +
                                   $"assigned the default value of " +
                                   $"{Printer.ExprToString(info.witnessForType[newTypeName])}");
           }
-        } else if (DafnyOptions.O.TestGenOptions.Verbose) {
-          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, $"*** Error: Values of type {newTypeName} " +
+        } else if (options.TestGenOptions.Verbose) {
+          options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Values of type {newTypeName} " +
                                                 $"will be assigned a default value of type " +
                                                 $"{baseType}, which may not match the " +
                                                 $"associated condition, if any");

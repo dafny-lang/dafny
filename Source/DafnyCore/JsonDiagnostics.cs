@@ -102,15 +102,23 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
       errorInfo.Tok, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
+
+  public DafnyJsonConsolePrinter(DafnyOptions options) : base(options)
+  {
+  }
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
   public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, Dafny.IToken tok, string msg) {
-    if (base.Message(source, level, errorID, tok, msg) && (DafnyOptions.O is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+    if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
       new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
       return true;
     }
 
     return false;
+  }
+
+  public JsonConsoleErrorReporter(DafnyOptions options) : base(options)
+  {
   }
 }

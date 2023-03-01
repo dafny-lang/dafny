@@ -11,26 +11,36 @@ namespace Microsoft.Dafny;
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
   public override string WhatKind => "function";
 
-  public string FunctionDeclarationKeywords {
-    get {
-      string k;
-      if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
-        k = WhatKind;
-      } else if (this is PrefixPredicate) {
-        k = "predicate";
-      } else if (DafnyOptions.O.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
-                 (this is Predicate || !IsGhost)) {
-        k = WhatKind;
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost) {
-        k = WhatKind + " method";
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost) {
-        k = "ghost " + WhatKind;
-      } else {
-        k = WhatKind;
-      }
-
-      return HasStaticKeyword ? "static " + k : k;
+  public string GetFunctionDeclarationKeywords(DafnyOptions options)
+  {
+    string k;
+    if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null)
+    {
+      k = WhatKind;
     }
+    else if (this is PrefixPredicate)
+    {
+      k = "predicate";
+    }
+    else if (options.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+             (this is Predicate || !IsGhost))
+    {
+      k = WhatKind;
+    }
+    else if (options.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost)
+    {
+      k = WhatKind + " method";
+    }
+    else if (options.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost)
+    {
+      k = "ghost " + WhatKind;
+    }
+    else
+    {
+      k = WhatKind;
+    }
+
+    return HasStaticKeyword ? "static " + k : k;
   }
 
   public override bool IsOpaque { get; }

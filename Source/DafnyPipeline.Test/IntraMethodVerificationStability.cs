@@ -241,7 +241,7 @@ module SomeModule {
       var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       var fullFilePath = "foo";
       Microsoft.Dafny.Type.ResetScopes();
-      var builtIns = new BuiltIns();
+      var builtIns = new BuiltIns(options);
       var errorReporter = new ConsoleErrorReporter();
       var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
       Assert.Equal(0, parseResult);

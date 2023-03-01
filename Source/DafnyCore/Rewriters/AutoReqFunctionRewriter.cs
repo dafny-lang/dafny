@@ -9,12 +9,14 @@ namespace Microsoft.Dafny;
 /// if requested via {:autoreq}
 /// </summary>
 public class AutoReqFunctionRewriter : IRewriter {
+  private DafnyOptions options;
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter)
+  public AutoReqFunctionRewriter(ErrorReporter reporter, DafnyOptions options)
     : base(reporter) {
     Contract.Requires(reporter != null);
+    this.options = options;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
@@ -84,8 +86,8 @@ public class AutoReqFunctionRewriter : IRewriter {
 
     if (!tip.Equals("")) {
       Reporter.Info(MessageSource.Rewriter, f.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+      if (options.AutoReqPrintFile != null) {
+        using (System.IO.TextWriter writer = new System.IO.StreamWriter(options.AutoReqPrintFile, true)) {
           writer.WriteLine(f.Name);
           writer.WriteLine("\t" + tip);
         }
@@ -108,8 +110,8 @@ public class AutoReqFunctionRewriter : IRewriter {
 
     if (!tip.Equals("")) {
       Reporter.Info(MessageSource.Rewriter, method.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+      if (options.AutoReqPrintFile != null) {
+        using (System.IO.TextWriter writer = new System.IO.StreamWriter(options.AutoReqPrintFile, true)) {
           writer.WriteLine(method.Name);
           writer.WriteLine("\t" + tip);
         }

@@ -38,6 +38,12 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
+    public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
+    public bool AlwaysUseHeap => Allocated == 2;
+    public bool CommonHeapUse => Allocated >= 2;
+    public bool FrugalHeapUse => Allocated >= 3;
+    public bool FrugalHeapUseX => Allocated == 4;
+
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
@@ -197,12 +203,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", null) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Backend = new CsharpBackend();
+      Backend = new CsharpBackend(this);
+      Printer = new DafnyConsolePrinter(this);
     }
 
     public override string VersionNumber {
@@ -226,9 +233,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private static DafnyOptions clo;
 
-    public static DafnyOptions O {
-      get { return clo; }
-    }
+    // public static DafnyOptions O {
+    //   get { return clo; }
+    // }
 
     public static void Install(DafnyOptions options) {
       Contract.Requires(options != null);
@@ -488,11 +495,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (ps.ConfirmArgumentCount(1)) {
               switch (args[ps.i]) {
                 case "json":
-                  Printer = new DafnyJsonConsolePrinter { Options = this };
+                  Printer = new DafnyJsonConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.JSON;
                   break;
                 case "text":
-                  Printer = new DafnyConsolePrinter { Options = this };
+                  Printer = new DafnyConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.PlainText;
                   break;
                 case var df:
@@ -825,7 +832,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Backend ??= new CsharpBackend();
+      Backend ??= new CsharpBackend(this);
 
       // expand macros in filenames, now that LogPrefix is fully determined
 

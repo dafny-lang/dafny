@@ -85,7 +85,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     , new ErrorMessageDafnyCodeActionProvider()
     }
     .Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin =>
+      options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
   }

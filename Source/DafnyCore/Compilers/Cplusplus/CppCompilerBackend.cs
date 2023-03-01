@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CppCompilerBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
-    return new CppCompiler(Reporter, OtherFileNames);
+    return new CppCompiler(Options, Reporter, OtherFileNames);
   }
 
   private string ComputeExeName(string targetFilename) {
@@ -41,7 +41,7 @@ public class CppCompilerBackend : ExecutableBackend {
 
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter) {
-    var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), DafnyOptions.O.MainArgs);
+    var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
     return 0 == RunProcess(psi, outputWriter);
   }
 
@@ -53,4 +53,8 @@ public class CppCompilerBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
 
   public override bool TextualTargetIsExecutable => false;
+
+  public CppCompilerBackend(DafnyOptions options) : base(options)
+  {
+  }
 }

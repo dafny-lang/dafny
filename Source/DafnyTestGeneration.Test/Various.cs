@@ -67,8 +67,8 @@ module M {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod = "M.Inlining.a";
-      DafnyOptions.O.TestGenOptions.TestInlineDepth = 2;
+      options.TestGenOptions.TargetMethod = "M.Inlining.a";
+      options.TestGenOptions.TestInlineDepth = 2;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "M.Inlining.a"));
@@ -106,7 +106,7 @@ module Paths {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.Mode =
+      options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(8, methods.Count);
@@ -196,7 +196,7 @@ module Objects {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod =
+      options.TestGenOptions.TargetMethod =
         "Objects.List.IsACircleOfLessThanThree";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
@@ -246,7 +246,7 @@ module DataTypes {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod =
+      options.TestGenOptions.TargetMethod =
         "DataTypes.List.Depth";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
@@ -283,7 +283,7 @@ module Module {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod =
+      options.TestGenOptions.TargetMethod =
         "Module.ignoreNonNullableObject";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(1, methods.Count);
@@ -310,7 +310,7 @@ module M {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
+      options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
       Assert.IsTrue(stats.Contains("Code at (6,14) is potentially unreachable."));
       Assert.AreEqual(2, stats.Count); // second is line with stats
@@ -328,7 +328,7 @@ method m(a:int) returns (b:int)
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
+      options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
       Assert.AreEqual(1, stats.Count); // the only line with stats
     }
@@ -348,8 +348,8 @@ module Test {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TargetMethod = "Test.IsEvenLength";
-      DafnyOptions.O.TestGenOptions.SeqLengthLimit = 1;
+      options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
+      options.TestGenOptions.SeqLengthLimit = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "Test.IsEvenLength"));
@@ -375,8 +375,8 @@ module Math {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TestInlineDepth = 2;
-      DafnyOptions.O.TestGenOptions.TargetMethod = "Math.Min";
+      options.TestGenOptions.TestInlineDepth = 2;
+      options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.IsTrue(2 <= methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "Math.Min"));
@@ -403,8 +403,8 @@ module ShortCircuit {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.TestInlineDepth = 1;
-      DafnyOptions.O.TestGenOptions.TargetMethod = "ShortCircuit.Or";
+      options.TestGenOptions.TestInlineDepth = 1;
+      options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "ShortCircuit.Or"));

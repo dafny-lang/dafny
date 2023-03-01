@@ -19,7 +19,7 @@ public class GoBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
   protected override SinglePassCompiler CreateCompiler() {
-    return new GoCompiler(Reporter);
+    return new GoCompiler(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -63,7 +63,7 @@ public class GoBackend : ExecutableBackend {
       goArgs.Add("run");
     } else {
       string output;
-      var outputToFile = !DafnyOptions.O.RunAfterCompile;
+      var outputToFile = !Options.RunAfterCompile;
 
       if (outputToFile) {
         string extension;
@@ -101,7 +101,7 @@ public class GoBackend : ExecutableBackend {
     }
 
     goArgs.Add(targetFilename);
-    goArgs.AddRange(DafnyOptions.O.MainArgs);
+    goArgs.AddRange(Options.MainArgs);
 
     var psi = PrepareProcessStartInfo("go", goArgs);
 
@@ -122,7 +122,7 @@ public class GoBackend : ExecutableBackend {
     return Path.GetFullPath(dirName);
   }
 
-  static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var pkgName = FindPackageName(externFilename);
     if (pkgName == null) {
@@ -152,7 +152,7 @@ public class GoBackend : ExecutableBackend {
     } else {
       relTgtFilename = tgtFilename;
     }
-    if (DafnyOptions.O.CompileVerbose) {
+    if (Options.CompileVerbose) {
       outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
     }
     return true;
@@ -170,4 +170,8 @@ public class GoBackend : ExecutableBackend {
   }
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");
+
+  public GoBackend(DafnyOptions options) : base(options)
+  {
+  }
 }

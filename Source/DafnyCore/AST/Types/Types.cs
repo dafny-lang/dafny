@@ -1283,7 +1283,7 @@ public abstract class Type : TokenNode {
     Contract.Requires(b != null);
     Contract.Requires(builtIns != null);
     var j = JoinX(a, b, builtIns);
-    if (DafnyOptions.O.TypeInferenceDebug) {
+    if (builtIns.Options.TypeInferenceDebug) {
       Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
@@ -1504,7 +1504,7 @@ public abstract class Type : TokenNode {
         j = null;
       }
     }
-    if (DafnyOptions.O.TypeInferenceDebug) {
+    if (builtIns.Options.TypeInferenceDebug) {
       Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
@@ -1881,12 +1881,12 @@ public class BigOrdinalType : BasicType {
 public class BitvectorType : BasicType {
   public readonly int Width;
   public readonly NativeType NativeType;
-  public BitvectorType(int width)
+  public BitvectorType(DafnyOptions options, int width)
     : base() {
     Contract.Requires(0 <= width);
     Width = width;
     foreach (var nativeType in Resolver.NativeTypes) {
-      if (DafnyOptions.O.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
+      if (options.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
         NativeType = nativeType;
         break;
       }
@@ -2788,7 +2788,7 @@ public abstract class TypeProxy : Type {
   public override string TypeName(ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
-    if (DafnyOptions.O.TypeInferenceDebug) {
+    if (options.TypeInferenceDebug) {
       return T == null ? "?" + id : T.TypeName(context);
     }
 #endif

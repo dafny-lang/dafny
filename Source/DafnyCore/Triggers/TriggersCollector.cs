@@ -163,9 +163,11 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal class TriggersCollector {
+    private DafnyOptions options;
     TriggerAnnotationsCache cache;
 
-    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
+    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext, DafnyOptions options) {
+      this.options = options;
       this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
@@ -279,7 +281,7 @@ namespace Microsoft.Dafny.Triggers {
 
     // math operations can be turned into a Boogie-level function as in the
     // case with /noNLarith.
-    public static bool TranslateToFunctionCall(Expression expr) {
+    public bool TranslateToFunctionCall(Expression expr) {
       if (!(expr is BinaryExpr)) {
         return false;
       }
@@ -292,7 +294,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && options.DisableNLarith) {
             return true;
           }
           break;
@@ -300,7 +302,7 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
           if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType) {
-            if (DafnyOptions.O.DisableNLarith || (DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3)) {
+            if (options.DisableNLarith || (options.ArithMode != 0 && options.ArithMode != 3)) {
               return true;
             }
           }

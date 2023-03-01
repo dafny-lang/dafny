@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool Verify() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
       return Parse() && Resolve() && Translate() && Boogie();
     }
 
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
                      Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter, DafnyOptions.O);
+        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter, options);
       }
       return success;
     }
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(options) == 0 && boogieProgram.Typecheck(options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
     }
 
     public void Symbols() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
       if (Parse() && Resolve()) {
         var symbolTable = new LegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
     public void CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), DafnyOptions.O);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny {
     }
 
     public void DotGraph() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {

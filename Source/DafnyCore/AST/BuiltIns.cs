@@ -7,6 +7,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class BuiltIns {
+  public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, new Name("_System"), new List<IToken>(), false, false, null, null, null, true, true, true);
   readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
@@ -26,7 +27,8 @@ public class BuiltIns {
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
 
-  public BuiltIns() {
+  public BuiltIns(DafnyOptions options) {
+    this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
     var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
@@ -240,7 +242,7 @@ public class BuiltIns {
       var nonGhostDims = argumentGhostness.Count(x => !x);
       TupleTypeDecl nonGhostTupleTypeDecl = null;
       if (nonGhostDims != dims &&
-          (nonGhostDims != 1 || !DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure || !DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
+          (nonGhostDims != 1 || !Options.Backend.SupportsDatatypeWrapperErasure || !Options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper))) {
         // make sure the corresponding non-ghost tuple type also exists
         nonGhostTupleTypeDecl = TupleType(tok, nonGhostDims, allowCreationOfNewType);
       }

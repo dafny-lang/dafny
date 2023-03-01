@@ -48,15 +48,15 @@ namespace Microsoft.Dafny {
 
     internal static void ApplyArgs(string[] args, DafnyOptions options) {
       Dafny.DafnyOptions.Install(options);
-      Dafny.DafnyOptions.O.TimeLimit = 10; //This is just a default; it can be overriden
-      DafnyOptions.O.VerifySnapshots = 3;
+      options.TimeLimit = 10; //This is just a default; it can be overriden
+      options.VerifySnapshots = 3;
 
-      if (DafnyOptions.O.Parse(args)) {
-        DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
-        DafnyOptions.O.PrintTooltips = true; // Dump tooltips (ErrorLevel.Info) to stdout
-        //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
-        DafnyOptions.O.Set(DafnyConsolePrinter.ShowSnippets, false); // Server sometimes has filename == null, which crashes showSnippets
-        DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
+      if (options.Parse(args)) {
+        options.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
+        options.PrintTooltips = true; // Dump tooltips (ErrorLevel.Info) to stdout
+        //options.UnicodeOutput = true; // Use pretty warning signs
+        options.Set(DafnyConsolePrinter.ShowSnippets, false); // Server sometimes has filename == null, which crashes showSnippets
+        options.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
       } else {
         throw new ServerException("Invalid command line options");
       }

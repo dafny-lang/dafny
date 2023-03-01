@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private readonly ReadOnlyCollection<string> headers;
 
-    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(reporter) {
+    public CppCompiler(DafnyOptions options, ErrorReporter reporter, ReadOnlyCollection<string> headers) : base(options, reporter) {
       this.headers = headers;
     }
 
