@@ -5,14 +5,12 @@ using static Microsoft.Dafny.ErrorDetail;
 namespace Microsoft.Dafny;
 
 public class InductionRewriter : IRewriter {
-  private DafnyOptions options;
-  internal InductionRewriter(ErrorReporter reporter, DafnyOptions options) : base(reporter) {
+  internal InductionRewriter(ErrorReporter reporter) : base(reporter) {
     Contract.Requires(reporter != null);
-    this.options = options;
   }
 
   internal override void PostDecreasesResolve(ModuleDefinition m) {
-    if (options.Induction == 0) {
+    if (Reporter.Options.Induction == 0) {
       // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
     } else {
       foreach (var decl in m.TopLevelDecls) {
@@ -89,18 +87,18 @@ public class InductionRewriter : IRewriter {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(searchExprs != null);
-    Contract.Requires(options.Induction != 0);
+    Contract.Requires(Reporter.Options.Induction != 0);
 
     var args = Attributes.FindExpressions(attributes,
       "induction"); // we only look at the first one we find, since it overrides any other ones
     if (args == null) {
-      if (options.Induction < 2) {
+      if (Reporter.Options.Induction < 2) {
         // No explicit induction variables and we're asked not to infer anything, so we're done
         return;
-      } else if (options.Induction == 2 && lemma != null) {
+      } else if (Reporter.Options.Induction == 2 && lemma != null) {
         // We're asked to infer induction variables only for quantifiers, not for lemmas
         return;
-      } else if (options.Induction == 4 && lemma == null) {
+      } else if (Reporter.Options.Induction == 4 && lemma == null) {
         // We're asked to infer induction variables only for lemmas, not for quantifiers
         return;
       }

@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter, DafnyOptions options) {
+    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
@@ -61,7 +61,6 @@ namespace Microsoft.Dafny {
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
-      this.Options = options;
       this.Reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();

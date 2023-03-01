@@ -15,15 +15,13 @@ namespace Microsoft.Dafny;
 ///    wrapper definition.
 /// </summary>
 public class ExpectContracts : IRewriter {
-  private DafnyOptions options;
   private readonly ClonerButDropMethodBodies cloner = new();
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
   private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
   private readonly CallRedirector callRedirector;
 
-  public ExpectContracts(DafnyOptions options, ErrorReporter reporter) : base(reporter) {
-    this.options = options;
-    callRedirector = new(reporter, options);
+  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
+    callRedirector = new(reporter);
   }
 
   /// <summary>
@@ -177,15 +175,13 @@ public class ExpectContracts : IRewriter {
   /// check contracts using expect statements.
   /// </summary>
   private class CallRedirector : TopDownVisitor<MemberDecl> {
-    private DafnyOptions options;
     internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
     private readonly ErrorReporter reporter;
     internal readonly HashSet<MemberDecl> calledWrappers = new();
 
-    public CallRedirector(ErrorReporter reporter, DafnyOptions options) {
+    public CallRedirector(ErrorReporter reporter) {
       this.reporter = reporter;
-      this.options = options;
     }
 
     internal void AddFullName(MemberDecl decl, string fullName) {
@@ -210,7 +206,7 @@ public class ExpectContracts : IRewriter {
         return false;
       }
 
-      var opt = options.TestContracts;
+      var opt = reporter.Options.TestContracts;
       return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
               (opt == DafnyOptions.ContractTestingMode.Externs)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
@@ -282,7 +278,7 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    if (options.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
+    if (Reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
       return;
     }
 

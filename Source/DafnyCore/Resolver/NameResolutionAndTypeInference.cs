@@ -1966,7 +1966,7 @@ namespace Microsoft.Dafny {
             }
             break;
           case "Innable": {
-              var elementType = FindCollectionType(t, true, new HashSet<TypeProxy>()) ?? FindCollectionType(t, false, new HashSet<TypeProxy>());
+              var elementType = FindCollectionType(resolver.Options, t, true, new HashSet<TypeProxy>()) ?? FindCollectionType(resolver.Options, t, false, new HashSet<TypeProxy>());
               if (elementType != null) {
                 var u = Types[1];  // note, it's okay if "u" is a TypeProxy
                 resolver.AddXConstraint(this.tok, "Equatable", elementType, u, new TypeConstraint.ErrorMsgWithBase(errorMsg, "expecting element type to be assignable to {1} (got {0})", u, elementType));
@@ -2264,15 +2264,15 @@ namespace Microsoft.Dafny {
       /// is a collection type, then returns the element/domain type of that collection.
       /// Otherwise, returns null.
       /// </summary>
-      Type FindCollectionType(Type t, bool towardsSub, ISet<TypeProxy> visited) {
+      Type FindCollectionType(DafnyOptions options, Type t, bool towardsSub, ISet<TypeProxy> visited) {
         Contract.Requires(t != null);
         Contract.Requires(visited != null);
         t = t.NormalizeExpand();
-        if (Options.TypeInferenceDebug) {
+        if (options.TypeInferenceDebug) {
           Console.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
         }
         if (t is CollectionType) {
-          if (Options.TypeInferenceDebug) {
+          if (options.TypeInferenceDebug) {
             Console.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
           }
           return ((CollectionType)t).Arg;
@@ -2283,7 +2283,7 @@ namespace Microsoft.Dafny {
         }
         visited.Add(proxy);
         foreach (var sub in towardsSub ? proxy.Subtypes : proxy.Supertypes) {
-          var e = FindCollectionType(sub, towardsSub, visited);
+          var e = FindCollectionType(options, sub, towardsSub, visited);
           if (e != null) {
             return e;
           }

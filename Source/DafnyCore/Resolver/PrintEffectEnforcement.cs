@@ -9,10 +9,8 @@ namespace Microsoft.Dafny {
   // ------------------- PrintEffectEnforcement -------------------
 
   public class PrintEffectEnforcement : IRewriter {
-    private DafnyOptions options;
-    internal PrintEffectEnforcement(ErrorReporter reporter, DafnyOptions options) : base(reporter) {
+    internal PrintEffectEnforcement(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
-      this.options = options;
     }
 
     internal override void PostDecreasesResolve(ModuleDefinition m) {
@@ -20,7 +18,7 @@ namespace Microsoft.Dafny {
         if (decl is IteratorDecl iter) {
           var hasPrintAttribute = HasPrintAttribute(iter.Attributes);
           if (!hasPrintAttribute && iter.Body != null) {
-            if (options.EnforcePrintEffects) {
+            if (Reporter.Options.EnforcePrintEffects) {
               iter.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, iter));
             }
           }
@@ -31,7 +29,7 @@ namespace Microsoft.Dafny {
               if (hasPrintAttribute) {
                 Reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on functions");
               }
-              if (f.ByMethodDecl != null && options.EnforcePrintEffects) {
+              if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
               }
             } else if (member is Method method) {
@@ -43,7 +41,7 @@ namespace Microsoft.Dafny {
                     "not allowed to override a non-printing method with a possibly printing method ('{0}')", method.Name);
                 }
               } else if (!member.IsGhost && method.Body != null) {
-                if (options.EnforcePrintEffects) {
+                if (Reporter.Options.EnforcePrintEffects) {
                   method.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, method));
                 }
               }

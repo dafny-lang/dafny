@@ -900,7 +900,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       if (PrintModeSkipFunctionOrMethod(f.IsGhost, f.Attributes, f.Name)) { return; }
       Indent(indent);
-      PrintClassMethodHelper(f.GetFunctionDeclarationKeywords(), f.Attributes, f.Name, f.TypeArgs);
+      PrintClassMethodHelper(f.GetFunctionDeclarationKeywords(options), f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
       } else {
@@ -1158,7 +1158,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+    public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
         (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && options.DafnyPrintResolvedFile != null)) {

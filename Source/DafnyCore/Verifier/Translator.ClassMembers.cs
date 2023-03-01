@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
     void AddFunction_Top(Function f, bool includeAllMethods) {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(f);
-      isAllocContext = new IsAllocContext(true);
+      isAllocContext = new IsAllocContext(options, true);
 
       AddClassMember_Function(f);
 
@@ -523,7 +523,7 @@ namespace Microsoft.Dafny {
 
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(m.IsGhost);
+      isAllocContext = new IsAllocContext(options, m.IsGhost);
 
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
@@ -739,7 +739,7 @@ namespace Microsoft.Dafny {
 
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(m.IsGhost);
+      isAllocContext = new IsAllocContext(options, m.IsGhost);
 
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
@@ -1360,7 +1360,7 @@ namespace Microsoft.Dafny {
 
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
-      isAllocContext = new IsAllocContext(m.IsGhost);
+      isAllocContext = new IsAllocContext(options, m.IsGhost);
 
       Boogie.Expr prevHeap = null;
       Boogie.Expr currHeap = null;
