@@ -119,9 +119,9 @@ jobs:
           output: both
           thresholds: '70 80'
 
-    - uses: actions/upload-artifact@v3
-      with:
-        name: test-coverage-results
-        path: |
-          coverage-cobertura
-          coverage-html
+      - uses: actions/upload-artifact@v3
+        with:
+          name: test-coverage-results
+          path: |
+            coverage-cobertura
+            coverage-html
