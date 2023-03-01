@@ -1143,7 +1143,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public void PrintType(Type ty) {
       Contract.Requires(ty != null);
-      wr.Write(ty.TypeName(null, true));
+      wr.Write(ty.TypeName(options, null, true));
     }
 
     public void PrintType(string prefix, Type ty) {
@@ -1152,7 +1152,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (options.DafnyPrintResolvedFile != null) {
         ty = ty.Normalize();
       }
-      string s = ty.TypeName(null, true);
+      string s = ty.TypeName(options, null, true);
       if (!(ty is TypeProxy) && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
@@ -2057,7 +2057,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         string sep = "(";
         foreach (BoundVar bv in mc.Arguments) {
           wr.Write("{0}{1}", sep, bv.DisplayName);
-          string typeName = bv.Type.TypeName(null, true);
+          string typeName = bv.Type.TypeName(options, null, true);
           if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
             wr.Write(": {0}", typeName);
           }

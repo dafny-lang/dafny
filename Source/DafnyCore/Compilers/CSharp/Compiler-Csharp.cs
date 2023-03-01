@@ -2355,7 +2355,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
-        return IdProtect(udt.CompileName);
+        return IdProtect(udt.GetCompileName(Options));
       }
 
       //Use the interface if applicable (not handwritten, or incompatible variance)

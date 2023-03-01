@@ -1036,9 +1036,9 @@ namespace Microsoft.Dafny.Compilers {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
         } else if (usePlaceboValue && !hasCompiledValue) {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.GetCompileName(Options)));
         } else {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.GetCompileName(Options)));
         }
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1650,7 +1650,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
-        return IdProtect(udt.CompileName);
+        return IdProtect(udt.GetCompileName(Options));
       } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
