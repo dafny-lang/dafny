@@ -910,3 +910,20 @@ module ConstantFieldReceiverNonNull {
     }
   }
 }
+
+// ---------- Rust assert warning ---------------
+
+module RustAssert {
+  method M(x: int)
+    requires x == 100
+  {
+    assert!(x == 100); // error: assertion does not hold (but a Rust programmer might be surprised)
+  }
+
+  function F(x: int): int
+    requires x == 100
+  {
+    assert!(x == 100); // error: assertion does not hold (but a Rust programmer might be surprised)
+    25
+  }
+}
