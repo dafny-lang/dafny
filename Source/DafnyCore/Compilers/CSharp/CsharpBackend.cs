@@ -48,6 +48,12 @@ public class CsharpBackend : ExecutableBackend {
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();
+    if (!DafnyOptions.O.IncludeRuntimeSource) {
+      // This block is needed to make the test dafny0/DafnyLibClient pass. It's only reachable in the legacy CLI.
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
+    }
 
     var standardLibraries = new List<string>() {
       "System.Runtime",
