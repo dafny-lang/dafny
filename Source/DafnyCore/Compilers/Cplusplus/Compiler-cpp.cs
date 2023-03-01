@@ -1414,7 +1414,7 @@ namespace Microsoft.Dafny.Compilers {
         var sep = "";
         EmitTypeDescriptorsActuals(tas, tok, wr, ref sep);
         string q, n;
-        if (ctor != null && ctor.IsExtern(out q, out n)) {
+        if (ctor != null && ctor.IsExtern(Options, out q, out n)) {
           // the arguments of any external constructor are placed here
           for (int i = 0; i < ctor.Ins.Count; i++) {
             Formal p = ctor.Ins[i];

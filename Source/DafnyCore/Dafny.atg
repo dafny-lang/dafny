@@ -1028,8 +1028,8 @@ Dafny
                                  string parsedFile = scanner.FullFilename;
                                  bool isVerbatimString;
                                  string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                 Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
-                                 includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
+                                 Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
+                                 includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
                                    string basePath = Path.GetDirectoryName(parsedFile);
                                    includedFile = Path.Combine(basePath, includedFile);
@@ -2270,7 +2270,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
-                                       ty = new BitvectorType(w);
+                                       ty = new BitvectorType(theOptions, w);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
@@ -4400,14 +4400,14 @@ LiteralExpression<out Expression e>
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
-                                                  Util.ValidateEscaping(t, s, false, errors);
-                                                  if (Util.UnescapedCharacters(s, false).Count() > 1) {
+                                                  Util.ValidateEscaping(theOptions, t, s, false, errors);
+                                                  if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
                                                     errors.SemErr(t, "too many characters in character literal");
                                                   }
                                                   e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                                  Util.ValidateEscaping(t, s, isVerbatimString, errors);
+                                                  Util.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   ) (. e.RangeToken = new RangeToken(t, t); .)

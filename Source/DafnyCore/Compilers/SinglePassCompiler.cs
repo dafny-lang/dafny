@@ -664,7 +664,7 @@ namespace Microsoft.Dafny.Compilers {
     // and call the constructor with all arguments.
     protected string ConstructorArguments(CallStmt initCall, ConcreteSyntaxTree wStmts, Constructor ctor, string sep = "") {
       var arguments = Enumerable.Empty<string>();
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
+      if (ctor != null && ctor.IsExtern(Options, out _, out _)) {
         // the arguments of any external constructor are placed here
         arguments = ctor.Ins.Select((f, i) => (f, i))
           .Where(tp => !tp.f.IsGhost)
@@ -1431,7 +1431,7 @@ namespace Microsoft.Dafny.Compilers {
 
           } else if (d is TraitDecl trait) {
             // writing the trait
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
@@ -2430,7 +2430,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(cw != null);
       Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
-      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f, false, lookasideBody);
+      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), 
+        f.Formals, f.ResultType, f.tok, f.IsStatic, 
+        !f.IsExtern(Options, out _, out _), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
@@ -2482,7 +2484,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
-      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
+      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(Options, out _, out _), false, lookasideBody);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
@@ -4142,7 +4144,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitNew(typeRhs.EType, typeRhs.Tok, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
         if (typeRhs.InitCall != null) {
-          if (constructor != null && constructor.IsExtern(out _, out _)) {
+          if (constructor != null && constructor.IsExtern(Options, out _, out _)) {
             // initialization was done at the time of allocation
           } else {
             TrCallStmt(typeRhs.InitCall, nw, wStmts);
@@ -4479,7 +4481,7 @@ namespace Microsoft.Dafny.Compilers {
             } else {
               type = instantiatedType;
             }
-            if (s.Method.IsExtern(out _, out _)) {
+            if (s.Method.IsExtern(Options, out _, out _)) {
               type = NativeForm(type);
             }
             outTypes.Add(type);
@@ -4516,7 +4518,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (!s.Method.IsStatic) {
           TrParenExpr(s.Receiver, wr, false, wStmts);
           wr.Write(ClassAccessor);
-        } else if (s.Method.IsExtern(out var qual, out var compileName) && qual != null) {
+        } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
           wr.Write("{0}{1}", qual, ModuleSeparator);
           protectedName = compileName;
         } else {
@@ -4544,7 +4546,7 @@ namespace Microsoft.Dafny.Compilers {
             // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
             var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
-            if (s.Method.IsExtern(out _, out _)) {
+            if (s.Method.IsExtern(Options, out _, out _)) {
               w = EmitCoercionToNativeForm(toType, s.Tok, w);
             }
             w.Append(Expr(s.Args[i], false, wStmts));
@@ -4575,7 +4577,7 @@ namespace Microsoft.Dafny.Compilers {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
               ConcreteSyntaxTree wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr, s.Tok);
-              if (s.Method.IsExtern(out _, out _)) {
+              if (s.Method.IsExtern(Options, out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
               wRhs.Write(outTmps[l]);
@@ -5590,7 +5592,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !(f.EnclosingClass is TraitDecl) && NeedsCustomReceiver(f);
       string qual = "";
       string compileName = "";
-      if (f.IsExtern(out qual, out compileName) && qual != null) {
+      if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
         wr.Write("{0}{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);

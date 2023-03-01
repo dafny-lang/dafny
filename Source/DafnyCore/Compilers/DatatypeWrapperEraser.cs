@@ -119,9 +119,9 @@ namespace Microsoft.Dafny.Compilers {
     public static bool IsErasableDatatypeWrapper(DafnyOptions options, DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
       if (options.Backend.SupportsDatatypeWrapperErasure && options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
         // First, check for all conditions except the non-cycle condition
-        if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
+        if (FindUnwrappedCandidate(options, dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself
-          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, ImmutableHashSet<TopLevelDecl>.Empty)) {
+          if (!CompiledTypeContains(options, candidateCoreDestructor.Type, dt, ImmutableHashSet<TopLevelDecl>.Empty)) {
             coreDestructor = candidateCoreDestructor;
             return true;
           }
@@ -134,9 +134,9 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Check for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6) mentioned in the description of IsErasableDatatypeWrapper.
     /// </summary>
-    private static bool FindUnwrappedCandidate(DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
+    private static bool FindUnwrappedCandidate(DafnyOptions options, DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
       if (datatypeDecl is IndDatatypeDecl &&
-          !datatypeDecl.IsExtern(out _, out _) &&
+          !datatypeDecl.IsExtern(options, out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field)) {
         var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
         if (nonGhostConstructors.Count == 1) {
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Return "true" if a traversal into the components of "type" finds "lookingFor" before passing through any type in "visited".
     /// "lookingFor" is expected not to be a subset type, and "visited" is expected not to contain any subset types.
     /// </summary>
-    private static bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, IImmutableSet<TopLevelDecl> visited) {
+    private static bool CompiledTypeContains(DafnyOptions options, Type type, TopLevelDecl lookingFor, IImmutableSet<TopLevelDecl> visited) {
       type = type.NormalizeExpand();
       if (type is UserDefinedType udt) {
         if (udt.ResolvedClass == lookingFor) {
@@ -176,14 +176,14 @@ namespace Microsoft.Dafny.Compilers {
         // shows that the core destructor of "udt.ResolvedClass" has no cycles, then "udt.ResolvedClass" is
         // indeed an erasable type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
         // an erasable type wrapper, so we abandon (a) and instead do (b).
-        if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(d, out var dtor)) {
+        if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(options, d, out var dtor)) {
           var typeSubst = TypeParameter.SubstitutionMap(d.TypeArgs, udt.TypeArgs);
-          if (CompiledTypeContains(dtor.Type.Subst(typeSubst), lookingFor, visited)) {
+          if (CompiledTypeContains(options, dtor.Type.Subst(typeSubst), lookingFor, visited)) {
             return true;
           }
         }
       }
-      return type.TypeArgs.Any(ty => CompiledTypeContains(ty, lookingFor, visited));
+      return type.TypeArgs.Any(ty => CompiledTypeContains(options, ty, lookingFor, visited));
     }
 
   }

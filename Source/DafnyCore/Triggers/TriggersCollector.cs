@@ -45,11 +45,6 @@ namespace Microsoft.Dafny.Triggers {
     internal static bool Eq(TriggerTerm t1, TriggerTerm t2) {
       return ExprExtensions.ExpressionEq(t1.Expr, t2.Expr);
     }
-
-    internal bool IsTranslatedToFunctionCall() {
-      return (TriggersCollector.TranslateToFunctionCall(this.Expr)) ? true : false;
-    }
-
   }
 
   class TriggerCandidate {
@@ -74,11 +69,11 @@ namespace Microsoft.Dafny.Triggers {
       return "{" + Repr + "}" + (String.IsNullOrWhiteSpace(Annotation) ? "" : " (" + Annotation + ")");
     }
 
-    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier) {
+    internal IEnumerable<TriggerMatch> LoopingSubterms(ComprehensionExpr quantifier, DafnyOptions options) {
       Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); // Don't call this on a quantifier with a Split clause: it's not a real quantifier
       var matchingSubterms = this.MatchingSubterms(quantifier);
       var boundVars = new HashSet<BoundVar>(quantifier.BoundVars);
-      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars));
+      return matchingSubterms.Where(tm => tm.CouldCauseLoops(Terms, boundVars, options));
     }
 
     internal List<TriggerMatch> MatchingSubterms(ComprehensionExpr quantifier) {
@@ -244,7 +239,7 @@ namespace Microsoft.Dafny.Triggers {
       return annotation;
     }
 
-    public static bool IsPotentialTriggerCandidate(Expression expr) {
+    public bool IsPotentialTriggerCandidate(Expression expr) {
       if (expr is FunctionCallExpr ||
           expr is SeqSelectExpr ||
           expr is MultiSelectExpr ||

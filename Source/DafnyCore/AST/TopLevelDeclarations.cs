@@ -13,10 +13,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
     Contract.Invariant(Name != null);
   }
 
-  public static string IdProtect(string name) {
-    return options.Backend.PublicIdProtect(name);
-  }
-
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
@@ -108,7 +104,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
     }
   }
 
-  public bool IsExtern(out string/*?*/ qualification, out string/*?*/ name) {
+  public bool IsExtern(DafnyOptions options, out string/*?*/ qualification, out string/*?*/ name) {
     // ensures result==false ==> qualification == null && name == null
     Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
     // ensures result==true ==> qualification != null ==> name != null

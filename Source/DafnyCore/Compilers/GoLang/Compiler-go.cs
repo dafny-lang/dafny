@@ -914,7 +914,8 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.tok)}.Default({arguments});");
       }
 
-      return new ClassWriter(this, name, dt.IsExtern(out _, out _), null, wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
+      return new ClassWriter(this, name, dt.IsExtern(Options, out _, out _), null, 
+        wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -1440,7 +1441,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is TupleTypeDecl tupleTypeDecl) {
           return HelperModulePrefix + "Tuple";
         }
-        if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
+        if (udt.IsTraitType && udt.ResolvedClass.IsExtern(Options, out _, out _)) {
           // To use an external interface, we need to have values of the
           // interface type, so we treat an extern trait as a plain interface
           // value, not a pointer (a Go interface value is basically a typed
@@ -1807,7 +1808,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine(".VerbatimString(false))");
       } else if (!isString ||
                  (arg.Resolved is MemberSelectExpr mse &&
-                  mse.Member.IsExtern(out _, out _))) {
+                  mse.Member.IsExtern(Options, out _, out _))) {
         wr.Write("_dafny.Print(");
         wr.Append(Expr(arg, false, wStmts));
         wr.WriteLine(")");
@@ -2434,7 +2435,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.EnclosingModuleDefinition.CompileName);
       } else {
-        if (cl.IsExtern(out var qual, out _)) {
+        if (cl.IsExtern(Options, out var qual, out _)) {
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
@@ -2456,7 +2457,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(out _, out _);
+      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(Options, out _, out _);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {

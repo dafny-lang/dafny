@@ -484,7 +484,7 @@ namespace Microsoft.Dafny.Compilers {
       return wGet;
     }
     protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
+      if (m.IsExtern(Options, out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
       }
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
       ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      if (member.IsExtern(out _, out _) && isStatic) {
+      if (member.IsExtern(Options, out _, out _) && isStatic) {
         // No need for abstract version of static method
         return null;
       }
@@ -774,7 +774,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
       string qualification;
-      if (member != null && member.IsExtern(out qualification, out _) && qualification != null) {
+      if (member != null && member.IsExtern(Options, out qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
@@ -2405,7 +2405,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"{DafnyTypeDescriptor}.LONG";
         }
 
-        if (cl.IsExtern(out _, out _)) {
+        if (cl.IsExtern(Options, out _, out _)) {
           var td = $"{DafnyTypeDescriptor}.<{BoxedTypeName(type, wr, tok)}> findType({s}.class";
           if (udt.TypeArgs != null && udt.TypeArgs.Count > 0) {
             td += $", {Util.Comma(udt.TypeArgs, arg => TypeDescriptor(arg, wr, tok))}";
@@ -3279,7 +3279,7 @@ namespace Microsoft.Dafny.Compilers {
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
         var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
         var receiverTypeName = TypeName(receiverType, wr, member.tok);
-        if (member.EnclosingClass.IsExtern(out _, out _)) {
+        if (member.EnclosingClass.IsExtern(Options, out _, out _)) {
           receiverTypeName = FormatExternBaseClassName(receiverTypeName);
         }
         wr.WriteLine("{0} _this = this;", receiverTypeName);

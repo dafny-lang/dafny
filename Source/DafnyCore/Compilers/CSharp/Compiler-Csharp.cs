@@ -255,7 +255,7 @@ namespace Microsoft.Dafny.Compilers {
 
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
       if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
-        if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
+        if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(Options, out var _, out var _))) {
           // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
           var wTypeFields = wBody.Fork();
 
@@ -2350,7 +2350,7 @@ namespace Microsoft.Dafny.Compilers {
         return ArrowType.Arrow_FullCompileName;
       }
 
-      if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
+      if (member != null && member.IsExtern(Options, out var qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
@@ -2369,7 +2369,7 @@ namespace Microsoft.Dafny.Compilers {
         return IdProtect(cl.CompileName);
       }
 
-      if (cl.IsExtern(out _, out _)) {
+      if (cl.IsExtern(Options, out _, out _)) {
         return cl.EnclosingModuleDefinition.CompileName + "." + cl.CompileName;
       }
       return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
