@@ -181,6 +181,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
         defaultValue));
     }
 
+    public static DafnyOptions CheapCreate(params string[] arguments) {
+      var result = new DafnyOptions();
+      result.Parse(arguments);
+      return result;
+    }
+    
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);

@@ -21,7 +21,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      options.PrintMode = PrintModes.Everything;
+      program.Reporter.Options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
@@ -54,9 +54,10 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
+      var options = DafnyOptions.CheapCreate();
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(source, sourceFile);
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
@@ -67,6 +68,7 @@ namespace DafnyTestGeneration {
     }
 
     private static IEnumerable<ProgramModification> GetModifications(Program program) {
+      var options = program.Options;
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
@@ -91,6 +93,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
+      var options = program.Options;
       options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
@@ -117,10 +120,11 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
+      var options = DafnyOptions.CheapCreate();
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
-      var program = Utils.Parse(source, sourceFile);
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield break;
       }

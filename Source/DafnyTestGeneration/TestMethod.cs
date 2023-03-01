@@ -51,7 +51,7 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
-      dafnyModel = DafnyModel.ExtractModel(log);
+      dafnyModel = DafnyModel.ExtractModel(dafnyInfo.Options, log);
       MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
@@ -682,7 +682,7 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       if (errorMessages.Count != 0) {
-        if (options.TestGenOptions.Verbose) {
+        if (DafnyInfo.Options.TestGenOptions.Verbose) {
           lines.AddRange(errorMessages);
         }
         return lines;

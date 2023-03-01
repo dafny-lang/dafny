@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DafnyTestGeneration.Test {
@@ -29,7 +30,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -74,7 +75,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       // Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>

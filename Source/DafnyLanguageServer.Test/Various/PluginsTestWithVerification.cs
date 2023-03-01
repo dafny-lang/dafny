@@ -19,6 +19,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginAndContinueVerification() {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
+    var options = DafnyOptions.CheapCreate();
     var documentItem = CreateTestDocument("function test(): nat { -1 }");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);

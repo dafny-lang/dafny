@@ -49,14 +49,18 @@ public class PluginsTest {
     public string GetLastErrorMessage() {
       return AllMessages[ErrorLevel.Error][0].message;
     }
+
+    public CollectionErrorReporter(DafnyOptions options) : base(options)
+    {
+    }
   }
 
   [Fact]
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
     DafnyOptions.Install(options);
 
@@ -76,8 +80,8 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 
@@ -92,8 +96,8 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
     DafnyOptions.Install(options);
 

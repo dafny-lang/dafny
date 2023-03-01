@@ -17,6 +17,7 @@ namespace DafnyTestGeneration {
   /// visited / path is taken.
   /// </summary>
   public class ProgramModification {
+    public DafnyOptions Options { get; }
 
     private static Dictionary<string, ProgramModification>
       idToModification = new();
@@ -35,23 +36,23 @@ namespace DafnyTestGeneration {
     private string/*?*/ counterexampleLog;
     private TestMethod testMethod;
 
-    public static ProgramModification GetProgramModification(Program program,
+    public static ProgramModification GetProgramModification(DafnyOptions options, Program program,
       Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
       string uniqueId) {
       if (!idToModification.ContainsKey(uniqueId)) {
         idToModification[uniqueId] =
-          new ProgramModification(program, impl, coversBlocks, capturedStates, procedure,
-            uniqueId);
+          new ProgramModification(options, program, impl, coversBlocks, capturedStates, procedure, uniqueId);
       }
       return idToModification[uniqueId];
     }
 
-    private ProgramModification(Program program, Implementation impl,
+    private ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<int> coversBlocks, HashSet<string> capturedStates,
       string procedure, string uniqueId) {
+      Options = options;
       implementation = impl;
       counterexampleStatus = Status.Untested;
-      this.program = Utils.DeepCloneProgram(program);
+      this.program = Utils.DeepCloneProgram(options, program);
       this.procedure = procedure;
       this.coversBlocks = coversBlocks;
       CapturedStates = capturedStates;
@@ -99,9 +100,7 @@ namespace DafnyTestGeneration {
           (coversBlocks.Count != 0 && IsCovered)) {
         return counterexampleLog;
       }
-      var oldOptions = options;
       var options = SetupOptions(procedure);
-      DafnyOptions.Install(options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);
@@ -113,12 +112,11 @@ namespace DafnyTestGeneration {
       var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
             new PipelineStatistics(), null,
             _ => { }, guid),
-          Task.Delay(TimeSpan.FromSeconds(oldOptions.TimeLimit <= 0 ?
-            TestGenerationOptions.DefaultTimeLimit : oldOptions.TimeLimit)));
+          Task.Delay(TimeSpan.FromSeconds(Options.TimeLimit <= 0 ?
+            TestGenerationOptions.DefaultTimeLimit : Options.TimeLimit)));
       program = null; // allows to garbage collect what is no longer needed
       counterexampleStatus = Status.Failure;
       counterexampleLog = null;
-      DafnyOptions.Install(oldOptions);
       if (result is not Task<PipelineOutcome>) {
         if (options.TestGenOptions.Verbose) {
           Console.WriteLine(
@@ -164,7 +162,7 @@ namespace DafnyTestGeneration {
     }
 
     public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
-      if (options.TestGenOptions.Verbose) {
+      if (Options.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
@@ -182,7 +180,7 @@ namespace DafnyTestGeneration {
       if (duplicate == null) {
         return testMethod;
       }
-      if (options.TestGenOptions.Verbose) {
+      if (Options.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}.");
@@ -190,13 +188,12 @@ namespace DafnyTestGeneration {
       return null;
     }
 
-    private static IEnumerable<ProgramModification>
-      ModificationsForImplementation(Implementation implementation) =>
+    private IEnumerable<ProgramModification> ModificationsForImplementation(Implementation implementation) =>
       idToModification.Values.Where(modification =>
         modification.implementation == implementation ||
-        options.TestGenOptions.TargetMethod != null);
+        Options.TestGenOptions.TargetMethod != null);
 
-    private static bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
+    private bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
         modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.All(blockId =>

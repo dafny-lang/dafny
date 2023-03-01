@@ -26,6 +26,7 @@ method {:test} myMethodWrongName() {
   expect result == 1;
 }
 ");
+    var options = DafnyOptions.CheapCreate();
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);

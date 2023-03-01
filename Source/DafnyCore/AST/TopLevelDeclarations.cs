@@ -854,20 +854,27 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   string compileName;
-  public string CompileName {
-    get {
-      if (compileName == null) {
-        var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
-        if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-          compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
-        } else if (externArgs != null) {
-          compileName = Name;
-        } else {
-          compileName = SanitizedName;
-        }
+
+  public string GetCompileName(DafnyOptions options)
+  {
+    if (compileName == null)
+    {
+      var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr)
+      {
+        compileName = (string) ((StringLiteralExpr) externArgs[0]).Value;
       }
-      return compileName;
+      else if (externArgs != null)
+      {
+        compileName = Name;
+      }
+      else
+      {
+        compileName = SanitizedName;
+      }
     }
+
+    return compileName;
   }
 
   /// <summary>
@@ -1143,18 +1150,20 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
       return EnclosingModuleDefinition.Name + "." + Name;
     }
   }
-  public string FullCompileName {
-    get {
-      var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
-      if (!options.DisallowExterns && externArgs != null) {
-        if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
-          return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
-        }
-      }
 
-      return options.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
-        EnclosingModuleDefinition.CompileName, CompileName);
+  public string GetFullCompileName(DafnyOptions options)
+  {
+    var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
+    if (!options.DisallowExterns && externArgs != null)
+    {
+      if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr)
+      {
+        return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
+      }
     }
+
+    return options.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
+      EnclosingModuleDefinition.GetCompileName(options), CompileName);
   }
 
   public TopLevelDecl ViewAsClass {

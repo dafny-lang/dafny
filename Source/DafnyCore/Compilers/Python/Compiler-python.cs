@@ -65,13 +65,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      var moduleName = IdProtect(mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName);
+      var moduleName = IdProtect(mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options));
       if (moduleName != DafnyDefaultModule) {
         wr.WriteLine($"import {moduleName}");
       }
       wr.NewBlockPy("try:")
         .WriteLine($"dafnyArgs = [{DafnyRuntimeModule}.Seq(a) for a in sys.argv]")
-        .WriteLine($"{mainMethod.EnclosingClass.FullCompileName}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
+        .WriteLine($"{mainMethod.EnclosingClass.GetFullCompileName(Options)}.{(IssueCreateStaticMain(mainMethod) ? "StaticMain" : IdName(mainMethod))}(dafnyArgs)");
       wr.NewBlockPy($"except {DafnyRuntimeModule}.HaltException as e:")
         .WriteLine($"{DafnyRuntimeModule}.print(\"[Program halted] \" + e.message + \"\\n\")")
         .WriteLine("sys.exit(1)");
@@ -194,7 +194,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), false,
+      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
         IdName(iter), iter.TypeArgs, iter, null, iter.tok, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -357,13 +357,13 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine("return super().__hash__()");
     }
 
-    private static string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
+    private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
       var dt = ctor.EnclosingDatatype;
-      return $"{(full ? dt.FullCompileName : dt.CompileName)}_{ctor.CompileName}";
+      return $"{(full ? dt.GetFullCompileName(Options) : dt.CompileName)}_{ctor.CompileName}";
     }
 
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(d), d, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(d), d, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(d.tok, d);
       w.WriteLine("@staticmethod");
@@ -1111,7 +1111,7 @@ namespace Microsoft.Dafny.Compilers {
         TypeParameter => $"TypeVar(\'{IdProtect(cl.CompileName)}\')",
         ArrayClassDecl => DafnyArrayClass,
         TupleTypeDecl => "tuple",
-        _ => IdProtect(cl.FullCompileName)
+        _ => IdProtect(cl.GetFullCompileName(Options))
       };
     }
 
@@ -1126,7 +1126,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       if (dtv.IsCoCall) {
-        wr.Write($"{dtv.Ctor.EnclosingDatatype.FullCompileName}__Lazy(lambda: ");
+        wr.Write($"{dtv.Ctor.EnclosingDatatype.GetFullCompileName(Options)}__Lazy(lambda: ");
         var end = wr.Fork();
         wr.Write(")");
         wr = end;

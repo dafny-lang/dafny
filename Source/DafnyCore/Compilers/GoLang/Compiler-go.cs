@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.Compilers {
     // We have to special-case compiling this code a little bit in places to work around
     // features Dafny doesn't support, such as customizing the definition of equality.
     private bool IsDafnySequence(TopLevelDecl d) =>
-      Options.Get(DeveloperOptionBag.Bootstrapping) && d.FullCompileName == "dafny.Sequence";
+      Options.Get(DeveloperOptionBag.Bootstrapping) && d.GetFullCompileName(Options) == "dafny.Sequence";
 
     private string DafnySequenceCompanion => $"{HelperModulePrefix}Companion_Sequence_";
 
@@ -853,7 +853,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var wDefault = w.NewBlock("default:");
         if (dt is CoDatatypeDecl) {
-          wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.EnclosingModuleDefinition.CompileName, dt.CompileName);
+          wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.EnclosingModuleDefinition.GetCompileName(Options), dt.CompileName);
         } else {
           wDefault.WriteLine("return \"<unexpected>\"");
         }
@@ -1640,7 +1640,7 @@ namespace Microsoft.Dafny.Compilers {
       if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
+        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
       }
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
@@ -2433,25 +2433,25 @@ namespace Microsoft.Dafny.Compilers {
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         if (cl.IsExtern(Options, out var qual, out _)) {
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
-            if (this.ModuleName == cl.EnclosingModuleDefinition.CompileName) {
+            if (this.ModuleName == cl.EnclosingModuleDefinition.GetCompileName(Options)) {
               qual = "";
             } else {
-              qual = cl.EnclosingModuleDefinition.CompileName;
+              qual = cl.EnclosingModuleDefinition.GetCompileName(Options);
             }
           }
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (!full || cl.EnclosingModuleDefinition.IsDefaultModule || this.ModuleName == cl.EnclosingModuleDefinition.CompileName) {
+        } else if (!full || cl.EnclosingModuleDefinition.IsDefaultModule || this.ModuleName == cl.EnclosingModuleDefinition.GetCompileName(Options)) {
           return IdName(cl);
         } else {
-          return cl.EnclosingModuleDefinition.CompileName + "." + IdName(cl);
+          return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + IdName(cl);
         }
       }
     }

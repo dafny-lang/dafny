@@ -47,6 +47,10 @@ public class GhostStateDiagnosticCollectorTest {
     public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
       return this.AllMessages;
     }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options)
+    {
+    }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
@@ -61,7 +65,8 @@ public class GhostStateDiagnosticCollectorTest {
   [TestMethod]
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
+    var options = DafnyOptions.CheapCreate();
+    var reporter = new CollectingErrorReporter(options);
     var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter, options);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)

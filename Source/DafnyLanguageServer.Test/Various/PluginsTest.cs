@@ -20,6 +20,7 @@ public class PluginsTest : PluginsTestBase {
   public async Task EnsureItIsPossibleToLoadAPluginWithArguments() {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
     var documentItem = CreateTestDocument("function test(): int { 1 }");
+    var options = DafnyOptions.CheapCreate();
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);

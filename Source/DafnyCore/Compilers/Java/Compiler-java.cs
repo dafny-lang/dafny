@@ -322,7 +322,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier}FromMainArguments(args)); }} );");
@@ -372,7 +372,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -787,10 +787,10 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
-      } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -2104,7 +2104,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtect(dt.FullCompileName);
+      var dtName = IdProtect(dt.GetFullCompileName(Options));
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2504,7 +2504,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type> typeArgs, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
-      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.FullCompileName;
+      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.GetFullCompileName(Options);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       if (!isCoCall) {
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
@@ -3409,7 +3409,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);

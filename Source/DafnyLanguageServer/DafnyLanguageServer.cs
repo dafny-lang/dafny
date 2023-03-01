@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
-        HandleZ3Version(telemetryPublisher, proverOptions);
+        HandleZ3Version(options, telemetryPublisher, proverOptions);
       } catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
+    private static void HandleZ3Version(DafnyOptions options, ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         return;

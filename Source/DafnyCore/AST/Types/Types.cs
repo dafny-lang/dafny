@@ -2232,7 +2232,7 @@ public class UserDefinedType : NonProxyType {
     get {
       Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
       var m = ResolvedClass.EnclosingModuleDefinition;
-      var s = m.IsDefaultModule ? "" : m.CompileName + ".";
+      var s = m.IsDefaultModule ? "" : m.GetCompileName(TODO) + ".";
       return s + "_Companion_" + ResolvedClass.CompileName;
     }
   }

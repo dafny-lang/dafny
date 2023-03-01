@@ -429,7 +429,7 @@ namespace Microsoft.Dafny {
         Util.PrintFunctionCallGraph(dafnyProgram);
       }
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
-        PrintCounterexample(options.ModelViewFile);
+        PrintCounterexample(options, options.ModelViewFile);
       }
       return exitValue;
     }
@@ -551,8 +551,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     /// <param name="modelViewFile"> Name of the file from which to read
     /// the counterexample </param> 
-    private static void PrintCounterexample(string modelViewFile) {
-      var model = DafnyModel.ExtractModel(File.ReadAllText(modelViewFile));
+    private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
+      var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
       Console.WriteLine("Counterexample for first failing assertion: ");
       foreach (var state in model.States.Where(state => !state.IsInitialState)) {
         Console.WriteLine(state.FullStateName + ":");

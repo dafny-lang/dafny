@@ -37,8 +37,8 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
+      BatchErrorReporter reporter = new BatchErrorReporter(options);
       DafnyOptions.Install(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {

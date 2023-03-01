@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.Compilers {
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
 
-    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+    string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
       if (tp is OpaqueTypeDecl) {
         // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
         // anything different from the common case (the "else" branch below), then the code emitted will not
         // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
         // will only work when the opaque type is in the same module and has no type parameters.
-        return $"default({tp.EnclosingModuleDefinition.CompileName + "." + tp.CompileName})";
+        return $"default({tp.EnclosingModuleDefinition.GetCompileName(Options) + "." + tp.CompileName})";
       } else {
         // this is the common case
         return $"_default_{tp.CompileName}";
@@ -358,7 +358,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr);
       var w = cw.InstanceMemberWriter;
       // here come the fields
 
@@ -514,7 +514,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is CoDatatypeDecl) {
           var wCo = wDefault;
           wDefault = new ConcreteSyntaxTree();
-          wCo.Format($"new {dt.FullCompileName}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
+          wCo.Format($"new {dt.GetFullCompileName(Options)}__Lazy{DtT_TypeArgs}(() => {{ return {wDefault}; }})");
         }
 
         wDefault.Write(DtCreateName(groundingCtor));
@@ -622,7 +622,7 @@ namespace Microsoft.Dafny.Compilers {
         ? TypeName(innerType.Subst(typeSubstMap), wr, datatype.tok)
         : "_I" + datatype.CompileName + uTypeArgs;
       var converters = $"{nonGhostTypeArgs.Comma((_, i) => $"converter{i}")}";
-      var lazyClass = $"{datatype.FullCompileName}__Lazy";
+      var lazyClass = $"{datatype.GetFullCompileName(Options)}__Lazy";
       string PrintConverter(TypeParameter tArg, int i) {
         var name = IdName(tArg);
         return $"Func<{name}, __{name}> converter{i}";
@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdName(dt) : dt.FullCompileName;
+      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdName(dt) : dt.GetFullCompileName(Options);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
 
@@ -1084,7 +1084,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewBlock($"public static System.Collections.Generic.IEnumerable<{GetNativeTypeName(nt.NativeType)}> IntegerRange(BigInteger lo, BigInteger hi)");
@@ -1107,7 +1107,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
@@ -2362,7 +2362,7 @@ namespace Microsoft.Dafny.Compilers {
       if ((cl is DatatypeDecl)
           && !ignoreInterface
           && (member is null || !NeedsCustomReceiver(member))) {
-        return (cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.CompileName) + ".") + DtTypeName(cl, false);
+        return (cl.EnclosingModuleDefinition.IsDefaultModule ? "" : IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
       if (cl.EnclosingModuleDefinition.IsDefaultModule) {
@@ -2370,9 +2370,9 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (cl.IsExtern(Options, out _, out _)) {
-        return cl.EnclosingModuleDefinition.CompileName + "." + cl.CompileName;
+        return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + cl.CompileName;
       }
-      return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
+      return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.CompileName);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -2386,7 +2386,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.FullCompileName;
+      var dtName = dt.GetFullCompileName(Options);
 
       var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
       var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
@@ -3265,7 +3265,7 @@ namespace Microsoft.Dafny.Compilers {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
-      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_module." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_module." : "";
       companion = modName + companion;
 
       var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);

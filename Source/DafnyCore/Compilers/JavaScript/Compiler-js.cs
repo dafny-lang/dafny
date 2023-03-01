@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.FullCompileName}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier}FromMainArguments(require('process').argv)));");
+      wr.WriteLine($"_dafny.HandleHaltExceptions(() => {mainMethod.EnclosingClass.GetFullCompileName(Options)}.{(mainMethod.IsStatic ? IdName(mainMethod) : "Main")}(_dafny.{CharMethodQualifier}FromMainArguments(require('process').argv)));");
       Coverage.EmitTearDown(wr);
     }
 
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny.Compilers {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny.Compilers {
           i++;
         }
         var els = w.NewBlock("");
-        els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.CompileName, DtT);
+        els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.GetCompileName(Options), DtT);
 
       } else if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
         // toString method
@@ -540,7 +540,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -569,7 +569,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.GetCompileName(Options)), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
@@ -1528,9 +1528,9 @@ namespace Microsoft.Dafny.Compilers {
         member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -1548,7 +1548,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
-      var dtName = dt.FullCompileName;
+      var dtName = dt.GetFullCompileName(Options);
       var ctorName = ctor.CompileName;
 
       if (dt is TupleTypeDecl) {

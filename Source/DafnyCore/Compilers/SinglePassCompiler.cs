@@ -1313,7 +1313,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
       Type result;
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
+        wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.GetFullCompileName(Options)));
         result = type;
       } else {
         wr.Write("{0}.IntegerRange(", GetHelperModuleName());
@@ -1362,7 +1362,7 @@ namespace Microsoft.Dafny.Compilers {
             moduleIsExtern = true;
           }
         }
-        var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
+        var wr = CreateModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
@@ -1455,7 +1455,7 @@ namespace Microsoft.Dafny.Compilers {
               Error(cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
             }
             if (include) {
-              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(program, cl, cw);
               cw.Finish();

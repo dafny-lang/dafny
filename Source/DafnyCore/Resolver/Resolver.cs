@@ -368,7 +368,7 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        string compileName = m.CompileName;
+        string compileName = m.GetCompileName(Options);
         ModuleDefinition priorModDef;
         if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
           reporter.Error(MessageSource.Resolver, m.tok,
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.CompileName + "_Compile"));
+            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile"));
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone

@@ -88,7 +88,7 @@ public class TestDafny {
 
     var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
-      foreach (var compiler in plugin.GetCompilers(TODO)) {
+      foreach (var compiler in plugin.GetCompilers(dafnyOptions)) {
         var result = RunWithCompiler(options, compiler, expectedOutput);
         if (result != 0) {
           success = false;
@@ -212,7 +212,7 @@ public class TestDafny {
 
     // Header
     Console.Out.Write("| Feature |");
-    var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers(TODO)).ToList();
+    var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers(dafnyOptions)).ToList();
     foreach (var compiler in allCompilers) {
       Console.Out.Write($" {compiler.TargetLanguage} |");
     }

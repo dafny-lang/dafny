@@ -33,7 +33,7 @@ module M {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.AreEqual(2, methods.Count(m => m.MethodName == "M.Inlining.b"));
@@ -66,7 +66,8 @@ module M {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.a";
       options.TestGenOptions.TestInlineDepth = 2;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -105,7 +106,8 @@ module Paths {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -151,7 +153,7 @@ module Paths {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.IsTrue(methods.Count is >= 4 and <= 6);
       Assert.IsTrue(methods.All(m => m.MethodName == "Paths.eightPaths"));
@@ -195,7 +197,8 @@ module Objects {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "Objects.List.IsACircleOfLessThanThree";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -245,7 +248,8 @@ module DataTypes {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "DataTypes.List.Depth";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -282,7 +286,8 @@ module Module {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "Module.ignoreNonNullableObject";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -309,7 +314,8 @@ module M {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
       Assert.IsTrue(stats.Contains("Code at (6,14) is potentially unreachable."));
@@ -327,7 +333,8 @@ method m(a:int) returns (b:int)
   return 1;
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
       Assert.AreEqual(1, stats.Count); // the only line with stats
@@ -347,7 +354,8 @@ module Test {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
       options.TestGenOptions.SeqLengthLimit = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -374,7 +382,8 @@ module Math {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TestInlineDepth = 2;
       options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -402,7 +411,8 @@ module ShortCircuit {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       options.TestGenOptions.TestInlineDepth = 1;
       options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -432,7 +442,8 @@ module C {
   function method m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var options = DafnyOptions.CheapCreate();
+      var program = Utils.Parse(options, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.Exists(m => m.MethodName == "A.m" &&
@@ -471,7 +482,7 @@ module M {
   }  
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(1, methods.Count);
       Assert.IsTrue(methods.All(m =>

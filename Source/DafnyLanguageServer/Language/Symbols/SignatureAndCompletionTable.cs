@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly DafnyLangTypeResolver typeResolver;
 
     public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(new Dafny.Program(
