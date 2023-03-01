@@ -852,15 +852,15 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
-      return IdProtect(d.CompileName);
+      return IdProtect(d.GetCompileName(Options));
     }
     protected virtual string IdName(MemberDecl member) {
       Contract.Requires(member != null);
-      return IdProtect(member.CompileName);
+      return IdProtect(member.GetCompileName(Options));
     }
     protected virtual string IdName(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return IdProtect(tp.CompileName);
+      return IdProtect(tp.GetCompileName(Options));
     }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
@@ -1134,7 +1134,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
       Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts);
     protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
-      wr.Write("{0}.is_{1}", source, ctor.CompileName);
+      wr.Write("{0}.is_{1}", source, ctor.GetCompileName(Options));
     }
     /// <summary>
     /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
@@ -1407,7 +1407,7 @@ namespace Microsoft.Dafny.Compilers {
               CheckForCapitalizationConflicts(ctor.Destructors);
             }
 
-            if (!DeclaredDatatypes.Add((m, dt.CompileName))) {
+            if (!DeclaredDatatypes.Add((m, CompileName: dt.GetCompileName(Options)))) {
               continue;
             }
             var w = DeclareDatatype(dt, wr);
@@ -1431,7 +1431,7 @@ namespace Microsoft.Dafny.Compilers {
 
           } else if (d is TraitDecl trait) {
             // writing the trait
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+            var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
@@ -1863,7 +1863,7 @@ namespace Microsoft.Dafny.Compilers {
             var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
+              classWriter.DeclareField("_" + cf.GetCompileName(Options), c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
             }
             var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
@@ -1872,14 +1872,14 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", cf.CompileName);
+              sw.Write("._{0}", cf.GetCompileName(Options));
             } else {
               EmitCallToInheritedConstRHS(cf, w);
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
+            classWriter.DeclareField("_" + f.GetCompileName(Options), c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, true, member, out wSet, true);
             {
@@ -1887,12 +1887,12 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", f.CompileName);
+              sw.Write("._{0}", f.GetCompileName(Options));
             }
             {
               // set { this._{0} = value; }
               EmitThis(wSet);
-              wSet.Write("._{0}", f.CompileName);
+              wSet.Write("._{0}", f.GetCompileName(Options));
               var sw = EmitAssignmentRhs(wSet);
               sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
               EmitSetterParameter(sw);
@@ -1965,7 +1965,7 @@ namespace Microsoft.Dafny.Compilers {
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null && c is ClassDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
-                classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
+                classWriter.DeclareField("_" + f.GetCompileName(Options), c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
@@ -2370,10 +2370,10 @@ namespace Microsoft.Dafny.Compilers {
         cantChange = Enumerable.Empty<T>();
       }
       IDictionary<string, T> declsByCapName = new Dictionary<string, T>();
-      ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.CompileName));
+      ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.GetCompileName(Options)));
 
       foreach (var decl in canChange) {
-        var name = decl.CompileName;
+        var name = decl.GetCompileName(Options);
         var capName = Capitalize(name);
         if (name == capName) {
           if (fixedNames.Contains(name)) {

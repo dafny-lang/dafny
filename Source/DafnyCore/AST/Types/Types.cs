@@ -2226,15 +2226,14 @@ public class UserDefinedType : NonProxyType {
   }
 
   string compileName;
-  public string CompileName => compileName ??= ResolvedClass.CompileName;
+  public string CompileName => compileName ??= ResolvedClass.GetCompileName(TODO);
 
-  public string FullCompanionCompileName {
-    get {
-      Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-      var m = ResolvedClass.EnclosingModuleDefinition;
-      var s = m.IsDefaultModule ? "" : m.GetCompileName(TODO) + ".";
-      return s + "_Companion_" + ResolvedClass.CompileName;
-    }
+  public string GetFullCompanionCompileName(DafnyOptions options)
+  {
+    Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
+    var m = ResolvedClass.EnclosingModuleDefinition;
+    var s = m.IsDefaultModule ? "" : m.GetCompileName(options) + ".";
+    return s + "_Companion_" + ResolvedClass.GetCompileName(options);
   }
 
   [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator

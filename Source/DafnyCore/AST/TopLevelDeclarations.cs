@@ -94,14 +94,16 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
   protected string compileName;
-  public virtual string CompileName {
-    get {
-      if (compileName == null) {
-        IsExtern(out _, out compileName);
-        compileName ??= SanitizedName;
-      }
-      return compileName;
+
+  public virtual string GetCompileName(DafnyOptions options)
+  {
+    if (compileName == null)
+    {
+      IsExtern(options, out _, out compileName);
+      compileName ??= SanitizedName;
     }
+
+    return compileName;
   }
 
   public bool IsExtern(DafnyOptions options, out string/*?*/ qualification, out string/*?*/ name) {
@@ -184,7 +186,7 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public override string CompileName => SanitizedName; // Ignore :extern
+  public override string GetCompileName(DafnyOptions options) => SanitizedName;
 
   /// <summary>
   /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
@@ -1163,7 +1165,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     }
 
     return options.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
-      EnclosingModuleDefinition.GetCompileName(options), CompileName);
+      EnclosingModuleDefinition.GetCompileName(options), GetCompileName(options));
   }
 
   public TopLevelDecl ViewAsClass {

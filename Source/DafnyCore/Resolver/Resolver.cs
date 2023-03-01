@@ -1950,7 +1950,7 @@ namespace Microsoft.Dafny {
 
               // create and add the query "method" (field, really)
               var queryName = ctor.NameNode.Append("?");
-              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(Options),
                 ctor.IsGhost, Type.Bool, null);
               query.InheritVisibility(dt);
               query.EnclosingClass = dt; // resolve here

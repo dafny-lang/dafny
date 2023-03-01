@@ -47,9 +47,9 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyArrayClass = $"{DafnyRuntimeModule}.Array";
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
-    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+    string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
-      return $"default_{tp.CompileName}";
+      return $"default_{tp.GetCompileName(Options)}";
     }
     protected override string StmtTerminator { get => ""; }
     protected override string True { get => "True"; }
@@ -169,11 +169,11 @@ namespace Microsoft.Dafny.Compilers {
       var methodWriter = wr.NewBlockPy(header: $"class {IdProtect(name)}{baseClasses}:");
 
       var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
-      var args = relevantTypeParameters.Comma(tp => tp.CompileName);
+      var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
       var block = methodWriter.NewBlockPy(header: $"def  __init__(self{args}):", close: BlockStyle.Newline);
       foreach (var tp in relevantTypeParameters) {
-        block.WriteLine("self.{0} = {0}", tp.CompileName);
+        block.WriteLine("self.{0} = {0}", tp.GetCompileName(Options));
       }
       var constructorWriter = block.Fork();
       block.WriteLine("pass");
@@ -238,7 +238,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var DtT = dt.CompileName;
+      var DtT = dt.GetCompileName(Options);
 
       var btw = wr.NewBlockPy($"class {DtT}:", close: BlockStyle.Newline);
 
@@ -264,7 +264,7 @@ namespace Microsoft.Dafny.Compilers {
         var arguments = groundingCtor.Formals.Where(f => !f.IsGhost).Comma(f => DefaultValue(f.Type, wDefault, f.tok));
         var constructorCall = $"{DtCtorDeclarationName(groundingCtor, false)}({arguments})";
         if (dt is CoDatatypeDecl) {
-          constructorCall = $"{dt.CompileName}__Lazy(lambda: {constructorCall})";
+          constructorCall = $"{dt.GetCompileName(Options)}__Lazy(lambda: {constructorCall})";
         }
         wDefault.WriteLine($"return lambda: {constructorCall}");
       }
@@ -274,7 +274,7 @@ namespace Microsoft.Dafny.Compilers {
         .WriteLine("return not self.__eq__(__o)");
 
       if (dt is CoDatatypeDecl) {
-        var w = wr.NewBlockPy($"class {dt.CompileName}__Lazy({IdName(dt)}):");
+        var w = wr.NewBlockPy($"class {dt.GetCompileName(Options)}__Lazy({IdName(dt)}):");
         w.NewBlockPy("def __init__(self, _c):")
           .WriteLine("self._c = _c")
           .WriteLine("self._d = None");
@@ -302,8 +302,8 @@ namespace Microsoft.Dafny.Compilers {
         // Class-level fields don't work in all python version due to metaclasses.
         // Adding a more restrictive type would be desirable, but Python expects their definition to precede this.
         var argList = ctor.Destructors.Where(d => !d.IsGhost)
-          .Select(d => $"('{IdProtect(d.CompileName)}', Any)").Comma();
-        var namedtuple = $"NamedTuple('{IdProtect(ctor.CompileName)}', [{argList}])";
+          .Select(d => $"('{IdProtect(d.GetCompileName(Options))}', Any)").Comma();
+        var namedtuple = $"NamedTuple('{IdProtect(ctor.GetCompileName(Options))}', [{argList}])";
         var header = $"class {DtCtorDeclarationName(ctor, false)}({DtT}, {namedtuple}):";
         var constructor = wr.NewBlockPy(header, close: BlockStyle.Newline);
         DatatypeFieldsAndConstructor(ctor, constructor);
@@ -312,7 +312,7 @@ namespace Microsoft.Dafny.Compilers {
         // def is_Ctor0(self) -> bool:
         //   return isinstance(self, Dt_Ctor0) }
         btw.WriteLine("@property");
-        btw.NewBlockPy($"def is_{ctor.CompileName}(self) -> bool:")
+        btw.NewBlockPy($"def is_{ctor.GetCompileName(Options)}(self) -> bool:")
           .WriteLine($"return isinstance(self, {DtCtorDeclarationName(ctor)})");
       }
 
@@ -359,7 +359,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = true) {
       var dt = ctor.EnclosingDatatype;
-      return $"{(full ? dt.GetFullCompileName(Options) : dt.CompileName)}_{ctor.CompileName}";
+      return $"{(full ? dt.GetFullCompileName(Options) : dt.GetCompileName(Options))}_{ctor.GetCompileName(Options)}";
     }
 
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
@@ -575,7 +575,7 @@ namespace Microsoft.Dafny.Compilers {
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
         if ((thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
-          return $"self.{typeParameter.CompileName}";
+          return $"self.{typeParameter.GetCompileName(Options)}";
         }
         if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(typeParameter, out var instantiatedTypeParameter)) {
           return TypeDescriptor(instantiatedTypeParameter, wr, tok);
@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var cl = udt.ResolvedClass;
       return cl switch {
-        TypeParameter => $"TypeVar(\'{IdProtect(cl.CompileName)}\')",
+        TypeParameter => $"TypeVar(\'{IdProtect(cl.GetCompileName(Options))}\')",
         ArrayClassDecl => DafnyArrayClass,
         TupleTypeDecl => "tuple",
         _ => IdProtect(cl.GetFullCompileName(Options))
@@ -1204,7 +1204,7 @@ namespace Microsoft.Dafny.Compilers {
         case DatatypeDestructor dd: {
             var dest = dd.EnclosingClass switch {
               TupleTypeDecl => $"[{dd.CorrespondingFormals[0].NameForCompilation}]",
-              _ => $".{IdProtect(dd.CompileName)}"
+              _ => $".{IdProtect(dd.GetCompileName(Options))}"
             };
             return SuffixLvalue(obj, dest);
           }
