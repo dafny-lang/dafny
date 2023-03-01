@@ -104,3 +104,9 @@ abstract module M {
 opaque function f(): int {
   0
 }
+
+// A method that's safe for concurrent use because it doesn't touch the
+// heap.
+method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
+  return x;
+}

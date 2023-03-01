@@ -106,7 +106,7 @@ public class Auditor : IRewriter {
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
-    return templateText.Replace("{{TABLE}}", table.ToString());
+    return templateText.Replace("{{TABLE}}\n", table.ToString());
   }
 
   internal override void PostResolve(Program program) {
