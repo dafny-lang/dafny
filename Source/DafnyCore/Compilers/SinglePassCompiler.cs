@@ -322,7 +322,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareLocalVar(string name, Type/*?*/ type, IToken/*?*/ tok, Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = DeclareLocalVar(name, type, tok, wr);
-      TrExpr(rhs, w, inLetExprBody, wStmts);
+      w.Append(Expr(rhs, inLetExprBody, wStmts));
     }
 
     /// <summary>
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny.Compilers {
     protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var wStmts = wr.Fork();
       var w = EmitAssignmentRhs(wr);
-      TrExpr(rhs, w, inLetExprBody, wStmts);
+      w.Append(Expr(rhs, inLetExprBody, wStmts));
     }
 
     protected virtual ConcreteSyntaxTree EmitAssignmentRhs(ConcreteSyntaxTree wr) {
@@ -409,7 +409,7 @@ namespace Microsoft.Dafny.Compilers {
       var target = ProtectedFreshId("_lhs");
       wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
       wr.Write(AssignmentSymbol);
-      TrExpr(e, wr, false, wStmts);
+      wr.Append(Expr(e, false, wStmts));
       EndStmt(wr);
       return target;
     }
@@ -489,7 +489,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      TrExpr(expr, w, inLetExprBody, wStmts);
+      w.Append(Expr(expr, inLetExprBody, wStmts));
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
@@ -701,7 +701,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var dimStrings = dimensions.ConvertAll(expr => {
         var wrDim = new ConcreteSyntaxTree();
-        TrExpr(expr, ExprToInt(expr.Type, wrDim), false, wStmts);
+        ExprToInt(expr.Type, wrDim).Append(Expr(expr, false, wStmts));
         return wrDim.ToString();
       });
       EmitNewArray(elementType, tok, dimStrings, mustInitialize, exampleElement, wr, wStmts);
@@ -751,6 +751,12 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected virtual ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       return wr;
+    }
+
+    protected ConcreteSyntaxTree CoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ICanRender inner) {
+      var result = new ConcreteSyntaxTree();
+      EmitCoercionIfNecessary(from, to, tok, result).Append(inner);
+      return result;
     }
 
     protected ConcreteSyntaxTree EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
@@ -888,16 +894,23 @@ namespace Microsoft.Dafny.Compilers {
       wr.Format($"(({Expr(guard, inLetExprBody, wStmts)}) ? ({castedThenExpr}) : ({castedElseExpr}))");
     }
 
-    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+    public ConcreteSyntaxTree Cast(ICanRender toType, ConcreteSyntaxTree expr) {
       var result = new ConcreteSyntaxTree();
       EmitCast(toType, result).Append(expr);
       return result;
     }
 
-    protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
-      wr.Write("({0})", TypeName(toType, wr, Token.NoToken));
+    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+      var result = new ConcreteSyntaxTree();
+      EmitCast(new LineSegment(TypeName(toType, result, Token.NoToken)), result).Append(expr);
+      return result;
+    }
+
+    protected virtual ConcreteSyntaxTree EmitCast(ICanRender toType, ConcreteSyntaxTree wr) {
+      wr.Format($"({toType})");
       return wr.ForkInParens();
     }
+
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
 
@@ -1064,7 +1077,7 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
       var (wArray, wRhs) = EmitArrayUpdate(indices, rhs.Type, wr);
-      TrExpr(rhs, wRhs, false, wr);
+      wRhs.Append(Expr(rhs, false, wr));
       return wArray;
     }
     /// <summary>
@@ -1084,6 +1097,13 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(fromType != null);
       return arrayIndex;
     }
+
+    protected ConcreteSyntaxTree ExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var result = new ConcreteSyntaxTree();
+      EmitExprAsNativeInt(expr, inLetExprBody, result, wStmts);
+      return result;
+    }
+
     protected abstract void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
@@ -1136,7 +1156,7 @@ namespace Microsoft.Dafny.Compilers {
       bool inLetExprBody, Type bodyType, IToken bodyTok, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
       var innerScope = wStmts.Fork();
       CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, ref wStmts, out var wrRhs, out var wrBody);
-      TrExpr(rhs, wrRhs, inLetExprBody, innerScope);
+      wrRhs.Append(Expr(rhs, inLetExprBody, innerScope));
       return wrBody;
     }
 
@@ -1168,6 +1188,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       // This default implementation does not handle all cases. It handles some cases that look the same
@@ -1181,6 +1202,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
       BinaryExpr.ResolvedOpcode negatedOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no negated op"
@@ -1251,13 +1273,13 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
           e1, e0, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
           e0, e1, tok, resultType,
-          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
       }
@@ -1422,6 +1444,13 @@ namespace Microsoft.Dafny.Compilers {
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
+            }
+            if (DafnyOptions.O.ForbidNondeterminism &&
+                !cl.IsDefaultClass &&
+                !classIsExtern &&
+                !cl.Members.Exists(member => member is Constructor) &&
+                cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+              Error(cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
             }
             if (include) {
               var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
@@ -2547,7 +2576,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
-            TrExpr(rhs, w, inLetExprBody, wStmts);
+            w.Append(Expr(rhs, inLetExprBody, wStmts));
           } else {
             w.Write(rhs_string);
           }
@@ -2618,7 +2647,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree guardWriter;
         var wStmts = wr.Fork();
         var thn = EmitIf(out guardWriter, true, wr);
-        TrExpr(e.Test, guardWriter, false, wStmts);
+        guardWriter.Append(Expr(e.Test, false, wStmts));
         Coverage.Instrument(e.Thn.tok, "then branch", thn);
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
@@ -2739,8 +2768,8 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wLhs, wRhs;
         var wStmts = wr.Fork();
         EmitAssignment(out wLhs, enclosingFunction.ResultType, out wRhs, enclosingFunction.ResultType, wr);
-        TrExpr(acc, wLhs, false, wStmts);
-        TrExpr(rhs, wRhs, false, wStmts);
+        wLhs.Append(Expr(acc, false, wStmts));
+        wRhs.Append(Expr(rhs, false, wStmts));
         TrExprOpt(tailTerm, resultType, wr, accumulatorVar);
 
       } else {
@@ -2897,6 +2926,15 @@ namespace Microsoft.Dafny.Compilers {
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(type, true);
       var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+    }
+
+    protected string DefaultValueCoercedIfNecessary(Type type, ConcreteSyntaxTree wr, IToken tok,
+      bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+
+      var resultWr = new ConcreteSyntaxTree();
+      var coercedWr = EmitCoercionIfNecessary(type, TypeForCoercion(type), tok, resultWr);
+      coercedWr.Write(DefaultValue(type, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
+      return resultWr.ToString();
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -3065,7 +3103,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree bodyWriter = EmitIf(out guardWriter, false, wr);
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
-        TrExpr(negated, guardWriter, false, wStmts);
+        guardWriter.Append(Expr(negated, false, wStmts));
         EmitHalt(s.Tok, s.Message, bodyWriter);
 
       } else if (stmt is CallStmt) {
@@ -3110,7 +3148,7 @@ namespace Microsoft.Dafny.Compilers {
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
           var thenWriter = EmitIf(out guardWriter, s.Els != null || coverageForElse, wr);
-          TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, guardWriter, false, wStmts);
+          guardWriter.Append(Expr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, wStmts));
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
@@ -3139,7 +3177,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var alternative in s.Alternatives) {
           ConcreteSyntaxTree guardWriter;
           var thn = EmitIf(out guardWriter, true, wr);
-          TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, guardWriter, false, wStmts);
+          guardWriter.Append(Expr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, false, wStmts));
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
@@ -3168,7 +3206,7 @@ namespace Microsoft.Dafny.Compilers {
           Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
           var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
-          TrExpr(s.Guard, guardWriter, false, wStmts);
+          guardWriter.Append(Expr(s.Guard, false, wStmts));
         }
 
       } else if (stmt is AlternativeLoopStmt loopStmt) {
@@ -3183,7 +3221,7 @@ namespace Microsoft.Dafny.Compilers {
           foreach (var alternative in loopStmt.Alternatives) {
             ConcreteSyntaxTree guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
-            TrExpr(alternative.Guard, guardWriter, false, wStmts);
+            guardWriter.Append(Expr(alternative.Guard, false, wStmts));
             Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
@@ -3206,7 +3244,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitAssignmentRhs(s.End, false, wr);
         }
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
-        TrExpr(s.Start, startExprWriter, false, wStmts);
+        startExprWriter.Append(Expr(s.Start, false, wStmts));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -3405,15 +3443,15 @@ namespace Microsoft.Dafny.Compilers {
       {
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
-          TrExpr(lhs.Obj, wrTuple, false, wStmts);
+          wrTuple.Append(Expr(lhs.Obj, false, wStmts));
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
-          TrExpr(lhs.Seq, wrTuple, false, wStmts);
+          wrTuple.Append(Expr(lhs.Seq, false, wStmts));
           wrTuple.Write(", ");
           EmitExprAsNativeInt(lhs.E0, false, wrTuple, wStmts);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
-          TrExpr(lhs.Array, wrTuple, false, wStmts);
+          wrTuple.Append(Expr(lhs.Array, false, wStmts));
           for (int i = 0; i < lhs.Indices.Count; i++) {
             wrTuple.Write(", ");
             EmitExprAsNativeInt(lhs.Indices[i], false, wrTuple, wStmts);
@@ -3421,7 +3459,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         wrTuple.Write(", ");
-        TrExpr(rhs, wrTuple, false, wStmts);
+        wrTuple.Append(Expr(rhs, false, wStmts));
       }
 
       return wrOuter;
@@ -3527,17 +3565,17 @@ namespace Microsoft.Dafny.Compilers {
           EmitNull(bv.Type, wLo);
         } else if (bounds != null) {
           var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
-          TrExpr(su.Substitute(low), wLo, inLetExprBody, wStmts);
+          wLo.Append(Expr(su.Substitute(low), inLetExprBody, wStmts));
         } else {
-          TrExpr(su.Substitute(b.LowerBound), wLo, inLetExprBody, wStmts);
+          wLo.Append(Expr(su.Substitute(b.LowerBound), inLetExprBody, wStmts));
         }
         if (b.UpperBound == null) {
           EmitNull(bv.Type, wHi);
         } else if (bounds != null) {
           var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
-          TrExpr(su.Substitute(high), wHi, inLetExprBody, wStmts);
+          wHi.Append(Expr(su.Substitute(high), inLetExprBody, wStmts));
         } else {
-          TrExpr(su.Substitute(b.UpperBound), wHi, inLetExprBody, wStmts);
+          wHi.Append(Expr(su.Substitute(b.UpperBound), inLetExprBody, wStmts));
         }
         return type;
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
@@ -3811,7 +3849,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree guardWriter;
       var wStmtsIf = wr.Fork();
       var wBody = EmitIf(out guardWriter, false, wr);
-      TrExpr(constraint, guardWriter, inLetExprBody, wStmtsIf);
+      guardWriter.Append(Expr(constraint, inLetExprBody, wStmtsIf));
       EmitBreak(doneLabel, wBody);
       copyInstrWriters.Pop();
 
@@ -4087,7 +4125,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (typeRhs == null) {
         var eRhs = (ExprRhs)rhs; // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
-        TrExpr(eRhs.Expr, wr, false, wStmts);
+        wr.Append(Expr(eRhs.Expr, false, wStmts));
 
       } else if (typeRhs.ArrayDimensions != null) {
         var nw = ProtectedFreshId("_nw");
@@ -4144,7 +4182,7 @@ namespace Microsoft.Dafny.Compilers {
           // We use the first element of the array as an "example" for the array to be allocated
           nwElement0 = ProtectedFreshId("_nwElement0_");
           var wrElement0 = DeclareLocalVar(nwElement0, typeRhs.EType, typeRhs.InitDisplay[0].tok, wStmts);
-          TrExpr(typeRhs.InitDisplay[0], wrElement0, false, wStmts);
+          wrElement0.Append(Expr(typeRhs.InitDisplay[0], false, wStmts));
         } else {
           nwElement0 = null;
         }
@@ -4160,7 +4198,7 @@ namespace Microsoft.Dafny.Compilers {
           if (ii == 0 && nwElement0 != null) {
             wElement.Write(nwElement0);
           } else {
-            TrExpr(v, wElement, false, pwStmts);
+            wElement.Append(Expr(v, false, pwStmts));
           }
           wArray.Write(nw);
           EndStmt(wStmts);
@@ -4203,7 +4241,7 @@ namespace Microsoft.Dafny.Compilers {
           dimNames.Add(dimName);
           var wrDim = DeclareLocalVar(dimName, Type.Int, dim.tok, wStmts);
           wrDim = ExprToInt(dim.Type, wrDim);
-          TrExpr(dim, wrDim, false, wStmts);
+          wrDim.Append(Expr(dim, false, wStmts));
         }
 
         // Declare the _nw variable
@@ -4316,6 +4354,7 @@ namespace Microsoft.Dafny.Compilers {
           w = CreateForLoop(indices[d], bound, w);
         }
         var (wArray, wrRhs) = EmitArrayUpdate(indices, typeRhs.EType, w);
+        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Tok, wrRhs);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, indices.Comma(idx => ArrayIndexToInt(idx)));
         wArray.Write(nw);
         EndStmt(w);
@@ -4490,7 +4529,7 @@ namespace Microsoft.Dafny.Compilers {
         if (customReceiver) {
           wr.Write(sep);
           var w = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
-          TrExpr(s.Receiver, w, false, wStmts);
+          w.Append(Expr(s.Receiver, false, wStmts));
           sep = ", ";
         }
         for (int i = 0; i < s.Method.Ins.Count; i++) {
@@ -4506,7 +4545,7 @@ namespace Microsoft.Dafny.Compilers {
             if (s.Method.IsExtern(out _, out _)) {
               w = EmitCoercionToNativeForm(toType, s.Tok, w);
             }
-            TrExpr(s.Args[i], w, false, wStmts);
+            w.Append(Expr(s.Args[i], false, wStmts));
             sep = ", ";
           }
         }
@@ -4694,46 +4733,34 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(wStmts != null);
-      TrExpr(expr, wr.ForkInParens(), inLetExprBody, wStmts);
+      wr.ForkInParens().Append(Expr(expr, inLetExprBody, wStmts));
     }
 
     /// <summary>
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Type/*?*/ type = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true) {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
-      string sep = "";
-      foreach (Expression e in exprs) {
-        wr.Write(sep);
+
+      wr.Comma(exprs, (e, index) => {
         ConcreteSyntaxTree w;
-        if (type != null) {
+        if (typeAt != null) {
           w = wr.Fork();
-          w = EmitCoercionIfNecessary(e.Type, type, e.tok, w);
+          w = EmitCoercionIfNecessary(e.Type, typeAt(index), e.tok, w);
         } else {
           w = wr;
         }
-        TrExpr(e, w, inLetExprBody, wStmts);
-        sep = ", ";
-      }
+        w.Append(Expr(e, inLetExprBody, wStmts));
+      });
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
-    protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+    public ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
-      TrExpr(expr, result, inLetExprBody, wStmts);
-      return result;
-    }
-
-    /// <summary>
-    /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
-    /// In order to give the compiler a way to put supporting statements above the current one, wStmts must be passed.
-    /// </summary>
-    protected internal void TrExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      Contract.Requires(expr != null);
-      Contract.Requires(wr != null);
+      var wr = result;
 
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -4815,7 +4842,7 @@ namespace Microsoft.Dafny.Compilers {
               wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
               obj = w => w.Write(etaReceiver);
             } else {
-              obj = w => TrExpr(e.Obj, w, inLetExprBody, wStmts);
+              obj = w => w.Append(Expr(e.Obj, inLetExprBody, wStmts));
             }
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
           } else {
@@ -4867,8 +4894,8 @@ namespace Microsoft.Dafny.Compilers {
         var e = (DatatypeUpdateExpr)expr;
         if (e.Members.All(member => member.IsGhost)) {
           // all fields to be updated are ghost, which doesn't change the value
-          TrExpr(e.Root, wr, inLetExprBody, wStmts);
-          return;
+          wr.Append(Expr(e.Root, inLetExprBody, wStmts));
+          return result;
         }
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
@@ -4878,18 +4905,23 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Enumerable.Range(0, e.Members.Count).All(j => j == i || e.Members[j].IsGhost));
             Contract.Assert(e.Members.Count == e.Updates.Count);
             var rhs = e.Updates[i].Item3;
-            TrExpr(rhs, wr, inLetExprBody, wStmts);
-            return;
+            wr.Append(Expr(rhs, inLetExprBody, wStmts));
+            return result;
           }
         }
         // the optimized cases don't apply, so proceed according to the desugaring
-        TrExpr(e.ResolvedExpression, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(e.ResolvedExpression, inLetExprBody, wStmts));
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
+
+        void EmitExpr(Expression e2, ConcreteSyntaxTree wr2, bool inLetExpr, ConcreteSyntaxTree wStmts2) {
+          wr2.Append(Expr(e2, inLetExpr, wStmts2));
+        }
+
         if (e.Function is SpecialFunction) {
-          CompileSpecialFunctionCallExpr(e, wr, inLetExprBody, wStmts, TrExpr);
+          CompileSpecialFunctionCallExpr(e, wr, inLetExprBody, wStmts, EmitExpr);
         } else {
-          CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, TrExpr);
+          CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, EmitExpr);
         }
 
       } else if (expr is ApplyExpr) {
@@ -4903,8 +4935,8 @@ namespace Microsoft.Dafny.Compilers {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
           Contract.Assert(0 <= i);
-          TrExpr(dtv.Arguments[i], wr, inLetExprBody, wStmts);
-          return;
+          wr.Append(Expr(dtv.Arguments[i], inLetExprBody, wStmts));
+          return result;
         }
 
         var wrArgumentList = new ConcreteSyntaxTree();
@@ -4914,7 +4946,7 @@ namespace Microsoft.Dafny.Compilers {
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
             var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
-            TrExpr(dtv.Arguments[i], w, inLetExprBody, wStmts);
+            w.Append(Expr(dtv.Arguments[i], inLetExprBody, wStmts));
             sep = ", ";
           }
         }
@@ -4935,7 +4967,7 @@ namespace Microsoft.Dafny.Compilers {
         if (e.ToType.IsRefType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
-          TrExpr(e.E, w, inLetExprBody, wStmts);
+          w.Append(Expr(e.E, inLetExprBody, wStmts));
         } else {
           EmitConversionExpr(e, inLetExprBody, wr, wStmts);
         }
@@ -4944,7 +4976,7 @@ namespace Microsoft.Dafny.Compilers {
         var e = (TypeTestExpr)expr;
         var fromType = e.E.Type;
         if (fromType.IsSubtypeOf(e.ToType, false, false)) {
-          TrExpr(Expression.CreateBoolLiteral(e.tok, true), wr, inLetExprBody, wStmts);
+          wr.Append(Expr(Expression.CreateBoolLiteral(e.tok, true), inLetExprBody, wStmts));
         } else {
           var name = $"_is_{GetUniqueAstNumber(e)}";
           wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr, ref wStmts);
@@ -4963,7 +4995,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(sign.ToString());
         } else {
           string opString, preOpString, postOpString, callString, staticCallString;
-          bool reverseArguments, truncateResult, convertE1_to_int;
+          bool reverseArguments, truncateResult, convertE1_to_int, coerceE1;
           CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
             out opString,
             out preOpString,
@@ -4973,6 +5005,7 @@ namespace Microsoft.Dafny.Compilers {
             out reverseArguments,
             out truncateResult,
             out convertE1_to_int,
+            out coerceE1,
             wr);
 
           if (truncateResult && e.Type.IsBitVectorType) {
@@ -4980,47 +5013,39 @@ namespace Microsoft.Dafny.Compilers {
           }
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
+
+          var left = Expr(e0, inLetExprBody, wStmts);
+          ConcreteSyntaxTree right;
+          if (convertE1_to_int) {
+            right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
+          } else {
+            right = Expr(e1, inLetExprBody, wStmts);
+            if (coerceE1) {
+              right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
+            }
+          }
+
+          wr.Write(preOpString);
           if (opString != null) {
             var nativeType = AsNativeType(e.Type);
-            string nativeName = null, literalSuffix = null;
+            string nativeName = null;
             bool needsCast = false;
             if (nativeType != null) {
-              GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+              GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
             }
 
-            var inner = wr;
+            var opResult = ConcreteSyntaxTree.Create($"{left.InParens()} {opString} {right.InParens()}");
             if (needsCast) {
-              inner = wr.Write("(" + nativeName + ")").ForkInParens();
+              opResult = Cast(new LineSegment(nativeName), opResult);
             }
-            inner.Write(preOpString);
-            TrParenExpr(e0, inner, inLetExprBody, wStmts);
-            inner.Write(" {0} ", opString);
-            if (convertE1_to_int) {
-              EmitExprAsNativeInt(e1, inLetExprBody, inner, wStmts);
-            } else {
-              TrParenExpr(e1, inner, inLetExprBody, wStmts);
-            }
-            wr.Write(postOpString);
+
+            wr.Append(opResult);
           } else if (callString != null) {
-            wr.Write(preOpString);
-            TrParenExpr(e0, wr, inLetExprBody, wStmts);
-            wr.Write(".{0}(", callString);
-            if (convertE1_to_int) {
-              EmitExprAsNativeInt(e1, inLetExprBody, wr, wStmts);
-            } else {
-              TrParenExpr(e1, wr, inLetExprBody, wStmts);
-            }
-            wr.Write(")");
-            wr.Write(postOpString);
+            wr.Format($"{left.InParens()}.{callString}({right})");
           } else if (staticCallString != null) {
-            wr.Write(preOpString);
-            wr.Write("{0}(", staticCallString);
-            TrExpr(e0, wr, inLetExprBody, wStmts);
-            wr.Write(", ");
-            TrExpr(e1, wr, inLetExprBody, wStmts);
-            wr.Write(")");
-            wr.Write(postOpString);
+            wr.Format($"{staticCallString}({left}, {right})");
           }
+          wr.Write(postOpString);
         }
       } else if (expr is TernaryExpr) {
         Contract.Assume(false);  // currently, none of the ternary expressions is compilable
@@ -5044,13 +5069,13 @@ namespace Microsoft.Dafny.Compilers {
               w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
             }
           }
-          TrExpr(e.Body, w, true, wStmts);
+          w.Append(Expr(e.Body, true, wStmts));
         } else if (e.BoundVars.All(bv => bv.IsGhost)) {
           // The Dafny "let" expression
           //    ghost var x,y :| Constraint; E
           // is compiled just like E is, because the resolver has already checked that x,y (or other ghost variables, for that matter) don't
           // occur in E (moreover, the verifier has checked that values for x,y satisfying Constraint exist).
-          TrExpr(e.Body, wr, inLetExprBody, wStmts);
+          wr.Append(Expr(e.Body, inLetExprBody, wStmts));
         } else {
           // The Dafny "let" expression
           //    var x,y :| Constraint; E
@@ -5078,7 +5103,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrExpr(nestedMatchExpr.Flattened, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(nestedMatchExpr.Flattened, inLetExprBody, wStmts));
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
@@ -5147,7 +5172,7 @@ namespace Microsoft.Dafny.Compilers {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(logicalBody, wBody, inLetExprBody, wStmts);
+        wBody.Append(Expr(logicalBody, inLetExprBody, wStmts));
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -5187,7 +5212,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         ConcreteSyntaxTree guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
-        TrExpr(e.Range, guardWriter, inLetExprBody, wStmts);
+        guardWriter.Append(Expr(e.Range, inLetExprBody, wStmts));
         EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
         var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
         EmitReturnExpr(s, bwr);
@@ -5232,13 +5257,13 @@ namespace Microsoft.Dafny.Compilers {
         }
         ConcreteSyntaxTree guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
-        TrExpr(e.Range, guardWriter, inLetExprBody, wStmts);
+        guardWriter.Append(Expr(e.Range, inLetExprBody, wStmts));
         var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
           Contract.Assert(e.BoundVars.Count == 1);
           termLeftWriter.Write(IdName(e.BoundVars[0]));
         } else {
-          TrExpr(e.TermLeft, termLeftWriter, inLetExprBody, wStmts);
+          termLeftWriter.Append(Expr(e.TermLeft, inLetExprBody, wStmts));
         }
 
         var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
@@ -5253,11 +5278,11 @@ namespace Microsoft.Dafny.Compilers {
         wr = EmitReturnExpr(wr);
         // May need an upcast or boxing conversion to coerce to the generic arrow result type
         wr = EmitCoercionIfNecessary(e.Body.Type, TypeForCoercion(e.Type.AsArrowType.Result), e.Body.tok, wr);
-        TrExpr(su.Substitute(e.Body), wr, inLetExprBody, wStmts);
+        wr.Append(Expr(su.Substitute(e.Body), inLetExprBody, wStmts));
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        TrExpr(e.E, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(e.E, inLetExprBody, wStmts));
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
@@ -5265,11 +5290,13 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        TrExpr(e.ResolvedExpression, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(e.ResolvedExpression, inLetExprBody, wStmts));
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+
+      return result;
     }
 
     /// <summary>
@@ -5313,7 +5340,7 @@ namespace Microsoft.Dafny.Compilers {
             wr = EmitBlock(wr);
             var wStmts = wr.Fork();
             wr = EmitReturnExpr(wr);
-            TrExpr(new LiteralExpr(tok, elseReturnValue), wr, inLetExprBody, wStmts);
+            wr.Append(Expr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, wStmts));
           }
           wr = thenWriter;
         }
@@ -5359,13 +5386,13 @@ namespace Microsoft.Dafny.Compilers {
         var constraintInContext = subContract.Substitute(constraint);
         var wStmts = wr.Fork();
         var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-        TrExpr(constraintInContext, guardWriter, inLetExprBody, wStmts);
+        guardWriter.Append(Expr(constraintInContext, inLetExprBody, wStmts));
         if (isReturning) {
           var elseBranch = wr;
           elseBranch = EmitBlock(elseBranch);
           elseBranch = EmitReturnExpr(elseBranch);
           wStmts = elseBranch.Fork();
-          TrExpr(new LiteralExpr(tok, elseReturnValue), elseBranch, inLetExprBody, wStmts);
+          elseBranch.Append(Expr(new LiteralExpr(tok, elseReturnValue), inLetExprBody, wStmts));
         }
         wr = thenWriter;
       }
@@ -5580,7 +5607,7 @@ namespace Microsoft.Dafny.Compilers {
       if (customReceiver) {
         wr.Write(sep);
         var w = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, e.Function), e.tok, wr);
-        TrExpr(e.Receiver, w, inLetExprBody, wStmts);
+        w.Append(Expr(e.Receiver, inLetExprBody, wStmts));
         sep = ", ";
       }
       for (int i = 0; i < e.Args.Count; i++) {

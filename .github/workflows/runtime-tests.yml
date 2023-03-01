@@ -3,8 +3,11 @@ name: Build and Test Dafny Runtimes
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ master ]
-  push:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: unit-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check-deep-tests:
