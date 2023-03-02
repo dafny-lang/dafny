@@ -427,7 +427,9 @@ namespace Microsoft.Dafny {
 
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);  // Make sure to add this before IncludedLemmaBodyRemover
-      rewriters.Add(new IncludedLemmaBodyRemover(reporter));
+      if (Options.VerifyAllModules) {
+        rewriters.Add(new IncludedLemmaBodyRemover(reporter));
+      }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));
       rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
