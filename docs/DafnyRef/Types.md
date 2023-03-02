@@ -230,7 +230,7 @@ Real literals using exponents are not supported in Dafny. For now, you'd have to
 <!-- %check-verify -->
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
-function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+function realExp(r: real, e: int): real decreases if e > 0 then e else -e {
   if e == 0 then r
   else if e < 0 then realExp(r/10.0, e+1)
   else realExp(r*10.0, e-1)
@@ -647,8 +647,30 @@ At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
 If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
-that is, the variable is _auto-initialized_.
+that is, the variable is _auto-initialized_, but to an arbitrary value.
 For example,
+<!-- %check-verify Types.21.expect -->
+```dafny
+class Example<A(0), X> {
+  var n: nat
+  var i: int
+  var a: A
+  var x: X
+
+  constructor () {
+    new; // error: field 'x' has not been given a value`
+    assert n >= 0; // true, regardless of the value of 'n'
+    assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
+    // 'a' does not require an explicit initialization, since 'A' is auto-init
+  }
+}
+```
+In the example above, the class fields do not need to be explicitly initialized
+in the constructor because they are auto-initialized to an arbitrary value.
+
+Local variables and out-parameters are however, subject to definite assignment
+rules. The following example requires `--relax-definite-assignment`,
+which is not the default.
 <!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
 ```dafny
 method m() {
@@ -658,13 +680,16 @@ method m() {
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
+With the default behavior of definite assignment, `n` and `i` need to be initialized
+to an explicit value of their type or to an arbitrary value using, for example,
+`var n: nat := *;`.
 
 For some types (known as _auto-init types_), the compiler can choose an
 initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 12.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
+For more details see [Section 12.6](#sec-definite-assignment) and the `--relax-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
@@ -690,7 +715,8 @@ out-parameter `a`.
 Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports
 a type characteristic for nonempty types, written with the suffix `(00)`.
-For example,
+For example, with `--relax-definite-assignment`, the following example happens:
+
 <!-- %check-verify Types.8.expect %options --relax-definite-assignment -->
 ```dafny
 method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
@@ -706,6 +732,11 @@ non-ghost `b`, since `B` is not an auto-init type, and reports an error
 for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
+
+In the default definite-assignment mode (that is, without `--relax-definite-assignment`)
+there will be errors for all three formal parameters in the example just given.
+
+For more details see [Section 12.6](#sec-definite-assignment).
 
 #### 5.3.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
@@ -1381,7 +1412,7 @@ Examples:
 <!-- %check-resolve -->
 ```dafny
 type T
-type Q { function method toString(t: T): string }
+type Q { function toString(t: T): string }
 ```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
@@ -1679,10 +1710,10 @@ If you are wrong, you have introduced an unsoundness into your program.
 In addition though, types are allowed to be empty or possibly empty.
 This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
 A declaration like this produces an empty type:
-<!-- %check-verify -->
+<!-- %check-verify %save ReallyEmpty.tmp -->
 ```dafny
 type ReallyEmpty = x: int | false witness *
-``` <!-- %save ReallyEmpty.tmp -->
+```
 The type can be used in code like
 <!-- %check-verify %use ReallyEmpty.tmp -->
 ```dafny
@@ -2118,11 +2149,11 @@ they cannot both be extendees of the same class or trait.
 
 ### 5.9.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
-<!-- %check-verify -->
+<!-- %check-verify %save Shape.tmp -->
 ```dafny
 trait Shape
 {
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 1
   method Move(dx: real, dy: real)
@@ -2133,18 +2164,18 @@ trait Shape
     Move(dx, 0.0);
   }
 }
-``` <!-- %save Shape.tmp -->
+```
 Members `Width` and `Move` are _abstract_ (that is, body-less) and can
 be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
 is used by all classes that extend `Shape`.  Here are two classes
 that each extend `Shape`:
-<!-- %check-verify %use Shape.tmp -->
+<!-- %check-verify %use Shape.tmp %save UnitSquare.tmp -->
 ```dafny
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real 
+  function Width(): real 
     decreases 0
   {  // note the empty reads clause
     1.0
@@ -2159,7 +2190,7 @@ class UnitSquare extends Shape
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 0
   {
@@ -2171,7 +2202,7 @@ class LowerRightTriangle extends Shape
     xNW, yNW, xSE, ySE := xNW + dx, yNW + dy, xSE + dx, ySE + dy;
   }
 }
-``` <!-- %save UnitSquare.tmp -->
+```
 Note that the classes can declare additional members, that they supply
 implementations for the abstract members of the trait,
 that they repeat the member signatures, and that they are responsible
@@ -2437,7 +2468,7 @@ constructor (_in-params_)
 An iterator is created using `new` and this anonymous constructor.
 For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
-<!-- %check-verify -->
+<!-- %check-verify %save Gen.tmp -->
 ```dafny
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
@@ -2449,7 +2480,7 @@ iterator Gen(start: int) yields (x: int)
     i := i + 1;
   }
 }
-``` <-- %save Gen.tmp -->
+```
 An instance of this iterator is created using
 <!-- %no-check -->
 ```dafny
@@ -2737,7 +2768,7 @@ considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
 <!-- %check-resolve Types.18.expect -->
 ```dafny
-function method F(x: int, ghost y: int): int
+function F(x: int, ghost y: int): int
 {
   x
 }
@@ -2885,10 +2916,10 @@ constructor `C`, Dafny defines a _destructor_ `p`, which is a member
 that returns the `p` parameter from the `C` call used to construct the
 datatype value; its use requires that `C?` holds.  For example, for
 the standard `List` type
-<!-- %check-resolve -->
+<!-- %check-resolve %save List.tmp -->
 ```dafny
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-``` <!-- %save List.tmp -->
+```
 the following holds:
 <!-- %check-verify %use List.tmp -->
 ```dafny
@@ -3166,7 +3197,7 @@ of a datatype, giving prominence to the constructors (following Coq). The
 following example defines a co-datatype Stream of possibly
 infinite lists.
 
-<!-- %check-verify -->
+<!-- %check-verify %save Stream.tmp -->
 ```dafny
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 function Up(n: int): Stream<int> { SCons(n, Up(n+1)) }
@@ -3178,7 +3209,7 @@ function FivesUp(n: int): Stream<int>
   else
     FivesUp(n+1)
 }
-``` <!-- %save Stream.tmp -->
+```
 
 `Stream` is a coinductive datatype whose values are possibly infinite
 lists. Function `Up` returns a stream consisting of all integers upwards
@@ -3251,7 +3282,7 @@ liberty of making up a coordinating syntax for the signature of the
 automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
-<!-- %check-resolve %use Stream.tmp -->
+<!-- %check-resolve %use Stream.tmp %save Pos.tmp -->
 ```dafny
 greatest predicate Pos[nat](s: Stream<int>)
 {
@@ -3259,7 +3290,7 @@ greatest predicate Pos[nat](s: Stream<int>)
   case SNil => true
   case SCons(x, rest) => x > 0 && Pos(rest)
 }
-``` <!-- %save Pos.tmp -->
+```
 The following code is automatically generated by the Dafny compiler:
 <!-- %no-check -->
 ```dafny
@@ -3838,7 +3869,7 @@ is always ghost. It is appropriate to think of these two implicit heap parameter
 representing a "current" heap and an "old" heap.
 
 For example, the predicate
-<!-- %check-verify -->
+<!-- %check-verify %save Increasing.tmp -->
 ```dafny
 class Cell { var data: int  constructor(i: int) { data := i; } }
 twostate predicate Increasing(c: Cell)
@@ -3846,7 +3877,7 @@ twostate predicate Increasing(c: Cell)
 {
   old(c.data) <= c.data
 }
-``` <!-- %save Increasing.tmp -->
+```
 returns `true` if the value of `c.data` has not been reduced from the old state to the
 current. Dereferences in the current heap are written as usual (e.g., `c.data`) and
 must, as usual, be accounted for in the function's `reads` clause. Dereferences in the
@@ -4207,12 +4238,12 @@ consider the following example, which specifies reachability between
 nodes in a directed graph. A `Node` is declared to have any number of
 children:
 
-<!-- %check-verify -->
+<!-- %check-verify %save Node.tmp -->
 ```dafny
 class Node {
   var children: seq<Node>
 }
-``` <!-- %save Node.tmp -->
+```
 
 There are several ways one could specify reachability between
 nodes. One way (which is used in `Test/dafny1/SchorrWaite.dfy` in the
@@ -4220,7 +4251,7 @@ Dafny test suite) is to define a type `Path`, representing lists of
 `Node`s, and to define a predicate that checks if a given list of
 `Node`s is indeed a path between two given nodes:
 
-<!-- %check-verify %use Node.tmp -->
+<!-- %check-verify %use Node.tmp %save ReachableVia.tmp -->
 ```dafny
 datatype Path = Empty | Extend(Path, Node)
 
@@ -4234,7 +4265,7 @@ predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
   case Extend(prefix, n) =>
     n in S && sink in n.children && ReachableVia(source, prefix, n, S)
 }
-``` <!-- %save ReachableVia.tmp -->
+```
 
 In a nutshell, the definition of `ReachableVia` says
 
@@ -4314,7 +4345,7 @@ to restrict it to non-heap based types, which is indicated with the
 
 <!-- %check-verify -->
 ```dafny
-predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
+ghost predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
 {
   forall x, y :: r(x, y) == r(y, x) // allowed
 }
@@ -4405,13 +4436,13 @@ class Node {
 
 datatype Path = Empty | Extend(Path, Node)
 
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
+ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
   exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
 }
 
-predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
+ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {

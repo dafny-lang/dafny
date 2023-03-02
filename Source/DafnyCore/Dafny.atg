@@ -105,6 +105,8 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
       if (declCaption.Contains("-by-method")) {
         SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken,true),
           $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
+      } else if (declCaption == "a function" || declCaption == "a predicate") {
+        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
       } else {
         SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }

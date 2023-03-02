@@ -6,43 +6,6 @@ namespace Microsoft.Dafny;
 
 public class ArrowType : UserDefinedType {
 
-  public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    Contract.Requires(builtIns != null);
-    var arrTy = e.Type.AsArrowType;
-    if (arrTy != null) {
-      var bvars = new List<BoundVar>();
-      var bexprs = new List<Expression>();
-      foreach (var t in arrTy.Args) {
-        var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
-        bvars.Add(bv);
-        bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
-      }
-
-      var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-      var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
-      bvars.Add(oVar);
-
-      return
-        new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
-              Type = new SetType(true, builtIns.ObjectQ())
-            }) {
-            ResolvedOp =
-              arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
-              arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
-              BinaryExpr.ResolvedOpcode.InSet,
-            Type = Type.Bool
-          }, obj, null) {
-          Type = new SetType(true, builtIns.ObjectQ())
-        };
-    } else {
-      return e;
-    }
-  }
-
   public List<Type> Args {
     get { return TypeArgs.GetRange(0, Arity); }
   }
