@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
-    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents, 
+    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents,
       ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       private readonly SignatureHelpParams request;
       private readonly CancellationToken cancellationToken;
 
-      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, IdeState state, SignatureHelpParams request, 
+      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, IdeState state, SignatureHelpParams request,
         CancellationToken cancellationToken, DafnyOptions options) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;

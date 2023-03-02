@@ -12,7 +12,7 @@ using System.Reactive;
 namespace Microsoft.Dafny {
 
   public class UselessOldLinter : IRewriter {
-    
+
     internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
       base.PostResolveIntermediate(moduleDefinition);
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {

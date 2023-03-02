@@ -171,7 +171,6 @@ public class GoBackend : ExecutableBackend {
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");
 
-  public GoBackend(DafnyOptions options) : base(options)
-  {
+  public GoBackend(DafnyOptions options) : base(options) {
   }
 }

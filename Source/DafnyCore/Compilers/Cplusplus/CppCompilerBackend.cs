@@ -54,7 +54,6 @@ public class CppCompilerBackend : ExecutableBackend {
 
   public override bool TextualTargetIsExecutable => false;
 
-  public CppCompilerBackend(DafnyOptions options) : base(options)
-  {
+  public CppCompilerBackend(DafnyOptions options) : base(options) {
   }
 }

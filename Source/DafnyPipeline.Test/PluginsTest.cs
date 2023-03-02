@@ -50,8 +50,7 @@ public class PluginsTest {
       return AllMessages[ErrorLevel.Error][0].message;
     }
 
-    public CollectionErrorReporter(DafnyOptions options) : base(options)
-    {
+    public CollectionErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 

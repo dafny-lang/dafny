@@ -362,7 +362,7 @@ to also include a directory containing the `z3` executable.
       }
 
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
-      var (outcome, stats) = await BoogiePipelineWithRerun(options, 
+      var (outcome, stats) = await BoogiePipelineWithRerun(options,
         output, engine, boogieProgram, bplFilename,
         1 < options.VerifySnapshots ? moduleId : null);
       return (outcome, stats);

@@ -257,8 +257,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ConsoleErrorReporter(DafnyOptions options) : base(options)
-    {
+    public ConsoleErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 

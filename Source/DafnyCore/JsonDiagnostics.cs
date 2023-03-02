@@ -103,8 +103,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
     tw.Flush();
   }
 
-  public DafnyJsonConsolePrinter(DafnyOptions options) : base(options)
-  {
+  public DafnyJsonConsolePrinter(DafnyOptions options) : base(options) {
   }
 }
 
@@ -118,7 +117,6 @@ public class JsonConsoleErrorReporter : BatchErrorReporter {
     return false;
   }
 
-  public JsonConsoleErrorReporter(DafnyOptions options) : base(options)
-  {
+  public JsonConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

@@ -27,8 +27,7 @@ public class DafnyLangSymbolResolverTest {
       return this.AllMessages;
     }
 
-    public CollectingErrorReporter(DafnyOptions options) : base(options)
-    {
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 

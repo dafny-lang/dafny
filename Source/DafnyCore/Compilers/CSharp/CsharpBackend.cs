@@ -184,7 +184,6 @@ public class CsharpBackend : ExecutableBackend {
     return false;
   }
 
-  public CsharpBackend(DafnyOptions options) : base(options)
-  {
+  public CsharpBackend(DafnyOptions options) : base(options) {
   }
 }

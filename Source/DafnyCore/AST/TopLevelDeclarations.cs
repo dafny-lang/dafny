@@ -95,10 +95,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   protected string compileName;
 
-  public virtual string GetCompileName(DafnyOptions options)
-  {
-    if (compileName == null)
-    {
+  public virtual string GetCompileName(DafnyOptions options) {
+    if (compileName == null) {
       IsExtern(options, out _, out compileName);
       compileName ??= SanitizedName;
     }
@@ -857,21 +855,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   string compileName;
 
-  public string GetCompileName(DafnyOptions options)
-  {
-    if (compileName == null)
-    {
+  public string GetCompileName(DafnyOptions options) {
+    if (compileName == null) {
       var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
-      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr)
-      {
-        compileName = (string) ((StringLiteralExpr) externArgs[0]).Value;
-      }
-      else if (externArgs != null)
-      {
+      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+        compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+      } else if (externArgs != null) {
         compileName = Name;
-      }
-      else
-      {
+      } else {
         compileName = SanitizedName;
       }
     }
@@ -1153,13 +1144,10 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     }
   }
 
-  public string GetFullCompileName(DafnyOptions options)
-  {
+  public string GetFullCompileName(DafnyOptions options) {
     var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
-    if (!options.DisallowExterns && externArgs != null)
-    {
-      if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr)
-      {
+    if (!options.DisallowExterns && externArgs != null) {
+      if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
         return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
       }
     }

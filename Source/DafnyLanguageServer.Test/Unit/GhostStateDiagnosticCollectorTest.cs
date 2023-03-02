@@ -48,8 +48,7 @@ public class GhostStateDiagnosticCollectorTest {
       return this.AllMessages;
     }
 
-    public CollectingErrorReporter(DafnyOptions options) : base(options)
-    {
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 

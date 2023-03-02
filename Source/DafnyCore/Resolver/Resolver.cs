@@ -242,12 +242,12 @@ namespace Microsoft.Dafny {
 
     public Resolver(Program prog) {
       Options = prog.Options;
-      
+
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
       enclosingStatementLabels = new Scope<Statement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
-      
+
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;

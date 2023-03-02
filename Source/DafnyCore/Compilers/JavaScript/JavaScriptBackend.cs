@@ -94,7 +94,6 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
-  public JavaScriptBackend(DafnyOptions options) : base(options)
-  {
+  public JavaScriptBackend(DafnyOptions options) : base(options) {
   }
 }

@@ -186,7 +186,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       cheapImmutableOptions ??= Create();
       return cheapImmutableOptions;
     }
-    
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);

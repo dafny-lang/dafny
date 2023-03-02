@@ -64,8 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         throw new NotImplementedException();
       }
 
-      public ParserExceptionSimulatingErrorReporter(DafnyOptions options) : base(options)
-      {
+      public ParserExceptionSimulatingErrorReporter(DafnyOptions options) : base(options) {
       }
     }
 

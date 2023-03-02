@@ -914,7 +914,7 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.tok)}.Default({arguments});");
       }
 
-      return new ClassWriter(this, name, dt.IsExtern(Options, out _, out _), null, 
+      return new ClassWriter(this, name, dt.IsExtern(Options, out _, out _), null,
         wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
     }
 

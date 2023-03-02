@@ -2430,8 +2430,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(cw != null);
       Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
-      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), 
-        f.Formals, f.ResultType, f.tok, f.IsStatic, 
+      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
+        f.Formals, f.ResultType, f.tok, f.IsStatic,
         !f.IsExtern(Options, out _, out _), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;

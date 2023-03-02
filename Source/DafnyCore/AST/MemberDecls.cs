@@ -240,8 +240,7 @@ public class SpecialField : Field {
     }
   }
 
-  public override string GetCompileName(DafnyOptions options)
-  {
+  public override string GetCompileName(DafnyOptions options) {
     Contract.Ensures(Contract.Result<string>() != null);
     return EnclosingClass != null ? base.GetCompileName(options) : Name;
   }
@@ -656,11 +655,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  public override string GetCompileName(DafnyOptions options)
-  {
+  public override string GetCompileName(DafnyOptions options) {
     var nm = base.GetCompileName(options);
-    if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint)
-    {
+    if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
       // for a static method that is named "Main" but is not a legal "Main" method,
       // change its name.
       nm = EnclosingClass.Name + "_" + nm;

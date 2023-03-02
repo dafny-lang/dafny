@@ -105,7 +105,7 @@ public abstract class Type : TokenNode {
 
   [Pure]
   public abstract string TypeName(DafnyOptions options, ModuleDefinition/*?*/ context, bool parseAble = false);
-  
+
   [Pure]
   public override string ToString() {
     return TypeName(DafnyOptions.CheapCreate(), null, false);
@@ -2229,8 +2229,7 @@ public class UserDefinedType : NonProxyType {
   string compileName;
   public string GetCompileName(DafnyOptions options) => compileName ??= ResolvedClass.GetCompileName(options);
 
-  public string GetFullCompanionCompileName(DafnyOptions options)
-  {
+  public string GetFullCompanionCompileName(DafnyOptions options) {
     Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
     var m = ResolvedClass.EnclosingModuleDefinition;
     var s = m.IsDefaultModule ? "" : m.GetCompileName(options) + ".";

@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
         InsertChecksums = 0 < options.VerifySnapshots;
       }
 
-      public bool InsertChecksums { get; init;  }
+      public bool InsertChecksums { get; init; }
       public string UniqueIdPrefix = null;
       public bool ReportRanges = false;
     }

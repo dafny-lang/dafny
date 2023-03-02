@@ -190,7 +190,6 @@ public class JavaBackend : ExecutableBackend {
 
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
 
-  public JavaBackend(DafnyOptions options) : base(options)
-  {
+  public JavaBackend(DafnyOptions options) : base(options) {
   }
 }

@@ -85,7 +85,6 @@ public class PythonBackend : ExecutableBackend {
     return 0 == RunProcess(psi, outputWriter);
   }
 
-  public PythonBackend(DafnyOptions options) : base(options)
-  {
+  public PythonBackend(DafnyOptions options) : base(options) {
   }
 }

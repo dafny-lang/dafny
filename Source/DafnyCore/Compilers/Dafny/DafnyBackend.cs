@@ -102,7 +102,6 @@ public class DafnyBackend : ExecutableBackend {
 
   }
 
-  public DafnyBackend(DafnyOptions options) : base(options)
-  {
+  public DafnyBackend(DafnyOptions options) : base(options) {
   }
 }

@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ISymbolGuesser symbolGuesser;
     private DafnyOptions options;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, 
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents,
       ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;

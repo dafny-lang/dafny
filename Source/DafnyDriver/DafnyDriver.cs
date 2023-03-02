@@ -591,10 +591,9 @@ namespace Microsoft.Dafny {
     }
 
     public async Task<(bool IsVerified, PipelineOutcome Outcome, IDictionary<string, PipelineStatistics> ModuleStats)>
-      BoogieAsync(DafnyOptions options, 
-        string baseName, 
-        IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) 
-    {
+      BoogieAsync(DafnyOptions options,
+        string baseName,
+        IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(Console.Out);
