@@ -48,6 +48,13 @@ jobs:
         Expand-Archive dafny*.zip
         mv dafny*/dafny dafny
 
+    ## Check that a simple program compiles and runs on each supported platform
+    - name: run quicktests
+      run: |
+        npm install bignumber.js
+        dafny/quicktest.sh > log.txt
+        diff log.txt dafny/quicktest.out
+    
     ## Create a simple smoke test program
     - name: Make test program
       run: |
@@ -77,12 +84,6 @@ jobs:
     - name: Check bad - Windows
       if: runner.os == 'Windows'
       run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
-    ## Check that a simple program compiles and runs on each supported platform
-    - name: run quicktests
-      run: |
-        npm install bignumber.js
-        dafny/quicktest.sh > log.txt
-        diff log.txt dafny/quicktest.out
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
