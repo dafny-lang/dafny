@@ -24,7 +24,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
-  private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution (note that "methodBody" is a "DividedBlockStmt" for any "Method" that is a "Constructor")
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
@@ -125,7 +124,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     this.Mod = mod;
     this.Ens = ens;
     this.Decreases = decreases;
-    this.methodBody = body;
+    Body = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
