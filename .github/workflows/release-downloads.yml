@@ -35,7 +35,7 @@ jobs:
       uses: dsaltares/fetch-gh-release-asset@master
       with:
         repo: dafny-lang/dafny
-        file: "dafny-.*-${{ matrix.os }}\\.zip"
+        file: "dafny-.*-x64-${{ matrix.os }}\\.zip"
         regex: true
         target: "./"
     - run: ls
