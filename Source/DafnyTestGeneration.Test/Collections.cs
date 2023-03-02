@@ -9,11 +9,6 @@ namespace DafnyTestGeneration.Test {
   [TestClass]
   public class Collections {
 
-    [TestInitialize]
-    public void SetupDafnyOptions() {
-      Setup.SetupDafnyOptions();
-    }
-
     [TestMethod]
     public async Task StringLength() {
       var source = @"
@@ -30,7 +25,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.DefaultImmutableOptions, source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -75,7 +70,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.DefaultImmutableOptions, source);
+      var program = Utils.Parse(DafnyOptions.Create(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       // Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>

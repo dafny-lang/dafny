@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      var options = DafnyOptions.DefaultImmutableOptions;
+      var options = DafnyOptions.Create();
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, sourceFile);
@@ -100,7 +100,8 @@ namespace DafnyTestGeneration {
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
-      foreach (var modification in GetModifications(program)) {
+      var programModifications = GetModifications(program).ToList();
+      foreach (var modification in programModifications) {
 
         var log = await modification.GetCounterExampleLog();
         if (log == null) {
@@ -120,7 +121,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      var options = DafnyOptions.DefaultImmutableOptions;
+      var options = DafnyOptions.Create();
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();

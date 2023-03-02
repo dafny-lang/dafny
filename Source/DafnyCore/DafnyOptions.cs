@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
@@ -1070,6 +1071,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TODO".Replace("%SUPPORTED_OPTIONS%",
         string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
+    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new ConcurrentDictionary<string, Version>();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
@@ -1121,7 +1123,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       if (confirmedProverPath is not null) {
         ProverOptions.Add($"{pp}{confirmedProverPath}");
-        return GetZ3Version(confirmedProverPath);
+        return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
       return null;
