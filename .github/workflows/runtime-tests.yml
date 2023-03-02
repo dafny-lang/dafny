@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [ master, main-* ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
