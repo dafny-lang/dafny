@@ -6,7 +6,7 @@ on:
     branches: [ master, main-* ]
 
 concurrency:
-  group: runtime-${{ github.event.pull_request.number || github.ref }}
+  group: runtime-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

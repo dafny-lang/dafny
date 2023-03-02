@@ -12,7 +12,7 @@ on:
     branches: [ master, main-* ]
 
 concurrency:
-  group: doc-check-${{ github.event.pull_request.number || github.ref }}
+  group: doc-check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

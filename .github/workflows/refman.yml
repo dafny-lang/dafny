@@ -6,7 +6,7 @@ on:
     branches: [ master, main-* ]
 
 concurrency:
-  group: refman-${{ github.event.pull_request.number || github.ref }}
+  group: refman-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
