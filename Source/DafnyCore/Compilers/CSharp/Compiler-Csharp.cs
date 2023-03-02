@@ -80,10 +80,10 @@ namespace Microsoft.Dafny.Compilers {
       }
       EmitDafnySourceAttribute(program, wr);
 
-      if (DafnyOptions.O.IncludeRuntimeSource) {
+      if (DafnyOptions.O.IncludeRuntime) {
         ReadRuntimeSystem(program, "DafnyRuntime.cs", wr);
       }
-      
+
     }
 
     /// <summary>

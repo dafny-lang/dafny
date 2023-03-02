@@ -137,8 +137,8 @@ public class JavaBackend : ExecutableBackend {
     // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
     if (targetFilename != null) {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      var parts = new List<string> {".", targetDirectory, classpath};
-      if (!DafnyOptions.O.IncludeRuntimeSource) {
+      var parts = new List<string> { ".", targetDirectory, classpath };
+      if (!DafnyOptions.O.IncludeRuntime) {
         EmitRuntimeJar(targetDirectory);
         parts.Add(Path.Combine(targetDirectory, "DafnyRuntime.jar"));
       }

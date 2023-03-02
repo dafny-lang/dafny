@@ -118,10 +118,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var rt = wr.NewFile("DafnyRuntime.h");
 
-      if (DafnyOptions.O.IncludeRuntimeSource) {
+      if (DafnyOptions.O.IncludeRuntime) {
         ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
       }
-      
+
     }
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
       // Define default values for each datatype

@@ -298,7 +298,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
-      if (DafnyOptions.O.IncludeRuntimeSource) {
+      if (DafnyOptions.O.IncludeRuntime) {
         EmitRuntimeSource(program, wr);
       }
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");

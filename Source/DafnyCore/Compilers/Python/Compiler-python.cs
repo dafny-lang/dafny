@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string Conj { get => "and"; }
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
-      if (DafnyOptions.O.IncludeRuntimeSource) {
+      if (DafnyOptions.O.IncludeRuntime) {
         ReadRuntimeSystem(program, "DafnyRuntime.py", wr.NewFile($"{DafnyRuntimeModule}.py"));
       }
 
