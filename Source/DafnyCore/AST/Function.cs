@@ -351,4 +351,93 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     formatter.SetExpressionIndentation(Body);
     return true;
   }
+
+  /// <summary>
+  /// Assumes type parameters have already been pushed
+  /// </summary>
+  public void Resolve(Resolver resolver) {
+    Contract.Requires(this != null);
+    Contract.Requires(resolver.AllTypeConstraints.Count == 0);
+    Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    // make note of the warnShadowing attribute
+    bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+    bool warnShadowing = false;
+    if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
+      DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+    }
+
+    resolver.scope.PushMarker();
+    if (IsStatic) {
+      resolver.scope.AllowInstance = false;
+    }
+
+    foreach (Formal p in Formals) {
+      resolver.scope.Push(p.Name, p);
+    }
+
+    resolver.ResolveParameterDefaultValues(Formals, ResolutionContext.FromCodeContext(this));
+
+    foreach (AttributedExpression e in Req) {
+      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
+      Expression r = e.E;
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
+    }
+    foreach (FrameExpression fr in Reads) {
+      resolver.ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, this);
+    }
+
+    resolver.scope.PushMarker();
+    if (Result != null) {
+      resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
+    }
+    foreach (AttributedExpression e in Ens) {
+      Expression r = e.E;
+      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction) with { InFunctionPostcondition = true });
+      Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
+    }
+    resolver.scope.PopMarker(); // function result name
+
+    resolver.ResolveAttributes(Decreases, new ResolutionContext(this, this is TwoStateFunction));
+    foreach (Expression r in Decreases.Expressions) {
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      // any type is fine
+    }
+    resolver.SolveAllTypeConstraints(); // solve type constraints in the specification
+
+    if (Body != null) {
+      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
+      Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
+      resolver.SolveAllTypeConstraints();
+    }
+
+    resolver.scope.PushMarker();
+    if (Result != null) {
+      resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
+    }
+    resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateFunction), true);
+    resolver.scope.PopMarker(); // function result name
+
+    resolver.scope.PopMarker(); // formals
+
+    if (ByMethodBody != null) {
+      Contract.Assert(Body != null && !IsGhost); // assured by the parser and other callers of the Function constructor
+      var method = ByMethodDecl;
+      if (method != null) {
+        method.Resolve(resolver);
+      } else {
+        // method should have been filled in by now,
+        // unless there was a function by method and a method of the same name
+        // but then this error must have been reported.
+        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+      }
+    }
+
+    DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+  }
 }

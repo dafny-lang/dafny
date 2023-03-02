@@ -6,6 +6,10 @@ on:
   # For manual testing through the Actions UI
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
 
