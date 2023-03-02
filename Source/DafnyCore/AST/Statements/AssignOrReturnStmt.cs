@@ -227,7 +227,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         // LHS failed to resolve. Abort trying to resolve assign or return stmt
         return;
       } else {
-        throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
+        throw new InvalidOperationException("Internal error: unexpected option in AssignOrReturnStmt.Resolve");
       }
     }
     var temp = resolver.FreshTempVarName("valueOrError", resolutionContext.CodeContext);
