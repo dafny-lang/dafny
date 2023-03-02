@@ -5,11 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
-using System.CommandLine.Binding;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -181,11 +178,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
         defaultValue));
     }
 
-    private static DafnyOptions cheapImmutableOptions;
-    public static DafnyOptions CheapCreate() {
-      cheapImmutableOptions ??= Create();
-      return cheapImmutableOptions;
-    }
+    private static DafnyOptions defaultImmutableOptions;
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create();
 
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
@@ -237,17 +231,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public bool RunLanguageServer { get; set; }
-
-    private static DafnyOptions clo;
-
-    // public static DafnyOptions O {
-    //   get { return clo; }
-    // }
-
-    public static void Install(DafnyOptions options) {
-      Contract.Requires(options != null);
-      clo = options;
-    }
 
     public enum DiagnosticsFormats {
       PlainText,

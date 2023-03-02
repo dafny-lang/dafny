@@ -665,7 +665,7 @@ public class MatchFlattener : IRewriter {
     public override string ToString() {
       var bodyStr = "";
       foreach (var stmt in this.Body) {
-        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(DafnyOptions.CheapCreate(), stmt), "\t");
+        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, stmt), "\t");
       }
       return string.Format("\t> id: {0}\n\t> patterns: <{1}>\n\t-> body:\n{2} \n", this.CaseId, String.Join(",", this.Patterns.ConvertAll(x => x.ToString())), bodyStr);
     }
@@ -680,7 +680,7 @@ public class MatchFlattener : IRewriter {
 
     public override string ToString() {
       return
-        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(DafnyOptions.CheapCreate(), this.Body)}";
+        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this.Body)}";
     }
   }
 

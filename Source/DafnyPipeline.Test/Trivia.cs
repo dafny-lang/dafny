@@ -20,7 +20,6 @@ namespace DafnyPipeline.Test {
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
       var options = DafnyOptions.Create();
       ErrorReporter reporter = new ConsoleErrorReporter(options);
-      DafnyOptions.Install(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"

@@ -109,7 +109,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
-      DafnyOptions.Install(dafnyOptions);
       ExitValue exitValue;
 
       switch (cliArgumentsResult) {

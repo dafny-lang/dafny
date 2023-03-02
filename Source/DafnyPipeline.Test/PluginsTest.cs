@@ -61,7 +61,6 @@ public class PluginsTest {
     var options = DafnyOptions.Create();
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
     ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
@@ -82,7 +81,6 @@ public class PluginsTest {
     var options = DafnyOptions.Create();
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(options, programString, reporter);
@@ -98,7 +96,6 @@ public class PluginsTest {
     var options = DafnyOptions.Create();
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(options, programString, reporter);

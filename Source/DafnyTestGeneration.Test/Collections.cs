@@ -30,7 +30,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
+      var program = Utils.Parse(DafnyOptions.DefaultImmutableOptions, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -75,7 +75,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.CheapCreate(), source);
+      var program = Utils.Parse(DafnyOptions.DefaultImmutableOptions, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       // Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>

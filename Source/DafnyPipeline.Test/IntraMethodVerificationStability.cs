@@ -150,7 +150,6 @@ module SomeModule {
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
 
       var regularBoogie = GetBoogie(options, originalProgram).ToList();
       var renamedBoogie = GetBoogie(options, renamedProgram).ToList();
@@ -168,7 +167,6 @@ module SomeModule {
     public async Task EqualProverLogWhenReorderingProgram() {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("SomeMethod*");
-      DafnyOptions.Install(options);
 
       var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, reorderedProgram));
       var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
@@ -179,7 +177,6 @@ module SomeModule {
     public async Task EqualProverLogWhenRenamingProgram() {
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod*");
-      DafnyOptions.Install(options);
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram));
       var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
@@ -191,7 +188,6 @@ module SomeModule {
 
       var options = DafnyOptions.Create();
       options.ProcsToCheck.Add("*SomeMethod *");
-      DafnyOptions.Install(options);
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram + originalProgram));
       var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));

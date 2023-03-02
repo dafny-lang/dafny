@@ -18,7 +18,6 @@ namespace DafnyPipeline.Test {
       var options = DafnyOptions.Create();
       ErrorReporter reporter = new ConsoleErrorReporter(options);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
-      DafnyOptions.Install(options);
 
       var programString = @"trait Trait<A, B> { }";
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);

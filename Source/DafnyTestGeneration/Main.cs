@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      var options = DafnyOptions.CheapCreate();
+      var options = DafnyOptions.DefaultImmutableOptions;
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, sourceFile);
@@ -120,7 +120,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      var options = DafnyOptions.CheapCreate();
+      var options = DafnyOptions.DefaultImmutableOptions;
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();

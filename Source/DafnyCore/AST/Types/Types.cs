@@ -108,7 +108,7 @@ public abstract class Type : TokenNode {
 
   [Pure]
   public override string ToString() {
-    return TypeName(DafnyOptions.CheapCreate(), null, false);
+    return TypeName(DafnyOptions.DefaultImmutableOptions, null, false);
   }
 
   /// <summary>

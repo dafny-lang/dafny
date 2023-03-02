@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     public override string ToString() {
-      return Printer.ExprToString(DafnyOptions.CheapCreate(), Expr);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Expr);
       // NOTE: Using OriginalExpr here could cause some confusion:
       // for example, {a !in b} is a binary expression, yielding
       // trigger {a in b}. Saying the trigger is a !in b would be

@@ -47,7 +47,6 @@ namespace Microsoft.Dafny {
     }
 
     internal static void ApplyArgs(string[] args, DafnyOptions options) {
-      Dafny.DafnyOptions.Install(options);
       options.TimeLimit = 10; //This is just a default; it can be overriden
       options.VerifySnapshots = 3;
 

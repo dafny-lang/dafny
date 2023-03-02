@@ -39,7 +39,6 @@ namespace DafnyPipeline.Test {
       bool reduceBlockiness = true) {
       var options = DafnyOptions.Create();
       BatchErrorReporter reporter = new BatchErrorReporter(options);
-      DafnyOptions.Install(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;

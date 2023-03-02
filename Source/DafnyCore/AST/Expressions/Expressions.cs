@@ -90,7 +90,7 @@ public abstract class Expression : TokenNode {
 
   public override string ToString() {
     try {
-      return Printer.ExprToString(DafnyOptions.CheapCreate(), this);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print expr because: {e.Message}";
     }

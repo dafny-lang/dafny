@@ -159,7 +159,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   public override string ToString() {
     try {
-      return Printer.StatementToString(DafnyOptions.CheapCreate(), this);
+      return Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print stmt because: {e.Message}";
     }

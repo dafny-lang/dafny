@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public void DocumentWithParserExceptionDisplaysIt() {
       var source = "function t() { / }";
-      var options = DafnyOptions.CheapCreate();
+      var options = DafnyOptions.DefaultImmutableOptions;
       var documentItem = CreateTestDocument(source, TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
       parser.Parse(documentItem, errorReporter, default);

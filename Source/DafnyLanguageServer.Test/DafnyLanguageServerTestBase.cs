@@ -70,7 +70,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
-      DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {

@@ -64,7 +64,7 @@ public class GhostStateDiagnosticCollectorTest {
   [TestMethod]
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
-    var options = DafnyOptions.CheapCreate();
+    var options = DafnyOptions.DefaultImmutableOptions;
     var reporter = new CollectingErrorReporter(options);
     var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
