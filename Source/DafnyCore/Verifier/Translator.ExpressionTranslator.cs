@@ -718,7 +718,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(GetToken(e), e.Frame, false, Resolver.FrameExpressionUse.Unchanged, OldAt(e.AtLabel), this, this, true);
+          return translator.FrameCondition(GetToken(e), e.Frame, false, FrameExpressionUse.Unchanged, OldAt(e.AtLabel), this, this, true);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;

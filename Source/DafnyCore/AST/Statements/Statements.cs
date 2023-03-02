@@ -30,6 +30,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
+  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+    resolver.ResolveAttributes(this, resolutionContext);
+  }
+
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
     this.attributes = cloner.CloneAttributes(original.Attributes);
@@ -779,30 +783,6 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat 
 }
 
 /// <summary>
-/// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
-/// </summary>
-public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
-  public readonly List<Expression> Lhss;
-
-  protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
-    Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
-  }
-
-  public ConcreteUpdateStatement(RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
-    : base(rangeToken, attrs) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Lhss = lhss;
-  }
-
-  public override IEnumerable<Node> Children => Lhss;
-  public override IEnumerable<Node> PreResolveChildren => Lhss;
-
-  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    return formatter.SetIndentUpdateStmt(this, indentBefore, false);
-  }
-}
-
-/// <summary>
 /// Attributed tokens are used when a subpart of a statement or expression can take attributes.
 /// (Perhaps in addition to attributes placed on the token itself.)
 ///
@@ -813,79 +793,6 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
 /// </summary>
 public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
   Attributes IAttributeBearingDeclaration.Attributes => Attrs;
-}
-
-public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly bool CanMutateKnownState;
-  public Expression OriginalInitialLhs = null;
-
-  public override IToken Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
-
-  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
-  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
-
-  public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
-  public override IEnumerable<Node> PreResolveChildren => Lhss.Concat<Node>(Rhss);
-
-  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Lhss));
-    Contract.Invariant(cce.NonNullElements(Rhss));
-  }
-
-  public UpdateStmt Clone(Cloner cloner) {
-    return new UpdateStmt(cloner, this);
-  }
-
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
-    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
-    CanMutateKnownState = original.CanMutateKnownState;
-    if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
-    }
-  }
-
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = false;
-  }
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = mutate;
-  }
-  public override IEnumerable<Expression> PreResolveSubExpressions {
-    get {
-      foreach (var e in base.PreResolveSubExpressions) {
-        yield return e;
-      }
-      foreach (var rhs in Rhss) {
-        foreach (var e in rhs.PreResolveSubExpressions) {
-          yield return e;
-        }
-      }
-    }
-  }
 }
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
