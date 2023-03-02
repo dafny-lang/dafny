@@ -1997,7 +1997,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")))) {
+              !(!DafnyOptions.O.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -2038,7 +2038,7 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!DafnyOptions.O.DisallowExterns && (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
+                     !(!DafnyOptions.O.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
