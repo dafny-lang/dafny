@@ -90,7 +90,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
           if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
             // Builtin types were never resolved.
             constraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              ExpressionTester.CheckIsCompilable(reporter.Options, null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
             subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
             subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
           }

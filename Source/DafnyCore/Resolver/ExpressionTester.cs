@@ -26,8 +26,8 @@ public class ExpressionTester {
   }
 
   // Static call to CheckIsCompilable
-  public static bool CheckIsCompilable([CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, resolver?.Reporter, resolver.Options).CheckIsCompilable(expr, codeContext);
+  public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] Resolver resolver, Expression expr, ICodeContext codeContext) {
+    return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext);
   }
   // Static call to CheckIsCompilable
   public static bool CheckIsCompilable(Resolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {

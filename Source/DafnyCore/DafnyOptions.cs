@@ -181,10 +181,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         defaultValue));
     }
 
-    public static DafnyOptions CheapCreate(params string[] arguments) {
-      var result = new DafnyOptions();
-      result.Parse(arguments);
-      return result;
+    private static DafnyOptions cheapImmutableOptions;
+    public static DafnyOptions CheapCreate() {
+      cheapImmutableOptions ??= Create();
+      return cheapImmutableOptions;
     }
     
     public static DafnyOptions Create(params string[] arguments) {
@@ -209,13 +209,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("dafny", "Dafny program verifier", null) {
+      : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
       Printer = new DafnyConsolePrinter(this);
+      Printer.Options = this;
     }
 
     public override string VersionNumber {

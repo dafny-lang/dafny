@@ -2517,14 +2517,14 @@ namespace Microsoft.Dafny {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
             subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
             subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
                 var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-                ExpressionTester.CheckIsCompilable(this, subsetTypeDecl.Witness, codeContext);
+                ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
               }
             }
 
@@ -2538,7 +2538,7 @@ namespace Microsoft.Dafny {
             }
             if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
               var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(this, newtypeDecl.Witness, codeContext);
+              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
             }
 
             FigureOutNativeType(newtypeDecl);
@@ -3219,7 +3219,7 @@ namespace Microsoft.Dafny {
             CheckParameterDefaultValuesAreCompilable(function.Formals, function);
             if (function.ByMethodBody == null) {
               if (!function.IsGhost && function.Body != null) {
-                ExpressionTester.CheckIsCompilable(this, function.Body, function);
+                ExpressionTester.CheckIsCompilable(Options, this, function.Body, function);
               }
               if (function.Body != null) {
                 new TailRecursion(reporter).DetermineTailRecursion(function);
@@ -3239,7 +3239,7 @@ namespace Microsoft.Dafny {
             }
 
           } else if (member is ConstantField field && field.Rhs != null && !field.IsGhost) {
-            ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
+            ExpressionTester.CheckIsCompilable(Options, this, field.Rhs, field);
           }
 
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -3266,7 +3266,7 @@ namespace Microsoft.Dafny {
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
         if ((!codeContext.IsGhost || codeContext is DatatypeDecl) && !formal.IsGhost) {
-          ExpressionTester.CheckIsCompilable(this, formal.DefaultValue, codeContext);
+          ExpressionTester.CheckIsCompilable(Options, this, formal.DefaultValue, codeContext);
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
       }
