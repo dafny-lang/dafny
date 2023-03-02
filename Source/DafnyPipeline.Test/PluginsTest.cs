@@ -69,7 +69,7 @@ public class PluginsTest {
     Microsoft.Dafny.Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns(options);
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
     Main.Resolve(dafnyProgram, reporter);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
@@ -113,7 +113,7 @@ public class PluginsTest {
     Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns(options);
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
     return dafnyProgram;
   }
 }

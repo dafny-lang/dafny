@@ -245,7 +245,7 @@ module SomeModule {
       var errorReporter = new ConsoleErrorReporter(options);
       var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
       Assert.Equal(0, parseResult);
-      var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter, options);
+      var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
       Main.Resolve(dafnyProgram, errorReporter);
       Assert.Equal(0, errorReporter.ErrorCount);
       return Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();

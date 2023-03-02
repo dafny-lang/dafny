@@ -67,7 +67,7 @@ namespace DafnyTestGeneration {
     /// is private meaning that the only way of setting this field is by calling
     /// options.Parse() on a new DafnyObject.
     /// </summary>
-    private static DafnyOptions SetupOptions(string procedure) {
+    private static DafnyOptions SetupOptions(DafnyOptions original, string procedure) {
       var options = DafnyOptions.Create();
       options.Parse(new[] { "/proc:" + procedure });
       options.NormalizeNames = false;
@@ -80,13 +80,13 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
-      options.Prune = !options.TestGenOptions.DisablePrune;
-      options.ProverOptions.AddRange(options.ProverOptions);
-      options.LoopUnrollCount = options.LoopUnrollCount;
-      options.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
-      options.WarnShadowing = options.WarnShadowing;
-      options.VerifyAllModules = options.VerifyAllModules;
-      options.TimeLimit = options.TimeLimit;
+      options.Prune = !original.TestGenOptions.DisablePrune;
+      options.ProverOptions.AddRange(original.ProverOptions);
+      options.LoopUnrollCount = original.LoopUnrollCount;
+      options.DefiniteAssignmentLevel = original.DefiniteAssignmentLevel;
+      options.WarnShadowing = original.WarnShadowing;
+      options.VerifyAllModules = original.VerifyAllModules;
+      options.TimeLimit = original.TimeLimit;
       return options;
     }
 
@@ -100,7 +100,7 @@ namespace DafnyTestGeneration {
           (coversBlocks.Count != 0 && IsCovered)) {
         return counterexampleLog;
       }
-      var options = SetupOptions(procedure);
+      var options = SetupOptions(Options, procedure);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       var guid = Guid.NewGuid().ToString();
       program.Resolve(options);

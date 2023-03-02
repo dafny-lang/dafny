@@ -64,7 +64,7 @@ namespace DafnyTestGeneration {
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = new Program(fileName, module, builtIns, reporter, DafnyOptions.Create());
+        program = new Program(fileName, module, builtIns, reporter);
       }
       if (program == null) {
         return null;

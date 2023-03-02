@@ -1407,7 +1407,7 @@ namespace Microsoft.Dafny.Compilers {
               CheckForCapitalizationConflicts(ctor.Destructors);
             }
 
-            if (!DeclaredDatatypes.Add((m, CompileName: dt.GetCompileName(Options)))) {
+            if (!DeclaredDatatypes.Add((m, dt.GetCompileName(Options)))) {
               continue;
             }
             var w = DeclareDatatype(dt, wr);

@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
                      Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter, Options);
+        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
       }
       return success;
     }
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags(Options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 

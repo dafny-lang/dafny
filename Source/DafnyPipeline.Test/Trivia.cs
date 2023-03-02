@@ -76,7 +76,7 @@ ensures true
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
