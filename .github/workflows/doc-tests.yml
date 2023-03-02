@@ -12,7 +12,7 @@ on:
     branches: [ master, main-* ]
 
 concurrency:
-  group: doc-check-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
