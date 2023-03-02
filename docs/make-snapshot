@@ -15,15 +15,29 @@
 
 ## The script takes one argument -- the release name in X.Y.Z form
 ## (The script prepends a 'v' as the release folder name.)
+## It also takes one option: -b <branchname>
+## (the branch used defaults to 'master')
 
 if [ ! `which gh` ]; then echo "This script requires that gh is installed"; exit 1; fi
 if [ ! `which git` ]; then echo "This script requires that git is installed"; exit 1; fi
+
+if [ "$#" == "0" ]; then
+  echo "Usage: ./make-snapshot -b <branch> <version>"
+  exit 0
+fi
+
+branch=master
+if [ "$1" == "-b" ]; then
+  branch=$2
+  shift 2
+fi
 
 if [ "$#" != "1" ]; then
   echo Expected the new version number as the one argument, in the format x.y.z
   exit 1
 fi
 
+echo Making a snapshot from branch $branch named version $1
 
 ## The version name
 V=v$1
@@ -42,7 +56,7 @@ P=/tmp/docsnapshotT
 rm -rf $P
 mkdir $P
 pushd $P
-git clone https://github.com/dafny-lang/dafny.git -b master --depth 1
+git clone https://github.com/dafny-lang/dafny.git -b $branch --depth 1
 git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1
 popd
 
@@ -58,13 +72,13 @@ echo Version is "$V"
 echo Branch is "$B"
 
 ## Changes locally
-git checkout -b "$B" master
+git checkout -b "$B" $branch
 sed -i -e "szlatest)zlatest)\n- [$V](https://dafny.org/$V)z" Snapshots.md
 rm Snapshots.md-e
 git add Snapshots.md
 git commit -m "Documentation snapshot for $V"
 git push --set-upstream origin "$B"
-gh pr create --fill -R https://github.com/dafny-lang/dafny -B master --head "$B" | tail -1 > $P/url1
+gh pr create --fill -R https://github.com/dafny-lang/dafny -B $branch --head "$B" | tail -1 > $P/url1
 
 ## Changes on dafny-lang.github.io
 ( cd $T && git checkout -b "$B" main ) || \
