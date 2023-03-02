@@ -130,10 +130,7 @@ void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
   // next is the next token (after any whitespace)
-  if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
-      $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
-  }
+
 }
 
 bool IsAssumeTypeKeyword(IToken la) {

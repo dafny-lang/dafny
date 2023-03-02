@@ -1839,10 +1839,6 @@ namespace Microsoft.Dafny.Compilers {
       var errorWr = classWriter.ErrorWriter();
       var v = new CheckHasNoAssumes_Visitor(this, errorWr);
 
-      if (c is ClassDecl) {
-        CheckHandleWellformed((ClassDecl)c, errorWr);
-      }
-
       var inheritedMembers = c.InheritedMembers;
       CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
@@ -2001,7 +1997,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))))) {
+              !(!DafnyOptions.O.DisallowExterns && (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -2042,7 +2038,7 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
+                     !(!DafnyOptions.O.DisallowExterns && (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -2328,26 +2324,6 @@ namespace Microsoft.Dafny.Compilers {
       return c;
     }
 
-    void CheckHandleWellformed(ClassDecl cl, ConcreteSyntaxTree/*?*/ errorWr) {
-      Contract.Requires(cl != null);
-      var isHandle = true;
-      if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-        foreach (var trait in cl.ParentTraitHeads) {
-          isHandle = true;
-          if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
-            // all is good
-          } else {
-            Error(cl.tok, "{0} '{1}' is marked as :handle, so all the traits it extends must be be marked as :handle as well: {2}", errorWr, cl.WhatKind, cl.Name, trait.Name);
-          }
-        }
-        foreach (var member in cl.InheritedMembers.Concat(cl.Members)) {
-          if (!member.IsGhost && !member.IsStatic) {
-            Error(member.tok, "{0} '{1}' is marked as :handle, so all its non-static members must be ghost: {2}", errorWr, cl.WhatKind, cl.Name, member.Name);
-          }
-        }
-      }
-    }
-
     /// <summary>
     /// Check whether two declarations have the same name if capitalized.
     /// </summary>
@@ -2426,7 +2402,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileFunction(Function f, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
-      Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
+      Contract.Requires(f.Body != null || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f, false, lookasideBody);
       if (w != null) {
@@ -2478,7 +2454,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
-      Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
+      Contract.Requires(m.Body != null || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
       if (w != null) {

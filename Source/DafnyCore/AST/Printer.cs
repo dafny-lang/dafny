@@ -837,7 +837,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       var name = nameSubstitution ?? a.Name;
-      var usAttribute = name.StartsWith("_") || (DafnyOptions.O.DisallowExterns && (name == "extern" || name == "dllimport"));
+      var usAttribute = name.StartsWith("_") || (DafnyOptions.O.DisallowExterns && name == "extern");
       wr.Write("{1}{{:{0}", name, usAttribute ? "/*" : "");
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);
