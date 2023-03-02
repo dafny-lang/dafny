@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -12,9 +13,12 @@ public interface ICommandSpec {
   public static Argument<FileInfo> FileArgument { get; }
 
   static ICommandSpec() {
-    FilesArgument = new Argument<IEnumerable<FileInfo>>("file", "input files");
+    FilesArgument = new("file", r => {
+      return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
+    }, true, "input files");
   }
-  public static Argument<IEnumerable<FileInfo>> FilesArgument { get; }
+
+  public static Argument<List<FileInfo>> FilesArgument { get; }
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,

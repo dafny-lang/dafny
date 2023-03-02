@@ -115,13 +115,21 @@ public class AuditReport {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
-      text.AppendLine($"# Module `{module.Name}`");
+      if (module.IsDefaultModule) {
+        text.AppendLine($"# Default module");
+      } else {
+        text.AppendLine($"# Module `{module.Name}`");
+      }
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (!declsWithEntries.Contains(topLevelDecl)) {
           continue;
         }
         text.AppendLine("");
-        text.AppendLine($"## Type `{topLevelDecl.Name}`");
+        if (topLevelDecl is ClassDecl classDecl && classDecl.IsDefaultClass) {
+          text.AppendLine($"## Top level");
+        } else {
+          text.AppendLine($"## Type `{topLevelDecl.Name}`");
+        }
 
         foreach (var desc in topLevelDecl.Assumptions()) {
           AppendMarkdownIETFDescription(desc, text);
@@ -136,7 +144,7 @@ public class AuditReport {
           }
 
           text.AppendLine("");
-          text.AppendLine($"## Member `{decl.Name}`");
+          text.AppendLine($"### Member `{decl.Name}`");
           foreach (var desc in decl.Assumptions()) {
             AppendMarkdownIETFDescription(desc, text);
           }
