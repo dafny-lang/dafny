@@ -85,7 +85,7 @@ jobs:
       - name: Install dotnet-reportgenerator and coverage
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
-          dotnet tool install dotnet-coverage
+          dotnet tool install --global dotnet-coverage
 
       - name: Download integration test artifacts
         uses: actions/download-artifact@v3
