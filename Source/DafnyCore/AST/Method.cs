@@ -123,7 +123,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     this.Mod = mod;
     this.Ens = ens;
     this.Decreases = decreases;
-    this.Body = body;
+    Body = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
