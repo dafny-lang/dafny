@@ -110,7 +110,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       Ignore include directives.
   
   /noExterns
-      Ignore extern and dllimport attributes.
+      Ignore extern attributes.
   
   /functionSyntax:<version>
       The syntax for functions is changing from Dafny version 3 to version

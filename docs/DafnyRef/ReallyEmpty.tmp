@@ -1,0 +1,1 @@
+type ReallyEmpty = x: int | false witness *

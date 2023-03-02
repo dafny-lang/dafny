@@ -1,0 +1,13 @@
+trait Shape
+{
+  function Width(): real
+    reads this
+    decreases 1
+  method Move(dx: real, dy: real)
+    modifies this
+  method MoveH(dx: real)
+    modifies this
+  {
+    Move(dx, 0.0);
+  }
+}
