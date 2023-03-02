@@ -12,7 +12,6 @@ public class DeveloperOptionBag {
 
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
-    IsHidden = true
   };
 
   public static readonly Option<string> BoogiePrint = new("--bprint",
@@ -20,7 +19,7 @@ public class DeveloperOptionBag {
 Print Boogie program translated from Dafny
 (use - as <file> to print to console)".TrimStart()) {
     IsHidden = true,
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
   };
 
   public static readonly Option<string> Print = new("--print", @"
@@ -34,7 +33,7 @@ Print Dafny program after parsing it.
 Print Dafny program after resolving it.
 (use - as <file> to print to console.)".TrimStart()) {
     IsHidden = true,
-    ArgumentHelpName = "file"
+    ArgumentHelpName = "file",
   };
 
   public static readonly Option<bool> Bootstrapping = new("--bootstrapping", @"

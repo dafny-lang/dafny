@@ -29,7 +29,7 @@ module M refines P { // refining module
 The refinement result is created as follows.
 
 0) The refinement result is a module within the same enclosing module as the
-refining module, has the same name, and in fact replaces the refining module  in their shared scope.
+refining module, has the same name, and in fact replaces the refining module in their shared scope.
 
 1) All the declarations (including import and export declarations) of the parent are copied into the refinement result.
 These declarations are _not_ re-resolved. That is, the assignment of
@@ -203,47 +203,6 @@ parameters allowed) or by using an ellipsis (`...`) to indicate copying
 of the parent type signature. The body of a child method must satisfy
 any ensures clauses from its parent in addition to any it adds.
 
-To introduce additional statements, the child method can include
-ellipses within the body to stand in for portions of code from the
-parent body. Dafny then attempts to merge the body of the child with the
-body of the parent by filling in the ellipses. In the `ToSuperimpose`
-example, the explicit `...` at the beginning will expand to the variable
-declaration for `y`. In addition, there is an implicit `...` before
-every `}`, allowing new statements to be introduced at the beginning of
-each block. In `ToSuperimpose`, these implicit ellipses expand to the
-return statements in the parent method.
-
-To help with understanding of the merging process, the IDE provides
-hover text that shows what each `...` or `}` expands to.
-
-The refinement result for `ToSuperimpose` will be as follows.
-
-<!-- %check-verify -->
-```dafny
-method ToSuperimpose(x: int) returns (r: int)
-{
-  var y: int := x;
-  if y < 0 {
-    print "inverting";
-    return -y;
-  } else {
-    print "not modifying";
-    return y;
-  }
-}
-```
-
-In general, a child method can add local variables and assignments,
-add some forms of `assert`, convert an `assume ` to an `assert` (using
-`assert ...;`), replace a non-deterministic operation with a more
-deterministic one, and insert additional `return` statements. A child
-method cannot otherwise change the control-flow structure of a method.
-Full details of the algorithm used to perform the merge operation are
-available in [this
-paper](https://dl.acm.org/doi/10.1007/s00165-012-0254-3). See also [this
-comment](https://github.com/dafny-lang/dafny/blob/76c8d599155f45e9745ce854ab54d0ab4be52049/Source/Dafny/RefinementTransformer.cs#L55)
-in the source code.
-
 A refined method is allowed only if it does not invalidate any parent
 lemmas that mention it.
 
@@ -335,7 +294,7 @@ Types can be refined in two ways:
 
 For example, consider the following abstract module:
 
-<!-- %check-verify -->
+<!-- %check-verify %save Parent.tmp -->
 ```dafny
 abstract module Parent {
   type T
@@ -344,7 +303,7 @@ abstract module Parent {
   newtype Pos = n: nat | n > 0 witness 1
   datatype Bool = True | False
 }
-``` <!-- %save Parent.tmp -->
+```
 
 In this module, type `T` is opaque and hence can be refined with any type,
 including class types.  Types `B`, `S`, `Pos`, and `Bool` are concrete and
@@ -380,7 +339,7 @@ abstract module ChildWithExtraMembers refines Parent {
   }
 
   datatype Bool ... {
-    function method AsDafnyBool() : bool { this.True? }
+    function AsDafnyBool() : bool { this.True? }
   }
 }
 ```
@@ -388,8 +347,8 @@ abstract module ChildWithExtraMembers refines Parent {
 (The last example is marked `abstract` because it leaves `T` opaque.)
 
 Note that datatype constructors, codatatype destructors, and newtype definitions
-cannot be refined: it is not possible to add or remove constructors to a
-`datatype`, nor to change destructors of a `codatatype`, nor to change the base
+cannot be refined: it is not possible to add or remove `datatype` constructors,
+nor to change destructors of a `codatatype`, nor to change the base
 type, constraint, or witness of a `newtype`.
 
 When a type takes arguments, its refinement must use the same type arguments

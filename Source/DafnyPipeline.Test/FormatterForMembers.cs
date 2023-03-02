@@ -183,6 +183,8 @@ class T {
   [Fact]
   public void FormatterWorksForConstants() {
     FormatterWorksFor(@"
+const c :=
+  1111111111111111111111111111111111111111
 const ASSIGNED_PLANES := [
   0,
   1,

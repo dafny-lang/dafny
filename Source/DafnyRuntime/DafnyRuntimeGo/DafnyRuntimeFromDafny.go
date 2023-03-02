@@ -459,7 +459,7 @@ func (_static *CompanionStruct_Default___) ONE__SIZE() uint32 {
   return uint32(1)
 }
 func (_static *CompanionStruct_Default___) SIZE__T__MAX() uint32 {
-  return ((Companion_Default___.SIZE__T__LIMIT()).Minus((One))).Uint32()
+  return ((Companion_Default___.SIZE__T__LIMIT()).Minus(One)).Uint32()
 }
 func (_static *CompanionStruct_Default___) TWO__SIZE() uint32 {
   return uint32(2)

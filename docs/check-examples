@@ -73,8 +73,8 @@ defaultCommand=
 defaultExit=
 defaultLang=
 useHeadings=0
-defOptions="--use-basename-for-filename --unicode-char:false"
-legacyOptions="-useBaseNameForFileName"
+defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
+legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
 
 while getopts 'md:x:l:' opt; do
   case "$opt" in
@@ -139,19 +139,25 @@ do
         continue
       fi
       command=${contents[0]}
-      expect=${contents[1]}
-      if [ "$expect" == "%use" -o "$expect" == "%options" ]; then
-        expect=
-      fi
-      options=( )
-      ( echo "$line" | grep -e '%options' > /dev/null ) \
-          && options=( `echo "$line" | sed -e 's/^.*%options//' -e 's/-->//'` )
-      if [ "${contents[1]}" == "%use" ]; then
-        use=${contents[2]}
-      fi
-      if [ "${contents[2]}" == "%use" ]; then
-        use=${contents[3]}
-      fi
+      contents=( ${contents[@]:1} )
+      while [ ${#contents[@]} != "0" ]; do
+        if [ "${contents[0]}" == "%use" ]; then
+          use=${contents[1]}
+          contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%save" ]; then
+          save=${contents[1]}
+          contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%options" ]; then
+          contents=${contents[@]:1}
+          options=${contents[@]}
+          contents=()
+        elif [ -z "${contents[0]}" ]; then
+          contents=()
+        else
+          expect=${contents[0]}
+          contents=( ${contents[@]:1} )
+        fi
+      done
   fi
   ## Check for the marker
   echo "$line" | grep -e '^[ ]*[`][`][`]' > /dev/null 
@@ -184,12 +190,9 @@ do
         ##echo " " USING $use
         cat "$use" >> $text
       fi
-      echo $line | grep '%save' > /dev/null
-      if [ "$?" == "0" ]; then
-         rest=( `echo $line | sed -e 's/^[^%]*%save//'` )
-         save=${rest[0]}
-         ##echo " SAVING" $save
+      if [ -n "$save" ]; then
          cp $text $save
+         save=
       fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo TESTING $n $file "$command" $expect
@@ -200,6 +203,7 @@ do
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
+          ##cat $text
           com=verify
           ec=4
         elif [ "$command" == "%check-verify-warn" ]; then
@@ -235,8 +239,10 @@ do
         else
           if [ "$capture" == "2" ]; then
             "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
-          else
+          elif [ "$com" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
+          else
+            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then

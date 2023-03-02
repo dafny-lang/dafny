@@ -553,7 +553,7 @@ The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
 ```dafny
-var a := new int[5];  // valid only if definiteAssignment is not strict
+var a := new int[5];
 var b := new int[5][2,3,5,7,11];
 var c := new int[][2,3,5,7,11];
 var d := new int[3][4,5,6,7]; // error
@@ -612,7 +612,7 @@ A havoc right-hand-side is just a `*` character.
 It produces an arbitrary value of its associated
 type. The "assign-such-that"
 operator (`:|`) can be used to obtain a more constrained arbitrary value. 
-See [Section 8.6](#sec-update-and-call-statement).
+See [Section 8.5](#sec-update-and-call-statement).
 
 ## 9.19. Constant Or Atomic Expressions ([grammar](#g-atomic-expression)) {#sec-atomic-expression}
 
@@ -636,7 +636,7 @@ fresh(e)
 
 These expressions are never l-values. They include
 
-- [literal epxressions](#sec-literal-expression)
+- [literal expressions](#sec-literal-expression)
 - [parenthesized expressions](#sec-parenthesized-expression)
 - [`this` expressions](#sec-this-expression)
 - [fresh expressions](#sec-fresh-expression)
@@ -1462,14 +1462,14 @@ function GhostF(z: Stuff): int
 
 The Let expression has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements ([Section 8.7](#sec-update-with-failure-statement)), failure results in
+failure results. However, in statements ([Section 8.6](#sec-update-with-failure-statement)), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms. Rather, if the expression to the right of `:-` results in a failure value `V`,
 the overall expression returns `V.PropagateFailure()`; if there is no failure, the expression following the 
 semicolon is returned. Note that these two possible return values must have the same type (or be 
 implicitly convertible to the same type). Typically that means that `tmp.PropagateFailure()` is a failure value and
 `E` is a value-carrying success value, both of the same failure-compatible type, 
-as described in [Section 8.7](#sec-update-with-failure-statement).
+as described in [Section 8.6](#sec-update-with-failure-statement).
 
 The expression `:- V; E` is desugared into the _expression_
 <!-- %no-check -->
@@ -1564,8 +1564,8 @@ If the identifier is for a generic entity, it is followed by
 a ``GenericInstantiation`` which provides actual types for
 the type parameters.
 
-To reference a prefix predicate (see [Section 5.14.3.4](#sec-copredicates)) or
-prefix lemma (see [Section 5.14.3.5.3](#sec-prefix-lemmas)), the identifier
+To reference a prefix predicate (see [Section 5.14.3.5](#sec-copredicates)) or
+prefix lemma (see [Section 5.14.3.6.3](#sec-prefix-lemmas)), the identifier
 must be the name of the greatest predicate or greatest lemma and it must be
 followed by a [_hash call_](#sec-hash-call).
 
@@ -1621,7 +1621,7 @@ greatest lemma {:induction false} Theorem0<T>(s: T)
 ```
 
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
-See [Section 5.14.3.4](#sec-copredicates) and [Section 5.14.3.5.3](#sec-prefix-lemmas).
+See [Section 5.14.3.5](#sec-copredicates) and [Section 5.14.3.6.3](#sec-prefix-lemmas).
 
 ## 9.34. Suffix ([grammar](#g-suffix)) {#sec-suffix}
 

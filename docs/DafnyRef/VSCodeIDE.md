@@ -1,17 +1,33 @@
 # 14. Dafny VSCode extension and the Dafny Language Server {#sec-dafny-language-server-vscode}
 
+## 14.1. Dafny functionality within VSCode
+
 There is a language server for Dafny, which [implements](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/).
-This server is used by the Dafny VSCode Extension, and it currently offers the following features:
+This server is used by the Dafny VSCode Extension; it currently offers the following features:
 - Quick syntax highlighting
-- Parsing, Resolution and realtime verification diagnostics
+- As-you-type parsing, resolution and verification diagnostics
 - Support for [Dafny plugins](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer#plugins)
+- Expanded explanations (in addition to the error message) for selected errors (and more being added), shown by hovering
+- Quick fixes for selected errors (and more being added)
 - Limited support for symbol completion
 - Limited support for code navigation
 - Counter-example display
-- Highlighting of ghost statement
+- Highlighting of ghost statements
 - Gutter highlights
+- A variety of Preference settings
 
-## 14.1. Gutter highlights meaning {#sec-gutter-highlights}
+Most of the Dafny functionality is simply there when editing a .dfy file with VSCode that has the Dafny extension installed.
+Some actions are available through added menu items.
+The Dafny functionality within VSCode can be found in these locations:
+
+- The preferences are under the menu Code->Preferences->Settings->Dafny extension configuration. There are two sections of settings.
+- A hover over an error location will bring up a hover popup, which will show expanded error information and any quick fix options that are available.
+- Within a .dfy editor, a right-click brings up a context menu, which has a menu item 'Dafny'. Under it are actions to Build or Run a program,
+to turn on or off counterexample display, find definitions, and the like.
+
+## 14.2. Gutter highlights {#sec-gutter-highlights}
+
+Feedback on a program is show visually as underlining with squiggles within the text and as various markings in various colors in the _gutter_ down the left side of an editor window.
 
 The first time a file is loaded, the gutter will highlight in a transparent squiggly green line all the methods that need to be verified, like this:
 
@@ -55,7 +71,7 @@ the position of the parse or resolution error.
 ![image](https://user-images.githubusercontent.com/3601079/178068650-24c14da1-d247-4027-b784-2eb055242e6b.png)
 
 
-## 14.2. The Dafny Server {#sec-old-dafny-server}
+## 14.3. The Dafny Server {#sec-old-dafny-server}
 
 Before Dafny [implemented](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyLanguageServer) the official [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), it implemented its own protocol for [Emacs](https://github.com/boogie-org/boogie-friends), which resulted in a project called [DafnyServer](https://github.com/dafny-lang/dafny/tree/master/Source/DafnyServer).
 
