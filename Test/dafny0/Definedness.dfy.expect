@@ -7,12 +7,12 @@ Definedness.dfy(36,15): Error: target object might be null
 Definedness.dfy(45,15): Error: target object might be null
 Definedness.dfy(53,17): Error: target object might be null
 Definedness.dfy(54,2): Error: a postcondition could not be proved on this return path
-Definedness.dfy(53,21): Related location: This is the postcondition that might not hold.
+Definedness.dfy(53,21): Related location: this is the postcondition that could not be proved
 Definedness.dfy(60,17): Error: target object might be null
 Definedness.dfy(61,2): Error: a postcondition could not be proved on this return path
-Definedness.dfy(60,21): Related location: This is the postcondition that might not hold.
+Definedness.dfy(60,21): Related location: this is the postcondition that could not be proved
 Definedness.dfy(68,2): Error: a postcondition could not be proved on this return path
-Definedness.dfy(67,21): Related location: This is the postcondition that might not hold.
+Definedness.dfy(67,21): Related location: this is the postcondition that could not be proved
 Definedness.dfy(88,6): Error: target object might be null
 Definedness.dfy(89,4): Error: function precondition might not hold
 Definedness.dfy(79,15): Related location
@@ -46,9 +46,9 @@ Definedness.dfy(196,22): Error: this loop invariant could not be proved on entry
 Definedness.dfy(196,22): Related message: loop invariant violation
 Definedness.dfy(196,27): Error: possible division by zero
 Definedness.dfy(215,9): Error: a postcondition could not be proved on this return path
-Definedness.dfy(217,45): Related location: This is the postcondition that might not hold.
+Definedness.dfy(217,45): Related location: this is the postcondition that could not be proved
 Definedness.dfy(224,21): Error: target object might be null
 Definedness.dfy(237,9): Error: a postcondition could not be proved on this return path
-Definedness.dfy(240,23): Related location: This is the postcondition that might not hold.
+Definedness.dfy(240,23): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 9 verified, 37 errors

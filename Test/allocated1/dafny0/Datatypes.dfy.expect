@@ -1,5 +1,5 @@
 Datatypes.dfy(297,9): Error: a postcondition could not be proved on this return path
-Datatypes.dfy(295,14): Related location: This is the postcondition that might not hold.
+Datatypes.dfy(295,14): Related location: this is the postcondition that could not be proved
 Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_, _)
 Datatypes.dfy(349,4): Error: missing case in match expression: Nil

@@ -27,12 +27,12 @@ Iterators.dfy(461,21): Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
 Iterators.dfy(40,21): Error: a precondition for this call could not be proved
-Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
+Iterators.dfy(4,9): Related location: this is the precondition that could not be proved
 Iterators.dfy(89,13): Error: assertion might not hold
 Iterators.dfy(119,15): Error: assertion might not hold
 Iterators.dfy(150,15): Error: assertion might not hold
 Iterators.dfy(155,23): Error: a precondition for this call could not be proved
-Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
+Iterators.dfy(125,9): Related location: this is the precondition that could not be proved
 Iterators.dfy(234,20): Error: assertion might not hold
 Iterators.dfy(413,16): Error: this invariant could not be proved to be maintained by the loop
 Iterators.dfy(413,16): Related message: loop invariant violation

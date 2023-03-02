@@ -14,11 +14,11 @@ Array.dfy(168,5): Error: insufficient reads clause to read array element
 Array.dfy(184,5): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(191,5): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(216,0): Error: a postcondition could not be proved on this return path
-Array.dfy(215,10): Related location: This is the postcondition that might not hold.
+Array.dfy(215,10): Related location: this is the postcondition that could not be proved
 Array.dfy(240,0): Error: a postcondition could not be proved on this return path
-Array.dfy(239,10): Related location: This is the postcondition that might not hold.
+Array.dfy(239,10): Related location: this is the postcondition that could not be proved
 Array.dfy(246,0): Error: a postcondition could not be proved on this return path
-Array.dfy(245,10): Related location: This is the postcondition that might not hold.
+Array.dfy(245,10): Related location: this is the postcondition that could not be proved
 Array.dfy(255,12): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(256,5): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(257,12): Error: value does not satisfy the subset constraints of 'nat'

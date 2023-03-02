@@ -7,12 +7,12 @@ git-issue245.dfy(68,18): Error: the function must provide an equal or more detai
 git-issue245.dfy(72,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
 git-issue245.dfy(76,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
 git-issue245.dfy(84,18): Error: a postcondition could not be proved on this return path
-git-issue245.dfy(85,17): Related location: This is the postcondition that might not hold.
+git-issue245.dfy(85,17): Related location: this is the postcondition that could not be proved
 git-issue245.dfy(88,18): Error: a postcondition could not be proved on this return path
-git-issue245.dfy(89,19): Related location: This is the postcondition that might not hold.
+git-issue245.dfy(89,19): Related location: this is the postcondition that could not be proved
 git-issue245.dfy(92,18): Error: a postcondition could not be proved on this return path
-git-issue245.dfy(93,19): Related location: This is the postcondition that might not hold.
+git-issue245.dfy(93,19): Related location: this is the postcondition that could not be proved
 git-issue245.dfy(96,18): Error: a postcondition could not be proved on this return path
-git-issue245.dfy(97,17): Related location: This is the postcondition that might not hold.
+git-issue245.dfy(97,17): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 24 verified, 12 errors

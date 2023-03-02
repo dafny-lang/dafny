@@ -1,31 +1,31 @@
 InductionOptions.dfy(21,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(20,26): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(25,9): Error: assertion might not hold
 InductionOptions.dfy(25,38): Related location
 InductionOptions.dfy(30,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(29,10): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion might not hold
 InductionOptions.dfy(35,38): Related location
 InductionOptions.dfy(40,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(39,26): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(39,26): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(44,9): Error: assertion might not hold
 InductionOptions.dfy(44,51): Related location
 
 Dafny program verifier finished with 1 verified, 6 errors
 InductionOptions.dfy(21,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(20,26): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(25,9): Error: assertion might not hold
 InductionOptions.dfy(25,38): Related location
 InductionOptions.dfy(30,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(29,10): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion might not hold
 InductionOptions.dfy(35,38): Related location
 
 Dafny program verifier finished with 3 verified, 4 errors
 InductionOptions.dfy(21,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(20,26): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(20,26): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 6 verified, 1 error
 
@@ -33,7 +33,7 @@ Dafny program verifier finished with 7 verified, 0 errors
 InductionOptions.dfy(25,9): Error: assertion might not hold
 InductionOptions.dfy(25,38): Related location
 InductionOptions.dfy(30,0): Error: a postcondition could not be proved on this return path
-InductionOptions.dfy(29,10): Related location: This is the postcondition that might not hold.
+InductionOptions.dfy(29,10): Related location: this is the postcondition that could not be proved
 InductionOptions.dfy(29,39): Related location
 InductionOptions.dfy(35,9): Error: assertion might not hold
 InductionOptions.dfy(35,38): Related location

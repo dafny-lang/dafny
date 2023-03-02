@@ -7,7 +7,7 @@ DTypes.dfy(232,14): Warning: the type of the other operand is a non-null type, s
 DTypes.dfy(233,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'd' to have the value 'null', declare its type to be 'Cell?<MyClass>')
 DTypes.dfy(64,13): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true' (to make it possible for variable 'a' to have the value 'null', declare its type to be 'CP?<int, C>')
 DTypes.dfy(179,2): Error: a postcondition could not be proved on this return path
-DTypes.dfy(178,14): Related location: This is the postcondition that might not hold.
+DTypes.dfy(178,14): Related location: this is the postcondition that could not be proved
 DTypes.dfy(18,13): Error: assertion might not hold
 DTypes.dfy(56,17): Error: assertion might not hold
 DTypes.dfy(121,11): Error: assertion might not hold

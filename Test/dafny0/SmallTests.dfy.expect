@@ -27,7 +27,7 @@ SmallTests.dfy(243,30): Error: assertion might not hold
 SmallTests.dfy(253,25): Error: assertion might not hold
 SmallTests.dfy(255,30): Error: assertion might not hold
 SmallTests.dfy(303,23): Error: a precondition for this call could not be proved
-SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
+SmallTests.dfy(281,16): Related location: this is the precondition that could not be proved
 SmallTests.dfy(408,11): Error: assertion might not hold
 SmallTests.dfy(418,11): Error: assertion might not hold
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
@@ -35,13 +35,13 @@ SmallTests.dfy(733,13): Error: assertion might not hold
 SmallTests.dfy(754,13): Error: assertion might not hold
 SmallTests.dfy(757,13): Error: assertion might not hold
 SmallTests.dfy(338,2): Error: a postcondition could not be proved on this return path
-SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion might not hold
 SmallTests.dfy(386,9): Error: assertion might not hold
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(440,9): Error: a postcondition could not be proved on this return path
-SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
+SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(604,11): Error: assertion might not hold
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
 SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] might refer to the same location

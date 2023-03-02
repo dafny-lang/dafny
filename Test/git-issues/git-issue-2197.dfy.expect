@@ -3,7 +3,7 @@ git-issue-2197.dfy(11,0): Error: a postcondition could not be proved on this ret
 11 | {
    | ^
 
-git-issue-2197.dfy(10,10): Related location: This is the postcondition that might not hold.
+git-issue-2197.dfy(10,10): Related location: this is the postcondition that could not be proved
    |
 10 |   ensures Test(y)
    |           ^^^^^^^
@@ -18,7 +18,7 @@ git-issue-2197.dfy(17,0): Error: a postcondition could not be proved on this ret
 17 | {
    | ^
 
-git-issue-2197.dfy(16,30): Related location: This is the postcondition that might not hold.
+git-issue-2197.dfy(16,30): Related location: this is the postcondition that could not be proved
    |
 16 |   ensures 0 <= y < |test| ==> test[y]
    |                               ^^^^^^^
@@ -28,7 +28,7 @@ git-issue-2197.dfy(22,2): Error: a precondition for this call could not be prove
 22 |   Never();
    |   ^^^^^^^^
 
-git-issue-2197.dfy(26,11): Related location: This is the precondition that might not hold.
+git-issue-2197.dfy(26,11): Related location: this is the precondition that could not be proved
    |
 26 |   requires 1 == 0
    |            ^^^^^^

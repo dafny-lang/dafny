@@ -1,4 +1,4 @@
 git-issue-600.dfy(20,0): Error: a postcondition could not be proved on this return path
-git-issue-600.dfy(19,10): Related location: This is the postcondition that might not hold.
+git-issue-600.dfy(19,10): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 2 verified, 1 error
