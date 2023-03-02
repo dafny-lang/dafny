@@ -4,7 +4,7 @@ namespace DafnyTestGeneration.Test {
 
   public class Setup {
 
-    
+
     public static DafnyOptions GetDafnyOptions(params string[] arguments) {
       var options = DafnyOptions.Create(arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
