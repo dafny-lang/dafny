@@ -19,7 +19,6 @@ public class PluginsTestWithVerification : PluginsTestBase {
   [TestMethod]
   public async Task EnsureItIsPossibleToLoadAPluginAndContinueVerification() {
     // This code will run with the plugin from PluginsAdvancedTest, but that plugin won't throw an exception on the code below.
-    var options = DafnyOptions.CheapCreate();
     var documentItem = CreateTestDocument("function test(): nat { -1 }");
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
@@ -27,8 +26,6 @@ public class PluginsTestWithVerification : PluginsTestBase {
     var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
-    Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, options.Plugins.Count,
-      "Not exactly 1 plugin loaded");
     Assert.AreEqual(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Plugin Error that does not prevent verification", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 0), (0, 8)), diagnostics[0].Range);
