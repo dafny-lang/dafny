@@ -179,7 +179,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  public BlockStmt Body {get; set; }
+  public BlockStmt Body { get; set; }
 
   public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
