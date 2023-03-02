@@ -2,6 +2,23 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.13.0
+
+## New features
+
+- Expose non-relaxed definite assignment (`/definiteAssignment:4`) in legacy CLI (https://github.com/dafny-lang/dafny/pull/3641)
+
+## Bug fixes
+
+- Fix translation of Dafny FunctionHandles to Boogie (https://github.com/dafny-lang/dafny/pull/2266)
+
+- To ensure that a `class` correctly implements a `trait`, we perform an override check. This check was previously faulty across `module`s, but works unconditionally now. (https://github.com/dafny-lang/dafny/pull/3479)
+
+- Fixes to definite assignment and determinism options:
+     - `--enforce-determinism` now forbids constructor-less classes
+     - With non-relaxed definite assignment, allow auto-init fields to be uninitialized
+  (https://github.com/dafny-lang/dafny/pull/3641)
+
 # 3.12.0
 
 ## New features
