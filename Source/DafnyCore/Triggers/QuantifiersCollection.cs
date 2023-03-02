@@ -151,7 +151,7 @@ namespace Microsoft.Dafny.Triggers {
           (candidate, loopingSubterms) => {
             looping.Add(candidate);
             loopingMatches = loopingSubterms.ToList();
-            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(t.OriginalExpr) + "\"", ", ");
+            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\"", ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
@@ -303,10 +303,10 @@ namespace Microsoft.Dafny.Triggers {
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
-        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
+        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(options, q.quantifier.Term), extraMsg).AppendLine();
       } else {
         if (addHeader) {
-          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();
+          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(options, q.quantifier.Term)).AppendLine();
         }
 
         foreach (var candidate in q.Candidates) {

@@ -62,100 +62,96 @@ NoGhost - disable printing of functions, ghost methods, and proof
       this.printMode = printMode;
     }
 
-    public static string ExprToString(Expression expr) {
+    public static string ExprToString(DafnyOptions options, Expression expr) {
       Contract.Requires(expr != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
-        pr.PrintExpression(expr, false);
-        return wr.ToString();
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintExpression(expr, false);
+      return wr.ToString();
     }
 
-    public static string GuardToString(bool isBindingGuard, Expression expr) {
+    public static string GuardToString(DafnyOptions options, bool isBindingGuard, Expression expr) {
       Contract.Requires(!isBindingGuard || (expr is ExistsExpr && ((ExistsExpr)expr).Range == null));
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintGuard(isBindingGuard, expr);
         return wr.ToString();
       }
     }
 
-    public static string ExtendedExprToString(Expression expr) {
+    public static string ExtendedExprToString(DafnyOptions options, Expression expr) {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintExtendedExpr(expr, 0, true, false);
         return wr.ToString();
       }
     }
 
-    public static string FrameExprListToString(List<FrameExpression> fexprs) {
+    public static string FrameExprListToString(DafnyOptions options, List<FrameExpression> fexprs) {
       Contract.Requires(fexprs != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
-        pr.PrintFrameExpressionList(fexprs);
-        return wr.ToString();
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintFrameExpressionList(fexprs);
+      return wr.ToString();
     }
 
-    public static string StatementToString(Statement stmt) {
+    public static string StatementToString(DafnyOptions options, Statement stmt) {
       Contract.Requires(stmt != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
-        pr.PrintStatement(stmt, 0);
-        return ToStringWithoutNewline(wr);
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintStatement(stmt, 0);
+      return ToStringWithoutNewline(wr);
     }
 
-    public static string IteratorClassToString(IteratorDecl iter) {
+    public static string IteratorClassToString(DafnyOptions options, IteratorDecl iter) {
       Contract.Requires(iter != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintIteratorClass(iter, 0, null);
         return ToStringWithoutNewline(wr);
       }
     }
 
-    public static string IteratorSignatureToString(IteratorDecl iter) {
+    public static string IteratorSignatureToString(DafnyOptions options, IteratorDecl iter) {
       Contract.Requires(iter != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintIteratorSignature(iter, 0);
         return ToStringWithoutNewline(wr);
       }
     }
 
-    public static string FieldToString(Field field) {
+    public static string FieldToString(DafnyOptions options, Field field) {
       Contract.Requires(field != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+      using (var wr = new StringWriter()) {
+        var pr = new Printer(wr, options);
         pr.PrintField(field, 0);
         return ToStringWithoutNewline(wr);
       }
     }
 
-    public static string FunctionSignatureToString(Function f) {
+    public static string FunctionSignatureToString(DafnyOptions options, Function f) {
       Contract.Requires(f != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
-        pr.PrintFunction(f, 0, true);
-        return ToStringWithoutNewline(wr);
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintFunction(f, 0, true);
+      return ToStringWithoutNewline(wr);
     }
 
-    public static string MethodSignatureToString(Method m) {
+    public static string MethodSignatureToString(DafnyOptions options, Method m) {
       Contract.Requires(m != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintMethod(m, 0, true);
         return ToStringWithoutNewline(wr);
       }
     }
 
-    public static string ModuleDefinitionToString(ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
+    public static string ModuleDefinitionToString(DafnyOptions options, ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
       Contract.Requires(m != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr, printMode);
+        var pr = new Printer(wr, options, printMode);
         pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null, null);
         return ToStringWithoutNewline(wr);
       }
@@ -166,18 +162,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
     /// </summary>
-    public static string AttributesToString(Attributes a) {
+    public static string AttributesToString(DafnyOptions options, Attributes a) {
       if (a == null) {
         return "";
       } else {
-        return AttributesToString(a.Prev) + OneAttributeToString(a) + " ";
+        return AttributesToString(options, a.Prev) + OneAttributeToString(options, a) + " ";
       }
     }
 
-    public static string OneAttributeToString(Attributes a, string nameSubstitution = null) {
+    public static string OneAttributeToString(DafnyOptions options, Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr);
+        var pr = new Printer(wr, options);
         pr.PrintOneAttribute(a, nameSubstitution);
         return ToStringWithoutNewline(wr);
       }
@@ -754,7 +750,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public static string TypeParamString(TypeParameter tp) {
+    public string TypeParamString(TypeParameter tp) {
       Contract.Requires(tp != null);
       string variance;
       switch (tp.VarianceSyntax) {
@@ -799,7 +795,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private void PrintTypeInstantiation(List<Type> typeArgs) {
       Contract.Requires(typeArgs == null || typeArgs.Count != 0);
-      wr.Write(Type.TypeArgsToString(typeArgs));
+      wr.Write(Type.TypeArgsToString(options, typeArgs));
     }
 
     public void PrintDatatype(DatatypeDecl dt, int indent, string fileBeingPrinted) {

@@ -42,7 +42,7 @@ public class InferDecreasesClause {
           }
 
           if (showIt) {
-            s += "decreases " + Util.Comma(m.Decreases.Expressions, Printer.ExprToString);
+            s += "decreases " + Util.Comma(m.Decreases.Expressions, expr => Printer.ExprToString(prog.Options, expr));
             // Note, in the following line, we use the location information for "clbl", not "m".  These
             // are the same, except in the case where "clbl" is a GreatestLemma and "m" is a prefix lemma.
             resolver.reporter.Info(MessageSource.Resolver, clbl.Tok, s);

@@ -150,9 +150,8 @@ namespace DafnyTestGeneration {
         return null;
       }
 
-      return Printer.ExprToString(
-        new ClonerWithSubstitution(this, new Dictionary<IVariable, string>(),
-          "").CloneExpr(witnessForType[userDefinedType.Name]));
+      return Printer.ExprToString(Options, new ClonerWithSubstitution(this, new Dictionary<IVariable, string>(),
+        "").CloneExpr(witnessForType[userDefinedType.Name]));
     }
 
     public Type/*?*/ GetSupersetType(Type type) {
@@ -255,7 +254,7 @@ namespace DafnyTestGeneration {
             new Dictionary<IVariable, string>(),
             "").CloneExpr(constantField.Rhs);
           if (defExpression != null) {
-            defValue = Printer.ExprToString(defExpression);
+            defValue = Printer.ExprToString(Options, defExpression);
           }
         }
         var fieldType = Utils.CopyWithReplacements(
@@ -387,7 +386,7 @@ namespace DafnyTestGeneration {
           if (info.Options.TestGenOptions.Verbose) {
             Console.Out.WriteLine($"// Values of type {newTypeName} will be " +
                                   $"assigned the default value of " +
-                                  $"{Printer.ExprToString(info.witnessForType[newTypeName])}");
+                                  $"{Printer.ExprToString(info.Options, info.witnessForType[newTypeName])}");
           }
         } else if (info.Options.TestGenOptions.Verbose) {
           info.Options.Printer.ErrorWriteLine(Console.Error, $"*** Error: Values of type {newTypeName} " +

@@ -324,7 +324,7 @@ public class LitCtx : MatchingContext {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(Lit);
+    return Printer.ExprToString(DafnyOptions.CheapCreate(), Lit);
   }
 }
 

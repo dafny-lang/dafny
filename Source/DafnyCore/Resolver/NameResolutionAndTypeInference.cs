@@ -4877,7 +4877,7 @@ namespace Microsoft.Dafny {
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
               s.Ens.Add(new AttributedExpression(result));
-              reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result));
+              reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(Options, result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {

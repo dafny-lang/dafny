@@ -669,7 +669,7 @@ namespace Microsoft.Dafny {
 
       foreach (var module in prog.Modules()) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
-          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(iter));
+          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
         }
       }
 
@@ -4790,7 +4790,7 @@ namespace Microsoft.Dafny {
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
-                resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
+                resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(resolver.Options, p));
               }
             }
           }
@@ -6178,7 +6178,7 @@ namespace Microsoft.Dafny {
         loopStmt.InferredDecreases = true;
       }
       if (loopStmt.InferredDecreases && theDecreases.Count != 0) {
-        string s = "decreases " + Util.Comma(theDecreases, Printer.ExprToString);
+        string s = "decreases " + Util.Comma(theDecreases, expr => Printer.ExprToString(Options, expr));
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
     }

@@ -4490,7 +4490,7 @@ namespace Microsoft.Dafny {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, new PODesc.WitnessCheck(witnessString)));
         } else {
           // before trying 0 as a witness, check that 0 can be assigned to decl.Var
-          witnessString = Printer.ExprToString(witness);
+          witnessString = Printer.ExprToString(options, witness);
           CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
           witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
         }
@@ -8509,8 +8509,8 @@ namespace Microsoft.Dafny {
     void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(lhsa),
-          Printer.ExprToString(lhsb), e != Bpl.Expr.False, false)));
+        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), e != Bpl.Expr.False, false)));
       }
     }
 
@@ -8518,8 +8518,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
         e = Bpl.Expr.Or(e, Bpl.Expr.Eq(rhsa, rhsb));
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(lhsa),
-          Printer.ExprToString(lhsb), false, true)));
+        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), false, true)));
       }
     }
 

@@ -180,7 +180,7 @@ public class InductionRewriter : IRewriter {
       // We found something usable, so let's record that in an attribute
       attributes = new Attributes("_induction", inductionVariables, attributes);
       // And since we're inferring something, let's also report that in a hover text.
-      var s = Printer.OneAttributeToString(attributes, "induction");
+      var s = Printer.OneAttributeToString(Reporter.Options, attributes, "induction");
       if (lemma is PrefixLemma) {
         s = lemma.Name + " " + s;
       }

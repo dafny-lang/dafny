@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     public override string ToString() {
-      return Printer.ExprToString(Expr);
+      return Printer.ExprToString(DafnyOptions.CheapCreate(), Expr);
       // NOTE: Using OriginalExpr here could cause some confusion:
       // for example, {a !in b} is a binary expression, yielding
       // trigger {a in b}. Saying the trigger is a !in b would be
@@ -234,7 +234,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
+      TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(options, expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
     }
