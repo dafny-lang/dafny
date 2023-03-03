@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -26,14 +27,14 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    DafnyDiagnostic dafnyDiagnostic, Diagnostic diagnostic, Range selection) {
-    var actionSigs = ErrorRegistry.GetAction(diagnostic.Code);
+    DafnyDiagnostic diagnostic, Range selection) {
+    var actionSigs = ErrorRegistry.GetAction(diagnostic.ErrorId);
     var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
-      var range = dafnyDiagnostic.Token is TokenRange tokenRange ? new RangeToken(tokenRange.Start, tokenRange.End) : dafnyDiagnostic.Token.ToRange();
+      var range = diagnostic.Token is TokenRange tokenRange ? new RangeToken(tokenRange.Start, tokenRange.End) : diagnostic.Token.ToRange();
       foreach (var sig in actionSigs) {
         var dafnyActions = sig(range);
-        actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic }, dafnyAction.Edits)));
+        actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic.ToLspDiagnostic() }, dafnyAction.Edits)));
       }
     }
     return actions;

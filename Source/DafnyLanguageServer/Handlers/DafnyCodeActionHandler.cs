@@ -149,14 +149,7 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Dafny.Program Program => Document.Program;
   public DocumentAfterParsing Document { get; }
 
-  public IDictionary<DafnyDiagnostic, Diagnostic> Diagnostics {
-    get {
-      // TODO 
-      // var result = Document.Diagnostics.ToArray();
-      // return result;
-      throw new NotImplementedException();
-    }
-  }
+  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.Diagnostics.ToList();
 
   public string Extract(Range range) {
     var buffer = Document.TextDocumentItem;

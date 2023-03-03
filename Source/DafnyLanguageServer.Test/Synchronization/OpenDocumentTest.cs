@@ -80,8 +80,8 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
-      var message = document.Diagnostics.First(d => d.Severity!.Value == DiagnosticSeverity.Error);
+      Assert.AreEqual(1, document.Diagnostics.Count(d => d.Level == ErrorLevel.Error));
+      var message = document.Diagnostics.First(d => d.Level == ErrorLevel.Error);
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
     }
 

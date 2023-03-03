@@ -26,7 +26,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
   public SignatureAndCompletionTable SignatureAndCompletionTable { get; }
   public IReadOnlyList<Diagnostic> GhostDiagnostics { get; }
 
-  public override IEnumerable<Diagnostic> Diagnostics => ParseAndResolutionDiagnostics.Select(d => d.ToLspDiagnostic());
+  public override IEnumerable<DafnyDiagnostic> Diagnostics => ParseAndResolutionDiagnostics;
 
   public override IdeState ToIdeState(IdeState previousState) {
     return previousState with {

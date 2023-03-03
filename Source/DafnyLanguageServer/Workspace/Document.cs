@@ -2,15 +2,10 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Net.Mime;
-using System.Threading;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -36,11 +31,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       TextDocumentItem = textDocumentItem;
     }
 
-    public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
+    public virtual IEnumerable<DafnyDiagnostic> Diagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         GetInitialDocumentVerificationTree()));
@@ -71,14 +66,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       Program = program;
     }
 
-    public override IEnumerable<Diagnostic> Diagnostics => parseDiagnostics.Select(d => d.ToLspDiagnostic());
+    public override IEnumerable<DafnyDiagnostic> Diagnostics => parseDiagnostics;
 
     public Dafny.Program Program { get; }
 
     public override IdeState ToIdeState(IdeState previousState) {
       return previousState with {
         TextDocumentItem = TextDocumentItem,
-        ResolutionDiagnostics = Diagnostics,
+        ResolutionDiagnostics = Diagnostics.Select(d => d.ToLspDiagnostic()),
         ImplementationsWereUpdated = false,
       };
     }
@@ -115,24 +110,25 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public override IdeState ToIdeState(IdeState previousState) {
-      var implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
-        var value = kv.Value.Status < PublishedVerificationStatus.Error
-          ? kv.Value with {
-            Diagnostics = previousState.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? kv.Value.Diagnostics
-          }
-          : kv.Value;
-        return new KeyValuePair<ImplementationId, ImplementationView>(kv.Key, value);
+      IEnumerable<KeyValuePair<ImplementationId, IdeImplementationView>> implementationViewsWithMigratedDiagnostics = ImplementationIdToView.Select(kv => {
+        IEnumerable<Diagnostic> diagnostics = kv.Value.Diagnostics.Select(d => d.ToLspDiagnostic());
+        if (kv.Value.Status < PublishedVerificationStatus.Error) {
+          diagnostics = previousState.ImplementationIdToView.GetValueOrDefault(kv.Key)?.Diagnostics ?? diagnostics;
+        }
+
+        var value = new IdeImplementationView(kv.Value.Range, kv.Value.Status, diagnostics.ToList());
+        return new KeyValuePair<ImplementationId, IdeImplementationView>(kv.Key, value);
       });
       return base.ToIdeState(previousState) with {
         ImplementationsWereUpdated = true,
         VerificationTree = VerificationTree,
         Counterexamples = new List<Counterexample>(Counterexamples),
-        ImplementationIdToView = new Dictionary<ImplementationId, ImplementationView>(implementationViewsWithMigratedDiagnostics)
+        ImplementationIdToView = new Dictionary<ImplementationId, IdeImplementationView>(implementationViewsWithMigratedDiagnostics)
       };
     }
 
-    public override IEnumerable<Diagnostic> Diagnostics => base.Diagnostics.Concat(
-      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<Diagnostic>());
+    public override IEnumerable<DafnyDiagnostic> Diagnostics => base.Diagnostics.Concat(
+      ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
 
     /// <summary>
     /// Contains the real-time status of all verification efforts.
@@ -146,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public Dictionary<ImplementationId, ImplementationView> ImplementationIdToView { get; set; }
   }
 
-  public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
+  public record ImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<DafnyDiagnostic> Diagnostics);
 
   public record BufferLine(int LineNumber, int StartIndex, int EndIndex);
 }

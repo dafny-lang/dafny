@@ -184,8 +184,19 @@ public abstract class TokenWrapper : IToken {
 
 }
 
+public static class TokenUtil {
+  public static DafnyPosition ToPosition(this IToken token, bool includeEnding = false) {
+    return new DafnyPosition(token.line - 1, token.col - 1 + (includeEnding ? token.val.Length : 0));
+  }
+  
+}
+
 public class RangeToken { // TODO rename to Range or DafnyRange in separate PR
 
+  public DafnyRange ToRange() {
+    return new DafnyRange(StartToken.ToPosition(), EndToken.ToPosition(true));
+  }
+  
   public string PrintOriginal() {
     var token = StartToken;
     var originalString = new StringBuilder();

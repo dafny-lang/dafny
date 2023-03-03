@@ -16,6 +16,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     private const int ColumnOffset = -1;
 
+    public static Range ToLspRange(this DafnyRange range) {
+      return new Range(
+        GetLspPosition(range.Start),
+        GetLspPosition(range.End)
+      );
+    }
+    
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
@@ -44,6 +51,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       );
     }
 
+    public static Position GetLspPosition(this DafnyPosition position) {
+      return new Position(position.Line, position.Column);
+    }
+    
     /// <summary>
     /// Gets the LSP position of the specified token (i.e., the position of the first character of the token).
     /// </summary>

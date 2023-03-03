@@ -127,9 +127,9 @@ public class DocumentManager {
     Compilation.Start();
   }
 
-  private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-    IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics) {
-    var result = new Dictionary<ImplementationId, ImplementationView>();
+  private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+    IReadOnlyDictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
+    var result = new Dictionary<ImplementationId, IdeImplementationView>();
     foreach (var entry in oldVerificationDiagnostics) {
       var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
       if (newRange != null) {

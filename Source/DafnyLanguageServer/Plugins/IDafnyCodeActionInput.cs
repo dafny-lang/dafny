@@ -16,6 +16,6 @@ public interface IDafnyCodeActionInput {
   int Version { get; }
   string Code { get; }
   Dafny.Program? Program { get; }
-  IDictionary<DafnyDiagnostic, Diagnostic> Diagnostics { get; }
+  IReadOnlyList<DafnyDiagnostic> Diagnostics { get; }
   string Extract(Range range);
 }

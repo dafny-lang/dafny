@@ -7,8 +7,12 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
+
+
+public record IdeImplementationView(Range Range, PublishedVerificationStatus Status, IReadOnlyList<Diagnostic> Diagnostics);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -19,7 +23,7 @@ public record IdeState(
   IEnumerable<Diagnostic> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
-  IReadOnlyDictionary<ImplementationId, ImplementationView> ImplementationIdToView,
+  IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
   IEnumerable<Diagnostic> GhostDiagnostics,
@@ -30,10 +34,10 @@ public record IdeState(
   public int? Version => TextDocumentItem.Version;
 
   public IEnumerable<Diagnostic> Diagnostics =>
-    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.Select(v => v.Diagnostics).SelectMany(x => x));
+    ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));
 }
 
-static class Util {
+public static class Util {
   public static Diagnostic ToLspDiagnostic(this DafnyDiagnostic dafnyDiagnostic) {
     return new Diagnostic {
       Code = dafnyDiagnostic.ErrorId,
