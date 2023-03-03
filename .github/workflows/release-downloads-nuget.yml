@@ -33,15 +33,6 @@ jobs:
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
-        include:
-        - os:  'ubuntu-22.04'
-          osn: 'ubuntu\-22.04'
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
-        - os:  'macos-latest'
-          osn: 'osx-11'
-        - os:  'windows-2019'
-          osn: 'win'
 
     steps:
     - name: OS
