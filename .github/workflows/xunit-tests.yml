@@ -3,10 +3,6 @@ name: Run XUnit tests
 on:
   workflow_call:
 
-concurrency:
-  group: unit-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 ## In the matrix:
 ##  os - name of the Github actions runner
 ##  suffix - name used in the description of the job
