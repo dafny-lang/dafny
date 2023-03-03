@@ -28,8 +28,8 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    var range = relatedInformation.Token.GetLspRange();
-    var expression = input.Extract(range);
+    var range = relatedInformation.Token.ToRange();
+    var expression = range.PrintOriginal();
     var statement = $"assert {expression};";
     var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Token.GetLspPosition(), statement);
     if (edit == null) {

@@ -21,10 +21,6 @@ public interface IToken : Microsoft.Boogie.IToken {
     set => Filename = value;
   }
 
-  RangeToken ToRange() {
-    return new RangeToken(this, this);
-  }
-
   public string ActualFilename { get; }
   string Filename { get; set; }
 
@@ -180,6 +176,14 @@ public abstract class TokenWrapper : IToken {
   public virtual IToken Prev {
     get { return WrappedToken.Prev; }
     set { throw new NotSupportedException(); }
+  }
+}
+
+public static class TokenExtensions {
+  public static RangeToken ToRange(this IToken token) {
+    return token is TokenRange tokenRange 
+      ? new RangeToken(tokenRange.Start, tokenRange.End) 
+      : new RangeToken(token, token);
   }
 }
 

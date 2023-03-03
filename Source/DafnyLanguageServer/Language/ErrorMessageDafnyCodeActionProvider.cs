@@ -31,7 +31,7 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
     var actionSigs = ErrorRegistry.GetAction(diagnostic.ErrorId);
     var actions = new List<DafnyCodeAction>();
     if (actionSigs != null) {
-      var range = diagnostic.Token is TokenRange tokenRange ? new RangeToken(tokenRange.Start, tokenRange.End) : diagnostic.Token.ToRange();
+      var range = diagnostic.Token.ToRange();
       foreach (var sig in actionSigs) {
         var dafnyActions = sig(range);
         actions.AddRange(dafnyActions.Select(dafnyAction => new InstantDafnyCodeAction(dafnyAction.Title, new[] { diagnostic.ToLspDiagnostic() }, dafnyAction.Edits)));

@@ -177,7 +177,7 @@ public class Errors {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, null, tok, msg);
+    Reporting.Error(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
   public void SemErr(object errorId, IToken tok, string msg) {  // semantic errors
@@ -202,7 +202,7 @@ public class Errors {
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, null, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
   public void DeprecatedStyle(object errorId, IToken tok, string msg) {
@@ -214,7 +214,7 @@ public class Errors {
   public void Warning(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, null, tok, msg);
+    Reporting.Warning(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
   // Code action range is up to, not including, the next token
