@@ -1,4 +1,0 @@
-The default values of several options has changed in Dafny 4.0. See `--help` for details.
-   - `--function-syntax` changed from `3` to `4`
-   - `--quantifier-syntax` changed from `3` to `4`
-   - `--unicode-char` changed from `false` to `true`

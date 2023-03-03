@@ -2,6 +2,24 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.0.0
+
+## Breaking changes
+
+- Remove deprecated countVerificationErrors option (https://github.com/dafny-lang/dafny/pull/3165)
+
+- The default version of Z3 Dafny uses for verification is now 4.12.1. (https://github.com/dafny-lang/dafny/pull/3400)
+
+- The default values of several options has changed in Dafny 4.0. See `--help` for details.
+     - `--function-syntax` changed from `3` to `4`
+     - `--quantifier-syntax` changed from `3` to `4`
+     - `--unicode-char` changed from `false` to `true`
+  (https://github.com/dafny-lang/dafny/pull/3623)
+
+- The default value of the `/allocated` option is now `4`, and the option itself is deprecated. (https://github.com/dafny-lang/dafny/pull/3637)
+
+- Compilation to Go no longer attempts to use the Dafny `string` type and the Go `string` type interchangably when calling external methods (which was buggy and unsound). (https://github.com/dafny-lang/dafny/pull/3647)
+
 # 3.13.1
 
 ## New features
