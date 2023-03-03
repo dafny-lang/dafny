@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // The position of the symbol name attached to this node, or Range.Start if it's anonymous
      Position Position
   ) {
-    public string PrefixedDisplayName => Kind + " " + DisplayName;
+    public string PrefixedDisplayName => Kind + " `" + DisplayName + "`";
 
     // Overriden by checking children if there are some
     public GutterVerificationStatus StatusVerification { get; set; } = GutterVerificationStatus.Nothing;

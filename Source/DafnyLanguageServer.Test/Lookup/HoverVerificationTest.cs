@@ -50,8 +50,8 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy");
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[**Error:**](???) This postcondition might not hold on a return path.  
-This is assertion #1 of 4 in method Abs  
+        @"[**Error:**](???) this postcondition might not hold on a return path  
+This is assertion #1 of 4 in method `Abs`  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
       );
@@ -59,17 +59,17 @@ Return path: testFile.dfy(6, 5)"
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
         @"[**Error:**](???) A postcondition might not hold on this return path.  
-Could not prove: y >= 0  
-This is assertion #1 of 4 in method Abs  
+Could not prove: `y >= 0`  
+This is assertion #1 of 4 in method `Abs`  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 4 in method Abs  
+This is assertion #2 of 4 in method `Abs`  
 Resource usage: 9K RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**Verification performance metrics for method Abs**:
+        @"**Verification performance metrics for method `Abs`**:
 
 - Total resource usage: ??? RU  
 - Only one [assertion batch](???)"
@@ -94,10 +94,10 @@ method DoIt() returns (x: int)
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
         @"[**Error:**](???) A postcondition might not hold on this return path.  
-Could not prove: Q(x)  
-Could not prove: P(i)  
-Could not prove: i >= 0  
-This is assertion #1 of 2 in method DoIt  
+Inside `Q(x)`  
+Inside `P(i)`  
+Could not prove: `i >= 0`  
+This is assertion #1 of 2 in method `DoIt`  
 Resource usage: ??? RU"
       );
     }
@@ -116,16 +116,16 @@ method {:vcs_split_on_every_assert} f(x: int) {
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (1, 12),
         @"[**Error:**](???) assertion might not hold  
-This is the only assertion in [batch](???) #??? of ??? in method f  
+This is the only assertion in [batch](???) #??? of ??? in method `f`  
 [Batch](???) #??? resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (2, 12),
         @"<span style='color:green'>**Success:**</span> assertion always holds  
-This is the only assertion in [batch](???) #??? of ??? in method f  
+This is the only assertion in [batch](???) #??? of ??? in method `f`  
 [Batch](???) #??? resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
-        @"**Verification performance metrics for method f**:
+        @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: ??? RU  
 - Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
@@ -133,7 +133,36 @@ This is the only assertion in [batch](???) #??? of ??? in method f
   - #???/??? with 1 assertion  at line ???, ??? RU  "
       );
     }
-
+    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    public async Task BetterMessageWhenPreconditionSucceeds() {
+      await SetUp(o => {
+        o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
+        // LineVerificationStatusOption.Instance.Set(o, true);
+      });
+      var documentItem = await GetDocumentItem(@"
+method Test(i: int)
+  requires {:error ""argument should be even""} i % 2 == 0
+  requires i > 0
+{
+}
+method main(k: int) {
+  Test(2);
+  Test(k);
+}
+", "testfile.dfy");
+      await AssertHoverMatches(documentItem, (6, 6),
+        @"**Success:**???error is impossible: argument should be even  
+Did prove: `i % 2 == 0`???
+???**Success:**???the precondition always holds  
+Did prove: `i > 0`"
+      );
+      await AssertHoverMatches(documentItem, (7, 6),
+        @"**Error:**???argument should be even  
+Could not prove: `i % 2 == 0`???
+???**Error:**???a precondition could not be proven  
+Could not prove: `i > 0`"
+      );
+    }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task MessagesWhenMultipleAssertionsPerBatch() {
@@ -148,16 +177,16 @@ function f(x: int): int {
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (2, 12),
         @"???Success??? assertion always holds  
-This is assertion #2 of 2 in [batch](???) #1 of 2 in function f  
+This is assertion #2 of 2 in [batch](???) #1 of 2 in function `f`  
 [Batch](???) #1 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (3, 26),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #1 of 2 in [batch](???) #2 of 2 in function f  
+This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`  
 [Batch](???) #2 resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 36),
-        @"**Verification performance metrics for function f**:
+        @"**Verification performance metrics for function `f`**:
 
 - Total resource usage: ??? RU  
 - Most costly [assertion batches](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements):  
@@ -173,7 +202,7 @@ method f(x: int) {
   print x;
 }", "testfile.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**Verification performance metrics for method f**:
+        @"**Verification performance metrics for method `f`**:
 
 No assertions."
       );
@@ -206,7 +235,7 @@ method f(x: int) {
   assert false;
 }", "testfile1.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**Verification performance metrics for method f**:
+        @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: 8K RU  
 - Only one [assertion batch](???) containing 1 assertion."
@@ -222,7 +251,7 @@ method f(x: int) {
   assert false;
 }", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (0, 7),
-        @"**Verification performance metrics for method f**:
+        @"**Verification performance metrics for method `f`**:
 
 - Total resource usage: 8K RU  
 - Only one [assertion batch](???) containing 2 assertions."
@@ -249,16 +278,16 @@ datatype Test = Test(i: int)
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (4, 20),
         @"**Error:**???assertion might not hold???
-Could not prove: t.i > 0  "
+Could not prove: `t.i > 0`  "
       );
       await AssertHoverMatches(documentItem, (5, 20),
         @"**Error:**???assertion might not hold???
-Could not prove: t.i > 1  "
+Could not prove: `t.i > 1`  "
       );
       await AssertHoverMatches(documentItem, (5, 20),
         @"**Success:**???function precondition satisfied???
-Did prove: Valid(t)  
-Did prove: t.i > 0  "
+Inside `Valid(t)`  
+Did prove: `t.i > 0`  "
       );
     }
 
@@ -287,8 +316,8 @@ datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (10, 16),
         @"**Error:**???function precondition might not hold???
-Could not prove: Valid()  
-Could not prove: ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())  "
+Inside `Valid()`  
+Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())`  "
       );
     }
 
@@ -313,16 +342,16 @@ function method Id<T>(t: T): T { t }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (9, 20),
         @"**Error:**???assertion might not hold???
-Could not prove: i > 0  "
+Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
         @"**Error:**???assertion might not hold???
-Could not prove: i > 1  "
+Could not prove: `i > 1`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
         @"**Success:**???function precondition satisfied???
-Did prove: Valid()  
-Did prove: i > 0  "
+Inside `Valid()`  
+Did prove: `i > 0`  "
       );
     }
 
@@ -351,19 +380,19 @@ method Test(i: int) returns (j: nat)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (12, 11),
-        @"**Error:**???This postcondition might not hold on a return path.???
-Could not prove: i == j || -i == j???
+        @"**Error:**???this postcondition might not hold on a return path???
+Could not prove: `i == j || -i == j`???
 Return path: testfile2.dfy(18, 5)"
       );
       await AssertHoverMatches(documentItem, (17, 6),
         @"**Error:**???A postcondition might not hold on this return path.???
-Could not prove: Q(i, j)???
-Could not prove: i == j || -i == j"
+Inside `Q(i, j)`???
+Could not prove: `i == j || -i == j`"
       );
       await AssertHoverMatches(documentItem, (17, 13),
         @"**Error:**???function precondition might not hold???
-Could not prove: P(i)???
-Could not prove: i <= 0"
+Inside `P(i)`???
+Could not prove: `i <= 0`"
       );
     }
 
@@ -389,7 +418,7 @@ method Test() returns (j: int)
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (14, 5),
         @"**Error:**???A postcondition might not hold on this return path.???
-Could not prove: j == 1"
+Could not prove: `j == 1`"
       );
     }
 
@@ -407,7 +436,8 @@ method Test(i: int)
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (6, 11),
         @"**Error:**???assertion might not hold  
-Could not prove: i <= 0"
+Inside `P(1)`  
+Could not prove: `i <= 0`"
       );
       await ApplyChangesAndWaitCompletionAsync(
         documentItem,
@@ -439,7 +469,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
   assert {:split_here} true;
 } ", "testfileSlow.dfy");
       await AssertHoverMatches(documentItem, (0, 22),
-        @"**Verification performance metrics for method SquareRoot2NotRational**:
+        @"**Verification performance metrics for method `SquareRoot2NotRational`**:
 
 - Total resource usage: ??? RU [⚠](???)  
 - Most costly [assertion batches](???):  

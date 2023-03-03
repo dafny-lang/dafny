@@ -215,15 +215,25 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string GetDescription(Boogie.ProofObligationDescription? description) {
         switch (assertionNode?.StatusVerification) {
-          case GutterVerificationStatus.Verified:
-            return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
-                   (description?.SuccessDescription ?? "_no message_");
+          case GutterVerificationStatus.Verified: {
+              var successDescription = description?.SuccessDescription ?? "_no message_";
+              if (successDescription == "error is impossible: This is the precondition that might not hold.") {
+                successDescription = "the precondition always holds";
+              }
+              return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
+                     successDescription;
+            }
           case GutterVerificationStatus.Error:
             var failureDescription = description?.FailureDescription ?? "_no message_";
             if (currentlyHoveringPostcondition &&
                   (failureDescription == new PostconditionDescription().FailureDescription ||
                    failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "This postcondition might not hold on a return path.";
+              failureDescription = "this postcondition might not hold on a return path";
+            }
+
+            if (!currentlyHoveringPostcondition &&
+                (failureDescription == new RequiresDescription().FailureDescription)) {
+              failureDescription = "a precondition could not be proven";
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;
@@ -237,7 +247,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string information = "";
 
-      string CouldProveOrNotPrefix = (assertionNode?.StatusVerification) switch {
+      string CouldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
         GutterVerificationStatus.Verified => "Did prove: ",
         GutterVerificationStatus.Error => "Could not prove: ",
         GutterVerificationStatus.Inconclusive => "Not able to prove: ",
@@ -259,7 +269,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
+            deltaInformation += "  \n" + (token == null ? CouldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
           hoveringPostcondition = false;
@@ -272,12 +282,25 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         information += GetDescription(returnCounterexample.FailingReturn.Description);
         information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
-        information += GetDescription(callCounterexample.FailingCall.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            callCounterexample.FailingRequires.Description.SuccessDescription != "assertion always holds"
+            ) {
+          // Specialization for requires marked with {:error} attribute
+          information += GetDescription(callCounterexample.FailingRequires.Description);
+        } else {
+          information += GetDescription(callCounterexample.FailingCall.Description);
+        }
         information += MoreInformation(callCounterexample.FailingRequires.tok, false);
+      } else if (assertCmd is AssertRequiresCmd assertRequiresCmd) {
+        information += GetDescription(assertRequiresCmd.Description);
+        information += MoreInformation(assertRequiresCmd.Requires.tok, currentlyHoveringPostcondition);
+      } else if (assertCmd is AssertEnsuresCmd assertEnsuresCmd) {
+        information += GetDescription(assertEnsuresCmd.Description);
+        information += MoreInformation(assertEnsuresCmd.Ensures.tok, currentlyHoveringPostcondition);
       } else {
         information += GetDescription(assertCmd?.Description);
         if (assertCmd?.tok is NestedToken) {
-          information += MoreInformation(assertCmd.tok, true);
+          information += MoreInformation(assertCmd.tok, currentlyHoveringPostcondition);
         }
       }
 
