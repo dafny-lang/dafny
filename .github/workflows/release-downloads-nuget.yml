@@ -145,20 +145,15 @@ jobs:
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
-        include:
-        - os:  'ubuntu-22.04'
-          osn: 'ubuntu\-22.04'
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
-        - os:  'macos-11'
-          osn: 'osx-.*'
-        - os:  'windows-2019'
-          osn: 'win'
 
     steps:
-    ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
-    ## are also published through NuGet.
-    ## Ideally we would have a test project that actually uses part of the public API of each package.
+    # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
+    # are also published through NuGet.
+    # Ideally we would have a test project that actually uses part of the public API of each package.
+    # The default -DependencyVersion of "Lowest" seems to override the minimum version on transitive dependencies,
+    # which leads to a spurious circular dependency between DafnyServer and DafnyLanguageServer.
+    # We use "Highest" instead just to avoid this and still get some validation that all dependencies
+    # are at least published at all, but it would be great to understand this issue better.
     - name: Check library dependencies
       run: |
-        nuget install -Prerelease ${{ matrix.library-name }}
+        nuget install -Prerelease ${{ matrix.library-name }} -DependencyVersion Highest
