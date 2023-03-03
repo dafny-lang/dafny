@@ -301,7 +301,8 @@ public class Compilation {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Token).ToList();
+    var diagnostics = errorReporter.GetDiagnostics(document.Uri);
+    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {

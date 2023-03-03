@@ -5,16 +5,12 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
-public record DafnyRange(DafnyPosition Start, DafnyPosition End);
-
-public record DafnyPosition(int Line, int Column);
-
 /// <summary>
 /// A quick fix replaces a range with the replacing text.
 /// </summary>
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
-public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "");
+public record DafnyCodeActionEdit(RangeToken Range, string Replacement = "");
 
 public delegate List<DafnyAction> ActionSignature(RangeToken range);
 
@@ -43,7 +39,7 @@ public static class ErrorRegistry {
     return range => {
       var actions = new List<DafnyAction>();
       foreach (var replacement in replacements) {
-        var edit = new[] { new DafnyCodeActionEdit(range.ToRange(), replacement.NewContent) };
+        var edit = new[] { new DafnyCodeActionEdit(range, replacement.NewContent) };
         var action = new DafnyAction(replacement.Title, edit);
         actions.Add(action);
       }
@@ -78,7 +74,7 @@ public static class ErrorRegistry {
   }
 
   private static List<DafnyAction> ReplacementAction(string title, RangeToken range, string newText) {
-    var edit = new[] { new DafnyCodeActionEdit(range.ToRange(), newText) };
+    var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
@@ -86,19 +82,19 @@ public static class ErrorRegistry {
   private static List<DafnyAction> ReplacementAction(RangeToken range, string newText) {
     string toBeReplaced = range.PrintOriginal();
     string title = "replace '" + toBeReplaced + "' with '" + newText + "'";
-    var edit = new[] { new DafnyCodeActionEdit(range.ToRange(), newText) };
+    var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
 
   private static List<DafnyAction> InsertAction(string title, RangeToken range, string newText) {
-    var edits = new[] { new DafnyCodeActionEdit(range.ToRange(), newText) };
+    var edits = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edits);
     return new List<DafnyAction> { action };
   }
 
   private static List<DafnyAction> RemoveAction(string title, RangeToken range) {
-    var edit = new[] { new DafnyCodeActionEdit(range.ToRange(), "") };
+    var edit = new[] { new DafnyCodeActionEdit(range, "") };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
@@ -106,7 +102,7 @@ public static class ErrorRegistry {
   private static List<DafnyAction> RemoveAction(RangeToken range) {
     string toBeRemoved = range.PrintOriginal();
     string title = "remove '" + toBeRemoved + "'";
-    var edit = new[] { new DafnyCodeActionEdit(range.ToRange(), "") };
+    var edit = new[] { new DafnyCodeActionEdit(range, "") };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }

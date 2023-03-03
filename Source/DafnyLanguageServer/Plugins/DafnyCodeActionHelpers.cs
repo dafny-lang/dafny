@@ -104,7 +104,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  private static (DafnyRange? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (RangeToken? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
@@ -114,7 +114,7 @@ public static class DafnyCodeActionHelpers {
     }
 
     var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
-    var beforeClosingBrace = new DafnyRange(endToken.ToPosition(), endToken.ToPosition());
+    var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
 

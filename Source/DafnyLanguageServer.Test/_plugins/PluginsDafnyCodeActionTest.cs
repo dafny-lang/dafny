@@ -17,10 +17,10 @@ namespace PluginsDafnyCodeActionTest {
 
   public class DummyDafnyCodeActionProvider : DafnyCodeActionProvider {
     public override IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection) {
-      var dafnyPosition = input.Program.GetFirstTopLevelToken().ToPosition();
+      var token = input.Program.GetFirstTopLevelToken();
       return new DafnyCodeAction[] {
         new InstantDafnyCodeAction("Insert file header", new DafnyCodeActionEdit[] {
-          new DafnyCodeActionEdit(new DafnyRange(dafnyPosition, dafnyPosition), "/*First comment*/")
+          new DafnyCodeActionEdit(new RangeToken(token, token), "/*First comment*/")
         })
       };
     }
