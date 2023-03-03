@@ -24,7 +24,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly Specification<FrameExpression> Mod;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
-  private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution (note that "methodBody" is a "DividedBlockStmt" for any "Method" that is a "Constructor")
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
@@ -125,7 +124,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     this.Mod = mod;
     this.Ens = ens;
     this.Decreases = decreases;
-    this.methodBody = body;
+    Body = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
     MustReverify = false;
@@ -179,31 +178,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  public BlockStmt Body {
-    get {
-      // Lemma from included files do not need to be resolved and translated
-      // so we return emptyBody. This is to speed up resolver and translator.
-      if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
-        return Method.emptyBody;
-      } else {
-        return methodBody;
-      }
-    }
-    set {
-      methodBody = value;
-    }
-  }
+  public BlockStmt Body { get; set; }
 
   public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
-
-  public BlockStmt BodyForRefinement {
-    // For refinement, we still need to merge in the body
-    // a lemma that is in the refinement base that is defined
-    // in a include file.
-    get {
-      return methodBody;
-    }
-  }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
