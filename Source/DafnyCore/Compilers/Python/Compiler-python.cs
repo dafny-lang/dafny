@@ -371,7 +371,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = block.Fork();
       block.Write("return ");
       if (witnessKind == SubsetTypeDecl.WKind.Compiled) {
-        TrExpr(witness, block, false, wStmts);
+        block.Append(Expr(witness, false, wStmts));
       } else {
         block.Write(TypeInitializationValue(udt, wr, d.tok, false, false));
       }
@@ -822,7 +822,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(".VerbatimString(False)");
       } else {
         wr.Write($"{DafnyRuntimeModule}.string_of(");
-        TrExpr(arg, wr, false, wStmts);
+        wr.Append(Expr(arg, false, wStmts));
         wr.Write(")");
       }
     }
@@ -1295,7 +1295,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write("[");
-      TrExpr(index, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write("]");
     }
 
@@ -1303,9 +1303,9 @@ namespace Microsoft.Dafny.Compilers {
       CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write(".set(");
-      TrExpr(index, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(value, inLetExprBody, wStmts));
       wr.Write(")");
     }
 
@@ -1314,9 +1314,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{DafnySeqMakerFunction}(");
       TrParenExpr(source, wr, inLetExprBody, wStmts);
       wr.Write("[");
-      if (lo != null) { TrExpr(lo, wr, inLetExprBody, wStmts); }
+      if (lo != null) { wr.Append(Expr(lo, inLetExprBody, wStmts)); }
       wr.Write(":");
-      if (hi != null) { TrExpr(hi, wr, inLetExprBody, wStmts); }
+      if (hi != null) { wr.Append(Expr(hi, inLetExprBody, wStmts)); }
 
       wr.Write(":])");
     }
@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function,
         List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrExpr(function, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(function, inLetExprBody, wStmts));
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
@@ -1622,7 +1622,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       wr.Write(pre);
-      TrExpr(e.E, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(e.E, inLetExprBody, wStmts));
       wr.Write(post);
     }
 
@@ -1671,9 +1671,9 @@ namespace Microsoft.Dafny.Compilers {
       var sep = "";
       foreach (var p in elements) {
         wr.Write(sep);
-        TrExpr(p.A, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(": ");
-        TrExpr(p.B, wr, inLetExprBody, wStmts);
+        wr.Append(Expr(p.B, inLetExprBody, wStmts));
         sep = ", ";
       }
       wr.Write("})");
@@ -1731,7 +1731,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("[");
-      TrExpr(e, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(e, inLetExprBody, wStmts));
       wr.Write("]");
     }
 
