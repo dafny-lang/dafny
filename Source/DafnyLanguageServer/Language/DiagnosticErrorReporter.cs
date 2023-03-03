@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public void ReportBoogieError(ErrorInformation error) {
-      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      var relatedInformation = new List<DafnyRelatedInformation>();
       foreach (var auxiliaryInformation in error.Aux) {
         if (auxiliaryInformation.Category == RelatedLocationCategory) {
           relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(Translator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg));
@@ -70,14 +70,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       var dafnyToken = Translator.ToDafnyToken(error.Tok);
       var uri = GetDocumentUriOrDefault(dafnyToken);
-      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg, VerifierMessageSource, ErrorLevel.Error);
-      var diagnostic = new Diagnostic {
-        Severity = DiagnosticSeverity.Error,
-        Message = error.Msg,
-        Range = error.Tok.GetLspRange(),
-        RelatedInformation = relatedInformation,
-        Source = VerifierMessageSource.ToString()
-      };
+      var dafnyDiagnostic = new DafnyDiagnostic(null, dafnyToken, error.Msg,
+        VerifierMessageSource, ErrorLevel.Error, relatedInformation);
       AddDiagnosticForFile(
         dafnyDiagnostic,
         VerifierMessageSource,
@@ -92,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return $"Could not prove: {related}";
     }
 
-    private IEnumerable<DiagnosticRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+    private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
       if (tokenForMessage is BoogieRangeToken range) {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;
@@ -121,10 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      yield return new DiagnosticRelatedInformation {
-        Message = message,
-        Location = CreateLocation(token)
-      };
+      yield return new DafnyRelatedInformation(token, message);
       if (inner != null) {
         foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, RelatedLocationMessage)) {
           yield return nestedInformation;
@@ -132,21 +123,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private static Location CreateLocation(IToken token) {
-      var uri = DocumentUri.Parse(token.filename);
-      return new Location {
-        Range = token.GetLspRange(),
-        // During parsing, we store absolute paths to make reconstructing the Uri easier
-        // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-        Uri = uri
-      };
-    }
-
     public override bool Message(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
-      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      var relatedInformation = new List<DafnyRelatedInformation>();
       var tok = rootTok;
       while (tok is NestedToken nestedToken) {
         tok = nestedToken.Inner;
@@ -159,16 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level);
-      var item = new Diagnostic {
-        Code = errorId,
-        Severity = ToSeverity(level),
-        Message = msg,
-        Range = rootTok.GetLspRange(),
-        Source = source.ToString(),
-        RelatedInformation = relatedInformation,
-        CodeDescription = errorId == null ? null : new CodeDescription { Href = new Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorId) },
-      };
+      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
       AddDiagnosticForFile(dafnyDiagnostic, source, GetDocumentUriOrDefault(rootTok));
       return true;
     }

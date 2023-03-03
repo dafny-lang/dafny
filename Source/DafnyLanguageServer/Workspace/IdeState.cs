@@ -41,10 +41,24 @@ static class Util {
       Message = dafnyDiagnostic.Message,
       Range = dafnyDiagnostic.Token.GetLspRange(),
       Source = dafnyDiagnostic.Source.ToString(),
-      RelatedInformation = relatedInformation,
+      RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
+        new DiagnosticRelatedInformation {
+          Location = CreateLocation(r.Token),
+          Message = r.Message
+        }).ToList(),
       CodeDescription = dafnyDiagnostic.ErrorId == null
         ? null
-        : new CodeDescription {Href = new Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + dafnyDiagnostic.ErrorId)},
+        : new CodeDescription { Href = new Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + dafnyDiagnostic.ErrorId) },
+    };
+  }
+
+  private static Location CreateLocation(IToken token) {
+    var uri = DocumentUri.Parse(token.filename);
+    return new Location {
+      Range = token.GetLspRange(),
+      // During parsing, we store absolute paths to make reconstructing the Uri easier
+      // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+      Uri = uri
     };
   }
 

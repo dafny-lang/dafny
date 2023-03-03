@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
@@ -13,8 +14,10 @@ namespace Microsoft.Dafny {
     Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
   }
 
-  public record DafnyRelatedInformation
-  public record DafnyDiagnostic(string ErrorId, IToken Token, string Message, MessageSource Source, ErrorLevel Level);
+  public record DafnyRelatedInformation(IToken Token, string Message);
+  public record DafnyDiagnostic(string ErrorId, IToken Token, string Message,
+    MessageSource Source, ErrorLevel Level,
+    IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }
