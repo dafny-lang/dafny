@@ -1025,44 +1025,90 @@ Folks, it doesn't get any simpler than that!
 
 ## 12.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
-The Dafny language semantics require that when a constant or variable is used
-that it have a definite value. It need not be given a value when it is declared,
-but must have a value when it is first used. As the first use may be buried in
-much later code and may be in different locations depending on the control flow
-through `if`, `match`, loop statements and expressions, checking for
-definite assignment can require some program flow analysis.
+The Dafny language semantics ensures that any use (read) of a variable (or constant,
+parameter, object field, or array element) gives a value of the variable's type.
+It is easy to see that this property holds for any variable that is declared with
+an initializing assignment. However, for many useful programs, it would be too strict
+to require an initializing assignment at the time a variable is declared.
+Instead, Dafny ensures the property through _auto-initialization_ and rules for _definite assignment_.
 
-Dafny will issue an error message if it cannot assure itself that a variable 
-has been given a value. This may be a conservative warning: Dafny may issue an 
-error message even if it is possible to prove, but Dafny does not, that a
-variable will always be initialized.
+As explained in [section 5.3.1](#sec-type-characteristics), each type in Dafny is one of the following:
 
-Dafny has two definite assignment modes: 
-- a strict mode (the default) in which 
-assignments are required even for auto-initializable types, and 
-- a relaxed mode,
-enabled by the option `--relax-definite-assignment`, in which the
-auto-initialization is sufficient to satisfy the definite assignment rules.
+- _auto-init type_: the type is nonempty and the compiler has some way to emit code that constructs a value
+- _nonempty type_: the type is nonempty, but the compiler does not know how perform automatic initialization
+- _possibly empty type_: the type is not known for sure to have a value
 
-In relaxed definite assignment mode,
-if the type of a variable is _auto-initializable_, then a default value is used
-implicitly even if the declaration of the variable does not have an 
-explicit initializer. For example, a `bool` variable is initialized by default
-to `false` and a variable with an int-based type for which `0` is a valid value
-is auto-initialized to `0`; a non-nullable class type is not 
-auto-initialized, but a nullable class type is auto-initalized to `null`.
+For a variable of an auto-init type, the compiler can initialize the variable automatically.
+This means that the variable can be used immediately after declaration, even if the program does not
+explicitly provide an initializing assignment.
 
-In declaring generic types, type parameters can be declared to be required to
-be auto-initializable types (cf. [Section 5.3.1.2](#sec-auto-init)).
+In a ghost context, one can an imagine a "ghost" that initializes variables. Unlike the compiler, such
+a "ghost" does not need to emit code that constructs an initializing value; it suffices for the ghost to
+know that a value exists. Therefore, in a ghost context, a variable of a nonempty type can be used immediately
+after declaration.
 
-If a class has fields that are not auto-initializable, then the class must
-have a constructor, and in each constructor those fields must be explicitly
-initialized. This rule ensures that any method of the class (which does not
-know which constructor may have been already called) can rely on the fields
-having been initialized.
+Before a variable of a possibly empty type can be used, the program must initialize it.
+The variable need not be given a value when it is declared,
+but it must have a value by the time it is first used. Dafny uses the precision of the verifier to
+reason about the control flow between assignments and uses of variables, and it reports an error
+if it cannot assure itself that the variable has been given a value.
 
-[This document](../Compilation/AutoInitialization) has more detail on
-auto-initialization.
+The elements of an array must be assured to have values already in the statement that allocates the array.
+This is achieved in any of the following four ways:
+- If the array is allocated to be empty (that is, one of its dimensions is requested to be 0), then
+  the array allocation trivially satisfies the requirement.
+- If the element type of the array is an auto-init type, then nothing further is required by the program.
+- If the array allocation occurs in a ghost context and the element type is a nonempty type, then nothing
+  further is required by the program.
+- Otherwise, the array allocation must provide an initialization display or an initialization function.
+See [section 5.10](#sec-array-type) for information about array initialization.
+
+The fields of a class must have values by the end of the first phase of each constructor (that is, at
+the explicit or implicit `new;` statement in the constructor). If a class has a compiled field that is
+not of an auto-init type, or if it has a ghost field of a possibly empty type, then the class is required
+to declare a(t least one) constructor.
+
+The yield-parameters of an `iterator` turn into fields of the corresponding iterator class, but there
+is no syntactic place to give these initial values. Therefore, every compiled yield-parameter must be of
+auto-init types and every ghost yield-parameter must be of an auto-init or nonempty type.
+
+For local variables and out-parameters, Dafny supports two definite-assignment modes:
+- A strict mode (the default, which is `--relax-definite-assignment=false`; or `/definiteAssignment:4`
+  in the legacy CLI), in which local variables and out-parameters are always subject
+  to definite-assignment rules, even for auto-initializable types.
+- A relaxed mode (enabled by the option `--relax-definite-assignment`; or `/definiteAssignment:1`
+  in the legacy CLI), in which the auto-initialization (or, for ghost variables and parametes, nonemptiness)
+  is sufficient to satisfy the definite assignment rules.
+
+A program using the strict mode can still indicate that it is okay with an arbitrary value of a variable `x`
+by using an assignment statement `x := *;`, provided the type of `x` is an auto-init type (or, if `x` is
+ghost, a nonempty type). (If `x` is of a possibly nonempty type, then `x := *;` is still allowed, but it
+sets `x` to a value of its type only if the type actually contains a value. Therefore, when `x` is of
+a possibly empty type, `x := *;` does not count as a definite assignment to `x`.)
+
+Note that auto-initialization is nondeterministic. Dafny only guarantees that each value it assigns to
+a variable of an auto-init type is _some_ value of the type. Indeed, a variable may be auto-initialized
+to different values in different runs of the program or even at different times during the same run of
+the program. In other words, Dafny does not guarantee the "zero-equivalent value" initialization that
+some languages do. Along these lines, also note that the `witness` value provided in some subset-type
+declarations is not necessarily the value chosen by auto-initialization, though it does esstablish that
+the type is an auto-init type.
+
+In some programs (for example, in some test programs), it is desirable to avoid nondeterminism.
+For that purpose, Dafny provides an `--enforce-determinism` option. It forbids use of any program
+statement that may have nondeterministic behavior and it disables auto-initialization.
+This mode enforces definite assignments everywhere, going beyond what the strict mode does by enforcing
+definite assignment also for fields and array elements. It also forbids the use of `iterator` declarations
+and `constructor`-less `class` declarations. It is up to a user's build process to ensure that
+`--enforce-determinism` is used consistently throughout the program. (In the legacy CLI, this
+mode is enabled by `/definiteAssignment:3`.)
+
+[This document](../Compilation/AutoInitialization), which is intended for developers of the
+Dafny tool itself, has more detail on auto-initialization and how it is implemented.
+
+Finally, note that `--relax-definite-assignment=false` is the default in the command-based CLI,
+but, for backwards compatibility, the relaxed rules (`/definiteAssignment:1) are still the default
+in the legacy CLI.
 
 ## 12.7. Well-founded Orders {#sec-well-founded-orders}
 

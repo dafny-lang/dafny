@@ -62,7 +62,7 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(BoogieFilter, (o, f) => o.ProcsToCheck.AddRange(f));
     DafnyOptions.RegisterLegacyBinding(BoogieArguments, (o, boogieOptions) => {
 
-      if (boogieOptions != null) {
+      if (!string.IsNullOrEmpty(boogieOptions)) {
         o.Parse(SplitArguments(boogieOptions).ToArray());
       }
     });

@@ -2,9 +2,12 @@ name: Build DafnyRef.pdf
 
 on:
   workflow_dispatch:
-  push:
   pull_request:
-    branches: [ master ]
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check-deep-tests:

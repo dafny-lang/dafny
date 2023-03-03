@@ -620,11 +620,11 @@ namespace Microsoft.Dafny {
       }
 
       if (previousMethod is Constructor) {
-        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.BodyForRefinement);
+        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
         return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
-      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.BodyForRefinement);
+      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
       if (previousMethod is LeastLemma) {
         return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
@@ -879,15 +879,15 @@ namespace Microsoft.Dafny {
                 CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
               }
               currentMethod = m;
-              var replacementBody = m.BodyForRefinement;
+              var replacementBody = m.Body;
               if (replacementBody != null) {
-                if (prevMethod.BodyForRefinement == null) {
+                if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.BodyForRefinement);
+                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.BodyForRefinement == null, m.Attributes);
+              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -1668,10 +1668,10 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = m;
     }
     public override BlockStmt CloneMethodBody(Method m) {
-      if (m.BodyForRefinement is DividedBlockStmt) {
-        return CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
+      if (m.Body is DividedBlockStmt) {
+        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {
-        return CloneBlockStmt(m.BodyForRefinement);
+        return CloneBlockStmt(m.Body);
       }
     }
 

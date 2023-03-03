@@ -553,7 +553,7 @@ The initialization portion is optional. One form is an
 explicit list of values, in which case the dimension is optional:
 <!-- %no-check -->
 ```dafny
-var a := new int[5];  // valid only if definiteAssignment is not strict
+var a := new int[5];
 var b := new int[5][2,3,5,7,11];
 var c := new int[][2,3,5,7,11];
 var d := new int[3][4,5,6,7]; // error

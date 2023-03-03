@@ -8,7 +8,21 @@ using static Microsoft.Dafny.ErrorRegistry;
 namespace Microsoft.Dafny;
 
 partial class Resolver {
-  class CheckTypeInferenceVisitor : ASTVisitor<IASTVisitorContext> {
+  class TypeInferenceCheckingContext : IASTVisitorContext {
+    private readonly IASTVisitorContext astVisitorContext;
+
+    public bool IsPrefixPredicate => astVisitorContext is PrefixPredicate;
+    public bool IsExtremePredicate => astVisitorContext is ExtremePredicate;
+    public bool IsPrefixDeclaration => astVisitorContext is PrefixPredicate or PrefixLemma;
+
+    public TypeInferenceCheckingContext(IASTVisitorContext astVisitorContext) {
+      this.astVisitorContext = astVisitorContext;
+    }
+
+    ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
+  }
+
+  class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     private readonly Resolver resolver;
     private ErrorReporter reporter => resolver.reporter;
 
@@ -16,8 +30,8 @@ partial class Resolver {
       this.resolver = resolver;
     }
 
-    public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
-      return astVisitorContext;
+    public override TypeInferenceCheckingContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+      return new TypeInferenceCheckingContext(astVisitorContext);
     }
 
     protected override void VisitOneDeclaration(TopLevelDecl decl) {
@@ -63,7 +77,7 @@ partial class Resolver {
       base.VisitField(field);
     }
 
-    protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+    protected override bool VisitOneStatement(Statement stmt, TypeInferenceCheckingContext context) {
       if (stmt is CalcStmt calcStmt) {
         // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
         // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
@@ -78,7 +92,7 @@ partial class Resolver {
       return base.VisitOneStatement(stmt, context);
     }
 
-    protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
+    protected override void PostVisitOneStatement(Statement stmt, TypeInferenceCheckingContext context) {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
@@ -106,7 +120,7 @@ partial class Resolver {
       base.PostVisitOneStatement(stmt, context);
     }
 
-    protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
+    protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
@@ -142,7 +156,7 @@ partial class Resolver {
           if (!IsDetermined(bv.Type.Normalize())) {
             resolver.reporter.Error(MessageSource.Resolver, bv.tok,
               $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
-          } else if (context is ExtremePredicate) {
+          } else if (context.IsExtremePredicate) {
             CheckContainsNoOrdinal(bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
           }
         }
@@ -168,7 +182,7 @@ partial class Resolver {
             if (!IsDetermined(p.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok,
                 $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
-            } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+            } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
               CheckContainsNoOrdinal(e.tok, p,
                 $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
@@ -188,7 +202,7 @@ partial class Resolver {
               : "";
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
-          } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+          } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
             CheckContainsNoOrdinal(e.tok, p,
               $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
@@ -356,7 +370,7 @@ partial class Resolver {
         }
       }
 
-      base.VisitOneExpression(expr, context);
+      base.PostVisitOneExpression(expr, context);
     }
 
     public static bool IsDetermined(Type t) {
@@ -387,10 +401,10 @@ partial class Resolver {
       return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
     }
 
-    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, IASTVisitorContext context) {
+    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, TypeInferenceCheckingContext context) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
-      if (context is PrefixPredicate or PrefixLemma) {
+      if (context.IsPrefixDeclaration) {
         // User-provided expressions in extreme predicates/lemmas are checked in the extreme declarations, so need
         // need to do them here again for the prefix predicates/lemmas.
       } else {
