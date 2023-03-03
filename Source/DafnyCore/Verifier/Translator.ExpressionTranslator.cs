@@ -1250,9 +1250,6 @@ namespace Microsoft.Dafny {
               translator.adjustFuelForExists = false;
             }
 
-            var initEtran = this;
-            bool _scratch = true;
-
             Boogie.Expr antecedent = Boogie.Expr.True;
 
             List<bool> freeOfAlloc = null;
