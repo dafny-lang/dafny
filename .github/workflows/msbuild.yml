@@ -52,6 +52,8 @@ jobs:
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
   xunit-tests:
+    needs: check-deep-tests
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/xunit-tests.yml
 
   integration-tests:
