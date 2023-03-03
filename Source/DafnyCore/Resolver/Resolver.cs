@@ -2208,8 +2208,8 @@ namespace Microsoft.Dafny {
           var def = (d as ModuleDecl).Signature.ModuleDef;
           if (!def.HasBody && def.Companion == null) {
             // Don't complain about this yet - perhaps not at all, as if the external declaration does not exist, trying to resolve something in it will fail
-            //reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
-            //  $"this body-less module declaration has no companion external declaration: {d.FullDafnyName}");
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
+              $"this body-less module declaration has no companion external declaration: {d.FullDafnyName}");
           } else if (def.IsExternal && def.Companion == null) {
             reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
               $"this external module declaration has no companion body-less declaration: {d.FullDafnyName} (This will become an error in the future)");
