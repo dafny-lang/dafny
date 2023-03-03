@@ -56,6 +56,10 @@ jobs:
     with:
       branch: master
 
+  xunit-tests:
+    needs: check-deep-tests
+    uses: ./.github/workflows/xunit-tests.yml
+
   integration-tests:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
@@ -69,7 +73,7 @@ jobs:
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
-    needs: integration-tests
+    needs: [xunit-tests, integration-tests]
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny
