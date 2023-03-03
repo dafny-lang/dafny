@@ -1255,16 +1255,6 @@ namespace Microsoft.Dafny {
 
             Boogie.Expr antecedent = Boogie.Expr.True;
 
-            if (Attributes.ContainsBool(e.Attributes, "heapQuantifier", ref _scratch)) {
-              var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
-              bodyEtran = new ExpressionTranslator(bodyEtran, h);
-              antecedent = BplAnd(new List<Boogie.Expr> {
-                antecedent,
-                translator.FunctionCall(GetToken(e), BuiltinFunction.IsGoodHeap, null, h),
-                translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
-              });
-            }
-
             List<bool> freeOfAlloc = null;
             if (FrugalHeapUseX) {
               freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
