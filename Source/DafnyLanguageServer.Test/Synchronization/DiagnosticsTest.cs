@@ -596,7 +596,7 @@ module ModC {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(1, diagnostics.Length);
-      Assert.IsTrue(diagnostics[0].Message.Contains("A postcondition"));
+      Assert.IsTrue(diagnostics[0].Message.Contains("a postcondition"));
     }
 
     [TestMethod]
