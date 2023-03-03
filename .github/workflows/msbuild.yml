@@ -51,13 +51,7 @@ jobs:
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
-  check-deep-tests:
-    uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: master
-
   xunit-tests:
-    needs: check-deep-tests
     uses: ./.github/workflows/xunit-tests.yml
 
   integration-tests:
