@@ -294,7 +294,7 @@ Types can be refined in two ways:
 
 For example, consider the following abstract module:
 
-<!-- %check-verify -->
+<!-- %check-verify %save Parent.tmp -->
 ```dafny
 abstract module Parent {
   type T
@@ -303,7 +303,7 @@ abstract module Parent {
   newtype Pos = n: nat | n > 0 witness 1
   datatype Bool = True | False
 }
-``` <!-- %save Parent.tmp -->
+```
 
 In this module, type `T` is opaque and hence can be refined with any type,
 including class types.  Types `B`, `S`, `Pos`, and `Bool` are concrete and
@@ -339,7 +339,7 @@ abstract module ChildWithExtraMembers refines Parent {
   }
 
   datatype Bool ... {
-    function method AsDafnyBool() : bool { this.True? }
+    function AsDafnyBool() : bool { this.True? }
   }
 }
 ```

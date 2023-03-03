@@ -716,7 +716,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(GetToken(e), e.Frame, false, Resolver.FrameExpressionUse.Unchanged, OldAt(e.AtLabel), this, this, true);
+          return translator.FrameCondition(GetToken(e), e.Frame, false, FrameExpressionUse.Unchanged, OldAt(e.AtLabel), this, this, true);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
@@ -783,10 +783,11 @@ namespace Microsoft.Dafny {
                 Boogie.Expr oIsFresh = Boogie.Expr.Not(OldAt(freshLabel).IsAlloced(GetToken(expr), TrExpr(e.E)));
                 return Boogie.Expr.Binary(GetToken(expr), BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
-            case UnaryOpExpr.ResolvedOpcode.Allocated: {
-                var aType = e.E.Type.NormalizeExpand();
-                return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
-              }
+            case UnaryOpExpr.ResolvedOpcode.Allocated:
+              // Translate with $IsAllocBox, even if it requires boxing the argument. This has the effect of giving
+              // both the $IsAllocBox and $IsAlloc forms, because the axioms that connects these two is triggered
+              // by $IsAllocBox.
+              return translator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
           }
@@ -1303,7 +1304,7 @@ namespace Microsoft.Dafny {
             // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             Boogie.Expr typeAntecedent = translator.MkIsBox(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type);
             if (freeOfAlloc != null && !freeOfAlloc[0]) {
-              var isAlloc = translator.MkIsAlloc(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type, HeapExpr);
+              var isAlloc = translator.MkIsAllocBox(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type, HeapExpr);
               typeAntecedent = BplAnd(typeAntecedent, isAlloc);
             }
             var yUnboxed = translator.UnboxIfBoxed(new Boogie.IdentifierExpr(GetToken(expr), yVar), bv.Type);
@@ -1343,7 +1344,6 @@ namespace Microsoft.Dafny {
           if (FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           }
-          TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
           Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
@@ -1355,6 +1355,10 @@ namespace Microsoft.Dafny {
             var w = new Boogie.IdentifierExpr(GetToken(expr), wVar);
             Boogie.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
             Boogie.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
+            if (freeOfAlloc != null && !freeOfAlloc[0]) {
+              var isAlloc = translator.MkIsAllocBox(w, bv.Type, HeapExpr);
+              typeAntecedent = BplAnd(typeAntecedent, isAlloc);
+            }
             var subst = new Dictionary<IVariable, Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
@@ -1367,6 +1371,10 @@ namespace Microsoft.Dafny {
             var w = new Boogie.IdentifierExpr(GetToken(expr), wVar);
             Boogie.Expr unboxw = translator.UnboxIfBoxed(w, t.Type);
             Boogie.Expr typeAntecedent = translator.MkIsBox(w, t.Type);
+            if (freeOfAlloc != null && !freeOfAlloc[0]) {
+              var isAlloc = translator.MkIsAllocBox(w, t.Type, HeapExpr);
+              typeAntecedent = BplAnd(typeAntecedent, isAlloc);
+            }
             List<Boogie.Variable> bvs;
             List<Boogie.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);

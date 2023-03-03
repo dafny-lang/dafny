@@ -100,6 +100,8 @@ public class ForallStmtRewriter : IRewriter {
                     lhs = lhsBuilder(jj);
                     Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, s.Attributes);
                     var newRhs = Substitute(rhs, i, val.FInverse);
+                    var newBounds = SubstituteBoundedPoolList(s.Bounds, i, val.FInverse);
+
                     var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
                       j.Name,
                       j.Type.ToString(),
@@ -113,6 +115,7 @@ public class ForallStmtRewriter : IRewriter {
                       new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
                       attributes) {
                       Type = Type.Bool,
+                      Bounds = newBounds,
                     };
                     exprList.Add(expr);
                   }
@@ -124,6 +127,7 @@ public class ForallStmtRewriter : IRewriter {
                   new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
                   s.Attributes) {
                   Type = Type.Bool,
+                  Bounds = s.Bounds
                 };
                 exprList.Add(expr);
               }
@@ -317,6 +321,14 @@ public class ForallStmtRewriter : IRewriter {
       substMap.Add(v, e);
       Substituter sub = new Substituter(null, substMap, typeMap);
       return sub.Substitute(expr);
+    }
+
+    List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list, IVariable v, Expression e) {
+      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+      substMap.Add(v, e);
+      Substituter sub = new Substituter(null, substMap, typeMap);
+      return sub.SubstituteBoundedPoolList(list);
     }
   }
 }

@@ -86,18 +86,23 @@ public class TestDafny {
     var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
                          File.ReadAllText(expectFile);
 
+    var success = true;
     foreach (var plugin in dafnyOptions.Plugins) {
       foreach (var compiler in plugin.GetCompilers()) {
         var result = RunWithCompiler(options, compiler, expectedOutput);
         if (result != 0) {
-          return result;
+          success = false;
         }
       }
     }
 
-    Console.Out.WriteLine(
-      $"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
-    return 0;
+    if (success) {
+      Console.Out.WriteLine(
+        $"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
+      return 0;
+    } else {
+      return -1;
+    }
   }
 
   private static int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
