@@ -5,7 +5,7 @@ ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype construc
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(94,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
-ResolutionErrors.dfy(98,20): Error: wrong number of arguments (datatype constructor 'David' expects 1, got 2)
+ResolutionErrors.dfy(98,20): Error: wrong number of arguments (got 2, but datatype constructor 'David' expects 1: (x: int))
 ResolutionErrors.dfy(13,18): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(25,13): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(27,13): Error: array selection requires an array4 (got array<T>)
@@ -133,8 +133,8 @@ ResolutionErrors.dfy(1025,11): Error: Wrong number of type arguments (2 instead 
 ResolutionErrors.dfy(1026,11): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: C
 ResolutionErrors.dfy(1037,7): Error: duplicate name of top-level declaration: BadSyn2
 ResolutionErrors.dfy(1034,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
-ResolutionErrors.dfy(1035,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1036,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
+ResolutionErrors.dfy(1035,17): Error: Type or type parameter is not declared in this scope: badName (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ResolutionErrors.dfy(1036,22): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ResolutionErrors.dfy(1043,7): Error: type-synonym cycle: A -> A
 ResolutionErrors.dfy(1046,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1050,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
@@ -149,7 +149,7 @@ ResolutionErrors.dfy(1087,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1089,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1092,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1099,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
-ResolutionErrors.dfy(1111,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened'?)
+ResolutionErrors.dfy(1111,13): Error: Type or type parameter is not declared in this scope: BX (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
 ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
 ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
@@ -158,8 +158,8 @@ ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
 ResolutionErrors.dfy(1150,13): Error: new can be applied only to class types (got JJ)
-ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
@@ -184,8 +184,8 @@ ResolutionErrors.dfy(1274,30): Error: the type of this variable is underspecifie
 ResolutionErrors.dfy(1274,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1281,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(1284,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
-ResolutionErrors.dfy(1295,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1296,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
+ResolutionErrors.dfy(1295,21): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+ResolutionErrors.dfy(1296,24): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ResolutionErrors.dfy(1333,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
 ResolutionErrors.dfy(1350,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors.dfy(1378,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
@@ -250,7 +250,7 @@ ResolutionErrors.dfy(1732,23): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1735,27): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1739,40): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could not be determined
-ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened'?)
+ResolutionErrors.dfy(1785,19): Error: Type or type parameter is not declared in this scope: realint (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
 ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
 ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
@@ -344,13 +344,13 @@ ResolutionErrors.dfy(2324,20): Error: a ghost const field is allowed only in spe
 ResolutionErrors.dfy(2327,18): Error: a ghost const field is allowed only in specification contexts
 ResolutionErrors.dfy(2343,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2346,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2361,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 ResolutionErrors.dfy(2362,18): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2368,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(2368,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Class') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(2374,37): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2377,49): Error: a newtype definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2378,47): Error: a subset type definition is not allowed to depend on the set of allocated references

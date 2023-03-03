@@ -61,7 +61,7 @@ public class PluginsTest {
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Microsoft.Dafny.Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns();
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
@@ -105,7 +105,7 @@ public class PluginsTest {
   }
 
   private static Program CreateProgram(DafnyOptions options, string programString, CollectionErrorReporter reporter) {
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns();
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);

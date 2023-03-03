@@ -1,1 +1,0 @@
-* `opaque` is now a modifier, though still allowed, but deprecated as an identifier; it replaces the `{:opaque}` attribute

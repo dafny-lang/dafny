@@ -223,8 +223,7 @@ public class ExpressionTester {
         Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
-          letExpr.Constraint_Bounds = Resolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(),
-            constraint, true, ComprehensionExpr.BoundedPool.PoolVirtues.None);
+          letExpr.Constraint_Bounds = Resolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;

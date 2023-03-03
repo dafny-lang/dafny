@@ -34,21 +34,28 @@ namespace Microsoft.Dafny {
     // make the path absolute -- detecting case and canonicalizing symbolic and hard
     // links are difficult across file systems (which may mount parts of other filesystems,
     // with different characteristics) and is not supported by .Net libraries
-    public static string Canonicalize(String filePath) {
+    public static Uri Canonicalize(string filePath) {
       if (filePath == null || !filePath.StartsWith("file:")) {
-        return Path.GetFullPath(filePath);
+        return new Uri(Path.GetFullPath(filePath));
       }
 
       if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
-        return (new Uri(filePath)).LocalPath;
+        return new Uri(filePath);
       }
 
-      if (filePath.StartsWith("file:\\")) {
-        // Recovery mechanisms for the language server
-        return filePath.Substring("file:\\".Length);
+      var potentialPrefixes = new List<string>() { "file:\\", "file:/", "file:" };
+      foreach (var potentialPrefix in potentialPrefixes) {
+        if (filePath.StartsWith(potentialPrefix)) {
+          var withoutPrefix = filePath.Substring(potentialPrefix.Length);
+          var tentativeURI = "file:///" + withoutPrefix.Replace("\\", "/");
+          if (Uri.IsWellFormedUriString(tentativeURI, UriKind.RelativeOrAbsolute)) {
+            return new Uri(tentativeURI);
+          }
+          // Recovery mechanisms for the language server
+          return new Uri(filePath.Substring(potentialPrefix.Length));
+        }
       }
-
-      return filePath.Substring("file:".Length);
+      return new Uri(filePath.Substring("file:".Length));
     }
     public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
@@ -69,7 +76,7 @@ namespace Microsoft.Dafny {
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
-      CanonicalPath = !useStdin ? Canonicalize(filePath) : "<stdin>";
+      CanonicalPath = !useStdin ? Canonicalize(filePath).AbsolutePath : "<stdin>";
       filePath = CanonicalPath;
 
       if (extension == ".dfy" || extension == ".dfyi") {
@@ -184,7 +191,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns();
 
       foreach (DafnyFile dafnyFile in files) {
@@ -332,11 +339,11 @@ namespace Microsoft.Dafny {
       string moduleName,
       Microsoft.Boogie.Program boogieProgram, string programId) {
       var moduleId = (programId ?? "main_program_id") + "_" + moduleName;
-      var z3NotFoundMessage = @"
+      var z3NotFoundMessage = $@"
 Z3 not found. Please either provide a path to the `z3` executable using
 the `--solver-path <path>` option, manually place the `z3` directory
 next to the `dafny` executable you are using (this directory should
-contain `bin/z3` or `bin/z3.exe`), or set the PATH environment variable
+contain `bin/z3-{DafnyOptions.DefaultZ3Version}` or `bin/z3-{DafnyOptions.DefaultZ3Version}.exe`), or set the PATH environment variable
 to also include a directory containing the `z3` executable.
 ";
 
