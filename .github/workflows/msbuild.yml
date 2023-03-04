@@ -108,7 +108,10 @@ jobs:
       - name: Merge reports
         run: |
           dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.cobertura.xml -f cobertura
-          reportgenerator -reports:"./**/coverage.cobertura.xml;*.cobertura.xml" -reporttypes:Cobertura -targetdir:coverage-cobertura
+          reportgenerator \
+            -reports:"./**/coverage.cobertura.xml;*.cobertura.xml" \
+            -assemblyfilters:"+AutoExtern;+dafnylanguageserver.dll;+Dafny;+DafnyCore;+DafnyDriver;+DafnyRuntime;+DafnyTestGeneration" \
+            -reporttypes:Cobertura -targetdir:coverage-cobertura
           reportgenerator -reports:"./coverage-cobertura/Cobertura.xml" -reporttypes:Html -targetdir:coverage-html
 
       - name: Code coverage report
