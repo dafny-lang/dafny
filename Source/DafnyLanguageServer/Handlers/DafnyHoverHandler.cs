@@ -232,6 +232,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             }
 
             if (!currentlyHoveringPostcondition &&
+                (failureDescription == new EnsuresDescription().FailureDescription)) {
+              failureDescription = "a postcondition could not be proven on this return path";
+            }
+
+            if (!currentlyHoveringPostcondition &&
                 (failureDescription == new RequiresDescription().FailureDescription)) {
               failureDescription = "a precondition could not be proven";
             }
@@ -279,7 +284,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       if (counterexample is ReturnCounterexample returnCounterexample) {
-        information += GetDescription(returnCounterexample.FailingReturn.Description);
+        if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
+            returnCounterexample.FailingEnsures.Description.SuccessDescription != "assertion always holds") {
+          // Specialization for ensures marked with {:error} attribute
+          // Note that GetDescription checks if user is hovering postcondition
+          // so if there is no {:error}, it falls back to a correct error message
+          information += GetDescription(returnCounterexample.FailingEnsures.Description);
+        } else {
+          information += GetDescription(returnCounterexample.FailingReturn.Description);
+        }
         information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         if (assertionNode.StatusVerification == GutterVerificationStatus.Error &&
