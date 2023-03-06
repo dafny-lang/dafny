@@ -28,6 +28,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [TestMethod]
+    public async Task CodeActionSuggestsRemovingAttribute() {
+      await TestCodeAction(@"
+method ><|>remove attribute|||{:dllimport}<| Foo()
+{ 
+}");
+    }
+    
+    [TestMethod]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
 method Foo()
@@ -137,7 +145,7 @@ const x := 1;
         var position = actionData.First;
         var split = actionData.Second.Annotation.Split(">>>");
         var expectedTitle = split[0];
-        var expectedNewText = split[1];
+        var expectedNewText = split.Length > 1 ? split[1]: "";
         var expectedRange = actionData.Second.Range;
         var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
         var found = false;

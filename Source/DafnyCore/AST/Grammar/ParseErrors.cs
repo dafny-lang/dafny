@@ -59,8 +59,8 @@ public class ParseErrors {
     p_imap_needs_two_type_parameters,
     p_deprecating_function_method,
     p_deprecated_semicolon,
-    sc_malformed_pragma,
-    sc_unknown_pragma,
+    sc_malformed_pragma, // TODO no description is provided
+    sc_unknown_pragma, // TODO no description is provided
   }
 
   static ParseErrors() {
@@ -175,7 +175,7 @@ But mutable field declarations are not permitted at the static module level, inc
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 ", Replace("const", "replace 'var' by 'const'"));
 
-    Add(ErrorId.p_bad_datatype_refinement,
+    Add(ErrorId.p_bad_datatype_refinement, // TODO errorId is never used in parser
     @"
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
@@ -213,8 +213,7 @@ The output of a predicate or function cannot be ghost.
 It is implicitly ghost if the function is ghost itself.
 ", Remove(true));
 
-    // TODO - MISPLACED
-    Add(ErrorId.p_ghost_function_output_not_ghost,
+    Add(ErrorId.p_ghost_function_output_not_ghost, // TODO errorId is never used in parser
     @"
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
@@ -230,7 +229,7 @@ The `new` modifier only applies to input parameters.
 The `nameonly` modifier only applies to input parameters.
 ", Remove(true));
 
-    Add(ErrorId.p_no_older_on_output_formals,
+    Add(ErrorId.p_no_older_on_output_formals, // TODO errorId is never used in parser
     @"
 The `older` modifier only applies to input parameters.
 ", Remove(true));
@@ -340,7 +339,7 @@ The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
 ", Remove(false));
 
-    Add(ErrorId.p_constructors_have_no_out_parameters,
+    Add(ErrorId.p_constructors_have_no_out_parameters, // TODO errorId is never used in parser
     @"
 Constructors are used to initalize the state of an instance of a class.
 Thus they typically set the values of the fields of the class instance.
@@ -408,7 +407,7 @@ A `imap` type has two type parameters: the type of the keys and the type of the 
 The error message states that the parser sees some number of type parameters different than two.
 ");
 
-    Add(ErrorId.p_deprecating_function_method,
+    Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
     @"
 In Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
