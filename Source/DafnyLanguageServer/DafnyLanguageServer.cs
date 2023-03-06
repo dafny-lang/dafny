@@ -70,32 +70,12 @@ namespace Microsoft.Dafny.LanguageServer {
     }
 
     private static void HandleZ3Version(ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
-      var z3Process = new ProcessStartInfo(proverOptions.ProverPath, "-version") {
-        CreateNoWindow = true,
-        RedirectStandardError = true,
-        RedirectStandardOutput = true,
-        RedirectStandardInput = true
-      };
-      var run = Process.Start(z3Process);
-      if (run == null) {
+      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         return;
       }
 
-      var actualOutput = run.StandardOutput.ReadToEnd();
-      run.WaitForExit();
-      var versionMatch = Z3VersionRegex.Match(actualOutput);
-      if (!versionMatch.Success) {
-        // Might be another solver.
-        return;
-      }
-
-      telemetryPublisher.PublishZ3Version(versionMatch.Value);
-      var major = int.Parse(versionMatch.Groups["major"].Value);
-      var minor = int.Parse(versionMatch.Groups["minor"].Value);
-      var patch = int.Parse(versionMatch.Groups["patch"].Value);
-      if (major <= 4 && (major < 4 || minor <= 8) && (minor < 8 || patch <= 6)) {
-        return;
-      }
+      telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
 
       var toReplace = "O:model_compress=false";
       var i = DafnyOptions.O.ProverOptions.IndexOf(toReplace);

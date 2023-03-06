@@ -61,11 +61,11 @@ public class PluginsTest {
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDef(), null);
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Microsoft.Dafny.Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns();
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
     Main.Resolve(dafnyProgram, reporter);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
@@ -82,7 +82,7 @@ public class PluginsTest {
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
@@ -98,18 +98,18 @@ public class PluginsTest {
     DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
   }
 
-  private static Program CreateProgram(string programString, CollectionErrorReporter reporter) {
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDef(), null);
+  private static Program CreateProgram(DafnyOptions options, string programString, CollectionErrorReporter reporter) {
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Type.ResetScopes();
     BuiltIns builtIns = new BuiltIns();
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
     return dafnyProgram;
   }
 }

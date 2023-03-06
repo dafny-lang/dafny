@@ -23,6 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
+    private readonly DafnyOptions options;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
@@ -32,6 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
+      DafnyOptions options,
       ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -39,6 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
       INotificationPublisher notificationPublisher) {
+      this.options = options;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
@@ -49,6 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public static TextDocumentLoader Create(
+      DafnyOptions options,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       ISymbolTableFactory symbolTableFactory,
@@ -57,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ILoggerFactory loggerFactory,
       INotificationPublisher notificationPublisher
       ) {
-      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
+      return new TextDocumentLoader(options, loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
     public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -86,8 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var textDocument = documentAfterParsing.TextDocumentItem;
       var parsedProgram = documentAfterParsing.Program;
       var clonedProgram = new Program(parsedProgram.Name,
-        new LiteralModuleDecl(new Cloner().CloneModuleDefinition(parsedProgram.DefaultModuleDef, "_default"), null),
-        parsedProgram.BuiltIns, parsedProgram.Reporter);
+        new LiteralModuleDecl(new Cloner().CloneModuleDefinition(parsedProgram.DefaultModuleDef, new Name("_default")), null),
+        parsedProgram.BuiltIns, parsedProgram.Reporter, parsedProgram.Options);
 
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, clonedProgram, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(clonedProgram, compilationUnit, cancellationToken);
@@ -119,7 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         textDocument,
         diagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(textDocument),
+        SignatureAndCompletionTable.Empty(options, textDocument),
         new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false,

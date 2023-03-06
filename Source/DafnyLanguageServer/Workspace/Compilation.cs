@@ -5,6 +5,7 @@ using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -110,7 +111,7 @@ public class Compilation {
       var documentAfterResolution = await documentLoader.LoadAsync(parsedDocument, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = parsedDocument.InitialIdeState();
+      var state = parsedDocument.InitialIdeState(options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
@@ -291,6 +292,15 @@ public class Compilation {
       foreach (var counterExample in verificationResult.Errors) {
         document.Counterexamples.Add(counterExample);
       }
+      // Sometimes, the boogie status is set as Completed
+      // but the assertion batches were not reported yet.
+      // because they are on a different thread.
+      // This loop will ensure that every vc result has been dealt with
+      // before we report that the verification of the implementation is finished 
+      foreach (var result in completed.Result.VCResults) {
+        document.GutterProgressReporter.ReportAssertionBatchResult(
+          new AssertionBatchResult(implementationTask.Implementation, result));
+      }
 
       var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
       var view = new ImplementationView(implementationRange, status, diagnostics);
@@ -372,4 +382,28 @@ public class Compilation {
 
       return ResolvedDocument;
     }, TaskScheduler.Current).Unwrap();
+
+  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
+    // TODO https://github.com/dafny-lang/dafny/issues/3416
+    var parsedDocument = await ResolvedDocument;
+    if (parsedDocument.Diagnostics.Any(diagnostic =>
+          diagnostic.Severity == DiagnosticSeverity.Error &&
+          diagnostic.Source == MessageSource.Parser.ToString()
+        )) {
+      return null;
+    }
+
+    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    if (firstToken == null) {
+      return null;
+    }
+    var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+      IndentationFormatter.ForProgram(parsedDocument.Program));
+
+    // TODO: https://github.com/dafny-lang/dafny/issues/3415
+    return new TextEditContainer(new TextEdit[] {
+      new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
+    });
+
+  }
 }

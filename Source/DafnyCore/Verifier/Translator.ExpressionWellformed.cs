@@ -583,7 +583,7 @@ namespace Microsoft.Dafny {
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
             Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-            LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
+            LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
             ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -1089,48 +1089,8 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
         result = null;
-      } else if (expr is MatchExpr) {
-        MatchExpr me = (MatchExpr)expr;
-        CheckWellformed(me.Source, options, locals, builder, etran);
-        Bpl.Expr src = etran.TrExpr(me.Source);
-        Bpl.IfCmd ifCmd = null;
-        BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this);
-        elsBldr.Add(TrAssumeCmd(expr.tok, Bpl.Expr.False));
-        StmtList els = elsBldr.Collect(expr.tok);
-        foreach (var missingCtor in me.MissingCases) {
-          // havoc all bound variables
-          var b = new BoogieStmtListBuilder(this);
-          List<Variable> newLocals = new List<Variable>();
-          Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
-          locals.AddRange(newLocals);
-
-          if (newLocals.Count != 0) {
-            List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-            foreach (Variable local in newLocals) {
-              havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-            }
-            builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
-          }
-
-          String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-          b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
-
-          Bpl.Expr guard = Bpl.Expr.Eq(src, r);
-          ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
-          els = null;
-        }
-        for (int i = me.Cases.Count; 0 <= --i;) {
-          MatchCaseExpr mc = me.Cases[i];
-          BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-          Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
-          // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-          CheckWellformedWithResult(mc.Body, options, result, resultType, locals, b, etran);
-          ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
-          els = null;
-        }
-        builder.Add(ifCmd);
-        result = null;
-
+      } else if (expr is MatchExpr matchExpr) {
+        result = TrMatchExpr(matchExpr, options, result, resultType, locals, builder, etran);
       } else if (expr is DatatypeUpdateExpr) {
         var e = (DatatypeUpdateExpr)expr;
         // check that source expression is created from one of the legal source constructors, then proceed according to the .ResolvedExpression
@@ -1178,6 +1138,55 @@ namespace Microsoft.Dafny {
         }
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
+    }
+
+    private Expr TrMatchExpr(MatchExpr me, WFOptions options, Expr result, Type resultType, List<Variable> locals,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      FillMissingCases(me);
+
+      CheckWellformed(me.Source, options, locals, builder, etran);
+      Bpl.Expr src = etran.TrExpr(me.Source);
+      Bpl.IfCmd ifCmd = null;
+      BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this);
+      elsBldr.Add(TrAssumeCmd(me.tok, Bpl.Expr.False));
+      StmtList els = elsBldr.Collect(me.tok);
+      foreach (var missingCtor in me.MissingCases) {
+        // havoc all bound variables
+        var b = new BoogieStmtListBuilder(this);
+        List<Variable> newLocals = new List<Variable>();
+        Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
+        locals.AddRange(newLocals);
+
+        if (newLocals.Count != 0) {
+          List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
+          foreach (Variable local in newLocals) {
+            havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
+          }
+
+          builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
+        }
+
+        String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
+        b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
+
+        Bpl.Expr guard = Bpl.Expr.Eq(src, r);
+        ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
+        els = null;
+      }
+
+      for (int i = me.Cases.Count; 0 <= --i;) {
+        MatchCaseExpr mc = me.Cases[i];
+        BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
+        Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
+        // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
+        CheckWellformedWithResult(mc.Body, options, result, resultType, locals, b, etran);
+        ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
+        els = null;
+      }
+
+      builder.Add(ifCmd);
+      result = null;
+      return result;
     }
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Expr result, Type resultType, List<Variable> locals,

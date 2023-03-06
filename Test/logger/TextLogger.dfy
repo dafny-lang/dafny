@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny measure-complexity --format:text --isolate-assertions "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --log-format:text --isolate-assertions "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*

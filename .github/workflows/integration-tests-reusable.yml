@@ -32,7 +32,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"osx\", \"windows-2019\": \"win\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -43,7 +43,7 @@ jobs:
         run: echo "target-runtime-version=[\"oldest\"]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
-        run: echo "shard-list=[" $(seq -s , 1 ${{ inputs.num_shards }}) "]" >> $GITHUB_OUTPUT
+        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       os-list: ${{ steps.populate-os-list-all.outputs.os-list }} ${{ steps.populate-os-list-one.outputs.os-list }}
       os-mapping: ${{ steps.populate-os-mapping.outputs.os-mapping }}
@@ -76,7 +76,7 @@ jobs:
       if: matrix.target-language-version == 'oldest'
       uses: actions/setup-java@v3
       with:
-        java-version: 1.8
+        java-version: 8
         distribution: corretto
     - name: Set up newest supported JDK
       if: matrix.target-language-version == 'newest'
@@ -90,16 +90,22 @@ jobs:
       run: pip install lit OutputCheck pyyaml
     - uses: actions/setup-node@v3
     - run: npm install bignumber.js
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with: 
+        python-version: '3.11'
     - name: Checkout Dafny
       uses: actions/checkout@v3
       with:
         path: dafny
-        submodules: true
-    - run: rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
+        submodules: false # Until the libraries work again
+#    - name: Clean up libraries for testing
+#      run: |
+#        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Create release
       if: inputs.all_platforms
       run: |
-        python dafny/Scripts/package.py 0.0.0-CI --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
+        python dafny/Scripts/package.py 0.0.0-CI --platform x64 --os ${{ fromJson(needs.populate-matrix-dimensions.outputs.os-mapping)[matrix.os] }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
     - if: runner.os == 'Windows' && inputs.all_platforms
       shell: pwsh
       run: |
@@ -111,25 +117,30 @@ jobs:
       if: "!inputs.all_platforms"
       run: |
         sudo apt-get install -qq libarchive-tools
-        mkdir dafny/Binaries/z3
-        wget -qO- https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip | bsdtar -xf - -C dafny/Binaries/z3 --strip-components=1
-        chmod +x dafny/Binaries/z3/bin/z3
-    - name: Run integration tests
+        mkdir -p dafny/Binaries/z3/bin
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip | bsdtar -xf -
+        mv z3-4.8.5 dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-4.8.5
+        mkdir -p unzippedRelease/dafny/z3/bin
+        ln dafny/Binaries/z3/bin/z3-4.8.5 unzippedRelease/dafny/z3/bin/z3-4.8.5
+    - name: Run integration tests (Windows)
       if: runner.os == 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
-    - name: Run integration tests
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
+        dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
+    - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
-        dotnet test --logger trx dafny/Source/IntegrationTests/IntegrationTests.csproj
+        echo $DAFNY_RELEASE
+        dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
     - uses: actions/upload-artifact@v3
       if: always()
       with:

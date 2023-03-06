@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
-using Microsoft.Boogie;
-using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny; 
 
@@ -16,15 +14,18 @@ public class GenerateTestsCommand : ICommandSpec {
       Target,
       TestInlineDepth,
       BoogieOptionBag.VerificationTimeLimit,
+      Verbose,
+      PrintBpl,
+      DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
-  enum Mode {
+  private enum Mode {
     Path,
     Block
   }
 
-  readonly Argument<Mode> modeArgument = new("mode", @"
+  private readonly Argument<Mode> modeArgument = new("mode", @"
 block - Prints block-coverage tests for the given program.
 path - Prints path-coverage tests for the given program.");
 
@@ -59,24 +60,43 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<uint> TestInlineDepth = new("--inline-depth",
     "0 is the default. When used in conjunction with --target-method, this argument specifies the depth up to which all non-tested methods should be inlined.") {
   };
-  public static readonly Option<int> SequenceLengthLimit = new("--length-limit",
-    "Add an axiom that sets the length of all sequences to be no greater than <n>. -1 indicates no limit.") {
+  public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
+    "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
   public static readonly Option<int> LoopUnroll = new("--loop-unroll",
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
+  };
+  public static readonly Option<bool> Verbose = new("--verbose",
+    "Print various debugging info as comments for the generated tests.") {
+  };
+  public static readonly Option<string> PrintBpl = new("--print-bpl",
+    "Print the Boogie code used during test generation.") {
+    ArgumentHelpName = "filename"
+  };
+  public static readonly Option<bool> DisablePrune = new("--no-prune",
+    "Disable axiom pruning that Dafny uses to speed up verification.") {
   };
   static GenerateTestsCommand() {
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;
     });
     DafnyOptions.RegisterLegacyBinding(SequenceLengthLimit, (options, value) => {
-      options.TestGenOptions.SeqLengthLimit = value == -1 ? null : (uint)Math.Abs(value);
+      options.TestGenOptions.SeqLengthLimit = value;
     });
     DafnyOptions.RegisterLegacyBinding(TestInlineDepth, (options, value) => {
       options.TestGenOptions.TestInlineDepth = value;
     });
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.TestGenOptions.TargetMethod = value;
+    });
+    DafnyOptions.RegisterLegacyBinding(Verbose, (options, value) => {
+      options.TestGenOptions.Verbose = value;
+    });
+    DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
+      options.TestGenOptions.PrintBpl = value;
+    });
+    DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
+      options.TestGenOptions.DisablePrune = value;
     });
   }
 }

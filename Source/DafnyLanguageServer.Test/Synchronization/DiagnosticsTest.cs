@@ -584,6 +584,22 @@ method Multiply(x: int, y: int) returns (product: int
     }
 
     [TestMethod]
+    public async Task DoubleIncludesGitHubIssue3599() {
+      var source = @"
+include ""./A.dfy""
+include ""./B.dfy""
+module ModC {
+  lemma Lem() ensures false {}
+}
+";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.IsTrue(diagnostics[0].Message.Contains("A postcondition"));
+    }
+
+    [TestMethod]
     public async Task OpeningDocumentThatIncludesDocumentWithSemanticErrorsReportsResolverErrorAtInclude() {
       var source = "include \"syntaxError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));

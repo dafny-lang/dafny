@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny;
 
@@ -40,13 +41,13 @@ public class ExpectContracts : IRewriter {
     var msg = $"Runtime failure of {exprType} clause from {tok.filename}:{tok.line}:{tok.col}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
-      Reporter.Warning(MessageSource.Rewriter, tok,
+      Reporter.Warning(MessageSource.Rewriter, ErrorID.None, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
-    return new ExpectStmt(tok, expr.E.EndToken, exprToCheck, msgExpr, null);
+    return new ExpectStmt(expr.E.RangeToken, exprToCheck, msgExpr, null);
   }
 
   /// <summary>
@@ -66,7 +67,7 @@ public class ExpectContracts : IRewriter {
       CreateContractExpectStatement(ens, "ensures"));
     var callStmtList = new List<Statement>() { callStmt };
     var bodyStatements = expectRequiresStmts.Concat(callStmtList).Concat(expectEnsuresStmts);
-    return new BlockStmt(callStmt.Tok, callStmt.EndTok, bodyStatements.ToList());
+    return new BlockStmt(callStmt.RangeToken, bodyStatements.ToList());
   }
 
   private bool ShouldGenerateWrapper(MemberDecl decl) {
@@ -91,27 +92,27 @@ public class ExpectContracts : IRewriter {
 
     if (decl is Method origMethod) {
       var newMethod = cloner.CloneMethod(origMethod);
-      newMethod.Name = newName;
+      newMethod.NameNode.Value = newName;
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
       var applyExpr = ApplySuffix.MakeRawApplySuffix(tok, origMethod.Name, args);
       var applyRhs = new ExprRhs(applyExpr);
-      var callStmt = new UpdateStmt(tok, tok, outs, new List<AssignmentRhs>() { applyRhs });
+      var callStmt = new UpdateStmt(decl.RangeToken, outs, new List<AssignmentRhs>() { applyRhs });
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
       newMethod.Body = body;
       newDecl = newMethod;
     } else if (decl is Function origFunc) {
       var newFunc = cloner.CloneFunction(origFunc);
-      newFunc.Name = newName;
+      newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
       var callExpr = ApplySuffix.MakeRawApplySuffix(tok, origFunc.Name, args);
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
-      var local = new LocalVariable(tok, tok, localName, origFunc.ResultType, false);
+      var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
       var localExpr = new IdentifierExpr(tok, localName);
       var callRhs = new ExprRhs(callExpr);
 
@@ -120,13 +121,13 @@ public class ExpectContracts : IRewriter {
       var rhss = new List<AssignmentRhs> { callRhs };
 
       Statement callStmt = origFunc.Result?.Name is null
-        ? new VarDeclStmt(tok, tok, locs, new UpdateStmt(tok, tok, lhss, rhss))
-        : new UpdateStmt(tok, tok, lhss, rhss);
+        ? new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss))
+        : new UpdateStmt(decl.RangeToken, lhss, rhss);
 
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
       if (origFunc.Result?.Name is null) {
-        body.AppendStmt(new ReturnStmt(tok, tok, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
+        body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
       newDecl = newFunc;
@@ -201,7 +202,7 @@ public class ExpectContracts : IRewriter {
       }
       // If there's no wrapper for the callee, don't try to call it, but warn.
       if (!newRedirections.ContainsKey(callee)) {
-        reporter.Warning(MessageSource.Rewriter, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+        reporter.Warning(MessageSource.Rewriter, ErrorID.None, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
         return false;
       }
 
@@ -286,7 +287,7 @@ public class ExpectContracts : IRewriter {
       callRedirector.newRedirections.ExceptBy(callRedirector.calledWrappers, x => x.Value);
     foreach (var uncalledRedirection in uncalledRedirections) {
       var uncalledOriginal = uncalledRedirection.Key;
-      Reporter.Warning(MessageSource.Rewriter, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+      Reporter.Warning(MessageSource.Rewriter, ErrorID.None, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
   }
 }

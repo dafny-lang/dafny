@@ -2,6 +2,115 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.12.0
+
+## New features
+
+- Dafny code formatter with IDE support (https://github.com/dafny-lang/dafny/pull/2399)
+     - Makes it possible to "format" one or many Dafny files on the command-line, which for now means only changing the indentation of lines.
+     - Instructions and more details are available in the [Dafny Reference Manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dafny-format)
+
+- Implements error detail information and quick fixes:
+     - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
+     - In VSCode, when hovering over an error, the hover information shows additional explanation and
+       an error id, which is also a link to the error explanation page
+     - Where a Quick Fix is available, the Quick Fix link is active
+  (https://github.com/dafny-lang/dafny/pull/3299)
+
+- * `opaque` is now a modifier, though still allowed, but deprecated as an identifier; it replaces the `{:opaque}` attribute (https://github.com/dafny-lang/dafny/pull/3462)
+
+- * The value of the --library option is allowed to be a comma-separated list of files or folders (https://github.com/dafny-lang/dafny/pull/3540)
+
+## Bug fixes
+
+- Exclude verifier's type information for “new object” allocations (https://github.com/dafny-lang/dafny/pull/3450)
+
+- The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas. (https://github.com/dafny-lang/dafny/pull/3452)
+
+- * The attribute `:heapQuantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
+
+- Fixed race conditions in the language server that made gutter icons behave abnormally (https://github.com/dafny-lang/dafny/pull/3502)
+
+- No more crash when hovering assertions that reference code written in other smaller files (https://github.com/dafny-lang/dafny/pull/3585)
+
+# 3.11.0
+
+## New features
+
+- Go to definition now works reliably across all Dafny language constructs and across files. (https://github.com/dafny-lang/dafny/pull/2734)
+
+- Improve performance of Go code by using native byte/char arrays (https://github.com/dafny-lang/dafny/pull/2818)
+
+- Introduce the experimental `measure-complexity` command, whose output can be fed to the Dafny report generator. In a future update, we expect to merge the functionality of the report generator into this command. (https://github.com/dafny-lang/dafny/pull/3061)
+
+- Integrate the Dafny [auditor plugin](https://github.com/dafny-lang/compiler-bootstrap/tree/main/src/Tools/Auditor) as a built-in `dafny audit` command. (https://github.com/dafny-lang/dafny/pull/3175)
+
+- Add the `--solver-path` option to allow customizing the SMT solver used when using the new Dafny CLI user interface. (https://github.com/dafny-lang/dafny/pull/3184)
+
+- Add the experimental `--test-assumptions` option to all execution commands: run, build, translate and test.
+  When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
+  Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.
+  (https://github.com/dafny-lang/dafny/pull/3185)
+
+- For the command `translate`, renamed the option `--target` into `language` and turned it into a mandatory argument. (https://github.com/dafny-lang/dafny/pull/3239)
+
+- Havoc assignments now count as assignments for definite-assignment checks. (https://github.com/dafny-lang/dafny/pull/3311)
+
+- Unless `--enforce-determinism` is used, no errors are given for arrays that are allocated without being initialized.
+  (https://github.com/dafny-lang/dafny/pull/3311)
+
+- Enable passing a percentage value to the --cores option, to use a percentage of the total number of logical cores on the machine for verification. (https://github.com/dafny-lang/dafny/pull/3357)
+
+- `dafny build` for Java now creates a library or executable jar file.
+  - If there is a Main method, the jar is an executable jar. So a simple A.dfy can be built as `dafny build -t:java A.dfy`
+    and then run as `java -jar A.jar`
+  - If there is no Main entry point, all the generated class files are assembled into a library jar file that can be used on a
+    classpath as a java library.
+  - In both cases, the DafnyRuntime library is included in the generated jar.
+  - In old and new CLIs, the default location and name of the jar file is the name of the first dfy file, with the extension changed
+  - In old and new CLIs, the path and name of the output jar file can be given by the --output option, with .jar added if necessary
+  - As before, the compilation artifacts (.java and .class files) are placed in a directory whose name is the same as the jar file
+    but without the .jar extension and with '-java' appended
+  - With the new CLI, the generated .java artifacts are deleted unless --spill-translation=true and the .class files are deleted in any case;
+    both kinds of files are retained with the legacy CLI for backwards compatibility.
+  - If any other jar files are needed to compile the dafny/java program, they must be on the CLASSPATH;
+    the same CLASSPATH used to compile the program is needed to run the program
+
+  Having a library or executable jar simplifies the user's task in figuring out how to use the built artifacts.
+  (https://github.com/dafny-lang/dafny/pull/3355)
+
+## Bug fixes
+
+- Nonexistent files passed on the CLI now result in a graceful exit (https://github.com/dafny-lang/dafny/pull/2719)
+
+- Check loop invariants on entry, even when such are the only proof obligations in a method. (https://github.com/dafny-lang/dafny/pull/3244)
+
+- The :options attribute now accepts new style options `--function-syntax` and `--quantifier-syntax` (https://github.com/dafny-lang/dafny/pull/3252)
+
+- Improved error messages for `dafny translate` (https://github.com/dafny-lang/dafny/pull/3274)
+
+- The :test attribute is now compatible with `dafny run` and `dafny build` (https://github.com/dafny-lang/dafny/pull/3275)
+
+- Settings `--cores=0` will cause Dafny to use half of the available cores. (https://github.com/dafny-lang/dafny/pull/3276)
+
+- Removed an infeasible assertion in the Dafny Runtime for Java (https://github.com/dafny-lang/dafny/pull/3280)
+
+- Language server displays more relevant information on hovering assertions (https://github.com/dafny-lang/dafny/pull/3281)
+
+- Any `(==)` inferred for a type parameter of an iterator is now also inferred for the corresponding non-null iterator type. (https://github.com/dafny-lang/dafny/pull/3284)
+
+- The otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier (https://github.com/dafny-lang/dafny/pull/3291)
+
+- The parser no longer generates bad tokens when invoked through `/library` (https://github.com/dafny-lang/dafny/pull/3301)
+
+- Match expressions no longer incorrectly convert between newtypes and their basetype (https://github.com/dafny-lang/dafny/pull/3333)
+
+- Warn that 'new' cannot be used in expressions, instead of throwing a parse error (https://github.com/dafny-lang/dafny/pull/3366)
+
+- The attributes `:dllimport` and `:handle` are now deprecated. They were undocumented, untested, and not maintained. (https://github.com/dafny-lang/dafny/pull/3399)
+
+- Fixed an axiom related to sequence comprehension extraction (https://github.com/dafny-lang/dafny/pull/3411)
+
 # 3.10.0
 
 ## New features
@@ -178,12 +287,13 @@ See [docs/dev/news/](docs/dev/news/).
 
 # 3.7.2
 
-- fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
+- fix: Hovering over variables and methods inside cases of nested match statements works again. (https://github.com/dafny-lang/dafny/pull/2334)
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
+- feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
 - fix: Underconstrained closures don't crash Dafny anymore. (https://github.com/dafny-lang/dafny/pull/2382)
 - fix: Caching in the language server does not prevent gutter icons from being updated correctly. (https://github.com/dafny-lang/dafny/pull/2312)
-- fix: Last edited verified first & corrected display of verification status. (https://github.com/dafny-lang/dafny/pull/2352)
+- fix: Last edited file verified first & corrected display of verification status. (https://github.com/dafny-lang/dafny/pull/2352)
 - fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
 - fix: Fix concurrency bug that sometimes led to an exception during the production of verification logs. (https://github.com/dafny-lang/dafny/pull/2398)
 

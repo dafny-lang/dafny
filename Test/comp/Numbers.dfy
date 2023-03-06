@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -19,6 +19,7 @@ method Main() {
   ZeroComparisonTests();
   TestConversions();
   ComparisonRegressions();
+  CastRegressions();
 }
 
 method Print(description: string, x: int) {
@@ -555,4 +556,14 @@ method ComparisonRegressions() {
     print xx < yy, " ", yy < xx, " ", xx <= yy, " ", yy <= xx, "\n"; // false true false true
     print xx > yy, " ", yy > xx, " ", xx >= yy, " ", yy >= xx, "\n"; // true false true false
   }
+}
+
+method CastRegressions() {
+  var i: int := 20;
+  var bt: uint8 := (i + 3) as uint8;
+  var bu := (3 + i) as uint8;
+  var b: bool;
+  var bv: uint8 := if b then 89 else 88;
+  var u: uint32 := if b then 890 else 880;
+  print i, " ", bt, " ", bu, " ", bv, " ", u, "\n";
 }

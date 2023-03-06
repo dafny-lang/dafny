@@ -34,7 +34,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
         new DafnyProgramVerifier(
           serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
           serviceProvider.GetRequiredService<DafnyOptions>())))
-      .AddSingleton<IDafnyParser>(serviceProvider => new CrashingParser(this,
+      .AddSingleton<IDafnyParser>(serviceProvider => new CrashingParser(
+        serviceProvider.GetRequiredService<DafnyOptions>(),
+        this,
         serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()));
   }
 
@@ -114,9 +116,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     readonly DafnyLangParser parser;
     private readonly ExceptionTests tests;
 
-    public CrashingParser(ExceptionTests tests, ILogger<DafnyLangParser> logger) {
+    public CrashingParser(DafnyOptions options, ExceptionTests tests, ILogger<DafnyLangParser> logger) {
       this.tests = tests;
-      parser = DafnyLangParser.Create(logger);
+      parser = DafnyLangParser.Create(options, logger);
     }
 
     public Program CreateUnparsed(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken) {
@@ -150,6 +152,10 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
+
+    public void Dispose() {
+      verifier?.Dispose();
+    }
   }
 
   class CrashingLoader : ITextDocumentLoader {

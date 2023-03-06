@@ -78,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private static Range GetRange(Statement statement) {
         return statement switch {
           UpdateStmt updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.Tok, statement.EndTok)
+          _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
         };
       }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         } else {
           startToken = updateStatement.Tok;
         }
-        return CreateRange(startToken, updateStatement.EndTok);
+        return CreateRange(startToken, updateStatement.RangeToken.EndToken);
       }
 
       private static IToken GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

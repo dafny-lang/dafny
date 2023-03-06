@@ -10,8 +10,11 @@ layout: default
 
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
+This page contains a catalog of the dafny tool's Error and Warning messages,
+all in one long page to facilitate searching.
 
-The title of each section is an error message. This is followed by example code that produces the error,
+The title of each section is an error message.
+Each section contains example code that produces the error,
 which is then followed by explanation and references.
 
 Italicized words in the given messages indicate variable content.
@@ -27,6 +30,8 @@ _This section is a work in progress_
 
 # **Name and Type Resolution Errors and Warnings**
 
+{% include_relative Errors-Rewriter.md %}
+
 _This section is a work in progress_
 
 # **Verification Errors**
@@ -35,4 +40,4 @@ _This section is a work in progress_
 
 # **Compilation Errors**
 
-_This section is a work in progress_
+{% include_relative Errors-Compiler.md %}
