@@ -1,6 +1,7 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System.Collections.Generic;
 using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
@@ -123,7 +124,11 @@ User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-", Remove(false, "remove underscore")); // TODO change so it removes only the first character.
+", range => new List<DafnyAction> { new("remove underscore", 
+    new [] {
+      new DafnyCodeActionEdit(range, range.PrintOriginal().Substring(1))
+    })
+  });
 
     Add(ErrorId.p_bitvector_too_large,
     @"
