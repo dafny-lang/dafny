@@ -14,7 +14,6 @@ using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using Bpl = Microsoft.Boogie;
-using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -66,7 +65,7 @@ namespace Microsoft.Dafny {
         };
       }
       this.flags = flags;
-      Bpl.Program boogieProgram = ReadPrelude();
+      Bpl.Program boogieProgram = BuiltIns.ReadPreludeCached();
       if (boogieProgram != null) {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
@@ -666,39 +665,6 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    static Bpl.Program ReadPrelude() {
-      string preludePath = DafnyOptions.O.DafnyPrelude;
-      if (preludePath == null) {
-        //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-        string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-        preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
-      }
-
-      Bpl.Program prelude;
-      var defines = new List<string>();
-      if (6 <= DafnyOptions.O.ArithMode) {
-        defines.Add("ARITH_DISTR");
-      }
-      if (8 <= DafnyOptions.O.ArithMode) {
-        defines.Add("ARITH_MUL_DIV_MOD");
-      }
-      if (9 <= DafnyOptions.O.ArithMode) {
-        defines.Add("ARITH_MUL_SIGN");
-      }
-      if (10 <= DafnyOptions.O.ArithMode) {
-        defines.Add("ARITH_MUL_COMM");
-        defines.Add("ARITH_MUL_ASSOC");
-      }
-      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
-        defines.Add("UNICODE_CHAR");
-      }
-      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
-      if (prelude == null || errorCount > 0) {
-        return null;
-      } else {
-        return prelude;
-      }
-    }
 
     public Bpl.IdentifierExpr TrVar(IToken tok, IVariable var) {
       Contract.Requires(var != null);
