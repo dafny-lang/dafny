@@ -72,7 +72,7 @@ public abstract class Expression : TokenNode {
     }
 #endif
 
-  public Expression(IToken tok) {
+  protected Expression(IToken tok) {
     Contract.Requires(tok != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable
 
@@ -82,6 +82,7 @@ public abstract class Expression : TokenNode {
   protected Expression(Cloner cloner, Expression original) {
 
     tok = cloner.Tok(original.tok);
+    RangeToken = cloner.Range(original.RangeToken);
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
