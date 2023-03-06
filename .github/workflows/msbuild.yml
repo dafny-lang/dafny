@@ -122,6 +122,8 @@ jobs:
           hide_complexity: true
           indicators: true
           output: both
+          # Fail if less than 86% total coverage, measured across all packages combined.
+          # Report "yellow" status if less than 90% total coverage.
           thresholds: '86 90'
 
       - uses: actions/upload-artifact@v3
