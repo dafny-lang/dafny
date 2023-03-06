@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
-      CanonicalPath = !useStdin ? Canonicalize(filePath).LocalPath : "<stdin>";
+      CanonicalPath = !useStdin ? Canonicalize(filePath).AbsolutePath : "<stdin>";
       filePath = CanonicalPath;
 
       if (extension == ".dfy" || extension == ".dfyi") {
