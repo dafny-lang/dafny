@@ -11,14 +11,14 @@ public class MarkupTestFileTest {
   public void AnnotatedSpan() {
     var input =
       @"Foo fi far |>here is some happy metadata::and the rest of it|||and now the text<| and the end of the program";
-      MarkupTestFile.GetPositionsAndNamedRanges(input, out var output, out _,
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(input, out var output, out _,
         out var ranges);
 
       var expectedOutput = @"Foo fi far and now the text and the end of the program";
-      var expectedRanges = new Dictionary<string, Range>() {
-        {"here is some happy metadata::and the rest of it", new Range(0, 11, 0, 27)}
+      var expectedRanges = new List<AnnotatedRange> {
+        new("here is some happy metadata::and the rest of it", new Range(0, 11, 0, 27))
       };
       Assert.AreEqual(expectedOutput, output);
-      Assert.IsTrue(ranges.Select(r => KeyValuePair.Create(r.Key, r.Value[0])).SequenceEqual(expectedRanges));
+      Assert.IsTrue(ranges.SequenceEqual(expectedRanges));
   }
 }

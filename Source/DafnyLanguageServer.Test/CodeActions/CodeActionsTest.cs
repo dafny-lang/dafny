@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   [TestClass]
@@ -28,12 +29,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
 
     [TestMethod]
     public async Task CodeActionSuggestsRemovingUnderscore() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 method Foo()
 {
-  var >>>_x := 3; 
-[[remove underscore|  var x := 3;
-]]}");
+  var ><|>remove underscore>>>x|||_x<| := 3; 
+}");
     }
     
     [TestMethod]
@@ -126,6 +126,42 @@ const x := 1;
   ]]}");
     }
 
+    private async Task TestCodeAction(string source) {
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source, out var output, out var positions, out var ranges);
+      var documentItem = CreateTestDocument(output);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+      Assert.AreEqual(positions.Count, diagnostics.Length);
+
+      foreach (var actionData in positions.Zip(ranges)) {
+        var position = actionData.First;
+        var split = actionData.Second.Annotation.Split(">>>");
+        var expectedTitle = split[0];
+        var expectedNewText = split[1];
+        var expectedRange = actionData.Second.Range;
+        var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        var found = false;
+        var otherTitles = new List<string>();
+        foreach (var completion in completionList) {
+          if (completion.CodeAction is { Title: var title } codeAction) {
+            otherTitles.Add(title);
+            if (title == expectedTitle) {
+              found = true;
+              codeAction = await RequestResolveCodeAction(codeAction);
+              var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
+              Assert.IsNotNull(textDocumentEdit);
+              var edit = textDocumentEdit.Edits.Single();
+              Assert.AreEqual(expectedNewText, edit.NewText);
+              Assert.AreEqual(expectedRange, edit.Range);
+            }
+          }
+        }
+
+        Assert.IsTrue(found,
+          $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
+      }
+    }
+    
     private async Task TestCodeActionHelper(string source) {
       source = source.TrimStart();
       var extractCodeAction =
