@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function foo() : (int, int)
+ghost function foo() : (int, int)
 {
     (5, 10)
 }
 
-function bar() : int
+ghost function bar() : int
 {
     var (x, y) := foo();
     x + y
@@ -17,7 +17,7 @@ lemma test()
     var (x, y) := foo();
 }
 
-function method foo2() : (int,int)
+function foo2() : (int,int)
 {
     (5, 10)
 }

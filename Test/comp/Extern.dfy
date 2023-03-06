@@ -62,16 +62,16 @@ module {:extern "Library"} Library {
     static method {:extern} P()
     method IM() { print "Extern instance method says: "; IP(); }
     method {:extern} IP()
-    static function method F() : int { 1000 + G() }
-    static function method {:extern} G() : int
-    function method IF() : int { 2000 + IG() }
-    function method {:extern} IG() : int
+    static function F() : int { 1000 + G() }
+    static function {:extern} G() : int
+    function IF() : int { 2000 + IG() }
+    function {:extern} IG() : int
   }
   class {:extern} AllExtern {
-    static function Seven(): int { 7 }
+    static ghost function Seven(): int { 7 }
     static method {:extern} P()
-    static function method {:extern} MaybeInt(): Option<int>
-    static function method {:extern} IntPair(): Pair<int, int>
+    static function {:extern} MaybeInt(): Option<int>
+    static function {:extern} IntPair(): Pair<int, int>
   }
 
   datatype ErasableWrapper = ErasableWrapper(x: MyInt)

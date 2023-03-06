@@ -17,8 +17,8 @@ module ConcreteModule
     | Success
     | Failure(error: nat)
   {
-    predicate method IsFailure() { this.Failure? }
-    function method PropagateFailure(): Status
+    predicate IsFailure() { this.Failure? }
+    function PropagateFailure(): Status
       requires IsFailure()
     {
       Failure(this.error)

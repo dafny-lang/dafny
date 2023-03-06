@@ -12,7 +12,7 @@
 // RUN: javac %S/ManualCompile-java/ManualCompile.java %S/ManualCompile-java/**/*.java
 // RUN: java -cp %S/ManualCompile-java ManualCompile >> "%t"
 
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
+// RUN: %dafny /compileVerbose:1 /compile:0 /unicodeChar:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
 // RUN: g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I %binaryDir -o %S/ManualCompile.exe %S/ManualCompile.cpp
 // RUN: %S/ManualCompile.exe >> "%t"
 

@@ -82,13 +82,13 @@ module DependencyChecks {
   type S = y: int
     | G(y)
 
-  predicate F(y: int)
+  ghost predicate F(y: int)
   {
     var i: A := 5;
     i < 32
   }
 
-  predicate G(y: int)
+  ghost predicate G(y: int)
   {
     var q: Q :| true;
     q.x < 32
@@ -104,14 +104,14 @@ module Cycle1 {
   type A = x: int
     | var a: A :| true; P(x)
 
-  predicate P(x: int)
+  ghost predicate P(x: int)
 }
 
 module Cycle2 {
   type C = x: int
     | f(x) == f(x)
 
-  function f(x: int): C
+  ghost function f(x: int): C
 }
 
 module MoreDependencyCycles0 {

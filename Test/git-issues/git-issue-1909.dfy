@@ -3,19 +3,19 @@
 
 datatype ABC = ABC(nameonly a: int, nameonly b: int, nameonly c: int)
 
-function method JustChangeB(abc: ABC): ABC {
+function JustChangeB(abc: ABC): ABC {
   // The following line once gave an error, complaining 'a' wasn't specified by name. That's been fixed.
   abc.(b := 42)
 }
 
-function method ChangeEvathang(abc: ABC): ABC {
+function ChangeEvathang(abc: ABC): ABC {
   // The following line once gave an error, complaining 'a' wasn't specified by name. That's been fixed.
   abc.(b := 42, a := 100, c := 90)
 }
 
 datatype XYZ = XYZ(x: int, nameonly y: int := 5, z: int := 7)
 
-function method MakeSureDefaultValuesAreNotUsedInUpdate(xyz: XYZ): XYZ {
+function MakeSureDefaultValuesAreNotUsedInUpdate(xyz: XYZ): XYZ {
   xyz.(x := 3)
 }
 

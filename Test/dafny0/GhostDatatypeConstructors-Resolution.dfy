@@ -119,7 +119,7 @@ module {:options "/functionSyntax:4"} Match {
     case any => 0
   }
 
-  ghost function F1(xy: XY): int {
+  function F1(xy: XY): int {
     match xy
     case any => 0
   }
@@ -145,7 +145,7 @@ module {:options "/functionSyntax:4"} Match {
     case _ => 0
   }
 
-  ghost function G1(xy: XY): int {
+  function G1(xy: XY): int {
     // in a ghost context, this match expression is allowed
     match xy
     case D0(_) => 0

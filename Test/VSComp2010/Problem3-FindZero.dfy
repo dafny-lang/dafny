@@ -28,7 +28,7 @@ class Node {
   var head: int
   var next: Node?
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
