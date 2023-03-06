@@ -181,6 +181,9 @@ public abstract class TokenWrapper : IToken {
 
 public static class TokenExtensions {
   public static RangeToken ToRange(this IToken token) {
+    if (token is BoogieRangeToken boogieRangeToken) {
+      return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
+    }
     return token as RangeToken ?? new RangeToken(token, token);
   }
 }

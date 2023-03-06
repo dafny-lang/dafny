@@ -124,7 +124,7 @@ User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-", range => new List<DafnyAction> { new("remove underscore", 
+", range => new List<DafnyAction> { new("remove underscore",
     new [] {
       new DafnyCodeActionEdit(range, range.PrintOriginal().Substring(1))
     })

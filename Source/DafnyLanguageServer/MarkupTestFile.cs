@@ -59,8 +59,8 @@ namespace Microsoft.Dafny.LanguageServer {
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
       var annotatedSpanStartStack = new Stack<(int matchIndex, string name)>();
 
-      var r = new Regex(@"(?<Position>><)|" + 
-                        @"(?<SpanStart>\[>)|(?<SpanEnd><\])" + 
+      var r = new Regex(@"(?<Position>><)|" +
+                        @"(?<SpanStart>\[>)|(?<SpanEnd><\])" +
                         @"|(?<NameSpanStart>\{>(?<Name>[-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})" +
                         @"|(?<AnnotatedSpanStart>\|>(?<Annotation>.+)\|\|\|)|(?<AnnotatedSpanEnd><\|)");
       var outputIndex = 0;
@@ -142,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer {
     //   GetPositionAndRanges(input, out output, out position, out var resultRanges);
     //   range = resultRanges.Single();
     // }
-    
+
     public static void GetPositionsAndNamedRanges(string input, out string output, out IList<Position> positions,
       out IDictionary<string, List<Range>> namedRanges) {
       GetPositionsAndAnnotatedRanges(input, out output, out positions, out var annotatedRanges);
@@ -152,7 +152,7 @@ namespace Microsoft.Dafny.LanguageServer {
         ranges.Add(annotatedRange.Range);
       }
     }
-    
+
     public static void GetPositionsAndAnnotatedRanges(string input, out string output, out IList<Position> positions,
       out IReadOnlyList<AnnotatedRange> ranges) {
       GetIndexAndSpans(input, out output, out var positionIndices, out var spans);

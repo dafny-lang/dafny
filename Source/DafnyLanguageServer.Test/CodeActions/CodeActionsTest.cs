@@ -33,7 +33,7 @@ method ><|>remove attribute|||{:dllimport}<| Foo()
 { 
 }");
     }
-    
+
     [TestMethod]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
@@ -42,7 +42,7 @@ method Foo()
   var ><|>remove underscore>>>x|||_x<| := 3; 
 }");
     }
-    
+
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeActionHelper(@"
@@ -144,7 +144,7 @@ const x := 1;
         var position = actionData.First;
         var split = actionData.Second.Annotation.Split(">>>");
         var expectedTitle = split[0];
-        var expectedNewText = split.Length > 1 ? split[1]: "";
+        var expectedNewText = split.Length > 1 ? split[1] : "";
         var expectedRange = actionData.Second.Range;
         var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
         var found = false;
@@ -168,7 +168,7 @@ const x := 1;
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
     }
-    
+
     private async Task TestCodeActionHelper(string source) {
       source = source.TrimStart();
       var extractCodeAction =

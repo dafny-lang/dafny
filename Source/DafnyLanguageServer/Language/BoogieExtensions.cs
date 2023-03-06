@@ -26,8 +26,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var start = GetLspPosition(range.StartToken);
       return new Range(
         start,
-        range.EndToken == null 
-          ? start 
+        range.EndToken == null
+          ? start
           : ToLspPosition(range.EndToken.line, range.EndToken.col + range.EndToken.val.Length)
       );
     }
@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
     }
-    
+
     /// <summary>
     /// Gets the LSP position of the specified token (i.e., the position of the first character of the token).
     /// </summary>
