@@ -281,10 +281,10 @@ Such designations are allowed in generic type declarations but not in generic me
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type characteristics are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 ", Replacements(new[] {
-      ("==", "replace with '=='"),
-      ("0", "replace with '0'"),
-      ("00", "replace with '00'"),
-      ("!new", "replace with '!new'")
+      ("==", "replace with '==' - this type supports equality"),
+      ("0", "replace with '0' - this type has a default compiled value"),
+      ("00", "replace with '00' - this type is not empty but no default compiled value"),
+      ("!new", "replace with '!new' - this type is not allocated on the heap")
     }));
 
     Add(ErrorId.p_missing_type_characteristic,
