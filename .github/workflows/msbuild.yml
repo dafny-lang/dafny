@@ -125,7 +125,7 @@ jobs:
           hide_complexity: true
           indicators: true
           output: both
-          thresholds: '70 80'
+          thresholds: '86 90'
 
       - uses: actions/upload-artifact@v3
         with:
