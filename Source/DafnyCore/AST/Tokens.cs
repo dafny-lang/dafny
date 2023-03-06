@@ -223,8 +223,6 @@ public class RangeToken : TokenWrapper {
     throw new NotImplementedException();
   }
 
-  public string Filename => StartToken.Filename;
-
   public BoogieRangeToken ToToken() {
     return new BoogieRangeToken(StartToken, EndToken);
   }
