@@ -130,7 +130,7 @@ void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
   if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(ParseErrors.ErrorId.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken, range.EndToken),
+    errors.Deprecated(ParseErrors.ErrorId.p_deprecated_attribute, Errors.CodeAction(range.StartToken, range.EndToken),
       $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
   }
 }

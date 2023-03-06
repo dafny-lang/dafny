@@ -218,13 +218,8 @@ public class Errors {
   }
 
   // Code action range is up to, not including, the next token
-  public static TokenRange CodeAction(IToken sourceTok, IToken next) {
-    return new TokenRange(sourceTok, sourceTok, next);
-  }
-
-  // Code action range is up to, not including, the next token
-  public static TokenRange CodeAction(IToken display, IToken sourceTok, IToken next) {
-    return new TokenRange(display, sourceTok, next);
+  public static RangeToken CodeAction(IToken sourceTok, IToken next) {
+    return new RangeToken(sourceTok, next);
   }
 } // Errors
 
