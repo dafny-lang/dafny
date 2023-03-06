@@ -186,11 +186,10 @@ public static class TokenExtensions {
 }
 
 public class RangeToken : TokenWrapper {
-  public IToken StartToken { get; }
+  public IToken StartToken => WrappedToken;
   public IToken EndToken { get; }
 
   public RangeToken(IToken startToken, IToken endToken) : base(startToken) {
-    StartToken = startToken;
     EndToken = endToken;
   }
 
@@ -230,16 +229,15 @@ public class RangeToken : TokenWrapper {
 
 public class BoogieRangeToken : TokenWrapper {
   // The wrapped token is the startTok
-  private IToken endTok;
   public IToken StartToken => WrappedToken;
-  public IToken EndToken => endTok;
+  public IToken EndToken { get; }
 
   // Used for range reporting
-  public override string val => new string(' ', Math.Max(endTok.pos + endTok.val.Length - pos, 1));
+  public override string val => new string(' ', Math.Max(EndToken.pos + EndToken.val.Length - pos, 1));
 
   public BoogieRangeToken(IToken startTok, IToken endTok) : base(
     startTok) {
-    this.endTok = endTok;
+    this.EndToken = endTok;
   }
 
   public override IToken WithVal(string newVal) {
@@ -247,17 +245,7 @@ public class BoogieRangeToken : TokenWrapper {
   }
 
   public string PrintOriginal() {
-    var token = WrappedToken;
-    var originalString = new StringBuilder();
-    originalString.Append(token.val);
-    while (token.Next != null && token.pos < endTok.pos) {
-      originalString.Append(token.TrailingTrivia);
-      token = token.Next;
-      originalString.Append(token.LeadingTrivia);
-      originalString.Append(token.val);
-    }
-
-    return originalString.ToString();
+    return new RangeToken(StartToken, EndToken).PrintOriginal();
   }
 }
 
