@@ -27,6 +27,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [TestMethod]
+    public async Task CodeActionSuggestsRemovingUnderscore() {
+      await TestCodeActionHelper(@"
+method Foo()
+{
+  var >>>_x := 3; 
+[[remove underscore|  var x := 3;
+]]}");
+    }
+    
+    [TestMethod]
     public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeActionHelper(@"
 method f() returns (i: int)

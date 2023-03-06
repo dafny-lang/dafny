@@ -181,6 +181,7 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
+  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;

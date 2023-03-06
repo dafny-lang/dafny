@@ -37,6 +37,8 @@ namespace Microsoft.Dafny.LanguageServer {
   /// {>Name: ... <} A span of text in the file annotated with an identifier.  There can be many of
   /// these, including ones with the same name.
   /// 
+  /// |>metadata||| ... <| A span of text in the file annotated with metdata.
+  /// 
   /// Additional encoded features can be added on a case by case basis.
   /// </summary>
   public static class MarkupTestFile {
@@ -54,11 +56,16 @@ namespace Microsoft.Dafny.LanguageServer {
       // have empty string for their annotation name.
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
+      var annotatedSpanStartStack = new Stack<(int matchIndex, string name)>();
 
-      var r = new Regex(@"(?<Position>><)|(?<SpanStart>\[>)|(?<SpanEnd><\])|(?<NameSpanStart>\{>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})");
+      var r = new Regex(@"(?<Position>><)|" + 
+                        @"(?<SpanStart>\[>)|(?<SpanEnd><\])" + 
+                        @"|(?<NameSpanStart>\{>(?<Name>[-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})" +
+                        @"|(?<AnnotatedSpanStart>\|>(?<Annotation>.+)\|\|\|)|(?<AnnotatedSpanEnd><\|)");
       var outputIndex = 0;
       var inputIndex = 0;
-      foreach (Match match in r.Matches(input)) {
+      var matches = r.Matches(input);
+      foreach (Match match in matches) {
         var diff = inputIndex - outputIndex;
         var matchIndexInOutput = match.Index - diff;
         var outputPart = input.Substring(inputIndex, match.Index - inputIndex);
@@ -70,14 +77,17 @@ namespace Microsoft.Dafny.LanguageServer {
         } else if (match.Groups["SpanStart"].Success) {
           spanStartStack.Push((matchIndexInOutput, string.Empty));
         } else if (match.Groups["NameSpanStart"].Success) {
-          namedSpanStartStack.Push((matchIndexInOutput, string.Empty));
+          namedSpanStartStack.Push((matchIndexInOutput, match.Groups["Name"].Value));
+        } else if (match.Groups["AnnotatedSpanStart"].Success) {
+          annotatedSpanStartStack.Push((matchIndexInOutput, match.Groups["Annotation"].Value));
         } else if (match.Groups["SpanEnd"].Success) {
           PopSpan(spanStartStack, tempSpans, matchIndexInOutput);
         } else if (match.Groups["NameSpanEnd"].Success) {
           PopSpan(namedSpanStartStack, tempSpans, matchIndexInOutput);
+        } else if (match.Groups["AnnotatedSpanEnd"].Success) {
+          PopSpan(annotatedSpanStartStack, tempSpans, matchIndexInOutput);
         }
       }
-
 
       if (spanStartStack.Count > 0) {
         throw new ArgumentException($"Saw {SpanStartString} without matching {SpanEndString}");
@@ -132,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer {
       GetPositionAndRanges(input, out output, out position, out var resultRanges);
       range = resultRanges.Single();
     }
-
+    
     public static void GetPositionsAndNamedRanges(string input, out string output, out IList<Position> positions,
       out IDictionary<string, ImmutableArray<Range>> ranges) {
       GetIndexAndSpans(input, out output, out var positionIndices, out IDictionary<string, ImmutableArray<TextSpan>> spans);
