@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   [TestClass]

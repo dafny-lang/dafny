@@ -111,7 +111,7 @@ Modules and the declarations within them are already always static.
     Add(ErrorId.p_deprecated_attribute,
     @"
 The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
-", Remove(true, "remove attribute")); // TODO test!!
+", Remove(true, "remove attribute"));
 
     Add(ErrorId.p_literal_string_required,
     @"
