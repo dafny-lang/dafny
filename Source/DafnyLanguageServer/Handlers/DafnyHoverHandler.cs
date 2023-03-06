@@ -14,6 +14,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Dafny.ProofObligationDescription;
+using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
@@ -217,9 +218,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         switch (assertionNode?.StatusVerification) {
           case GutterVerificationStatus.Verified: {
               var successDescription = description?.SuccessDescription ?? "_no message_";
-              if (successDescription == "error is impossible: This is the precondition that might not hold.") {
-                successDescription = "the precondition always holds";
-              }
               return $"{obsolescence}<span style='color:green'>**Success:**</span> " +
                      successDescription;
             }

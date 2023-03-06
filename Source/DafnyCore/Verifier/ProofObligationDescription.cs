@@ -308,6 +308,24 @@ public class AssertStatement : ProofObligationDescription {
   }
 }
 
+// The Boogie version does not support custom error messages yet
+public class RequiresDescription : ProofObligationDescription {
+  private readonly string customErrMsg;
+  public override string SuccessDescription =>
+    customErrMsg is null
+      ? "the precondition always holds"
+      : $"error is impossible: {customErrMsg}";
+
+  public override string FailureDescription =>
+    customErrMsg ?? "This is the precondition that might not hold.";
+
+  public override string ShortDescription => "requires";
+
+  public RequiresDescription([CanBeNull] string customErrMsg = null) {
+    this.customErrMsg = customErrMsg;
+  }
+}
+
 public class LoopInvariant : ProofObligationDescription {
   public override string SuccessDescription =>
     customErrMsg is null

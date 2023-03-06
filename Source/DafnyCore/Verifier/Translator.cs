@@ -7232,7 +7232,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
       Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      req.Description = new PODesc.AssertStatement(errorMessage ?? "This is the precondition that might not hold.");
+      req.Description = new PODesc.RequiresDescription(errorMessage);
       return req;
     }
 
