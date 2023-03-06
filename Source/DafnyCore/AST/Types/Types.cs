@@ -12,7 +12,8 @@ public abstract class Type : TokenNode {
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
-  public override IEnumerable<Node> Children { get; } = new List<Node>();
+  public override IEnumerable<Node> Children => TypeArgs;
+  public override IEnumerable<Node> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
@@ -1912,7 +1913,7 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(RangeToken.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
   }
 
   [Pure]
@@ -2005,6 +2006,17 @@ public abstract class CollectionType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Arg.ComputeMayInvolveReferences(visitedDatatypes);
   }
+
+  /// <summary>
+  /// This property returns the ResolvedOpcode for the "in" operator when used with this collection type.
+  /// </summary>
+  public abstract BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn { get; }
+
+  /// <summary>
+  /// For a given "source", denoting an expression of this CollectionType, return the BoundedPool corresponding
+  /// to an expression "x in source".
+  /// </summary>
+  public abstract ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source);
 }
 
 public class SetType : CollectionType {
@@ -2043,6 +2055,11 @@ public class SetType : CollectionType {
       return true;
     }
   }
+
+  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSet;
+  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new ComprehensionExpr.SetBoundedPool(source, Arg, Arg, Finite);
+  }
 }
 
 public class MultiSetType : CollectionType {
@@ -2072,6 +2089,11 @@ public class MultiSetType : CollectionType {
       return true;
     }
   }
+
+  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMultiSet;
+  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new ComprehensionExpr.MultiSetBoundedPool(source, Arg, Arg);
+  }
 }
 
 public class SeqType : CollectionType {
@@ -2100,6 +2122,11 @@ public class SeqType : CollectionType {
       // The sequence type supports equality if its element type does
       return Arg.SupportsEquality;
     }
+  }
+
+  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
+  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new ComprehensionExpr.SeqBoundedPool(source, Arg, Arg);
   }
 }
 public class MapType : CollectionType {
@@ -2166,6 +2193,11 @@ public class MapType : CollectionType {
   }
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
+  }
+
+  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMap;
+  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new ComprehensionExpr.MapBoundedPool(source, Domain, Domain, Finite);
   }
 }
 

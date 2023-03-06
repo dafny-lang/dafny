@@ -261,7 +261,7 @@ class Thread extends Object {
   }
   twostate lemma baseFieldsInvMonotonicity() requires old(baseFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseFieldsInv() {}
 
-  predicate localInv() reads * {
+  predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
   }
   predicate inv() reads * ensures inv() ==> localInv() {
@@ -332,7 +332,7 @@ trait OwnedObject extends Object {
     && unchangedNonvolatileUserFields()
   }
 
-  predicate localInv() reads * {
+  predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
     && localUserInv()
   }
@@ -649,7 +649,7 @@ method Acquire(universe: Universe, running: Thread, mutex: Mutex)
 //   drop(l); // deallocate a guard == release mutex
 // }
 
-method SetData(universe: Universe, running: Thread, mutex: Mutex)
+method {:vcs_split_on_every_assert} SetData(universe: Universe, running: Thread, mutex: Mutex)
   requires universe.globalInv() && running in universe.content && mutex in universe.content
   modifies universe, universe.content
   decreases *

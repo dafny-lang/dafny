@@ -3,11 +3,26 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny;
 
 partial class Resolver {
-  class CheckTypeInferenceVisitor : ASTVisitor<IASTVisitorContext> {
+  class TypeInferenceCheckingContext : IASTVisitorContext {
+    private readonly IASTVisitorContext astVisitorContext;
+
+    public bool IsPrefixPredicate => astVisitorContext is PrefixPredicate;
+    public bool IsExtremePredicate => astVisitorContext is ExtremePredicate;
+    public bool IsPrefixDeclaration => astVisitorContext is PrefixPredicate or PrefixLemma;
+
+    public TypeInferenceCheckingContext(IASTVisitorContext astVisitorContext) {
+      this.astVisitorContext = astVisitorContext;
+    }
+
+    ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
+  }
+
+  class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     private readonly Resolver resolver;
     private ErrorReporter reporter => resolver.reporter;
 
@@ -15,8 +30,8 @@ partial class Resolver {
       this.resolver = resolver;
     }
 
-    public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
-      return astVisitorContext;
+    public override TypeInferenceCheckingContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
+      return new TypeInferenceCheckingContext(astVisitorContext);
     }
 
     protected override void VisitOneDeclaration(TopLevelDecl decl) {
@@ -62,7 +77,7 @@ partial class Resolver {
       base.VisitField(field);
     }
 
-    protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
+    protected override bool VisitOneStatement(Statement stmt, TypeInferenceCheckingContext context) {
       if (stmt is CalcStmt calcStmt) {
         // The resolution of the calc statement builds up .Steps and .Result, which are of the form E0 OP E1, where
         // E0 and E1 are expressions from .Lines.  These additional expressions still need to have their .ResolvedOp
@@ -77,7 +92,7 @@ partial class Resolver {
       return base.VisitOneStatement(stmt, context);
     }
 
-    protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
+    protected override void PostVisitOneStatement(Statement stmt, TypeInferenceCheckingContext context) {
       if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
@@ -105,7 +120,7 @@ partial class Resolver {
       base.PostVisitOneStatement(stmt, context);
     }
 
-    protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
+    protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
       if (expr is LiteralExpr) {
         var e = (LiteralExpr)expr;
         if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
@@ -141,7 +156,7 @@ partial class Resolver {
           if (!IsDetermined(bv.Type.Normalize())) {
             resolver.reporter.Error(MessageSource.Resolver, bv.tok,
               $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
-          } else if (context is ExtremePredicate) {
+          } else if (context.IsExtremePredicate) {
             CheckContainsNoOrdinal(bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
           }
         }
@@ -150,7 +165,7 @@ partial class Resolver {
           var binBody = ((ExistsExpr)e).Term as BinaryExpr;
           if (binBody != null && binBody.Op == BinaryExpr.Opcode.Imp) {  // check Op, not ResolvedOp, in order to distinguish ==> and <==
                                                                          // apply the wisdom of Claude Marche: issue a warning here
-            resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+            resolver.reporter.Warning(MessageSource.Resolver, ErrorID.None, e.tok,
               "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
               "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
           }
@@ -167,7 +182,7 @@ partial class Resolver {
             if (!IsDetermined(p.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok,
                 $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
-            } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+            } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
               CheckContainsNoOrdinal(e.tok, p,
                 $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
@@ -187,7 +202,7 @@ partial class Resolver {
               : "";
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
-          } else if (context is not PrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
+          } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
             CheckContainsNoOrdinal(e.tok, p,
               $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
@@ -284,7 +299,7 @@ partial class Resolver {
                       hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                     }
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    resolver.reporter.Warning(MessageSource.Resolver, ErrorID.None, e.tok,
                       $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                   }
                   break;
@@ -302,7 +317,7 @@ partial class Resolver {
                   if (((CollectionType)ty).Arg.IsNonNullRefType) {
                     var non = sense ? "" : "non-";
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    resolver.reporter.Warning(MessageSource.Resolver, ErrorID.None, e.tok,
                       $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
                   }
                   break;
@@ -313,7 +328,7 @@ partial class Resolver {
                   var ty = other.Type.NormalizeExpand();
                   if (((MapType)ty).Domain.IsNonNullRefType) {
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                    resolver.reporter.Warning(MessageSource.Resolver, ErrorID.None, e.tok,
                       $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
                   }
                   break;
@@ -355,7 +370,7 @@ partial class Resolver {
         }
       }
 
-      base.VisitOneExpression(expr, context);
+      base.PostVisitOneExpression(expr, context);
     }
 
     public static bool IsDetermined(Type t) {
@@ -386,10 +401,10 @@ partial class Resolver {
       return t.TypeArgs.All(rg => CheckTypeIsDetermined(tok, rg, what));
     }
 
-    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, IASTVisitorContext context) {
+    public void CheckTypeArgsContainNoOrdinal(IToken tok, Type t, TypeInferenceCheckingContext context) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
-      if (context is PrefixPredicate or PrefixLemma) {
+      if (context.IsPrefixDeclaration) {
         // User-provided expressions in extreme predicates/lemmas are checked in the extreme declarations, so need
         // need to do them here again for the prefix predicates/lemmas.
       } else {

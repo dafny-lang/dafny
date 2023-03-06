@@ -25,7 +25,7 @@ class RunCommand : ICommandSpec {
       Inputs,
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
   public RunCommand() {
     userProgramArguments = new Argument<IEnumerable<string>>("program-arguments", "arguments to the Dafny program");

@@ -30,7 +30,7 @@ public class RunAllTestsMainMethod : IRewriter {
     // and would be low-value anyway.
     var noVerifyAttribute = new Attributes("verify", new List<Expression> { new LiteralExpr(Token.NoToken, false) }, null);
 
-    mainMethod = new Method(Token.NoToken, "Main", false, false,
+    mainMethod = new Method(RangeToken.NoToken, new Name("Main"), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
@@ -92,6 +92,9 @@ public class RunAllTestsMainMethod : IRewriter {
     mainMethodStatements.Add(successVarStmt);
     var successVar = successVarStmt.Locals[0];
     var successVarExpr = new IdentifierExpr(tok, successVar);
+
+    // Don't use Type.String() because that's an unresolved type
+    var seqCharType = new SeqType(Type.Char);
 
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
@@ -177,8 +180,8 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // }
           //
-          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", Type.String(), false) {
-            type = Type.String()
+          var haltMessageVar = new LocalVariable(tok.ToRange(), "haltMessage", seqCharType, false) {
+            type = seqCharType
           };
           var haltMessageVarExpr = new IdentifierExpr(tok, haltMessageVar);
           var recoverBlock =

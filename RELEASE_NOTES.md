@@ -2,6 +2,37 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 3.12.0
+
+## New features
+
+- Dafny code formatter with IDE support (https://github.com/dafny-lang/dafny/pull/2399)
+     - Makes it possible to "format" one or many Dafny files on the command-line, which for now means only changing the indentation of lines.
+     - Instructions and more details are available in the [Dafny Reference Manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dafny-format)
+
+- Implements error detail information and quick fixes:
+     - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
+     - In VSCode, when hovering over an error, the hover information shows additional explanation and
+       an error id, which is also a link to the error explanation page
+     - Where a Quick Fix is available, the Quick Fix link is active
+  (https://github.com/dafny-lang/dafny/pull/3299)
+
+- * `opaque` is now a modifier, though still allowed, but deprecated as an identifier; it replaces the `{:opaque}` attribute (https://github.com/dafny-lang/dafny/pull/3462)
+
+- * The value of the --library option is allowed to be a comma-separated list of files or folders (https://github.com/dafny-lang/dafny/pull/3540)
+
+## Bug fixes
+
+- Exclude verifier's type information for “new object” allocations (https://github.com/dafny-lang/dafny/pull/3450)
+
+- The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas. (https://github.com/dafny-lang/dafny/pull/3452)
+
+- * The attribute `:heapQuantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
+
+- Fixed race conditions in the language server that made gutter icons behave abnormally (https://github.com/dafny-lang/dafny/pull/3502)
+
+- No more crash when hovering assertions that reference code written in other smaller files (https://github.com/dafny-lang/dafny/pull/3585)
+
 # 3.11.0
 
 ## New features
@@ -256,12 +287,13 @@ See [docs/dev/news/](docs/dev/news/).
 
 # 3.7.2
 
-- fix: Hovering over variables and methods inside cases of nested match statements work again. (https://github.com/dafny-lang/dafny/pull/2334)
+- fix: Hovering over variables and methods inside cases of nested match statements works again. (https://github.com/dafny-lang/dafny/pull/2334)
 - fix: Fix bug in translation of two-state predicates with heap labels. (https://github.com/dafny-lang/dafny/pull/2300)
 - fix: Check that arguments of 'unchanged' satisfy enclosing reads clause. (https://github.com/dafny-lang/dafny/pull/2302)
+- feat: Whitespaces and comments are kept in relevant parts of the AST (https://github.com/dafny-lang/dafny/pull/1801)
 - fix: Underconstrained closures don't crash Dafny anymore. (https://github.com/dafny-lang/dafny/pull/2382)
 - fix: Caching in the language server does not prevent gutter icons from being updated correctly. (https://github.com/dafny-lang/dafny/pull/2312)
-- fix: Last edited verified first & corrected display of verification status. (https://github.com/dafny-lang/dafny/pull/2352)
+- fix: Last edited file verified first & corrected display of verification status. (https://github.com/dafny-lang/dafny/pull/2352)
 - fix: Correctly infer type of numeric arguments, where the type is a subset type of a newtype. (https://github.com/dafny-lang/dafny/pull/2314)
 - fix: Fix concurrency bug that sometimes led to an exception during the production of verification logs. (https://github.com/dafny-lang/dafny/pull/2398)
 
