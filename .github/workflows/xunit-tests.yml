@@ -10,6 +10,10 @@ on:
 ##  chmod - whether the Z3 download needs execute permissions added
 ##  coverage -- unused?
 
+defaults:
+  run:
+    working-directory: dafny
+
 jobs:
   build:
     runs-on: ${{matrix.os}}
@@ -37,6 +41,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
+        path: dafny
         submodules: recursive
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
@@ -82,6 +87,6 @@ jobs:
       with:
         name: unit-test-results-${{ matrix.os }}
         path: |
-          Source/*/TestResults/*.trx
-          Source/*/TestResults/*/coverage.cobertura.xml
-          DafnyLanguageServer.Test.coverage
+          dafny/Source/*/TestResults/*.trx
+          dafny/Source/*/TestResults/*/coverage.cobertura.xml
+          dafny/DafnyLanguageServer.Test.coverage
