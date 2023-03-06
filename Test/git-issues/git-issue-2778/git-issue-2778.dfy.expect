@@ -1,4 +1,4 @@
-git-issue-2778.dfy(4,8): Warning: Attribute :handle is deprecated and will be removed in Dafny 4.0
-git-issue-2778.dfy(6,9): Warning: Attribute :dllimport is deprecated and will be removed in Dafny 4.0
+git-issue-2778.dfy(4,10): Warning: Attribute :handle is deprecated and will be removed in Dafny 4.0
+git-issue-2778.dfy(6,11): Warning: Attribute :dllimport is deprecated and will be removed in Dafny 4.0
 
 Dafny program verifier did not attempt verification
