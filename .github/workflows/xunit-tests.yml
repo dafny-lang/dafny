@@ -8,7 +8,6 @@ on:
 ##  suffix - name used in the description of the job
 ##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
 ##  chmod - whether the Z3 download needs execute permissions added
-##  coverage -- unused?
 
 defaults:
   run:
@@ -25,15 +24,12 @@ jobs:
           - os: macos-11
             suffix: osx
             chmod: true
-            coverage: false
           - os: windows-2019
             suffix: win
             chmod: false
-            coverage: false
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
             chmod: true
-            coverage: true
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
