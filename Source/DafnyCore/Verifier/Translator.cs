@@ -7223,7 +7223,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      ens.Description = new PODesc.AssertStatement(errorMessage ?? "This is the postcondition that might not hold.");
+      ens.Description = new PODesc.EnsuresDescription(errorMessage);
       return ens;
     }
 

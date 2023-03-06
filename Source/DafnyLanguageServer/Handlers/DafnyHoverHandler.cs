@@ -14,6 +14,7 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Dafny.ProofObligationDescription;
+using EnsuresDescription = Microsoft.Dafny.ProofObligationDescription.EnsuresDescription;
 using RequiresDescription = Microsoft.Dafny.ProofObligationDescription.RequiresDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
@@ -223,20 +224,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             }
           case GutterVerificationStatus.Error:
             var failureDescription = description?.FailureDescription ?? "_no message_";
-            if (currentlyHoveringPostcondition &&
-                  (failureDescription == new PostconditionDescription().FailureDescription ||
-                   failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "this postcondition might not hold on a return path";
-            }
-
             if (!currentlyHoveringPostcondition &&
-                (failureDescription == new EnsuresDescription().FailureDescription)) {
-              failureDescription = "a postcondition could not be proven on this return path";
-            }
-
-            if (!currentlyHoveringPostcondition &&
-                (failureDescription == new RequiresDescription().FailureDescription)) {
-              failureDescription = "a precondition could not be proven";
+                description is EnsuresDescription { FailureAtPathDescription: var moreAccurateDescription }) {
+              failureDescription = moreAccurateDescription;
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;

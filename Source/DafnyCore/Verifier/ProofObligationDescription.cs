@@ -317,11 +317,32 @@ public class RequiresDescription : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
-    customErrMsg ?? "This is the precondition that might not hold.";
+    customErrMsg ?? "a precondition could not be proven";
 
   public override string ShortDescription => "requires";
 
   public RequiresDescription([CanBeNull] string customErrMsg = null) {
+    this.customErrMsg = customErrMsg;
+  }
+}
+
+// The Boogie version does not support custom error messages yet
+public class EnsuresDescription : ProofObligationDescription {
+  private readonly string customErrMsg;
+  public override string SuccessDescription =>
+    customErrMsg is null
+      ? "this postcondition holds"
+      : $"error is impossible: {customErrMsg}";
+
+  public override string FailureDescription =>
+    customErrMsg ?? "this postcondition might not hold on a return path";
+
+  public string FailureAtPathDescription =>
+    customErrMsg ?? "a postcondition could not be proven on this return path";
+
+  public override string ShortDescription => "ensures";
+
+  public EnsuresDescription([CanBeNull] string customErrMsg = null) {
     this.customErrMsg = customErrMsg;
   }
 }
