@@ -102,9 +102,6 @@ jobs:
         with:
           name: unit-test-results-ubuntu-20.04
 
-      - name: Show files
-        run: ls -lR
-
       - name: Merge reports
         run: |
           dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.cobertura.xml -f cobertura
