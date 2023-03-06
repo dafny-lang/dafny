@@ -131,7 +131,7 @@ jobs:
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
-        dotnet test --logger trx --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
+        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
