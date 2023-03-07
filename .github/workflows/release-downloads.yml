@@ -76,7 +76,7 @@ jobs:
       run: dafny/dafny verify b.dfy || echo "EXPECTED FAILURE"
     - name: Check bad - Windows
       if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
+      run: (dafny/Dafny.exe verify b.dfy || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
@@ -99,6 +99,7 @@ jobs:
       shell: pwsh
       if: runner.os == 'Windows'
       run: |
+        dafny/dafny build -t:go a.dfy
         $Env:GO111MODULE="auto"
         $Env:GOPATH="$PWD/a-go"
         go run a-go/src/a.go > actual.txt
