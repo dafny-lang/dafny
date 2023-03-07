@@ -1528,11 +1528,6 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
-      if (Options.UseRuntimeLib) {
-        return;
-      }
-
-
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var stream = assembly.GetManifestResourceStream(filename);
       if (stream is null) {

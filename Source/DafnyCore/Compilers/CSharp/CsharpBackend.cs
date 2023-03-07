@@ -48,8 +48,8 @@ public class CsharpBackend : ExecutableBackend {
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();
-    var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-    if (Options.UseRuntimeLib) {
+    if (!Options.IncludeRuntime) {
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
       compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
     }

@@ -117,7 +117,11 @@ namespace Microsoft.Dafny.Compilers {
       this.hashWr = headerFileWr.Fork();
 
       var rt = wr.NewFile("DafnyRuntime.h");
-      ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+
+      if (Options.IncludeRuntime) {
+        ReadRuntimeSystem(program, "DafnyRuntime.h", rt);
+      }
+
     }
     protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
       // Define default values for each datatype
