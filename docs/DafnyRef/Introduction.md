@@ -69,7 +69,7 @@ There is even a new book, [Program Proofs](https://mitpress.mit.edu/978026254623
 The IDE now has a framework for showing error explanation information and corresponding quick fixes are
 being added, with refactoring operations on the horizon.
 
-More details of 4.0 functionality are desecried in the release notes.
+More details of 4.0 functionality are described in the release notes.
 ## 1.2. Dafny Example {#sec-example}
 To give a flavor of Dafny, here is the solution to a competition problem.
 
