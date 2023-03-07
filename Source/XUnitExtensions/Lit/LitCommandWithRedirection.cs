@@ -90,7 +90,7 @@ namespace XUnitExtensions.Lit {
 
     protected static IEnumerable<string> ExpandGlobs(string chunk) {
       var matcher = new Matcher();
-      var root = Path.GetPathRoot(chunk);
+      var root = Path.GetPathRoot(chunk)!;
       var rest = Path.GetRelativePath(root, chunk);
       matcher.AddInclude(rest);
       var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root)));
