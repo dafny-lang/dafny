@@ -3,11 +3,10 @@
 
 trait A {
   predicate f()
-  method g() ensures f()     // Line 3
-}
-
-class B<T> extends A {       // Line 6
-  predicate f() { true }     // Line 7
   method g() ensures f()
 }
 
+class B<T> extends A {
+  predicate f() { true }
+  method g() ensures f()
+}
