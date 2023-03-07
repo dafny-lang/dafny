@@ -1981,10 +1981,10 @@ namespace Microsoft.Dafny {
         }
         if (d is ModuleDecl) {
           var def = (d as ModuleDecl).Signature.ModuleDef;
-          if (def.IsExternal && def.Companion == null) {
+          if (def != null && def.IsExternal && def.Companion == null) {
             reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
               $"this external module declaration has no companion body-less declaration: {d.FullDafnyName} (This will become an error in the future)");
-          } else if (!def.HasBody && def.Companion == null) {
+            //} else if (def != null && !def.HasBody && def.Companion == null) {
             // Don't complain about this yet - perhaps not at all; if the external declaration does not exist, trying to resolve something in it will fail
             // If a user wants to be sure that all module declarations are present, enabling this with a --warn-missing-module-declarations might be appropriate
             //reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
