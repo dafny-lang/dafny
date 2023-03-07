@@ -312,7 +312,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
-    public bool IncludeRuntime = true;
+    public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 4;
     public bool UseStdin = false;
@@ -716,7 +716,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
         case "useRuntimeLib": {
-            IncludeRuntime = false;
+            UseRuntimeLib = true;
             return true;
           }
 
