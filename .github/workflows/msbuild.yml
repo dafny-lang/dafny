@@ -91,6 +91,10 @@ jobs:
         run: |
           dotnet tool install --global dotnet-reportgenerator-globaltool
           dotnet tool install --global dotnet-coverage
+          dotnet tool install coco
+          # Run coco to ensure that all source code is available. It's faster to do this alone than to rebuild everything.
+          dotnet tool run coco "dafny/Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "dafny/Source/DafnyCore/Coco"
+
 
       - name: Download integration test artifacts
         uses: actions/download-artifact@v3
