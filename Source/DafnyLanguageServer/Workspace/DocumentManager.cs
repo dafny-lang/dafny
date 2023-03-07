@@ -57,7 +57,7 @@ public class DocumentManager {
       document,
       null);
 
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();

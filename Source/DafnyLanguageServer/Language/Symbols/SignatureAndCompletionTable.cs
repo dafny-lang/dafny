@@ -40,16 +40,17 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private readonly DafnyLangTypeResolver typeResolver;
 
-    public static SignatureAndCompletionTable Empty(DocumentTextBuffer textDocument) {
+    public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
       var errorReporter = new DiagnosticErrorReporter(textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(new Dafny.Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(new DefaultModuleDecl(), null),
+          new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(),
-          errorReporter
+          new BuiltIns(), // TODO creating a BuiltIns is a heavy operation
+          errorReporter,
+          options
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),

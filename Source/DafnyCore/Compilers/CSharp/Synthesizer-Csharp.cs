@@ -102,8 +102,14 @@ public class CsharpSynthesizer {
       o => compiler.idGenerator.FreshId(o.CompileName + "Mock"));
     foreach (var (obj, mockName) in objectToMockName) {
       var typeName = compiler.TypeName(obj.Type, wr, obj.Tok);
-      wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
-      wr.FormatLine($"{mockName}.CallBase = true;");
+      // Mocking a trait works only so long as no trait member is accessed
+      if ((method.Outs.First().Type is UserDefinedType userDefinedType) &&
+          userDefinedType.IsTraitType) {
+        wr.FormatLine($"var {mockName} = new Mock<{typeName}>(MockBehavior.Strict);");
+      } else {
+        wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
+        wr.FormatLine($"{mockName}.CallBase = true;");
+      }
       wr.FormatLine($"var {obj.CompileName} = {mockName}.Object;");
     }
 
@@ -144,7 +150,7 @@ public class CsharpSynthesizer {
   private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
-        compiler.TrExpr(literalExpr, wr, false, wStmts);
+        wr.Append(compiler.Expr(literalExpr, false, wStmts));
         break;
       case ApplySuffix applySuffix:
         SynthesizeExpression(wr, applySuffix, wStmts);
@@ -178,7 +184,8 @@ public class CsharpSynthesizer {
         methodName, lastSynthesizedMethod.Name);
     }
 
-    wr.Format($"{objectToMockName[receiver]}.Setup(x => x.{methodName}(");
+    var tmpId = compiler.idGenerator.FreshId("tmp");
+    wr.Format($"{objectToMockName[receiver]}.Setup({tmpId} => {tmpId}.{methodName}(");
 
     // The remaining part of the method uses Moq's argument matching to
     // describe the arguments for which the method should be stubbed
@@ -189,7 +196,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        compiler.TrExpr(arg, wr, false, wStmts);
+        wr.Append(compiler.Expr(arg, false, wStmts));
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");
@@ -217,8 +224,9 @@ public class CsharpSynthesizer {
       compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
                                 "(field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);
-      wr.Format($"{objectToMockName[obj]}.SetupGet({obj.CompileName} => {obj.CompileName}.@{fieldName}).Returns( ");
-      compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
+      var tmpId = compiler.idGenerator.FreshId("tmp");
+      wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
+      wr.Append(compiler.Expr(binaryExpr.E1, false, wStmts));
       wr.WriteLine(");");
       return;
     }
@@ -244,7 +252,7 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    compiler.TrExpr(binaryExpr.E1, wr, false, wStmts);
+    wr.Append(compiler.Expr(binaryExpr.E1, false, wStmts));
     wr.WriteLine(");");
   }
 
@@ -274,7 +282,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        compiler.TrExpr(binaryExpr.E0, wr, false, wStmts);
+        wr.Append(compiler.Expr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1;
         break;
@@ -316,7 +324,7 @@ public class CsharpSynthesizer {
       public MultiMatcher(int argumentCount, Func<object[], bool> predicate) {
         this.predicate = predicate;
         this.argumentCount = argumentCount;
-        collectedArguments = new();
+        collectedArguments = new List<object>();
       }
 
       public bool Match(object argument) {

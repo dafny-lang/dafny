@@ -12,7 +12,7 @@ import (
   "os"
 )
 
-func FromMainArguments(args []string) Seq {
+func FromMainArguments(args []string) Sequence {
   var size = len(args)
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
@@ -21,7 +21,7 @@ func FromMainArguments(args []string) Seq {
   return SeqOf(dafnyArgs...)
 }
 
-func UnicodeFromMainArguments(args []string) Seq {
+func UnicodeFromMainArguments(args []string) Sequence {
   var size = len(args)
   var dafnyArgs []interface{} = make([]interface{}, size)
   for i, item := range args {
@@ -142,7 +142,7 @@ var IntType = CreateStandardTypeDescriptor(Zero)
 var BoolType = CreateStandardTypeDescriptor(false)
 
 // CharType is the RTD of char
-var CharType = CreateStandardTypeDescriptor(Char('D'))  // See CharType.DefaultValue in Dafny source code
+var CharType = CreateStandardTypeDescriptor(Char('D')) // See CharType.DefaultValue in Dafny source code
 
 // CodePointType is the RTD of char
 var CodePointType = CreateStandardTypeDescriptor(CodePoint('D'))  // See CharType.DefaultValue in Dafny source code
@@ -247,8 +247,9 @@ func (*Object) String() string {
 }
 
 func (_this *Object) ParentTraits_() []*TraitID {
-  return [](*TraitID){};
+  return [](*TraitID){}
 }
+
 var _ TraitOffspring = &Object{}
 
 /******************************************************************************
@@ -364,13 +365,18 @@ func sliceIterator(s []interface{}) Iterator {
   }
 }
 
-func stringOfElements(s []interface{}) string {
+func stringOfElements(iter interface{}) string {
   str := ""
-  for i, v := range s {
-    if i > 0 {
-      str += ", "
+  sep := ""
+  for i := Iterate(iter); ; {
+    v, ok := i()
+    if !ok {
+      break
     }
+
+    str += sep
     str += String(v)
+    sep = ", "
   }
   return str
 }
@@ -471,58 +477,62 @@ func AllBooleans() Iterator {
  * Sequences
  ******************************************************************************/
 
-// A Seq is a Go slice representing a one-dimensional array.  There aren't any
-// methods for updating; instead, you can update by mutating the value returned
-// by Index (either by using its Set method or by getting a pointer using its
-// Addr method).
-type Seq struct {
-  contents []interface{}
-  isString bool
-}
+// The sequence type is now defined in dafnyRuntime.dfy instead.
+// These declarations are just filling in the gaps to make sure
+// Dafny.Sequence is a well-behaved Dafny value in this runtime.
 
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
 // Create a sequence from a length and an element initializer
-func SeqCreate(n Int, init func (Int) interface{}) Seq {
-  len := n.Int()
-  arr := make([]interface{}, len)
-  for i := 0; i < len; i++ {
-    arr[i] = init(IntOf(i))
+// This still exists because it's technically difficult
+// for the compiler to coerce the init function to a
+// func (uint32) interface{}.
+func SeqCreate(n uint32, init func (Int) interface{}) Sequence {
+  return Companion_Sequence_.Create(n, func (index uint32) interface{} { 
+    return init(IntOfUint32(index))
+  })
+}
+
+func SeqFromArray(contents []interface{}, isString bool) Sequence {
+  arr := GoNativeArray{
+    contents: contents,
   }
-  return Seq{arr, false}
+  result := New_ArraySequence_()
+  result.Ctor__(arr, isString)
+  return result
 }
 
 // SeqOf returns a sequence containing the given values.
-func SeqOf(values ...interface{}) Seq {
+func SeqOf(values ...interface{}) Sequence {
   // Making a defensive copy here because variadic functions can get hinky
   // if someone says SeqOf(slice...) and then mutates slice.
   arr := make([]interface{}, len(values))
   copy(arr, values)
-  return Seq{arr, false}
+  return SeqFromArray(arr, false)
 }
 
 // SeqOfChars returns a sequence containing the given character values.
-func SeqOfChars(values ...Char) Seq {
+func SeqOfChars(values ...Char) Sequence {
   arr := make([]interface{}, len(values))
   for i, v := range values {
     arr[i] = v
   }
-  return Seq{arr, true}
+  return SeqFromArray(arr, true)
 }
 
 // SeqOfString converts the given string into a sequence of characters.
 // The given string must contain only ASCII characters!
-func SeqOfString(str string) Seq {
+func SeqOfString(str string) Sequence {
   // Need to make sure the elements of the array are Chars
   arr := make([]interface{}, len(str))
   for i, v := range str {
     arr[i] = Char(v)
   }
-  return Seq{arr, true}
+  return SeqFromArray(arr, true)
 }
 
-func UnicodeSeqOfUtf8Bytes(str string) Seq {
+func UnicodeSeqOfUtf8Bytes(str string) Sequence {
   // Need to make sure the elements of the array are CodePoints
   arr := make([]interface{}, utf8.RuneCountInString(str))
   i := 0
@@ -530,155 +540,94 @@ func UnicodeSeqOfUtf8Bytes(str string) Seq {
     arr[i] = CodePoint(v)
     i++
   }
-  return Seq{arr, false}
-}
-
-func (seq Seq) SetString() Seq {
-  return Seq{seq.contents, true}
-}
-
-// Index finds the sequence element at the given index.
-func (seq Seq) Index(i Int) interface{} {
-  return seq.IndexInt(i.Int())
-}
-
-// IndexInt finds the sequence element at the given index.
-func (seq Seq) IndexInt(i int) interface{} {
-  return seq.contents[i]
-}
-
-// Update returns a new sequence with the given index set to the given value.
-func (seq Seq) Update(i Int, v interface{}) Seq {
-  return seq.UpdateInt(i.Int(), v)
-}
-
-// UpdateInt returns a new sequence with the given index set to the given value.
-func (seq Seq) UpdateInt(i int, v interface{}) Seq {
-  arr := make([]interface{}, len(seq.contents))
-  copy(arr, seq.contents[:i])
-  arr[i] = v
-  copy(arr[i+1:], seq.contents[i+1:])
-  return Seq{arr, seq.isString}
-}
-
-// Len finds the length of the sequence.
-func (seq Seq) Len() Int {
-  return IntOf(seq.LenInt())
-}
-
-// LenInt finds the length of the sequence as an int.
-func (seq Seq) LenInt() int {
-  return len(seq.contents)
-}
-
-// Cardinality finds the length of the sequence.
-func (seq Seq) Cardinality() Int {
-  return seq.Len()
-}
-
-// CardinalityInt finds the length of the sequence as an int.
-func (seq Seq) CardinalityInt() int {
-  return seq.LenInt()
-}
-
-// Contains finds whether the value is equal to any element in the sequence.
-func (seq Seq) Contains(value interface{}) bool {
-  return sliceContains(seq.contents, value)
+  return SeqFromArray(arr, false)
 }
 
 // Iterator returns an iterator over the sequence.
-func (seq Seq) Iterator() Iterator {
-  return sliceIterator(seq.contents)
-}
-
-// Subseq gets the selected portion of the sequence as a new sequence.
-func (seq Seq) Subseq(lo, hi Int) Seq {
-  var slice []interface{}
-  if !lo.IsNilInt() {
-    if !hi.IsNilInt() {
-      slice = seq.contents[lo.Int():hi.Int()]
-    } else {
-      slice = seq.contents[lo.Int():]
+// This could be implemented more efficiently
+// in the source Dafny code in the future,
+// by traversing the Sequence node structure rather than
+// forcing the lazy evaluation,
+// but will involve defining an Iterator trait of some kind.
+func SequenceIterator(seq Sequence) Iterator {
+  var i uint32 = 0
+  n := seq.Cardinality()
+  return func() (interface{}, bool) {
+    if i >= n {
+      return nil, false
     }
-  } else {
-    if !hi.IsNilInt() {
-      slice = seq.contents[:hi.Int()]
-    } else {
-      slice = seq.contents
-    }
+    ans := seq.Select(i)
+    i++
+    return ans, true
   }
-
-  return Seq{slice, seq.isString}
 }
-
-// Concat returns the concatenation of two sequences.
-func (seq Seq) Concat(seq2 Seq) Seq {
-  if seq.LenInt() == 0 {
-    return seq2
-  }
-  if seq2.LenInt() == 0 {
-    return seq
-  }
-
-  n, n2 := len(seq.contents), len(seq2.contents)
-  newSlice := make([]interface{}, n+n2)
-  copy(newSlice, seq.contents)
-  copy(newSlice[len(seq.contents):], seq2.contents)
-  return Seq{newSlice, seq.isString || seq2.isString}
+// Unfortunately when we want to provide a single common definition
+// for a trait function, we have to take care of the indirection
+// from the concrete structs to the trait implementation ourselves.
+// Ideally there would be a way of telling Dafny
+// an {:extern} trait method will be specifically implemented at the trait level
+// so the compiler could do this for us.
+func (seq *ArraySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
 }
-
-// Equals compares two sequences for equality.
-func (seq Seq) Equals(seq2 Seq) bool {
-  return sliceEquals(seq.contents, seq2.contents)
+func (seq *ConcatSequence) Iterator() Iterator {
+  return SequenceIterator(seq)
 }
-
-// Seq implements the EqualsGeneric interface.
-func (seq Seq) EqualsGeneric(other interface{}) bool {
-  seq2, ok := other.(Seq)
-  return ok && seq.Equals(seq2)
-}
-
-// IsPrefixOf finds whether s[i] == s2[i] for all i < some n.
-func (seq Seq) IsPrefixOf(seq2 Seq) bool {
-  return sliceIsPrefixOf(seq.contents, seq2.contents)
-}
-
-// IsProperPrefixOf finds whether s[i] == s2[i] for all i < some n, and moreover
-// s != s2.
-func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
-  return sliceIsProperPrefixOf(seq.contents, seq2.contents)
-}
-
-// Elements returns the sequence of elements (i.e. the sequence itself).
-func (seq Seq) Elements() Seq {
-  return seq
+func (seq *LazySequence) Iterator() Iterator {
+  return SequenceIterator(seq)
 }
 
 // UniqueElements returns the set of elements in the sequence.
-func (seq Seq) UniqueElements() Set {
-  return (*Builder)(&seq.contents).ToSet()
+// This should be in Dafny eventually but for now it's much more efficient
+// and convenient here.
+func (seq *ArraySequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
+}
+func (seq *ConcatSequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
+}
+func (seq *LazySequence) UniqueElements() Set {
+  return NewBuilderOf(seq).ToSet()
 }
 
-func (seq Seq) String() string {
-  if seq.isString {
+func SequenceString(seq Sequence) string {
+  if seq.IsString() {
     s := ""
     // FIXME: Note this doesn't produce the right string in UTF-8,
     // since it converts surrogates independently.
-    for _, c := range seq.contents {
+    for i := Iterate(seq); ; {
+      c, ok := i()
+      if !ok {
+        break
+      }
       s += c.(Char).String()
     }
     return s
   } else {
-    return "[" + stringOfElements(seq.contents) + "]"
+    return "[" + stringOfElements(seq) + "]"
   }
 }
+func (seq *ArraySequence) String() string {
+  return SequenceString(seq)
+}
+func (seq *ConcatSequence) String() string {
+  return SequenceString(seq)
+}
+func (seq *LazySequence) String() string {
+  return SequenceString(seq)
+}
 
-func (seq Seq) VerbatimString(asLiteral bool) string {
+func SequenceVerbatimString(seq Sequence, asLiteral bool) string {
   s := ""
   if asLiteral {
     s += "\""
   }
-  for _, c := range seq.contents {
+  for i := Iterate(seq); ; {
+    c, ok := i()
+    if !ok {
+      break
+    }
+
     if asLiteral {
       s += c.(CodePoint).Escape()
     } else {
@@ -690,10 +639,107 @@ func (seq Seq) VerbatimString(asLiteral bool) string {
   }
   return s
 }
+func (seq *ArraySequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
+}
+func (seq *ConcatSequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
+}
+func (seq *LazySequence) VerbatimString(asLiteral bool) string {
+  return SequenceVerbatimString(seq, asLiteral)
+}
+
+func (seq *ArraySequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+func (seq *ConcatSequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+func (seq *LazySequence) Equals(other Sequence) bool {
+  return Companion_Sequence_.Equal(seq, other)
+}
+
+func (seq *ArraySequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
+func (seq *ConcatSequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
+func (seq *LazySequence) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(Sequence)
+  return ok && Companion_Sequence_.Equal(seq, other)
+}
 
 /******************************************************************************
  * Arrays
  ******************************************************************************/
+
+// A GoNativeArray is a single dimensional Go slice,
+// wrapped up for the benefit of dafnyRuntime.dfy.
+// We should refactor to wrap an Array interface as defined below
+// to get the same optimization benefits for sequences of bytes and chars/CodePoints.
+type GoNativeArray struct {
+  contents []interface{}
+}
+
+func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
+  contents := make([]interface{}, length)
+  return GoNativeArray{
+    contents: contents,
+  }
+}
+
+func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) (interface{})) NativeArray {
+  contents := make([]interface{}, length)
+  for i := uint32(0); i < length; i++ {
+    contents[i] = init(i)
+  }
+  return GoNativeArray{
+    contents: contents,
+  }
+}
+
+func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
+  otherArray := other.(GoNativeArray)
+  contents := make([]interface{}, otherArray.Length())
+  copy(contents, otherArray.contents)
+  return GoNativeArray{
+    contents: contents,
+  }
+}
+
+func (array GoNativeArray) Length() uint32 {
+  return uint32(len(array.contents))
+}
+
+func (array GoNativeArray) Select(i uint32) interface{} {
+  return array.contents[i]
+}
+
+func (array GoNativeArray) Update(i uint32, t interface{}) {
+  array.contents[i] = t
+}
+
+func (array GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+  otherArray := other.(GoNativeArray)
+  copy(array.contents[i:(i + otherArray.Length())], otherArray.contents)
+}
+
+func (array GoNativeArray) Freeze(size uint32) ImmutableArray {
+  return array.Subarray(0, size)
+}
+
+func (array GoNativeArray) Subarray(lo uint32, hi uint32) ImmutableArray {
+  return GoNativeArray{
+    contents: array.contents[lo:hi],
+  }
+}
+
+func (array GoNativeArray) String() string {
+  return "dafny.GoNativeArray"
+}
 
 // Array is the general interface for arrays. Conceptually, it contains some
 // underlying storage (a slice) of elements, together with a record of the length
@@ -1204,7 +1250,7 @@ func ArraySet(array Array, value interface{}, ixs ...int) {
 }
 
 // RangeToSeq converts the selected portion of the array to a sequence.
-func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
+func ArrayRangeToSeq(array Array, lo, hi Int) Sequence {
   if array.dimensionCount() != 1 {
     panic("Can't take a slice of a multidimensional array")
   }
@@ -1215,7 +1261,7 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Seq {
 
   anySlice := array.anySlice(lo, hi)
   seq := SeqOf(anySlice...)
-  seq.isString = isString
+  seq.IsString_set_(isString)
   return seq
 }
 
@@ -1303,6 +1349,19 @@ func NewBuilder() *Builder {
   return new(Builder)
 }
 
+// NewBuilder creates a new Builder.
+func NewBuilderOf(iter interface{}) *Builder {
+  b := NewBuilder()
+  for i := Iterate(iter); ; {
+    v, ok := i()
+    if !ok {
+      break
+    }
+    b.Add(v)
+  }
+  return b
+}
+
 // Add adds a new value to a Builder.
 func (builder *Builder) Add(value interface{}) {
   *builder = append(*builder, value)
@@ -1316,6 +1375,11 @@ func (builder *Builder) ToArray() Array {
 // ToSet creates a Set with the accumulated values.
 func (builder *Builder) ToSet() Set {
   return SetOf(*builder...)
+}
+
+// ToMultiset creates a MultiSet with the accumulated values.
+func (builder *Builder) ToMultiSet() MultiSet {
+  return MultiSetOf(*builder...)
 }
 
 // Iterator iterates over the accumulated values.
@@ -1559,8 +1623,8 @@ NEXT_INPUT:
 }
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
-func MultiSetFromSeq(seq Seq) MultiSet {
-  return MultiSetOf(seq.contents...)
+func MultiSetFromSeq(seq Sequence) MultiSet {
+  return NewBuilderOf(seq).ToMultiSet()
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.
@@ -3012,14 +3076,6 @@ func RrotUint64(x uint64, n Int, w uint) uint64 {
 }
 
 /******************************************************************************
- * Hacks for generated code
- ******************************************************************************/
-
-// The Dummy__ type, which each compiled Dafny module declares, is just so that
-// we can generate "var _ dafny.Dummy__" to suppress the unused-import error.
-type Dummy__ struct{}
-
-/******************************************************************************
  * Utility functions
  ******************************************************************************/
 
@@ -3044,4 +3100,30 @@ func CatchHalt() {
     fmt.Println("[Program halted]", r)
     os.Exit(1)
   }
+}
+
+type GoAtomicBox struct {
+  value interface{}
+}
+
+func (box GoAtomicBox) Get() interface{} {
+  return box.value
+}
+
+func (box GoAtomicBox) Put(value interface{}) {
+  box.value = value
+}
+
+func (box GoAtomicBox) String() string {
+  return "dafny.GoAtomicBox"
+}
+
+func (CompanionStruct_AtomicBox_) Make(value interface{}) AtomicBox {
+  return GoAtomicBox{
+    value: value,
+  }
+}
+
+func (CompanionStruct_Helpers_) DafnyValueToDafnyString(value interface{}) Sequence {
+  return SeqOfString(String(value))
 }

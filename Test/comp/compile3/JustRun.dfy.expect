@@ -12,6 +12,7 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to JustRun-go/src/JustRun.go
 Additional target code written to JustRun-go/src/dafny/dafny.go
+Additional target code written to JustRun-go/src/dafny/dafnyFromDafny.go
 Additional target code written to JustRun-go/src/System_/System_.go
 Running...
 
@@ -19,6 +20,39 @@ hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to JustRun-java/JustRun.java
+Additional target code written to JustRun-java/dafny/Array.java
+Additional target code written to JustRun-java/dafny/BigOrdinal.java
+Additional target code written to JustRun-java/dafny/BigRational.java
+Additional target code written to JustRun-java/dafny/CodePoint.java
+Additional target code written to JustRun-java/dafny/DafnyEuclidean.java
+Additional target code written to JustRun-java/dafny/DafnyHaltException.java
+Additional target code written to JustRun-java/dafny/DafnyMap.java
+Additional target code written to JustRun-java/dafny/DafnyMultiset.java
+Additional target code written to JustRun-java/dafny/DafnySequence.java
+Additional target code written to JustRun-java/dafny/DafnySet.java
+Additional target code written to JustRun-java/dafny/Helpers.java
+Additional target code written to JustRun-java/dafny/Tuple0.java
+Additional target code written to JustRun-java/dafny/Tuple1.java
+Additional target code written to JustRun-java/dafny/Tuple10.java
+Additional target code written to JustRun-java/dafny/Tuple11.java
+Additional target code written to JustRun-java/dafny/Tuple12.java
+Additional target code written to JustRun-java/dafny/Tuple13.java
+Additional target code written to JustRun-java/dafny/Tuple14.java
+Additional target code written to JustRun-java/dafny/Tuple15.java
+Additional target code written to JustRun-java/dafny/Tuple16.java
+Additional target code written to JustRun-java/dafny/Tuple17.java
+Additional target code written to JustRun-java/dafny/Tuple18.java
+Additional target code written to JustRun-java/dafny/Tuple19.java
+Additional target code written to JustRun-java/dafny/Tuple2.java
+Additional target code written to JustRun-java/dafny/Tuple20.java
+Additional target code written to JustRun-java/dafny/Tuple3.java
+Additional target code written to JustRun-java/dafny/Tuple4.java
+Additional target code written to JustRun-java/dafny/Tuple5.java
+Additional target code written to JustRun-java/dafny/Tuple6.java
+Additional target code written to JustRun-java/dafny/Tuple7.java
+Additional target code written to JustRun-java/dafny/Tuple8.java
+Additional target code written to JustRun-java/dafny/Tuple9.java
+Additional target code written to JustRun-java/dafny/TypeDescriptor.java
 Additional target code written to JustRun-java/_System/nat.java
 Additional target code written to JustRun-java/_System/__default.java
 Wrote executable jar JustRun.jar

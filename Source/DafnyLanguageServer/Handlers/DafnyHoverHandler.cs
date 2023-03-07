@@ -70,6 +70,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
+      foreach (var diagnostic in state.Diagnostics) {
+        if (diagnostic.Range.Contains(position)) {
+          string? code = diagnostic.Code;
+          ErrorDetail.ErrorID errorID = ErrorDetail.ErrorID.None;
+          Enum.TryParse<ErrorDetail.ErrorID>(code, out errorID);
+          string? detail = ErrorDetail.GetDetail(errorID);
+          if (detail is not null) {
+            return detail;
+          }
+        }
+      }
+
       if (state.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
@@ -246,8 +258,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + ideState.TextDocumentItem.Text.Substring(rangeToken.StartToken.pos,
-              rangeToken.EndToken.pos + rangeToken.EndToken.val.Length - rangeToken.StartToken.pos);
+            var originalText = rangeToken.PrintOriginal();
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
           }
 
           hoveringPostcondition = false;

@@ -12,7 +12,7 @@ public class DeadCodeCommand : ICommandSpec {
       GenerateTestsCommand.SequenceLengthLimit,
       BoogieOptionBag.VerificationTimeLimit,
     }.Concat(ICommandSpec.ConsoleOutputOptions).
-      Concat(ICommandSpec.CommonOptions);
+      Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("find-dead-code", "(Experimental) Use counterexample generation to warn about potential dead code.");
@@ -29,5 +29,6 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.DefiniteAssignmentLevel = 2;
 
     dafnyOptions.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
+    dafnyOptions.TestGenOptions.WarnDeadCode = true;
   }
 }
