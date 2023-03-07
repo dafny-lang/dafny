@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,56 +10,52 @@ using Xunit.Abstractions;
 namespace XUnitExtensions.Lit {
   public class LitCommandWithRedirection : ILitCommand {
 
-    public static LitCommandWithRedirection Parse(Token[] tokens, LitTestConfiguration config) {
-      var commandSymbol = tokens[0].Value;
-      var argumentList = tokens[1..].ToList();
+    public static LitCommandWithRedirection Parse(string[] tokens, LitTestConfiguration config) {
+      var commandSymbol = tokens[0];
+      var argumentsList = tokens[1..].ToList();
       string? inputFile = null;
       string? outputFile = null;
       var appendOutput = false;
       string? errorFile = null;
-      var redirectInIndex = argumentList.FindIndex(t => t.Value == "<");
+      var redirectInIndex = argumentsList.IndexOf("<");
       if (redirectInIndex >= 0) {
-        inputFile = config.ApplySubstitutions(argumentList[redirectInIndex + 1].Value).Single();
-        argumentList.RemoveRange(redirectInIndex, 2);
+        inputFile = config.ApplySubstitutions(argumentsList[redirectInIndex + 1]).Single();
+        argumentsList.RemoveRange(redirectInIndex, 2);
       }
-      var redirectOutIndex = argumentList.FindIndex(t => t.Value == ">");
+      var redirectOutIndex = argumentsList.IndexOf(">");
       if (redirectOutIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentList[redirectOutIndex + 1].Value).Single();
-        argumentList.RemoveRange(redirectOutIndex, 2);
+        outputFile = config.ApplySubstitutions(argumentsList[redirectOutIndex + 1]).Single();
+        argumentsList.RemoveRange(redirectOutIndex, 2);
       }
-      var redirectAppendIndex = argumentList.FindIndex(t => t.Value == ">>");
+      var redirectAppendIndex = argumentsList.IndexOf(">>");
       if (redirectAppendIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentList[redirectAppendIndex + 1].Value).Single();
+        outputFile = config.ApplySubstitutions(argumentsList[redirectAppendIndex + 1]).Single();
         appendOutput = true;
-        argumentList.RemoveRange(redirectAppendIndex, 2);
+        argumentsList.RemoveRange(redirectAppendIndex, 2);
       }
-      var redirectErrorIndex = argumentList.FindIndex(t => t.Value == "2>");
+      var redirectErrorIndex = argumentsList.IndexOf("2>");
       if (redirectErrorIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
-        argumentList.RemoveRange(redirectErrorIndex, 2);
+        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorIndex + 1]).Single();
+        argumentsList.RemoveRange(redirectErrorIndex, 2);
       }
-      var redirectErrorAppendIndex = argumentList.FindIndex(t => t.Value == "2>>");
+      var redirectErrorAppendIndex = argumentsList.IndexOf("2>>");
       if (redirectErrorAppendIndex >= 0) {
-        errorFile = config.ApplySubstitutions(argumentList[redirectErrorAppendIndex + 1].Value).Single();
+        errorFile = config.ApplySubstitutions(argumentsList[redirectErrorAppendIndex + 1]).Single();
         appendOutput = true;
-        argumentList.RemoveRange(redirectErrorAppendIndex, 2);
+        argumentsList.RemoveRange(redirectErrorAppendIndex, 2);
       }
 
-      ILitCommand CreateCommand() {
-        var arguments = argumentList.SelectMany(a => config.ApplySubstitutions(a.Value).Select(v => a with { Value = v }))
-          .ToList()
-          .SelectMany(a => a.Kind == Kind.MustGlob ? ExpandGlobs(a.Value) : new[] { a.Value })
-          .ToList();
-        if (config.Commands.TryGetValue(commandSymbol, out var command)) {
-          return command(arguments, config);
-        }
+      var arguments = argumentsList.SelectMany(config.ApplySubstitutions);
 
-        commandSymbol = config.ApplySubstitutions(commandSymbol).Single();
-        return new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables);
+      if (config.Commands.TryGetValue(commandSymbol, out var command)) {
+        return new LitCommandWithRedirection(command(arguments, config), inputFile, outputFile, appendOutput, errorFile);
       }
 
-      // Use a DelayedLitCommand so the glob expansion is done only after previous commands have executed
-      return new LitCommandWithRedirection(new DelayedLitCommand(CreateCommand), inputFile, outputFile, appendOutput, errorFile);
+      commandSymbol = config.ApplySubstitutions(commandSymbol).Single();
+
+      return new LitCommandWithRedirection(
+        new ShellLitCommand(commandSymbol, arguments, config.PassthroughEnvironmentVariables),
+        inputFile, outputFile, appendOutput, errorFile);
     }
 
     private readonly ILitCommand command;
@@ -86,14 +81,6 @@ namespace XUnitExtensions.Lit {
       outputWriter?.Close();
       errorWriter?.Close();
       return result;
-    }
-
-    protected static IEnumerable<string> ExpandGlobs(string chunk) {
-      var matcher = new Matcher();
-      matcher.AddInclude(chunk);
-      var root = Directory.GetDirectoryRoot(Directory.GetCurrentDirectory());
-      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root)));
-      return result.Files.Select(f => root + f.Path);
     }
 
     public override string ToString() {
