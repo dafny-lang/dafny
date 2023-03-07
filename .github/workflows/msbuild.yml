@@ -74,6 +74,9 @@ jobs:
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
+    # Don't include in run-deep-tests, because the way it currently runs
+    # messes with integration test coverage tracking.
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
     needs: [xunit-tests, integration-tests]
     steps:
       # Check out Dafny so that highlighted source is possible
