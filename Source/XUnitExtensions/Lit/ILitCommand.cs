@@ -2,12 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Text;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
+
+  public record Token(string Value, Kind Kind);
+
+  public enum Kind { Verbatim, MustGlob }
+
+  class DelayedLitCommand : ILitCommand {
+    private readonly Func<ILitCommand> factory;
+
+    public DelayedLitCommand(Func<ILitCommand> factory) {
+      this.factory = factory;
+    }
+
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+      TextWriter? errorWriter) {
+      var command = factory();
+      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+    }
+  }
   public interface ILitCommand {
 
     private static readonly Dictionary<string, Func<string, LitTestConfiguration, ILitCommand>> CommandParsers = new();
@@ -28,53 +47,35 @@ namespace XUnitExtensions.Lit {
       return null;
     }
 
-    public static string[] Tokenize(string line) {
-      var arguments = new List<string>();
-      var argument = new StringBuilder();
+    public static Token[] Tokenize(string line) {
+      var result = new List<Token>();
+      var inProgressArgument = new StringBuilder();
       var singleQuoted = false;
       var doubleQuoted = false;
-      var hasGlobCharacters = false;
-      for (int i = 0; i < line.Length; i++) {
-        var c = line[i];
+      var kind = Kind.Verbatim;
+      foreach (var c in line) {
         if (c == '\'' && !doubleQuoted) {
           singleQuoted = !singleQuoted;
         } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          if (argument.Length != 0) {
-            if (hasGlobCharacters) {
-              arguments.AddRange(ExpandGlobs(argument.ToString()));
-            } else {
-              arguments.Add(argument.ToString());
-            }
+          if (inProgressArgument.Length != 0) {
+            result.Add(new Token(inProgressArgument.ToString(), kind));
 
-            argument.Clear();
-            hasGlobCharacters = false;
+            inProgressArgument.Clear();
+            kind = Kind.Verbatim;
           }
         } else {
           if (c is '*' or '?' && !singleQuoted) {
-            hasGlobCharacters = true;
+            kind = Kind.MustGlob;
           }
-          argument.Append(c);
+          inProgressArgument.Append(c);
         }
       }
 
-      if (argument.Length != 0) {
-        if (hasGlobCharacters) {
-          arguments.AddRange(ExpandGlobs(argument.ToString()));
-        } else {
-          arguments.Add(argument.ToString());
-        }
-      }
+      result.Add(new Token(inProgressArgument.ToString(), kind));
 
-      return arguments.ToArray();
-    }
-
-    protected static IEnumerable<string> ExpandGlobs(string chunk) {
-      var matcher = new Matcher();
-      matcher.AddInclude(chunk);
-      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(".")));
-      return result.Files.Select(f => f.Path);
+      return result.ToArray();
     }
 
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
