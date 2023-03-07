@@ -282,7 +282,7 @@ public class ExpressionTester {
       // ends as just described, and instead just compile the other branch.
       if (codeContext is Function function && insideBranchesOnly) {
         bool onlyGhostParametersChange(Expression ee) {
-          if (ee is FunctionCallExpr functionCallExpr) {
+          if (ee is FunctionCallExpr functionCallExpr && functionCallExpr.Function == function) {
             if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
               return false;
             }
