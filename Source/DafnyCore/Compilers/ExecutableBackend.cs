@@ -77,7 +77,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return null;
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename,
+    ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
