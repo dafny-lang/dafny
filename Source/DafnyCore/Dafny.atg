@@ -1323,8 +1323,8 @@ ModuleQualifiedName<.out List<Name> names.>
 = (. names = new List<Name>();
      Name name;
   .)
-  ( ModuleName<out name> (. names.Add(name); .)
-  | "_"                (. names.Add(new Name(t)); .)
+  // Caution: if you use "_" here it becomes a nonterminal of its own, which then bollixes up WildIdent
+  ( WildName<out name> (. names.Add(name); .)
   | "^"                (. names.Add(new Name(t)); .)
     { IF(IsDotXor()) "." "^"          (. names.Add(new Name(t)); .) }
   )
@@ -5371,6 +5371,10 @@ DotSuffix<out IToken x, out IToken y>
 /*------------------------------------------------------------------------*/
 Name<out Name name>
 = NoUSIdent<out var t> (. name = new Name(t); .)
+  .
+  
+WildName<out Name name>
+= WildIdent<out var t, true> (. name = new Name(t); .)
   .
   
 // Identifier, disallowing leading underscores
