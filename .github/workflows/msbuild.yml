@@ -127,6 +127,7 @@ jobs:
           thresholds: '86 90'
 
       - uses: actions/upload-artifact@v3
+        if: always() # Upload results even if the job fails
         with:
           name: test-coverage-results
           path: |
