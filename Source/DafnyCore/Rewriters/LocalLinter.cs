@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
           reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, stmt.tok,
             "You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' " +
             "suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, " +
-            "remove the '!' and the parentheses; if you do want the the negation, please add a space between the 'assert' and '!'.");
+            "remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.");
         }
       }
       return base.VisitOneStmt(stmt, ref st);
