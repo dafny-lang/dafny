@@ -63,12 +63,13 @@ namespace Microsoft.Dafny.Compilers {
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
-      if (DafnyOptions.O.IncludeRuntime) {
-        var rt = wr.NewFile("dafny/dafny.go");
-        ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
-        rt = wr.NewFile("dafny/dafnyFromDafny.go");
-        ReadRuntimeSystem(program, "DafnyRuntimeFromDafny.go", rt);
+      if (DafnyOptions.O.UseRuntimeLib) {
+        return;
       }
+      var rt = wr.NewFile("dafny/dafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntime.go", rt);
+      rt = wr.NewFile("dafny/dafnyFromDafny.go");
+      ReadRuntimeSystem(program, "DafnyRuntimeFromDafny.go", rt);
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr) {

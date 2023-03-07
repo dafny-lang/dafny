@@ -64,6 +64,9 @@ public class JavaBackend : ExecutableBackend {
     }
 
     var targetDirectory = Path.GetDirectoryName(targetFilename);
+    if (!DafnyOptions.O.UseRuntimeLib) {
+      EmitRuntimeJar(targetDirectory);
+    }
 
     var files = new List<string>();
     foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
@@ -78,8 +81,18 @@ public class JavaBackend : ExecutableBackend {
       return false;
     }
 
+    if (!DafnyOptions.O.UseRuntimeLib) {
+      // If the built-in runtime library is used, unpack it so it can be repacked into the final jar
+      var libUnpackProcess = PrepareProcessStartInfo("jar", new List<String> { "xf", "DafnyRuntime.jar" });
+      libUnpackProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      if (0 != RunProcess(libUnpackProcess, outputWriter, "Error while creating jar file (unzipping runtime library).")) {
+        return false;
+      }
+    }
+
     var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
         .Select(file => Path.GetRelativePath(targetDirectory, file)).ToList();
+
 
     var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
     var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
@@ -132,20 +145,15 @@ public class JavaBackend : ExecutableBackend {
     return 0 == RunProcess(psi, outputWriter);
   }
 
-  private string GetClassPath(string targetFilename) {
+  protected string GetClassPath(string targetFilename) {
     var classpath = Environment.GetEnvironmentVariable("CLASSPATH"); // String.join converts null to ""
     // Note that the items in the CLASSPATH must have absolute paths because the compilation is performed in a subfolder of where the command-line is executed
     if (targetFilename != null) {
       var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      var parts = new List<string> { ".", targetDirectory, classpath };
-      if (!DafnyOptions.O.IncludeRuntime) {
-        EmitRuntimeJar(targetDirectory);
-        parts.Add(Path.Combine(targetDirectory, "DafnyRuntime.jar"));
-      }
-      return string.Join(Path.PathSeparator, parts);
+      return string.Join(Path.PathSeparator, ".", targetDirectory, Path.Combine(targetDirectory, "DafnyRuntime.jar"), classpath);
+    } else {
+      return classpath;
     }
-
-    return classpath;
   }
 
   static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
