@@ -1,0 +1,1 @@
+While using `dafny translate --target=java`, the `--include-sources` option works as intended, while before it had no affect.
