@@ -10,7 +10,7 @@ class TranslateCommand : ICommandSpec {
     new Option[] {
       CommonOptionBag.Output,
       CommonOptionBag.Verbose,
-      CommonOptionBag.IncludeRuntimeOption,
+      CommonOptionBag.IncludeRuntime,
     }.Concat(ICommandSpec.TranslationOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);

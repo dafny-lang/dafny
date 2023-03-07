@@ -1,9 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Microsoft.Extensions.FileSystemGlobbing;
-using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
@@ -12,37 +8,29 @@ namespace XUnitExtensions.Lit {
       return ParseArguments(ILitCommand.Tokenize(line), config);
     }
 
-    private static ILitCommand ParseArguments(Token[] tokens, LitTestConfiguration config) {
-      if (tokens[0].Value == "!") {
+    private static ILitCommand ParseArguments(string[] tokens, LitTestConfiguration config) {
+      if (tokens[0] == "!") {
         var operand = ParseArguments(tokens[1..], config);
         return new NotCommand(operand);
       }
-      if (tokens[0].Value == "%exits-with") {
-        var ec = Int32.Parse(tokens[1].Value);
+      if (tokens[0] == "%exits-with") {
+        var ec = Int32.Parse(tokens[1]);
         var operand = ParseArguments(tokens[2..], config);
         return new ExitCommand(ec, operand);
       }
-      if (tokens[0].Value == "%stdin") {
+      if (tokens[0] == "%stdin") {
         var operand = ParseArguments(tokens[2..], config);
-        return new StdInCommand(tokens[1].Value, operand);
+        return new StdInCommand(tokens[1], operand);
       }
 
-
       // Just supporting || for now since it's a precise way to ignore an exit code
-      var seqOperatorIndex = Array.FindIndex(tokens, t => t.Value == "||");
+      var seqOperatorIndex = Array.IndexOf(tokens, "||");
       if (seqOperatorIndex >= 0) {
         var lhs = LitCommandWithRedirection.Parse(tokens[0..seqOperatorIndex], config);
         var rhs = ParseArguments(tokens[(seqOperatorIndex + 1)..], config);
         return new OrCommand(lhs, rhs);
       }
       return LitCommandWithRedirection.Parse(tokens, config);
-    }
-
-    protected static IEnumerable<string> ExpandGlobs(string chunk) {
-      var matcher = new Matcher();
-      matcher.AddInclude(chunk);
-      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo("/")));
-      return result.Files.Select(f => "/" + f.Path);
     }
   }
 }
