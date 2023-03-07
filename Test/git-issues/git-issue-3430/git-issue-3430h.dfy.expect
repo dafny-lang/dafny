@@ -1,2 +1,7 @@
-git-issue-3430h.dfy(19,13): Error: module ^ does not exist (position 3 in path ^.^.^.^.C)
-1 resolution/type errors detected in git-issue-3430h.dfy
+git-issue-3430h.dfy(8,19): Error: module C does not exist (position 1 in path ^.C)
+git-issue-3430h.dfy(11,21): Error: module C does not exist (position 2 in path ^.^.C)
+git-issue-3430h.dfy(14,23): Error: module C does not exist (position 3 in path ^.^.^.C)
+git-issue-3430h.dfy(20,25): Error: Too many parent module symbols (^) for starting in module ^.^.^.^.^.C
+git-issue-3430h.dfy(23,17): Error: A qualified module id may not consist only of ^ symbols: ^
+git-issue-3430h.dfy(26,21): Error: A qualified module id may not consist only of ^ symbols: ^.^.^
+6 resolution/type errors detected in git-issue-3430h.dfy

@@ -11,33 +11,45 @@ module A {
     module D {
       import X = ^.C
       method m() {
-        assert X.z == 20;
+        assert X.z == 10;
+      }
+      module C {
+        const z := 10
       }
     }
     module E {
       import X = ^.^.C
       method m() {
-        assert X.z == 10;
+        assert X.z == 20;
+      }
+      module C {
+        const z := 10
       }
     }
     module F {
-      module C {
-        const z := 30
-      }
-      import X = C
+      import X = ^.^.^.C
       method m() {
         assert X.z == 30;
       }
     }
-    module G {
-      import X = ^.^.^.C
+    module H {
+      import X = ^.^.^.^.C
       method m() {
         assert X.z == 40;
       }
     }
+    module Q {
+      module C {
+        const z := 5 
+      }
+      import X = C
+      method m() {
+        assert X.z == 5;
+      }
+    }
   }
   module C {
-    const z := 10;
+    const z := 30;
   }
 }
 

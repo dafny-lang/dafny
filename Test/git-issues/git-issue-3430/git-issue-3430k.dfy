@@ -15,13 +15,13 @@ module A {
     }
   }
   module D {
-    import opened ^.B.C
+    import opened ^.^.B.C
     method m() {
       assert c == 10;
     }
   }
   module E {
-    import opened ^.B
+    import opened ^.^.B
     method m() {
       assert c == 20;
     }
