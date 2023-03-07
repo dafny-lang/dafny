@@ -1,0 +1,6 @@
+git-issue-3430p.dfy(6,2): Warning: the least token is the identifier for the body-less module, not an adjective for an extreme predicate; to silence this warning, put least on the different line than 'predicate'
+git-issue-3430p.dfy(6,23): Error: a formal [ ] declaration is only allowed for least and greatest predicates
+git-issue-3430p.dfy(6,28): Error: invalid UnaryExpression
+git-issue-3430p.dfy(11,17): Error: a formal [ ] declaration is only allowed for least and greatest predicates
+git-issue-3430p.dfy(11,22): Error: invalid UnaryExpression
+4 parse errors detected in git-issue-3430p.dfy

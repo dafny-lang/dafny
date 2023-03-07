@@ -1,0 +1,3 @@
+git-issue-3430.dfy(11,9): Warning: this external module declaration has no companion body-less declaration: A.B (This will become an error in the future)
+
+Dafny program verifier did not attempt verification

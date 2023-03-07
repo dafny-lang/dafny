@@ -1,0 +1,2 @@
+git-issue-3430a.dfy(8,7): Error: Body-less module declarations are not permitted at the top-level: X
+1 parse errors detected in git-issue-3430a.dfy

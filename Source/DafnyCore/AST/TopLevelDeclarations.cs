@@ -669,7 +669,6 @@ public class ModuleSignature {
 
 public class ModuleQualifiedId : Node, IHasUsages {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
-
   public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
     this.Path = path; // note that the list is aliased -- not to be modified after construction
@@ -691,11 +690,11 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 
   public string rootName() {
-    return Path[0].Value;
+    return Path[RootPosition].Value;
   }
 
   public IToken rootToken() {
-    return Path[0].StartToken;
+    return Path[RootPosition].StartToken;
   }
 
   public override string ToString() {
@@ -731,7 +730,8 @@ public class ModuleQualifiedId : Node, IHasUsages {
   // Note also that the resolution of the root depends on the syntactice location
   // of the qualified id; the resolution of subsequent ids depends on the
   // default export set of the previous id.
-  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[0].val
+  [FilledInDuringResolution] public int RootPosition; // the first token position that is not an ancestor
+  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[RootPosition].val
   [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
   [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
@@ -800,6 +800,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsToBeVerified;
   public readonly bool IsToBeCompiled;
 
+  public readonly bool IsExternal; // true if declared outside the body of parent module (nothing to do with :extern)
+
+  public ModuleDefinition Companion = null; // set during resolution to the companion body-less or external declaration
+
   public int? ResolvedHash { get; set; }
 
   [ContractInvariantMethod]
@@ -810,7 +814,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
-    bool isToBeVerified, bool isToBeCompiled) : base(tok) {
+    bool isToBeVerified, bool isToBeCompiled, bool isExternal) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -824,6 +828,36 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsBuiltinName = isBuiltinName;
     this.IsToBeVerified = isToBeVerified;
     this.IsToBeCompiled = isToBeCompiled;
+    this.IsExternal = isExternal;
+  }
+  public ModuleDefinition(RangeToken tok, Name name, bool isAbstract,
+    ModuleDefinition parent, Attributes attributes) : base(tok) {
+    Contract.Requires(tok != null);
+    Contract.Requires(name != null);
+    this.NameNode = name;
+    this.PrefixIds = new List<IToken>();
+    this.Attributes = attributes;
+    this.EnclosingModule = parent;
+    this.RefinementQId = null;
+    this.IsAbstract = isAbstract;
+    this.IsFacade = false;
+    this.Includes = new List<Include>();
+    this.IsBuiltinName = false;
+    this.IsToBeVerified = false;
+    this.IsToBeCompiled = false;
+    this.IsExternal = false;
+  }
+
+  public bool CompileIt() {
+    if (IsAbstract || !HasBody || !IsToBeCompiled) {
+      return false;
+    }
+    var compileIt = true;
+    Attributes.ContainsBool(this.Attributes, "compile", ref compileIt);
+    if (!compileIt) {
+      return false;
+    }
+    return true;
   }
 
   VisibilityScope visibilityScope;
@@ -836,6 +870,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
+  public bool HasBody {
+    get {
+      return BodyStartTok != Token.NoToken;
+    }
+  }
   private string sanitizedName = null;
 
   public string SanitizedName {
@@ -1082,7 +1121,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
   public DefaultModuleDefinition()
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true, false) {
   }
   public override bool IsDefaultModule {
     get {

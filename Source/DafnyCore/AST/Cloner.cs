@@ -36,7 +36,11 @@ namespace Microsoft.Dafny {
       } else {
         nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
-          true, m.IsToBeVerified, m.IsToBeCompiled);
+          true, m.IsToBeVerified, m.IsToBeCompiled, m.IsExternal);
+        if (nw.SuccessfullyResolved) {
+          nw.Companion = m.Companion;
+        }
+        nw.BodyStartTok = m.BodyStartTok;
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
@@ -704,12 +708,14 @@ namespace Microsoft.Dafny {
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
           if (sourcefacade.QId.Root != null) {
             ((AbstractModuleDecl)dd).QId.SetRoot((ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m));
+            ((AbstractModuleDecl)dd).QId.RootPosition = sourcefacade.QId.RootPosition;
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
 
           if (sourcealias.TargetQId.Root != null) {
             ((AliasModuleDecl)dd).TargetQId.SetRoot((ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m));
+            ((AliasModuleDecl)dd).TargetQId.RootPosition = sourcealias.TargetQId.RootPosition;
           }
         }
       }

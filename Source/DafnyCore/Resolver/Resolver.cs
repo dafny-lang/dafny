@@ -368,10 +368,7 @@ namespace Microsoft.Dafny {
       // Check that none of the modules have the same CompileName.
       Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
       foreach (ModuleDefinition m in prog.CompileModules) {
-        var compileIt = true;
-        Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-        if (m.IsAbstract || !compileIt) {
-          // the purpose of an abstract module is to skip compilation
+        if (!m.CompileIt()) {
           continue;
         }
         string compileName = m.CompileName;
@@ -392,7 +389,7 @@ namespace Microsoft.Dafny {
 
       Type.EnableScopes();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
-      var bindings = new ModuleBindings(null);
+      var bindings = new ModuleBindings(prog.DefaultModule.Name, null, prog.Reporter);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
       if (reporter.ErrorCount > 0) {
@@ -835,6 +832,9 @@ namespace Microsoft.Dafny {
     // Resolve the exports and detect cycles.
     private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
       ModuleDefinition m = literalDecl.ModuleDef;
+      if (!m.HasBody) {
+        return;
+      }
       literalDecl.DefaultExport = sig;
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
       foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
@@ -1214,14 +1214,18 @@ namespace Microsoft.Dafny {
     }
 
     public class ModuleBindings {
-      private ModuleBindings parent;
+      public ModuleBindings parent;
+      public string selfName;
       private Dictionary<string, ModuleDecl> modules;
       private Dictionary<string, ModuleBindings> bindings;
+      public ErrorReporter reporter;
 
-      public ModuleBindings(ModuleBindings p) {
+      public ModuleBindings(string selfName, ModuleBindings p, ErrorReporter reporter) {
         parent = p;
+        this.selfName = selfName;
         modules = new Dictionary<string, ModuleDecl>();
         bindings = new Dictionary<string, ModuleBindings>();
+        this.reporter = reporter;
       }
 
       public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
@@ -1239,6 +1243,11 @@ namespace Microsoft.Dafny {
         return TryLookupFilter(name, out m, l => true);
       }
 
+      public bool TryGetFilter(string name, out ModuleDecl moduleFound, Func<ModuleDecl, bool> filter) {
+        Contract.Requires(name != null);
+        return modules.TryGetValue(name, out moduleFound) && filter(moduleFound);
+      }
+
       public bool TryLookupFilter(IToken name, out ModuleDecl m, Func<ModuleDecl, bool> filter) {
         Contract.Requires(name != null);
         if (modules.TryGetValue(name.val, out m) && filter(m)) {
@@ -1248,6 +1257,27 @@ namespace Microsoft.Dafny {
         } else {
           return false;
         }
+      }
+      public static String DictToString(ModuleBindings d) {
+        return DictToString(d.modules);
+      }
+
+      public static String DictToString(Dictionary<String, ModuleDecl> d) {
+        String s = "[";
+        foreach (var k in d.Keys) {
+          s = s + " " + k + ":" + d[k].FullDafnyName;
+        }
+        s = s + " ]";
+        return s;
+      }
+
+      public static String DictToString(Dictionary<String, ModuleBindings> d) {
+        String s = "[";
+        foreach (var k in d.Keys) {
+          s = s + " " + k;
+        }
+        s = s + " ]";
+        return s;
       }
 
       public IEnumerable<ModuleDecl> ModuleList {
@@ -1262,7 +1292,7 @@ namespace Microsoft.Dafny {
     }
 
     private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
-      var bindings = new ModuleBindings(parentBindings);
+      var bindings = new ModuleBindings(moduleDecl.Name, parentBindings, reporter);
 
       // moduleDecl.PrefixNamedModules is a list of pairs like:
       //     A.B.C  ,  module D { ... }
@@ -1284,8 +1314,8 @@ namespace Microsoft.Dafny {
 
       // First, register all literal modules, and transferring their prefix-named modules downwards
       foreach (var tld in moduleDecl.TopLevelDecls) {
-        if (tld is LiteralModuleDecl) {
-          var subdecl = (LiteralModuleDecl)tld;
+        if (tld is LiteralModuleDecl subdecl && subdecl.ModuleDef.HasBody) {
+          //var subdecl = (LiteralModuleDecl)tld;
           // Transfer prefix-named modules downwards into the sub-module
           List<Tuple<List<IToken>, LiteralModuleDecl>> prefixModules;
           if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
@@ -1305,7 +1335,7 @@ namespace Microsoft.Dafny {
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
         var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
-          true, true);
+          true, true, false);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1377,37 +1407,83 @@ namespace Microsoft.Dafny {
     private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
       out ModuleDecl result) {
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0].StartToken;
-      result = null;
-      bool res = bindings.TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
-      qid.Root = result;
-      return res;
+      Func<ModuleDecl, bool> filter = m => m.EnclosingModuleDefinition != context;
+      return ResolveQualifiedModuleIdRoot(filter, bindings, qid, out result);
     }
 
     // Find a matching module for the root of the QualifiedId, ignoring
     // (a) the module (context) itself and (b) any local imports
     // The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
     // resolve to the alias produced by the first import
-    private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
-      out ModuleDecl result) {
-      Contract.Assert(qid != null);
-      IToken root = qid.Path[0].StartToken;
-      result = null;
-      bool res = bindings.TryLookupFilter(root, out result,
-        m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
-      qid.Root = result;
-      return res;
+    // Returns -1 if OK; if error, return value is the position of the module name that could not be found
+    private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid, out ModuleDecl root) {
+      Func<ModuleDecl, bool> filter = m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl);
+      return ResolveQualifiedModuleIdRoot(filter, bindings, qid, out root);
     }
 
-    private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
-      out ModuleDecl result) {
+    private bool ResolveQualifiedModuleIdRoot(Func<ModuleDecl, bool> filter, ModuleBindings bindings, ModuleQualifiedId qid, out ModuleDecl root) {
+      var bb = bindings;
       Contract.Assert(qid != null);
-      IToken root = qid.Path[0].StartToken;
-      result = null;
-      bool res = bindings.TryLookupFilter(root, out result,
-        m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
-      qid.Root = result;
-      return res;
+      IToken firstToken = qid.Path[0].Tok;
+      root = null;
+      qid.Root = null; // in case of error
+      int i = 0;
+      if (firstToken.val == "^") {
+        i = 1;
+        while (i < qid.Path.Count && qid.Path[i].Value == "^") {
+          bb = bb.parent;
+          if (bb.parent == null) {
+            reporter.Error(MessageSource.Resolver, qid.Path[i], "Too many parent module symbols (^) for starting in module " + qid.ToString());
+            return false;
+          }
+          i++;
+        }
+        if (i >= qid.Path.Count) {
+          reporter.Error(MessageSource.Resolver, qid, "A qualified module id may not consist only of ^ symbols: " + qid.ToString());
+          return false;
+        }
+        var rootToken = qid.Path[i].Tok;
+        if (!bb.TryGetFilter(rootToken.val, out root, filter)) {
+          reporter.Error(MessageSource.Resolver, qid.NameToken, ModuleNotFoundErrorMessage(i, qid.Path));
+          return false;
+        }
+      } else if (firstToken.val == "_") {
+        var parents = new List<ModuleBindings>();
+        while (bb.parent != null) {
+          parents.Add(bb);
+          bb = bb.parent;
+        }
+        for (i = 1; i < parents.Count && i < qid.Path.Count; i++) {
+          if (parents[parents.Count - 1 - i].selfName != qid.Path[i].Value) {
+            break;
+          }
+        }
+        if (i >= qid.Path.Count) {
+          reporter.Error(MessageSource.Resolver, qid.NameToken, "A qualified module id may not refer to an ancestor: {0} from {1}", qid, bb.selfName);
+          return false;
+        }
+        var rootToken = qid.Path[i].Tok;
+        bb = parents[parents.Count - i];
+        if (!bb.TryGetFilter(rootToken.val, out root, filter)) {
+          reporter.Error(MessageSource.Resolver, rootToken, "No module named {0} was found in {1}", rootToken.val, bb.selfName);
+          return false;
+        }
+      } else {
+        // no special character; i stays 0
+        if (!bb.TryLookupFilter(firstToken, out root, filter)) {
+          reporter.Error(MessageSource.Resolver, qid.Path[0].Tok, ModuleNotFoundErrorMessage(0, qid.Path));
+          return false;
+        }
+      }
+      qid.Root = root;
+      qid.RootPosition = i;
+      return true;
+    }
+
+    private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid, out ModuleDecl result) {
+      Contract.Assert(qid != null);
+      Func<ModuleDecl, bool> filter = m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl);
+      return ResolveQualifiedModuleIdRoot(filter, bindings, qid, out result);
     }
 
     private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
@@ -1415,14 +1491,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(decl is LiteralModuleDecl);
       if (m.RefinementQId != null) {
         ModuleDecl other;
-        bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out other);
-        if (!res) {
-          reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(),
-            $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
-        } else if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-          reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(), "module cannot refine itself: {0}",
-            m.RefinementQId.ToString());
-        } else {
+        if (ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out other)) {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(decl, other);
         }
@@ -1443,6 +1512,21 @@ namespace Microsoft.Dafny {
       }
     }
 
+    String PathToString(List<IToken> path) {
+      // String s = path[0].val;
+      // int i = 1;
+      // while (i < path.Count) { s = s + "." + path[i].val; i++; }
+      // return s;
+      return Util.Comma(".", path, x => x.val);
+    }
+    String PathToString(List<Name> path) {
+      // String s = path[0].val;
+      // int i = 1;
+      // while (i < path.Count) { s = s + "." + path[i].val; i++; }
+      // return s;
+      return Util.Comma(".", path, x => x.Value);
+    }
+
     private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
       dependencies.AddVertex(moduleDecl);
       if (moduleDecl is LiteralModuleDecl) {
@@ -1450,22 +1534,13 @@ namespace Microsoft.Dafny {
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
-        // TryLookupFilter works outward, looking for a match to the filter for
-        // each enclosing module.
-        if (!ResolveQualifiedModuleIdRootImport(alias, bindings, alias.TargetQId, out root)) {
-          //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
-          reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
-        } else {
+        if (ResolveQualifiedModuleIdRootImport(alias, bindings, alias.TargetQId, out root)) {
           dependencies.AddEdge(moduleDecl, root);
         }
       } else if (moduleDecl is AbstractModuleDecl) {
         var abs = moduleDecl as AbstractModuleDecl;
         ModuleDecl root;
-        if (!ResolveQualifiedModuleIdRootAbstract(abs, bindings, abs.QId, out root)) {
-          //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
-          //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-          reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.QId.Path));
-        } else {
+        if (ResolveQualifiedModuleIdRootAbstract(abs, bindings, abs.QId, out root)) {
           dependencies.AddEdge(moduleDecl, root);
         }
       }
@@ -1474,10 +1549,11 @@ namespace Microsoft.Dafny {
     private static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
-      return "module " + path[i].Value + " does not exist" +
+      String msg = "module " + path[i].Value + " does not exist" +
              (1 < path.Count
                ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.Value) + ")" + tail
                : "");
+      return msg;
     }
 
     private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val)
@@ -1720,7 +1796,29 @@ namespace Microsoft.Dafny {
             registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
             anonymousImportCount++;
           } else if (toplevels.ContainsKey(d.Name)) {
-            reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+            var previous = toplevels[d.Name];
+            if (d is ModuleDecl && previous is ModuleDecl) {
+              var thisModuleDef = (d as ModuleDecl).Signature.ModuleDef;
+              var previousModuleDef = (previous as ModuleDecl).Signature.ModuleDef;
+              if (thisModuleDef.HasBody != previousModuleDef.HasBody) {
+                thisModuleDef.Companion = previousModuleDef;
+                previousModuleDef.Companion = thisModuleDef;
+                if (previousModuleDef.HasBody) {
+                  // new decl is bodyless -- keep the one that is in there
+                  registerThisDecl = null;
+                } else {
+                  // new decl is the real one (with a body) -- replace the one that is there
+                  toplevels.Remove(previousModuleDef.Name);
+                  sig.TopLevels.Remove(previousModuleDef.Name);
+                  registerThisDecl = d;
+                  registerUnderThisName = d.Name;
+                }
+              } else {
+                reporter.Error(MessageSource.Resolver, d, "duplicate name for module declaration: {0}", d.Name);
+              }
+            } else {
+              reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+            }
           } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
             registerThisDecl = cl.NonNullTypeDecl;
             registerUnderThisName = d.Name;
@@ -1873,12 +1971,24 @@ namespace Microsoft.Dafny {
           var name = d.Name + "?";
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
-            reporter.Error(MessageSource.Resolver, d,
+            reporter.Error(MessageSource.Resolver, ErrorID.None, d,
               "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
               name, d.WhatKind, d.Name);
           } else {
             toplevels[name] = d;
             sig.TopLevels[name] = d;
+          }
+        }
+        if (d is ModuleDecl) {
+          var def = (d as ModuleDecl).Signature.ModuleDef;
+          if (def != null && def.IsExternal && def.Companion == null) {
+            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
+              $"this external module declaration has no companion body-less declaration: {d.FullDafnyName} (This will become an error in the future)");
+            //} else if (def != null && !def.HasBody && def.Companion == null) {
+            // Don't complain about this yet - perhaps not at all; if the external declaration does not exist, trying to resolve something in it will fail
+            // If a user wants to be sure that all module declarations are present, enabling this with a --warn-missing-module-declarations might be appropriate
+            //reporter.Warning(MessageSource.Resolver, ErrorID.None, d.Tok,
+            //  $"this body-less module declaration has no companion external declaration: {d.FullDafnyName}");
           }
         }
       }
@@ -2002,7 +2112,7 @@ namespace Microsoft.Dafny {
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
         false,
-        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled, false);
       mod.Height = Height;
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
@@ -2064,7 +2174,7 @@ namespace Microsoft.Dafny {
       List<Name> Path = qid.Path;
       ModuleDecl decl = root;
       ModuleSignature p;
-      for (int k = 1; k < Path.Count; k++) {
+      for (int k = qid.RootPosition + 1; k < Path.Count; k++) {
         if (decl is LiteralModuleDecl) {
           p = ((LiteralModuleDecl)decl).DefaultExport;
           if (p == null) {

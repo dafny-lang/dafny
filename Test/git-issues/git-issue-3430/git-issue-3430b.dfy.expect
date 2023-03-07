@@ -1,0 +1,2 @@
+git-issue-3430b.dfy(5,9): Error: Body-less module declarations may not have a qualified id for a module name: A.B
+1 parse errors detected in git-issue-3430b.dfy
