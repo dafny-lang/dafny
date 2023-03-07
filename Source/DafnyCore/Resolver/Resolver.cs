@@ -1471,6 +1471,7 @@ namespace Microsoft.Dafny {
       } else {
         // no special character; i stays 0
         if (!bb.TryLookupFilter(firstToken, out root, filter)) {
+          reporter.Error(MessageSource.Resolver, qid.Path[0].Tok, ModuleNotFoundErrorMessage(0, qid.Path));
           return false;
         }
       }
