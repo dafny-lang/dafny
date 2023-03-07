@@ -1,4 +1,4 @@
-// RUN: %build --enforce-determinism "%s" > "%t"
+// RUN: %exits-with 4 %build --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method NondetIf() returns (x: int) {
