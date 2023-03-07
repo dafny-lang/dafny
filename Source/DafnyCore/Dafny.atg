@@ -1148,7 +1148,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
    { Attribute<ref attrs> }            (. ApplyOptionsFromAttributes(attrs); .)
    ( IF(IsIdentifier(la.kind))
-     ModuleQualifiedName<out var names>
+     ModuleQualifiedNameNoExt<out var names>
      (. name = names[^1];
         prefixIds = names.GetRange(0,names.Count-1).Select(n => n.StartToken).ToList();
         if (name.Tok.line == la.line && (name.Value == "least" || name.Value == "greatest") && la.kind == _predicate)
@@ -1328,6 +1328,14 @@ ModuleQualifiedName<.out List<Name> names.>
   | "^"                (. names.Add(new Name(t)); .)
     { IF(IsDotXor()) "." "^"          (. names.Add(new Name(t)); .) }
   )
+  { "." ModuleName<out name> (. names.Add(name); .) }
+  .
+
+ModuleQualifiedNameNoExt<.out List<Name> names.>
+= (. names = new List<Name>();
+     Name name;
+  .)
+  ModuleName<out name> (. names.Add(name); .)
   { "." ModuleName<out name> (. names.Add(name); .) }
   .
 
