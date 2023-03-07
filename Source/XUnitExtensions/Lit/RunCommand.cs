@@ -37,12 +37,5 @@ namespace XUnitExtensions.Lit {
       }
       return LitCommandWithRedirection.Parse(tokens, config);
     }
-
-    protected static IEnumerable<string> ExpandGlobs(string chunk) {
-      var matcher = new Matcher();
-      matcher.AddInclude(chunk);
-      var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo("/")));
-      return result.Files.Select(f => "/" + f.Path);
-    }
   }
 }
