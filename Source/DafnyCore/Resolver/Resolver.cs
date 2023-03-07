@@ -464,7 +464,7 @@ namespace Microsoft.Dafny {
       if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
-      rewriters.Add(new UselessOldAndRustAssertLinter(reporter));
+      rewriters.Add(new LocalLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
       foreach (var plugin in Options.Plugins) {

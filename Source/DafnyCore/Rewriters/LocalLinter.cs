@@ -11,7 +11,7 @@ using System.Reactive;
 
 namespace Microsoft.Dafny {
 
-  public class UselessOldAndRustAssertLinter : IRewriter {
+  public class LocalLinter : IRewriter {
     internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
       base.PostResolveIntermediate(moduleDefinition);
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public UselessOldAndRustAssertLinter(ErrorReporter reporter) : base(reporter) {
+    public LocalLinter(ErrorReporter reporter) : base(reporter) {
     }
   }
 
