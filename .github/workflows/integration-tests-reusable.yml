@@ -139,7 +139,7 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
-        dotnet test --logger trx --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests
+        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests
     - uses: actions/upload-artifact@v3
       if: always()
       with:
