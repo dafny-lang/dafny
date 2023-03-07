@@ -1,0 +1,2 @@
+git-issue-3430t3.dfy(6,9): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): module A -> module B -> import A -> module A
+1 resolution/type errors detected in git-issue-3430t3.dfy

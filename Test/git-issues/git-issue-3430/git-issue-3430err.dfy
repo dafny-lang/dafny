@@ -1,3 +1,6 @@
+// RUN: %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 module Helpers {
   export provides f, T
   type T = int

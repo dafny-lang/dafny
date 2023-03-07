@@ -669,7 +669,6 @@ public class ModuleSignature {
 
 public class ModuleQualifiedId : Node, IHasUsages {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
-
   public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
     this.Path = path; // note that the list is aliased -- not to be modified after construction
@@ -691,11 +690,11 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 
   public string rootName() {
-    return Path[0].Value;
+    return Path[RootPosition].Value;
   }
 
   public IToken rootToken() {
-    return Path[0].StartToken;
+    return Path[RootPosition].StartToken;
   }
 
   public override string ToString() {
@@ -731,7 +730,8 @@ public class ModuleQualifiedId : Node, IHasUsages {
   // Note also that the resolution of the root depends on the syntactice location
   // of the qualified id; the resolution of subsequent ids depends on the
   // default export set of the previous id.
-  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[0].val
+  [FilledInDuringResolution] public int RootPosition; // the first token position that is not an ancestor
+  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[RootPosition].val
   [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
   [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
