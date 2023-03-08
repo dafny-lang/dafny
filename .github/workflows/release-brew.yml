@@ -23,3 +23,5 @@ jobs:
   check:
     needs: build
     uses: ./.github/workflows/reusable-smoke-test.yml
+    with:
+      os: macos-latest
