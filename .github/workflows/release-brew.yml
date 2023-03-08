@@ -30,3 +30,4 @@ jobs:
     uses: ./.github/workflows/reusable-smoke-test.yml
     with:
       os: macos-latest
+      dafnyexe: /usr/local/bin/dafny
