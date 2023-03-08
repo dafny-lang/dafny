@@ -153,14 +153,18 @@ method main(k: int) {
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (6, 6),
         @"**Success:**???error is impossible: argument should be even  
-Did prove: `i % 2 == 0`???
-???**Success:**???the precondition always holds  
+Did prove: `i % 2 == 0`"
+      );
+      await AssertHoverMatches(documentItem, (6, 6),
+        @"**Success:**???the precondition always holds  
 Did prove: `i > 0`"
       );
       await AssertHoverMatches(documentItem, (7, 6),
         @"**Error:**???argument should be even  
-Could not prove: `i % 2 == 0`???
-???**Error:**???a precondition could not be proven  
+Could not prove: `i % 2 == 0`"
+      );
+      await AssertHoverMatches(documentItem, (7, 6),
+        @"**Error:**???a precondition could not be proven  
 Could not prove: `i > 0`"
       );
     }
@@ -176,8 +180,11 @@ method Test(j: int) returns (i: int)
 }", "testfile.dfy");
       await AssertHoverMatches(documentItem, (3, 0),
         @"**Error:**???return value should be even  
-Could not prove: `i % 2 == 0`???
-???**Error:**???A postcondition might not hold on this return path.  
+Could not prove: `i % 2 == 0`"
+      );
+
+      await AssertHoverMatches(documentItem, (3, 0),
+        @"**Error:**???A postcondition might not hold on this return path.  
 Could not prove: `i > 0`"
       );
     }
@@ -505,7 +512,12 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
       return documentItem;
     }
 
+    private static Regex errorTests = new Regex(@"\*\*Error:\*\*|\*\*Success:\*\*");
+
     private async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
+      if (expected != null && errorTests.Matches(expected).Count >= 2) {
+        Assert.Fail("Found multiple hover messages in one test; the order is currently not stable, so please test one at a time.");
+      }
       var hover = await RequestHover(documentItem, hoverPosition);
       if (expected == null) {
         Assert.IsTrue(hover == null || hover.Contents.MarkupContent is null or { Value: "" },
