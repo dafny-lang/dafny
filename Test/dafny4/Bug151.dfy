@@ -9,14 +9,14 @@ method bar(xs: iset) {
    assert (iset x | x in xs) == xs;
 }
 
-function domain<U, V>(m: map<U,V>): set<U>
+ghost function domain<U, V>(m: map<U,V>): set<U>
    ensures forall i :: i in domain(m) ==> i in m
    ensures forall i :: i in domain(m) <== i in m
 {
    set s | s in m
 }
 
-function idomain<U, V>(m: imap<U,V>): iset<U>
+ghost function idomain<U, V>(m: imap<U,V>): iset<U>
    ensures forall i :: i in idomain(m) ==> i in m
    ensures forall i :: i in idomain(m) <== i in m
 {

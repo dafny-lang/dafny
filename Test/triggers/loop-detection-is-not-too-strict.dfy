@@ -6,8 +6,8 @@
 // subexpression to match a trigger without reporting a loop and without being
 // equal to that trigger, as long as the only differences are variable
 
-predicate P(x: int, y: int)
-predicate Q(x: int)
+ghost predicate P(x: int, y: int)
+ghost predicate Q(x: int)
 
 method Test(z: int) {
   // P(x, y) and P(y, x) might look like they would cause a loop. Since they

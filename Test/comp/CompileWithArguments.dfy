@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %run --no-verify --target:cs "%s" Csharp 1 >> "%t"
-// RUN: %run --no-verify --target:cpp "%s" Cpp Yipee >> "%t"
+// RUN: %run --no-verify --target:cpp --unicode-char:false "%s" Cpp Yipee >> "%t"
 // RUN: %run --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %run --no-verify --target:js "%s" -- Javascript 2 >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args Python 1 >> "%t"
@@ -13,11 +13,11 @@
 // RUN: node %s.js "javascript" 2 >> "%t"
 // RUN: node %s.js "javascript" 1 >> "%t"
 // RUN: node %s.js "javascript" "aloha" >> "%t"
-// RUN: %build --no-verify --target:cpp "%s" --output=%s.exe
+// RUN: %build --no-verify --target:cpp --unicode-char:false "%s" --output=%s.exe
 // RUN: %s.exe "cpp" 2 >> "%t"
 // RUN: %s.exe "cpp" 1 >> "%t"
 // RUN: %s.exe "cpp" "aloha" >> "%t"
-// RUN: %build --unicode-char --no-verify --target:java "%s" --output:"%s.jar" >> "%t"
+// RUN: %build --no-verify --target:java "%s" --output:"%s.jar" >> "%t"
 // RUN: java -jar "%s.jar" Java 2 >> "%t"
 // RUN: java -jar "%s.jar" Java 1 >> "%t"
 // RUN: java -jar "%s.jar" Java aloha >> "%t"

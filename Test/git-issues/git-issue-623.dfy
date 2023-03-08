@@ -42,7 +42,7 @@ module N1 {
 
   type T(==) = seq<real>
 
-  predicate Equal(u: T, v: T)
+  ghost predicate Equal(u: T, v: T)
   {
     u == v
   }
@@ -74,12 +74,12 @@ module Library {
   type W = MyTrait
   trait MyTrait {
   }
-  predicate P(u: W)
+  ghost predicate P(u: W)
 
   type X = MyClass
   class MyClass extends MyTrait {
   }
-  predicate Q(x: X)
+  ghost predicate Q(x: X)
 
   lemma M0()
     requires forall t :: P(t)

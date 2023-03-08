@@ -76,7 +76,8 @@ namespace DafnyTestGeneration {
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
       options.ProverOptions = new List<string>() {
-        "O:model_compress=false",
+        // TODO: condition this on Z3 version
+        "O:model.compact=false",
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };

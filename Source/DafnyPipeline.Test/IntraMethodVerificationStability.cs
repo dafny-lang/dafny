@@ -47,7 +47,7 @@ class FooClass {
 
 datatype Friends = Agnes | Agatha | Jermaine
 
-function method SomeFunc(funcFormal: int): nat { 3 }
+function SomeFunc(funcFormal: int): nat { 3 }
 
 method SomeMethod(methodFormal: int) returns (result: bool)
   requires methodFormal == 2
@@ -89,7 +89,7 @@ class FooClass2 {
 
 datatype Friends2 = Agnes2 | Agatha2 | Jermaine2
 
-function method SomeFunc2(funcFormal: int): nat { 3 }
+function SomeFunc2(funcFormal: int): nat { 3 }
 
 method SomeMethod2(methodFormal2: int) returns (result2: bool) 
   requires methodFormal2 == 2
@@ -113,7 +113,7 @@ method SomeMethod(methodFormal: int) returns (result: bool)
   result := methodFormal == SomeFunc(42);
 }
 
-function method SomeFunc(funcFormal: int): nat { 3 }
+function SomeFunc(funcFormal: int): nat { 3 }
 
 datatype Friends = Agnes | Agatha | Jermaine
 

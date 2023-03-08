@@ -6,31 +6,31 @@ class C {
   var y: int
   ghost var z: int
 
-  function F(): int
+  ghost function F(): int
     reads `x
   {
     x
   }
 
-  function G(): int
+  ghost function G(): int
     reads `x
   {
     F()
   }
 
-  function H(): int
+  ghost function H(): int
     reads this
   {
     F()
   }
 
-  function I(n: nat): int
+  ghost function I(n: nat): int
     reads this
   {
     x + y + z + J(n)
   }
 
-  function J(n: nat): int
+  ghost function J(n: nat): int
     reads `x, this`z
     decreases {this}, n, 0
   {
@@ -38,14 +38,14 @@ class C {
     I(n-1)  // error: insufficient reads clause
   }
 
-  function K(n: nat): int
+  ghost function K(n: nat): int
     reads `x
     decreases {this}, n+1
   {
     L(n)
   }
 
-  function L(n: nat): int
+  ghost function L(n: nat): int
     reads `x
   {
     if n < 2 then 5 else K(n-2)

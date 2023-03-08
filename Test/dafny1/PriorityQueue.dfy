@@ -8,14 +8,14 @@ class PriorityQueue {
 
   var a: array<int>  // private implementation of PriorityQueue
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
   {
     MostlyValid() &&
     forall j :: 2 <= j <= n ==> a[j/2] <= a[j]
   }
 
-  predicate MostlyValid()
+  ghost predicate MostlyValid()
     reads this, Repr
   {
     this in Repr && a in Repr &&
@@ -120,14 +120,14 @@ class PriorityQueue_Alternative {
 
   var a: array<int>  // private implementation of PriorityQueue
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
   {
     MostlyValid() &&
     forall j :: 2 <= j <= n ==> a[j/2] <= a[j]
   }
 
-  predicate MostlyValid()
+  ghost predicate MostlyValid()
     reads this, Repr
   {
     this in Repr && a in Repr &&

@@ -248,7 +248,7 @@ internal class Enum : PrettyPrintable {
     var nm = Name.OfSyntax(syntax, model);
     PpBlockOpen(wr, indent, "class", nm, null, null, null);
     PpChildren(wr, indent, Members);
-    PpChild(wr, indent, $"function method {{:extern}} Equals(other: {nm.DafnyId}): bool");
+    PpChild(wr, indent, $"function {{:extern}} Equals(other: {nm.DafnyId}): bool");
     PpBlockClose(wr, indent);
   }
 }

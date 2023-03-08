@@ -8,7 +8,7 @@ module GiveT {
 module Base {
   import opened GiveT
 
-  function f(x : T):int { 0 }
+  ghost function f(x : T):int { 0 }
 }
 
 module Refined refines Base {
@@ -31,11 +31,11 @@ module GiveT2 {
 module Refined2 refines GiveT {
   import opened GiveT2
 
-  function f(x: T): int // OK: T is GiveT.T (refinement is preferred to import)
+  ghost function f(x: T): int // OK: T is GiveT.T (refinement is preferred to import)
 }
 
 module GiveF{
-  function {:opaque} f(): bool { true }
+  ghost function {:opaque} f(): bool { true }
 }
 
 module BaseF{
@@ -48,7 +48,7 @@ module BaseF{
 }
 
 module RefinedF refines BaseF {
-  function f(): bool { false } // OK. Local f preferred over imported f
+  ghost function f(): bool { false } // OK. Local f preferred over imported f
                                // even if imported into refinement parent
 
   lemma False()

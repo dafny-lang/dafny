@@ -4,11 +4,11 @@
 class Cell {
   var data: int
 
-  predicate P()
+  ghost predicate P()
     reads this
   { data < 0 }
 
-  predicate Q(e: Cell?)
+  ghost predicate Q(e: Cell?)
     reads this, e
   { e != null ==> e.data == data }
 

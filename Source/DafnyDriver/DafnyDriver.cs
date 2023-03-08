@@ -152,9 +152,7 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Press Enter to exit.");
         Console.ReadLine();
       }
-      if (!dafnyOptions.CountVerificationErrors) {
-        return 0;
-      }
+
       //Console.ReadKey();
       return (int)exitValue;
     }
