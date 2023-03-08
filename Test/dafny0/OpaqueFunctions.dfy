@@ -11,15 +11,15 @@ module A {
   class C {
     var x: int;
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this
       ensures Valid() ==> 0 <= x ensures x == 8 ==> Valid()  // holds for 8, does not hold for negative numbers
 
-    predicate RevealedValid()
+    ghost predicate RevealedValid()
       reads this
       ensures Valid() ==> 0 <= x ensures x == 8 ==> Valid()  // holds for 8, does not hold for negative numbers
 
-    function Get(): int
+    ghost function Get(): int
       reads this
     {
       x
@@ -43,11 +43,11 @@ module A {
 module A' refines A {
   class C ... {
     // provide bodies for Valid, RevealedValid, and M
-    predicate Valid...
+    ghost predicate Valid...
     {
       x == 8
     }
-    predicate RevealedValid...
+    ghost predicate RevealedValid...
     {
       x == 8
     }
@@ -170,7 +170,7 @@ module B' refines B {
 // ---------------------------------
 
 module OpaqueFunctionsAreNotInlined {
-  predicate {:opaque} F(n: int)
+  ghost predicate {:opaque} F(n: int)
   {
     0 <= n < 100
   }
@@ -192,7 +192,7 @@ module OpaqueFunctionsAreNotInlined {
 // --------------------------------- opaque and refinement
 
 module M0 {
-  function {:opaque} F(): int
+  ghost function {:opaque} F(): int
   { 12 }
 }
 
@@ -201,7 +201,7 @@ module M1 refines M0 {
 
 // ---------------------------------- opaque and generics
 
-function {:opaque} id<A>(x: A): A { x }
+ghost function {:opaque} id<A>(x: A): A { x }
 
 method id_ok()
 {
@@ -216,7 +216,7 @@ method id_fail()
 
 datatype Box<A> = Bx(A)
 
-function {:opaque} id_box(x: Box): Box { x }
+ghost function {:opaque} id_box(x: Box): Box { x }
 
 method box_ok()
 {
@@ -233,7 +233,7 @@ method box_fail()
 
 module LayerQuantifiers
 {
-  function {:opaque} f(x: nat): bool { if x == 0 then true else f(x-1) }
+  ghost function {:opaque} f(x: nat): bool { if x == 0 then true else f(x-1) }
 
   method rec_should_ok()
   {
@@ -268,9 +268,9 @@ module Regression
 {
   datatype List<A> = Nil | Cons(A, tl: List<A>)
 
-  function Empty<A>(): List<A> { Nil }
+  ghost function Empty<A>(): List<A> { Nil }
 
-  function {:opaque} Length<A>(s: List<A>): int
+  ghost function {:opaque} Length<A>(s: List<A>): int
     ensures 0 <= Length(s)
   {
     if s.Cons? then 1 + Length(s.tl) else 0
@@ -285,37 +285,37 @@ module Regression
 
 // This function used to cause a problem for the old version of opaque,
 // but it's fine with the new fuel-based version
-function {:opaque} zero<A>(): int { 0 }
+ghost function {:opaque} zero<A>(): int { 0 }
 
 // ------------------------- opaque for members of non-reference types
 
 module TypeMembers {
   trait Tr {
     const fav: bool
-    predicate method {:opaque} IsFavorite() {
+    predicate {:opaque} IsFavorite() {
       fav
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static ghost predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }
 
   datatype Color = Carrot | Pumpkin
   {
-    predicate method {:opaque} IsFavorite() {
+    predicate {:opaque} IsFavorite() {
       this == Pumpkin
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static ghost predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }
 
   newtype Small = x | 30 <= x < 40 witness 30
   {
-    predicate method {:opaque} IsFavorite() {
+    predicate {:opaque} IsFavorite() {
       this == 34
     }
-    static predicate method {:opaque} IsFive(x: int) {
+    static ghost predicate {:opaque} IsFive(x: int) {
       x == 5
     }
   }

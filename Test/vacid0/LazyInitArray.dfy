@@ -10,7 +10,7 @@ class LazyInitArray<T(0)> {
   /*private*/ var n: int
   /*private*/ ghost var d: seq<int>
   /*private*/ ghost var e: seq<int>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, a, b, c
   {
     a.Length == |Contents| &&

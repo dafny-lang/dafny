@@ -3,7 +3,7 @@
 
 module A {
 
-    predicate P()
+    ghost predicate P()
 
     class C
     {

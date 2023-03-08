@@ -5,7 +5,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method SuppressNoTriggerWarning<X>(x: X) { true }
+predicate SuppressNoTriggerWarning<X>(x: X) { true }
 
 trait Tr {
   var x: int

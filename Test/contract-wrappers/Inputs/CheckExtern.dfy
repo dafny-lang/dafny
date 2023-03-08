@@ -15,13 +15,13 @@ method {:test} FooTest()
   expect y == 30;
 }
 
-function method {:extern} Bar(x: int, ghost z: int): (y: int)
+function {:extern} Bar(x: int, ghost z: int): (y: int)
   requires 1 < x < 10
   requires z > x
   ensures y >= 10
   ensures y > z
 
-function method BarCaller(x: int): (y: int)
+function BarCaller(x: int): (y: int)
   requires 1 < x < 10;
   ensures y >= 10;
 {
@@ -34,7 +34,7 @@ method {:test} BarTest()
   expect y == 30;
 }
 
-function method {:extern} Baz(x: int): (y: int)
+function {:extern} Baz(x: int): (y: int)
   ensures y == x
 
 method {:test} BazTest()
