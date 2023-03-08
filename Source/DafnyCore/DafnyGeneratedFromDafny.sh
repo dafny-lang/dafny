@@ -9,13 +9,23 @@
 #       <PackageReference Include="Microsoft.Build.Framework" Version="16.5.0" PrivateAssets="All" />
 #       <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.5.0" PrivateAssets="All" />
 #       <PackageReference Include="System.Linq.Parallel" Version="4.3.0" PrivateAssets="All" />
-../../Binaries/Dafny.exe translate cs --output GeneratedFromDafny.cs AST/Formatting.dfy
+
+# If an argument is passed to the script, store it in this variable. Otherwise use the default "GeneratedFromDafny.cs"
+# Something like output = if no arguments then  "GeneratedFromDafny.cs" else first argument
+
+if [ "$#" != 0 ]; then
+  output="$1"
+else
+  output="GeneratedFromDafny.cs"
+fi
+
+../../Binaries/Dafny.exe translate cs --output $output AST/Formatting.dfy
 python -c "
 import re
-with open ('GeneratedFromDafny.cs', 'r' ) as f:
+with open ('$output', 'r' ) as f:
   content = f.read()
   content_new = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
-with open('GeneratedFromDafny.cs', 'w') as w:
+with open('$output', 'w') as w:
   w.write(content_new)
 "
-dotnet tool run dotnet-format -w --include GeneratedFromDafny.cs
+dotnet tool run dotnet-format -w --include $output
