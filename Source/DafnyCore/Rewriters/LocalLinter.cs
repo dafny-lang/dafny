@@ -11,7 +11,7 @@ using System.Reactive;
 
 namespace Microsoft.Dafny {
 
-  public class UselessOldLinter : IRewriter {
+  public class LocalLinter : IRewriter {
     internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
       base.PostResolveIntermediate(moduleDefinition);
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public UselessOldLinter(ErrorReporter reporter) : base(reporter) {
+    public LocalLinter(ErrorReporter reporter) : base(reporter) {
     }
   }
 
@@ -45,6 +45,20 @@ namespace Microsoft.Dafny {
         }
       }
       return base.VisitOneExpr(expr, ref st);
+    }
+
+    protected override bool VisitOneStmt(Statement stmt, ref Unit st) {
+      // Check if the statement has the three tokens "assert", "!", and "(" next to each other. If so, that may
+      // be a mistake, especially if the programmer is coming from Rust.
+      if (stmt is AssertStmt { Expr: UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not, E: ParensExpression } negationExpression }) {
+        if (stmt.tok.pos + 6/*="assert".Length*/ == negationExpression.tok.pos) {
+          reporter.Warning(MessageSource.Rewriter, ErrorDetail.ErrorID.None, stmt.tok,
+            "You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' " +
+            "suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, " +
+            "remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.");
+        }
+      }
+      return base.VisitOneStmt(stmt, ref st);
     }
   }
 }
