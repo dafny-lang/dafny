@@ -13,8 +13,6 @@ jobs:
     steps:
     - name: Versions
       run: |
-        pwd
-        which dafny
         dafny --version
         # -version is not supported in old dafny,
         # but this gives the version with an error
