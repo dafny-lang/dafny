@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: Versions
       run: |
-        dafny --version
+        dafny/dafny --version
         # -version is not supported in old dafny,
         # but this gives the version with an error
         dotnet --list-sdks
