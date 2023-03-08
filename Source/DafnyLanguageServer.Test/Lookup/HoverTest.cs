@@ -54,25 +54,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// </summary>
     /// <param name="sourceWithHovers"></param>
     private async Task AssertHover(string sourceWithHovers) {
-      await WithNoopSolver(async () => {
-        sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
-        // Split the source from hovering tasks
-        var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
-        var source = hoverRegex.Replace(sourceWithHovers, "");
-        var hovers = hoverRegex.Matches(sourceWithHovers);
-        var documentItem = CreateTestDocument(source);
-        client.OpenDocument(documentItem);
-        var lineDelta = 0;
-        for (var i = 0; i < hovers.Count; i++) {
-          var hover = hovers[i];
-          var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
-          var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
-          var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
-          await AssertHoverContains(documentItem, (line, column), expectedContent);
-        }
+      await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+      sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
+      // Split the source from hovering tasks
+      var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
+      var source = hoverRegex.Replace(sourceWithHovers, "");
+      var hovers = hoverRegex.Matches(sourceWithHovers);
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var lineDelta = 0;
+      for (var i = 0; i < hovers.Count; i++) {
+        var hover = hovers[i];
+        var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
+        var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
+        var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
+        await AssertHoverContains(documentItem, (line, column), expectedContent);
+      }
 
-        Assert.IsTrue(hovers.Count > 0, "No hover expression detected.");
-      });
+      Assert.IsTrue(hovers.Count > 0, "No hover expression detected.");
     }
 
     [TestMethod]

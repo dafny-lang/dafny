@@ -11,12 +11,14 @@ using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
+    private DafnyOptions options;
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
 
-    public DafnyCounterExampleHandler(ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
+    public DafnyCounterExampleHandler(DafnyOptions options, ILogger<DafnyCounterExampleHandler> logger, IDocumentDatabase documents) {
       this.logger = logger;
       this.documents = documents;
+      this.options = options;
     }
 
     public async Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
@@ -31,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();
           logger.LogDebug("counter-examples retrieved IDE state");
-          return new CounterExampleLoader(logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
+          return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
 
         logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}",
@@ -45,12 +47,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     private class CounterExampleLoader {
+      private readonly DafnyOptions options;
       private readonly ILogger logger;
       private readonly IdeState ideState;
       private readonly CancellationToken cancellationToken;
       private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, IdeState ideState, int counterExampleDepth, CancellationToken cancellationToken) {
+      public CounterExampleLoader(DafnyOptions options, ILogger logger, IdeState ideState, int counterExampleDepth, CancellationToken cancellationToken) {
+        this.options = options;
         this.logger = logger;
         this.ideState = ideState;
         this.cancellationToken = cancellationToken;
@@ -74,7 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
-        return new(model);
+        return new(model, options);
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {

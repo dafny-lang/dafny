@@ -4,10 +4,11 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class Scope<Thing> where Thing : class {
+  private DafnyOptions options;
   [Rep]
-  readonly List<string> names = new List<string>();  // a null means a marker
+  readonly List<string> names = new();  // a null means a marker
   [Rep]
-  readonly List<Thing> things = new List<Thing>();
+  readonly List<Thing> things = new();
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(names != null);
@@ -17,6 +18,10 @@ public class Scope<Thing> where Thing : class {
   }
 
   int scopeSizeWhereInstancesWereDisallowed = -1;
+
+  public Scope(DafnyOptions options) {
+    this.options = options;
+  }
 
   public bool AllowInstance {
     get { return scopeSizeWhereInstancesWereDisallowed == -1; }
@@ -61,7 +66,7 @@ public class Scope<Thing> where Thing : class {
       return PushResult.Duplicate;
     } else {
       var r = PushResult.Success;
-      if (DafnyOptions.O.WarnShadowing && Find(name, false) != null) {
+      if (options.WarnShadowing && Find(name, false) != null) {
         r = PushResult.Shadow;
       }
       names.Add(name);

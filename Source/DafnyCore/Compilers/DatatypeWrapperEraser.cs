@@ -13,14 +13,14 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny.Compilers {
   public class DatatypeWrapperEraser {
 
-    public static bool CanBeLeftUninitialized(Type type) {
+    public static bool CanBeLeftUninitialized(DafnyOptions options, Type type) {
       if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt) {
         if (dt.GetGroundingCtor().IsGhost) {
           return true;
         }
-        if (GetInnerTypeOfErasableDatatypeWrapper(dt, out var innerType)) {
+        if (GetInnerTypeOfErasableDatatypeWrapper(options, dt, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
-          return CanBeLeftUninitialized(innerType.Subst(typeSubst));
+          return CanBeLeftUninitialized(options, innerType.Subst(typeSubst));
         }
       }
       return false;
@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Remove any erasable type wrappers and simplify ghost tuple types.
     /// </summary>
-    public static Type SimplifyType(Type ty, bool keepConstraints = false) {
+    public static Type SimplifyType(DafnyOptions options, Type ty, bool keepConstraints = false) {
       Contract.Requires(ty != null);
       Contract.Requires(ty is not TypeProxy);
 
@@ -52,16 +52,16 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(nonGhostTupleTypeDecl.NonGhostDims == nonGhostTupleTypeDecl.Dims);
           return new UserDefinedType(udt.tok, nonGhostTupleTypeDecl.Name, nonGhostTupleTypeDecl, typeArgsForNonGhostTuple);
 
-        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(datatypeDecl, out var innerType)) {
+        } else if (udt.ResolvedClass is DatatypeDecl datatypeDecl && GetInnerTypeOfErasableDatatypeWrapper(options, datatypeDecl, out var innerType)) {
           var typeSubst = TypeParameter.SubstitutionMap(datatypeDecl.TypeArgs, udt.TypeArgs);
           var stype = innerType.Subst(typeSubst).NormalizeExpand(keepConstraints);
-          return SimplifyType(stype, keepConstraints);
+          return SimplifyType(options, stype, keepConstraints);
         }
       }
 
       // Simplify the type arguments of "ty"
       if (ty.TypeArgs.Count != 0) {
-        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(typeArg, keepConstraints));
+        var simplifiedArguments = ty.TypeArgs.ConvertAll(typeArg => SimplifyType(options, typeArg, keepConstraints));
         if (Enumerable.Range(0, ty.TypeArgs.Count).Any(i => ty.TypeArgs[i].NormalizeExpand(keepConstraints) != simplifiedArguments[i])) {
           ty.ReplaceTypeArguments(simplifiedArguments);
         }
@@ -71,9 +71,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public enum MemberCompileStatus { Ordinary, Identity, AlwaysTrue }
 
-    public static MemberCompileStatus GetMemberStatus(MemberDecl member) {
+    public static MemberCompileStatus GetMemberStatus(DafnyOptions options, MemberDecl member) {
       if (member.EnclosingClass is DatatypeDecl dt) {
-        if (IsErasableDatatypeWrapper(dt, out var dtor) && dtor == member) {
+        if (IsErasableDatatypeWrapper(options, dt, out var dtor) && dtor == member) {
           // "member" is the sole destructor of an erasable datatype wrapper
           return MemberCompileStatus.Identity;
         } else if (member is DatatypeDiscriminator) {
@@ -89,8 +89,8 @@ namespace Microsoft.Dafny.Compilers {
     /// If "dt" is an erasable datatype wrapper (see description of IsErasableDatatypeWrapper), then return "true" and
     /// set the out-parameter to the inner type. Otherwise, return "false" and sets the out-parameter to null.
     /// </summary>
-    public static bool GetInnerTypeOfErasableDatatypeWrapper(DatatypeDecl dt, out Type innerType) {
-      if (IsErasableDatatypeWrapper(dt, out var coreDestructor)) {
+    public static bool GetInnerTypeOfErasableDatatypeWrapper(DafnyOptions options, DatatypeDecl dt, out Type innerType) {
+      if (IsErasableDatatypeWrapper(options, dt, out var coreDestructor)) {
         innerType = coreDestructor.Type;
         return true;
       }
@@ -116,12 +116,12 @@ namespace Microsoft.Dafny.Compilers {
     /// If according to the conditions above, "dt" is not an erasable wrapper, the method returns false; the out-parameter should
     /// then not be used by the caller.
     /// </summary>
-    public static bool IsErasableDatatypeWrapper(DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
-      if (DafnyOptions.O.Backend.SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+    public static bool IsErasableDatatypeWrapper(DafnyOptions options, DatatypeDecl dt, out DatatypeDestructor coreDestructor) {
+      if (options.Backend.SupportsDatatypeWrapperErasure && options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
         // First, check for all conditions except the non-cycle condition
-        if (FindUnwrappedCandidate(dt, out var candidateCoreDestructor)) {
+        if (FindUnwrappedCandidate(options, dt, out var candidateCoreDestructor)) {
           // Now, check if the type of the destructor contains "datatypeDecl" itself
-          if (!CompiledTypeContains(candidateCoreDestructor.Type, dt, ImmutableHashSet<TopLevelDecl>.Empty)) {
+          if (!CompiledTypeContains(options, candidateCoreDestructor.Type, dt, ImmutableHashSet<TopLevelDecl>.Empty)) {
             coreDestructor = candidateCoreDestructor;
             return true;
           }
@@ -134,9 +134,9 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Check for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6) mentioned in the description of IsErasableDatatypeWrapper.
     /// </summary>
-    private static bool FindUnwrappedCandidate(DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
+    private static bool FindUnwrappedCandidate(DafnyOptions options, DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
       if (datatypeDecl is IndDatatypeDecl &&
-          !datatypeDecl.IsExtern(out _, out _) &&
+          !datatypeDecl.IsExtern(options, out _, out _) &&
           !datatypeDecl.Members.Any(member => member is Field)) {
         var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
         if (nonGhostConstructors.Count == 1) {
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Return "true" if a traversal into the components of "type" finds "lookingFor" before passing through any type in "visited".
     /// "lookingFor" is expected not to be a subset type, and "visited" is expected not to contain any subset types.
     /// </summary>
-    private static bool CompiledTypeContains(Type type, TopLevelDecl lookingFor, IImmutableSet<TopLevelDecl> visited) {
+    private static bool CompiledTypeContains(DafnyOptions options, Type type, TopLevelDecl lookingFor, IImmutableSet<TopLevelDecl> visited) {
       type = type.NormalizeExpand();
       if (type is UserDefinedType udt) {
         if (udt.ResolvedClass == lookingFor) {
@@ -176,14 +176,14 @@ namespace Microsoft.Dafny.Compilers {
         // shows that the core destructor of "udt.ResolvedClass" has no cycles, then "udt.ResolvedClass" is
         // indeed an erasable type wrapper. If "udt.ResolvedClass" is involved in some cycle, then it is not
         // an erasable type wrapper, so we abandon (a) and instead do (b).
-        if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(d, out var dtor)) {
+        if (udt.ResolvedClass is DatatypeDecl d && FindUnwrappedCandidate(options, d, out var dtor)) {
           var typeSubst = TypeParameter.SubstitutionMap(d.TypeArgs, udt.TypeArgs);
-          if (CompiledTypeContains(dtor.Type.Subst(typeSubst), lookingFor, visited)) {
+          if (CompiledTypeContains(options, dtor.Type.Subst(typeSubst), lookingFor, visited)) {
             return true;
           }
         }
       }
-      return type.TypeArgs.Any(ty => CompiledTypeContains(ty, lookingFor, visited));
+      return type.TypeArgs.Any(ty => CompiledTypeContains(options, ty, lookingFor, visited));
     }
 
   }
