@@ -4,11 +4,10 @@ on:
   workflow_call:
     inputs:
       os:
-        requires: true
+        required: true
         type: string
 jobs:
   smoke-test:
-    runs-on: ${{ inputs.os }}
     steps:
     - name: Versions
       run: |
