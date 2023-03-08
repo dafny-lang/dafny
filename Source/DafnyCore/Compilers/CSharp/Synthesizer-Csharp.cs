@@ -35,6 +35,7 @@ public class CsharpSynthesizer {
   // associates a bound variable with the lambda passed to argument matcher
   private Dictionary<IVariable, string> bounds = new();
   private Method lastSynthesizedMethod = null;
+  private DafnyOptions Options => compiler.Options;
 
   public CsharpSynthesizer(CsharpCompiler compiler, ConcreteSyntaxTree errorWriter) {
     this.compiler = compiler;
@@ -95,7 +96,7 @@ public class CsharpSynthesizer {
         $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
-    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.CompileName)}{typeParameters}({parameterString}) {{");
+    wr.FormatLine($"{keywords}{returnType} {compiler.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
 
     // Initialize the mocks
     objectToMockName = method.Outs.ToDictionary(o => (IVariable)o,
@@ -175,7 +176,7 @@ public class CsharpSynthesizer {
     var methodApp = (ExprDotName)applySuffix.Lhs;
     var receiver = ((IdentifierExpr)methodApp.Lhs.Resolved).Var;
     var method = ((MemberSelectExpr)methodApp.Resolved).Member;
-    var methodName = method.CompileName;
+    var methodName = method.GetCompileName(Options);
 
     if (((Function)method).Ens.Count != 0) {
       compiler.Error(lastSynthesizedMethod.tok, "Post-conditions on function {0} might " +
@@ -220,7 +221,7 @@ public class CsharpSynthesizer {
     if (binaryExpr.E0 is ExprDotName exprDotName) { // field stubbing
       var obj = ((IdentifierExpr)exprDotName.Lhs.Resolved).Var;
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
-      var fieldName = field.CompileName;
+      var fieldName = field.GetCompileName(Options);
       compiler.Error(lastSynthesizedMethod.tok, "Stubbing fields is not recommended " +
                                 "(field {0} of object {1} inside method {2})",
         ErrorWriter, fieldName, obj.Name, lastSynthesizedMethod.Name);

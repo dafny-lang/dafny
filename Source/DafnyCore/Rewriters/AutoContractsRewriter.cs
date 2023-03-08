@@ -82,7 +82,7 @@ public class AutoContractsRewriter : IRewriter {
       Type ty = new SetType(true, builtIns.ObjectQ());
       var repr = new Field(range, new Name(range, "Repr"), true, ty, null);
       cl.Members.Add(repr);
-      AddHoverText(cl.tok, "{0}", Printer.FieldToString(repr));
+      AddHoverText(cl.tok, "{0}", Printer.FieldToString(Reporter.Options, repr));
     }
     // Add:  predicate Valid()
     // ...unless an instance function with that name is already present
@@ -121,7 +121,7 @@ public class AutoContractsRewriter : IRewriter {
         valid.Ens.Insert(0, new AttributedExpression(post));
         if (member.tok == cl.tok) {
           // We added this function above, so produce a hover text for the entire function signature
-          AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
+          AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(Reporter.Options, valid));
         } else {
           AddHoverText(member.tok, "reads {0}, {1}\nensures {2}", r0, r1, post);
         }
@@ -271,7 +271,7 @@ public class AutoContractsRewriter : IRewriter {
           for (int i = validConjuncts.Count; 0 <= --i;) {
             var c = validConjuncts[i];
             valid.Body = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c, valid.Body);
-            hoverText = Printer.ExprToString(c) + sep + hoverText;
+            hoverText = Printer.ExprToString(Reporter.Options, c) + sep + hoverText;
             sep = "\n";
           }
           AddHoverText(valid.tok, "{0}", hoverText);
@@ -392,7 +392,7 @@ public class AutoContractsRewriter : IRewriter {
       var hoverText = "";
       var sep = "";
       for (int i = hoverTextFromHere; i < block.Body.Count; i++) {
-        hoverText += sep + Printer.StatementToString(block.Body[i]);
+        hoverText += sep + Printer.StatementToString(Reporter.Options, block.Body[i]);
         sep = "\n";
       }
       AddHoverText(endCurlyTok, "{0}", hoverText);
@@ -491,7 +491,7 @@ public class AutoContractsRewriter : IRewriter {
     Contract.Requires(args != null);
     for (int i = 0; i < args.Length; i++) {
       if (args[i] is Expression) {
-        args[i] = Printer.ExprToString((Expression)args[i]);
+        args[i] = Printer.ExprToString(Reporter.Options, (Expression)args[i]);
       }
     }
     var s = "autocontracts:\n" + string.Format(format, args);

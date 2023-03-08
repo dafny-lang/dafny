@@ -17,6 +17,7 @@ using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract class SinglePassCompiler {
+    public DafnyOptions Options { get; }
 
     /// <summary>
     /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
@@ -70,7 +71,8 @@ namespace Microsoft.Dafny.Compilers {
 
     public readonly CoverageInstrumenter Coverage;
 
-    protected SinglePassCompiler(ErrorReporter reporter) {
+    protected SinglePassCompiler(DafnyOptions options, ErrorReporter reporter) {
+      this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
     }
@@ -99,9 +101,9 @@ namespace Microsoft.Dafny.Compilers {
     protected string IntSelect = ",int";
     protected string LambdaExecute = "";
 
-    protected static bool UnicodeCharEnabled => DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
+    protected bool UnicodeCharEnabled => Options.Get(CommonOptionBag.UnicodeCharacters);
 
-    protected static string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
+    protected string CharMethodQualifier => UnicodeCharEnabled ? "Unicode" : "";
 
     protected virtual void EmitHeader(Program program, ConcreteSyntaxTree wr) { }
     protected virtual void EmitFooter(Program program, ConcreteSyntaxTree wr) { }
@@ -662,7 +664,7 @@ namespace Microsoft.Dafny.Compilers {
     // and call the constructor with all arguments.
     protected string ConstructorArguments(CallStmt initCall, ConcreteSyntaxTree wStmts, Constructor ctor, string sep = "") {
       var arguments = Enumerable.Empty<string>();
-      if (ctor != null && ctor.IsExtern(out _, out _)) {
+      if (ctor != null && ctor.IsExtern(Options, out _, out _)) {
         // the arguments of any external constructor are placed here
         arguments = ctor.Ins.Select((f, i) => (f, i))
           .Where(tp => !tp.f.IsGhost)
@@ -763,8 +765,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
-        from = DatatypeWrapperEraser.SimplifyType(from);
-        to = DatatypeWrapperEraser.SimplifyType(to);
+        from = DatatypeWrapperEraser.SimplifyType(Options, from);
+        to = DatatypeWrapperEraser.SimplifyType(Options, to);
         if (!IsTargetSupertype(to, from)) {
           // By the way, it is tempting to think that IsTargetSupertype(from, to)) would hold here, but that's not true.
           // For one, in a language with NeedsCastFromTypeParameter, "to" and "from" may contain uninstantiated formal type parameters.
@@ -844,15 +846,15 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
-      return IdProtect(d.CompileName);
+      return IdProtect(d.GetCompileName(Options));
     }
     protected virtual string IdName(MemberDecl member) {
       Contract.Requires(member != null);
-      return IdProtect(member.CompileName);
+      return IdProtect(member.GetCompileName(Options));
     }
     protected virtual string IdName(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return IdProtect(tp.CompileName);
+      return IdProtect(tp.GetCompileName(Options));
     }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
@@ -1126,7 +1128,7 @@ namespace Microsoft.Dafny.Compilers {
     protected abstract ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes,
       Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts);
     protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
-      wr.Write("{0}.is_{1}", source, ctor.CompileName);
+      wr.Write("{0}.is_{1}", source, ctor.GetCompileName(Options));
     }
     /// <summary>
     /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
@@ -1305,7 +1307,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual Type EmitIntegerRange(Type type, out ConcreteSyntaxTree wLo, out ConcreteSyntaxTree wHi, ConcreteSyntaxTree wr) {
       Type result;
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
+        wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.GetFullCompileName(Options)));
         result = type;
       } else {
         wr.Write("{0}.IntegerRange(", GetHelperModuleName());
@@ -1345,7 +1347,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var moduleIsExtern = false;
         string libraryName = null;
-        if (!DafnyOptions.O.DisallowExterns) {
+        if (!Options.DisallowExterns) {
           var args = Attributes.FindExpressions(m.Attributes, "extern");
           if (args != null) {
             if (args.Count == 2) {
@@ -1354,7 +1356,7 @@ namespace Microsoft.Dafny.Compilers {
             moduleIsExtern = true;
           }
         }
-        var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
+        var wr = CreateModule(m.GetCompileName(Options), m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
@@ -1390,7 +1392,7 @@ namespace Microsoft.Dafny.Compilers {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
-          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && DafnyOptions.O.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && SupportsDatatypeWrapperErasure && Options.Get(CommonOptionBag.OptimizeErasableDatatypeWrapper)) {
             // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
@@ -1399,7 +1401,7 @@ namespace Microsoft.Dafny.Compilers {
               CheckForCapitalizationConflicts(ctor.Destructors);
             }
 
-            if (!DeclaredDatatypes.Add((m, dt.CompileName))) {
+            if (!DeclaredDatatypes.Add((m, dt.GetCompileName(Options)))) {
               continue;
             }
             var w = DeclareDatatype(dt, wr);
@@ -1410,7 +1412,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
-            if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
+            if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
               Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option", wr);
             }
 
@@ -1423,23 +1425,23 @@ namespace Microsoft.Dafny.Compilers {
 
           } else if (d is TraitDecl trait) {
             // writing the trait
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
+            var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
             if (cl.IsDefaultClass) {
               Predicate<MemberDecl> compilationMaterial = x =>
-                !x.IsGhost && (DafnyOptions.O.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
+                !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
               include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = (!DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
+              classIsExtern = (!Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
             }
-            if (DafnyOptions.O.ForbidNondeterminism &&
+            if (Options.ForbidNondeterminism &&
                 !cl.IsDefaultClass &&
                 !classIsExtern &&
                 !cl.Members.Exists(member => member is Constructor) &&
@@ -1447,7 +1449,7 @@ namespace Microsoft.Dafny.Compilers {
               Error(cl.tok, "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option", wr);
             }
             if (include) {
-              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(program, cl, cw);
               cw.Finish();
@@ -1591,12 +1593,12 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
-      string name = DafnyOptions.O.MainMethod;
+      string name = program.Reporter.Options.MainMethod;
       if (name != null && name == "-") {
         return false;
       }
 
-      if (name != null && name != "") {
+      if (!string.IsNullOrEmpty(name)) {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
             // the purpose of an abstract module is to skip compilation
@@ -1813,7 +1815,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(datatypeDecl, out _);
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, datatypeDecl, out _);
       } else {
         return false;
       }
@@ -1846,7 +1848,7 @@ namespace Microsoft.Dafny.Compilers {
             var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
+              classWriter.DeclareField("_" + cf.GetCompileName(Options), c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
             }
             var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
@@ -1855,14 +1857,14 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", cf.CompileName);
+              sw.Write("._{0}", cf.GetCompileName(Options));
             } else {
               EmitCallToInheritedConstRHS(cf, w);
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
+            classWriter.DeclareField("_" + f.GetCompileName(Options), c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             ConcreteSyntaxTree wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, true, member, out wSet, true);
             {
@@ -1870,12 +1872,12 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", f.CompileName);
+              sw.Write("._{0}", f.GetCompileName(Options));
             }
             {
               // set { this._{0} = value; }
               EmitThis(wSet);
-              wSet.Write("._{0}", f.CompileName);
+              wSet.Write("._{0}", f.GetCompileName(Options));
               var sw = EmitAssignmentRhs(wSet);
               sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
               EmitSetterParameter(sw);
@@ -1914,7 +1916,7 @@ namespace Microsoft.Dafny.Compilers {
           var f = (Field)member;
           if (f.IsGhost) {
             // emit nothing
-          } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
+          } else if (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
             // emit nothing
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
@@ -1948,7 +1950,7 @@ namespace Microsoft.Dafny.Compilers {
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null && c is ClassDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
-                classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
+                classWriter.DeclareField("_" + f.GetCompileName(Options), c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
@@ -1986,9 +1988,9 @@ namespace Microsoft.Dafny.Compilers {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
+              !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
+            if (Attributes.Contains(f.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
             } else {
               Error(f.tok, "Function {0} has no body", errorWr, f.FullName);
@@ -2027,9 +2029,9 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!DafnyOptions.O.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
+                     !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
+            if (Attributes.Contains(m.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
             } else {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
@@ -2333,10 +2335,10 @@ namespace Microsoft.Dafny.Compilers {
         cantChange = Enumerable.Empty<T>();
       }
       IDictionary<string, T> declsByCapName = new Dictionary<string, T>();
-      ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.CompileName));
+      ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.GetCompileName(Options)));
 
       foreach (var decl in canChange) {
-        var name = decl.CompileName;
+        var name = decl.GetCompileName(Options);
         var capName = Capitalize(name);
         if (name == capName) {
           if (fixedNames.Contains(name)) {
@@ -2393,7 +2395,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(cw != null);
       Contract.Requires(f.Body != null || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
-      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f, false, lookasideBody);
+      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
+        f.Formals, f.ResultType, f.tok, f.IsStatic,
+        !f.IsExtern(Options, out _, out _), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
@@ -2445,7 +2449,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
-      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
+      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(Options, out _, out _), false, lookasideBody);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
@@ -2826,7 +2830,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
       Contract.Requires(type != null);
 
-      type = DatatypeWrapperEraser.SimplifyType(type);
+      type = DatatypeWrapperEraser.SimplifyType(Options, type);
       var at = type.AsArrayType;
       if (at != null) {
         var elementType = type.TypeArgs[0];
@@ -2871,7 +2875,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      type = DatatypeWrapperEraser.SimplifyType(type, true);
+      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       return TypeInitializationValue(type, wr, tok, true, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -2888,7 +2892,7 @@ namespace Microsoft.Dafny.Compilers {
         return (ty.NormalizeExpandKeepConstraints() as UserDefinedType)?.ResolvedClass is DatatypeDecl dt && dt.GetGroundingCtor().IsGhost;
       }
 
-      var simplifiedType = DatatypeWrapperEraser.SimplifyType(type, true);
+      var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       var usePlaceboValue = HasGhostGroundingCtor(type) || HasGhostGroundingCtor(simplifiedType);
       return TypeInitializationValue(simplifiedType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
@@ -3000,7 +3004,7 @@ namespace Microsoft.Dafny.Compilers {
               var lhs = s.Lhss[i];
               var rhs = s.Rhss[i];
               if (rhs is HavocRhs) {
-                if (DafnyOptions.O.ForbidNondeterminism) {
+                if (Options.ForbidNondeterminism) {
                   Error(rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
                 }
               } else {
@@ -3027,7 +3031,7 @@ namespace Microsoft.Dafny.Compilers {
         var s = (AssignStmt)stmt;
         Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
-          if (DafnyOptions.O.ForbidNondeterminism) {
+          if (Options.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
           }
         } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
@@ -3041,7 +3045,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
-        if (DafnyOptions.O.ForbidNondeterminism) {
+        if (Options.ForbidNondeterminism) {
           Error(s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
         }
         var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
@@ -3082,7 +3086,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         if (s.Guard == null) {
-          if (DafnyOptions.O.ForbidNondeterminism) {
+          if (Options.ForbidNondeterminism) {
             Error(s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
           }
           // we can compile the branch of our choice
@@ -3107,7 +3111,7 @@ namespace Microsoft.Dafny.Compilers {
             Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
           }
         } else {
-          if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
+          if (s.IsBindingGuard && Options.ForbidNondeterminism) {
             Error(s.Tok, "binding if statement forbidden by the --enforce-determinism option", wr);
           }
           ConcreteSyntaxTree guardWriter;
@@ -3136,7 +3140,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
+        if (Options.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
           Error(s.Tok, "case-based if statement forbidden by the --enforce-determinism option", wr);
         }
         foreach (var alternative in s.Alternatives) {
@@ -3158,7 +3162,7 @@ namespace Microsoft.Dafny.Compilers {
           return;
         }
         if (s.Guard == null) {
-          if (DafnyOptions.O.ForbidNondeterminism) {
+          if (Options.ForbidNondeterminism) {
             Error(s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
           }
           // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
@@ -3175,7 +3179,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
       } else if (stmt is AlternativeLoopStmt loopStmt) {
-        if (DafnyOptions.O.ForbidNondeterminism) {
+        if (Options.ForbidNondeterminism) {
           Error(loopStmt.Tok, "case-based loop forbidden by the --enforce-determinism option", wr);
         }
         if (loopStmt.Alternatives.Count != 0) {
@@ -3223,7 +3227,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
-          if (DafnyOptions.O.ForbidNondeterminism) {
+          if (Options.ForbidNondeterminism) {
             Error(s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
@@ -3384,7 +3388,7 @@ namespace Microsoft.Dafny.Compilers {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
           TrStmt(s.Body, wr);
-        } else if (DafnyOptions.O.ForbidNondeterminism) {
+        } else if (Options.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
@@ -4105,7 +4109,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitNew(typeRhs.EType, typeRhs.Tok, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
         if (typeRhs.InitCall != null) {
-          if (constructor != null && constructor.IsExtern(out _, out _)) {
+          if (constructor != null && constructor.IsExtern(Options, out _, out _)) {
             // initialization was done at the time of allocation
           } else {
             TrCallStmt(typeRhs.InitCall, nw, wStmts);
@@ -4134,13 +4138,13 @@ namespace Microsoft.Dafny.Compilers {
         var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Tok, wStmts);
         EmitNewArray(typeRhs.EType, typeRhs.Tok, typeRhs.ArrayDimensions,
-          typeRhs.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(typeRhs.EType),
+          typeRhs.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(Options, typeRhs.EType),
           null, wRhs, pwStmts);
         return;
       }
 
       if (typeRhs.ElementInit == null) {
-        Contract.Assert((typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(typeRhs.EType));
+        Contract.Assert((typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(Options, typeRhs.EType));
 
         string nwElement0;
         if (DeterminesArrayTypeFromExampleElement) {
@@ -4442,6 +4446,7 @@ namespace Microsoft.Dafny.Compilers {
             } else {
               type = instantiatedType;
             }
+
             outTypes.Add(type);
             outFormalTypes.Add(p.Type);
             outLhsTypes.Add(s.Lhs[i].Type);
@@ -4476,7 +4481,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (!s.Method.IsStatic) {
           TrParenExpr(s.Receiver, wr, false, wStmts);
           wr.Write(ClassAccessor);
-        } else if (s.Method.IsExtern(out var qual, out var compileName) && qual != null) {
+        } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
           wr.Write("{0}{1}", qual, ModuleSeparator);
           protectedName = compileName;
         } else {
@@ -4852,7 +4857,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Append(Expr(e.Root, inLetExprBody, wStmts));
           return result;
         }
-        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(e.Root.Type.AsDatatype, out var dtor)) {
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
           if (0 <= i) {
             // the datatype is an erasable wrapper and its core destructor is part of the update (which implies everything else must be a ghost),
@@ -4887,7 +4892,7 @@ namespace Microsoft.Dafny.Compilers {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
 
-        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(dtv.Ctor.EnclosingDatatype, out var dtor)) {
+        if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
           Contract.Assert(0 <= i);
           wr.Append(Expr(dtv.Arguments[i], inLetExprBody, wStmts));
@@ -5375,7 +5380,7 @@ namespace Microsoft.Dafny.Compilers {
     void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
       Contract.Requires(expr != null);
 
-      var fvs = FreeVariablesUtil.ComputeFreeVariables(expr);
+      var fvs = FreeVariablesUtil.ComputeFreeVariables(Options, expr);
       var sm = new Dictionary<IVariable, Expression>();
 
       bvars = new List<BoundVar>();
@@ -5543,7 +5548,7 @@ namespace Microsoft.Dafny.Compilers {
       var customReceiver = !(f.EnclosingClass is TraitDecl) && NeedsCustomReceiver(f);
       string qual = "";
       string compileName = "";
-      if (f.IsExtern(out qual, out compileName) && qual != null) {
+      if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
         wr.Write("{0}{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);
