@@ -15,7 +15,7 @@ class Example {
 // -----------------------------------
 
 class Fibonacci {
-  function Fib(n: int): int
+  ghost function Fib(n: int): int
   {
     if n < 2 then n else Fib(n-2) + Fib(n-1)
   }
@@ -24,7 +24,7 @@ class Fibonacci {
 // -----------------------------------
 
 class Ackermann {
-  function F(m: int, n: int): int
+  ghost function F(m: int, n: int): int
   {
     if m <= 0 then
       n + 1
@@ -34,7 +34,7 @@ class Ackermann {
       F(m - 1, F(m, n - 1))
   }
 
-  function G(m: int, n: int): int
+  ghost function G(m: int, n: int): int
     requires 0 <= m && 0 <= n
     ensures 0 <= G(m, n)
   {
@@ -46,7 +46,7 @@ class Ackermann {
       G(m - 1, G(m, n - 1))
   }
 
-  function H(m: nat, n: nat): nat
+  ghost function H(m: nat, n: nat): nat
   {
     if m == 0 then
       n + 1
@@ -75,7 +75,7 @@ class List {
   var data: int
   var next: List?
   ghost var ListNodes: set<List>
-  predicate IsAcyclic()
+  ghost predicate IsAcyclic()
     reads *
     decreases ListNodes
   {
@@ -104,7 +104,7 @@ class List {
     list.ListNodes := if tail == null then {list} else {list} + tail.ListNodes;
   }
 
-  function Sum(): int
+  ghost function Sum(): int
     requires IsAcyclic()
     reads *
     decreases ListNodes

@@ -30,7 +30,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  private static BlockStmt emptyBody = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
 
   public bool HasPostcondition =>
     Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
@@ -166,16 +165,15 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  public override string CompileName {
-    get {
-      var nm = base.CompileName;
-      if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
-        // for a static method that is named "Main" but is not a legal "Main" method,
-        // change its name.
-        nm = EnclosingClass.Name + "_" + nm;
-      }
-      return nm;
+  public override string GetCompileName(DafnyOptions options) {
+    var nm = base.GetCompileName(options);
+    if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
+      // for a static method that is named "Main" but is not a legal "Main" method,
+      // change its name.
+      nm = EnclosingClass.Name + "_" + nm;
     }
+
+    return nm;
   }
 
   public BlockStmt Body { get; set; }
@@ -226,10 +224,10 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       resolver.currentMethod = this;
 
       // make note of the warnShadowing attribute
-      bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+      bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = false;
       if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
-        DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+        resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
 
       // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
@@ -326,7 +324,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
       resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateLemma), true);
 
-      DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+      resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
       resolver.scope.PopMarker();  // for the out-parameters and outermost-level locals
       resolver.scope.PopMarker();  // for the in-parameters
 

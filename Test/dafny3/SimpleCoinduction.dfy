@@ -11,12 +11,12 @@ greatest predicate Pos(s: Stream<int>)
   s.head > 0 && Pos(s.tail)
 }
 
-function Up(n: int): Stream<int>
+ghost function Up(n: int): Stream<int>
 {
   Cons(n, Up(n+1))
 }
 
-function Inc(s: Stream<int>): Stream<int>
+ghost function Inc(s: Stream<int>): Stream<int>
 {
   Cons(s.head + 1, Inc(s.tail))
 }
@@ -47,7 +47,7 @@ greatest lemma CoUpLemma_Auto(n: int, nn: int)
 
 // -----------------------------------------------------------------------
 
-function Repeat(n: int): Stream<int>
+ghost function Repeat(n: int): Stream<int>
 {
   Cons(n, Repeat(n))
 }
@@ -91,19 +91,19 @@ greatest lemma AlwaysTT(y: int)
 
 // -----------------------------------------------------------------------
 
-function Append(M: IList, N: IList): IList
+ghost function Append(M: IList, N: IList): IList
 {
   match M
   case Nil => N
   case ICons(x, M') => ICons(x, Append(M', N))
 }
 
-function zeros(): IList<int>
+ghost function zeros(): IList<int>
 {
   ICons(0, zeros())
 }
 
-function ones(): IList<int>
+ghost function ones(): IList<int>
 {
   ICons(1, ones())
 }

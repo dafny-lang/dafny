@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -11,26 +10,24 @@ namespace Microsoft.Dafny;
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
   public override string WhatKind => "function";
 
-  public string FunctionDeclarationKeywords {
-    get {
-      string k;
-      if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
-        k = WhatKind;
-      } else if (this is PrefixPredicate) {
-        k = "predicate";
-      } else if (DafnyOptions.O.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
-                 (this is Predicate || !IsGhost)) {
-        k = WhatKind;
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost) {
-        k = WhatKind + " method";
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost) {
-        k = "ghost " + WhatKind;
-      } else {
-        k = WhatKind;
-      }
-
-      return HasStaticKeyword ? "static " + k : k;
+  public string GetFunctionDeclarationKeywords(DafnyOptions options) {
+    string k;
+    if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
+      k = WhatKind;
+    } else if (this is PrefixPredicate) {
+      k = "predicate";
+    } else if (options.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+               (this is Predicate || !IsGhost)) {
+      k = WhatKind;
+    } else if (options.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost) {
+      k = WhatKind + " method";
+    } else if (options.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost) {
+      k = "ghost " + WhatKind;
+    } else {
+      k = WhatKind;
     }
+
+    return HasStaticKeyword ? "static " + k : k;
   }
 
   public override bool IsOpaque { get; }
@@ -280,9 +277,9 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
 
   public static readonly Option<string> FunctionSyntaxOption = new("--function-syntax",
-    () => "3",
+    () => "4",
     @"
-The syntax for functions is changing from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
+The syntax for functions changed from Dafny version 3 to version 4. This switch controls access to the new syntax, and also provides a mode to help with migration.
 
 3 - Compiled functions are written `function method` and `predicate method`. Ghost functions are written `function` and `predicate`.
 4 - Compiled functions are written `function` and `predicate`. Ghost functions are written `ghost function` and `ghost predicate`.
@@ -357,10 +354,10 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
     // make note of the warnShadowing attribute
-    bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
+    bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
     bool warnShadowing = false;
     if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
-      DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+      resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
     }
 
     resolver.scope.PushMarker();
@@ -434,6 +431,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       }
     }
 
-    DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+    resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
 }

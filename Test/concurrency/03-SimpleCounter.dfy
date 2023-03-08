@@ -14,7 +14,7 @@
 
 // Cast a trait type to an object type.
 // Dafny doesn't allow to do reference equality between a trait and an object type, so we use this function to upcast where needed.
-function upCast(o: object): object {o}
+ghost function upCast(o: object): object {o}
 
 // A universe of objects playing under LCI rules 
 trait Universe {
@@ -25,12 +25,12 @@ trait Universe {
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
   // without having to check the object invariants.
-  predicate i0() reads this, content {
+  ghost predicate i0() reads this, content {
     forall o: Object | o in content :: o.universe == this && upCast(o) != this
   }
   
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate i() reads * {
+  ghost predicate i() reads * {
     i0() && forall o: Object | o in content :: o.i()
   }
   
@@ -71,7 +71,7 @@ trait Object {
   ghost const universe: Universe
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
-  predicate i0() reads * { this in universe.content && universe.i0() }
+  ghost predicate i0() reads * { this in universe.content && universe.i0() }
   
   // Join the universe
   ghost method join()
@@ -87,13 +87,13 @@ trait Object {
   twostate predicate admPre() reads * { i0() && old(i0() && universe.i()) && unchanged(this) && universe.legal() }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate gi() reads * { i0() && universe.i() }
+  ghost predicate gi() reads * { i0() && universe.i() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate gi2() requires old(gi()) reads * { i0() && universe.i2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
-  predicate i() reads * // what is the * here?
+  ghost predicate i() reads * // what is the * here?
   twostate predicate i2() reads *
   twostate lemma adm() requires admPre() ensures i2() && i()
 }
@@ -103,7 +103,7 @@ class ArcAtomicIsize extends Object {
   var data: int
 
   // Invariant
-  predicate i() reads * {
+  ghost predicate i() reads * {
     // Base invariant holds: Instances of this type are in the universe and they all have a reference to the universe.
     && i0()
   }
@@ -145,7 +145,7 @@ class WorkerMethod extends Object {
   var initial_value: int
   var final_value: int
 
-  predicate i() reads * {
+  ghost predicate i() reads * {
     && i0()
     && 1 <= next_stmt <= 5
     && universe == counter.universe

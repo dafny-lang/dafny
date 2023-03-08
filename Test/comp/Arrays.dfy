@@ -1,9 +1,9 @@
 // RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
-// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=java %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=cs %args "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=js %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=go %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=java %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=py %args  "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
@@ -311,7 +311,7 @@ class Cell<T> {
     crr := arr;
     mat := new T[15, 15]((_, _) => t);
   }
-  function method FArray(): array<T>
+  function FArray(): array<T>
     reads this
   {
     arr

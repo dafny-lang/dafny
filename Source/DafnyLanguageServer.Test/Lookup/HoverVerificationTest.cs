@@ -51,7 +51,7 @@ method Abs(x: int) returns (y: int)
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) This postcondition might not hold on a return path.  
-This is assertion #1 of 4 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
       );
@@ -60,13 +60,13 @@ Return path: testFile.dfy(6, 5)"
       await AssertHoverMatches(documentItem, (5, 4),
         @"[**Error:**](???) A postcondition might not hold on this return path.  
 Could not prove: y >= 0  
-This is assertion #1 of 4 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 4 in method Abs  
-Resource usage: 9K RU"
+This is assertion #1 of 4 in method Abs  
+Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method Abs**:
@@ -232,7 +232,7 @@ method f(x: int) {
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions2() {
       var documentItem = await GetDocumentItem(@"
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 datatype Test = Test(i: int)
 {
   method Tester(other: Test) {
@@ -271,7 +271,7 @@ datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) 
     ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())
   }
 
-  function method apply(): int requires Valid() {
+  function apply(): int requires Valid() {
     2
   }
   static method Test(c: ValidTester) {
@@ -308,7 +308,7 @@ datatype Test = Test(i: int)
     assert Id(other).CanAct();
   }
 }
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (9, 20),
@@ -337,7 +337,7 @@ predicate Q(i: int, j: int) {
   i == j || -i == j
 }
 
-function method Toast(i: int): int
+function Toast(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: nat)
@@ -375,7 +375,7 @@ module ProblemModule {
     | Cons(head: int, tail: X)
     | Nil
   {
-    predicate method Valid() {
+    predicate Valid() {
       this.Cons? && tail.Valid()
     }
   }

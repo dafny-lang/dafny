@@ -11,7 +11,7 @@
 
 type T
 
-predicate Below(x: T, y: T)
+ghost predicate Below(x: T, y: T)
 
 lemma Reflexive(x: T)
   ensures Below(x, x)
@@ -21,8 +21,8 @@ lemma Transitive(x: T, y: T, z: T)
 
 // Let "f" and "g" be functions satisfying the Galois connection:
 
-function f(x: T): T
-function g(x: T): T
+ghost function f(x: T): T
+ghost function g(x: T): T
 
 lemma Connection(x: T, y: T)
   ensures Below(f(x), y) == Below(x, g(y))
@@ -54,7 +54,7 @@ lemma FMonotonic(u: T, v: T)
 
 // Dijkstra justifies "GMonotonic" by symmetry, after introducing "Above", the dual of "Below".
 
-predicate Above(x: T, y: T)
+ghost predicate Above(x: T, y: T)
 {
   Below(y, x)
 }

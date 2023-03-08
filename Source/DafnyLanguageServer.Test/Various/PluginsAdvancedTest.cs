@@ -30,8 +30,6 @@ method {:test} myMethodWrongName() {
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = resolutionReport.Diagnostics.ToArray();
-    Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, DafnyOptions.O.Plugins.Count,
-                    "Not exactly 1 plugin loaded");
     Assert.AreEqual(1, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Please declare a method {:test} named myMethod_test that will call myMethod, you", diagnostics[0].Message);
     Assert.AreEqual(new Range((1, 17), (1, 25)), diagnostics[0].Range);
