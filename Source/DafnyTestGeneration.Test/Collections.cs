@@ -70,7 +70,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.Create(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
