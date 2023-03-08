@@ -7,14 +7,14 @@ datatype Wrapper<T> = Wrap(T)
 datatype Unit = It
 datatype Color = Yellow | Blue
 
-function F(a: Wrapper<Unit>): bool
+ghost function F(a: Wrapper<Unit>): bool
   ensures a == Wrapper.Wrap(Unit.It);
 {
   match a
   case Wrap(u) => G(u)
 }
 
-function G(u: Unit): bool
+ghost function G(u: Unit): bool
   ensures u == Unit.It;
 {
   match u
@@ -47,7 +47,7 @@ class MyClass {
   // The function axiom has "DType(this) == class.MyClass" in its antecedent.  Hence, it
   // is possible to prove the various asserts below only if the receiver is known by the
   // verifier to be of type MyClass.
-  function H(): int { 5 }
+  ghost function H(): int { 5 }
 }
 
 datatype List =  Nil | Cons(MyClass?, List)
@@ -93,11 +93,11 @@ method N() returns (k: MyClass)
 
 class State {
   var a: MyClass?
-  function NF(): MyClass? reads this; { a }
+  ghost function NF(): MyClass? reads this; { a }
 }
 
-function TakesADatatype(a: List): int { 12 }
+ghost function TakesADatatype(a: List): int { 12 }
 
 datatype GenData<T> = Pair(T, T)
 
-function AlsoTakesADatatype<U>(p: GenData<U>): int { 17 }
+ghost function AlsoTakesADatatype<U>(p: GenData<U>): int { 17 }

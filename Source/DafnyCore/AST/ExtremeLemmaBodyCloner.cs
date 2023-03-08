@@ -21,7 +21,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
   }
 
   public override Expression CloneExpr(Expression expr) {
-    if (DafnyOptions.O.RewriteFocalPredicates) {
+    if (reporter.Options.RewriteFocalPredicates) {
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
 #if DEBUG_PRINT

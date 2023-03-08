@@ -6,34 +6,34 @@
 abstract module M0 {
   /******* State *******/
   type State
-  function DomSt(st: State): set<Path>
-  function GetSt(p: Path, st: State): Artifact
+  ghost function DomSt(st: State): set<Path>
+  ghost function GetSt(p: Path, st: State): Artifact
     requires p in DomSt(st);
 
-  predicate ValidState(st: State)
+  ghost predicate ValidState(st: State)
   {
     forall p :: p in DomSt(st) ==> WellFounded(p)
   }
-  predicate WellFounded(p: Path)
+  ghost predicate WellFounded(p: Path)
 
   // The specification given for this Union is liberal enough to allow incompatible
   // states, that is, st and st' are allowed to disagree on some paths.  Any such disagreement
   // will be resolved in favor of st.  For the purpose of supporting function Combine, we are
   // only ever interested in combining/unioning compatible states anyhow.
-  function Union(st: State, st': State): State
+  ghost function Union(st: State, st': State): State
     ensures
       var result := Union(st, st');
       DomSt(result) == DomSt(st) + DomSt(st') &&
       forall p :: p in DomSt(result) ==>
         GetSt(p, result) == GetSt(p, if p in DomSt(st) then st else st');
 
-  predicate Compatible(sts: set<State>)
+  ghost predicate Compatible(sts: set<State>)
   {
     forall st, st', p :: st in sts && st' in sts && p in DomSt(st) && p in DomSt(st') ==>
       GetSt(p, st) == GetSt(p, st')
   }
 
-  function Combine(sts: set<State>): State
+  ghost function Combine(sts: set<State>): State
     requires sts != {};
   {
     var st :| st in sts;
@@ -55,18 +55,18 @@ abstract module M0 {
 
   /******* Environment *******/
   type Env
-  predicate ValidEnv(env: Env)
-  function EmptyEnv(): Env
+  ghost predicate ValidEnv(env: Env)
+  ghost function EmptyEnv(): Env
     ensures ValidEnv(EmptyEnv());
-  function GetEnv(id: Identifier, env: Env): Expression
+  ghost function GetEnv(id: Identifier, env: Env): Expression
     requires ValidEnv(env);
     ensures Value(GetEnv(id, env));
-  function SetEnv(id: Identifier, expr: Expression, env: Env): Env
+  ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
     requires ValidEnv(env) && Value(expr);
     ensures ValidEnv(SetEnv(id, expr, env));
 
   /******* Primitive function 'exec' *******/
-  function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
 
   lemma ExecProperty(cmd: string, deps: set<Path>, exps: set<string>, st: State)
     requires
@@ -80,18 +80,18 @@ abstract module M0 {
       OneToOne(cmd, deps, exps, paths) &&
       Post(cmd, deps, exps, st');
 
-  predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) ==> GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
   }
 
-  predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
+  ghost predicate OneToOne(cmd: string, deps: set<Path>, exps: set<string>, paths: set<Path>)
   {
     forall e :: e in exps ==> Loc(cmd, deps, e) in paths
   }
 
-  predicate Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
+  ghost predicate Post(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
     forall e :: e in exps ==>
       Loc(cmd, deps, e) in DomSt(st) && GetSt(Loc(cmd, deps, e), st) == Oracle(Loc(cmd, deps, e), st)
@@ -101,7 +101,7 @@ abstract module M0 {
   // that may live at that path.  This is less magical than it seems, because Loc is injective,
   // and therefore one can extract a unique (cmd,deps,exp) from p, and it's not so hard to see
   // how the oracle may "know" the artifact that results from that.
-  function Oracle(p: Path, st: State): Artifact
+  ghost function Oracle(p: Path, st: State): Artifact
 
   // The oracle never changes its mind.  Therefore, if st0 is extended into st1 only by following
   // what the oracle predicts, then no predictions change.
@@ -109,7 +109,7 @@ abstract module M0 {
     requires Extends(st0, st1);
     ensures Oracle(p, st0) == Oracle(p, st1);
 
-  predicate Extends(st: State, st': State)
+  ghost predicate Extends(st: State, st': State)
   {
     DomSt(st) <= DomSt(st') &&
     (forall p :: p in DomSt(st) ==> GetSt(p, st') == GetSt(p, st)) &&
@@ -151,7 +151,7 @@ abstract module M0 {
   datatype Reason = rCompatibility | rValidity
 
   type Path(==,00,!new)
-  function Loc(cmd: string, deps: set<Path>, exp: string): Path
+  ghost function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact(00)
   type Identifier
@@ -159,7 +159,7 @@ abstract module M0 {
   datatype Tuple<A, B> = Pair(fst: A, snd: B)
 
   /******* Values *******/
-  predicate Value(expr: Expression)
+  ghost predicate Value(expr: Expression)
   {
     expr.exprLiteral?
   }
@@ -167,14 +167,14 @@ abstract module M0 {
   /******* Semantics *******/
 
   /******* Function 'build' *******/
-  function build(prog: Program, st: State): Tuple<Expression, State>
+  ghost function build(prog: Program, st: State): Tuple<Expression, State>
     requires Legal(prog.stmts);
   {
     do(prog.stmts, st, EmptyEnv())
   }
 
   /******* Function 'do' *******/
-  function do(stmts: seq<Statement>, st: State, env: Env): Tuple<Expression, State>
+  ghost function do(stmts: seq<Statement>, st: State, env: Env): Tuple<Expression, State>
     requires Legal(stmts) && ValidEnv(env);
   {
     var stmt := stmts[0];
@@ -193,13 +193,13 @@ abstract module M0 {
       eval(stmt.ret, st, env)
   }
 
-  predicate Legal(stmts: seq<Statement>)
+  ghost predicate Legal(stmts: seq<Statement>)
   {
     |stmts| != 0
   }
 
   /******* Function 'eval' *******/
-  function eval(expr: Expression, st: State, env: Env): Tuple<Expression, State>
+  ghost function eval(expr: Expression, st: State, env: Env): Tuple<Expression, State>
      requires ValidEnv(env);
      decreases expr;
   {
@@ -265,7 +265,7 @@ abstract module M0 {
       Pair(exprError(rValidity), st)
   }
 
-  function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env): Tuple<seq<Expression>, set<State>>
+  ghost function evalArgs(context: Expression, args: seq<Expression>, stOrig: State, env: Env): Tuple<seq<Expression>, set<State>>
     requires
       ValidEnv(env) &&
       forall arg :: arg in args ==> arg < context;
@@ -279,14 +279,14 @@ abstract module M0 {
       Pair([r.fst] + rr.fst, {r.snd} + rr.snd)
   }
 
-  function Arity(prim: Primitive): nat
+  ghost function Arity(prim: Primitive): nat
   {
     match prim
     case primCreatePath => 1
     case primExec => 3
   }
 
-  predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
+  ghost predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
     requires prim.primExec? ==> |args| == 3;
     requires prim.primCreatePath? ==> |args| == 1;
   {
@@ -432,12 +432,12 @@ abstract module M0 {
 abstract module M1 refines M0 {
   datatype State = StateCons(m: map<Path, Artifact>)
 
-  function GetSt(p: Path, st: State): Artifact
+  ghost function GetSt(p: Path, st: State): Artifact
   {
     st.m[p]
   }
 
-  function DomSt(st: State): set<Path>
+  ghost function DomSt(st: State): set<Path>
     ensures forall p :: p in DomSt(st) ==> p in st.m;
   {
     set p | p in st.m
@@ -465,12 +465,12 @@ abstract module M1 refines M0 {
 
 // This module does the heavy lifting of the consistency proof.
 abstract module M2 refines M1 {
-  function SetSt(p: Path, a: Artifact, st: State): State
+  ghost function SetSt(p: Path, a: Artifact, st: State): State
   {
     StateCons(st.m[p := a])
   }
 
-  function Restrict(paths: set<Path>, st: State): map<Path, Artifact>
+  ghost function Restrict(paths: set<Path>, st: State): map<Path, Artifact>
   {
     map p | p in paths && p in DomSt(st) :: GetSt(p, st)
   }
@@ -480,17 +480,17 @@ abstract module M2 refines M1 {
   {
   }
 
-  function PickOne<T>(s: set<T>): T
+  ghost function PickOne<T>(s: set<T>): T
     requires s != {};
   {
     var x :| x in s; x
   }
 
-  predicate WellFounded(p: Path)
+  ghost predicate WellFounded(p: Path)
   {
     exists cert :: CheckWellFounded(p, cert)
   }
-  predicate CheckWellFounded(p: Path, cert: WFCertificate)
+  ghost predicate CheckWellFounded(p: Path, cert: WFCertificate)
     decreases cert;
   {
     cert.p == p &&
@@ -504,13 +504,13 @@ abstract module M2 refines M1 {
   // Instead of reading the system state directly and restricting such reads to the
   // given set of dependencies, "RunTool" is not given the whole system state but only
   // a part of it, namely the part that has artifacts for the declared dependencies.
-  function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
+  ghost function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
 
-  function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
   {
     execOne(cmd, deps, Restrict(deps, st), exps, st)
   }
-  function execOne(cmd: string, deps: set<Path>, restrictedState: map<Path, Artifact>, exps: set<string>, st: State): Tuple<set<Path>, State>
+  ghost function execOne(cmd: string, deps: set<Path>, restrictedState: map<Path, Artifact>, exps: set<string>, st: State): Tuple<set<Path>, State>
   {
     if exps == {} then
       Pair({}, st)
@@ -624,7 +624,7 @@ abstract module M2 refines M1 {
     var certs := set d | d in LocInv_Deps(p) :: GetCert(d);
     assert CheckWellFounded(p, Cert(p, certs));
   }
-  function GetCert(p: Path): WFCertificate
+  ghost function GetCert(p: Path): WFCertificate
     requires WellFounded(p);
     ensures CheckWellFounded(p, GetCert(p));
   {
@@ -633,37 +633,37 @@ abstract module M2 refines M1 {
   }
 
   // Loc is injective.  Here are its inverse functions:
-  function LocInv_Cmd(p: Path): string
-  function LocInv_Deps(p: Path): set<Path>
-  function LocInv_Exp(p: Path): string
+  ghost function LocInv_Cmd(p: Path): string
+  ghost function LocInv_Deps(p: Path): set<Path>
+  ghost function LocInv_Exp(p: Path): string
   lemma LocInjectivity(cmd: string, deps: set<Path>, exp: string)
     ensures LocInv_Cmd(Loc(cmd, deps, exp)) == cmd;
     ensures LocInv_Deps(Loc(cmd, deps, exp)) == deps;
     ensures LocInv_Exp(Loc(cmd, deps, exp)) == exp;
 
-  function Oracle(p: Path, st: State): Artifact
+  ghost function Oracle(p: Path, st: State): Artifact
   {
     if WellFounded(p) then OracleWF(p, GetCert(p), st) else OracleArbitrary(p)
   }
-  function OracleArbitrary(p: Path): Artifact
+  ghost function OracleArbitrary(p: Path): Artifact
   {
     var a :| true;
     a  // return an arbitrary artifact (note, the same "a" will be used for every call to function OracleArbitrary(p) for the same "p")
   }
-  function OracleWF(p: Path, cert: WFCertificate, st: State): Artifact
+  ghost function OracleWF(p: Path, cert: WFCertificate, st: State): Artifact
     requires CheckWellFounded(p, cert);
     decreases cert, 1;
   {
     var cmd, deps, e := LocInv_Cmd(p), LocInv_Deps(p), LocInv_Exp(p);
     RunTool(cmd, CollectDependencies(p, cert, deps, st), e)
   }
-  function CollectDependencies(p: Path, cert: WFCertificate, deps: set<Path>, st: State): map<Path, Artifact>
+  ghost function CollectDependencies(p: Path, cert: WFCertificate, deps: set<Path>, st: State): map<Path, Artifact>
     requires CheckWellFounded(p, cert) && deps == LocInv_Deps(p);
     decreases cert, 0;
   {
     map d | d in deps :: if d in DomSt(st) then GetSt(d, st) else OracleWF(d, FindCert(d, cert.certs), st)
   }
-  function FindCert(d: Path, certs: set<WFCertificate>): WFCertificate
+  ghost function FindCert(d: Path, certs: set<WFCertificate>): WFCertificate
     requires exists c :: c in certs && c.p == d;
   {
     var c :| c in certs && c.p == d;
@@ -765,12 +765,12 @@ abstract module M2 refines M1 {
 // to suggest that a deployed CloudMake use these definitions.  Rather, these definitions are here
 // only to establish mathematical feasibility of previously axiomatized properties.
 module M3 refines M2 {
-  function Union(st: State, st': State): State
+  ghost function Union(st: State, st': State): State
   {
     StateCons(map p | p in DomSt(st) + DomSt(st') :: GetSt(p, if p in DomSt(st) then st else st'))
   }
 
-  function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
+  ghost function RunTool(cmd: string, deps: map<Path, Artifact>, exp: string): Artifact
   {
     // return an arbitrary artifact
     var a :| true;
@@ -783,30 +783,30 @@ module M3 refines M2 {
   datatype Path =
     InternalPath(cmd: string, deps: set<Path>, exp: string) |
     ExternalPath(string)
-  function createPath(fn: string): Path
+  ghost function createPath(fn: string): Path
   {
     ExternalPath(fn)
   }
   lemma PathProperty(fn: string, fn': string)
   {
   }
-  function Loc(cmd: string, deps: set<Path>, exp: string): Path
+  ghost function Loc(cmd: string, deps: set<Path>, exp: string): Path
   {
     InternalPath(cmd, deps, exp)
   }
-  function LocInv_Cmd(p: Path): string
+  ghost function LocInv_Cmd(p: Path): string
   {
     match p
     case InternalPath(cmd, deps, exp) => cmd
     case ExternalPath(_) => var cmd :| true; cmd
   }
-  function LocInv_Deps(p: Path): set<Path>
+  ghost function LocInv_Deps(p: Path): set<Path>
   {
     match p
     case InternalPath(cmd, deps, exp) => deps
     case ExternalPath(_) => var deps :| true; deps
   }
-  function LocInv_Exp(p: Path): string
+  ghost function LocInv_Exp(p: Path): string
   {
     match p
     case InternalPath(cmd, deps, exp) => exp
@@ -817,19 +817,19 @@ module M3 refines M2 {
   }
 
   datatype Env = EnvCons(m: map<Identifier, Expression>)
-  function EmptyEnv(): Env
+  ghost function EmptyEnv(): Env
   {
     EnvCons(map[])
   }
-  function GetEnv(id: Identifier, env: Env): Expression
+  ghost function GetEnv(id: Identifier, env: Env): Expression
   {
     if id in env.m then env.m[id] else var lit :| true; exprLiteral(lit)
   }
-  function SetEnv(id: Identifier, expr: Expression, env: Env): Env
+  ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
   {
     EnvCons(env.m[id := expr])
   }
-  predicate ValidEnv(env: Env)
+  ghost predicate ValidEnv(env: Env)
   {
     forall id :: id in env.m ==> Value(env.m[id])
   }

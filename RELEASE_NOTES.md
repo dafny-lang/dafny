@@ -2,6 +2,41 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.0.0
+
+## Breaking changes
+
+- Remove deprecated countVerificationErrors option (https://github.com/dafny-lang/dafny/pull/3165)
+
+- The default version of Z3 Dafny uses for verification is now 4.12.1. (https://github.com/dafny-lang/dafny/pull/3400)
+
+- The default values of several options has changed in Dafny 4.0. See `--help` for details.
+     - `--function-syntax` changed from `3` to `4`
+     - `--quantifier-syntax` changed from `3` to `4`
+     - `--unicode-char` changed from `false` to `true`
+  (https://github.com/dafny-lang/dafny/pull/3623)
+
+- The default value of the `/allocated` option is now `4`, and the option itself is deprecated. (https://github.com/dafny-lang/dafny/pull/3637)
+
+- Compilation to Go no longer attempts to use the Dafny `string` type and the Go `string` type interchangably when calling external methods (which was buggy and unsound). (https://github.com/dafny-lang/dafny/pull/3647)
+
+# 3.13.1
+
+## New features
+
+- Expose non-relaxed definite assignment (`/definiteAssignment:4`) in legacy CLI (https://github.com/dafny-lang/dafny/pull/3641)
+
+## Bug fixes
+
+- Fix translation of Dafny FunctionHandles to Boogie (https://github.com/dafny-lang/dafny/pull/2266)
+
+- To ensure that a `class` correctly implements a `trait`, we perform an override check. This check was previously faulty across `module`s, but works unconditionally now. (https://github.com/dafny-lang/dafny/pull/3479)
+
+- Fixes to definite assignment and determinism options:
+     - `--enforce-determinism` now forbids constructor-less classes
+     - With non-relaxed definite assignment, allow auto-init fields to be uninitialized
+  (https://github.com/dafny-lang/dafny/pull/3641)
+
 # 3.12.0
 
 ## New features

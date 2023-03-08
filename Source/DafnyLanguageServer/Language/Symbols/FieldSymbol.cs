@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = field;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       var prefix = Declaration.IsMutable ? "var" : "const";
       return $"{prefix} {TypePrefix}{Declaration.Name}: {Declaration.Type}";
     }

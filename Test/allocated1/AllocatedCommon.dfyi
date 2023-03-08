@@ -12,10 +12,10 @@ datatype D = D(c:C, ghost g:C)
 newtype N = i:int | 0 <= i < 100
 type T = i:int | 0 <= i < 100
 
-function f1(c:C):C
-function method fm1(c:C):C
+ghost function f1(c:C):C
+function fm1(c:C):C
 
-function fBad(c:C, d:D, a:array<C>, s:set<C>):C
+ghost function fBad(c:C, d:D, a:array<C>, s:set<C>):C
 
 
 {
@@ -38,7 +38,7 @@ function fBad(c:C, d:D, a:array<C>, s:set<C>):C
   c // ok
 }
 
-function method fmBad(c:C, d:D, a:array<C>, s:set<C>):C
+function fmBad(c:C, d:D, a:array<C>, s:set<C>):C
 
 
 {
@@ -202,7 +202,7 @@ method MBad(c:C, ghost gc:C, d:D, ghost gd:D, a:array<C>, ghost ga:array<C>, s:s
   l, gl := MCall(); assert allocated(gl);
 }
 
-function fReadGood(c1:C, c2:C):C?
+ghost function fReadGood(c1:C, c2:C):C?
   requires allocated(c1)
   requires allocated(c2)
   reads c1
@@ -210,7 +210,7 @@ function fReadGood(c1:C, c2:C):C?
   c1.c // succeeds
 }
 
-function fReadBad1(c1:C, c2:C):C?
+ghost function fReadBad1(c1:C, c2:C):C?
   requires allocated(c1)
   requires allocated(c2)
   reads c1
@@ -218,20 +218,20 @@ function fReadBad1(c1:C, c2:C):C?
   c2.c // fails, c2 not in reads set
 }
 
-function fReadBad2(c1:C, c2:C):C?
+ghost function fReadBad2(c1:C, c2:C):C?
   requires allocated(c1)
   requires allocated(c2)
 {
   c2.c // fails, c2 not in reads set
 }
 
-function fId1(c1:C, c2:C):C
+ghost function fId1(c1:C, c2:C):C
   reads c1
 {
   c1
 }
 
-function fId2(c1:C, c2:C):C
+ghost function fId2(c1:C, c2:C):C
   reads c1
   ensures fId2(c1, c2) == c1
 
@@ -287,7 +287,7 @@ method MModifiesFunBad(c1:C, c2:C, ghost g1:C, ghost g2:C, f:C~>C)
 class Reader
 {
   ghost var g:set<C>
-  function method f():C reads this reads g
+  function f():C reads this reads g
 }
 
 method MReader(r:Reader)

@@ -7,7 +7,7 @@ module ValueType {
 
   type Value = s: seq<bool> | |s| <= 10
 
-  function method Gimmie(): Value {
+  function Gimmie(): Value {
     [true, true, false]
   }
 }

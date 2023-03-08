@@ -1,4 +1,4 @@
-git-issue49.dfy(8,14): Error: Raised while checking export set m1: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
-git-issue49.dfy(8,19): Error: Raised while checking export set m1: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+git-issue49.dfy(8,20): Error: Raised while checking export set m1: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+git-issue49.dfy(8,25): Error: Raised while checking export set m1: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 git-issue49.dfy(5,1): Error: This export set is not consistent: m1
 3 resolution/type errors detected in git-issue49.dfy

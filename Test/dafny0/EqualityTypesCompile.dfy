@@ -24,7 +24,7 @@ method H<A,B(==)>(c: Co<A>, d: Co<B>, a: A, b: B) returns (r: bool)
   r := d == CoCons(10, CoCons(8, Atom(b)));
 }
 
-function method CoValue<A>(x: A): Co<A>
+function CoValue<A>(x: A): Co<A>
 {
   CoConsA(x, CoValue(x))
 }

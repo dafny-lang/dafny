@@ -8,5 +8,5 @@ method M() {
   assert h == j;
 }
 
-function F(): int { 5 }
+ghost function F(): int { 5 }
 

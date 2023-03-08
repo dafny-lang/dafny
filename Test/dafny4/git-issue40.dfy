@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function SeqRepeat<T>(count:nat, elt:T) : seq<T>
+ghost function SeqRepeat<T>(count:nat, elt:T) : seq<T>
     ensures |SeqRepeat<T>(count, elt)| == count
     ensures forall i :: 0 <= i < count ==> SeqRepeat<T>(count, elt)[i] == elt
 
