@@ -1,3 +1,5 @@
+/// To compile this program, execute Source/DafnyCore/DafnyGeneratedFromDafny.sh manually for now
+
 /// Microsoft.Dafny.Formatting.ReindentProgramFromFirstToken() takes
 /// - A first token, from which an entire program is available
 /// - A IIndentationFormatter, that knows how to indent every token
@@ -91,6 +93,90 @@ module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4
       if Next == null {
       } else {
         Next.TokenNextIsNullImpliesLastToken(middle, i-1);
+      }
+    }
+  }
+  class {:extern "TriviaFormatterHelper"} {:compile false} TriviaFormatterHelper {
+    static predicate EndsWithNewline(input: CsString)
+  }
+}
+module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
+  module {:extern "Dafny"} Dafny {
+    module {:extern "Formatting"} Formatting {
+      import opened MicrosoftDafny
+      import opened System
+
+      const {:extern "System", "String.Empty"} CsStringEmpty: CsString;
+
+      trait IIndentationFormatter {
+
+        // Given the current indentation at this point
+        // returns the leading trivia but with its indentation corrected.
+        function GetNewLeadingTrivia(token: IToken): CsString
+
+        // Given the current indentation at this point
+        // returns the trailing trivia but with its indentation corrected.
+        function GetNewTrailingTrivia(token: IToken): CsString
+
+        // Given a token (including leading and trailing trivia), the current indentation, and whether the last trivia
+        // was ending with a newline, returns the two new leading and trailing trivia of the token,
+        // the new current indentation and whether the last trailing trivia ended with a newline
+        method GetNewLeadingTrailingTrivia(token: IToken)
+          returns (newLeadingTrivia: CsString,
+                   newTrailingTrivia: CsString)
+          requires token.Valid()
+          ensures token.Valid()
+          ensures token.allTokens == old(token.allTokens)
+        {
+          newLeadingTrivia := GetNewLeadingTrivia(token);
+          newTrailingTrivia := GetNewTrailingTrivia(token);
+        }
+      }
+
+      lemma IsAllocated<T>(x: T)
+        ensures allocated(x) {
+      }
+
+      /** Prints the entire program while fixing identation, based on
+          1) indentation information provided by the IIndentationFormatter reindent
+          2) Reindentation algorithm provided by the same reindent */
+      method ReindentProgramFromFirstToken(firstToken: IToken, reindent: IIndentationFormatter) returns (s: CsString)
+        requires firstToken.Valid()
+        ensures forall token <- firstToken.allTokens :: s.Contains(token.val)
+      {
+        var token: IToken? := firstToken;
+        var sb := new CsStringBuilder();
+        ghost var i := 0;
+        var allTokens := firstToken.allTokens;
+        while(token != null)
+          decreases if token == null then 0 else |token.allTokens|
+          invariant 0 <= i <= |allTokens|
+          invariant if token == null then i == |allTokens| else
+                    && token.Valid()
+                    && i < |allTokens|
+                    && token == allTokens[i]
+          invariant forall t <- allTokens[0..i] :: sb.built.Contains(t.val)
+        {
+          if(token.Next == null) {
+            firstToken.TokenNextIsNullImpliesLastToken(token, i);
+          } else {
+            firstToken.TokenNextIsIPlus1(token, i);
+          }
+          IsAllocated(allTokens[0..i]);
+
+          var newLeadingTrivia,
+              newTrailingTrivia :=
+            reindent.GetNewLeadingTrailingTrivia(token);
+          ghost var sPrev := sb.built;
+          sb.Append(newLeadingTrivia);
+          sb.Append(token.val);
+          sb.Append(newTrailingTrivia);
+          ContainsTransitive();
+          assert {:split_here} forall t <- allTokens[0..i+1] :: sb.built.Contains(t.val);
+          token := token.Next;
+          i := i + 1;
+        }
+        s := sb.ToString();
       }
     }
   }
