@@ -26,9 +26,6 @@ jobs:
     - name: Check
       run: |
         npm install bignumber.js
-        ls /usr/local/Cellar/dafny/3.12.0/libexec
         cp /usr/local/Cellar/dafny/3.12.0/libexec/quicktest.sh .
-        pwd
-        ls
         chmod +x quicktest.sh
         ./quicktest.sh 
