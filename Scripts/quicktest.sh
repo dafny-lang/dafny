@@ -35,4 +35,4 @@ echo Building to Python
 $DIR/dafny build -t:py c.dfy
 python c-py/c.py
 
-#rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe

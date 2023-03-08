@@ -23,11 +23,7 @@ jobs:
         which dafny
         pwd
         ls
-
-
-  check:
-    needs: build
-    uses: ./.github/workflows/reusable-smoke-test.yml
-    with:
-      os: macos-latest
-      dafnyexe: /usr/local/bin/dafny
+    - name: Check
+      run
+        ./Scripts/quicktest.sh > tmp
+        diff tmp ./Scripts/quicktest.out
