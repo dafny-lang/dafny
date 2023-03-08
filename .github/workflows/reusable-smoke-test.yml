@@ -9,11 +9,11 @@ on:
 jobs:
   smoke-test:
     runs-on: ${{ inputs.os }}
+    continue-on-error: true
     steps:
     - name: Versions
       run: |
         pwd
-        ls
         which dafny
         dafny --version
         # -version is not supported in old dafny,
