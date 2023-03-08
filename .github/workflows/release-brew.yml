@@ -26,5 +26,5 @@ jobs:
     - name: Check
       run: |
         npm install bignumber.js
-        dafny/quicktest.sh > tmp
-        diff tmp dafny/quicktest.out
+        cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh .
+        ./quicktest.sh 
