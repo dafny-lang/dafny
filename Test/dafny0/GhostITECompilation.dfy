@@ -34,7 +34,34 @@ function G(x: nat, ghost y: nat): nat
     G(x - 1, 60) + 13
 }
 
+// Ostensibly, the following function is tail recursive. But the ghost-ITE optimization
+// removes the tail call. This test ensures that the unused setup for the tail optimization
+// does not cause problems.
+function H(x: int, ghost y: nat): int {
+  if y == 0 then
+    x
+  else
+    H(x, y - 1)
+}
+
+// Like function H, function J looks like it's tail recursive. The compiler probably will
+// emit the tail-call label, even though the tail-call is never taken.
+function J(x: int): int {
+  if true then
+    x
+  else
+    J(x)
+}
+
+// The following function would never verify, and its execution wouldn't terminate.
+// Nevertheless, we'll test here that it compiles into legal target code.
+function {:verify false} K(x: int, ghost y: nat): int {
+  K(x, y - 1)
+}
+
 method Main() {
   print F(5, 3), "\n"; // 65
   print G(5, 3), "\n"; // 65
+  print H(65, 3), "\n"; // 65
+  print J(65), "\n"; // 65
 }
