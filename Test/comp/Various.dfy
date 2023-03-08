@@ -29,11 +29,11 @@ method LetExpr() {
   print (var a := A(0); var A(zero) := a; zero), "\n";
 }
 
-function method f(i: int): int {
+function f(i: int): int {
   i + 1
 }
 
-function method F(i: int): int -> int {
+function F(i: int): int -> int {
   j => j + i + 1
 }
 

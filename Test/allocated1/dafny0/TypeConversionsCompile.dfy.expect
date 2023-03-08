@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 
 Dafny program verifier finished with 8 verified, 0 errors
 3 4 5.0 5 6 -1.0 147573952589676412927 4294967295 127 0

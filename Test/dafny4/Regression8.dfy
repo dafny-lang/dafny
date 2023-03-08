@@ -1,10 +1,10 @@
 // RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method F(x: int, w: int): (int, int)
+function F(x: int, w: int): (int, int)
   requires x < 100
 
-function method G(m: int): int
+function G(m: int): int
   requires 0 <= m
 
 method Test(y: int, n: nat)

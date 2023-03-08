@@ -5,9 +5,9 @@ abstract module One {
   type State
   type Action
 
-  predicate StateNext(s:State, s':State, a:Action)
+  ghost predicate StateNext(s:State, s':State, a:Action)
 
-  predicate StateNextSeq(sseq:seq<State>, actions:seq<Action>)
+  ghost predicate StateNextSeq(sseq:seq<State>, actions:seq<Action>)
   {
     |sseq| == |actions| + 1
     && (forall i :: 0 <= i < |actions| ==> StateNext(sseq[i], sseq[i+1], actions[i]))

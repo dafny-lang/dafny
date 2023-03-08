@@ -30,7 +30,7 @@ class MyClass<T, U> {
     }
   }
 
-  function F(x: int, y: int, h: WildData, k: WildData): WildData
+  ghost function F(x: int, y: int, h: WildData, k: WildData): WildData
   {
     if x < 0 then
       h
@@ -56,17 +56,17 @@ class C {
 }
 
 class CF {
-  static function F(): int
+  static ghost function F(): int
 
-  predicate method G()
+  predicate G()
 
   greatest predicate Co()
 
-  function H(): int
+  ghost function H(): int
 
-  static function method I(): real
+  static ghost function I(): real
 
-  static predicate method J()
+  static ghost predicate J()
 }
 
 module A {

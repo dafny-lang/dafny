@@ -17,7 +17,7 @@ method test_include(z:int)
 // and some refinement stuff, to make sure it works with includes
 module Concrete refines Abstract
 {
-  function method inc...  // error: postcondition violation
+  function inc...  // error: postcondition violation
   {
     x - 1
   }

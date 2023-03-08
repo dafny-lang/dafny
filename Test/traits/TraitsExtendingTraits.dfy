@@ -59,7 +59,7 @@ module DuplicateMembers {
   class J extends Y, D {  // error: duplicate member "sopp"
   }
   trait Y {
-    function sopp(): real
+    ghost function sopp(): real
   }
   class K extends D, Y {  // error: duplicate member "sopp"
   }
@@ -69,15 +69,15 @@ module DuplicateMembers {
   class Diamond extends Elva, Tolv {
   }
   trait Elva extends Tio {
-    function balalaika(): nat
+    ghost function balalaika(): nat
   }
   trait Tolv extends Tio {
-    function banjo(): nat
+    ghost function banjo(): nat
   }
   trait Tio {
-    function munspel(): nat
-    function banjo(): nat
-    function balalaika(): nat
+    ghost function munspel(): nat
+    ghost function banjo(): nat
+    ghost function balalaika(): nat
   }
 
   class InheritedOverrideAndOriginal extends Left, Right {

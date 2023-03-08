@@ -82,15 +82,15 @@ public class ArrowType : UserDefinedType {
   public const string PARTIAL_ARROW = "-->";
   public const string TOTAL_ARROW = "->";
 
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    return PrettyArrowTypeName(ANY_ARROW, Args, Result, context, parseAble);
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return PrettyArrowTypeName(options, ANY_ARROW, Args, Result, context, parseAble);
   }
 
   /// <summary>
   /// Pretty prints an arrow type.  If "result" is null, then all arguments, including the result type are expected in "typeArgs".
   /// If "result" is non-null, then only the in-arguments are in "typeArgs".
   /// </summary>
-  public static string PrettyArrowTypeName(string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
+  public static string PrettyArrowTypeName(DafnyOptions options, string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
     Contract.Requires(arrow != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(result != null || 1 <= typeArgs.Count);
@@ -113,11 +113,11 @@ public class ArrowType : UserDefinedType {
     }
     string s = "";
     if (domainNeedsParens) { s += "("; }
-    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
+    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(options, context, parseAble));
     if (domainNeedsParens) { s += ")"; }
     s += " " + arrow + " ";
     if (result != null || typeArgs.Count >= 1) {
-      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+      s += (result ?? typeArgs.Last()).TypeName(options, context, parseAble);
     } else {
       s += "<unable to infer result type>";
     }

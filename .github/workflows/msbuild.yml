@@ -9,6 +9,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 

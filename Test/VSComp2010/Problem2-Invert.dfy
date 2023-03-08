@@ -49,7 +49,7 @@ method M(N: int, A: array<int>, B: array<int>)
   assert forall j,k :: 0 <= j < k < N ==> B[j] != B[k];
 }
 
-function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
+ghost function inImage(i: int): bool { true }  // this function is used to trigger the surjective quantification
 
 method Main()
 {

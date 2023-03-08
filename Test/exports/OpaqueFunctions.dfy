@@ -4,16 +4,16 @@
 module A {
   export A provides f
   export B reveals f
-  function f() : nat { 7 }
+  ghost function f() : nat { 7 }
 
 }
 
 module B {
   import A = A`A
 
-  function g() : nat { A.f() }
+  ghost function g() : nat { A.f() }
 
-  function h() : nat
+  ghost function h() : nat
   ensures h() == 7
   { g() } // error
 
@@ -22,9 +22,9 @@ module B {
 module C {
   import A = A`B
 
-  function g() : nat { A.f() }
+  ghost function g() : nat { A.f() }
 
-  function h() : nat
+  ghost function h() : nat
   ensures h() == 7
   { g() }
 
@@ -32,14 +32,14 @@ module C {
 
 module D {
   import A = A`A
-  function g() : nat { A.f() }
+  ghost function g() : nat { A.f() }
 }
 
 module E {
   import D
   import A`B
 
-  function h() : nat
+  ghost function h() : nat
   ensures h() == 7
   { D.g() } // revealed via A`B
 
@@ -48,7 +48,7 @@ module E {
 module AA {
   export Spec provides f
   export Body reveals f
-  function {:opaque} f(): int { 0 }
+  ghost function {:opaque} f(): int { 0 }
 }
 
 module BB {

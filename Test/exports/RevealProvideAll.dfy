@@ -7,11 +7,11 @@ module A {
 
   datatype T = CT1 | CT2
 
-  function getCT1() : T { CT1 }
-  function getCT2() : T { CT2 }
+  ghost function getCT1() : T { CT1 }
+  ghost function getCT2() : T { CT2 }
 
   class AClass {
-     function method getCT1(): T { CT1 }
+     function getCT1(): T { CT1 }
      constructor Init() {}
   }
 
@@ -20,7 +20,7 @@ module A {
 module B {
   import A`Spec
 
-  function f(): A.T { A.getCT1() }
+  ghost function f(): A.T { A.getCT1() }
   lemma Test(x : A.T)
   ensures x == A.getCT1() || x == A.getCT2() { } //can't prove this here
 
@@ -34,7 +34,7 @@ module B {
 module C {
   import A`Body
 
-  function f(): A.T { A.CT1 }
+  ghost function f(): A.T { A.CT1 }
 
   lemma Test()
   ensures A.CT1 == A.getCT1() { }
