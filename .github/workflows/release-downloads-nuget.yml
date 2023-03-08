@@ -120,11 +120,13 @@ jobs:
       run: |
         npm install bignumber.js
         dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | diff expect.txt -
+        node a.js dafny/DafnyRuntime.js > actual.txt
+        diff expect.txt actual.txt
     - name: Check Java compile
       run: |
         dafny build -t:java a.dfy
-        java -jar a.jar | diff expect.txt -
+        java -jar a.jar > actual.txt
+        diff expect.txt actual.txt
 
   test-dafny-libraries:
 
