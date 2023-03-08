@@ -24,6 +24,7 @@ jobs:
         pwd
         ls
     - name: Check
-      run
-        ./Scripts/quicktest.sh > tmp
-        diff tmp ./Scripts/quicktest.out
+      run: |
+        npm install bignumber.js
+        dafny/quicktest.sh > tmp
+        diff tmp dafny/quicktest.out
