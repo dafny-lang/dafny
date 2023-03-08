@@ -7,8 +7,8 @@ on:
         requires: true
         type: string
 jobs:
-  runs-on: ${{ inputs.os }}
   smoke-test:
+    runs-on: ${{ inputs.os }}
     steps:
     - name: Versions
       run: |
