@@ -75,17 +75,17 @@ public class AutoReqFunctionRewriter : IRewriter {
     string sep = "";
     foreach (var req in reqs) {
       if (containsMatch) {  // Pretty print the requirements
-        tip += sep + prefix + Printer.ExtendedExprToString(req.E) + ";";
+        tip += sep + prefix + Printer.ExtendedExprToString(Reporter.Options, req.E) + ";";
       } else {
-        tip += sep + prefix + Printer.ExprToString(req.E) + ";";
+        tip += sep + prefix + Printer.ExprToString(Reporter.Options, req.E) + ";";
       }
       sep = "\n";
     }
 
     if (!tip.Equals("")) {
       Reporter.Info(MessageSource.Rewriter, f.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+      if (Reporter.Options.AutoReqPrintFile != null) {
+        using (System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true)) {
           writer.WriteLine(f.Name);
           writer.WriteLine("\t" + tip);
         }
@@ -100,19 +100,18 @@ public class AutoReqFunctionRewriter : IRewriter {
       string prefix = "auto ";
       prefix += " requires " + label + " ";
       if (containsMatch) {  // Pretty print the requirements
-        tip += prefix + Printer.ExtendedExprToString(req.E) + ";\n";
+        tip += prefix + Printer.ExtendedExprToString(Reporter.Options, req.E) + ";\n";
       } else {
-        tip += prefix + Printer.ExprToString(req.E) + ";\n";
+        tip += prefix + Printer.ExprToString(Reporter.Options, req.E) + ";\n";
       }
     }
 
     if (!tip.Equals("")) {
       Reporter.Info(MessageSource.Rewriter, method.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
-          writer.WriteLine(method.Name);
-          writer.WriteLine("\t" + tip);
-        }
+      if (Reporter.Options.AutoReqPrintFile != null) {
+        using System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true);
+        writer.WriteLine(method.Name);
+        writer.WriteLine("\t" + tip);
       }
     }
   }
@@ -312,7 +311,7 @@ public class AutoReqFunctionRewriter : IRewriter {
         Expression allReqsSatisfied = Andify(e.Term.tok, auto_reqs);
         Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
         e.Term = allReqsSatisfiedAndTerm;
-        Reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
+        Reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(Reporter.Options, allReqsSatisfied) + ") &&");
       }
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;

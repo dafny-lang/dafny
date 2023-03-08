@@ -7,8 +7,8 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny.Compilers {
 
   class DafnyCompiler : SinglePassCompiler {
-    public DafnyCompiler(ErrorReporter reporter) : base(reporter) {
-      if (DafnyOptions.O?.CoverageLegendFile != null) {
+    public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
     }
@@ -205,7 +205,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      type = DatatypeWrapperEraser.SimplifyType(type, true);
+      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       return type.ToString();
     }
 

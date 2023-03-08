@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate P(i:int) { true }
+ghost predicate P(i:int) { true }
 
 lemma Tester()
 {

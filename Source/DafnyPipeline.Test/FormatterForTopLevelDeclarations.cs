@@ -295,15 +295,15 @@ method ReturnTuple() returns (x:(uint32,uint32))
   return (1, 2);
 }
 
-function method EmptyTuple() : () {
+function EmptyTuple() : () {
   ()
 }
 
-function method GetEmptyTuple() : () {
+function GetEmptyTuple() : () {
   EmptyTuple()
 }
 
-function method Test() : (bool, bool) {
+function Test() : (bool, bool) {
   (false, true)
 }
 

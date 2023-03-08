@@ -14,7 +14,7 @@ module Test {
     | Failure(exception: string)
   {
 
-    function Lift<V>(f: U --> V): Result<V>
+    ghost function Lift<V>(f: U --> V): Result<V>
       requires this.Success? ==> f.requires(value)
     {
       match this {
@@ -23,17 +23,17 @@ module Test {
       }
     }
 
-    predicate method IsFailure() {
+    predicate IsFailure() {
       Failure?
     }
 
-    function method PropagateFailure<V>(): (ret: Result<V>)
+    function PropagateFailure<V>(): (ret: Result<V>)
       requires IsFailure()
     {
       Failure(exception)
     }
 
-    function method Extract(): U
+    function Extract(): U
       requires !IsFailure()
     {
       value

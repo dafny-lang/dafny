@@ -7,7 +7,7 @@ class IntSet {
 
   var root: Node?
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -28,7 +28,7 @@ class IntSet {
     Contents := {};
   }
 
-  function method Find(x: int): bool
+  function Find(x: int): bool
     requires Valid()
     reads Repr
     ensures Find(x) <==> x in Contents
@@ -106,7 +106,7 @@ class Node {
   var left: Node?
   var right: Node?
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -143,7 +143,7 @@ class Node {
     Repr := {this};
   }
 
-  function method Find(x: int): bool
+  function Find(x: int): bool
     requires Valid()
     reads Repr
     ensures Find(x) <==> x in Contents

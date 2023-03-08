@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %dafny -compile:0 -spillTargetCode:3 "-out:%S/csharp/Compiler.cs" "%s"
+// RUN: %dafny -compile:0 -unicodeChar:0 -spillTargetCode:3 "-out:%S/csharp/Compiler.cs" "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -41,7 +41,7 @@ module DafnyAST {
 
   type Context = map<string, int>
 
-  function method interpExpr(e: Expr, ctx: Context): int {
+  function interpExpr(e: Expr, ctx: Context): int {
     match e {
       case Const(n) => n
       case Var(v) => if v in ctx.Keys then ctx[v] else 0
@@ -54,7 +54,7 @@ module DafnyAST {
 
   datatype InterpResult = InterpResult(ctx: Context, output: seq<int>)
 
-  function method interpStmt'(s: Stmt, ctx: Context) : InterpResult
+  function interpStmt'(s: Stmt, ctx: Context) : InterpResult
   {
     match s {
       case Skip => InterpResult(ctx, [])
@@ -67,7 +67,7 @@ module DafnyAST {
     }
   }
 
-  function method interpStmt(s: Stmt, ctx: Context) : seq<int> {
+  function interpStmt(s: Stmt, ctx: Context) : seq<int> {
     interpStmt'(s, ctx).output
   }
 }
@@ -81,7 +81,7 @@ module DafnyAST {
 module Rewriter {
   import opened DafnyAST
 
-  function method simplifyExpr(e: Expr) : Expr
+  function simplifyExpr(e: Expr) : Expr
     ensures forall ctx: Context ::
               DafnyAST.interpExpr(simplifyExpr(e), ctx) ==
               DafnyAST.interpExpr(e, ctx)
@@ -100,7 +100,7 @@ module Rewriter {
     }
   }
 
-  function method simplifyStmt(s: Stmt) : Stmt
+  function simplifyStmt(s: Stmt) : Stmt
     ensures forall ctx: Context ::
               DafnyAST.interpStmt'(simplifyStmt(s), ctx) ==
               DafnyAST.interpStmt'(s, ctx)
@@ -168,7 +168,7 @@ module LinkedList {
     | Cons(hd: T, tl: List<T>)
     | Nil
 
-  function method Concat<T>(l1: List<T>, l2: List<T>) : List<T> {
+  function Concat<T>(l1: List<T>, l2: List<T>) : List<T> {
     match l1 {
       case Nil => l2
       case Cons(h, t) => Cons(h, Concat<T>(t, l2))
@@ -207,7 +207,7 @@ module StackMachine {
                          regs: RegisterFile,
                          output: seq<int>)
 
-  function method interpInstr(instr: Instr, st: State) : State {
+  function interpInstr(instr: Instr, st: State) : State {
     match (instr, st.stack) {
       case (PushConst(n), tl) =>
         st.(stack := Cons(n, tl))
@@ -230,7 +230,7 @@ module StackMachine {
     }
   }
 
-  function method interpProg'(p: Prog, st: State) : State {
+  function interpProg'(p: Prog, st: State) : State {
     match p {
       case Nil => st
       case Cons(instr, p) => interpInstr(instr, interpProg'(p, st))
@@ -239,7 +239,7 @@ module StackMachine {
 
   const EmptyState := State(Nil, map[], []);
 
-  function method interpProg(p: Prog, input: RegisterFile) : seq<int> {
+  function interpProg(p: Prog, input: RegisterFile) : seq<int> {
     interpProg'(p, EmptyState.(regs := input)).output
   }
 }
@@ -250,7 +250,7 @@ module Compiler {
   import DafnyAST
   import opened StackMachine
 
-  function method compileExpr(e: DafnyAST.Expr): Prog {
+  function compileExpr(e: DafnyAST.Expr): Prog {
     match e {
       case Const(n) => Cons(PushConst(n), Nil)
       case Var(v) => Cons(PushVar(v), Nil)
@@ -259,7 +259,7 @@ module Compiler {
     }
   }
 
-  function method compileStmt(s: DafnyAST.Stmt): Prog {
+  function compileStmt(s: DafnyAST.Stmt): Prog {
     match s {
       case Skip => Nil
       case Assign(v, e) => Cons(PopVar(v), compileExpr(e))
@@ -344,7 +344,7 @@ module Compiler {
 /// Connecting C# to Dafny
 /// ----------------------
 ///
-/// Our Dafny ASTs are defined in terms of Dafny ``datatype`` values, but the AST produced using ANTLR on the C# side is defined through a class hierarchy (see ``Main.cs``).  To connect the two we need a translation function.  Here we write it in Dafny, which allows us to depend on fewer specifics of the compilation process.
+/// Our Dafny ASTs are defined in terms of Dafny ``datatype`` values, but the AST produced using ANTLR on the C# side is defined through a class hierarchy (see ``Main.cs``).  To connect the two we need a translation ghost function.  Here we write it in Dafny, which allows us to depend on fewer specifics of the compilation process.
 ///
 /// To write the translator in Dafny we need a Dafny model of the C# class hierarchy.  Below we use traits, annotated with `{:extern}` to specify their C# names and `{:compile false}` to indicate that they should not be compiled: they act as shims that we can write the Dafny code against.  Then, once compiled to C#, our Dafny code can be linked against the real C# class hierarchy.
 ///
@@ -393,15 +393,15 @@ module {:extern "SimpleCompiler.CSharpUtils"} CSharpUtils {
   import opened System.Collections.Generic
 
   class StringUtils {
-    // It's OK to model this as a function method because Dafny's `string` is a
+    // It's OK to model this as a function because Dafny's `string` is a
     // value type (otherwise it would be invalid in general to assume that
     // calling the method twice produces equal results).
-    static function method {:extern}
+    static function {:extern}
       StringAsDafnyString(s: String): string
   }
 
   class ListUtils {
-    static function method {:extern}
+    static function {:extern}
       FoldR<A, B>(f: (A, B) -> B, b0: B, l: List<A>) : B
 
     static method LinkedListToCList<T>(ll: LinkedList.List<T>) returns (l: List<T>) {
@@ -435,7 +435,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   class {:extern "Op.BinOp"} Op__BinOp {
     static const {:extern} Add: Op__BinOp
     static const {:extern} Sub: Op__BinOp
-    function method {:extern} Equals(other: Op__BinOp): bool
+    function {:extern} Equals(other: Op__BinOp): bool
   }
 
   trait {:compile false} {:extern} Expr {}
@@ -473,10 +473,10 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
 /// Translating C# inputs
 /// ~~~~~~~~~~~~~~~~~~~~~
 ///
-/// With these definitions in place the translation is straightforward.  The translation functions are marked `{:verify false}` because:
+/// With these definitions in place the translation is straightforward.  The translation ghost functions are marked `{:verify false}` because:
 ///
 /// 1. We cannot statically guarantee that the C# types that get passed in are not cyclic, so they could in fact loop forever; and
-/// 2. The C# class hierarchy is not sealed, so we cannot statically guarantee that we cover all cases (for simplicity the functions below just enter an infinite loop when they encounter an unexpected case).
+/// 2. The C# class hierarchy is not sealed, so we cannot statically guarantee that we cover all cases (for simplicity the ghost functions below just enter an infinite loop when they encounter an unexpected case).
 
 module Translator {
   import CSharpAST
@@ -484,7 +484,7 @@ module Translator {
   import opened CSharpUtils
   import opened LinkedList
 
-  function method {:verify false} translateOp(op: CSharpAST.Op__BinOp)
+  function {:verify false} translateOp(op: CSharpAST.Op__BinOp)
     : DafnyAST.BinOp
   {
     if op.Equals(CSharpAST.Op__BinOp.Add) then DafnyAST.Add
@@ -492,7 +492,7 @@ module Translator {
     else translateOp(op)
   }
 
-  function method {:verify false} translateExpr(c: CSharpAST.Expr)
+  function {:verify false} translateExpr(c: CSharpAST.Expr)
     : DafnyAST.Expr
     reads *
   {
@@ -510,7 +510,7 @@ module Translator {
       translateExpr(c)
   }
 
-  function method {:verify false} translateStmt(c: CSharpAST.Stmt)
+  function {:verify false} translateStmt(c: CSharpAST.Stmt)
     : DafnyAST.Stmt
     reads *
   {
@@ -524,7 +524,7 @@ module Translator {
       translateStmt(c)
   }
 
-  function method {:verify false} translateProg(c: CSharpAST.Prog)
+  function {:verify false} translateProg(c: CSharpAST.Prog)
     : DafnyAST.Stmt
     reads *
   {
@@ -547,7 +547,7 @@ module PrettyPrint {
   import opened LinkedList
   import opened StackMachine
 
-  function method prettyPrintNum(n: int, zero: string) : string
+  function prettyPrintNum(n: int, zero: string) : string
     decreases n < 0, if n < 0 then -n else n
   {
     if n == 0 then zero
@@ -557,7 +557,7 @@ module PrettyPrint {
     else assert false; prettyPrintNum(n, zero)
   }
 
-  function method prettyPrintInstr(instr: Instr) : string {
+  function prettyPrintInstr(instr: Instr) : string {
     match instr {
       case PushConst(n) => "PushConst(" + prettyPrintNum(n, "0") + ")"
       case PushVar(v) => "PushVar(" + v + ")"
@@ -568,7 +568,7 @@ module PrettyPrint {
     }
   }
 
-  function method prettyPrint(p: Prog) : List<string> {
+  function prettyPrint(p: Prog) : List<string> {
     match p {
       case Nil => Nil
       case Cons(instr, p) => Cons(prettyPrintInstr(instr), prettyPrint(p))
@@ -579,7 +579,7 @@ module PrettyPrint {
 /// Exposing Dafny to C#
 /// ~~~~~~~~~~~~~~~~~~~~
 ///
-/// Finally, we define a single Dafny function that serves as our interface to C#.  It takes a C# AST, translates it to Dafny, runs rewriting passes, compiles it to a stack machine program, pretty-prints it to a string, and returns it to C#.
+/// Finally, we define a single Dafny ghost function that serves as our interface to C#.  It takes a C# AST, translates it to Dafny, runs rewriting passes, compiles it to a stack machine program, pretty-prints it to a string, and returns it to C#.
 ///
 /// Note that the `Interop` module below has an `extern` annotation but no `{:compile false}` annotation: this is because we want to implement it in Dafny, but give it a predictable name in the generated C# code.
 

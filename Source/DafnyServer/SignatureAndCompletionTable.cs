@@ -13,7 +13,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyServer {
   public class LegacySymbolTable {
     private readonly Program _dafnyProgram;
-    private readonly List<SymbolInformation> _information = new List<SymbolInformation>();
+    private readonly List<SymbolInformation> _information = new();
 
     public LegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
@@ -122,10 +122,10 @@ namespace DafnyServer {
       }
     }
 
-    private static ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
+    private ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
       var requires = new List<string>();
       foreach (var maybeFreeExpression in contractClauses) {
-        requires.Add(Printer.ExprToString(maybeFreeExpression.E));
+        requires.Add(Printer.ExprToString(_dafnyProgram.Options, maybeFreeExpression.E));
       }
       return requires;
     }

@@ -42,6 +42,9 @@
   we may be able to get away with only embedding these files inside this assembly.
   -->
   <ItemGroup>
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\src\main\**\*.java">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntime.cs">
       <LogicalName>DafnyRuntime.cs</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

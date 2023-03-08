@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Inverses.dfy(70,2): Error: A postcondition might not hold on this return path.
 Inverses.dfy(67,10): Related location: This is the postcondition that might not hold.
 Inverses.dfy(67,40): Related location

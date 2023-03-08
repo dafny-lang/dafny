@@ -11,7 +11,7 @@ class C {
   }
 }
 
-function f() : int { 0 }
+ghost function f() : int { 0 }
 
 method main() {
   var c := new C(f());

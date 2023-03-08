@@ -3,7 +3,7 @@
 
 // Checks that the Java runtime library is present
 
-function method identity(n:nat):nat
+function identity(n:nat):nat
 {
     n
 }

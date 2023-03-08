@@ -1,3 +1,3 @@
-git-issue-328.dfy(29,16): Error: The name K ambiguously refers to a type in one of the modules B, C (try qualifying the type name with the module name)
-git-issue-328.dfy(29,21): Error: The name K ambiguously refers to a type in one of the modules B, C (try qualifying the type name with the module name)
+git-issue-328.dfy(29,22): Error: The name K ambiguously refers to a type in one of the modules B, C (try qualifying the type name with the module name)
+git-issue-328.dfy(29,27): Error: The name K ambiguously refers to a type in one of the modules B, C (try qualifying the type name with the module name)
 2 resolution/type errors detected in git-issue-328.dfy

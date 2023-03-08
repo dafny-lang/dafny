@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule1 {
-    function pos(x:int) : int
+    ghost function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
@@ -21,25 +21,25 @@ module TestModule1 {
 
 // Test with function-level fuel boost
 module TestModule2 {
-    function {:fuel 3} pos1(x:int) : int
+    ghost function {:fuel 3} pos1(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos1(x - 1)
     }
 
-    function {:fuel 4} pos2(x:int) : int
+    ghost function {:fuel 4} pos2(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos2(x - 1)
     }
 
-    function {:fuel 4} pos3(x:int) : int
+    ghost function {:fuel 4} pos3(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
     }
 
-    function {:opaque} {:fuel 4} pos4(x:int) : int
+    ghost function {:opaque} {:fuel 4} pos4(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
@@ -79,7 +79,7 @@ module TestModule2 {
 
 module TestModule3 {
     // This fuel setting is equivalent to opaque, except for literals
-    function {:fuel 0,0} pos(x:int) : int
+    ghost function {:fuel 0,0} pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
@@ -97,7 +97,7 @@ module TestModule3 {
 
 // Test fuel settings via different contexts
 module TestModule4 {
-    function pos(x:int) : int
+    ghost function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
@@ -165,7 +165,7 @@ module TestModule5 {
     module TestModule5a {
         module {:fuel TestModule5aiA.pos,3} TestModule5ai {
             module TestModule5aiA {
-                function pos(x:int) : int
+                ghost function pos(x:int) : int
                 {
                     if x < 0 then 0
                     else 1 + pos(x - 1)
@@ -204,7 +204,7 @@ module TestModule5 {
     module {:fuel TestModule5bi.TestModule5biA.pos,3} TestModule5b {
         module  TestModule5bi {
             module TestModule5biA {
-                function pos(x:int) : int
+                ghost function pos(x:int) : int
                 {
                     if x < 0 then 0
                     else 1 + pos(x - 1)
@@ -225,13 +225,13 @@ module TestModule5 {
 
 // Test fuel setting for multiple functions
 module TestModule6 {
-    function pos(x:int) : int
+    ghost function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
     }
 
-    function neg(x:int) : int
+    ghost function neg(x:int) : int
         decreases 1 - x;
     {
         if x > 0 then 0
@@ -259,13 +259,13 @@ module TestModule6 {
 
 // Test fuel settings with multiple overlapping contexts
 module TestModule7 {
-    function {:fuel 3} pos(x:int) : int
+    ghost function {:fuel 3} pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
     }
 
-    function {:fuel 0,0} neg(x:int) : int
+    ghost function {:fuel 0,0} neg(x:int) : int
         decreases 1 - x;
     {
         if x > 0 then 0
@@ -305,7 +305,7 @@ module TestModule8 {
                    | VTuple(t:seq<V>)
                    | VCase(c:uint64, val:V)
 
-        predicate {:fuel 2} ValInGrammar(val:V, grammar:G)
+        ghost predicate {:fuel 2} ValInGrammar(val:V, grammar:G)
         {
             match val
                 case VUint64(_) => grammar.GUint64?
@@ -317,18 +317,18 @@ module TestModule8 {
         datatype CRequest = CRequest(client:EndPoint, seqno:uint64, request:CAppMessage) | CRequestNoOp()
 
         type EndPoint
-        function method EndPoint_grammar() : G { GUint64 }
-        function method CRequest_grammar() : G { GTaggedUnion([ GTuple([EndPoint_grammar(), GUint64, CAppMessage_grammar()]), GUint64]) }
+        function EndPoint_grammar() : G { GUint64 }
+        function CRequest_grammar() : G { GTaggedUnion([ GTuple([EndPoint_grammar(), GUint64, CAppMessage_grammar()]), GUint64]) }
 
-        function method parse_EndPoint(val:V) : EndPoint
+        function parse_EndPoint(val:V) : EndPoint
             requires ValInGrammar(val, EndPoint_grammar());
 
         type CAppMessage
-        function method CAppMessage_grammar() : G { GTaggedUnion([GUint64, GUint64, GUint64]) }
-        function method parse_AppMessage(val:V) : CAppMessage
+        function CAppMessage_grammar() : G { GTaggedUnion([GUint64, GUint64, GUint64]) }
+        function parse_AppMessage(val:V) : CAppMessage
             requires ValInGrammar(val, CAppMessage_grammar());
 
-        function method {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
+        function {:fuel ValInGrammar,1} parse_Request1(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -338,7 +338,7 @@ module TestModule8 {
                 CRequestNoOp()
         }
 
-        function method parse_Request2(val:V) : CRequest
+        function parse_Request2(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -348,7 +348,7 @@ module TestModule8 {
                 CRequestNoOp()
         }
 
-        function method {:fuel ValInGrammar,3} parse_Request3(val:V) : CRequest
+        function {:fuel ValInGrammar,3} parse_Request3(val:V) : CRequest
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
@@ -374,7 +374,7 @@ module TestModule8 {
 
 // Test fuel when it's applied to a non-recursive function
 module TestModule9 {
-    function abs(x:int) : int
+    ghost function abs(x:int) : int
     {
         if x < 0 then -1 * x else x
     }
@@ -423,7 +423,7 @@ module TestModule9 {
 
 // Test fuel when it's applied to a non-recursive function directly (to simulate opaque)
 module TestModule10 {
-    function {:fuel 0,0} abs(x:int) : int
+    ghost function {:fuel 0,0} abs(x:int) : int
     {
         if x < 0 then -1 * x else x
     }
@@ -440,12 +440,12 @@ module TestModule10 {
 
 // Test fuel when it's mentioned in other functions function to simulate a local opaque
 module TestModule11 {
-    function abs(x:int) : int
+    ghost function abs(x:int) : int
     {
         if x < 0 then -1 * x else x
     }
 
-    function {:fuel abs,0,0} abs'(x:int) : int
+    ghost function {:fuel abs,0,0} abs'(x:int) : int
     {
         abs(x)
     }
