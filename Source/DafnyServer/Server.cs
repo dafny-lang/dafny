@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
       }
 
       if (selftest) {
-        VerificationTask.SelfTest(engine);
+        VerificationTask.SelfTest(options, engine);
         return;
       }
 
@@ -59,7 +59,7 @@ namespace Microsoft.Dafny {
       } else if (encode) {
         server.Encode();
       } else {
-        server.Loop(plaintext);
+        server.Loop(options, plaintext);
       }
     }
 
@@ -152,17 +152,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void Loop(bool inputIsPlaintext) {
+    void Loop(DafnyOptions options, bool inputIsPlaintext) {
       for (int cycle = 0; running; cycle++) {
         var line = Console.ReadLine() ?? "quit";
         if (line != String.Empty && !line.StartsWith("#")) {
           var command = line.Split();
-          Respond(command, inputIsPlaintext);
+          Respond(options, command, inputIsPlaintext);
         }
       }
     }
 
-    void Respond(string[] command, bool inputIsPlaintext) {
+    void Respond(DafnyOptions options, string[] command, bool inputIsPlaintext) {
       try {
         if (command.Length == 0) {
           throw new ServerException("Empty command");
@@ -173,19 +173,19 @@ namespace Microsoft.Dafny {
         if (verb == "verify") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Run(engine);
+          vt.Run(options, engine);
         } else if (verb == "counterexample") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.CounterExample(engine);
+          vt.CounterExample(options, engine);
         } else if (verb == "dotgraph") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.DotGraph(engine);
+          vt.DotGraph(options, engine);
         } else if (verb == "symbols") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Symbols(engine);
+          vt.Symbols(options, engine);
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
           var _ = ReadVerificationTask(inputIsPlaintext);

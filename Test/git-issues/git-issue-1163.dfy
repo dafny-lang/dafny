@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function F(i: int): int
+ghost function F(i: int): int
 
 method M() {
   ghost var f := old(i => F(i));  // the translation of this once had crashed the verifier (warning: old has no effect)
@@ -58,7 +58,7 @@ class MyClass {
     }
   }
 
-  function R(c: MyClass): MyClass
+  ghost function R(c: MyClass): MyClass
     reads this
   {
     this

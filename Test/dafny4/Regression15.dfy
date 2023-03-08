@@ -17,7 +17,7 @@ method M0() returns (b: bool) {
 //  b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // see dafny0/ResolutionErrors.dfy
 }
 
-predicate method F(i: int, j: int) { true }
+predicate F(i: int, j: int) { true }
 
 method M1() returns (b: bool) {
   b := forall i,j :: 0 <= i < 100 && i-1 <= j < i+2 ==> F(i,j);
@@ -27,7 +27,7 @@ method M2() returns (b: bool) {
   b := forall j,i :: 0 <= i < 100 && i-1 <= j < i+2 ==> F(i,j);
 }
 
-function method S(i: int): set<int> { {i} }
+function S(i: int): set<int> { {i} }
 
 method M3() returns (b: bool) {
   b := forall i,j :: 0 <= i < 100 && j in S(i) ==> F(i,j);
@@ -37,7 +37,7 @@ method M4() returns (b: bool) {
 //  b := forall i, j :: j <= i < 100 && j in S(i) ==> F(i,j);  // see dafny0/ResolutionErrors.dfy
 }
 
-function method Triple(i: int, j: int, k: int): int
+function Triple(i: int, j: int, k: int): int
 {
   100*i + 10*j + k
 }
@@ -58,7 +58,7 @@ method Orderings() {
   var h := MethodA({{57,59},{20,18}}, {59});
   print h, "\n";
 }
-function method Xit(X: set, Y: set): set { X }
+function Xit(X: set, Y: set): set { X }
 method MethodA<G>(f: set<set<G>>, M: set<G>) returns (h: set<set<G>>) {
   h := set Y,X | Y in f && X <= Y && M + X == Y :: Xit(X, Y);
 }
@@ -76,7 +76,7 @@ method SubSets() {
 method PA<G>(f: set<set<G>>, M: set<G>) returns (h: set<set<G>>) {
   h := set X,Y | Y in f && X <= Y && M + X == Y :: Xit(X,Y);
 }
-predicate method PS(X: set, Y: set) { X <= Y }
+predicate PS(X: set, Y: set) { X <= Y }
 method PB<G>(f: set<set<G>>, M: set<G>) returns (h: bool) {
   h := forall Y,X | Y in f && X <= Y && M + X == Y :: PS(X, Y);
 }

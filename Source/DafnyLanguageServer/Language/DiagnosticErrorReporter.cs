@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(string documentSource, DocumentUri entryDocumentUri) {
+    public DiagnosticErrorReporter(DafnyOptions options, string documentSource, DocumentUri entryDocumentUri) : base(options) {
       this.entryDocumentsource = documentSource;
       this.entryDocumentUri = entryDocumentUri;
     }

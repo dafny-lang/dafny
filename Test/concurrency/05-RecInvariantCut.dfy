@@ -5,7 +5,7 @@
 
 // Cast a trait type to an object type.
 // Dafny doesn't allow to do reference equality between a trait and an object type, so we use this function to upcast where needed.
-function upCast(o: object): object {o}
+ghost function upCast(o: object): object {o}
 
 // A universe of objects playing under LCI rules 
 trait Universe {
@@ -16,12 +16,12 @@ trait Universe {
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
   // without having to check the object invariants.
-  predicate globalBaseInv() reads this, content {
+  ghost predicate globalBaseInv() reads this, content {
     forall o: Object | o in content :: o.universe == this && upCast(o) != this
   }
   
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate globalInv() reads * {
+  ghost predicate globalInv() reads * {
     globalBaseInv() && forall o: Object | o in content :: o.inv()
   }
   
@@ -58,7 +58,7 @@ trait Object {
   ghost const universe: Universe
 
   // Base invariant: we're in the universe, and the universe satisfies its base.
-  predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
+  ghost predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
   
   // Join the universe
   ghost method join()
@@ -79,13 +79,13 @@ trait Object {
   }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate globalInv() reads * { baseInv() && universe.globalInv() }
+  ghost predicate globalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate globalInv2() requires old(globalInv()) reads * { baseInv() && universe.globalInv2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
-  predicate inv() reads *
+  ghost predicate inv() reads *
   twostate predicate inv2() reads *
   twostate lemma adm() requires goodPreAndLegalChanges() ensures inv2() && inv()
 }
@@ -94,11 +94,11 @@ class A extends Object {
   ghost var valid: bool // Like in VCC
   ghost var b: B
 
-  predicate inv() reads * {
+  ghost predicate inv() reads * {
     && localInv()
     && (valid ==> b.localInv())
   }
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
     && universe == b.universe
     && (valid ==>
@@ -142,11 +142,11 @@ class B extends Object {
   ghost var valid: bool // Like in VCC
   ghost var a: A
 
-  predicate inv() reads * {
+  ghost predicate inv() reads * {
     && localInv()
     && (valid ==> a.inv())
   }
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
     && universe == a.universe
     && (valid ==>

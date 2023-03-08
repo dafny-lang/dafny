@@ -12,7 +12,7 @@ public class BitvectorOptimization : IRewriter {
   public BitvectorOptimization(ErrorReporter reporter) : base(reporter) { }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
-    var visitor = new BitvectorOptimizationVisitor();
+    var visitor = new BitvectorOptimizationVisitor(Reporter.Options);
     foreach (var decl in ModuleDefinition.AllItersAndCallables(m.TopLevelDecls)) {
       visitor.Visit(decl);
     }
@@ -20,13 +20,19 @@ public class BitvectorOptimization : IRewriter {
 }
 
 public class BitvectorOptimizationVisitor : BottomUpVisitor {
+  private DafnyOptions options;
+
+  public BitvectorOptimizationVisitor(DafnyOptions options) {
+    this.options = options;
+  }
+
   private bool IsShiftOp(BinaryExpr.Opcode op) {
     return op is BinaryExpr.Opcode.LeftShift or BinaryExpr.Opcode.RightShift;
   }
 
   private Expression ShrinkBitVectorShiftAmount(Expression expr, BitvectorType originalType) {
     var width = new BigInteger(originalType.Width);
-    var intermediateType = new BitvectorType((int)width.GetBitLength());
+    var intermediateType = new BitvectorType(options, (int)width.GetBitLength());
     var newExpr = new ConversionExpr(expr.tok, expr, intermediateType, "when converting shift amount to a bit vector, the ");
     newExpr.Type = intermediateType;
     return newExpr;

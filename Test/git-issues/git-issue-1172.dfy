@@ -4,14 +4,14 @@
 // The following examples show that verification would be unsound if ghost methods would
 // be allowed to avoid termination checking.
 
-function F(): int
+ghost function F(): int
   ensures false
   decreases *  // error: this is not allowed on a function
 {
   F()
 }
 
-function method G(): int
+function G(): int
   ensures false
   decreases *  // error: this is not allowed on a function
 {
@@ -161,27 +161,27 @@ method Loops(M: int, N: int, O: int, P: int) {
   }
 }
 
-function Function0(x: object, y: object): int
+ghost function Function0(x: object, y: object): int
   reads x, y, *  // error: * can only be mentioned alone in a reads clause
 
-function Function1(x: object, y: object): int
+ghost function Function1(x: object, y: object): int
   reads *, x, y  // error: * can only be mentioned alone in a reads clause
 
-function Function2(x: object, y: object): int
+ghost function Function2(x: object, y: object): int
   reads x, y
   reads *  // error: * can only be mentioned alone in a reads clause
 
-function Function3(x: object, y: object): int
+ghost function Function3(x: object, y: object): int
   reads *
   reads x, y  // error: * can only be mentioned alone in a reads clause
 
-function Function4(x: object, y: object): int
+ghost function Function4(x: object, y: object): int
   reads x, *, y  // error: * can only be mentioned alone in a reads clause
 
-function Function5(x: object, y: object): int
+ghost function Function5(x: object, y: object): int
   reads x, *, y, *  // error: * can only be mentioned alone in a reads clause
 
-function Function6(x: object, y: object): int
+ghost function Function6(x: object, y: object): int
   reads *
   reads x  // error: * can only be mentioned alone in a reads clause
   reads *  // error: * can only be mentioned alone in a reads clause

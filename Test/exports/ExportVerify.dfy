@@ -16,7 +16,7 @@ module Lib {
 
   const Ten := 10
 
-  function method Two(): int
+  function Two(): int
     ensures Two() < 10
   { 2 }
 
