@@ -114,7 +114,8 @@ jobs:
       run: |
         $Env:GO111MODULE="auto"
         $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go | diff expect.txt -
+        go run a-go/src/a.go > actual.txt
+        diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
