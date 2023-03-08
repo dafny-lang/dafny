@@ -479,11 +479,11 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.Writer.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
         foreach (var callee in vertex.Successors) {
-          Console.Write("{0} ", callee.N.SanitizedName);
+          program.Options.Writer.Write("{0} ", callee.N.SanitizedName);
         }
-        Console.Write("\n");
+        program.Options.Writer.Write("\n");
       }
     }
 
@@ -577,9 +577,9 @@ namespace Microsoft.Dafny {
       }
 
       // Print out the results, with some nice formatting
-      Console.WriteLine("");
-      Console.WriteLine("Statistics");
-      Console.WriteLine("----------");
+      program.Options.Writer.WriteLine("");
+      program.Options.Writer.WriteLine("Statistics");
+      program.Options.Writer.WriteLine("----------");
 
       int max_key_length = 0;
       foreach (var key in stats.Keys) {
@@ -590,7 +590,7 @@ namespace Microsoft.Dafny {
 
       foreach (var keypair in stats) {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
-        Console.WriteLine("{0} {1,4}", keyString, keypair.Value);
+        program.Options.Writer.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
   }

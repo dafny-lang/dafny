@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
 using XUnitExtensions;
@@ -60,39 +61,38 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config)
+            new DafnyDriverLitCommand(args, config)
         }, {
           "%resolve", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultResolveArgs, args),
-              config)
+            new DafnyDriverLitCommand(AddExtraArgs(defaultResolveArgs, args), config)
         }, {
           "%translate", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(new[]{"translate"}, args),
+            new DafnyDriverLitCommand(AddExtraArgs(new[]{"translate"}, args),
               config)
         }, {
           "%verify", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultVerifyArgs, args),
+            new DafnyDriverLitCommand(AddExtraArgs(defaultVerifyArgs, args),
               config)
         }, {
           "%build", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultBuildArgs, args),
+            new DafnyDriverLitCommand(AddExtraArgs(defaultBuildArgs, args),
               config)
         }, {
           "%run", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultRunArgs, args),
+            new DafnyDriverLitCommand(AddExtraArgs(defaultRunArgs, args),
               config)
         }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
+            new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
               config)
         }, {
-          "%testDafnyForEachCompiler", (args, config) =>
+          "%testDafnyForEachCompiler", (args, config) => // TODO
             MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
         }, {
-          "%server", (args, config) =>
+          "%server", (args, config) => // TODO
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config)
         }, {
-          "%boogie", (args, config) =>
+          "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
               args.Concat(DefaultBoogieArguments),
               config.PassthroughEnvironmentVariables)
@@ -169,4 +169,20 @@ namespace IntegrationTests {
       LitTestCase.Run(path, Config, output);
     }
   }
+  
+  class DafnyDriverLitCommand : ILitCommand {
+    private readonly string[] arguments;
+
+    public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
+      this.arguments = arguments.ToArray();
+    }
+    
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+      TextWriter? errorWriter) {
+      //var exitCode = DafnyDriver.MainWithWriter(outputWriter, arguments);
+      var exitCode = DafnyDriver.ThreadMain(outputWriter, arguments);
+      return (exitCode, "", "");
+    }
+  }
 }
+

@@ -96,19 +96,25 @@ namespace Microsoft.Dafny {
     };
 
     public static int Main(string[] args) {
+      var writer = Console.Out;
+      return MainWithWriter(writer, args);
+    }
+
+    public static int MainWithWriter(TextWriter writer, string[] args)
+    {
       int ret = 0;
       var thread = new System.Threading.Thread(
-        new System.Threading.ThreadStart(() => { ret = ThreadMain(args); }),
-          0x10000000); // 256MB stack size to prevent stack overflow
+        new System.Threading.ThreadStart(() => { ret = ThreadMain(writer, args); }),
+        0x10000000); // 256MB stack size to prevent stack overflow
       thread.Start();
       thread.Join();
       return ret;
     }
 
-    public static int ThreadMain(string[] args) {
+    public static int ThreadMain(TextWriter writer, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var cliArgumentsResult = ProcessCommandLineArguments(Console.Out,
+      var cliArgumentsResult = ProcessCommandLineArguments(writer,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 

@@ -229,7 +229,9 @@ namespace Microsoft.Dafny {
         msg = msg.Replace("\n", "\n ");
 
         ConsoleColor previousColor = Console.ForegroundColor;
-        Console.ForegroundColor = ColorForLevel(level);
+        if (Options.Writer == Console.Out) {
+          Console.ForegroundColor = ColorForLevel(level);
+        }
         var errorLine = ErrorToString(level, tok, msg);
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
@@ -248,13 +250,15 @@ namespace Microsoft.Dafny {
             errorLine += "\n" + info;
           }
         }
-        Console.WriteLine(errorLine);
+        Options.Writer.WriteLine(errorLine);
 
-        Console.ForegroundColor = previousColor;
+        if (Options.Writer == Console.Out) {
+          Console.ForegroundColor = previousColor;
+        }
         return true;
-      } else {
-        return false;
       }
+
+      return false;
     }
 
     public ConsoleErrorReporter(DafnyOptions options) : base(options) {

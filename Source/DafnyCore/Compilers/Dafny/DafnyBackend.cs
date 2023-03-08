@@ -84,7 +84,7 @@ public class DafnyBackend : ExecutableBackend {
       process.CancelOutputRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        Console.WriteLine(outputBuilder[i]);
+        Options.Writer.WriteLine(outputBuilder[i]);
       }
 
       if (process.ExitCode != 0) {

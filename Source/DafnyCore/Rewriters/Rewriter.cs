@@ -17,6 +17,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected ErrorReporter Reporter;
 
+    protected DafnyOptions Options => Reporter.Options;
+
     /// <summary>
     /// Constructor that accepts an ErrorReporter
     /// You can obtain an ErrorReporter two following ways:

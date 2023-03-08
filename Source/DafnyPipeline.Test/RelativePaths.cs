@@ -1,14 +1,23 @@
 using System.IO;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Resolution")]
 
   public class RelativePaths {
+    private readonly TextWriter output;
+
+    public RelativePaths(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     [Fact]
     public void Test() {
-      Assert.Equal(0, DafnyDriver.ThreadMain(new string[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
+      Assert.Equal(0, DafnyDriver.ThreadMain(output, new string[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
     }
 
     [Fact]
