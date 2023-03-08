@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 type U(==)
-function ToU<T>(t:T) : U
+ghost function ToU<T>(t:T) : U
 type Ptr<T>
 
 class HostEnvironment{
@@ -21,7 +21,7 @@ method test(ghost env:HostEnvironment)
     assert ToU(myptr) in env.heap();
 }
 
-predicate sat(s:int, t:int)
+ghost predicate sat(s:int, t:int)
 
 function{:opaque} and(x:int, y:int):int
     ensures  forall i:int :: sat(i, and(x, y));

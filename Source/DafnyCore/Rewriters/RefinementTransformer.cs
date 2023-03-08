@@ -620,11 +620,11 @@ namespace Microsoft.Dafny {
       }
 
       if (previousMethod is Constructor) {
-        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.BodyForRefinement);
+        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
         return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
-      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.BodyForRefinement);
+      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
       if (previousMethod is LeastLemma) {
         return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
@@ -674,7 +674,7 @@ namespace Microsoft.Dafny {
       if (nw.SignatureIsOmitted) {
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
-        Reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
+        Reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(Reporter.Options, prev));
       } else {
         CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "iterator");
         CheckAgreement_Parameters(nw.tok, prev.Ins, nw.Ins, nw.Name, "iterator", "in-parameter");
@@ -809,7 +809,7 @@ namespace Microsoft.Dafny {
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
                 Contract.Assert(f.Formals.Count == 0);
-                Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(prevFunction));
+                Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(Reporter.Options, prevFunction));
               } else {
                 CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
                 CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
@@ -872,22 +872,22 @@ namespace Microsoft.Dafny {
                 Contract.Assert(m.TypeArgs.Count == 0);
                 Contract.Assert(m.Ins.Count == 0);
                 Contract.Assert(m.Outs.Count == 0);
-                Reporter.Info(MessageSource.RefinementTransformer, m.SignatureEllipsis, Printer.MethodSignatureToString(prevMethod));
+                Reporter.Info(MessageSource.RefinementTransformer, m.SignatureEllipsis, Printer.MethodSignatureToString(Reporter.Options, prevMethod));
               } else {
                 CheckAgreement_TypeParameters(m.tok, prevMethod.TypeArgs, m.TypeArgs, m.Name, "method");
                 CheckAgreement_Parameters(m.tok, prevMethod.Ins, m.Ins, m.Name, "method", "in-parameter");
                 CheckAgreement_Parameters(m.tok, prevMethod.Outs, m.Outs, m.Name, "method", "out-parameter");
               }
               currentMethod = m;
-              var replacementBody = m.BodyForRefinement;
+              var replacementBody = m.Body;
               if (replacementBody != null) {
-                if (prevMethod.BodyForRefinement == null) {
+                if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.BodyForRefinement);
+                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.BodyForRefinement == null, m.Attributes);
+              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -1095,7 +1095,7 @@ namespace Microsoft.Dafny {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = refinementCloner.CloneStmt(oldS);
                   body.Add(s);
-                  hoverTextA += sepA + Printer.StatementToString(s);
+                  hoverTextA += sepA + Printer.StatementToString(Reporter.Options, s);
                   sepA = "\n";
                   j++;
                   if (j == oldStmt.Count) { break; }
@@ -1123,7 +1123,7 @@ namespace Microsoft.Dafny {
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssertStmt(new RangeToken(new Translator.ForceCheckToken(skel.RangeToken.StartToken), skel.RangeToken.EndToken),
                   e, skel.Proof, skel.Label, new Attributes("_prependAssertToken", new List<Expression>(), attrs)));
-                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny {
                 var message = refinementCloner.CloneExpr(oldExpect.Message);
                 var attrs = refinementCloner.MergeAttributes(oldExpect.Attributes, skel.Attributes);
                 body.Add(new ExpectStmt(skel.RangeToken, e, message, attrs));
-                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
@@ -1154,7 +1154,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldAssume.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
                 body.Add(new AssumeStmt(skel.RangeToken, e, attrs));
-                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
@@ -1171,7 +1171,7 @@ namespace Microsoft.Dafny {
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
                 var r = new IfStmt(skel.RangeToken, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
                 body.Add(r);
-                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(oldIf.IsBindingGuard, e));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, oldIf.IsBindingGuard, e));
                 i++; j++;
               }
 
@@ -1185,7 +1185,7 @@ namespace Microsoft.Dafny {
                 Expression guard;
                 if (c.ConditionOmitted) {
                   guard = refinementCloner.CloneExpr(oldWhile.Guard);
-                  Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(false, oldWhile.Guard));
+                  Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, false, oldWhile.Guard));
                 } else {
                   if (oldWhile.Guard != null) {
                     Reporter.Error(MessageSource.RefinementTransformer, skel.Guard.tok, "a skeleton while statement with a guard can only replace a while statement with a non-deterministic guard");
@@ -1223,7 +1223,7 @@ namespace Microsoft.Dafny {
                   mbody = MergeBlockStmt(skel.Body, oldModifyStmt.Body);
                 }
                 body.Add(new ModifyStmt(skel.RangeToken, mod.Expressions, mod.Attributes, mbody));
-                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(mod.Expressions));
+                Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.FrameExprListToString(Reporter.Options, mod.Expressions));
                 i++; j++;
               }
 
@@ -1383,7 +1383,7 @@ namespace Microsoft.Dafny {
       for (; j < oldStmt.Count; j++) {
         var b = oldStmt[j];
         body.Add(refinementCloner.CloneStmt(b));
-        hoverText += sep + Printer.StatementToString(b);
+        hoverText += sep + Printer.StatementToString(Reporter.Options, b);
         sep = "\n";
       }
       return body;
@@ -1668,10 +1668,10 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = m;
     }
     public override BlockStmt CloneMethodBody(Method m) {
-      if (m.BodyForRefinement is DividedBlockStmt) {
-        return CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
+      if (m.Body is DividedBlockStmt) {
+        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {
-        return CloneBlockStmt(m.BodyForRefinement);
+        return CloneBlockStmt(m.Body);
       }
     }
 

@@ -10,7 +10,7 @@ module Actuals {
     r := a + 2 * b;
   }
 
-  function method F(a: int, b: int, c: int): int
+  function F(a: int, b: int, c: int): int
   {
     a + 2 * b + 3 * c
   }
@@ -52,7 +52,7 @@ module Actuals {
 }
 
 module Termination {
-  function method R(n: nat := R(0)): nat { n } // error: default value cannot make recursive call
+  function R(n: nat := R(0)): nat { n } // error: default value cannot make recursive call
 }
 
 module TwoState {
@@ -69,7 +69,7 @@ module TwoState {
 }
 
 module A {
-  function method F(x: int := 5): (r: int)
+  function F(x: int := 5): (r: int)
     ensures r == x
   method M(x: int := 5) returns (r: int)
     ensures r == x
@@ -81,10 +81,10 @@ module A {
 }
 
 module B refines A {
-  function method F(x: int): int { x }
+  function F(x: int): int { x }
   method M(x: int) returns (r: int) { r := x; }
 
-  function method F'(x: int := 6): int { x }
+  function F'(x: int := 6): int { x }
   method M'(x: int := 6) returns (r: int) ensures r == x { r := x; }
 
   lemma Lemma1()
@@ -121,26 +121,26 @@ module Wellformedness {
     var u: int
     const v: int
 
-    function T0(x: int := this.u): int // error: insufficient reads clause
+    ghost function T0(x: int := this.u): int // error: insufficient reads clause
 
-    function T1(x: int := this.v): int
+    ghost function T1(x: int := this.v): int
 
-    function T2(c: C, x: int := c.u): int
+    ghost function T2(c: C, x: int := c.u): int
       reads c
 
-    function T3(c: C, x: int := c.u): int // error: insufficient reads clause
+    ghost function T3(c: C, x: int := c.u): int // error: insufficient reads clause
       requires c == this
       reads this
 
-    function T4(x: int := 10, z: int := 10 / x): int // error: division by zero
+    ghost function T4(x: int := 10, z: int := 10 / x): int // error: division by zero
 
-    function T5(x: int, z: int := 10 / x): int // error: division by zero (despite precondition)
+    ghost function T5(x: int, z: int := 10 / x): int // error: division by zero (despite precondition)
       requires x == 10
 
-    function T6(x: int := 3 / y, y: int := 10): int // error: division by zero (despite precondition)
+    ghost function T6(x: int := 3 / y, y: int := 10): int // error: division by zero (despite precondition)
       requires y == 10
 
-    function T7(x: int := 3, y: int := 10): int
+    ghost function T7(x: int := 3, y: int := 10): int
       requires y == 8
       requires 1 / x == 2000 // error: division by zero
   }
@@ -171,16 +171,16 @@ module Wellformedness {
 
   datatype Dt = Dt(x: int := 8, y: int := 10 / x) // error: division by zero (reported twice)
 
-  function method Int(): int
-  function method Nat(): int
+  function Int(): int
+  function Nat(): int
     ensures 0 <= Nat()
 
-  function SubrangeF0(x: nat := Int()): int // error: Int() may not be a "nat"
+  ghost function SubrangeF0(x: nat := Int()): int // error: Int() may not be a "nat"
   method SubrangeM0(x: nat := Int()) // error: Int() may not be a "nat"
   iterator SubrangeI0(x: nat := Int()) // error: Int() may not be a "nat"
   datatype SubrangeD0 = D0(x: nat := Int()) // error: Int() may not be a "nat"
 
-  function SubrangeF1(x: nat := Nat()): int
+  ghost function SubrangeF1(x: nat := Nat()): int
   method SubrangeM1(x: nat := Nat())
   iterator SubrangeI1(x: nat := Nat())
   datatype SubrangeD1 = D1(x: nat := Nat())
@@ -191,50 +191,50 @@ module Wellformedness {
 }
 
 module Nested {
-  function F(xt: int, yt: int := G(xt)): int // error: mutually recursive call not allowed in default-value expression
-  function G(x: int, y: int := x): int {
+  ghost function F(xt: int, yt: int := G(xt)): int // error: mutually recursive call not allowed in default-value expression
+  ghost function G(x: int, y: int := x): int {
     if x <= 0 then 0 else
       F(x - 1) // expands to F(x-1, G(x-1, x-1))
   }
 
-  function F'(xt: int, yt: int := G'(xt)): int // error: mutually recursive call not allowed in default-value expression
+  ghost function F'(xt: int, yt: int := G'(xt)): int // error: mutually recursive call not allowed in default-value expression
     decreases 5
   {
     G'(xt) // there's a termination problem here, but the complaint is masked by the default value error 3 lines above
   }
-  function G'(x: int, y: int := x): int
+  ghost function G'(x: int, y: int := x): int
     decreases 6
   {
     F'(y) // expands to F'(y, G'(y, y)), but there's no additional complaint about the non-terminating call to G' (complaint was given above)
   }
 
-  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat // error: mutually recursive call not allowed in default value
+  ghost function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat // error: mutually recursive call not allowed in default value
     decreases xt, 0
-  function L(x: nat, y: nat := x): nat
+  ghost function L(x: nat, y: nat := x): nat
     decreases x, 1
   {
     K(x) // should expand to: K(x, if x == 0 then 6 else L(x - 1))
   }
 
-  function A(x: nat := B()): nat // error: mutually recursive call not allowed in default value
-  function B(x: nat := C()): nat // error: mutually recursive call not allowed in default value
-  function C(): nat
+  ghost function A(x: nat := B()): nat // error: mutually recursive call not allowed in default value
+  ghost function B(x: nat := C()): nat // error: mutually recursive call not allowed in default value
+  ghost function C(): nat
     decreases 7
   {
     ABC0() + ABC1() + ABC2()
   }
-  function ABC0(): nat
+  ghost function ABC0(): nat
     decreases 6
   {
     A(B(C())) // error: call to C may not terminate
   }
-  function ABC1(): nat
+  ghost function ABC1(): nat
     decreases 6
   {
     // the following expression expands to A(B(C()))
     A(B()) // error (x2): calls to A and B may not terminate
   }
-  function ABC2(): nat
+  ghost function ABC2(): nat
     decreases 6
   {
     // the following expression expands to A(B(C()))
@@ -248,14 +248,14 @@ module ReadsAndDecreases {
   class C {
     var data: int
 
-    function M(x: int := data): int { x } // error: insufficient reads clause
+    ghost function M(x: int := data): int { x } // error: insufficient reads clause
 
-    function NA(): int
+    ghost function NA(): int
       decreases 3
     {
       NCaller1(2, this)
     }
-    function NB(x: int, y: int := NA()): int // error: mutually recursive call not allowed in default-value expression
+    ghost function NB(x: int, y: int := NA()): int // error: mutually recursive call not allowed in default-value expression
       decreases x
     {
       NCaller0(x, this) + NCaller1(x, this)
@@ -264,30 +264,30 @@ module ReadsAndDecreases {
     // The following function has a division-by-zero error in the default-value expression
     // for "y". That's not allowed (even if all call sites pass in "x" as non-0), and it's
     // checked here.
-    function O(x: int, y: int := 3 / x): int // error: division by zero
+    ghost function O(x: int, y: int := 3 / x): int // error: division by zero
     {
       x + y
     }
   }
 
-  function MCaller0(c: C): int {
+  ghost function MCaller0(c: C): int {
     c.M() // no additional complaint
   }
-  function MCaller1(c: C): int
+  ghost function MCaller1(c: C): int
     reads c
   {
     c.M()
   }
-  function MCaller2(c: C): int {
+  ghost function MCaller2(c: C): int {
     c.M(2)
   }
 
-  function NCaller0(x: int, c: C): int
+  ghost function NCaller0(x: int, c: C): int
     decreases x, 0
   {
     if x <= 0 then 0 else c.NB(x - 1, 0)
   }
-  function NCaller1(x: int, c: C): int
+  ghost function NCaller1(x: int, c: C): int
     decreases x, 0
   {
     // in the following line, c.NB(x - 1) expands to c.NB(x - 1, NA()), but the termination check for
@@ -295,19 +295,19 @@ module ReadsAndDecreases {
     if x <= 0 then 0 else c.NB(x - 1)
   }
 
-  function OCaller0(c: C): int {
+  ghost function OCaller0(c: C): int {
     c.O(1) + c.O(0, 2)
   }
-  function OCaller1(c: C): int {
+  ghost function OCaller1(c: C): int {
     c.O(0) // no repeated warning about division-by-zero
   }
-  function OCaller2(x: int, c: C): int
+  ghost function OCaller2(x: int, c: C): int
     requires x != 0
   {
     c.O(x)
   }
 
-  function method J(): int
+  function J(): int
   lemma AboutJ()
     ensures J() != 0
   method Jx(x: int := AboutJ(); 2 / J()) // lemma ensures no div-by-zero
@@ -317,37 +317,37 @@ module ReadsAndDecreases {
 
   lemma Lemma(x: int)
     requires x == 3
-  function BadLemmaCall(y: int := Lemma(2); 5): int // error: precondition violation in lemma call
+  ghost function BadLemmaCall(y: int := Lemma(2); 5): int // error: precondition violation in lemma call
   method BadLemmaCaller() {
     var z := BadLemmaCall(); // no repeated complaint here
   }
 
-  function MoreReads(a: array<int>, m: array2<int>,
+  ghost function MoreReads(a: array<int>, m: array2<int>,
     x: int := if 0 < a.Length then a[0] else 3, // error: insufficient reads clause
     y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int // error: insufficient reads clause
-  function ReadA0(a: array<int>, m: array2<int>): int
+  ghost function ReadA0(a: array<int>, m: array2<int>): int
     requires m.Length0 == 0
   {
     MoreReads(a, m)
   }
-  function ReadA1(a: array<int>, m: array2<int>): int
+  ghost function ReadA1(a: array<int>, m: array2<int>): int
     requires m.Length0 == 0
     reads a
   {
     MoreReads(a, m)
   }
-  function ReadM0(a: array<int>, m: array2<int>): int
+  ghost function ReadM0(a: array<int>, m: array2<int>): int
     requires a.Length == 0
   {
     MoreReads(a, m)
   }
-  function ReadM1(a: array<int>, m: array2<int>): int
+  ghost function ReadM1(a: array<int>, m: array2<int>): int
     requires a.Length == 0
     reads m
   {
     MoreReads(a, m)
   }
-  function ReadNeither(a: array<int>, m: array2<int>): int
+  ghost function ReadNeither(a: array<int>, m: array2<int>): int
     requires a.Length == 0 == m.Length0
   {
     MoreReads(a, m)
@@ -358,7 +358,7 @@ module ReadsAndDecreases {
 
 module WellformednessCheck {
   datatype R = R(i: int, x: int := 10 / i) // error: division by zero
-  function F(i: int, x: int := 10 / i): int // error: division by zero
+  ghost function F(i: int, x: int := 10 / i): int // error: division by zero
   method M(i: int, x: int := 10 / i) // error: division by zero
   iterator Iter(i: int, x: int := 10 / i) // error: division by zero (reported twice)
   class Class {
@@ -383,7 +383,7 @@ module WellformednessCheck {
 
 module SubtypeCheck {
   datatype R = R(i: int, x: nat := i) // error: i is not a nat
-  function F(i: int, x: nat := i): int // error: i is not a nat
+  ghost function F(i: int, x: nat := i): int // error: i is not a nat
   method M(i: int, x: nat := i) // error: i is not a nat
   iterator Iter(i: int, x: nat := i) // error: i is not a nat (reported twice)
   class Class {
@@ -414,8 +414,8 @@ module TerminationCheck {
   }
 
   datatype R = R(x: int := X(); 3) // error: termination violation
-  function F(x: int := F(5)): int // error: termination violation
-  function G(x: int := X(); 3): int // error: termination violation
+  ghost function F(x: int := F(5)): int // error: termination violation
+  ghost function G(x: int := X(); 3): int // error: termination violation
   lemma M(x: int := X(); 3) // error: termination violation
 
   method Caller() {
@@ -436,7 +436,7 @@ module TerminationCheck_datatype {
   datatype Q = Q(x: int := Q(5).x)
 
   datatype R = R(x: int := F()) // error: mutual recursion not allowed in default values
-  function method F(): int {
+  function F(): int {
     R().x
   }
 
@@ -458,7 +458,7 @@ module TerminationCheck_tricky {
     assert s.x == -3;
     assert 0 <= Id(s).x;
   }
-  function method Id(s: S): S
+  function Id(s: S): S
     ensures 0 <= Id(s).x
   {
     var n: nat := s.x;
@@ -495,7 +495,7 @@ module TickRegressions {
 }
 
 module StmtExprCallPreconditionRegression {
-  function G(): int
+  ghost function G(): int
     // Amazingly, the well-formedness check for G was once omitted for this function.
     requires (X(); true) // error: precondition violation
 
@@ -518,10 +518,10 @@ module ReadsCheck {
     var data: int
   }
   datatype R = R(c: Cell, x: int := c.data) // error: reads violation
-  function F(c: Cell, x: int := c.data): int // error: reads violation
-  function G(c: Cell, x: int := c.data): int
+  ghost function F(c: Cell, x: int := c.data): int // error: reads violation
+  ghost function G(c: Cell, x: int := c.data): int
     reads c
-  function H(c: Cell, d: Cell, x: int := c.data): int // error: reads violation (check is done independent of preconditions)
+  ghost function H(c: Cell, d: Cell, x: int := c.data): int // error: reads violation (check is done independent of preconditions)
     requires c == d
     reads d
   method M(c: Cell, x: int := c.data)

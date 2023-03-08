@@ -19,7 +19,7 @@ method M2()
   assert var f := 54; var f := f + 1; f == 55;
 }
 
-function method Fib(n: nat): nat
+function Fib(n: nat): nat
 {
   if n < 2 then n else Fib(n-1) + Fib(n-2)
 }
@@ -134,7 +134,7 @@ ghost method Theorem1(n: int)
   // in a ghost method, the induction tactic takes care of it
 }
 
-function Theorem2(n: int): int
+ghost function Theorem2(n: int): int
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
@@ -144,7 +144,7 @@ function Theorem2(n: int): int
     x + y
 }
 
-function Theorem3(n: int): int
+ghost function Theorem3(n: int): int
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
@@ -157,14 +157,14 @@ function Theorem3(n: int): int
 // ----- tricky substitution issues in the implementation -----
 
 class TrickySubstitution {
-  function F0(x: int): int
+  ghost function F0(x: int): int
     ensures F0(x) == x;
   {
     var g :| x == g;
     g
   }
 
-  function F1(x: int): int
+  ghost function F1(x: int): int
     ensures F1(x) == x;
   {
     var f := x;
@@ -172,14 +172,14 @@ class TrickySubstitution {
     g
   }
 
-  function F2(x: int): int
+  ghost function F2(x: int): int
     ensures F2(x) == x;
   {
     var f, g :| f == x && f == g;
     g
   }
 
-  function F3(x: int): int
+  ghost function F3(x: int): int
     ensures F3(x) == x;
   {
     var f :| f == x;
@@ -190,7 +190,7 @@ class TrickySubstitution {
   var v: int;
   var w: int;
 
-  function F4(x: int): int
+  ghost function F4(x: int): int
     requires this.v + x == 3 && this.w == 2;
     reads this;
     ensures F4(x) == 5;
@@ -201,7 +201,7 @@ class TrickySubstitution {
   }
 
   // let-such-thats inside quantifiers must have quantified vars substituted correctly
-  predicate F5(n: int)
+  ghost predicate F5(n: int)
   {
     forall i :: 0 < i < n ==> var j, k :| k <= j < i; k <= j < i
   }
@@ -249,7 +249,7 @@ method Q(list: List<int>, anotherList: List<int>)
 
 datatype Tuple<T,U> = Pair(0: T, 1: U)
 
-function method Together(x: int, y: bool): Tuple<int, bool>
+function Together(x: int, y: bool): Tuple<int, bool>
 {
   Pair(x, y)
 }
@@ -272,7 +272,7 @@ method Mountain() returns (z: int, t: nat)
   assert 0 <= z;
 }
 
-function method Rainbow<X>(tup: Tuple<X, int>): int
+function Rainbow<X>(tup: Tuple<X, int>): int
   ensures 0 <= Rainbow(tup);
 {
   var Pair(left, right) := tup; right*right
@@ -280,7 +280,7 @@ function method Rainbow<X>(tup: Tuple<X, int>): int
 
 datatype Friend = Agnes(int) | Agatha(int) | Jermaine(int) | Jack(int)
 
-function Fr(x: int): Friend
+ghost function Fr(x: int): Friend
 {
   if x < 10 then Jermaine(x) else Agnes(x)
 }
@@ -295,7 +295,7 @@ method Friendly(n: nat) returns (ghost c: int)
   }
 }
 
-function method F_good(d: Tuple<
+function F_good(d: Tuple<
                              Tuple<bool, int>,
                              Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
   requires 0 <= d.1.0.1 < 100;
@@ -304,7 +304,7 @@ function method F_good(d: Tuple<
   assert q < 200;
   p.1 + if b0 then x + y0 else x + y1
 }
-function method F_bad(d: Tuple<
+function F_bad(d: Tuple<
                             Tuple<bool, int>,
                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
 {
@@ -359,7 +359,7 @@ module CanCallRegressionTests {
   class C {
     var x: int
 
-    function method Id(c: C): C { c }
+    function Id(c: C): C { c }
 
     method M()
     {
@@ -374,7 +374,7 @@ module CanCallRegressionTests {
 // ---------------------------------- Lit of let RHS
 
 module LitLet {
-  function method Gauss(n: nat): nat {
+  function Gauss(n: nat): nat {
     if n == 0 then 0 else n + Gauss(n - 1)
   }
 
@@ -407,19 +407,19 @@ module LitLet {
 
   datatype Nat = O | S(pred: Nat)
 
-  function plus(n: Nat, m: Nat) : Nat {
+  ghost function plus(n: Nat, m: Nat) : Nat {
     match n
     case O => m
     case S(n') => S(plus(n', m))
   }
 
-  function mult(n: Nat, m: Nat) : Nat {
+  ghost function mult(n: Nat, m: Nat) : Nat {
     if n.O? then O else
       var n' := n.pred;
       plus(m, mult(n', m))
   }
 
-  function factorial(n: Nat): Nat {
+  ghost function factorial(n: Nat): Nat {
     match n
     case O => S(O)
     case S(n') => mult(n, factorial(n'))

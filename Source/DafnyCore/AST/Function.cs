@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -11,26 +10,24 @@ namespace Microsoft.Dafny;
 public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
   public override string WhatKind => "function";
 
-  public string FunctionDeclarationKeywords {
-    get {
-      string k;
-      if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
-        k = WhatKind;
-      } else if (this is PrefixPredicate) {
-        k = "predicate";
-      } else if (DafnyOptions.O.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
-                 (this is Predicate || !IsGhost)) {
-        k = WhatKind;
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost) {
-        k = WhatKind + " method";
-      } else if (DafnyOptions.O.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost) {
-        k = "ghost " + WhatKind;
-      } else {
-        k = WhatKind;
-      }
-
-      return HasStaticKeyword ? "static " + k : k;
+  public string GetFunctionDeclarationKeywords(DafnyOptions options) {
+    string k;
+    if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
+      k = WhatKind;
+    } else if (this is PrefixPredicate) {
+      k = "predicate";
+    } else if (options.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost &&
+               (this is Predicate || !IsGhost)) {
+      k = WhatKind;
+    } else if (options.FunctionSyntax != FunctionSyntaxOptions.Version4 && !IsGhost) {
+      k = WhatKind + " method";
+    } else if (options.FunctionSyntax != FunctionSyntaxOptions.Version3 && IsGhost) {
+      k = "ghost " + WhatKind;
+    } else {
+      k = WhatKind;
     }
+
+    return HasStaticKeyword ? "static " + k : k;
   }
 
   public override bool IsOpaque { get; }
@@ -280,9 +277,9 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
 
   public static readonly Option<string> FunctionSyntaxOption = new("--function-syntax",
-    () => "3",
+    () => "4",
     @"
-The syntax for functions is changing from Dafny version 3 to version 4. This switch gives early access to the new syntax, and also provides a mode to help with migration.
+The syntax for functions changed from Dafny version 3 to version 4. This switch controls access to the new syntax, and also provides a mode to help with migration.
 
 3 - Compiled functions are written `function method` and `predicate method`. Ghost functions are written `function` and `predicate`.
 4 - Compiled functions are written `function` and `predicate`. Ghost functions are written `ghost function` and `ghost predicate`.
@@ -346,5 +343,94 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     formatter.SetExpressionIndentation(Body);
     return true;
+  }
+
+  /// <summary>
+  /// Assumes type parameters have already been pushed
+  /// </summary>
+  public void Resolve(Resolver resolver) {
+    Contract.Requires(this != null);
+    Contract.Requires(resolver.AllTypeConstraints.Count == 0);
+    Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    // make note of the warnShadowing attribute
+    bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
+    bool warnShadowing = false;
+    if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
+      resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
+    }
+
+    resolver.scope.PushMarker();
+    if (IsStatic) {
+      resolver.scope.AllowInstance = false;
+    }
+
+    foreach (Formal p in Formals) {
+      resolver.scope.Push(p.Name, p);
+    }
+
+    resolver.ResolveParameterDefaultValues(Formals, ResolutionContext.FromCodeContext(this));
+
+    foreach (AttributedExpression e in Req) {
+      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
+      Expression r = e.E;
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
+    }
+    foreach (FrameExpression fr in Reads) {
+      resolver.ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, this);
+    }
+
+    resolver.scope.PushMarker();
+    if (Result != null) {
+      resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
+    }
+    foreach (AttributedExpression e in Ens) {
+      Expression r = e.E;
+      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction) with { InFunctionPostcondition = true });
+      Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
+    }
+    resolver.scope.PopMarker(); // function result name
+
+    resolver.ResolveAttributes(Decreases, new ResolutionContext(this, this is TwoStateFunction));
+    foreach (Expression r in Decreases.Expressions) {
+      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      // any type is fine
+    }
+    resolver.SolveAllTypeConstraints(); // solve type constraints in the specification
+
+    if (Body != null) {
+      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
+      Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
+      resolver.SolveAllTypeConstraints();
+    }
+
+    resolver.scope.PushMarker();
+    if (Result != null) {
+      resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
+    }
+    resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateFunction), true);
+    resolver.scope.PopMarker(); // function result name
+
+    resolver.scope.PopMarker(); // formals
+
+    if (ByMethodBody != null) {
+      Contract.Assert(Body != null && !IsGhost); // assured by the parser and other callers of the Function constructor
+      var method = ByMethodDecl;
+      if (method != null) {
+        method.Resolve(resolver);
+      } else {
+        // method should have been filled in by now,
+        // unless there was a function by method and a method of the same name
+        // but then this error must have been reported.
+        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+      }
+    }
+
+    resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
 }

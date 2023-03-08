@@ -20,6 +20,10 @@ env:
   dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
   z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-dafny-cli-tool:
 

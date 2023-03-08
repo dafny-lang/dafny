@@ -10,7 +10,7 @@ class MyClass {
 method P() returns (res: Result<real>)
 
 datatype Result<T> = Success(value: T) | Failure {
-  predicate method IsFailure() { Failure? }
-  function method PropagateFailure(): Result<T> { this }
-  function method Extract(): int { 5 }
+  predicate IsFailure() { Failure? }
+  function PropagateFailure(): Result<T> { this }
+  function Extract(): int { 5 }
 }

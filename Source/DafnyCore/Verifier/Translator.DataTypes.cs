@@ -659,12 +659,12 @@ namespace Microsoft.Dafny {
       Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
-        if (CommonHeapUse || (NonGhostsUseHeap && !arg.IsGhost)) {
+        if (options.CommonHeapUse || (options.NonGhostsUseHeap && !arg.IsGhost)) {
           conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
         }
       }
 
-      if (CommonHeapUse || NonGhostsUseHeap) {
+      if (options.CommonHeapUse || options.NonGhostsUseHeap) {
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
         var c_alloc = MkIsAlloc(c_params, c_ty, h);
         bvs.Add(hVar);
@@ -696,7 +696,7 @@ namespace Microsoft.Dafny {
 
       var body = BplImp(BplAnd(isGoodHeap, isPredicate), isAlloc);
 
-      if (CommonHeapUse || NonGhostsUseHeap) {
+      if (options.CommonHeapUse || options.NonGhostsUseHeap) {
         var tr = BplTrigger(isAlloc);
         var ax = new Bpl.Axiom(dt.tok, BplForall(Snoc(boundVariables, hVar), tr, body), "Datatype $IsAlloc");
         sink.AddTopLevelDeclaration(ax);
@@ -731,7 +731,7 @@ namespace Microsoft.Dafny {
                    $IsAlloc[Box](Dtor(d), D(G), H))
          */
     private void AddDestructorAxiom(DatatypeDecl dt, DatatypeCtor ctor, Bpl.Function ctorFunction, List<Variable> tyvars, Expr c_ty) {
-      if (!CommonHeapUse || AlwaysUseHeap) {
+      if (!options.CommonHeapUse || options.AlwaysUseHeap) {
         return;
       }
 

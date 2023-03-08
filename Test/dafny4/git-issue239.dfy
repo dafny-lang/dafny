@@ -4,7 +4,7 @@
 module List {
   datatype list<A> = Nil | Cons(A, list<A>)
 
-  function method split<A, B>(l: list<(A, B)>): (list<A>, list<B>) {
+  function split<A, B>(l: list<(A, B)>): (list<A>, list<B>) {
     match l
       case Nil =>  (Nil, Nil)
       case Cons((x, y), xys) =>

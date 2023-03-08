@@ -3,8 +3,8 @@
 
 class Node { }
 
-predicate Q(x: Node)
-predicate P(x: Node)
+ghost predicate Q(x: Node)
+ghost predicate P(x: Node)
 
 method AuxMethod(y: Node)
   modifies y

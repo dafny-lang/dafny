@@ -8,7 +8,7 @@ method Apply(x : int) returns (i : int)
   i := (x => x)(x);
 }
 
-function method Const<A,B>(a : A) : B -> A {
+function Const<A,B>(a : A) : B -> A {
   b => a
 }
 

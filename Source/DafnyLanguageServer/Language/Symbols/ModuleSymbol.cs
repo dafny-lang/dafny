@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = moduleDefinition;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"module {Declaration.Name}";
     }
 

@@ -25,7 +25,7 @@ module NewSyntax {
 
   // regression test (for a previous bug in the Translator.Substituter):
   datatype Dt = Ctor(x: int, y: bool)
-  function F(d: Dt): Dt
+  ghost function F(d: Dt): Dt
   {
     d.(x := 5)
   }

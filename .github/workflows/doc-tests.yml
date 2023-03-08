@@ -11,6 +11,10 @@ on:
   pull_request:
     branches: [ master, main-* ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-deep-tests:
      uses: ./.github/workflows/check-deep-tests-reusable.yml
@@ -36,7 +40,7 @@ jobs:
       run: |
         sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
-        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip | bsdtar -xf -
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
         mv z3-* dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-*
     - name: Build Dafny
