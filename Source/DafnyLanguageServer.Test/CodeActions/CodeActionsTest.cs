@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     [TestMethod]
     public async Task CodeActionSuggestsRemovingAttribute() {
       await TestCodeAction(@"
-method ><|>remove attribute|||{:dllimport}<| Foo()
+method (>remove attribute:::{:dllimport}<) Foo()
 { 
 }");
     }
@@ -39,7 +39,7 @@ method ><|>remove attribute|||{:dllimport}<| Foo()
       await TestCodeAction(@"
 method Foo()
 {
-  var ><|>remove underscore>>>x|||_x<| := 3; 
+  var (>remove underscore->x:::_x<) := 3; 
 }");
     }
 
@@ -138,11 +138,14 @@ const x := 1;
       var documentItem = CreateTestDocument(output);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(positions.Count, diagnostics.Length);
+      Assert.AreEqual(ranges.Count, diagnostics.Length);
 
+      if (positions.Count == ranges.Count) {
+        positions = ranges.Select(r => r.Range.Start).ToList();
+      }
       foreach (var actionData in positions.Zip(ranges)) {
         var position = actionData.First;
-        var split = actionData.Second.Annotation.Split(">>>");
+        var split = actionData.Second.Annotation.Split("->");
         var expectedTitle = split[0];
         var expectedNewText = split.Length > 1 ? split[1] : "";
         var expectedRange = actionData.Second.Range;

@@ -10,7 +10,7 @@ public class MarkupTestFileTest {
   [TestMethod]
   public void AnnotatedSpan() {
     var input =
-      @"Foo fi far |>here is some happy metadata::and the rest of it|||and now the text<| and the end of the program";
+      @"Foo fi far (>here is some happy metadata::and the rest of it:::and now the text<) and the end of the program";
     MarkupTestFile.GetPositionsAndAnnotatedRanges(input, out var output, out _,
       out var ranges);
 
