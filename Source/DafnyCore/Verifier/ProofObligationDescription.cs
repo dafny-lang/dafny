@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
@@ -335,10 +336,14 @@ public class EnsuresDescription : ProofObligationDescription {
       : $"error is impossible: {customErrMsg}";
 
   public override string FailureDescription =>
+    customErrMsg ?? "This is the postcondition that might not hold.";
+
+  // Same as FailureDescription but used not as a "related" error, but as an error by itself
+  public string FailureDescriptionSingle =>
     customErrMsg ?? "this postcondition might not hold on a return path";
 
   public string FailureAtPathDescription =>
-    customErrMsg ?? "a postcondition could not be proven on this return path";
+    customErrMsg ?? new PostconditionDescription().FailureDescription;
 
   public override string ShortDescription => "ensures";
 

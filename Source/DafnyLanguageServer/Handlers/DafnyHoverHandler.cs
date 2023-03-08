@@ -226,9 +226,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             }
           case GutterVerificationStatus.Error:
             var failureDescription = description?.FailureDescription ?? "_no message_";
-            if (!currentlyHoveringPostcondition &&
-                description is EnsuresDescription { FailureAtPathDescription: var moreAccurateDescription }) {
-              failureDescription = moreAccurateDescription;
+            if (description is EnsuresDescription ensuresDescription) {
+              if (currentlyHoveringPostcondition) {
+                failureDescription = ensuresDescription.FailureDescriptionSingle;
+              } else {
+                failureDescription = ensuresDescription.FailureAtPathDescription;
+              }
             }
             return $"{obsolescence}[**Error:**](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging) " +
                    failureDescription;
