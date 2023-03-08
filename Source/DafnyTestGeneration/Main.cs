@@ -80,16 +80,16 @@ namespace DafnyTestGeneration {
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
 
       if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
-        var targetFound = boogiePrograms.Any(program => 
-          program.Implementations.Any(i => 
-            i.Name.StartsWith("Impl$$") && 
+        var targetFound = boogiePrograms.Any(program =>
+          program.Implementations.Any(i =>
+            i.Name.StartsWith("Impl$$") &&
             i.VerboseName
               .StartsWith(DafnyOptions.O.TestGenOptions.TargetMethod)));
         if (!targetFound) {
           DafnyOptions.O.Printer.ErrorWriteLine(Console.Error,
-            "Cannot find method " + 
-            DafnyOptions.O.TestGenOptions.TargetMethod + 
-            "\nPlease make sure that you are using a fully qualified name.");
+            "Error: Cannot find method " +
+            DafnyOptions.O.TestGenOptions.TargetMethod +
+            " (is this name fully-qualified?)");
           setNonZeroExitCode = true;
           return new List<ProgramModification>();
         }
@@ -170,9 +170,9 @@ namespace DafnyTestGeneration {
       yield return "}";
 
       if (methodsGenerated == 0) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, 
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error,
           "Error: No tests were generated, because no code points could be " +
-          "proven reachable (do you have a false assumption in the program)");
+          "proven reachable (do you have a false assumption in the program?)");
         setNonZeroExitCode = true;
       }
     }

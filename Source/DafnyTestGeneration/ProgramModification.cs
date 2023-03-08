@@ -136,7 +136,7 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (DafnyOptions.O.TestGenOptions.Verbose && 
+          if (DafnyOptions.O.TestGenOptions.Verbose &&
               DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
             Console.WriteLine($"// Test targeting block {uniqueId} also covers block {blockId}");
           }
