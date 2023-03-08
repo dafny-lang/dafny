@@ -393,8 +393,8 @@ but until it exists, careful inspection and testing are appropriate.
 
 * Any definition with an `assume` statement in its body.
 To improve assurance, attempt to convert it to an `assert` statement and prove that it holds.
-Alternatively, converting it to an `expect` statement will cause it to be checked at runtime.
 Such a definition will not be compilable unless the statement is also marked with `{:axiom}`.
+Alternatively, converting it to an `expect` statement will cause it to be checked at runtime.
 
 * Any method marked with `decreases *`.
 Such a method may not terminate.
