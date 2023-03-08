@@ -12,9 +12,7 @@ concurrency:
 
 jobs:
   build:
-
     runs-on: macos-latest
-
     steps:
     - name: Install dafny
       run: |
@@ -22,6 +20,7 @@ jobs:
 
   check:
     needs: build
+    runs-on: macos-latest
     uses: ./.github/workflows/reusable-smoke-test.yml
     with:
       os: macos-latest
