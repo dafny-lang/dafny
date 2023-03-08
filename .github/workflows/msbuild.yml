@@ -119,6 +119,7 @@ jobs:
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml;*.cobertura.xml" \
             -filefilters:"+*/Source/DafnyCore/*;+*/Source/DafnyDriver/*;+*/Source/DafnyLanguageServer/*;+*/Source/DafnyRuntime/*;+*/Source/DafnyTestGeneration/*" \
+            -assemblyfilters:"-dafnycore.dll" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           reportgenerator -reports:"./coverage-cobertura/Cobertura.xml" -reporttypes:Html -targetdir:coverage-html
 
