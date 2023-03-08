@@ -233,9 +233,4 @@ method m5() { assert false; } //Remove4:
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
-
-  [TestCleanup]
-  public void Cleanup() {
-    DafnyOptions.Install(DafnyOptions.Create());
-  }
 }

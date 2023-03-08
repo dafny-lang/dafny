@@ -1,17 +1,13 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DafnyTestGeneration.Test {
 
   [TestClass]
   public class Collections {
-
-    [TestInitialize]
-    public void SetupDafnyOptions() {
-      Setup.SetupDafnyOptions();
-    }
 
     [TestMethod]
     public async Task StringLength() {
@@ -29,7 +25,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -74,7 +70,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>

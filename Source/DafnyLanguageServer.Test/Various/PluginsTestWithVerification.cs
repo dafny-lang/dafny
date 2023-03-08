@@ -26,8 +26,6 @@ public class PluginsTestWithVerification : PluginsTestBase {
     var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.AreEqual(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
-    Assert.AreEqual(1 + DafnyOptions.DefaultPlugins.Count, DafnyOptions.O.Plugins.Count,
-      "Not exactly 1 plugin loaded");
     Assert.AreEqual(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.AreEqual("Plugin Error that does not prevent verification", diagnostics[0].Message);
     Assert.AreEqual(new Range((0, 0), (0, 8)), diagnostics[0].Range);
