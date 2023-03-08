@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  download-and-test:
     runs-on: macos-latest
     steps:
     - name: Install dafny
