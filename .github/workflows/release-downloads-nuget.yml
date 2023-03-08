@@ -122,7 +122,8 @@ jobs:
         node a.js dafny/DafnyRuntime.js | diff expect.txt -
     - name: Check Java compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy | diff expect.txt -
+        dafny build -t:java a.dfy
+        java -jar a.jar | diff expect.txt -
 
   test-dafny-libraries:
 
