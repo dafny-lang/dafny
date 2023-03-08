@@ -14,11 +14,8 @@ jobs:
       run: |
         pwd
         ls
-        dafny/z3/bin/z3-4.8.5 -version
-        dafny/z3/bin/z3-4.12.1 -version
-        dafny/dafny -version
-        dafny --version
         which dafny
+        dafny --version
         # -version is not supported in old dafny,
         # but this gives the version with an error
         dotnet --list-sdks
