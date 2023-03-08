@@ -70,7 +70,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
-      DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
@@ -198,13 +197,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
-    }
-
-    protected async Task WithNoopSolver(Func<Task> action) {
-      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
-      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
-      await action();
-      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
     }
   }
 }

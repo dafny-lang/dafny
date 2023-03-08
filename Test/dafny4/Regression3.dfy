@@ -17,7 +17,7 @@ method OutParametersInLetBodies() returns (t: int)
   print z, "\n";
 }
 
-function method F(x: int, y: int): int { x + y }
+function F(x: int, y: int): int { x + y }
 
 
 // Here is another compiler test

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 OpaqueFunctions.dfy(38,15): Error: assertion might not hold
 OpaqueFunctions.dfy(69,7): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy(35,15): Related location: This is the precondition that might not hold.

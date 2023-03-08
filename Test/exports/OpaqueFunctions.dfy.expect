@@ -1,4 +1,4 @@
-OpaqueFunctions.dfy(16,11): Error: A postcondition might not hold on this return path.
+OpaqueFunctions.dfy(16,17): Error: A postcondition might not hold on this return path.
 OpaqueFunctions.dfy(17,14): Related location: This is the postcondition that might not hold.
 OpaqueFunctions.dfy(58,2): Error: A postcondition might not hold on this return path.
 OpaqueFunctions.dfy(57,16): Related location: This is the postcondition that might not hold.

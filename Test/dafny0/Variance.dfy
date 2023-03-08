@@ -121,7 +121,7 @@ module Depen {
 module DependencyChecks {
   type A = x: B | true  // error: bad dependency cycle
   type B = y: int | F(y)
-  predicate F(y: int) {
+  ghost predicate F(y: int) {
     var i: A := 5;
     i < 32
   }
@@ -129,7 +129,7 @@ module DependencyChecks {
   datatype Q = Q(x: R)
   type R = x: S | true  // error: bad dependency cycle
   type S = y: int | G(y)
-  predicate G(y: int) {
+  ghost predicate G(y: int) {
     var q: Q :| true;
     q.x < 32
   }
@@ -141,12 +141,12 @@ module Cycle0 {
 
 module Cycle1 {
   type A = x: int | var a: A :| true; P(x)  // error: cycle
-  predicate P(x: int)
+  ghost predicate P(x: int)
 }
 
 module Cycle2 {
   type C = x: int | f(x) == f(x)  // error: cycle
-  function f(x: int): C
+  ghost function f(x: int): C
 }
 
 module MoreDependencyCycles0 {

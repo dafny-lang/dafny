@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
   protected override SinglePassCompiler CreateCompiler() {
-    return new CsharpCompiler(Reporter);
+    return new CsharpCompiler(Options, Reporter);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".cs", ".dll" };
@@ -48,7 +48,7 @@ public class CsharpBackend : ExecutableBackend {
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();
-    if (!DafnyOptions.O.IncludeRuntime) {
+    if (!Options.IncludeRuntime) {
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
       compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("netstandard").Location));
@@ -63,9 +63,9 @@ public class CsharpBackend : ExecutableBackend {
     };
     compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load((string)fileName).Location)));
 
-    if (DafnyOptions.O.Optimize) {
+    if (Options.Optimize) {
       compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(
-        DafnyOptions.O.Optimize ? OptimizationLevel.Release : OptimizationLevel.Debug));
+        Options.Optimize ? OptimizationLevel.Release : OptimizationLevel.Debug));
     }
 
     var otherSourceFiles = new List<string>();
@@ -112,7 +112,7 @@ public class CsharpBackend : ExecutableBackend {
 
       if (emitResult.Success) {
         tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-        if (DafnyOptions.O.CompileVerbose) {
+        if (Options.CompileVerbose) {
           outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
         }
         try {
@@ -171,7 +171,7 @@ public class CsharpBackend : ExecutableBackend {
     }
     try {
       Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
-      object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { DafnyOptions.O.MainArgs.ToArray() };
+      object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { Options.MainArgs.ToArray() };
       entry.Invoke(null, parameters);
       return true;
     } catch (System.Reflection.TargetInvocationException e) {
@@ -182,5 +182,8 @@ public class CsharpBackend : ExecutableBackend {
       outputWriter.WriteLine(e.ToString());
     }
     return false;
+  }
+
+  public CsharpBackend(DafnyOptions options) : base(options) {
   }
 }

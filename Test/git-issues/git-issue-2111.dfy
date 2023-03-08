@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype DT = C(s: string) {
-  predicate F() {
+  ghost predicate F() {
     C.XYZ()
   }
 }
