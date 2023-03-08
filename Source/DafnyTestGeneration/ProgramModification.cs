@@ -146,7 +146,7 @@ namespace DafnyTestGeneration {
         if (log == "") {
           Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
-            "because the verifier succeeded. This is can be caused by dead code.");
+            "because the verifier succeeded. This can be caused by dead code.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
           Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
