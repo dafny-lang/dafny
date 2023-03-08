@@ -29,13 +29,13 @@ public class TimeLimitRewriter : IRewriter {
                     if (value.Sign > 0) {
                       uint current_limit = 0;
                       string name = "";
-                      if (DafnyOptions.O.ResourceLimit > 0) {
+                      if (Reporter.Options.ResourceLimit > 0) {
                         // Interpret this as multiplying the resource limit
-                        current_limit = DafnyOptions.O.ResourceLimit;
+                        current_limit = Reporter.Options.ResourceLimit;
                         name = "rlimit";
                       } else {
                         // Interpret this as multiplying the time limit
-                        current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
+                        current_limit = Reporter.Options.TimeLimit > 0 ? Reporter.Options.TimeLimit : 10;  // Default to 10 seconds
                         name = "timeLimit";
                       }
                       Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);

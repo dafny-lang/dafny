@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
-using System.CommandLine.Binding;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -38,6 +36,12 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
+    public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
+    public bool AlwaysUseHeap => Allocated == 2;
+    public bool CommonHeapUse => Allocated >= 2;
+    public bool FrugalHeapUse => Allocated >= 3;
+    public bool FrugalHeapUseX => Allocated == 4;
+
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
 cs (default) - Compile to .NET via C#.
@@ -63,8 +67,8 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 
       RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
-0 (default) - The char type represents any UTF-16 code unit.
-1 - The char type represents any Unicode scalar value.".TrimStart());
+0 - The char type represents any UTF-16 code unit.
+1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
@@ -175,6 +179,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
         defaultValue));
     }
 
+    private static DafnyOptions defaultImmutableOptions;
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create();
+
     public static DafnyOptions Create(params string[] arguments) {
       var result = new DafnyOptions();
       result.Parse(arguments);
@@ -197,12 +204,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions()
-      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+      : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Backend = new CsharpBackend();
+      Backend = new CsharpBackend(this);
+      Printer = new DafnyConsolePrinter(this);
+      Printer.Options = this;
     }
 
     public override string VersionNumber {
@@ -223,17 +232,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public bool RunLanguageServer { get; set; }
-
-    private static DafnyOptions clo;
-
-    public static DafnyOptions O {
-      get { return clo; }
-    }
-
-    public static void Install(DafnyOptions options) {
-      Contract.Requires(options != null);
-      clo = options;
-    }
 
     public enum DiagnosticsFormats {
       PlainText,
@@ -284,7 +282,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
-    public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
@@ -293,9 +290,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
-    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
-    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version4;
+    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
+    public int DefiniteAssignmentLevel = 1; // [0..5] 2 and 3 have the same effect, 4 turns off an array initialisation check and field initialization check, unless --enforce-determinism is used.
     public HashSet<string> LibraryFiles { get; set; } = new();
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
@@ -313,9 +310,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
-    public bool UseRuntimeLib = false;
+    public bool IncludeRuntime = true;
     public bool DisableScopes = false;
-    public int Allocated = 3;
+    public int Allocated = 4;
     public bool UseStdin = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
@@ -323,6 +320,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> VerificationLoggerConfigs = new();
 
     public bool AuditProgram = false;
+
+    public static string DefaultZ3Version = "4.12.1";
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
     private IList<Plugin> cliPluginCache;
@@ -486,11 +485,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (ps.ConfirmArgumentCount(1)) {
               switch (args[ps.i]) {
                 case "json":
-                  Printer = new DafnyJsonConsolePrinter { Options = this };
+                  Printer = new DafnyJsonConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.JSON;
                   break;
                 case "text":
-                  Printer = new DafnyConsolePrinter { Options = this };
+                  Printer = new DafnyConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.PlainText;
                   break;
                 case var df:
@@ -653,15 +652,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
           return true;
 
-        case "countVerificationErrors": {
-            int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetIntArgument(ref countErrors, 2)) {
-              CountVerificationErrors = countErrors == 1;
-            }
-
-            return true;
-          }
-
         case "printTooltips":
           PrintTooltips = true;
           return true;
@@ -695,6 +685,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "allocated": {
             ps.GetIntArgument(ref Allocated, 5);
+            if (Allocated != 4) {
+              Printer.AdvisoryWriteLine(Console.Out, "The /allocated:<n> option is deprecated");
+            }
             return true;
           }
 
@@ -709,7 +702,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetIntArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 5)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -721,7 +714,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
         case "useRuntimeLib": {
-            UseRuntimeLib = true;
+            IncludeRuntime = false;
             return true;
           }
 
@@ -823,7 +816,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Backend ??= new CsharpBackend();
+      Backend ??= new CsharpBackend(this);
 
       // expand macros in filenames, now that LogPrefix is fully determined
 
@@ -1071,6 +1064,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TODO".Replace("%SUPPORTED_OPTIONS%",
         string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
+    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new ConcurrentDictionary<string, Version>();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
@@ -1096,12 +1090,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       var platform = System.Environment.OSVersion.Platform;
       var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
-      var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
+        var z3LocalBinName = isUnix
+          ? $"z3-{DefaultZ3Version}"
+          : $"z3-{DefaultZ3Version}.exe";
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1109,17 +1105,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       // Finally, try looking in the system PATH variable.
+      var z3GlobalBinName = isUnix ? "z3" : "z3.exe";
       if (confirmedProverPath is null) {
         confirmedProverPath = System.Environment
           .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
-          .Select(s => Path.Combine(s, z3binName))
+          .Select(s => Path.Combine(s, z3GlobalBinName))
           .FirstOrDefault(File.Exists);
       }
 
       if (confirmedProverPath is not null) {
         ProverOptions.Add($"{pp}{confirmedProverPath}");
-        return GetZ3Version(confirmedProverPath);
+        return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
       return null;
@@ -1256,10 +1253,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     4. This switch gives early access to the new syntax, and also
     provides a mode to help with migration.
 
-    3 (default) - Compiled functions are written `function method` and
+    3 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `function` and
         `predicate`.
-    4 - Compiled functions are written `function` and `predicate`. Ghost
+    4 (default) - Compiled functions are written `function` and `predicate`. Ghost
         functions are written `ghost function` and `ghost predicate`.
     migration3to4 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `ghost function`
@@ -1289,10 +1286,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     <Range>) are allowed. This switch gives early access to the new
     syntax.
 
-    3 (default) - Ranges are only allowed after all quantified variables
+    3 - Ranges are only allowed after all quantified variables
         are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
         y :: y)
-    4 - Ranges are allowed after each quantified variable declaration.
+    4 (default) - Ranges are allowed after each quantified variable declaration.
         (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
 
     Note that quantifier variable domains (<- <Domain>) are available in
@@ -1405,6 +1402,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
        print effects only if it is marked with {{:print}}.
 
 /allocated:<n>
+    This option is deprecated. Going forward, only what is /allocated:4
+    will be supported.
     Specify defaults for where Dafny should assert and assume
     allocated(x) for various parameters x, local variables x, bound
     variables x, etc. Lower <n> may require more manual allocated(x)
@@ -1423,8 +1422,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     2 - Assert/assume allocated(x) on all variables, even bound
         variables in quantifiers. This option is the easiest to use for
         heapful code.
-    3 - (default) Frugal use of heap parameters.
-    4 - Mode 3 but with alloc antecedents when ranges don't imply
+    3 - Frugal use of heap parameter (not sound).
+    4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
         allocatedness.
 
 /definiteAssignment:<n>
@@ -1432,7 +1431,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         only--it is not sound.
     1 (default) - Enforces definite-assignment rules for compiled
         variables and fields whose types do not support
-        auto-initialization and for ghost variables and fields whose
+        auto-initialization, and for ghost variables and fields whose
         type is possibly empty.
     2 - Enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types.
@@ -1441,6 +1440,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         passes at this level 3 is one that the language guarantees that
         values seen during execution will be the same in every run of
         the program.
+    4 - Like 1, but enforces definite assignment for all local variables
+        and out-parameters, regardless of their types. (Whether or not
+        fields and new arrays are subject to definite assignments depends
+        on their types.)
 
 /noAutoReq
     Ignore autoReq attributes.

@@ -37,9 +37,8 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+      BatchErrorReporter reporter = new BatchErrorReporter(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -51,9 +50,9 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         if (reporter.ErrorCount > 0) {
@@ -74,9 +73,9 @@ namespace DafnyPipeline.Test {
         Assert.Equal(expectedProgram, reprinted);
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns();
+        builtIns = new BuiltIns(options);
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
         dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);

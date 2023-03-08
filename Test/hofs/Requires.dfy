@@ -10,12 +10,12 @@ method Main()
 	test2();
 }
 
-predicate valid(x:int)
+ghost predicate valid(x:int)
 {
   x > 0
 }
 
-function ref1(y:int) : int
+ghost function ref1(y:int) : int
   requires valid(y);
 {
   y - 1
@@ -58,7 +58,7 @@ method test1()
   }
 }
 
-function {:opaque} ref2(y:int) : int        // Now with an opaque attribute
+ghost function {:opaque} ref2(y:int) : int        // Now with an opaque attribute
   requires valid(y);
 {
   y - 1

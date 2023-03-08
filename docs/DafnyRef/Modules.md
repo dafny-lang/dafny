@@ -22,7 +22,7 @@ Module declarations are of three types:
 - a module export definition
 
 Module definitions and imports each declare a submodule
-of its enclosing module, if only of the
+of its enclosing module, which may be the
 implicit, undeclared, top-level module. 
 
 ## 4.1. Declaring New Modules ([grammar](#g-module-definition)) {#sec-module-definition}
@@ -36,13 +36,13 @@ module M { module N { } }
 ```
 
 A _module definition_
-- has an optional modifier (only "abstract" is allowed)
+- has an optional modifier (only `abstract` is allowed)
 - followed by the keyword "module"
 - followed by a name (a sequence of dot-separated identifiers)
 - followed by a body enclosed in curly braces
 
-A module body can consist of anything that you could put at the top
-level. This includes classes, datatypes, types, methods, functions, etc.
+A module body consists of any declarations that are allowed at the top
+level: classes, datatypes, types, methods, functions, etc.
 
 <!-- %check-resolve -->
 ```dafny
@@ -102,7 +102,7 @@ module.
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -169,7 +169,7 @@ can _import_ one module into another. This is done via the `import`
 keyword, which has two forms with different meanings.
 The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
-module `B` (which must already exist), and binds it to the new name
+module `B` (which must already exist), and binds it to the new local name
 `A`. This form can also be used to create a reference to a nested
 module, as in `import A = B.C`. The other form, using a `:`, is
 described in [Section 4.6](#sec-module-abstraction).
@@ -185,7 +185,7 @@ it:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -216,7 +216,7 @@ clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
 The first identifier in the dot-separated sequence of identifers that constitute
-the ``ModuleQualifiedName`` of the module being imported is resolved as (in order)
+the qualified name of the module being imported is resolved as (in order)
 - a submodule of the importing module, 
 - or a sibling module of the importing module, 
 - or a sibling module of some containing module, traversing outward. 
@@ -248,7 +248,7 @@ For example, we could write the previous example as:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -270,19 +270,19 @@ the name that was bound to get to anything that is hidden.
 <!-- %check-verify Modules.2.expect -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
 module Mod {
-  import opened Helpers
+  import opened H = Helpers
   function addOne(n: nat): nat {
     n - 1
   }
   method m() {
     assert addOne(5) == 6; // this is now false,
                            // as this is the function just defined
-    assert Helpers.addOne(5) == 6; // this is still true
+    assert H.addOne(5) == 6; // this is still true
   }
 }
 ```
@@ -320,7 +320,7 @@ There is a special case in which the behavior described above is altered.
 If a module `M` declares a type `M` and `M` is `import opened` without renaming inside 
 another module `X`, then the rules above would have, within `X`,
 `M` mean the module and `M.M` mean the type. This is verbose. So in this 
-somewhat common case, the type `M` is effectively made a local declaration of `X`
+somewhat common case, the type `M` is effectively made a local declaration within `X`
 so that it has precedence over the module name. Now `M` refers to the type.
 If one needs to refer to the module, it will have to be renamed as part of
 the `import opened` statement.	
@@ -340,9 +340,10 @@ module X {
 }
 ```
 `Option.a` now means the `a` in the datatype instead of the `a` in the module.
-To avoid confusion in such cases, it is an ambiguity error to `import open`
-a module without renaming that contains a declaration with the same name as a declaration in 
-a type in the module when the type has the same name as the module.
+To avoid confusion in such cases, it is an ambiguity error if a name
+that is declared in both the datatype and the module is used
+when there is an `import open` of
+the module (without renaming).
 
 ## 4.5. Export Sets and Access Control ([grammar](#g-module-export)) {#sec-export-sets}
 
@@ -466,7 +467,7 @@ There are a few unusual cases to be noted:
 `export least predicate P() { true }`
 In this case, the `least` (or `greatest`) is the identifier naming the export set.
 Consequently, `export least predicate P[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
-Also, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
+So, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
 because the `least` or `greatest` token is parsed as the export set identifier. The workaround for this situation is to 
 either put the name of the module in explicitly as the export ID (not leaving it to the default) or reorder the declarations.
 - To avoid confusion, the code
@@ -768,7 +769,7 @@ these declarations:
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -787,7 +788,7 @@ Interface module.
 <!-- %check-verify -->
 ```dafny
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -801,7 +802,7 @@ declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -811,7 +812,7 @@ abstract module Mod {
   }
 }
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -928,7 +929,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 22](#sec-module-refinement)).
+in [Section 10](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is

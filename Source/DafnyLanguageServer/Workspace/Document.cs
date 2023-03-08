@@ -38,9 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public virtual IEnumerable<Diagnostic> Diagnostics => Enumerable.Empty<Diagnostic>();
 
-    public IdeState InitialIdeState() {
+    public IdeState InitialIdeState(DafnyOptions options) {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),
-        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
+        SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, TextDocumentItem), new Dictionary<ImplementationId, ImplementationView>(),
         Array.Empty<Counterexample>(),
         false, Array.Empty<Diagnostic>(),
         GetInitialDocumentVerificationTree()));
@@ -106,7 +106,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       GutterProgressReporter = new VerificationProgressReporter(
         services.GetRequiredService<ILogger<VerificationProgressReporter>>(),
         this,
-        services.GetRequiredService<INotificationPublisher>());
+        services.GetRequiredService<INotificationPublisher>(),
+        services.GetRequiredService<DafnyOptions>());
     }
 
     public override VerificationTree GetInitialDocumentVerificationTree() {

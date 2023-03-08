@@ -148,7 +148,7 @@ A refining module import (`import D : C`) may only occur in an abstract module i
 Generally speaking, suppose you have an underspecified module that is imported using ':', as in
 ```
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -165,7 +165,7 @@ Here `A` is abstract because it stands for any concrete module that adheres to t
 Now we can implement a concrete version of `Interface`:
 ```
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -182,6 +182,7 @@ module Mod2 refines Mod {
 ```
 Here the module `Mod.A`, which is an unspecified refinement of `Interface` inside of `Mod`, is refined to be the concrete module
 `Implementation` inside of `Mod2`, which is a refinement of `Mod`.
+
 # Why does Dafny need an obvious assert?
 
 
@@ -808,12 +809,12 @@ Note the slight difference in syntax between the `forall` expression and `forall
 Although Dafny tries to make the syntax of these sorts of things as similar as possible between expressions and statements, there are some differences. 
 The following Dafny Power User note may be helpful in understanding the syntax: [Dafny Power User: Statement vs. Expression Syntax](http://leino.science/papers/krml266.html).
 
-# Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?
+# Is there any difference between a method without a modifies clause and a function with a reads this clause?  I know that the latter you can use in expressions, but otherwise, is there anything the former can do that the latter can’t, for example?
 
 
 ## Question
 
-Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?
+Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressions.  Is there anything the former can do that the latter can’t, for example?
 
 ## Answer
 
@@ -1035,15 +1036,15 @@ datatype Outcome<T> =
             | Success(value: T)
             | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure<U>(): Outcome<U>
+  function PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
   }
-  function method Extract(): T
+  function Extract(): T
     requires !IsFailure()
   {
     this.value
@@ -1118,7 +1119,7 @@ The names of these alternatives will be changing between Dafny 3 and Dafny 4:
 
 - `function` (`function method` in Dafny 3) -- is a non-ghost function
 - `ghost function` (`function` in Dafny 3) -- is a ghost function
-- _function by method_ can be either ghost or non-ghost and is a way of giving a method-like implementation for a function (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declarations))
+- _function by method_ is a ghost function with an alternate compilable (non-ghost) method body (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declarations))
 - `method` declares a non-ghost method
 - `ghost method` declares a ghost method, though this is almost always done using a `lemma` instead
 
@@ -1432,7 +1433,7 @@ You can manually initialize like this:
 ```dafny
 type {:extern} TT {
 }
-function method {:extern} init(): TT
+function {:extern} init(): TT
 
 method mmm() {
   var x: TT := init();
@@ -1651,7 +1652,7 @@ Another solution, which is a pattern applicable in other circumstances as well, 
 ```dafny
 datatype T = Y | N | B(T,T)
 
-function method f(x : T) : bool
+function f(x : T) : bool
   decreases x, 1
 {
   match x {
@@ -1661,7 +1662,7 @@ function method f(x : T) : bool
   }
 }
 
-function method g(ghost parent: T, x : T, y : T) : bool
+function g(ghost parent: T, x : T, y : T) : bool
   decreases parent, 0
   requires x < parent && y < parent
 {
@@ -1713,7 +1714,7 @@ You could use a function-by-method to encapsulate the above in a function.
 Here is an extended example taken from  [Dafny Power User: Iterating over a Collection](http://leino.science/papers/krml275.html).
 
 ```dafny
-function method SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
+function SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
   requires IsTotalOrder(R)
   ensures var q := SetToSequence(s, R);
     forall i :: 0 <= i < |q| ==> q[i] in s
@@ -1938,7 +1939,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts0(cs: seq<C>): seq<int> {
+function Firsts0(cs: seq<C>): seq<int> {
   seq(|cs|, i => cs[i].p.0) // Two errors: `[i]` and `.p`
 }
 ```
@@ -1955,7 +1956,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts0(cs: seq<C>): seq<int> {
+function Firsts0(cs: seq<C>): seq<int> {
   seq(|cs|, i requires 0 <= i < |cs| => cs[i].p.0) // Two errors: `[i]` and `.p`
 }
 ```
@@ -1970,7 +1971,7 @@ class C {
   var p: (int, int);
 }
 
-function method Firsts2(cs: seq<C>): seq<int>
+function Firsts2(cs: seq<C>): seq<int>
   reads set i | 0 <= i < |cs| :: cs[i]
 {
   seq(|cs|, i
@@ -1979,6 +1980,124 @@ function method Firsts2(cs: seq<C>): seq<int>
 }
 ```
 
+# Why can't I write 'forall t: Test :: t.i == 1' for an object t?
+
+
+## Question:
+
+Why can't I write `forall t: Test :: t.i == 1` for an object t?
+
+## Answer:
+
+This code
+
+```dafny
+trait Test {
+ var i: int
+}
+class A {
+  predicate testHelper() {
+    forall t: Test :: t.i == 1
+    // a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references,
+  }
+}
+```
+
+can be better written as
+
+```dafny
+trait Test {
+ var i: int
+}
+class A {
+  ghost const allTests: set<Test>
+  predicate testHelper() reads allTests {
+    forall t: Test <- allTests :: t.i == 1
+  }
+}
+```
+
+That way, if you want to assume anything about the Test classes that you are modeling extern, 
+you only need to specify an axiom that says that whatever Test you have was in allTests, 
+which could have been a pool of Test objects created from the start anyway, and then you can use your axiom. 
+# How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
+
+
+## Question: 
+
+How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
+
+## Answer:
+
+Here is some sample code that show a workaround.
+
+```dafny
+trait Test {
+  var y: int
+  var z: int
+  function {:opaque} MyFunc(x: bool): int
+    reads (if x then {this} else {})`y, (if x then {} else {this})`z {
+    if x then y else z
+  }
+}
+
+```
+# How do I model extern methods that return objects?
+
+
+## Question: 
+
+How do I model extern methods that return objects?
+
+
+## Answer:
+
+When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
+It's better to have a predicate that takes the input of a function, an object, and relates the two with each other.
+
+For example:
+
+```dafny
+trait {:extern} {:compile false} Test {
+  var i: int
+  var y: int
+}
+trait {:extern} {:compile false} Importer {
+  function Import(i: int): (r: Test)
+    ensures r.i == i
+
+  method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
+    ensures r == Import(i)
+
+  predicate Conditions(i: int) {
+     && var r := Import(i);
+     && r.y == 2
+  }
+}
+```
+
+In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
+and there is no need to prove uniqueness because we are in ghost code!
+
+```dafny
+trait {:extern} {:compile false} Test {
+  var i: int
+}
+trait {:extern} {:compile false} Importer {
+  predicate IsImported(i: int, r: Test) {
+    r.i == i
+  }
+  
+  method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
+    ensures IsImported(i, r)
+
+  predicate Conditions(i: int) {
+     && (exists r: Test :: IsImported(i, r))
+     && var r :| IsImported(i, r);   // Note the assignment has changed.
+     && r.y == 2
+  }
+}
+```
 # Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?
 
 
@@ -2336,16 +2455,16 @@ if it is meant to be transparent, then you must reveal it.
 
 Here is code that provoked this error (though the error message as been made more specific in later releases):
 ```dafny
-function Eval(): string -> bool {
+ghost function Eval(): string -> bool {
    EvalOperator(Dummy)
 }
 
-function EvalOperator(op: string -> bool): string -> bool 
+ghost function EvalOperator(op: string -> bool): string -> bool 
 {
   (v: string) => op(v)
 }
 
-function method Dummy(str: string): bool
+function Dummy(str: string): bool
   requires str == []
 ```
 
@@ -2589,23 +2708,23 @@ One more remark: The “no trigger” warning should be taken seriously, because
 
 Here is an example of submitted code that produced this error:
 ```dafny
-function method EncryptedDataKeys(edks: Msg.EncryptedDataKeys):  (ret: seq<uint8>)
-    requires edks.Valid()
-  {
-      UInt16ToSeq(|edks.entries| as uint16) + FoldLeft(FoldEncryptedDataKey, [], edks.entries)
-  }
+function EncryptedDataKeys(edks: Msg.EncryptedDataKeys):  (ret: seq<uint8>)
+  requires edks.Valid()
+{
+    UInt16ToSeq(|edks.entries| as uint16) + FoldLeft(FoldEncryptedDataKey, [], edks.entries)
+}
 
-  function method FoldEncryptedDataKey(acc: seq<uint8>, edk: Materials.EncryptedDataKey): (ret: seq<uint8>)
-    requires edk.Valid()
-  {
-      acc + edk.providerID + edk.providerInfo + edk.ciphertext
-  }
+function FoldEncryptedDataKey(acc: seq<uint8>, edk: Materials.EncryptedDataKey): (ret: seq<uint8>)
+  requires edk.Valid()
+{
+    acc + edk.providerID + edk.providerInfo + edk.ciphertext
+}
 ```
 
 The general cause of this error is supplying some value to a situation where (a) the type of the target (declared variable, formal argument) is a subset type and (b) Dafny cannot prove that the value falls within the predicate for the subset type. In this example code, `uint8` is likely a subset type and could be at fault here.
 But more likely and less obvious is supplying `FoldEncryptedDataKey` as the actual argument to `FoldLeft`.
 
-The signature of `FoldLeft` is `function method {:opaque} FoldLeft<A,T>(f: (A, T) -> A, init: A, s: seq<T>): A`.
+The signature of `FoldLeft` is `function {:opaque} FoldLeft<A,T>(f: (A, T) -> A, init: A, s: seq<T>): A`.
 Note that the type of the function uses a `->` arrow, namely a total, heap-independent function (no requires or reads clause).
 But `FoldEncryptedDataKey` does have a requires clause. Since `->` functions are a subset type of partial, heap-dependent `~>` functions,
 the error message complains about the subset type constraints not being satisfied.

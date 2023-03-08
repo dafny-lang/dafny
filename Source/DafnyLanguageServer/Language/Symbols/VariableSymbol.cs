@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = variable;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return Declaration.AsText();
     }
 

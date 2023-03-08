@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 DatatypeUpdate.dfy(67,15): Error: destructor 'b' can only be applied to datatype values constructed by 'BB'
 DatatypeUpdate.dfy(69,15): Error: source of datatype update must be constructed by 'BB'
 

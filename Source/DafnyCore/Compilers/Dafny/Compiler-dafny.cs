@@ -7,8 +7,8 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny.Compilers {
 
   class DafnyCompiler : SinglePassCompiler {
-    public DafnyCompiler(ErrorReporter reporter) : base(reporter) {
-      if (DafnyOptions.O?.CoverageLegendFile != null) {
+    public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
     }
@@ -205,7 +205,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, IToken tok) {
-      type = DatatypeWrapperEraser.SimplifyType(type, true);
+      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       return type.ToString();
     }
 
@@ -276,7 +276,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      TrExpr(arg, wr, false, wStmts);
+      wr = Expr(arg, false, wStmts);
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
@@ -478,7 +478,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function,
         List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      TrExpr(function, wr, inLetExprBody, wStmts);
+      wr.Append(Expr(function, inLetExprBody, wStmts));
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
@@ -529,6 +529,7 @@ namespace Microsoft.Dafny.Compilers {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
+      out bool coerceE1,
       ConcreteSyntaxTree errorWr) {
 
       opString = null;
@@ -539,6 +540,7 @@ namespace Microsoft.Dafny.Compilers {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+      coerceE1 = false;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:

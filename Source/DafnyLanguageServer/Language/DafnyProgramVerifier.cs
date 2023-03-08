@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier {
+  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
     private readonly VerificationResultCache cache = new();
     private readonly ExecutionEngine engine;
 
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
         InsertChecksums = true,
         ReportRanges = true
       }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
@@ -63,5 +63,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
+
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 }

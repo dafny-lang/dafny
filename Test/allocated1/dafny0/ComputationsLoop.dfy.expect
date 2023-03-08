@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 ComputationsLoop.dfy(7,2): Error: decreases clause might not decrease
 ComputationsLoop.dfy(12,25): Error: assertion might not hold
 

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny; 
 
-public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
@@ -48,7 +48,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
 
   public List<MatchCaseExpr> Cases => cases;
 
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -107,14 +107,13 @@ public abstract class MatchCase : TokenNode, IHasUsages {
   }
 }
 
-interface Match {
+interface IMatch {
   IEnumerable<MatchCase> Cases { get; }
   Expression Source { get; }
-
   List<DatatypeCtor> MissingCases { get; }
 }
 
-public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
+public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -170,7 +169,7 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   public Expression Source => source;
 
   public List<MatchCaseStmt> Cases => cases;
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
   public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
@@ -325,7 +324,7 @@ public class LitCtx : MatchingContext {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(Lit);
+    return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Lit);
   }
 }
 

@@ -15,8 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Formatting;
 public class FormattingTest : ClientBasedLanguageServerTest {
   [TestInitialize]
   public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await base.SetUp();
+    await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
 
   [TestMethod]
@@ -43,6 +42,61 @@ function test
     1
   else
     a + 1
+}
+";
+    await FormattingWorksFor(source, target);
+    await FormattingWorksFor(target, target);
+  }
+
+  [TestMethod]
+  public async Task TestFormatting2() {
+    var source = @"
+function Fib(i: nat): nat {
+  1
+} by method {
+  if i <= 1 { return i; }
+    var a, b, t := 0, 1, 1;
+  for t := 1 to i
+  invariant && b == Fib(t)
+                 && a == Fib(t-1) {
+         a, b := b, a + b;
+      }
+return b;
+}
+";
+    var target = @"
+function Fib(i: nat): nat {
+  1
+} by method {
+  if i <= 1 { return i; }
+  var a, b, t := 0, 1, 1;
+  for t := 1 to i
+    invariant && b == Fib(t)
+              && a == Fib(t-1) {
+    a, b := b, a + b;
+  }
+  return b;
+}
+";
+    await FormattingWorksFor(source, target);
+    await FormattingWorksFor(target, target);
+  }
+
+
+  [TestMethod]
+  public async Task TestFormatting3() {
+    var source = @"
+predicate IsBinary(s: seq<int>) {
+forall i | 0 <= i < |s| ::
+|| s[i] == 0
+|| s[i] == 1
+}
+";
+    var target = @"
+predicate IsBinary(s: seq<int>) {
+  forall i | 0 <= i < |s| ::
+    || s[i] == 0
+    || s[i] == 1
 }
 ";
     await FormattingWorksFor(source, target);

@@ -47,14 +47,14 @@ module NamesThatDontExist {
     provides Dt.u  // error: datatype denstructors cannot be individually exported
 
   trait Trait {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     method M() { }
     var x: int
   }
   class Klass {
     constructor () { }
     constructor FromInt(w: int) { }
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     method M() { }
     var x: int
   }
@@ -62,7 +62,7 @@ module NamesThatDontExist {
   type Opaque
   datatype Color = Magenta | Cyan
   datatype Dt = X | Y | More(u: int) {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
   }
@@ -133,7 +133,7 @@ module ConsistencyErrors {
     provides Klass.M, Klass.N, Klass.x
 
   trait Trait {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
     var x: int
@@ -141,13 +141,13 @@ module ConsistencyErrors {
   class Klass {
     constructor () { }
     constructor FromInt(w: int) { }
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
     var x: int
   }
   datatype Dt = X | Y | More(u: int) {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
   }
@@ -181,8 +181,8 @@ module ConsistencyErrors {
   export WhatIsKnownAboutRevealedClass1
     reveals Trait
     reveals Convert, Convert?
-  function method Convert(x: Trait): object { x }
-  function method Convert?(x: Trait?): object? { x }
+  function Convert(x: Trait): object { x }
+  function Convert?(x: Trait?): object? { x }
 }
 
 module GoodExports {
@@ -210,19 +210,19 @@ module GoodExports {
     provides Klass.FromInt
 
   trait Trait {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
   }
   class Klass {
     constructor () { }
     constructor FromInt(w: int) { }
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
   }
   datatype Dt = X | Y | More(u: int) {
-    predicate Valid() { true }
+    ghost predicate Valid() { true }
     const M := 100
     static const N := 101
   }
@@ -237,7 +237,7 @@ module GoodExports {
 
   least predicate P(r: real)
   least lemma L(r: real)
-  function {:opaque} OpaqueFunction(r: real): int { 10 }
+  ghost function {:opaque} OpaqueFunction(r: real): int { 10 }
 }
 
 module Client_ProvideTypes {
@@ -367,8 +367,8 @@ module MultipleNamesForTheSameThing {
       reveals T
       provides T.F
     newtype T = x | 0 <= x < 80 {
-      function F(): T { this }
-      predicate Q() { true }
+      ghost function F(): T { this }
+      ghost predicate Q() { true }
     }
   }
   module B {
@@ -481,8 +481,8 @@ module StarLookupErrors {
     provides C.FromInt
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    function F(): int { if X? then 0 else 1 }
+    function G(): int { 5 }
   }
   class C {
     var u: int
@@ -517,8 +517,8 @@ module StarConsistencyErrors {
     reveals B.G
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    function F(): int { if X? then 0 else 1 }
+    function G(): int { 5 }
   }
   class C {
     var u: int
@@ -541,8 +541,8 @@ module StarsGood {
     reveals E
 
   datatype B = X | Y {
-    function method F(): int { if X? then 0 else 1 }
-    function method G(): int { 5 }
+    function F(): int { if X? then 0 else 1 }
+    function G(): int { 5 }
   }
   class C {
     var u: int

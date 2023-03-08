@@ -30,13 +30,14 @@ public class ErrorMessageDafnyCodeActionProvider : DiagnosticDafnyCodeActionProv
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
     ErrorID errorID = ErrorID.None;
     bool ok = Enum.TryParse<ErrorID>(diagnostic.Code, out errorID);
-    var action = DafnyCodeActions.GetAction(errorID);
-    if (action == null) {
-      return new List<DafnyCodeAction> { };
-    } else {
-      //Range range = diagnostic.Range;
+    var actionSigs = DafnyCodeActions.GetAction(errorID);
+    var actions = new List<DafnyCodeAction> { };
+    if (actionSigs != null) {
       Range range = InterpretDataAsRangeOrDefault(diagnostic.Data, diagnostic.Range);
-      return action(diagnostic, range);
+      foreach (var sig in actionSigs) {
+        actions.AddRange(sig(input, diagnostic, range));
+      }
     }
+    return actions;
   }
 }

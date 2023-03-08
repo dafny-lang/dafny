@@ -2,13 +2,14 @@
 
 <!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
 
-## **Error: Duplicate declaration modifier: abstract**
+## **Error: Duplicate declaration modifier: abstract** {#p_duplicate_modifier}
 
 ```dafny
 abstract abstract module M {}
 ```
 
-No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated. Such repetition would be superfluous even if allowed.
+No Dafny modifier, such as [`abstract`, `static`, `ghost`](../DafnyRef/DafnyRef#sec-declaration-modifiers) may be repeated
+Such repetition would be superfluous even if allowed.
 
 ## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
  
@@ -31,15 +32,12 @@ ghost function f(): int
 }
 ```
 
-Functions with a [by method](../DafnyRef/DafnyRef#sec-function-declarations)
-section to their body can be used both in ghost contexts and in non-ghost contexts; in ghost contexts the function body is used and in compiled contexts
-the by-method body is used. The `ghost` keyword is not permitted on the 
-declaration.
-
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)**
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default}
 
 ```dafny
-ghost function f(): int { 42 }
+module {:options "--function-syntax:3"} M {
+  ghost function f(): int { 42 }
+}
 ```
 
 For versions prior to Dafny 4, the `function` keyword meant a ghost function
@@ -49,7 +47,7 @@ From Dafny 4 on, `ghost function` means a ghost function and
 See the discussion [here](../DafnyRef/DafnyRef#sec-function-syntax) for
 a discussion of options to control this feature.
 
-## **Error: a _decl_ cannot be declared 'ghost'**
+## **Error: a _decl_ cannot be declared 'ghost'** {#p_ghost_forbidden}
 
 ```dafny
 ghost module M {}
@@ -68,7 +66,16 @@ Only some kinds of declarations can be declared 'static', most often
 fields, constants, methods, and functions, and only within classes.
 Modules and the declarations within them are already always static.
 
-## **Error: argument to :options attribute must be a literal string**
+## **Warning: Attribute _attribute_ is deprecated and will be removed in Dafny 4.0 {#p_deprecated_attribute}
+
+<!-- %check-resolve-warn -->
+```dafny
+method {:handle} m() {}
+```
+
+The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
+
+## **Error: argument to :options attribute must be a literal string** {#p_literal_string_required}
 
 ```dafny
 module N { const opt := "--function-syntax:4" }
@@ -94,7 +101,7 @@ that is a single underscore is used as a wild-card match.
      function m(): (_: int) {0}
 -->
 
-## **Error: sorry, bitvectors that wide (_number_) are not supported**
+## **Error: sorry, bitvectors that wide (_number_) are not supported** {#p_bitvector_too_large}
 
 ```dafny
 const b: bv2147483648
@@ -104,7 +111,7 @@ A bitvector type name is the characters 'bv' followed by a non-negative
 integer literal. However, dafny only supports widths up to the largest
 signed 32-bit integer (2147483647).
 
-## **Error: sorry, arrays of that many dimensions (_number_) are not supported**
+## **Error: sorry, arrays of that many dimensions (_number_) are not supported** {#p_array_dimension_too_large}
 
 ```dafny
 const a: array2147483648<int>
@@ -116,7 +123,7 @@ dimensions up to the largest signed 32-bit integer (2147483647).
 In practice (as of v3.9.1) dimensions of more than a few can take 
 overly long to resolve ([Issue #3180](https://github.com/dafny-lang/dafny/issues/3180)).
 
-## **Error: There is no point to an export declaration at the top level**
+## **Error: There is no point to an export declaration at the top level** {#p_superfluous_export}
 
 ```dafny
 export M
@@ -127,7 +134,7 @@ Although all top-level declarations are contained in an implicit top-level modul
 Such an import would likely cause a circular module dependency error.
 If the implicit module cannot be imported, there is no point to any export declarations inside the implicit module.
 
-## **Error: expected either a '{' or a 'refines' keyword here, found _token_**
+## **Error: expected either a '{' or a 'refines' keyword here, found _token_** {#p_bad_module_decl}
 
 ```dafny
 module M {}
@@ -138,9 +145,7 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
-## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration**
-
-<!-- There are four instances of this error message -->
+## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration** {#p_extraneous_comma_in_export}
 
 ```dafny
 module M {
@@ -158,7 +163,7 @@ a comma-separated list of identifiers, but the clauses themselves are not separa
 So in the example above, the comma after `a` is wrong in each export declaration. 
 This mistake is easy to make when the clauses are on the same line.
 
-## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration**
+## **Error: fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration** {#p_top_level_field}
 
 ```dafny
 module M {
@@ -170,7 +175,7 @@ module M {
 But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
-## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement**
+## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
 
 ```dafny
 abstract module M { datatype D = A | B }
@@ -178,8 +183,9 @@ module N refines M { datatype D = ... Y | Z }
 ```
 
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
+It is only allowed to add members to the body of the datatype.
 
-## **Error: mutable fields are not allowed in value types**
+## **Error: mutable fields are not allowed in value types** {#p_no_mutable_fields_in_value_types}
 
 ```dafny
 datatype D = A | B  { var c: D }
@@ -198,7 +204,7 @@ const c: int = 5
 Dafny's syntax for initialization and assignment uses `:=`, not `=`.
 In Dafny `=` is used only in type definitions.
 
-## **Error: a const declaration must have a type or a RHS value**
+## **Error: a const declaration must have a type or a RHS value** {#p_const_is_missing_type_or_init}
 
 ```dafny
 const i
@@ -209,7 +215,7 @@ or a right-hand-side expression, whose type is then the type of the
 declared identifier. 
 So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
-## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype**
+## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype** {#p_misplaced_ellipsis_in_newtype}
 
 ```dafny
 abstract module M { newtype T = int }
@@ -218,18 +224,20 @@ module N refines M { newtype T = ... int }
 
 There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
 
-## **Error: formal cannot be declared 'ghost' in this context**
+## **Error: formal cannot be declared 'ghost' in this context** {#p_output_of_function_not_ghost}
 
 ```dafny
 predicate m(i: int): (ghost r: bool) { 0 }
 ```
 
 The output of a predicate or function cannot be ghost.
+It is implicitly ghost if the function is ghost itself.
 
-## **Error: formal cannot be declared 'ghost' in this context**
+<!-- MISPLACED TODO -->
+## **Error: formal cannot be declared 'ghost' in this context** {#p_ghost_function_output_not_ghost}
 
 ```dafny
-function m(ghost i: int): int {
+ghost function m(ghost i: int): int {
   42
 }
 ```
@@ -237,7 +245,7 @@ function m(ghost i: int): int {
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
 
-## **Error: formal cannot be declared 'new' in this context**
+## **Error: formal cannot be declared 'new' in this context** {#p_no_new_on_output_formals}
 
 ```dafny
 method m(i: int) returns (new r: int) {}
@@ -245,7 +253,7 @@ method m(i: int) returns (new r: int) {}
 
 The `new` modifier only applies to input parameters.
 
-## **Error: formal cannot be declared 'nameonly' in this context**
+## **Error: formal cannot be declared 'nameonly' in this context** {#p_no_nameonly_on_output_formals}
 
 ```dafny
 method m(i: int) returns (nameonly r: int) {}
@@ -253,7 +261,7 @@ method m(i: int) returns (nameonly r: int) {}
 
 The `nameonly` modifier only applies to input parameters.
 
-## **Error: formal cannot be declared 'older' in this context**
+## **Error: formal cannot be declared 'older' in this context** {#p_no_older_on_output_formals}
 
 ```dafny
 method m(i: int) returns (older r: int) {}
@@ -262,7 +270,7 @@ method m(i: int) returns (older r: int) {}
 The `older` modifier only applies to input parameters.
 
 
-## **Error: a mutable field must be declared with a type**
+## **Error: a mutable field must be declared with a type** {#p_var_decl_must_have_type}
 
 ```dafny
 class A {
@@ -274,7 +282,7 @@ class A {
 Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
 `const` declarations may have initializers; if they do they do not need an explicit type.
 
-## **Error: a mutable field may not have an initializer**
+## **Error: a mutable field may not have an initializer** {#p_no_init_for_var_field}
 
 ```dafny
 class A {
@@ -286,9 +294,7 @@ class A {
 Dafny does not allow field declarations to have initializers. They are initialized in constructors.
 Local variable declarations (which also begin with `var`) may have initializers.
 
-
-
-## **Error: invalid formal-parameter name in datatype constructor**
+## **Error: invalid formal-parameter name in datatype constructor** {#p_datatype_formal_is_not_id}
 
 ```dafny
 datatype D = Nil | D(int: uint8) 
@@ -296,12 +302,11 @@ datatype D = Nil | D(int: uint8)
 
 Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
 In datatype constructors the 'name :' is optional; one can just state the type.
-
 However, if there is a name, it may not be a typename, as in the failing example above.
 The formal parameter name should be a simple identifier that is not a reserved word.
 
 
-## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name**
+## **Error: use of the 'nameonly' modifier must be accompanied with a parameter name** {#p_nameonly_must_have_parameter_name}
 
 ```dafny
 datatype D = D (i: int, nameonly int) {}
@@ -313,7 +318,7 @@ then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
 More detail is given [here](../DafnyRef/DafnyRef#sec-parameter-bindings).
 
-## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?**
+## **Error: iterators don't have a 'returns' clause; did you mean 'yields'?** {#p_should_be_yields_instead_of_returns}
 
 ```dafny
 iterator Count(n: nat) returns (x: nat) {
@@ -333,7 +338,7 @@ In addition, the declaration does not use `returns` to state the out-parameter, 
 The example above is a valid example if `returns` is replaced by `yields`.
 
 
-## **Error: type-parameter variance is not allowed to be specified in this context**
+## **Error: type-parameter variance is not allowed to be specified in this context** {#p_type_parameter_variance_forbidden}
 
 ```dafny
 type List<T>
@@ -347,7 +352,7 @@ Such designations are allowed in generic type declarations but not in generic me
 
 <!-- There are two instances of this error, one for the first item in a type parameter list, and one for subsequent items -->
 
-## **Error: unexpected type parameter option: '000' should be one of == or 0 or 00 or !new**
+## **Error: unexpected type characteristic: '000' should be one of == or 0 or 00 or !new** {#p_unexpected_type_characteristic}
 
 ```dafny
 type T(000)
@@ -357,7 +362,47 @@ type T(000)
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
-## **Error: constructors are allowed only in classes**
+## **Error: extra comma or missing type characteristic: should be one of == or 0 or 00 or !new** {#p_missing_type_characteristic}
+
+<!-- %no-check - TODO - fix to better error recovery after 4.0 -->
+```dafny
+type T(0,,0)
+```
+
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
+
+
+## **Error: illegal type characteristic: '_token_' should be one of == or 0 or 00 or !new** {#p_illegal_type_characteristic}
+
+```dafny
+type T(X)
+```
+
+[Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
+
+## **Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'** {#p_deprecated_colemma}
+
+<!-- %check-resolve-warn -->
+```dafny
+colemma m() ensures true {}
+```
+
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+
+## **Warning: the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'** {#p_deprecated_inductive_lemma}
+
+<!-- %check-resolve-warn -->
+```dafny
+inductive lemma m() ensures true {}
+```
+
+The adjectives `least` and `greatest` for lemmas and functions are more consistent with the nomenclature for coinduction.
+
+## **Error: constructors are allowed only in classes** {#p_constructor_in_class}
 
 ```dafny
 module M {
@@ -369,7 +414,7 @@ Constructors are methods that initialize class instances. That is, when a new in
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
 So constructor declarations only make sense within classes.
 
-## **Error: a method must be given a name (expecting identifier)**
+## **Error: a method must be given a name (expecting identifier)** {#p_method_missing_name}
 
 ```dafny
 method {:extern "M"} (i: int) {}
@@ -379,7 +424,7 @@ A method declaration always requires an identifier between the `method` keyword 
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
 
-## **Error: type of _k_ can only be specified for least and greatest lemmas**
+## **Error: type of _k_ can only be specified for least and greatest lemmas** {#p_extraneous_k}
 
 ```dafny
 lemma b[nat](i: int) { }
@@ -390,7 +435,7 @@ Its type is specified in square brackets between the lemma/predicate name and th
 The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
 
-## **Error: constructors cannot have out-parameters**
+## **Error: constructors cannot have out-parameters** {#p_constructors_have_no_out_parameters}
 
 ```dafny
 class C {
@@ -407,7 +452,7 @@ and they may not be declared.
 (This is similar to constructors in other programming languages, like Java.)
 
 
-## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions**
+## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions** {#p_reads_star_must_be_alone}
 
 ```dafny
 const a: object;
@@ -418,13 +463,13 @@ function f(): int
 }
 ```
 
-A reads clause lists the objects whose fields the function is allowed to read (or expressions containing such objects).
-`reads *` means the function may read anything.
+A reads clause lists the objects whose fields the function is allowed to read (or expressions 
+containing such objects). `reads *` means the function may read anything.
 So it does not make sense to list `*` along with something more specific.
 If you mean that the function should be able to read anything, just list `*`.
 Otherwise, omit the `*` and list expressions containing all the objects that are read.
 
-## **Error: out-parameters cannot have default-value expressions**
+## **Error: out-parameters cannot have default-value expressions** {#p_no_defaults_for_out_parameters}
 
 ```dafny
 method m(i: int) returns (j: int := 0) { return 42; }
@@ -436,7 +481,7 @@ No initializing value may be given. If a default value is needed, assign the out
 that value as a first statement in the body of the method.
 
 
-## **Error: set type expects only one type argument**
+## **Error: set type expects only one type argument** {#p_set_only_one_type_parameter}
 
 ```dafny
 const c: set<int,bool>
@@ -446,7 +491,7 @@ A `set` type has one type parameter, namely the type of the elements of the set.
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: iset type expects only one type argument**
+## **Error: iset type expects only one type argument** {#p_iset_only_one_type_parameter}
 
 ```dafny
 const c: iset<int,bool>
@@ -456,7 +501,7 @@ A `iset` type has one type parameter, namely the type of the elements of the set
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: multiset type expects only one type argument**
+## **Error: multiset type expects only one type argument** {#p_multiset_only_one_type_parameter}
 
 ```dafny
 const c: multiset<int,bool>
@@ -466,7 +511,7 @@ A `multiset` type has one type parameter, namely the type of the elements of the
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
 
-## **Error: seq type expects only one type argument**
+## **Error: seq type expects only one type argument** {#p_seq_only_one_type_parameter}
 
 ```dafny
 const c: seq<int,bool>
@@ -479,7 +524,7 @@ The type parameters are listed in a comma-separated list between `<` and `>`, af
 
 <!-- There are two instances of this error. -->
 
-## **Error: map type expects two type arguments**
+## **Error: map type expects two type arguments** {#p_map_needs_two_type_parameters}
 
 ```dafny
 const m: map<int,bool,string>
@@ -489,7 +534,7 @@ A `map` type has two type parameters: the type of the keys and the type of the v
 The error message states that the parser sees some number of type parameters different than two.
 
 
-## **Error: imap type expects two type arguments**
+## **Error: imap type expects two type arguments** {#p_imap_needs_two_type_parameters}
 
 ```dafny
 const m: imap<int,bool,string>
@@ -581,7 +626,7 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 - If you intend to predicate to be ghost, remove `method`.
 - If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
-## **Error: the phrase '_what_ method' is not allowed; to declare a compiled _what_, use just '_what_'**
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_function_method}
 
 ```dafny
 module {:options "--function-syntax:4"} M {
@@ -592,7 +637,6 @@ module {:options "--function-syntax:4"} M {
 In Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: there is no such thing as a 'ghost _what_ method'**
@@ -613,7 +657,7 @@ and there is no longer any declaration of the form `function method`, and simila
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method'**
+## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method' when using --function-syntax:migration3to4**
 
 ```dafny
 module {:options "--function-syntax:migration3to4"} M {
@@ -659,7 +703,7 @@ So `predicate p(): (res: bool) { true }` is permitted
 ## **Error: A '*' expression is not allowed here**
 
 ```dafny
-function method m(i: int): int
+function m(i: int): int
   decreases *
 {
   42
@@ -1112,13 +1156,13 @@ For simplicity, however, Dafny requires the variables being initialized to be si
 datatype Outcome<T> = 
   | Success(value: T) 
   | Failure(error: string) 
-{ predicate method IsFailure() { this.Failure? } 
-  function method PropagateFailure<U>(): Outcome<U> 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
     requires IsFailure() 
   { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
   }
  
-  function method Extract(): T requires !IsFailure() { this.value } 
+  function Extract(): T requires !IsFailure() { this.value } 
 }
 
 function m(): Outcome<int> { Outcome<int>.Success(0) }
@@ -1135,13 +1179,13 @@ Within a function, the `:-` operator is limited to a most one left-hand-side and
 datatype Outcome<T> = 
   | Success(value: T) 
   | Failure(error: string) 
-{ predicate method IsFailure() { this.Failure? } 
-  function method PropagateFailure<U>(): Outcome<U> 
+{ predicate IsFailure() { this.Failure? } 
+  function PropagateFailure<U>(): Outcome<U> 
     requires IsFailure() 
   { Outcome<U>.Failure(this.error) // this is Outcome<U>.Failure(...) 
   }
  
-  function method Extract(): T requires !IsFailure() { this.value } 
+  function Extract(): T requires !IsFailure() { this.value } 
 }
 
 function m(): Outcome<int> { Outcome<int>.Success(0) }
@@ -1196,23 +1240,28 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 
 ## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
 
+<!-- %no-check -->
 ```dafny
 const s := @"
 #line S
 "
 ```
 
-The Dafny scanner supports pragmas of the form `#line <lineno> <filename>`, with the filename optional.
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
+The Dafny scanner once supported pragmas of the form `#line <lineno> <filename>`, with the filename optional.
 This message indicates that the pragma was not readable, most likely because the line number was not a
 parsable numeral.
 
 ## **Error: Unrecognized pragma: #_source_** {#sc_unknown_pragma}
 
+<!-- %no-check -->
 ```dafny
 const s := @"
 # I love hashes
 "
 ```
+
+This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
-scanner recopgnizes. As of this writing, the only pragma recognized is `#line`.
+scanner recognizes. The only pragma ever recognized was `#line`.
 

@@ -17,11 +17,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this parser serializes all invocations.
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
-
+    private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
 
-    private DafnyLangParser(ILogger<DafnyLangParser> logger) {
+    private DafnyLangParser(DafnyOptions options, ILogger<DafnyLangParser> logger) {
+      this.options = options;
       this.logger = logger;
     }
 
@@ -30,8 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
-      return new DafnyLangParser(logger);
+    public static DafnyLangParser Create(DafnyOptions options, ILogger<DafnyLangParser> logger) {
+      return new DafnyLangParser(options, logger);
     }
 
     public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
@@ -83,14 +84,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
       return new Dafny.Program(
         document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDecl(), null),
+        new LiteralModuleDecl(new DefaultModuleDefinition(), null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new BuiltIns(),
+        new BuiltIns(errorReporter.Options),
         errorReporter
       );
     }

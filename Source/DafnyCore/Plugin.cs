@@ -8,12 +8,12 @@ namespace Microsoft.Dafny;
 using Dafny.Plugins;
 
 public interface Plugin {
-  public IEnumerable<IExecutableBackend> GetCompilers();
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options);
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
 }
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
-  public IEnumerable<IExecutableBackend> GetCompilers() {
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
     return Enumerable.Empty<IExecutableBackend>();
   }
 
@@ -42,8 +42,8 @@ public class ConfiguredPlugin : Plugin {
     Configuration = configuration;
   }
 
-  public IEnumerable<IExecutableBackend> GetCompilers() {
-    return Configuration.GetCompilers();
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
+    return Configuration.GetCompilers(options);
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
@@ -101,7 +101,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       Rewriters.Select(funcErrorReporterRewriter =>
         funcErrorReporterRewriter(errorReporter)).ToArray();
 
-    public override IExecutableBackend[] GetCompilers() =>
+    public override IExecutableBackend[] GetCompilers(DafnyOptions options) =>
       Compilers.Select(c => c()).ToArray();
   }
 
