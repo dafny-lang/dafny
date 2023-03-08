@@ -59,6 +59,7 @@ jobs:
       run: |
         mkdir bin
         mv z3-* bin/
+        ls bin
     - name: Make Z3 executable (non-Windows)
       run: |
         chmod +x bin/z3-*
