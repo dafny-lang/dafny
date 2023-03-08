@@ -12,7 +12,7 @@ method Main()
 // -----
 // test that the definition axiom for function "apply" is available
 
-function method apply(f:int~>int, a:int): int
+function apply(f:int~>int, a:int): int
   reads f.reads
   requires f.requires(a)
 {
@@ -41,7 +41,7 @@ lemma TestPreCaller()
 // -----
 // test that the above thing for arrows also works for maps
 
-function method mapply(m: map<int,int>, a:int): int
+function mapply(m: map<int,int>, a:int): int
   requires a in m
 {
   m[a]
@@ -59,7 +59,7 @@ lemma N() {
 // -----
 // test that g's result is known to be $Is'ed and $IsAlloc'ed
 
-function method five(f:int->int): int { 5 }
+function five(f:int->int): int { 5 }
 
 lemma P() {
   var f := i => i + 1;

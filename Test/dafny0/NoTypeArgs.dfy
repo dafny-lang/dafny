@@ -49,14 +49,14 @@ class MyClass<G(0)> {
 // The followinng functions and methods are oblivious of the fact that
 // List takes a type parameter (except Lemma, which needs it).
 
-function concat(xs: List, ys: List): List
+ghost function concat(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
   case Cons(x, tail) => Cons(x, concat(tail, ys))
 }
 
-function reverse(xs: List): List
+ghost function reverse(xs: List): List
 {
   match xs
   case Nil => Nil
@@ -89,7 +89,7 @@ method DoAPrefix<A, B, C>(xs: List) returns (ys: List<A>)
   ys := xs;
 }
 
-function FDoAPrefix<A, B, C>(xs: List): List<A>
+ghost function FDoAPrefix<A, B, C>(xs: List): List<A>
 {
   xs
 }

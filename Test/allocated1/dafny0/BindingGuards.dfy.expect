@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 BindingGuards.dfy(85,10): Error: A postcondition might not hold on this return path.
 BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 BindingGuards.dfy(134,9): Error: assertion might not hold

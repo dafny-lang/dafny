@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 ChainingDisjointTests.dfy(49,2): Error: A postcondition might not hold on this return path.
 ChainingDisjointTests.dfy(48,14): Related location: This is the postcondition that might not hold.
 ChainingDisjointTests.dfy(42,22): Related location

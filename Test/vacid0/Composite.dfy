@@ -8,7 +8,7 @@ class Composite {
   var val: int
   var sum: int
 
-  function Valid(S: set<Composite>): bool
+  ghost function Valid(S: set<Composite>): bool
     reads this, parent, left, right
   {
     this in S &&
@@ -18,7 +18,7 @@ class Composite {
     sum == val + (if left == null then 0 else left.sum) + (if right == null then 0 else right.sum)
   }
 
-  function Acyclic(S: set<Composite>): bool
+  ghost function Acyclic(S: set<Composite>): bool
     reads S
   {
     this in S &&

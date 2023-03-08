@@ -5,7 +5,7 @@ lemma lemma_ensures(x:int, RefineInt:int->int)
     requires forall y :: RefineInt.requires(y);
     ensures forall y :: RefineInt(y) + x == RefineInt(x) + y;
 
-function Identity(z:int) : int
+ghost function Identity(z:int) : int
 
 lemma test()
 {

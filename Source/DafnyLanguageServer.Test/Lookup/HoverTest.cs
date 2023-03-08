@@ -113,7 +113,7 @@ method M2(dt: DT) {
   }
 }
 
-function method F(dt: DT): int {
+function F(dt: DT): int {
   match dt {
     case C => 0
     case A | B => var x := (y => y)(1); assert x == 1; 0
@@ -122,7 +122,7 @@ function method F(dt: DT): int {
                                  ^[```dafny\ny: int\n```]
   }
 }
-function method F2(dt: DT): int {
+function F2(dt: DT): int {
   match dt {
     case C => 0
     case _ => var x := (y => y)(1); assert x == 1; 0
@@ -394,7 +394,7 @@ method f(i: int) {
     [TestMethod]
     public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
       await AssertHover(@"
-predicate f(i: int) {
+ghost predicate f(i: int) {
   forall j :: j + i == i + j
          ^[```dafny\nj: int\n```]
               ^[```dafny\nj: int\n```]
@@ -419,7 +419,7 @@ predicate even(n: nat)
     [TestMethod]
     public async Task HoveringLetInReturnsInferredType() {
       await AssertHover(@"
-function method test(n: nat): nat {
+function test(n: nat): nat {
   var i := n * 2;
       ^[```dafny\ni: int\n```]
            ^[```dafny\nn: nat\n```]
@@ -456,7 +456,7 @@ function f(i: int): (r: int)
     public async Task HoverIngInferredVariable() {
       await AssertHover(@"
 datatype Pos = Pos(line: int)
-function method f(i: int): Pos {
+function f(i: int): Pos {
   if i <= 3 then Pos(i)
   else
    var r := f(i - 2);

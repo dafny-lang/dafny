@@ -5,7 +5,7 @@ class C {
   var u: int
   method M() {
   }
-  function method F(): int {
+  function F(): int {
     5
   }
 }
