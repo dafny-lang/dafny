@@ -15,11 +15,6 @@ using XUnitExtensions.Lit;
 namespace IntegrationTests {
   public class LitTests {
 
-    // Change this to true in order to debug the execution of commands like %dafny.
-    // This is false by default because the main dafny CLI implementation currently has shared static state, which
-    // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
-    private const bool InvokeMainMethodsDirectly = false;
-
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
@@ -65,38 +60,37 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config)
         }, {
           "%resolve", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultResolveArgs, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%translate", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(new[]{"translate"}, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%verify", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultVerifyArgs, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%build", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultBuildArgs, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%run", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(defaultRunArgs, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%dafny", (args, config) =>
             MainMethodLitCommand.Parse(DafnyDriverAssembly, AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
-              config, InvokeMainMethodsDirectly)
+              config)
         }, {
           "%testDafnyForEachCompiler", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config,
-              InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
         }, {
           "%server", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config)
         }, {
           "%boogie", (args, config) =>
             new DotnetToolCommand("boogie",
@@ -147,8 +141,7 @@ namespace IntegrationTests {
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config,
-            InvokeMainMethodsDirectly);
+            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
