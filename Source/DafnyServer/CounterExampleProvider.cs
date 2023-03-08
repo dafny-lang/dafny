@@ -9,31 +9,32 @@ using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
 
 namespace DafnyServer {
   public class CounterExampleProvider {
     private const int maximumCounterexampleDepth = 5;
     public const string ModelBvd = "./model.bvd";
 
-    public CounterExample LoadCounterModel() {
+    public CounterExample LoadCounterModel(DafnyOptions options) {
       try {
-        var models = LoadModelFromFile();
+        var models = LoadModelFromFile(options);
         return ConvertModels(models);
       } catch (Exception) {
         return new CounterExample();
       }
     }
 
-    private static List<DafnyModel> LoadModelFromFile() {
+    private static List<DafnyModel> LoadModelFromFile(DafnyOptions options) {
       using var wr = new StreamReader(ModelBvd);
       var output = wr.ReadToEnd();
       var models = ExtractModels(output);
-      var dafnyModels = BuildModels(models).ToList();
+      var dafnyModels = BuildModels(options, models).ToList();
       return dafnyModels;
     }
 
-    private static IEnumerable<DafnyModel> BuildModels(IEnumerable<Model> modelList) {
-      return modelList.Select(model => new DafnyModel(model));
+    private static IEnumerable<DafnyModel> BuildModels(DafnyOptions options, IEnumerable<Model> modelList) {
+      return modelList.Select(model => new DafnyModel(model, options));
     }
 
     private static List<Model> ExtractModels(string output) {

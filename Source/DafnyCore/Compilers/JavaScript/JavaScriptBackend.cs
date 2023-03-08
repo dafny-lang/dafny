@@ -23,7 +23,7 @@ public class JavaScriptBackend : ExecutableBackend {
     new HashSet<string>(new List<string> { "number" });
 
   protected override SinglePassCompiler CreateCompiler() {
-    return new JavaScriptCompiler(Reporter);
+    return new JavaScriptCompiler(Options, Reporter);
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -64,9 +64,9 @@ public class JavaScriptBackend : ExecutableBackend {
         WriteFromFile(filename, nodeProcess.StandardInput);
       }
       nodeProcess.StandardInput.Write(targetProgramText);
-      if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+      if (callToMain != null && Options.RunAfterCompile) {
         nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", DafnyOptions.O.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
+        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCompiler)compiler).ToStringLiteral)) + "];");
         nodeProcess.StandardInput.Write(callToMain);
       }
       nodeProcess.StandardInput.Flush();
@@ -92,5 +92,8 @@ public class JavaScriptBackend : ExecutableBackend {
     while ((current = input.Read()) != -1) {
       output.Write((char)current);
     }
+  }
+
+  public JavaScriptBackend(DafnyOptions options) : base(options) {
   }
 }

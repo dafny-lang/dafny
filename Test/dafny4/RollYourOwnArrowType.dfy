@@ -12,33 +12,33 @@ type NonGhost_EffectlessArrow<!A(!new), B> = f: A ~> B
 
 // The following compilable function, which is used in the witness clause above, can never
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
-function method EffectlessArrowWitness<A, B>(a: A): B
+function EffectlessArrowWitness<A, B>(a: A): B
 
 type EffectlessArrow<!A(!new), B(00)> = f: A ~> B
   | forall a :: f.reads(a) == {}
   ghost witness GhostEffectlessArrowWitness<A, B>
 
-function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
+ghost function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
 {
   var b: B :| true; b
 }
 
 
-function method Twice(f: EffectlessArrow<int,int>, x: int): int
+function Twice(f: EffectlessArrow<int,int>, x: int): int
   requires forall x :: f.requires(x)
 {
   var y := f(x);
   f(y)
 }
 
-function method Twice'(f: EffectlessArrow<int,int>, x: int): int
+function Twice'(f: EffectlessArrow<int,int>, x: int): int
   reads f.reads
   requires forall x :: f.requires(x)
 {
   f(f(x))
 }
 
-function method Twice''(f: EffectlessArrow<int,int>, x: int): int
+function Twice''(f: EffectlessArrow<int,int>, x: int): int
   reads f.reads
   requires forall x :: f.requires(x)
 {
@@ -46,14 +46,14 @@ function method Twice''(f: EffectlessArrow<int,int>, x: int): int
   f(f(x))
 }
 
-function method TwoTimes(f: int ~> int, x: int): int
+function TwoTimes(f: int ~> int, x: int): int
   requires forall x :: f.reads(x) == {}
   requires forall x :: f.requires(x)
 {
   f(f(x))
 }
 
-function method Inc(x: int): int
+function Inc(x: int): int
 {
   x + 1
 }
@@ -68,7 +68,7 @@ method Main()
 
 // ----- totality constraint by predicate Total -------------------------------------
 
-predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
+ghost predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {} && f.requires(a)
@@ -78,7 +78,7 @@ type TotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
   | Total(f)
   ghost witness TotalWitness<A, B>
 
-function TotalWitness<A, B(00)>(a: A): B
+ghost function TotalWitness<A, B(00)>(a: A): B
 {
   var b: B :| true; b
 }
@@ -88,7 +88,7 @@ lemma TotalWitnessIsTotal<A, B>()
 {
 }
 
-function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
+ghost function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
 {
   f(f(x))
 }
@@ -104,20 +104,20 @@ lemma DirectTotalWitnessIsTotal<A(!new), B(00)>(f: DirectTotalArrow<A, B>)
 {
 }
 
-function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
+ghost function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 {
   f(f(x))
 }
 
 // ----- using two predicates, and showing which conjunct of constraint is violated ------
 
-predicate EmptyReads<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
+ghost predicate EmptyReads<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {}
 }
 
-predicate TruePre<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
+ghost predicate TruePre<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.requires(a)
@@ -127,9 +127,9 @@ type TwoPred_TotalArrow<!A(!new), B(00)> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   ghost witness TotalWitness<A, B>
 
-predicate SomeCondition<A>(a: A)
+ghost predicate SomeCondition<A>(a: A)
 
-function PartialFunction<A, B(00)>(a: A): B
+ghost function PartialFunction<A, B(00)>(a: A): B
   requires SomeCondition(a)
 {
   var b: B :| true; b

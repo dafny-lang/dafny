@@ -10,6 +10,12 @@ namespace Microsoft.Dafny.Compilers;
 public abstract class ExecutableBackend : Plugins.IExecutableBackend {
   protected SinglePassCompiler compiler;
 
+  protected ExecutableBackend(DafnyOptions options) {
+    Options = options;
+  }
+
+  public DafnyOptions Options { get; }
+
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 
   public override bool SupportsDatatypeWrapperErasure => CreateCompiler().SupportsDatatypeWrapperErasure;
@@ -77,7 +83,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return null;
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename,
+    ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);

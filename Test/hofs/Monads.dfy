@@ -4,8 +4,8 @@
 abstract module Monad {
   type M<A>
 
-  function method Return<A>(x: A): M<A>
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function Return<A>(x: A): M<A>
+  function Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
 
   // return x >>= f = f x
   lemma LeftIdentity<A,B>(x: A, f: A -> M<B>)
@@ -24,10 +24,10 @@ abstract module Monad {
 module Identity refines Monad {
   datatype M<A> = I(A)
 
-  function method Return<A>(x: A): M<A>
+  function Return<A>(x: A): M<A>
   { I(x) }
 
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
   {
     var I(x) := m; f(x)
   }
@@ -53,10 +53,10 @@ module Identity refines Monad {
 module Maybe refines Monad {
   datatype M<A> = Just(A) | Nothing
 
-  function method Return<A>(x: A): M<A>
+  function Return<A>(x: A): M<A>
   { Just(x) }
 
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
   {
     match m
     case Nothing => Nothing
@@ -84,31 +84,31 @@ module Maybe refines Monad {
 module List refines Monad {
   datatype M<A> = Cons(hd: A,tl: M<A>) | Nil
 
-  function method Return<A>(x: A): M<A>
+  function Return<A>(x: A): M<A>
   { Cons(x,Nil) }
 
-  function method Concat<A>(xs: M<A>, ys: M<A>): M<A>
+  function Concat<A>(xs: M<A>, ys: M<A>): M<A>
   {
     match xs
     case Nil => ys
     case Cons(x,xs) => Cons(x,Concat(xs,ys))
   }
 
-  function method Join<A>(xss: M<M<A>>): M<A>
+  function Join<A>(xss: M<M<A>>): M<A>
   {
     match xss
     case Nil => Nil
     case Cons(xs,xss) => Concat(xs,Join(xss))
   }
 
-  function method Map<A,B>(xs: M<A>, f: A -> B): M<B>
+  function Map<A,B>(xs: M<A>, f: A -> B): M<B>
   {
     match xs
     case Nil => Nil
     case Cons(x,xs) => Cons(f(x),Map(xs,f))
   }
 
-  function method Bind<A,B>(m: M<A>, f: A -> M<B>): M<B>
+  function Bind<A,B>(m: M<A>, f: A -> M<B>): M<B>
   {
     Join(Map(m,f))
   }

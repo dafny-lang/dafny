@@ -29,7 +29,7 @@ module Client {
     print "PriorityQueue_direct: ", Test_direct(), "\n";
   }
 
-  function method Test_extrinsic(): int
+  function Test_extrinsic(): int
     ensures Test_extrinsic() == 3
   {
     var p0 := A.Empty();
@@ -44,7 +44,7 @@ module Client {
     m
   }
 
-  function method Test_layered(): int
+  function Test_layered(): int
     ensures Test_layered() == 3
   {
     var p0 := B.Empty();
@@ -55,7 +55,7 @@ module Client {
     m
   }
 
-  function method Test_intrinsic(): int
+  function Test_intrinsic(): int
     ensures Test_intrinsic() == 3
   {
     var p0 := C.Empty();
@@ -66,7 +66,7 @@ module Client {
     m
   }
 
-  function method Test_on_intrinsic(): int
+  function Test_on_intrinsic(): int
     ensures Test_on_intrinsic() == 3
   {
     var p0 := D.Empty();
@@ -77,7 +77,7 @@ module Client {
     m
   }
 
-  function method Test_direct(): int
+  function Test_direct(): int
     ensures Test_direct() == 3
   {
     var p0 := E.Empty();
@@ -94,22 +94,22 @@ module PriorityQueue_layered {
     provides T, Elements, Empty, Insert, Min
   import PQ = PriorityQueue_extrinsic
   type T = t: PQ.T | PQ.Valid(t) witness (PQ.AboutEmpty(); PQ.Empty())
-  function Elements(t: T): multiset<int> {
+  ghost function Elements(t: T): multiset<int> {
     PQ.Elements(t)
   }
-  function method Empty(): T
+  function Empty(): T
     ensures Elements(Empty()) == multiset{}
   {
     PQ.AboutEmpty();
     PQ.Empty()
   }
-  function method Insert(t: T, x: int): T
+  function Insert(t: T, x: int): T
     ensures Elements(Insert(t, x)) == Elements(t) + multiset{x}
   {
     PQ.AboutInsert(t, x);
     PQ.Insert(t, x)
   }
-  function method Min(t: T): int
+  function Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
       m in Elements(t) &&
@@ -125,20 +125,20 @@ module PriorityQueue_on_intrinsic {
     provides T, Elements, Empty, Insert, Min
   import PQ = PriorityQueue_intrinsic
   type T = t: PQ.T | PQ.Valid(t) witness PQ.Empty()
-  function Elements(t: T): multiset<int> {
+  ghost function Elements(t: T): multiset<int> {
     PQ.Elements(t)
   }
-  function method Empty(): T
+  function Empty(): T
     ensures Elements(Empty()) == multiset{}
   {
     PQ.Empty()
   }
-  function method Insert(t: T, x: int): T
+  function Insert(t: T, x: int): T
     ensures Elements(Insert(t, x)) == Elements(t) + multiset{x}
   {
     PQ.Insert(t, x)
   }
-  function method Min(t: T): int
+  function Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
       m in Elements(t) &&
@@ -153,20 +153,20 @@ module PriorityQueue_intrinsic {
     provides T, Valid, Elements, Empty, Insert, Min
   import PQ = PriorityQueue_extrinsic
   type T = PQ.T
-  predicate Valid(t: T) {
+  ghost predicate Valid(t: T) {
     PQ.Valid(t)
   }
-  function Elements(t: T): multiset<int> {
+  ghost function Elements(t: T): multiset<int> {
     PQ.Elements(t)
   }
-  function method Empty(): T
+  function Empty(): T
     ensures var t' := Empty();
       Valid(t') && Elements(t') == multiset{}
   {
     PQ.AboutEmpty();
     PQ.Empty()
   }
-  function method Insert(t: T, x: int): T
+  function Insert(t: T, x: int): T
     requires Valid(t)
     ensures var t' := Insert(t, x);
       Valid(t') && Elements(t') == Elements(t) + multiset{x}
@@ -174,7 +174,7 @@ module PriorityQueue_intrinsic {
     PQ.AboutInsert(t, x);
     PQ.Insert(t, x)
   }
-  function method Min(t: T): int
+  function Min(t: T): int
     requires Valid(t) && Elements(t) != multiset{}
     ensures var m := Min(t);
       m in Elements(t) &&
@@ -190,7 +190,7 @@ module PriorityQueue_extrinsic {
     provides T, Valid, Elements, Empty, Insert, Min
     provides AboutEmpty, AboutInsert, AboutMin
   datatype T = Leaf | Node(val: int, left: T, right: T)
-  predicate Valid(t: T)
+  ghost predicate Valid(t: T)
   {
     match t
     case Leaf => true
@@ -199,12 +199,12 @@ module PriorityQueue_extrinsic {
       (left == Leaf || x <= left.val) &&
       (right == Leaf || x <= right.val)
   }
-  function Elements(t: T): multiset<int> {
+  ghost function Elements(t: T): multiset<int> {
     match t
     case Leaf => multiset{}
     case Node(x, left, right) => multiset{x} + Elements(left) + Elements(right)
   }
-  function method Empty(): T
+  function Empty(): T
   {
     Leaf
   }
@@ -213,7 +213,7 @@ module PriorityQueue_extrinsic {
       Valid(t') && Elements(t') == multiset{}
   {
   }
-  function method Insert(t: T, x: int): T
+  function Insert(t: T, x: int): T
   {
     if t == Leaf then
       Node(x, Leaf, Leaf)
@@ -229,7 +229,7 @@ module PriorityQueue_extrinsic {
       Elements(t') == Elements(t) + multiset{x}
   {
   }
-  function method Min(t: T): int
+  function Min(t: T): int
     requires Elements(t) != multiset{}
   {
     t.val
@@ -253,7 +253,7 @@ module PriorityQueue_direct {
   // recursive calls in Valid -- however, this gives rise to a cycle
   // T -> Valid -> T' -> T, which is not allowed.
   datatype T' = Leaf | Node(val: int, left: T', right: T')
-  predicate Valid(t: T')
+  ghost predicate Valid(t: T')
   {
     match t
     case Leaf => true
@@ -264,17 +264,17 @@ module PriorityQueue_direct {
   }
   type T = t: T' | Valid(t) witness Leaf
 
-  function Elements(t: T): multiset<int> {
+  ghost function Elements(t: T): multiset<int> {
     match t
     case Leaf => multiset{}
     case Node(x, left, right) => multiset{x} + Elements(left) + Elements(right)
   }
-  function method Empty(): T
+  function Empty(): T
     ensures Elements(Empty()) == multiset{}
   {
     Leaf
   }
-  function method Insert(t: T, x: int): T
+  function Insert(t: T, x: int): T
     ensures Elements(Insert(t, x)) == Elements(t) + multiset{x}
   {
     if t == Leaf then
@@ -284,7 +284,7 @@ module PriorityQueue_direct {
     else
       Node(t.val, Insert(t.right, x), t.left)
   }
-  function method Min(t: T): int
+  function Min(t: T): int
     requires Elements(t) != multiset{}
     ensures var m := Min(t);
       m in Elements(t) &&

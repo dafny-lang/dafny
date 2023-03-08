@@ -5,7 +5,7 @@ class C { // error: constructor-less class not allowed by determinism rules
   var f: real
 }
 
-predicate method P(z: int) { true }
+predicate P(z: int) { true }
 
 method M(c: C)
   modifies c

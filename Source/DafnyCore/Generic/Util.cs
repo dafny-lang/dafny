@@ -187,8 +187,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
-      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
+    public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
+      if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
             errors.SemErr(t, "\\u escape sequences are not permitted when Unicode chars are enabled");
@@ -229,13 +229,13 @@ namespace Microsoft.Dafny {
     /// Replaced any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
     /// </summary>
-    public static string RemoveEscaping(string s, bool isVerbatimString) {
+    public static string RemoveEscaping(DafnyOptions options, string s, bool isVerbatimString) {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
-      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
-        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
+      if (options.Get(CommonOptionBag.UnicodeCharacters)) {
+        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
       } else {
-        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append((char)ch));
+        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append((char)ch));
       }
       return sb.ToString();
     }
@@ -293,8 +293,8 @@ namespace Microsoft.Dafny {
     /// if --unicode-char is enabled - these are synthesized by the parser when
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
-    public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
-      var unicodeChars = DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
+    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
+      var unicodeChars = options.Get(CommonOptionBag.UnicodeCharacters);
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {

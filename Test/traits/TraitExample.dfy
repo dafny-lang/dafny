@@ -3,10 +3,10 @@
 
 trait Automobile {
   ghost var Repr: set<object>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
-  function method Brand(): string
+  function Brand(): string
   var position: int
   method Drive()
     requires Valid()
@@ -16,7 +16,7 @@ trait Automobile {
 }
 
 class Fiat extends Automobile {
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -28,7 +28,7 @@ class Fiat extends Automobile {
   {
     position, Repr := pos, {this};
   }
-  function method Brand(): string {
+  function Brand(): string {
     "Fiat"
   }
   method Drive()
@@ -43,7 +43,7 @@ class Fiat extends Automobile {
 
 class Volvo extends Automobile {
   var odometer: Odometer
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -58,7 +58,7 @@ class Volvo extends Automobile {
     odometer := new Odometer();
     Repr := Repr + {odometer};
   }
-  function method Brand(): string {
+  function Brand(): string {
     "Volvo"
   }
   method Drive()
@@ -91,7 +91,7 @@ class Odometer {
 class Catacar extends Automobile {
   var f: Fiat
   var v: Volvo
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -110,7 +110,7 @@ class Catacar extends Automobile {
     Repr := {this} + fiat.Repr + volvo.Repr;
     position := volvo.position;
   }
-  function method Brand(): string {
+  function Brand(): string {
     "Catacar"
   }
   method Drive()

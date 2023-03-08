@@ -248,6 +248,12 @@ namespace Microsoft.Dafny {
 
     public Resolver(Program prog) {
       Options = prog.Options;
+
+      allTypeParameters = new Scope<TypeParameter>(Options);
+      scope = new Scope<IVariable>(Options);
+      enclosingStatementLabels = new Scope<Statement>(Options);
+      DominatingStatementLabels = new Scope<Label>(Options);
+
       Contract.Requires(prog != null);
 
       builtIns = prog.BuiltIns;
@@ -374,7 +380,7 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        string compileName = m.CompileName;
+        string compileName = m.GetCompileName(Options);
         ModuleDefinition priorModDef;
         if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
           reporter.Error(MessageSource.Resolver, m.tok,
@@ -464,7 +470,7 @@ namespace Microsoft.Dafny {
       if (Options.DisallowConstructorCaseWithoutParentheses) {
         rewriters.Add(new ConstructorWarning(reporter));
       }
-      rewriters.Add(new UselessOldLinter(reporter));
+      rewriters.Add(new LocalLinter(reporter));
       rewriters.Add(new PrecedenceLinter(reporter));
 
       foreach (var plugin in Options.Plugins) {
@@ -553,7 +559,7 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.CompileName + "_Compile"));
+            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile"));
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -672,7 +678,7 @@ namespace Microsoft.Dafny {
 
       foreach (var module in prog.Modules()) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
-          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(iter));
+          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
         }
       }
 
@@ -1188,7 +1194,7 @@ namespace Microsoft.Dafny {
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
-          var pr = new Printer(wr);
+          var pr = new Printer(wr, Options);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
@@ -1797,7 +1803,7 @@ namespace Microsoft.Dafny {
 
               // create and add the query "method" (field, really)
               var queryName = ctor.NameNode.Append("?");
-              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(Options),
                 ctor.IsGhost, Type.Bool, null);
               query.InheritVisibility(dt);
               query.EnclosingClass = dt; // resolve here
@@ -2361,14 +2367,14 @@ namespace Microsoft.Dafny {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
             subsetTypeDecl.ConstraintIsCompilable =
-              ExpressionTester.CheckIsCompilable(null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
+              ExpressionTester.CheckIsCompilable(Options, null, subsetTypeDecl.Constraint, new CodeContextWrapper(subsetTypeDecl, true));
             subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
 
             if (subsetTypeDecl.Witness != null) {
               CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
                 var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-                ExpressionTester.CheckIsCompilable(this, subsetTypeDecl.Witness, codeContext);
+                ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
               }
             }
 
@@ -2382,7 +2388,7 @@ namespace Microsoft.Dafny {
             }
             if (newtypeDecl.Witness != null && newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
               var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-              ExpressionTester.CheckIsCompilable(this, newtypeDecl.Witness, codeContext);
+              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
             }
 
             FigureOutNativeType(newtypeDecl);
@@ -2830,7 +2836,7 @@ namespace Microsoft.Dafny {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
               // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
-                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                   CheckIsOkayWithoutRHS(f);
                 }
               }
@@ -2841,7 +2847,7 @@ namespace Microsoft.Dafny {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
               // traits never have constructors, but check for static consts
               foreach (var member in cl.Members) {
-                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                   CheckIsOkayWithoutRHS(f);
                 }
               }
@@ -2859,7 +2865,7 @@ namespace Microsoft.Dafny {
               }
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(out _, out _)) {
+              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                 CheckIsOkayWithoutRHS(f);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {
@@ -3081,7 +3087,7 @@ namespace Microsoft.Dafny {
             CheckParameterDefaultValuesAreCompilable(function.Formals, function);
             if (function.ByMethodBody == null) {
               if (!function.IsGhost && function.Body != null) {
-                ExpressionTester.CheckIsCompilable(this, function.Body, function);
+                ExpressionTester.CheckIsCompilable(Options, this, function.Body, function);
               }
               if (function.Body != null) {
                 new TailRecursion(reporter).DetermineTailRecursion(function);
@@ -3101,7 +3107,7 @@ namespace Microsoft.Dafny {
             }
 
           } else if (member is ConstantField field && field.Rhs != null && !field.IsGhost) {
-            ExpressionTester.CheckIsCompilable(this, field.Rhs, field);
+            ExpressionTester.CheckIsCompilable(Options, this, field.Rhs, field);
           }
 
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -3128,7 +3134,7 @@ namespace Microsoft.Dafny {
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
         if ((!codeContext.IsGhost || codeContext is DatatypeDecl) && !formal.IsGhost) {
-          ExpressionTester.CheckIsCompilable(this, formal.DefaultValue, codeContext);
+          ExpressionTester.CheckIsCompilable(Options, this, formal.DefaultValue, codeContext);
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
       }
@@ -4655,7 +4661,7 @@ namespace Microsoft.Dafny {
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
-                resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
+                resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(resolver.Options, p));
               }
             }
           }
@@ -4841,10 +4847,10 @@ namespace Microsoft.Dafny {
 
     TopLevelDeclWithMembers currentClass;
     public Method currentMethod;
-    readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
-    public readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
-    Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
-    public readonly Scope<Label>/*!*/ DominatingStatementLabels = new Scope<Label>();
+    readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+    public readonly Scope<IVariable>/*!*/ scope;
+    Scope<Statement>/*!*/ enclosingStatementLabels;
+    public readonly Scope<Label>/*!*/ DominatingStatementLabels;
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
@@ -5889,7 +5895,7 @@ namespace Microsoft.Dafny {
         loopStmt.InferredDecreases = true;
       }
       if (loopStmt.InferredDecreases && theDecreases.Count != 0) {
-        string s = "decreases " + Util.Comma(theDecreases, Printer.ExprToString);
+        string s = "decreases " + Util.Comma(theDecreases, expr => Printer.ExprToString(Options, expr));
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
     }
@@ -5914,7 +5920,7 @@ namespace Microsoft.Dafny {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
-      this.reporter = new ErrorReporterSink();
+      this.reporter = new ErrorReporterSink(Options);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);
@@ -7039,113 +7045,4 @@ namespace Microsoft.Dafny {
 
   // Looks for every non-ghost comprehensions, and if they are using a subset type,
   // check that the subset constraint is compilable. If it is not compilable, raises an error.
-  public class SubsetConstraintGhostChecker : ProgramTraverser {
-    public class FirstErrorCollector : ErrorReporter {
-      public string FirstCollectedMessage = "";
-      public IToken FirstCollectedToken = Token.NoToken;
-      public bool Collected = false;
-
-      public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-        return Message(source, level, ErrorID.None, tok, msg);
-      }
-      public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
-        if (!Collected && level == ErrorLevel.Error) {
-          FirstCollectedMessage = msg;
-          FirstCollectedToken = tok;
-          Collected = true;
-        }
-        return true;
-      }
-
-      public override int Count(ErrorLevel level) {
-        return level == ErrorLevel.Error && Collected ? 1 : 0;
-      }
-
-      public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-        return Count(level);
-      }
-    }
-
-    public ErrorReporter reporter;
-
-    public SubsetConstraintGhostChecker(ErrorReporter reporter) {
-      this.reporter = reporter;
-    }
-
-    protected override ContinuationStatus OnEnter(Statement stmt, string field, object parent) {
-      return stmt != null && stmt.IsGhost ? skip : ok;
-    }
-
-    protected override ContinuationStatus OnEnter(MemberDecl memberDecl, string field, object parent) {
-      // Includes functions and methods as well.
-      // Ghost functions can have a compiled implementation.
-      // We want to recurse only on the by method, not on the sub expressions of the function
-      if (memberDecl == null || !memberDecl.IsGhost) { return ok; }
-      if (memberDecl is Function f) {
-        if (f.ByMethodDecl != null && Traverse(f.ByMethodDecl, "ByMethodDecl", f)) { return stop; }
-        if (f.ByMethodDecl == null || f.ByMethodDecl.Body != f.ByMethodBody) {
-          if (f.ByMethodBody != null && Traverse(f.ByMethodBody, "ByMethodBody", f)) { return stop; }
-        }
-      }
-      return skip;
-    }
-
-    private bool IsFieldSpecification(string field, object parent) {
-      return field != null && parent != null && (
-        (parent is Statement && field == "SpecificationSubExpressions") ||
-        (parent is Function && (field is "Req.E" or "Reads.E" or "Ens.E" or "Decreases.Expressions")) ||
-        (parent is Method && (field is "Req.E" or "Mod.E" or "Ens.E" or "Decreases.Expressions"))
-      );
-    }
-
-    public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
-      if (expr == null) {
-        return false;
-      }
-      if (IsFieldSpecification(field, parent)) {
-        return false;
-      }
-      // Since we skipped ghost code, the code has to be compiled here. 
-      if (expr is not ComprehensionExpr e) {
-        return base.Traverse(expr, field, parent);
-      }
-
-      string what = e.WhatKind;
-
-      if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
-        foreach (var boundVar in e.BoundVars) {
-          if (boundVar.Type.AsSubsetType is
-          {
-            Constraint: var constraint,
-            ConstraintIsCompilable: false and var constraintIsCompilable
-          } and var subsetTypeDecl
-          ) {
-            if (!subsetTypeDecl.CheckedIfConstraintIsCompilable) {
-              // Builtin types were never resolved.
-              constraintIsCompilable =
-                ExpressionTester.CheckIsCompilable(null, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-              subsetTypeDecl.CheckedIfConstraintIsCompilable = true;
-              subsetTypeDecl.ConstraintIsCompilable = constraintIsCompilable;
-            }
-
-            if (!constraintIsCompilable) {
-              IToken finalToken = boundVar.tok;
-              if (constraint.tok.line != 0) {
-                var errorCollector = new FirstErrorCollector();
-                ExpressionTester.CheckIsCompilable(null, errorCollector, constraint, new CodeContextWrapper(subsetTypeDecl, true));
-                if (errorCollector.Collected) {
-                  finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
-                    "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
-                  );
-                }
-              }
-              this.reporter.Error(MessageSource.Resolver, finalToken,
-                $"{boundVar.Type} is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {what}.");
-            }
-          }
-        }
-      }
-      return base.Traverse(e, field, parent);
-    }
-  }
 }

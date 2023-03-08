@@ -8,7 +8,7 @@ class C<U(==)> {
     y := x;
   }
 
-  function method F<X(==)>(x: X, u: U): bool
+  function F<X(==)>(x: X, u: U): bool
   {
     x == x && u == u
   }
@@ -102,7 +102,7 @@ class CClient {
 
 // -------------------------
 
-function IsCelebrity<Person>(c: Person, people: set<Person>): bool
+ghost function IsCelebrity<Person>(c: Person, people: set<Person>): bool
   requires c == c || c in people
 {
   false
@@ -116,28 +116,28 @@ method FindCelebrity3(people: set<int>, ghost c: int)
   b := F(c, people);
 }
 
-function F(c: int, people: set<int>): bool
+ghost function F(c: int, people: set<int>): bool
   requires IsCelebrity(c, people)
 {
   false
 }
-function RogerThat<G>(g: G): G
+ghost function RogerThat<G>(g: G): G
 {
   g
 }
 
-function Cool(b: bool): bool
+ghost function Cool(b: bool): bool
 {
   b
 }
 
-function Rockin'<G>(g: G): G
+ghost function Rockin'<G>(g: G): G
 {
   var h := g;
   h
 }
 
-function Groovy<G>(g: G, x: int): G
+ghost function Groovy<G>(g: G, x: int): G
 {
   var h := g;
   if x == 80 then
@@ -182,7 +182,7 @@ method LoopyRoger(n: int)
 
 class TyKn_C<T(0)> {
   var x: T
-  function G(): T
+  ghost function G(): T
     reads this
   {
     x
@@ -194,7 +194,7 @@ class TyKn_C<T(0)> {
 }
 
 class TyKn_K {
-  function F(): int { 176 }
+  ghost function F(): int { 176 }
 }
 
 method TyKn_Main(k0: TyKn_K?) {
@@ -223,17 +223,17 @@ module TwoLayers
   import OneLayer
   datatype wrap2<T> = Wrap2(get: OneLayer.wrap<T>)
 
-  function F<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  ghost function F<U>(w: wrap2<U>) : OneLayer.wrap<U>
   {
     match w
     case Wrap2(a) => a
   }
-  function G<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  ghost function G<U>(w: wrap2<U>) : OneLayer.wrap<U>
   {
     match w
     case Wrap2(a) => w.get
   }
-  function H<U>(w: wrap2<U>) : OneLayer.wrap<U>
+  ghost function H<U>(w: wrap2<U>) : OneLayer.wrap<U>
   {
     w.get
   }
@@ -242,8 +242,8 @@ module TwoLayers
 // ---------------------------------------------------------------------
 
 datatype List<T> = Nil | Cons(T, List)
-predicate InList<T>(x: T, xs: List<T>)
-predicate Subset<T(!new)>(xs: List, ys: List)
+ghost predicate InList<T>(x: T, xs: List<T>)
+ghost predicate Subset<T(!new)>(xs: List, ys: List)
 {
   forall x :: InList(x, xs) ==> InList(x, ys)
 }
@@ -270,37 +270,37 @@ ghost method ammeLtsiL_int(xs: List<int>, ys: List<int>)
 
 // -------------- auto filled-in type arguments for collection types ------
 
-function length(xs: List): nat
+ghost function length(xs: List): nat
 {
   match xs
   case Nil => 0
   case Cons(_, tail) => 1 + length(tail)
 }
 
-function elems(xs: List): set
+ghost function elems(xs: List): set
 {
   match xs
   case Nil => {}
   case Cons(x, tail) => {x} + elems(tail)
 }
 
-function Card(s: set): nat
+ghost function Card(s: set): nat
 {
   |s|
 }
 
-function Identity(s: set): set
+ghost function Identity(s: set): set
 {
   s
 }
 
-function MultisetToSet(m: multiset): set
+ghost function MultisetToSet(m: multiset): set
 {
   if |m| == 0 then {} else
   var x :| x in m; MultisetToSet(m - multiset{x}) + {x}
 }
 
-function SeqToSet(q: seq): set
+ghost function SeqToSet(q: seq): set
 {
   if q == [] then {} else {q[0]} + SeqToSet(q[1..])
 }
@@ -335,7 +335,7 @@ module ArrayTypeMagic {
   datatype AnotherACT<T> = Leaf(array3) | Node(AnotherACT, AnotherACT)
   datatype OneMoreACT<T,U> = Leaf(array3) | Node(OneMoreACT, OneMoreACT)
 
-  function G(t: ArrayCubeTree): array3
+  ghost function G(t: ArrayCubeTree): array3
   {
     match t
     case Leaf(d) => d
@@ -353,7 +353,7 @@ module ArrayTypeMagic {
 // -------------- regression test for parsing ------
 
 module ParseGenerics {
-  function F<X>(x: X): int
+  ghost function F<X>(x: X): int
 
   type MyType
 
@@ -364,7 +364,7 @@ module ParseGenerics {
 
   datatype List<Y> = Nil | Cons(Y, List)
 
-  function Many(n: List): int
+  ghost function Many(n: List): int
   {
     match n
     case Nil => 18

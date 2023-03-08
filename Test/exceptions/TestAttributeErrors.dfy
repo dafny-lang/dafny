@@ -3,10 +3,10 @@
 
 include "../exceptions/VoidOutcomeDt.dfy"
 
-function {:test} PassingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
+ghost function {:test} PassingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
     VoidSuccess
 }
 
-function {:test} FailingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
+ghost function {:test} FailingTest(): VoidOutcome { // compile error: function must be compiled to use the {:test} attribute
     VoidFailure("Whoopsie")
 }

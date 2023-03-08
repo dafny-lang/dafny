@@ -76,12 +76,12 @@ git-issue-663.dfy(194,11): Error: an assume statement cannot be compiled (use th
 git-issue-663.dfy(195,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(196,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(197,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-git-issue-663.dfy(199,16): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body
+git-issue-663.dfy(199,9): Error: Function _module._default.SpecificationOfCompiledFunctionWithoutBody has no body
 git-issue-663.dfy(200,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(201,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(202,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(203,12): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
-git-issue-663.dfy(205,9): Error: Function _module._default.SpecificationOfGhostFunctionWithoutBody has no body
+git-issue-663.dfy(205,15): Error: Function _module._default.SpecificationOfGhostFunctionWithoutBody has no body
 git-issue-663.dfy(206,11): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(207,8): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(208,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)

@@ -5,20 +5,20 @@ datatype VoidOutcome =
 | VoidSuccess
 | VoidFailure(error: string)
 {
-    predicate method IsFailure() {
+    predicate IsFailure() {
         this.VoidFailure?
     }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }
 
-function method Require(b: bool): (r: VoidOutcome) ensures r.VoidSuccess? ==> b
+function Require(b: bool): (r: VoidOutcome) ensures r.VoidSuccess? ==> b
 {
   if b then VoidSuccess else VoidFailure("failed")
 }
 
-predicate MyPredicate() {
+ghost predicate MyPredicate() {
   true
 }
 
