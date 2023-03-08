@@ -21,11 +21,9 @@ jobs:
       run: |
         dafny -version
         which dafny
-        pwd
-        ls
     - name: Check
       run: |
         npm install bignumber.js
         cp /usr/local/Cellar/dafny/3.12.0/libexec/quicktest.sh .
         chmod +x quicktest.sh
-        ./quicktest.sh 
+        ./quicktest.sh  `which dafny`
