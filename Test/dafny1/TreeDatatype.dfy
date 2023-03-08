@@ -7,13 +7,13 @@ datatype List<T> = Nil | Cons(T, List<T>)
 
 datatype Tree = Node(int, List<Tree>)
 
-function Inc(t: Tree): Tree
+ghost function Inc(t: Tree): Tree
 {
   match t
   case Node(n, children) => Tree.Node(n+1, ForestInc(children))
 }
 
-function ForestInc(forest: List<Tree>): List<Tree>
+ghost function ForestInc(forest: List<Tree>): List<Tree>
 {
   match forest
   case Nil => forest
@@ -24,13 +24,13 @@ function ForestInc(forest: List<Tree>): List<Tree>
 
 datatype GTree<T> = Node(T, List<GTree<T>>)
 
-function GInc(t: GTree<int>): GTree<int>
+ghost function GInc(t: GTree<int>): GTree<int>
 {
   match t
   case Node(n, children) => GTree.Node(n+1, GForestInc(children))
 }
 
-function GForestInc(forest: List<GTree<int>>): List<GTree<int>>
+ghost function GForestInc(forest: List<GTree<int>>): List<GTree<int>>
 {
   match forest
   case Nil => forest
@@ -43,13 +43,13 @@ datatype TreeList = Nil | Cons(OneTree, TreeList)
 
 datatype OneTree = Node(int, TreeList)
 
-function XInc(t: OneTree): OneTree
+ghost function XInc(t: OneTree): OneTree
 {
   match t
   case Node(n, children) => OneTree.Node(n+1, XForestInc(children))
 }
 
-function XForestInc(forest: TreeList): TreeList
+ghost function XForestInc(forest: TreeList): TreeList
 {
   match forest
   case Nil => forest
@@ -58,20 +58,20 @@ function XForestInc(forest: TreeList): TreeList
 
 // ------------------ fun with recursive functions
 
-function len<T>(l: List<T>): int
+ghost function len<T>(l: List<T>): int
 {
   match l
   case Nil => 0
   case Cons(h,t) => 1 + len(t)
 }
 
-function SingletonList<T>(h: T): List<T>
+ghost function SingletonList<T>(h: T): List<T>
   ensures len(SingletonList(h)) == 1;
 {
   List.Cons(h, List.Nil)
 }
 
-function Append<T>(a: List<T>, b: List<T>): List<T>
+ghost function Append<T>(a: List<T>, b: List<T>): List<T>
   ensures len(Append(a,b)) == len(a) + len(b);
 {
   match a
@@ -79,7 +79,7 @@ function Append<T>(a: List<T>, b: List<T>): List<T>
   case Cons(h,t) => List.Cons(h, Append(t, b))
 }
 
-function Rotate<T>(n: int, l: List<T>): List<T>
+ghost function Rotate<T>(n: int, l: List<T>): List<T>
   requires 0 <= n;
   ensures len(Rotate(n, l)) == len(l);
 {

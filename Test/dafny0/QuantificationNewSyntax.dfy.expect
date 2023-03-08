@@ -2,7 +2,7 @@ QuantificationNewSyntax.dfy(11,13): Warning: /!\ No trigger covering all quantif
 QuantificationNewSyntax.dfy(12,13): Warning: /!\ No trigger covering all quantified variables found.
 QuantificationNewSyntax.dfy(11,42): Error: possible division by zero
 QuantificationNewSyntax.dfy(13,36): Error: function precondition might not hold
-QuantificationNewSyntax.dfy(19,42): Related location
+QuantificationNewSyntax.dfy(19,48): Related location
 QuantificationNewSyntax.dfy(15,54): Error: result of operation might violate subset type constraint for 'nat'
 
 Dafny program verifier finished with 0 verified, 3 errors

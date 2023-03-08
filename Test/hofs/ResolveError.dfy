@@ -11,7 +11,7 @@ method ResolutionErrors() {
 // cannot assign functions
 
 class Apa {
-  function f() : int {
+  ghost function f() : int {
     0
   }
 }
@@ -47,7 +47,7 @@ method Bogus()
   f := x requires 1 => x;
 }
 
-predicate method Bool()
+predicate Bool()
 {
   true
 }
@@ -71,10 +71,10 @@ method Underscores() {
 module AritySituations {
   // In addition to testing type checking, these tests check that error messages
   //  print the types correctly
-  function method F(x: int, b: bool): real    // F:  (int,bool) -> real
-  function method G(pair: (int, bool)): real  // G:  ((int,bool)) -> real
-  function method V(): real                   // V:  () -> real
-  function method W(unit: ()): real           // W:  (()) -> real
+  function F(x: int, b: bool): real    // F:  (int,bool) -> real
+  function G(pair: (int, bool)): real  // G:  ((int,bool)) -> real
+  function V(): real                   // V:  () -> real
+  function W(unit: ()): real           // W:  (()) -> real
 
   method M()
   {

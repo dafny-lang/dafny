@@ -1,4 +1,4 @@
-git-issue-181.dfy(27,11): Warning: type parameter T of ghost function g is declared (==), which is unnecessary because the function doesn't contain any compiled code
+git-issue-181.dfy(27,17): Warning: type parameter T of ghost function g is declared (==), which is unnecessary because the function doesn't contain any compiled code
 git-issue-181.dfy(57,16): Warning: type parameter T of ghost method mg is declared (==), which is unnecessary because the method doesn't contain any compiled code
 git-issue-181.dfy(13,10): Error: type parameter (T) passed to type ResultN must support no references (got C)
 git-issue-181.dfy(15,10): Error: type parameter (T) passed to type ResultN must support no references (got array<int>)

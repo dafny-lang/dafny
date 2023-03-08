@@ -8,7 +8,7 @@
 // opaque, we can't tell that those fuels are the same, and hence the
 // trigger never fires. A wish would be to fix this.
 
-predicate {:opaque} P(x:int)
+ghost predicate {:opaque} P(x:int)
 
 method test(y:int)
   requires forall x :: P(x)

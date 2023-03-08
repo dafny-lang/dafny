@@ -21,7 +21,7 @@ datatype Result = Fail | Res(t: Tree, sOut: seq<int>)
 // it is analogous to the argument d in build_rec.
 // The postconditions state properties that are needed
 // in the completeness proof.
-function toList(d: int, t: Tree): seq<int>
+ghost function toList(d: int, t: Tree): seq<int>
   ensures toList(d, t) != [] && toList(d, t)[0] >= d
   ensures (toList(d, t)[0] == d) == (t == Leaf)
   decreases t
@@ -40,7 +40,7 @@ function toList(d: int, t: Tree): seq<int>
 // property; converting the resulting tree back into a
 // sequence yields exactly that portion of the input
 // sequence that has been consumed.
-function method build_rec(d: int, s: seq<int>): Result
+function build_rec(d: int, s: seq<int>): Result
   ensures build_rec(d, s).Res? ==>
             |build_rec(d, s).sOut| < |s| &&
             build_rec(d, s).sOut == s[|s|-|build_rec(d, s).sOut|..]
@@ -67,7 +67,7 @@ function method build_rec(d: int, s: seq<int>): Result
 // converting the resulting tree back into a
 // sequence yields exactly the input sequence.
 // Completeness is proved as a lemma, see below.
-function method build(s: seq<int>): Result
+function build(s: seq<int>): Result
   ensures build(s).Res? ==> toList(0,build(s).t) == s
 {
   var r := build_rec(0, s);

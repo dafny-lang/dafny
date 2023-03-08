@@ -103,8 +103,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   ---- Language feature selection --------------------------------------------
   
   /unicodeChar:<value>
-      0 (default) - The char type represents any UTF-16 code unit.
-      1 - The char type represents any Unicode scalar value.
+      0 - The char type represents any UTF-16 code unit.
+      1 (default) - The char type represents any Unicode scalar value.
 
   /noIncludes
       Ignore include directives.
@@ -117,10 +117,10 @@ Usage: dafny [ option ... ] [ filename ... ]
       4. This switch gives early access to the new syntax, and also
       provides a mode to help with migration.
   
-      3 (default) - Compiled functions are written `function method` and
+      3 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `function` and
           `predicate`.
-      4 - Compiled functions are written `function` and `predicate`. Ghost
+      4 (default) - Compiled functions are written `function` and `predicate`. Ghost
           functions are written `ghost function` and `ghost predicate`.
       migration3to4 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `ghost function`
@@ -150,10 +150,10 @@ Usage: dafny [ option ... ] [ filename ... ]
       <Range>) are allowed. This switch gives early access to the new
       syntax.
   
-      3 (default) - Ranges are only allowed after all quantified variables
+      3 - Ranges are only allowed after all quantified variables
           are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
           y :: y)
-      4 - Ranges are allowed after each quantified variable declaration.
+      4 (default) - Ranges are allowed after each quantified variable declaration.
           (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
   
       Note that quantifier variable domains (<- <Domain>) are available in
@@ -266,6 +266,8 @@ Usage: dafny [ option ... ] [ filename ... ]
          print effects only if it is marked with {:print}.
   
   /allocated:<n>
+      This option is deprecated. Going forward, only what is /allocated:4
+      will be supported.
       Specify defaults for where Dafny should assert and assume
       allocated(x) for various parameters x, local variables x, bound
       variables x, etc. Lower <n> may require more manual allocated(x)
@@ -284,8 +286,8 @@ Usage: dafny [ option ... ] [ filename ... ]
       2 - Assert/assume allocated(x) on all variables, even bound
           variables in quantifiers. This option is the easiest to use for
           heapful code.
-      3 - (default) Frugal use of heap parameters.
-      4 - Mode 3 but with alloc antecedents when ranges don't imply
+      3 - Frugal use of heap parameter (not sound).
+      4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
           allocatedness.
   
   /definiteAssignment:<n>

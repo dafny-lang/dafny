@@ -20,7 +20,7 @@ ResolutionErrors.dfy(64,9): Error: unresolved identifier: N
 ResolutionErrors.dfy(67,10): Error: non-function expression (of type int) is called with parameters
 ResolutionErrors.dfy(68,16): Error: member 'z' does not exist in non-null type 'Global'
 ResolutionErrors.dfy(116,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
 ResolutionErrors.dfy(129,17): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
@@ -76,7 +76,7 @@ ResolutionErrors.dfy(493,15): Error: class Lamb does not have an anonymous const
 ResolutionErrors.dfy(546,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(551,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
 ResolutionErrors.dfy(565,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
-ResolutionErrors.dfy(577,24): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
+ResolutionErrors.dfy(577,30): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors.dfy(592,20): Error: unresolved identifier: w
 ResolutionErrors.dfy(611,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(612,25): Error: the type of this variable is underspecified
@@ -158,8 +158,8 @@ ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
 ResolutionErrors.dfy(1150,13): Error: new can be applied only to class types (got JJ)
-ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
-ResolutionErrors.dfy(1159,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1158,37): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
+ResolutionErrors.dfy(1159,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'object') may contain references (see documentation for 'older' parameters)
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
@@ -255,13 +255,13 @@ ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type boo
 ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
 ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
-ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors.dfy(1808,17): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1818,4): Error: second argument to || must be of type bool (instead got int)
-ResolutionErrors.dfy(1816,11): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors.dfy(1816,17): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1822,4): Error: second argument to || must be of type bool (instead got int)
 ResolutionErrors.dfy(1826,8): Error: second argument to || must be of type bool (instead got int)
-ResolutionErrors.dfy(1824,11): Error: Function body type mismatch (expected int, got bool)
+ResolutionErrors.dfy(1824,17): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1847,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1848,11): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1848,15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
@@ -361,8 +361,8 @@ ResolutionErrors.dfy(2392,53): Error: a newtype definition is not allowed to dep
 ResolutionErrors.dfy(2393,51): Error: a subset type definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2391,39): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2398,36): Error: a predicate definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2405,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
-ResolutionErrors.dfy(2441,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2405,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2441,31): Error: the value returned by an abstemious function must come from invoking a co-constructor
 ResolutionErrors.dfy(2448,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
 ResolutionErrors.dfy(2453,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
 ResolutionErrors.dfy(2460,9): Error: an abstemious function is not only allowed to check codatatype equality
@@ -409,14 +409,14 @@ ResolutionErrors.dfy(2719,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors.dfy(2719,17): Error: incorrect type for selection into ? (got X)
 ResolutionErrors.dfy(2727,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
 ResolutionErrors.dfy(2737,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2770,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2771,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2770,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors.dfy(2771,13): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors.dfy(2773,11): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(2794,4): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors.dfy(2804,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2805,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2811,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(2812,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
+ResolutionErrors.dfy(2804,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors.dfy(2805,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors.dfy(2811,15): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors.dfy(2812,22): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors.dfy(2829,23): Error: type of left argument to * (int) must agree with the result type (bool)
 ResolutionErrors.dfy(2829,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(2828,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
@@ -451,8 +451,8 @@ ResolutionErrors.dfy(3016,5): Error: type parameter (G) passed to method P must 
 ResolutionErrors.dfy(3025,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 3020 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3028,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(3029,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3020 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-ResolutionErrors.dfy(3046,9): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function with 'function method')
-ResolutionErrors.dfy(3047,9): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+ResolutionErrors.dfy(3046,9): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+ResolutionErrors.dfy(3047,9): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 ResolutionErrors.dfy(3048,9): Error: a call to a least predicate is allowed only in specification contexts
 ResolutionErrors.dfy(3049,9): Error: a call to a greatest predicate is allowed only in specification contexts
 ResolutionErrors.dfy(3050,9): Error: a call to a twostate function is allowed only in specification contexts
@@ -621,7 +621,7 @@ ResolutionErrors.dfy(3895,32): Error: 'this' is not allowed in a 'static' contex
 ResolutionErrors.dfy(3898,29): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3897,33): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3900,29): Error: 'this' is not allowed in a 'static' context
-ResolutionErrors.dfy(3899,35): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors.dfy(3899,41): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3885,23): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3885,28): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(3904,21): Error: 'this' is not allowed in a 'static' context
