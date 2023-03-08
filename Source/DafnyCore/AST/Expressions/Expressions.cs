@@ -196,6 +196,16 @@ public abstract class Expression : TokenNode {
     return s;
   }
 
+  public static Expression CreateConcat(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
   /// <summary>
   /// Create a resolved expression of the form "e0 * e1"
   /// </summary>
