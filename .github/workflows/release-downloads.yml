@@ -67,7 +67,7 @@ jobs:
     ## Create a simple smoke test program
     - name: Make test program
       run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
+        echo 'method Main() { assert true; print 42, "\n"; }' > a.dfy
         echo "method m() { assert false; }" > b.dfy
         echo "42" > expect.txt
     ## Check that dafny and z3 run and that a simple program verifies or fails
