@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 MultiDimArray.dfy(53,20): Error: assertion might not hold
 MultiDimArray.dfy(79,24): Error: assertion might not hold
 

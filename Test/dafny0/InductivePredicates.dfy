@@ -119,7 +119,7 @@ lemma OneMore(x: natinf) returns (y: natinf)
 module Alt {
   datatype natinf = N(n: nat) | Inf
 
-  function S(x: natinf): natinf
+  ghost function S(x: natinf): natinf
   {
     match x
     case N(n) => N(n+1)
@@ -232,7 +232,7 @@ module Monotonicity {
 // step where one wants both P(x,y,z) and P(x,y,z') to go down to the same lower
 // ORDINAL.  The targeted monotonicity axiom helps verify this example automatically.
 module TargetedMonotonicity {
-  function Next(x: int): int
+  ghost function Next(x: int): int
 
   least predicate P(x: int, y: int, z: int)
   {

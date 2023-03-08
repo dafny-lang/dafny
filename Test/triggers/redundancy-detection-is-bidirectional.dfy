@@ -4,9 +4,9 @@
 // This test checks for tricky cases of redundancy suppression when building
 // triggers.
 
-predicate P(x: int, y: int)
-predicate Q(x: int)
-predicate R(x: int)
+ghost predicate P(x: int, y: int)
+ghost predicate Q(x: int)
+ghost predicate R(x: int)
 
 method M() {
   // For this term, it is enough to order the terms by number of variables
@@ -15,10 +15,10 @@ method M() {
   assert forall x, y :: true || Q(y) || R(x) || P(x, y);
 }
 
-predicate PP(x: int, y: int, z: int)
-predicate QQ(x: int, y: int)
-predicate RR(x: int, y: int)
-predicate SS(x: int, y: int)
+ghost predicate PP(x: int, y: int, z: int)
+ghost predicate QQ(x: int, y: int)
+ghost predicate RR(x: int, y: int)
+ghost predicate SS(x: int, y: int)
 
 method MM() {
   // Not for this one, though

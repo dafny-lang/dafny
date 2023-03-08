@@ -44,7 +44,7 @@ SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion might not hold
 SmallTests.dfy(386,9): Error: assertion might not hold
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
+SmallTests.dfy(440,15): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(604,11): Error: assertion might not hold
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location

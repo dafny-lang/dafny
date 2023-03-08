@@ -3,4 +3,4 @@
 
 include "git-issue64.dfyi"
 
-function id(x:word): word { x }
+ghost function id(x:word): word { x }

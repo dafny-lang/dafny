@@ -9,7 +9,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function F(xs: List<int>): int {
+ghost function F(xs: List<int>): int {
   match xs
   case Cons(x, Cons(y, rest)) => 5
   case Nil => 8
@@ -48,7 +48,7 @@ method TreeTest(t:Tree) {
 
 datatype Dt = Make(d: int)
 
-function method GetNat(dt: Dt): nat {
+function GetNat(dt: Dt): nat {
   match dt
   case Make(y) => y
 }

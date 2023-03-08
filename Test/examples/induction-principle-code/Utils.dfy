@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Utils {
-  function method Max(x: int, y: int): int
+  function Max(x: int, y: int): int
   {
     if x > y then x else y
   }
 
-  function method {:opaque} MaxF<T>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
+  function {:opaque} MaxF<T>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
     reads f.reads
     requires forall t | t in ts :: f.requires(t)
     requires forall t | t in ts :: default <= f(t)
@@ -22,17 +22,17 @@ module Utils {
 
   datatype Result<T> = | Success(value: T) | Failure
   {
-    predicate method IsFailure() {
+    predicate IsFailure() {
       Failure?
     }
 
-    function method PropagateFailure<U>(): Result<U>
+    function PropagateFailure<U>(): Result<U>
       requires Failure?
     {
       Failure
     }
 
-    function method Extract(): T
+    function Extract(): T
       requires Success?
     {
       value

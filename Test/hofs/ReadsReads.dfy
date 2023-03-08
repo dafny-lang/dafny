@@ -2,65 +2,65 @@
 // RUN: %diff "%s.expect" "%t"
 
 module ReadsRequiresReads {
-  function MyReadsOk<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsOk<A,B>(f : A ~> B, a : A) : set<object?>
     reads f.reads(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk2<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsOk2<A,B>(f : A ~> B, a : A) : set<object?>
     reads f.reads(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsOk3<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsOk3<A,B>(f : A ~> B, a : A) : set<object?>
     reads (f.reads)(a)
   {
     f.reads(a)
   }
 
-  function MyReadsOk4<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsOk4<A,B>(f : A ~> B, a : A) : set<object?>
     reads (f.reads)(a)
   {
     (f.reads)(a)
   }
 
-  function MyReadsBad<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsBad<A,B>(f : A ~> B, a : A) : set<object?>
   {
     f.reads(a)  // error: MyReadsBad does not have permission to read what f.reads(a) reads
   }
 
-  function MyReadsBad2<A,B>(f : A ~> B, a : A) : set<object?>
+  ghost function MyReadsBad2<A,B>(f : A ~> B, a : A) : set<object?>
   {
     (f.reads)(a)  // error: MyReadsBad2 does not have permission to read what f.reads(a) reads
   }
 
-  function MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) : bool
+  ghost function MyReadsOk'<A,B>(f : A ~> B, a : A, o : object) : bool
     reads f.reads(a)
   {
     o in f.reads(a)
   }
 
-  function MyReadsBad'<A,B>(f : A ~> B, a : A, o : object) : bool
+  ghost function MyReadsBad'<A,B>(f : A ~> B, a : A, o : object) : bool
   {
     o in f.reads(a)  // error: MyReadsBad' does not have permission to read what f.reads(a) reads
   }
 
-  function MyRequiresOk<A,B>(f : A ~> B, a : A) : bool
+  ghost function MyRequiresOk<A,B>(f : A ~> B, a : A) : bool
     reads f.reads(a)
   {
     f.requires(a)
   }
 
-  function MyRequiresBad<A,B>(f : A ~> B, a : A) : bool
+  ghost function MyRequiresBad<A,B>(f : A ~> B, a : A) : bool
   {
     f.requires(a)  // error: MyRequiresBad does not have permission to read what f.requires(a) reads
   }
 }
 
 module WhatWeKnowAboutReads {
-  function ReadsNothing():(){()}
+  ghost function ReadsNothing():(){()}
 
   lemma IndeedNothing() {
     assert ReadsNothing.reads() == {};
@@ -75,7 +75,7 @@ module WhatWeKnowAboutReads {
     var s : S?
   }
 
-  function ReadsSomething(s : S?):()
+  ghost function ReadsSomething(s : S?):()
     reads s
   {()}
 
@@ -104,28 +104,28 @@ module WhatWeKnowAboutReads {
 }
 
 module ReadsAll {
-  function A(f: int ~> int) : int
+  ghost function A(f: int ~> int) : int
     reads set x,o | o in f.reads(x) :: o  // note, with "set o,x ..." instead, Dafny complains (this is perhaps less than ideal)
     requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
-  function method B(f: int ~> int) : int
+  function B(f: int ~> int) : int
     reads set x,o | o in f.reads(x) :: o  // note, with "set o,x ..." instead, Dafny complains (this is perhaps less than ideal)
     requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
-  function C(f: int ~> int) : int
+  ghost function C(f: int ~> int) : int
     reads f.reads
     requires forall x :: f.requires(x)
   {
     f(0) + f(1) + f(2)
   }
 
-  function method D(f: int ~> int) : int
+  function D(f: int ~> int) : int
     reads f.reads
     requires forall x :: f.requires(x)
   {
@@ -147,7 +147,7 @@ module FuncCollectionRegressions {
     var y: int
   }
 
-  function F(st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>): int
+  ghost function F(st: set<C>, ss: iset<C>, sq: seq<C>, ms: multiset<C>): int
     reads st
     reads ss
     reads sq
@@ -203,12 +203,12 @@ module FuncCollectionRegressions {
     assert a == b; // error: F may have changed
   }
 
-  function A0(): set<C>
-  function A1(): iset<C>
-  function A2(): seq<C>
-  function A3(): multiset<C>
+  ghost function A0(): set<C>
+  ghost function A1(): iset<C>
+  ghost function A2(): seq<C>
+  ghost function A3(): multiset<C>
 
-  function G(): int
+  ghost function G(): int
     reads A0
     reads A1
     // regression: the following line once caused malformed Boogie

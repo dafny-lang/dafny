@@ -6,7 +6,7 @@ datatype Option<A> = Some(value: A) | None
 
 datatype T<A> = T(value: Option<A>)
 
-function f(t: T<int>) : T<int>
+ghost function f(t: T<int>) : T<int>
 {
   match t.value {
     case Some(val) => T(Some(val))
@@ -14,7 +14,7 @@ function f(t: T<int>) : T<int>
   }
 }
 
-function fok(t: T<int>) : T<int>
+ghost function fok(t: T<int>) : T<int>
 {
   match t.value {
     case Some(val) => T(Some(val))
@@ -25,7 +25,7 @@ function fok(t: T<int>) : T<int>
   }
 }
 
-function fok1(t: T<int>) : T<int>
+ghost function fok1(t: T<int>) : T<int>
 {
   match t.value {
     case Some(val) => T(Some(val))
@@ -33,7 +33,7 @@ function fok1(t: T<int>) : T<int>
   }
 }
 
-function fok2(t: T<int>) : T<int>
+ghost function fok2(t: T<int>) : T<int>
 {
   match t.value {
     case Some(val) => T(Some(val))
@@ -41,7 +41,7 @@ function fok2(t: T<int>) : T<int>
   }
 }
 
-function fok3(t: T<int>) : T<int>
+ghost function fok3(t: T<int>) : T<int>
 {
   match t.value {
     case Some(val) => T(Some(val))

@@ -10,14 +10,14 @@
 const A: int
 const B: int
 
-function Fib(n: nat): int {
+ghost function Fib(n: nat): int {
   if n == 0 then A
   else if n == 1 then B
   else Fib(n - 2) + Fib(n - 1)
 }
 
 // Sum f(i) for i from 0 through n (inclusive)
-function Sum(n: nat, f: nat -> int): int {
+ghost function Sum(n: nat, f: nat -> int): int {
   f(n) + if n == 0 then 0 else Sum(n - 1, f)
 }
 
