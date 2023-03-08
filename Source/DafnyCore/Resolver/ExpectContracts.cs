@@ -206,7 +206,7 @@ public class ExpectContracts : IRewriter {
         return false;
       }
 
-      var opt = DafnyOptions.O.TestContracts;
+      var opt = reporter.Options.TestContracts;
       return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
               (opt == DafnyOptions.ContractTestingMode.Externs)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
@@ -278,7 +278,7 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
+    if (Reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
       return;
     }
 
