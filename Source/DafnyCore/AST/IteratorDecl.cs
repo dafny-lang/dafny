@@ -120,7 +120,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
   /// </summary>
   public class EverIncreasingType : BasicType {
     [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
 
       return "_increasingInt";

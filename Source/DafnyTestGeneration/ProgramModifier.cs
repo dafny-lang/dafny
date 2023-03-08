@@ -39,32 +39,33 @@ namespace DafnyTestGeneration {
       IEnumerable<Program> programs,
       DafnyInfo dafnyInfo) {
       DafnyInfo = dafnyInfo;
-      var program = MergeBoogiePrograms(programs);
-      program = new FunctionToMethodCallRewriter(this).VisitProgram(program);
-      program = new AddImplementationsForCalls().VisitProgram(program);
-      program = new RemoveChecks().VisitProgram(program);
-      var engine = ExecutionEngine.CreateWithoutSharedCache(DafnyOptions.O);
+      var options = dafnyInfo.Options;
+      var program = MergeBoogiePrograms(options, programs);
+      program = new FunctionToMethodCallRewriter(this, options).VisitProgram(program);
+      program = new AddImplementationsForCalls(options).VisitProgram(program);
+      program = new RemoveChecks(options).VisitProgram(program);
+      var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
-      if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
+      if (options.TestGenOptions.TargetMethod != null) {
         ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
           i.Name.StartsWith("Impl$$")
           && i.VerboseName.StartsWith(
-            DafnyOptions.O.TestGenOptions.TargetMethod));
+            options.TestGenOptions.TargetMethod));
       }
       var callGraphVisitor = new CallGraph();
       callGraphVisitor.VisitProgram(program);
-      // DafnyOptions.O.TestGenOptions.TestInlineDepth is multiplied by two
+      // options.TestGenOptions.TestInlineDepth is multiplied by two
       // because inlining a method call in Dafny is equivalent to inlining
       // two procedures in Boogie (Call$$- and Impl$$-prefixed procedures)
       toModify = callGraphVisitor.GetCallees(
         ImplementationToTarget?.Name,
-        DafnyOptions.O.TestGenOptions.TestInlineDepth * 2);
-      var annotator = new AnnotationVisitor(this);
+        options.TestGenOptions.TestInlineDepth * 2);
+      var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
-      AddAxioms(program);
-      if (DafnyOptions.O.TestGenOptions.PrintBpl != null) {
-        File.WriteAllText(DafnyOptions.O.TestGenOptions.PrintBpl,
-          Utils.GetStringRepresentation(program));
+      AddAxioms(options, program);
+      if (options.TestGenOptions.PrintBpl != null) {
+        File.WriteAllText(options.TestGenOptions.PrintBpl,
+          Utils.GetStringRepresentation(options, program));
       }
       return GetModifications(program);
     }
@@ -79,11 +80,11 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Add axioms necessary for counterexample generation to work efficiently
     /// </summary>
-    private static void AddAxioms(Program program) {
-      if (DafnyOptions.O.TestGenOptions.SeqLengthLimit == 0) {
+    private static void AddAxioms(DafnyOptions options, Program program) {
+      if (options.TestGenOptions.SeqLengthLimit == 0) {
         return;
       }
-      var limit = (uint)DafnyOptions.O.TestGenOptions.SeqLengthLimit;
+      var limit = (uint)options.TestGenOptions.SeqLengthLimit;
       Parser.Parse($"axiom (forall<T> y: Seq T :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
@@ -94,7 +95,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Merge Boogie Programs by removing any duplicate top level declarations
     /// </summary>
-    private static Program MergeBoogiePrograms(IEnumerable<Program> programs) {
+    private static Program MergeBoogiePrograms(DafnyOptions options, IEnumerable<Program> programs) {
       // Merge all programs into one first:
       var program = new Program();
       foreach (var p in programs) {
@@ -117,7 +118,7 @@ namespace DafnyTestGeneration {
         }
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));
-      return Utils.DeepCloneProgramAndReresolve(program, DafnyOptions.O);
+      return Utils.DeepCloneResolvedProgram(program, options);
     }
 
     /// <summary>
@@ -163,9 +164,13 @@ namespace DafnyTestGeneration {
     /// inlining of Dafny methods further down the road.
     /// </summary>
     private class AddImplementationsForCalls : ReadOnlyVisitor {
-
+      private DafnyOptions options;
       private List<Implementation> implsToAdd = new();
       private Program/*?*/ program;
+
+      public AddImplementationsForCalls(DafnyOptions options) {
+        this.options = options;
+      }
 
       public override Procedure/*?*/ VisitProcedure(Procedure/*?*/ node) {
         if (node == null || !node.Name.StartsWith("Call$$") ||
@@ -223,7 +228,7 @@ namespace DafnyTestGeneration {
         implsToAdd = new();
         node = base.VisitProgram(node);
         node.AddTopLevelDeclarations(implsToAdd);
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneResolvedProgram(node, options);
       }
     }
 
@@ -289,12 +294,13 @@ namespace DafnyTestGeneration {
     /// (2)     the end of each block, to get execution trace.
     /// </summary>
     private class AnnotationVisitor : StandardVisitor {
-
+      private DafnyOptions options;
       private Implementation/*?*/ implementation;
       private readonly ProgramModifier modifier;
 
-      public AnnotationVisitor(ProgramModifier modifier) {
+      public AnnotationVisitor(ProgramModifier modifier, DafnyOptions options) {
         this.modifier = modifier;
+        this.options = options;
       }
 
       public override Block VisitBlock(Block node) {
@@ -319,18 +325,18 @@ namespace DafnyTestGeneration {
         data = new List<object> { "Impl", node.VerboseName.Split(" ")[0] };
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
-        var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
+        var toTest = options.TestGenOptions.TargetMethod;
         if (toTest == null) {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
         } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if ((DafnyOptions.O.TestGenOptions.TestInlineDepth > 0) &&
+        } else if ((options.TestGenOptions.TestInlineDepth > 0) &&
                    modifier.toModify.Contains(node.Name)) {
           // This method is inlined (and hence tested)
           var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(DafnyOptions.O.TestGenOptions.TestInlineDepth));
+            new LiteralExpr(new Token(), BigNum.FromUInt(options.TestGenOptions.TestInlineDepth));
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
@@ -352,7 +358,7 @@ namespace DafnyTestGeneration {
     /// translating a Dafny function-by-method to Boogie
     /// </summary>
     private class FunctionToMethodCallRewriter : StandardVisitor {
-
+      private DafnyOptions options;
       private Implementation/*?*/ currImpl;
       private Program/*?*/ currProgram;
       private Block/*?*/ currBlock;
@@ -460,7 +466,7 @@ namespace DafnyTestGeneration {
       }
 
       public override Program VisitProgram(Program node) {
-        node = new RemoveFunctionsFromShortCircuitRewriter(modifier).VisitProgram(node);
+        node = new RemoveFunctionsFromShortCircuitRewriter(modifier, options).VisitProgram(node);
         currProgram = node;
         functionMap = new();
         node.Functions.Iter(i => functionMap[i.Name] = i);
@@ -468,11 +474,12 @@ namespace DafnyTestGeneration {
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
           .Iter(i => VisitImplementation(i));
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneResolvedProgram(node, options);
       }
 
-      public FunctionToMethodCallRewriter(ProgramModifier modifier) {
+      public FunctionToMethodCallRewriter(ProgramModifier modifier, DafnyOptions options) {
         this.modifier = modifier;
+        this.options = options;
         functionMap = new();
       }
 
@@ -488,7 +495,7 @@ namespace DafnyTestGeneration {
     /// (due to LayerType). 
     /// </summary>
     private class RemoveFunctionsFromShortCircuitRewriter : StandardVisitor {
-
+      private DafnyOptions options;
       private AssignCmd/*?*/ currAssignCmd;
       private Implementation/*?*/ currImpl;
       private Program/*?*/ currProgram;
@@ -504,8 +511,9 @@ namespace DafnyTestGeneration {
       private Dictionary<string, Procedure> procedureMap;
       private Dictionary<string, Implementation> implementationMap;
 
-      public RemoveFunctionsFromShortCircuitRewriter(ProgramModifier modifier) {
+      public RemoveFunctionsFromShortCircuitRewriter(ProgramModifier modifier, DafnyOptions options) {
         this.modifier = modifier;
+        this.options = options;
         functionMap = new();
         procedureMap = new();
         implementationMap = new();
@@ -632,7 +640,7 @@ namespace DafnyTestGeneration {
           .OfType<Implementation>()
           .Where(i => modifier.ImplementationIsToBeTested(i))
           .Iter(i => VisitImplementation(i));
-        node.Resolve(DafnyOptions.O);
+        node.Resolve(options);
         return node;
       }
 
@@ -643,6 +651,11 @@ namespace DafnyTestGeneration {
     /// alleviate the verification burden. Return a reresolved copy of the AST.
     /// </summary>
     private class RemoveChecks : StandardVisitor {
+      private DafnyOptions options;
+
+      public RemoveChecks(DafnyOptions options) {
+        this.options = options;
+      }
 
       public override Block VisitBlock(Block node) {
         var toRemove = node.cmds.OfType<AssertCmd>().ToList();
@@ -670,7 +683,7 @@ namespace DafnyTestGeneration {
 
       public override Program VisitProgram(Program node) {
         VisitDeclarationList(node.TopLevelDeclarations.ToList());
-        return Utils.DeepCloneProgramAndReresolve(node, DafnyOptions.O);
+        return Utils.DeepCloneResolvedProgram(node, options);
       }
     }
   }

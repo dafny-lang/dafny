@@ -1,17 +1,13 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Dafny;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DafnyTestGeneration.Test {
 
   [TestClass]
   public class Collections {
-
-    [TestInitialize]
-    public void SetupDafnyOptions() {
-      Setup.SetupDafnyOptions();
-    }
 
     [TestMethod]
     public async Task StringLength() {
@@ -29,7 +25,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -74,9 +70,9 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      // Assert.AreEqual(3, methods.Count);
+      Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
         m.MethodName ==
         "SimpleTest.compareStringToSeqOfChars"));
@@ -96,9 +92,13 @@ module SimpleTest {
         m.ValueCreation.Last().value.Split(",").Length));
 
       Assert.IsTrue(methods.Exists(m =>
+        m.ArgValues[0].Split(",").Length < 2));
+      // This test is too specific. A test input may be valid and still not satisfy it.
+      /*
+      Assert.IsTrue(methods.Exists(m =>
         m.ValueCreation[0].value.Length < 4 &&
         m.ValueCreation[0].value.Length - 2 ==
-        m.ValueCreation.Last().value.Split(",").Length));
+        m.ValueCreation.Last().value.Split(",").Length));*/
     }
 
   }

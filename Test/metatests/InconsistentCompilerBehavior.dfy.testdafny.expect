@@ -39,11 +39,4 @@ Diff (changing expected into actual):
  
 
 Executing on C++...
-Execution failed, for reasons other than known unsupported features. Output:
-
-Dafny program verifier did not attempt verification
-(0,-1): Error: UserDefinedTypeName _#Func1
-
-Error:
-
 Executing on Dafny...

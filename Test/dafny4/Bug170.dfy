@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 module InductiveThings {
-  predicate P(x: int)
-  predicate Q(x: int)
+  ghost predicate P(x: int)
+  ghost predicate Q(x: int)
 
   least predicate A(x: int)
   {
@@ -59,7 +59,7 @@ module CoThings {
 }
 
 module SingleThings {
-  predicate P(x: int)
+  ghost predicate P(x: int)
 
   least predicate A(x: int)
   {

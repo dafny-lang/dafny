@@ -23,7 +23,7 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      program.Reporter.Options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
@@ -56,9 +56,10 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      var options = DafnyOptions.Create();
+      options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(source, sourceFile);
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
@@ -69,26 +70,27 @@ namespace DafnyTestGeneration {
     }
 
     private static IEnumerable<ProgramModification> GetModifications(Program program) {
+      var options = program.Options;
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      DafnyOptions.O.PrintInstrumented = true;
+      var oldPrintInstrumented = options.PrintInstrumented;
+      options.PrintInstrumented = true;
       var boogiePrograms = Translator
         .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      options.PrintInstrumented = oldPrintInstrumented;
 
-      if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
+      if (options.TestGenOptions.TargetMethod != null) {
         var targetFound = boogiePrograms.Any(program =>
           program.Implementations.Any(i =>
             i.Name.StartsWith("Impl$$") &&
             i.VerboseName
-              .StartsWith(DafnyOptions.O.TestGenOptions.TargetMethod)));
+              .StartsWith(options.TestGenOptions.TargetMethod)));
         if (!targetFound) {
-          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error,
+          options.Printer.ErrorWriteLine(Console.Error,
             "Error: Cannot find method " +
-            DafnyOptions.O.TestGenOptions.TargetMethod +
+            options.TestGenOptions.TargetMethod +
             " (is this name fully-qualified?)");
           setNonZeroExitCode = true;
           return new List<ProgramModification>();
@@ -97,7 +99,7 @@ namespace DafnyTestGeneration {
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
-        DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
+        options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
           : new BlockBasedModifier();
       return programModifier.GetModifications(boogiePrograms, dafnyInfo);
@@ -109,13 +111,15 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      var options = program.Options;
+      options.PrintMode = PrintModes.Everything;
       ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
-      foreach (var modification in GetModifications(program)) {
+      var programModifications = GetModifications(program).ToList();
+      foreach (var modification in programModifications) {
 
         var log = await modification.GetCounterExampleLog();
         if (log == null) {
@@ -135,10 +139,11 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      var options = DafnyOptions.Create();
+      options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = new StreamReader(sourceFile).ReadToEnd();
-      var program = Utils.Parse(source, sourceFile);
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield break;
       }
@@ -170,7 +175,7 @@ namespace DafnyTestGeneration {
       yield return "}";
 
       if (methodsGenerated == 0) {
-        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error,
+        options.Printer.ErrorWriteLine(Console.Error,
           "Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         setNonZeroExitCode = true;

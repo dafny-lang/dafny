@@ -52,7 +52,7 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var typeNames = ExtractPrintedInfo(log, "Types | ");
       var argumentNames = ExtractPrintedInfo(log, "Impl | ");
-      dafnyModel = DafnyModel.ExtractModel(log);
+      dafnyModel = DafnyModel.ExtractModel(dafnyInfo.Options, log);
       MethodName = argumentNames.First();
       argumentNames.RemoveAt(0);
       NOfTypeArgs = dafnyInfo.GetTypeArgs(MethodName).Count;
@@ -650,7 +650,7 @@ namespace DafnyTestGeneration {
           lines.Add($"var {line.id} : {line.type} := {line.value};");
           var subsetTypeCondition = DafnyInfo.GetTypeCondition(line.type, line.id);
           if (subsetTypeCondition != null) {
-            lines.Add("expect " + Printer.ExprToString(subsetTypeCondition) +
+            lines.Add("expect " + Printer.ExprToString(DafnyInfo.Options, subsetTypeCondition) +
                       ", \"Test does not meet type constraints and should be removed\";");
           }
         }
@@ -671,7 +671,7 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       if (errorMessages.Count != 0) {
-        if (DafnyOptions.O.TestGenOptions.Verbose) {
+        if (DafnyInfo.Options.TestGenOptions.Verbose) {
           lines.AddRange(errorMessages);
         }
         return lines;
@@ -695,7 +695,7 @@ namespace DafnyTestGeneration {
       lines.AddRange(DafnyInfo.GetRequires(ArgValues,
         MethodName,
         receiver).Select(e =>
-        "expect " + Printer.ExprToString(e) +
+        "expect " + Printer.ExprToString(DafnyInfo.Options, e) +
         ", \"Test does not meet preconditions and should be removed\";"));
       if (!DafnyInfo.IsStatic(MethodName)) {
         ArgValues.Insert(0, receiver);
@@ -730,7 +730,7 @@ namespace DafnyTestGeneration {
       lines.AddRange(DafnyInfo.GetEnsures(ArgValues,
         returnParNames,
         MethodName,
-        receiver).Select(e => "expect " + Printer.ExprToString(e) + ";"));
+        receiver).Select(e => "expect " + Printer.ExprToString(DafnyInfo.Options, e) + ";"));
 
       if (!DafnyInfo.IsStatic(MethodName)) {
         ArgValues.Insert(0, receiver);

@@ -373,6 +373,7 @@ type T(0,,0)
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
+
 ## **Error: illegal type characteristic: '_token_' should be one of == or 0 or 00 or !new** {#p_illegal_type_characteristic}
 
 ```dafny
@@ -657,6 +658,7 @@ and there is no longer any declaration of the form `function method`, and simila
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: a _what_ must be declared as either 'ghost _what_' or '_what_ method' when using --function-syntax:migration3to4**
+
 ```dafny
 module {:options "--function-syntax:migration3to4"} M {
   function f(): int { 42 }
