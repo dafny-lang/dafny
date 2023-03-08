@@ -4910,6 +4910,31 @@ namespace Microsoft.Dafny {
               }
             }
             break;
+          case BinaryExpr.ResolvedOpcode.Concat:
+            // Add associativity axiom if it takes the form (a + b) + c or (a + b) + c
+            var assocAxiom = (Expr)Bpl.Expr.True;
+
+            if (e.E0.Resolved is BinaryExpr leftExpr && leftExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.Concat) {
+              // e = (a + b) + c
+              Expression y = Expression.CreateConcat(leftExpr.E0, Expression.CreateConcat(leftExpr.E1, e.E1));
+              // y = a + (b + c)
+              var eq = Expression.CreateEq(e, y, e.E0.Type);
+              assocAxiom = BplAnd(assocAxiom, etran.TrExpr(eq));
+            }
+
+            if (e.E1.Resolved is BinaryExpr rightExpr && rightExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.Concat) {
+              // e = c + (a + b)
+              Expression y = Expression.CreateConcat(Expression.CreateConcat(e.E0, rightExpr.E0), rightExpr.E1);
+              // y = (c + a) + b
+              var eq = Expression.CreateEq(e, y, e.E0.Type);
+              assocAxiom = BplAnd(assocAxiom, etran.TrExpr(eq));
+            }
+
+            if (assocAxiom != Bpl.Expr.True) {
+              return BplAnd(assocAxiom, BplAnd(t0, t1));
+            }
+
+            break;
           default:
             break;
         }
