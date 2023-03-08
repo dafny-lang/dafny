@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
   [TestClass]
@@ -217,6 +218,10 @@ class X {
       Assert.AreEqual(1, completionList.Count);
       Assert.AreEqual(CompletionItemKind.Method, completionList[0].Kind);
       Assert.AreEqual("GetConstant", completionList[0].Label);
+    }
+
+    public DotCompletionTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -29,5 +30,9 @@ method Foo()
     await GetLastDiagnostics(documentItem, CancellationToken);
     var processes3 = Process.GetProcessesByName(solverProcessName);
     Assert.AreEqual(processes2.Length, processes3.Length);
+  }
+
+  public ResourceUsageTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

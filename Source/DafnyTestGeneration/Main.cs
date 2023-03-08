@@ -53,8 +53,8 @@ namespace DafnyTestGeneration {
                    "loops. False positives are always possible.";
     }
 
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      var options = DafnyOptions.Create();
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(TextWriter writer, string sourceFile) {
+      var options = DafnyOptions.Create(writer);
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, sourceFile);
@@ -119,12 +119,12 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(TextWriter writer, string sourceFile) {
 
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(writer);
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
-      var source = new StreamReader(sourceFile).ReadToEnd();
+      var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield break;

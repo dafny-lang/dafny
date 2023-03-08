@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using JetBrains.Annotations;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -269,4 +271,7 @@ const x: int
 ");
   }
 
+  public FormatterForComments([NotNull] ITestOutputHelper output) : base(output)
+  {
+  }
 }

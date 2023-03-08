@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -303,6 +304,10 @@ class Test {
       Assert.IsNotNull(document);
       Assert.IsTrue(document.SignatureAndCompletionTable.TryGetSymbolAt((12, 7), out var symbol));
       Assert.AreEqual("x", symbol.Name);
+    }
+
+    public LookupMigrationTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

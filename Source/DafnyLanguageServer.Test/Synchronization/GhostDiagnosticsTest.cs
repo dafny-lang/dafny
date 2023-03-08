@@ -10,6 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -198,6 +199,10 @@ class C {
       Assert.AreEqual(new Range((13, 4), (13, 11)), diagnostics[2].Range);
       Assert.AreEqual("Ghost statement", diagnostics[3].Message);
       Assert.AreEqual(new Range((15, 4), (15, 14)), diagnostics[3].Range);
+    }
+
+    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

@@ -16,15 +16,15 @@ using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.Langu
 namespace Microsoft.Dafny.LanguageServer {
   public class Program {
     public static async Task Main(string[] args) {
-      var dafnyOptions = GetOptionsFromArgs(args);
+      var dafnyOptions = GetOptionsFromArgs(Console.Out, args);
 
       await Server.Start(dafnyOptions);
     }
 
-    public static DafnyOptions GetOptionsFromArgs(string[] args) {
+    public static DafnyOptions GetOptionsFromArgs(TextWriter outWriter, string[] args) {
       var configuration = CreateConfiguration(args);
 
-      var dafnyOptions = DafnyOptions.Create();
+      var dafnyOptions = DafnyOptions.Create(outWriter);
 
       var verifierOptions = new VerifierOptions();
       configuration.Bind(VerifierOptions.Section, verifierOptions);

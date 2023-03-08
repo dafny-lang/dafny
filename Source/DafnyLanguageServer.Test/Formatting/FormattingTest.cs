@@ -9,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
 [TestClass]
@@ -163,5 +164,9 @@ module A {
                   codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
     }
     Assert.AreEqual(target, finalText);
+  }
+
+  public FormattingTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

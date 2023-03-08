@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -65,4 +66,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
+  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
+  {
+  }
 }

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
@@ -154,6 +155,10 @@ class Y {
       Assert.AreEqual(new Range((0, 0), (0, 21)), methodSymbol.Range);
       Assert.AreEqual(new Range((0, 9), (0, 17)), methodSymbol.SelectionRange);
       Assert.AreEqual(SymbolKind.Function, methodSymbol.Kind);
+    }
+
+    public DocumentSymbolTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

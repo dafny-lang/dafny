@@ -7,18 +7,28 @@ using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
   public class Trivia {
+
+    private readonly TextWriter output;
+
+    public Trivia(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     enum Newlines { LF, CR, CRLF };
 
     private Newlines currentNewlines;
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(output);
       ErrorReporter reporter = new ConsoleErrorReporter(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;

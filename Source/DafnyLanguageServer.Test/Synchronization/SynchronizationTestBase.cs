@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SynchronizationTestBase : DafnyLanguageServerTestBase {
@@ -33,6 +34,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     [TestInitialize]
     public async Task SetUp() {
       Client = await InitializeClient();
+    }
+
+    public SynchronizationTestBase(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

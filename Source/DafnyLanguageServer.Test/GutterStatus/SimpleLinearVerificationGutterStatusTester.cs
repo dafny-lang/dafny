@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
@@ -199,5 +200,9 @@ method Foo() ensures false { } ";
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
  .  |  |  | :}");
+  }
+
+  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
+  {
   }
 }

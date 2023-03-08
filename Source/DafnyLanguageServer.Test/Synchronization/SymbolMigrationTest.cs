@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -99,6 +100,10 @@ method GetIt(x: int) returns (y: int) {
       Assert.IsNotNull(document);
       Assert.IsTrue(document.SignatureAndCompletionTable.Resolved);
       Assert.AreEqual(1, document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>().Count());
+    }
+
+    public SymbolMigrationTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -96,6 +97,10 @@ method DoIt() {
       Assert.AreEqual(1, afterSaveDiagnostics.Count());
       var message = afterSaveDiagnostics.First();
       Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
+    }
+
+    public SaveDocumentTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

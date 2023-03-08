@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
@@ -462,6 +463,10 @@ module B refines ><A {
   }
 }".TrimStart();
       await AssertPositionsLineUpWithRanges(source);
+    }
+
+    public DefinitionTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

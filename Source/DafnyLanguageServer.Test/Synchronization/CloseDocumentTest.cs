@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -43,6 +44,10 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await CloseDocumentAndWaitAsync(documentItem);
       Assert.IsNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+    }
+
+    public CloseDocumentTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

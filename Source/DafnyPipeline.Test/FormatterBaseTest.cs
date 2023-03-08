@@ -10,7 +10,9 @@ using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
 
@@ -23,6 +25,13 @@ namespace DafnyPipeline.Test {
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
   public class FormatterBaseTest {
+    private readonly TextWriter output;
+
+    public FormatterBaseTest(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     enum Newlines {
       LF,
       CR,
@@ -37,7 +46,7 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(output);
       BatchErrorReporter reporter = new BatchErrorReporter(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {

@@ -6,11 +6,20 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
 [Collection("Dafny plug-ins tests")]
 public class PluginsTest {
+  private readonly TextWriter output;
+
+  public PluginsTest(ITestOutputHelper output)
+  {
+    this.output = new WriterFromOutputHelper(output);
+  }
+
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
@@ -58,7 +67,7 @@ public class PluginsTest {
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
@@ -78,7 +87,7 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
@@ -93,7 +102,7 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var options = DafnyOptions.Create();
+    var options = DafnyOptions.Create(output);
     var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   [TestClass]
@@ -198,6 +199,10 @@ const x := 1;
 
       Assert.IsTrue(found,
         $"Did not find the code action '{expectedDafnyCodeActionTitle}'. Available were:{string.Join(",", otherTitles)}");
+    }
+
+    public CodeActionTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

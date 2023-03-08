@@ -15,6 +15,7 @@ using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
@@ -494,6 +495,10 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
         },
         CancellationToken
       );
+    }
+
+    public HoverVerificationTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

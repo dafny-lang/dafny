@@ -8,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
@@ -537,5 +538,9 @@ module Refinement2 refines BaseModule {
 
     var errorStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.AreEqual(migratedRange, errorStatus.NamedVerifiables[0].NameRange);
+  }
+
+  public VerificationStatusTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

@@ -1,15 +1,25 @@
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
-  [TestClass]
   public class BasicTypes {
 
-    [TestMethod]
+    private readonly TextWriter output;
+
+    public BasicTypes(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
+    [Fact]
     public async Task Ints() {
       var source = @"
 module SimpleTest {
@@ -23,7 +33,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
@@ -40,7 +50,7 @@ module SimpleTest {
         Regex.IsMatch(m.ArgValues[0], "[1-9][0-9]*")));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task Bools() {
       var source = @"
 module SimpleTest {
@@ -52,7 +62,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
@@ -64,7 +74,7 @@ module SimpleTest {
       Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task Reals() {
       var source = @"
 module SimpleTest {
@@ -86,7 +96,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(7, methods.Count);
       Assert.IsTrue(
@@ -119,7 +129,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.Create(), source);
+      var program = Utils.Parse(DafnyOptions.Create(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(
@@ -135,7 +145,7 @@ module SimpleTest {
         Regex.IsMatch(m.ArgValues[0], "\\([1-9][0-9]+ as bv10\\)")));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task Chars() {
       var source = @"
 module SimpleTest {
@@ -150,7 +160,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
@@ -165,7 +175,7 @@ module SimpleTest {
         m.ArgValues[0].Length == 3 && m.ArgValues[0][1] < 'B'));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CharsUnspecified() {
       // This test case is different from the one above because the model would
       // not specify the exact value of c when the only constraint on it is that
@@ -181,7 +191,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(2, methods.Count);
       Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.compareToB"));

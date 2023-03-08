@@ -6,16 +6,25 @@ using System.IO;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
   public class Issue1355 {
+    private readonly TextWriter output;
+
+    public Issue1355(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     [Fact]
     public void Test() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(output);
       ErrorReporter reporter = new ConsoleErrorReporter(options);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 

@@ -2,6 +2,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -199,6 +200,10 @@ class Test {
   function GetConstant(): int { 1 }
 }".TrimStart();
       Assert.AreEqual(expected, document.TextDocumentItem.Text);
+    }
+
+    public TextInsertionTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

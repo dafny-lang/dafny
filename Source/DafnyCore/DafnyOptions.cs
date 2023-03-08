@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
-
+    public TextWriter Writer { get; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
     public bool AlwaysUseHeap => Allocated == 2;
     public bool CommonHeapUse => Allocated >= 2;
@@ -180,10 +180,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create();
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out);
 
-    public static DafnyOptions Create(params string[] arguments) {
-      var result = new DafnyOptions();
+    public static DafnyOptions Create(TextWriter writer, params string[] arguments) {
+      var result = new DafnyOptions(writer);
       result.Parse(arguments);
       return result;
     }
@@ -203,8 +203,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions()
+    public DafnyOptions(TextWriter writer)
       : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
+      Writer = writer;
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -367,7 +368,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this() {
+    public DafnyOptions(DafnyOptions src) : this(src.Writer) {
       src.CopyTo(this);
     }
 
@@ -686,7 +687,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "allocated": {
             ps.GetIntArgument(ref Allocated, 5);
             if (Allocated != 4) {
-              Printer.AdvisoryWriteLine(Console.Out, "The /allocated:<n> option is deprecated");
+              Printer.AdvisoryWriteLine(Writer, "The /allocated:<n> option is deprecated");
             }
             return true;
           }

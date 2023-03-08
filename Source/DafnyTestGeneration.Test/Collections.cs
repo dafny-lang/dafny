@@ -1,15 +1,25 @@
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
   [TestClass]
   public class Collections {
+    private readonly TextWriter output;
 
-    [TestMethod]
+    public Collections(ITestOutputHelper output)
+    {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
+    [Fact]
     public async Task StringLength() {
       var source = @"
 module C {
@@ -25,7 +35,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -70,7 +80,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.Create(), source);
+      var program = Utils.Parse(DafnyOptions.Create(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>

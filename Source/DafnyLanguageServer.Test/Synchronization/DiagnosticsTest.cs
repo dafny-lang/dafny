@@ -1,20 +1,16 @@
 ﻿using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -1147,6 +1143,10 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.IsTrue(diagnostics2.Any());
+    }
+
+    public DiagnosticsTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

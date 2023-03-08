@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -324,6 +325,10 @@ class A {
       document = await Documents.GetResolvedDocumentAsync(document.TextDocumentItem.Uri);
       Assert.IsNotNull(document);
       Assert.IsFalse(TryFindSymbolDeclarationByName(document, "A", out var _));
+    }
+
+    public DeclarationLocationMigrationTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

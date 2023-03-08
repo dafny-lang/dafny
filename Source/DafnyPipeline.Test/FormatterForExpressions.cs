@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using JetBrains.Annotations;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -377,4 +379,7 @@ predicate Valid()
     FormatterWorksFor(testCase, testCase);
   }
 
+  public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output)
+  {
+  }
 }

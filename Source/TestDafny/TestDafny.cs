@@ -47,7 +47,7 @@ public class TestDafny {
   }
 
   private static DafnyOptions? ParseDafnyOptions(IEnumerable<string> dafnyArgs) {
-    var dafnyOptions = new DafnyOptions();
+    var dafnyOptions = new DafnyOptions(Console.Out);
     var success = dafnyOptions.Parse(dafnyArgs.ToArray());
     return success ? dafnyOptions : null;
   }

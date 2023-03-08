@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -38,5 +39,9 @@ method {:test} myMethodWrongName() {
     Assert.AreEqual("You might want to just rename this method", related.Current.Message);
     Assert.AreEqual(new Range((3, 15), (3, 32)), related.Current.Location.Range);
     related.Dispose();
+  }
+
+  public PluginsAdvancedTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

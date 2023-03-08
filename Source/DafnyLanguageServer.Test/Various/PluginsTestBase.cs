@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -72,5 +73,9 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
       modifyOptions?.Invoke(options);
     }
     return base.SetUp(ModifyOptions);
+  }
+
+  protected PluginsTestBase(ITestOutputHelper output) : base(output)
+  {
   }
 }

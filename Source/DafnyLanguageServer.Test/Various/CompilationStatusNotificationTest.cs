@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -196,6 +197,10 @@ method Abs(x: int) returns (y: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertProgress(documentItem, CompilationStatus.ResolutionStarted);
       await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
+    }
+
+    public CompilationStatusNotificationTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
@@ -51,6 +52,10 @@ method Test() {
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(1, document.Diagnostics.Count());
+    }
+
+    public MultiFileTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

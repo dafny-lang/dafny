@@ -11,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -50,5 +51,9 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [=][=][-][~][=][=]:  assert false;
  .  S [S][ ][I][S][S][ ]:  //Next: 
  .  S [S][ ][I][S][S][ ]:}");
+  }
+
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
+  {
   }
 }

@@ -110,7 +110,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 public class JsonConsoleErrorReporter : BatchErrorReporter {
   public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, Dafny.IToken tok, string msg) {
     if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
+      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Options.Writer);
       return true;
     }
 

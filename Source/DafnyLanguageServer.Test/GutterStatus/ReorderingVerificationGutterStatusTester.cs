@@ -11,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -232,5 +233,9 @@ method m5() { assert false; } //Remove4:
 
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+  }
+
+  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
+  {
   }
 }

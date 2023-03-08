@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(Options.Writer, boogieProgram, new PipelineStatistics(),
 #pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
 #pragma warning restore VSTHRD002

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -31,5 +32,9 @@ public class PluginsTestWithVerification : PluginsTestBase {
     Assert.AreEqual(new Range((0, 0), (0, 8)), diagnostics[0].Range);
     Assert.AreEqual("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.AreEqual(new Range((0, 23), (0, 24)), diagnostics[1].Range);
+  }
+
+  public PluginsTestWithVerification(ITestOutputHelper output) : base(output)
+  {
   }
 }

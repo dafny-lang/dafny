@@ -24,6 +24,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 using OmniSharp.Extensions.LanguageServer.Server;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
@@ -177,5 +178,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     Assert.IsNotNull(nextNotification);
     Assert.AreEqual(1, nextNotification.NamedVerifiables.Count);
     return nextNotification.NamedVerifiables.Single().Status;
+  }
+
+  public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

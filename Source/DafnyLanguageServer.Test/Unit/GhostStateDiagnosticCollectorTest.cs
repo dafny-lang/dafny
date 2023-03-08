@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
@@ -13,12 +14,18 @@ using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
 
 [TestClass]
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
+  private readonly TextWriter output;
+
+  public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
+    this.output = new WriterFromOutputHelper(output);
+  }
 
   class DummyLogger : ILogger<GhostStateDiagnosticCollector> {
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
@@ -36,7 +43,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   [TestInitialize]
   public void SetUp() {
-    var options = new DafnyOptions();
+    var options = new DafnyOptions(output);
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,

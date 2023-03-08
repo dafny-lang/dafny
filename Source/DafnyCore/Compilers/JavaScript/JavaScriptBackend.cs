@@ -75,7 +75,7 @@ public class JavaScriptBackend : ExecutableBackend {
       var errorProcessing = Task.Run(() => {
         PassthroughBuffer(nodeProcess.StandardError, Console.Error);
       });
-      PassthroughBuffer(nodeProcess.StandardOutput, Console.Out);
+      PassthroughBuffer(nodeProcess.StandardOutput, Options.Writer);
       nodeProcess.WaitForExit();
       errorProcessing.Wait();
       return nodeProcess.ExitCode == 0;

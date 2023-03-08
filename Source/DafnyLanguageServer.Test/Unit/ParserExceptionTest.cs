@@ -2,12 +2,14 @@
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
@@ -18,11 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
     private LastDebugLogger lastDebugLogger;
+    private readonly TextWriter output;
+
+    public ParserExceptionTest(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
 
     [TestInitialize]
     public void SetUp() {
       lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(DafnyOptions.Create(), lastDebugLogger);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(output), lastDebugLogger);
     }
 
     [TestMethod, Timeout(MaxTestExecutionTimeMs)]

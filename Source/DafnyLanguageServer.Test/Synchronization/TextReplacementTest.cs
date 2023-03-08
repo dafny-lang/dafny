@@ -2,6 +2,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -252,6 +253,10 @@ function GetConstant(): int {
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.IsNotNull(document);
       Assert.AreEqual(change, document.TextDocumentItem.Text);
+    }
+
+    public TextReplacementTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

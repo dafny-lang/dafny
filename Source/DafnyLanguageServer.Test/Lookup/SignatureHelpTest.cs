@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
@@ -190,6 +191,10 @@ class B {
       var markup = signatures[0].Documentation.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
+    }
+
+    public SignatureHelpTest(ITestOutputHelper output) : base(output)
+    {
     }
   }
 }

@@ -166,7 +166,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var tw = filename == "-" ? program.Options.Writer : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgram(program, afterResolver);
     }

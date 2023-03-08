@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -160,5 +161,9 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.AreEqual(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  public DiagnosticMigrationTest(ITestOutputHelper output) : base(output)
+  {
   }
 }

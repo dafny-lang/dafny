@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
+using Xunit.Abstractions;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -134,5 +135,9 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       }
       return loader.LoadAsync(textDocument, cancellationToken);
     }
+  }
+
+  public ExceptionTests(ITestOutputHelper output) : base(output)
+  {
   }
 }
