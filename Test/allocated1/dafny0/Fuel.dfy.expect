@@ -1,8 +1,8 @@
+The /allocated:<n> option is deprecated
 Fuel.dfy(3,8): Error: the included file Fuel.dfy contains error(s)
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(17,22): Error: assertion might not hold
-Fuel.dfy(65,27): Error: assertion might not hold
 Fuel.dfy(69,27): Error: assertion might not hold
 Fuel.dfy(92,22): Error: assertion might not hold
 Fuel.dfy(93,23): Error: assertion might not hold
@@ -19,12 +19,6 @@ Fuel.dfy(247,22): Error: assertion might not hold
 Fuel.dfy(280,26): Error: assertion might not hold
 Fuel.dfy(335,26): Error: function precondition might not hold
 Fuel.dfy(324,21): Related location
-Fuel.dfy(312,43): Related location
-Fuel.dfy(335,26): Error: function precondition might not hold
-Fuel.dfy(324,21): Related location
-Fuel.dfy(312,58): Related location
-Fuel.dfy(335,26): Error: function precondition might not hold
-Fuel.dfy(324,21): Related location
 Fuel.dfy(313,41): Related location
 Fuel.dfy(335,26): Error: function precondition might not hold
 Fuel.dfy(324,21): Related location
@@ -34,11 +28,36 @@ Fuel.dfy(324,21): Related location
 Fuel.dfy(314,72): Related location
 Fuel.dfy(335,26): Error: function precondition might not hold
 Fuel.dfy(324,21): Related location
+Fuel.dfy(312,58): Related location
+Fuel.dfy(335,26): Error: function precondition might not hold
+Fuel.dfy(324,21): Related location
+Fuel.dfy(312,43): Related location
+Fuel.dfy(335,26): Error: function precondition might not hold
+Fuel.dfy(324,21): Related location
 Fuel.dfy(314,93): Related location
 Fuel.dfy(335,49): Error: destructor 't' can only be applied to datatype values constructed by 'VTuple'
 Fuel.dfy(335,50): Error: index out of range
 Fuel.dfy(336,38): Error: index out of range
 Fuel.dfy(336,42): Error: destructor 'u' can only be applied to datatype values constructed by 'VUint64'
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(311,43): Related location
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(312,43): Related location
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(314,93): Related location
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(312,58): Related location
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(313,41): Related location
+Fuel.dfy(336,45): Error: function precondition might not hold
+Fuel.dfy(329,21): Related location
+Fuel.dfy(314,72): Related location
+Fuel.dfy(336,71): Error: index out of range
 Fuel.dfy(397,22): Error: assertion might not hold
 Fuel.dfy(398,22): Error: assertion might not hold
 Fuel.dfy(399,23): Error: assertion might not hold
@@ -46,4 +65,4 @@ Fuel.dfy(435,22): Error: assertion might not hold
 Fuel.dfy(436,22): Error: assertion might not hold
 Fuel.dfy(437,23): Error: assertion might not hold
 
-Dafny program verifier finished with 30 verified, 32 errors
+Dafny program verifier finished with 30 verified, 38 errors

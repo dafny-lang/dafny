@@ -26,11 +26,14 @@ public class DafnyLangSymbolResolverTest {
     public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
       return this.AllMessages;
     }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
+    }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+      new DefaultModuleDefinition(), null) {
     }
     public override object Dereference() {
       return this;

@@ -22,7 +22,7 @@ module Basic {
 
   type Synonym5<A,B> = List
 
-  function Plus(x: Int, y: int): Int
+  ghost function Plus(x: Int, y: int): Int
   {
     x + y
   }
@@ -39,7 +39,7 @@ module Basic {
     u := Cons(t, Nil);
   }
 
-  function Skip(s: Synonym3): Synonym0
+  ghost function Skip(s: Synonym3): Synonym0
   {
     match s
     case Nil => Nil
@@ -48,7 +48,7 @@ module Basic {
 
   type MyMap = map<int, map<real, bool>>
 
-  predicate MyMapProperty(m: MyMap, x: int)
+  ghost predicate MyMapProperty(m: MyMap, x: int)
   {
     x in m && x as real in m[x] && m[x][x as real]
   }

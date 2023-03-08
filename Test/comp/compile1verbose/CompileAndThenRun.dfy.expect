@@ -10,11 +10,45 @@ hello, Dafny
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun-go/src/CompileAndThenRun.go
 Additional target code written to CompileAndThenRun-go/src/dafny/dafny.go
+Additional target code written to CompileAndThenRun-go/src/dafny/dafnyFromDafny.go
 Additional target code written to CompileAndThenRun-go/src/System_/System_.go
 hello, Dafny
 
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to CompileAndThenRun-java/CompileAndThenRun.java
+Additional target code written to CompileAndThenRun-java/dafny/Array.java
+Additional target code written to CompileAndThenRun-java/dafny/BigOrdinal.java
+Additional target code written to CompileAndThenRun-java/dafny/BigRational.java
+Additional target code written to CompileAndThenRun-java/dafny/CodePoint.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnyEuclidean.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnyHaltException.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnyMap.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnyMultiset.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnySequence.java
+Additional target code written to CompileAndThenRun-java/dafny/DafnySet.java
+Additional target code written to CompileAndThenRun-java/dafny/Helpers.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple0.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple1.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple10.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple11.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple12.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple13.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple14.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple15.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple16.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple17.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple18.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple19.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple2.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple20.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple3.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple4.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple5.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple6.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple7.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple8.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple9.java
+Additional target code written to CompileAndThenRun-java/dafny/TypeDescriptor.java
 Additional target code written to CompileAndThenRun-java/_System/nat.java
 Additional target code written to CompileAndThenRun-java/_System/__default.java
 Wrote executable jar CompileAndThenRun.jar

@@ -32,10 +32,10 @@ module _System {
   */
 
   class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
+    ghost function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    ghost function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -48,10 +48,10 @@ module _System {
     /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
-    function requires(): bool
+    ghost function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    ghost function reads(): set<object?>
       reads reads()
   }
 
@@ -81,9 +81,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function RotateRight(w: nat): selftype
   }
 
   type map<T, U> {
@@ -159,17 +159,17 @@ module PrintTest {
     | ghost var rr: int := 2; x % rr == 0
     ghost witness ghost var ww: int := 2; ww + 8
 
-  function method Five(): int
+  function Five(): int
   {
     5
   }
 
-  function Six(): int
+  ghost function Six(): int
   {
     6
   }
 
-  function method Ten(): int
+  function Ten(): int
   {
     var f: int := Five();
     ghost var s: int := Six();
@@ -177,44 +177,44 @@ module PrintTest {
     f + f
   }
 
-  function method TenAgain(): int
+  function TenAgain(): int
   {
     var ten: int := var f: int := Five(); ghost var s: int := Six(); assert s == 6; f + f;
     ten
   }
 
-  function TenOnceMore(): int
+  ghost function TenOnceMore(): int
   {
     ghost var ten: int := ghost var f: int := Five(); ghost var s: int := Six(); assert s == 6; f + f;
     ten
   }
 
-  function Eleven(): int
+  ghost function Eleven(): int
   {
     ghost var f: int, s: int := Five(), Six();
     f + s
   }
 
-  function Twelve(): int
+  ghost function Twelve(): int
   {
     ghost var s: int, t: int := Six(), Six();
     s + t
   }
 
-  function method Twenty(): int
+  function Twenty(): int
   {
     var x: int :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int
+  function TwentyOne(): int
   {
     ghost var x: int :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
   }
 
-  predicate Yes(x: int)
+  ghost predicate Yes(x: int)
     decreases x
   {
     true

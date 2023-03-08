@@ -2,12 +2,12 @@
 
 datatype Color = Red | Green | Blue
 
-predicate P(n: int)
+ghost predicate P(n: int)
 {
   n % 2 == 0
 }
 
-predicate R(r: real)
+ghost predicate R(r: real)
 {
   0.0 <= r
 }
@@ -159,7 +159,7 @@ method P3(m: int, n: int)
   }
 }
 
-function f(s: set<int>): int
+ghost function f(s: set<int>): int
 {
   if exists x :: x in s then
     var x :| x in s;
@@ -168,7 +168,7 @@ function f(s: set<int>): int
     0
 }
 
-predicate method AltSyntaxP(x: int)
+predicate AltSyntaxP(x: int)
 {
   true
 }

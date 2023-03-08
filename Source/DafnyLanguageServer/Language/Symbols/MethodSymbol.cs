@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = method;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       var signatureWithoutReturn = $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()})";
       if (Declaration.Outs.Count == 0) {
         return signatureWithoutReturn;

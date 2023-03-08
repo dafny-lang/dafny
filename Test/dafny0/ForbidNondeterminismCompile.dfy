@@ -1,11 +1,11 @@
 // RUN: ! %baredafny build %args --enforce-determinism "%s" --target cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class C {
+class C { // error: constructor-less class not allowed by determinism rules
   var f: real
 }
 
-predicate method P(z: int) { true }
+predicate P(z: int) { true }
 
 method M(c: C)
   modifies c
@@ -48,7 +48,7 @@ method M(c: C)
     a[i] := *;  // error: nondeterministic
   }
   modify c;  // error: nondeterministic
-  modify c {  // fine
+  modify c {  // fine (except that a modify statement with a block statement is deprecated)
   }
 }
 
@@ -58,10 +58,18 @@ method OutputParameters0(x: int) returns (s: int, t: int)
 }
 
 
-method DeclWithHavoc()
+method DeclWithHavoc(yes: bool)
+  requires yes
 {
-  var b: int := *;  // error: technically fine, since b is never used, but here the compiler
-                    // checking is overly conservative
+  var b: int := *;  // error: assignment is nondeterministic (despite the fact that b is never used)
+  var c: int; // fine, since the declaration alone is not forbidden
+  var d: int;
+  if yes {
+    var e := b; // error: use of b before it has been assigned
+  } else {
+    // the verifier would complain about the next statement, but it knows the statement isn't reachable
+    var e := d;
+  }
 }
 
 iterator IterWeird() yields ()  // no yields parameters, so allowed
@@ -70,4 +78,26 @@ iterator IterWeird() yields ()  // no yields parameters, so allowed
 
 iterator Iter() yields (x: int)  // error: not allowed by determinism rules
 {
+}
+
+class C' { // fine, since there are no fields
+}
+
+class C'' { // fine, since the const has a RHS
+  const u := 15
+}
+
+class C''' { // error: constructor-less class not allowed by determinism rules
+  const u: int
+}
+
+class D {
+  var f: real // fine, since the class has a constructor
+  const u: int // fine, since the class has a constructor
+  const w := 15
+
+  constructor D() {
+    f := 0.9;
+    u := 90;
+  }
 }

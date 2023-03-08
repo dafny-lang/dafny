@@ -3,7 +3,7 @@
 
 type seq0 = s: seq<int> | forall n <- s :: n == 0
 
-function ReplaceInSeq0_Rejects(s: seq0): seq0
+ghost function ReplaceInSeq0_Rejects(s: seq0): seq0
   requires |s| > 0
   ensures false
 {
@@ -12,7 +12,7 @@ function ReplaceInSeq0_Rejects(s: seq0): seq0
   s'
 }
 
-function ReplaceInSeq0_Accepts(s: seq0): seq<int>
+ghost function ReplaceInSeq0_Accepts(s: seq0): seq<int>
   requires |s| > 0
 {
   var s' := s[0 := 1];
@@ -22,18 +22,18 @@ function ReplaceInSeq0_Accepts(s: seq0): seq<int>
 
 type map0 = m: map<int, int> | forall k <- m :: m[k] == 0
 
-function AddInMap0_Rejects(m: map0): map0
+ghost function AddInMap0_Rejects(m: map0): map0
   ensures false
 {
   m[0 := 1]
 }
 
-function AddInMap0_Accepts(m: map0): map<int, int>
+ghost function AddInMap0_Accepts(m: map0): map<int, int>
 {
   m[0 := 1]
 }
 
-function RecoverType<T>(a: T): T { a }
+ghost function RecoverType<T>(a: T): T { a }
 
 method AddInMap0_Proxy_Rejects() returns (r: map0)
   ensures false

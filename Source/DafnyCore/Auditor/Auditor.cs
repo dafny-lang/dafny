@@ -73,9 +73,9 @@ public class Auditor : IRewriter {
   /// the reporter to use to emit errors and warnings
   /// </param>
   public Auditor(ErrorReporter reporter) : base(reporter) {
-    reportFileName = DafnyOptions.O.Get(ReportFileOption);
-    compareReport = DafnyOptions.O.Get(CompareReportOption);
-    var format = DafnyOptions.O.Get(ReportFormatOption);
+    reportFileName = reporter.Options.Get(ReportFileOption);
+    compareReport = reporter.Options.Get(CompareReportOption);
+    var format = reporter.Options.Get(ReportFormatOption);
     if (format is null) {
       if (reportFileName is null) {
         return;
@@ -102,7 +102,7 @@ public class Auditor : IRewriter {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
     if (templateStream is null) {
-      Reporter.Warning(MessageSource.Verifier, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
+      Reporter.Warning(MessageSource.Verifier, ErrorDetail.ErrorID.None, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
@@ -115,7 +115,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var assumption in report.AllAssumptions()) {
         foreach (var warning in assumption.Warnings()) {
-          Reporter.Warning(MessageSource.Verifier, assumption.decl.tok, warning);
+          Reporter.Warning(MessageSource.Verifier, ErrorDetail.ErrorID.None, assumption.decl.tok, warning);
         }
       }
     } else {

@@ -14,13 +14,15 @@ using Microsoft.Dafny.LanguageServer.Plugins;
 using Newtonsoft.Json.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.Handlers; 
+namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
+  private readonly DafnyOptions options;
   private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
 
-  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+    this.options = options;
     this.logger = logger;
     this.documents = documents;
   }
@@ -38,7 +40,6 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       WorkDoneProgress = false
     };
   }
-
 
   /// <summary>
   /// Returns the fixes along with a unique identifier
@@ -71,7 +72,8 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
       CommandOrCodeAction t = new CodeAction {
         Title = fixWithId.DafnyCodeAction.Title,
         Data = new JArray(documentUri, fixWithId.Id),
-        Diagnostics = fixWithId.DafnyCodeAction.Diagnostics
+        Diagnostics = fixWithId.DafnyCodeAction.Diagnostics,
+        Kind = CodeActionKind.QuickFix
       };
       return t;
     }
@@ -82,8 +84,10 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
-    }.Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin =>
+    , new ErrorMessageDafnyCodeActionProvider()
+    }
+    .Concat(
+      options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
   }

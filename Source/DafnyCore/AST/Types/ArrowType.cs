@@ -6,43 +6,6 @@ namespace Microsoft.Dafny;
 
 public class ArrowType : UserDefinedType {
 
-  public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    Contract.Requires(builtIns != null);
-    var arrTy = e.Type.AsArrowType;
-    if (arrTy != null) {
-      var bvars = new List<BoundVar>();
-      var bexprs = new List<Expression>();
-      foreach (var t in arrTy.Args) {
-        var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
-        bvars.Add(bv);
-        bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
-      }
-
-      var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-      var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
-      bvars.Add(oVar);
-
-      return
-        new SetComprehension(e.tok, e.RangeToken, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
-              Type = new SetType(true, builtIns.ObjectQ())
-            }) {
-            ResolvedOp =
-              arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
-              arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
-              BinaryExpr.ResolvedOpcode.InSet,
-            Type = Type.Bool
-          }, obj, null) {
-          Type = new SetType(true, builtIns.ObjectQ())
-        };
-    } else {
-      return e;
-    }
-  }
-
   public List<Type> Args {
     get { return TypeArgs.GetRange(0, Arity); }
   }
@@ -119,15 +82,15 @@ public class ArrowType : UserDefinedType {
   public const string PARTIAL_ARROW = "-->";
   public const string TOTAL_ARROW = "->";
 
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    return PrettyArrowTypeName(ANY_ARROW, Args, Result, context, parseAble);
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return PrettyArrowTypeName(options, ANY_ARROW, Args, Result, context, parseAble);
   }
 
   /// <summary>
   /// Pretty prints an arrow type.  If "result" is null, then all arguments, including the result type are expected in "typeArgs".
   /// If "result" is non-null, then only the in-arguments are in "typeArgs".
   /// </summary>
-  public static string PrettyArrowTypeName(string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
+  public static string PrettyArrowTypeName(DafnyOptions options, string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
     Contract.Requires(arrow != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(result != null || 1 <= typeArgs.Count);
@@ -150,11 +113,11 @@ public class ArrowType : UserDefinedType {
     }
     string s = "";
     if (domainNeedsParens) { s += "("; }
-    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
+    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(options, context, parseAble));
     if (domainNeedsParens) { s += ")"; }
     s += " " + arrow + " ";
     if (result != null || typeArgs.Count >= 1) {
-      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+      s += (result ?? typeArgs.Last()).TypeName(options, context, parseAble);
     } else {
       s += "<unable to infer result type>";
     }
@@ -176,4 +139,5 @@ public class ArrowType : UserDefinedType {
   }
 
   public override IEnumerable<Node> Children => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<Node> PreResolveChildren => Args.Concat(new List<Node>() { Result });
 }

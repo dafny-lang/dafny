@@ -57,7 +57,7 @@ public class DocumentManager {
       document,
       null);
 
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
@@ -221,7 +221,7 @@ public class DocumentManager {
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
     var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
-    VerificationProgressReporter.UpdateTree(loaded, tree);
+    VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);

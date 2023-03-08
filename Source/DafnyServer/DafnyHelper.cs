@@ -23,22 +23,24 @@ namespace Microsoft.Dafny {
     private Dafny.Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
-    public DafnyHelper(ExecutionEngine engine, string[] args, string fname, string source) {
+    public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
       this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
-      this.reporter = new Dafny.ConsoleErrorReporter();
+      this.reporter = new Dafny.ConsoleErrorReporter(options);
     }
 
     public bool Verify() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, Options);
       return Parse() && Resolve() && Translate() && Boogie();
     }
 
+    private DafnyOptions Options => reporter.Options;
+
     private bool Parse() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
-      Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
+      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDefinition(), null);
+      Dafny.BuiltIns builtIns = new Dafny.BuiltIns(Options);
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
                      Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
       if (success) {
@@ -55,12 +57,12 @@ namespace Microsoft.Dafny {
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags(Options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(Options) == 0 && boogieProgram.Typecheck(Options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
@@ -89,7 +91,7 @@ namespace Microsoft.Dafny {
     }
 
     public void Symbols() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, Options);
       if (Parse() && Resolve()) {
         var symbolTable = new LegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
@@ -102,14 +104,14 @@ namespace Microsoft.Dafny {
     public void CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), DafnyOptions.O);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), Options);
       try {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
-            var model = counterExampleProvider.LoadCounterModel();
+            var model = counterExampleProvider.LoadCounterModel(Options);
             Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
@@ -125,7 +127,7 @@ namespace Microsoft.Dafny {
     }
 
     public void DotGraph() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, Options);
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {

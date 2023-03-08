@@ -9,6 +9,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VCGeneration;
+using Newtonsoft.Json.Linq;
+using static Microsoft.Dafny.ErrorDetail;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
@@ -29,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(string documentSource, DocumentUri entryDocumentUri) {
+    public DiagnosticErrorReporter(DafnyOptions options, string documentSource, DocumentUri entryDocumentUri) : base(options) {
       this.entryDocumentsource = documentSource;
       this.entryDocumentUri = entryDocumentUri;
     }
@@ -141,23 +143,32 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       };
     }
 
-    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, ErrorID errorID, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
       var relatedInformation = new List<DiagnosticRelatedInformation>();
-      if (tok is NestedToken nestedToken) {
-        relatedInformation.AddRange(
-          CreateDiagnosticRelatedInformationFor(
-            nestedToken.Inner, nestedToken.Message ?? "Related location")
-        );
+      var ntok = tok;
+      while (ntok is NestedToken nestedToken) {
+        ntok = nestedToken.Inner;
+        if (!(ntok is CodeActionRange)) {
+          relatedInformation.AddRange(
+            CreateDiagnosticRelatedInformationFor(
+              ntok, nestedToken.Message ?? "Related location")
+          );
+          break;
+        }
       }
+
       var item = new Diagnostic {
+        Code = errorID.ToString(),
         Severity = ToSeverity(level),
         Message = msg,
         Range = tok.GetLspRange(),
         Source = source.ToString(),
         RelatedInformation = relatedInformation,
+        CodeDescription = errorID == ErrorID.None ? null : new CodeDescription { Href = new System.Uri("https://dafny.org/dafny/HowToFAQ/Errors#" + errorID.ToString()) },
+        Data = Errors.FindCodeActionRange(tok).StartLength(),
       };
       AddDiagnosticForFile(item, source, GetDocumentUriOrDefault(tok));
       return true;

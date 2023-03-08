@@ -49,21 +49,23 @@ public class PluginsTest {
     public string GetLastErrorMessage() {
       return AllMessages[ErrorLevel.Error][0].message;
     }
+
+    public CollectionErrorReporter(DafnyOptions options) : base(options) {
+    }
   }
 
   [Fact]
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Microsoft.Dafny.Type.ResetScopes();
-    BuiltIns builtIns = new BuiltIns();
+    BuiltIns builtIns = new BuiltIns(options);
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
     var dafnyProgram = new Program("programName", module, builtIns, reporter);
     Main.Resolve(dafnyProgram, reporter);
@@ -76,13 +78,12 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
@@ -92,22 +93,21 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var reporter = new CollectionErrorReporter();
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
-    DafnyOptions.Install(options);
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = CreateProgram(programString, reporter);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
     Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
   }
 
-  private static Program CreateProgram(string programString, CollectionErrorReporter reporter) {
-    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+  private static Program CreateProgram(DafnyOptions options, string programString, CollectionErrorReporter reporter) {
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     Type.ResetScopes();
-    BuiltIns builtIns = new BuiltIns();
+    BuiltIns builtIns = new BuiltIns(options);
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
     var dafnyProgram = new Program("programName", module, builtIns, reporter);
     return dafnyProgram;

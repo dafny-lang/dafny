@@ -30,6 +30,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
+  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+    resolver.ResolveAttributes(this, resolutionContext);
+  }
+
   protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
     this.attributes = cloner.CloneAttributes(original.Attributes);
@@ -75,6 +79,11 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns the non-null substatements of the Statements, before resolution occurs
+  /// </summary>
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
+
+  /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
   /// Includes both specification and non-specification expressions.
   /// </summary>
@@ -89,6 +98,11 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       }
     }
   }
+
+  /// <summary>
+  /// Same as SubExpressions but returns all the SubExpressions before resolution
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => SubExpressions;
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
@@ -149,7 +163,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
   public override string ToString() {
     try {
-      return Printer.StatementToString(this);
+      return Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print stmt because: {e.Message}";
     }
@@ -158,6 +172,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       SubStatements.Concat<Node>(SubExpressions));
+
+  public override IEnumerable<Node> PreResolveChildren =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    PreResolveSubStatements).Concat(PreResolveSubExpressions);
 }
 
 public class LList<T> {
@@ -216,7 +234,7 @@ public class AssertLabel : Label {
   }
 }
 
-public class RevealStmt : Statement, ICloneable<RevealStmt> {
+public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -224,6 +242,8 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -256,6 +276,10 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
     } else {
       return null;
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }
 
@@ -313,9 +337,21 @@ public abstract class ProduceStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
+          foreach (var s in rhs.PreResolveSubStatements) {
+            yield return s;
+          }
+        }
+      }
+    }
+  }
 }
 
-public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
+public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   public YieldStmt Clone(Cloner cloner) {
     return new YieldStmt(cloner, this);
   }
@@ -325,6 +361,10 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
 
   public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
     : base(rangeToken, rhss) {
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }
 
@@ -380,11 +420,24 @@ public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns the non-null subexpressions before resolution of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+    }
+  }
+
+  /// <summary>
   /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
+
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -406,7 +459,18 @@ public class ExprRhs : AssignmentRhs {
     }
   }
 
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var expr in base.PreResolveSubExpressions) {
+        yield return expr;
+      }
+
+      yield return Expr;
+    }
+  }
+
   public override IEnumerable<Node> Children => new[] { Expr };
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
 }
 
 /// <summary>
@@ -564,6 +628,12 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
           }
         }
       }
+
+      if (Bindings != null && Arguments != null) {
+        foreach (var e in Arguments) {
+          yield return e;
+        }
+      }
     }
   }
   public override IEnumerable<Statement> SubStatements {
@@ -575,6 +645,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   }
 
   public IToken Start => Tok;
+
   public override IEnumerable<Node> Children {
     get {
       if (ArrayDimensions == null) {
@@ -588,6 +659,14 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
+  public override IEnumerable<Node> PreResolveChildren =>
+    new[] { EType, Type }.OfType<UserDefinedType>()
+      .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
+      .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
+      .Concat<Node>(InitDisplay ?? Enumerable.Empty<Node>())
+      .Concat<Node>((Bindings != null ? Arguments : null) ?? Enumerable.Empty<Node>());
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -596,9 +675,10 @@ public class HavocRhs : AssignmentRhs {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
 }
 
-public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
+public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
   public readonly ConcreteUpdateStatement Update;
   [ContractInvariantMethod]
@@ -637,13 +717,25 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
           yield return e;
         }
       }
+
+      if (this.Update != null) {
+        foreach (var e in this.Update.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
     }
   }
 
   public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
+    return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
+  }
 }
 
-public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
+public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat {
   public readonly CasePattern<LocalVariable> LHS;
   public readonly Expression RHS;
   public bool HasGhostModifier;
@@ -684,22 +776,9 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
       }
     }
   }
-}
 
-/// <summary>
-/// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
-/// </summary>
-public abstract class ConcreteUpdateStatement : Statement {
-  public readonly List<Expression> Lhss;
-
-  protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
-    Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
-  }
-
-  public ConcreteUpdateStatement(RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
-    : base(rangeToken, attrs) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Lhss = lhss;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
   }
 }
 
@@ -714,64 +793,6 @@ public abstract class ConcreteUpdateStatement : Statement {
 /// </summary>
 public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
   Attributes IAttributeBearingDeclaration.Attributes => Attrs;
-}
-
-public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly bool CanMutateKnownState;
-  public Expression OriginalInitialLhs = null;
-
-  public override IToken Tok {
-    get {
-      var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
-        // If there is an operator, use it as a token
-        return firstRhs.StartToken.Prev;
-      }
-
-      return firstRhs.Tok;
-    }
-  }
-
-  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
-  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
-
-  public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Lhss));
-    Contract.Invariant(cce.NonNullElements(Rhss));
-  }
-
-  public UpdateStmt Clone(Cloner cloner) {
-    return new UpdateStmt(cloner, this);
-  }
-
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
-    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
-    CanMutateKnownState = original.CanMutateKnownState;
-    if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
-    }
-  }
-
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = false;
-  }
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = mutate;
-  }
 }
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
@@ -878,6 +899,10 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
+
+  public override IEnumerable<Node> PreResolveChildren =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+      IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 }
 
 public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
@@ -886,6 +911,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   public readonly List<Statement> Body;
   public Attributes Attributes;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(new List<Node>() { Guard }).Concat<Node>(Body);
+  public override IEnumerable<Node> PreResolveChildren => Children;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]
@@ -919,7 +945,7 @@ public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   }
 }
 
-public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
+public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   public readonly Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
@@ -962,6 +988,23 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    foreach (var ens in Invariants) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+    }
+
+    if (EndToken.val == "}") {
+      formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    }
+
+    return false;
+  }
 }
 
 /// <summary>
@@ -997,7 +1040,7 @@ public class RefinedWhileStmt : WhileStmt {
 /// * modify ... { Stmt }
 ///   ConditionOmitted == true && BodyOmitted == false
 /// </summary>
-public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
+public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
   public readonly Statement S;
   public bool ConditionOmitted { get { return ConditionEllipsis != null; } }
   public readonly IToken ConditionEllipsis;
@@ -1038,6 +1081,16 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
         }
       }
     }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      yield return S;
+    }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return true;
   }
 }
 

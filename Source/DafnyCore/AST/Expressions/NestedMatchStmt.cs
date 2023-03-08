@@ -5,8 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
-  public readonly Expression Source;
+public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat, INestedMatch, ICanResolve {
+  public Expression Source { get; }
+  public string MatchTypeName => "statement";
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;
 
@@ -43,6 +44,10 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
 
   public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
 
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get => this.Cases.SelectMany(oneCase => oneCase.Body);
+  }
+
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
     get {
       foreach (var e in base.NonSpecificationSubExpressions) {
@@ -61,8 +66,13 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
     InitializeAttributes();
   }
 
-  public void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
-
+  /// <summary>
+  /// Resolves a NestedMatchStmt by
+  /// 1 - checking that all of its patterns are linear
+  /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
+  /// 3 - resolving the generated (sub)statement.
+  /// </summary>
+  public override void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {
@@ -93,6 +103,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
       resolver.scope.PopMarker();
     }
+
+    resolver.SolveAllTypeConstraints();
   }
 
   public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, Resolver resolver) {
@@ -102,5 +114,16 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt> {
       mc.CheckLinearNestedMatchCase(dtd, resolutionContext, resolver);
       resolver.scope.PopMarker();
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentCases(indentBefore, OwnedTokens.Concat(Cases.SelectMany(oneCase => oneCase.OwnedTokens)).OrderBy(token => token.pos), () => {
+      foreach (var e in PreResolveSubExpressions) {
+        formatter.Visit(e, indentBefore);
+      }
+      foreach (var s in PreResolveSubStatements) {
+        formatter.Visit(s, indentBefore);
+      }
+    });
   }
 }

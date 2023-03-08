@@ -57,7 +57,7 @@ datatype A = A {
   static method create() returns (ret: A)
 }
 datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
-  function method PropagateFailure<U>(): Result<U, E>
+  function PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
     Err(this.er><ror)
@@ -87,7 +87,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
       var source = @"
 module [>Zaz<] {
   trait [>E<] {
-    static function method [>Foo<](): E
+    static function [>Foo<](): E
   }
 }
 
@@ -218,7 +218,7 @@ module Provider {
 
     constructor() {}
 
-    function method [>GetX<](): int
+    function [>GetX<](): int
       reads this`><x
     {
       this.x
@@ -312,7 +312,7 @@ method DoIt() returns (x: int) {
       var definition = (await RequestDefinition(documentItem, (4, 13)).AsTask()).Single();
       var location = definition.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
-      Assert.AreEqual(new Range((5, 18), (5, 22)), location.Range);
+      Assert.AreEqual(new Range((5, 11), (5, 15)), location.Range);
     }
 
     [TestMethod]
@@ -423,6 +423,45 @@ method DoIt() returns (x: int) {
       var location = aInNewA.Location;
       Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
       Assert.AreEqual(new Range((3, 2), (3, 13)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task Refinement() {
+      var source = @"
+module {>0:A<} {
+  class X { }
+  class T {
+    method M(x: int) returns (y: int)
+      requires 0 <= x;
+      ensures 0 <= y;
+    {
+      y := 2 * x;
+    }
+    method Q() returns (q: int, r: int, {>1:s<}: int)
+      ensures 0 <= q && 0 <= r && 0 <= s;
+    {  // error: failure to establish postcondition about q
+      r, s := 100, 200;
+    }
+  }
+}
+
+module B refines ><A {
+  class C { }
+  datatype Dt = Ax | Bx
+  class T ... {
+    method P() returns (p: int)
+    {
+      p := 18;
+    }
+    method M(x: int) returns (y: int)
+      ensures y % 2 == 0;  // add a postcondition
+    method Q ...
+      ensures 12 <= r;
+      ensures 1200 <= ><s;  // error: postcondition is not established by
+                          // inherited method body
+  }
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
     }
   }
 }
