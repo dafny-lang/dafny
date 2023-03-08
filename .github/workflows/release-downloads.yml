@@ -46,15 +46,19 @@ jobs:
         file: "dafny-.*-${{ matrix.osn }}\\.zip"
         regex: true
         target: "./"
-    - run: ls
-    - if: runner.os != 'Windows'
+    - name: Unzip, non-Windows
+      if: runner.os != 'Windows'
       run: |
         unzip dafny*.zip && rm dafny*.zip
-    - if: runner.os == 'Windows'
+    - name: Unzip, Windows
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         Expand-Archive dafny*.zip
         mv dafny*/dafny dafny
+    - run: |
+        pwd
+        ls
 
   check:
     needs: build

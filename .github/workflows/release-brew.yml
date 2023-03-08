@@ -17,6 +17,13 @@ jobs:
     - name: Install dafny
       run: |
         brew install dafny
+    - name: Versions
+      run: |
+        dafny -version
+        which dafny
+        pwd
+        ls
+
 
   check:
     needs: build
