@@ -1416,6 +1416,19 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
+Note that although a type synonym can be declared and used in place of a type name, 
+that does not affect the names of datatype or class constructors.
+For example, consider
+```dafny
+datatype Pair<T> = Pair(first: T. second: T)
+type IntPair = Pair<int>
+
+const p: IntPair := Pair(1,2) // OK
+const q: IntPair := IntPair(3,4) // Error
+```
+
+In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
+
 ### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
 Examples:
