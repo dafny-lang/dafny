@@ -55,18 +55,18 @@ jobs:
     - name: Set up Z3
       run: |
         mkdir bin
-        mv z3-* bin/
+        mv z3-4.12.1 bin/z3
         ls bin
     - name: Make Z3 executable (non-Windows)
       run: |
-        chmod +x bin/z3-*
+        chmod +x bin/z3
       if: runner.os != 'Windows'
     - name: Set Path
       if: runner.os != 'Windows'
-      run: echo "${PWD}/bin/z3-4.12.1/bin" >> $GITHUB_PATH
+      run: echo "${PWD}/bin" >> $GITHUB_PATH
     - name: Set Path - Windows
       if: runner.os == 'Windows'
-      run: $((Resolve-Path -Path "bin/z3-4.12.1/bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
+      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
     ## Create a simple smoke test program
@@ -78,7 +78,7 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        z3-4.12.1 -version
+        z3 -version
         dafny -version
     - name: Fatch latest release version string
       id: dafny
