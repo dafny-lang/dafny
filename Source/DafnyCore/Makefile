@@ -13,6 +13,7 @@ clean:
 	rm -f Scanner.cs Scanner.cs.old Parser.cs Parser.cs.old
 
 build-regenerated-from-dafny:
+	chmod u+x DafnyGeneratedFromDafny.sh
 	./DafnyGeneratedFromDafny.sh $(REGENERATED_FROM_DAFNY)
 
 test: build-regenerated-from-dafny
