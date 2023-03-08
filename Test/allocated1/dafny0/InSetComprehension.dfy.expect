@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 InSetComprehension.dfy(10,17): Warning: /!\ No terms found to trigger on.
 InSetComprehension.dfy(12,17): Warning: /!\ No terms found to trigger on.
 InSetComprehension.dfy(14,16): Info: Selected triggers: {Even(m)}

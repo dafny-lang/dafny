@@ -76,7 +76,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      // Assert.AreEqual(3, methods.Count);
+      Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
         m.MethodName ==
         "SimpleTest.compareStringToSeqOfChars"));
@@ -96,9 +96,13 @@ module SimpleTest {
         m.ValueCreation.Last().value.Split(",").Length));
 
       Assert.IsTrue(methods.Exists(m =>
+        m.ArgValues[0].Split(",").Length < 2));
+      // This test is too specific. A test input may be valid and still not satisfy it.
+      /*
+      Assert.IsTrue(methods.Exists(m =>
         m.ValueCreation[0].value.Length < 4 &&
         m.ValueCreation[0].value.Length - 2 ==
-        m.ValueCreation.Last().value.Split(",").Length));
+        m.ValueCreation.Last().value.Split(",").Length));*/
     }
 
   }

@@ -5,7 +5,7 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method P(s: set)
+predicate P(s: set)
   requires s != {}
 {
   // In the following line, the let-such-that is compiled by TrExprOpt
@@ -13,7 +13,7 @@ predicate method P(s: set)
   e == e
 }
 
-function method F(s: set): int
+function F(s: set): int
   requires s != {}
 {
   var p :=

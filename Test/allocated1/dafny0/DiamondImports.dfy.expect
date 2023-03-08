@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 DiamondImports.dfy(34,15): Error: assertion might not hold
 DiamondImports.dfy(50,15): Error: assertion might not hold
 DiamondImports.dfy(101,15): Error: assertion might not hold

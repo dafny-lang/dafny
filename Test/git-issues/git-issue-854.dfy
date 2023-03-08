@@ -8,6 +8,6 @@ module M {
 
 module N {
   import M
-  function f(): nat { assert M.l(); 3 }
+  ghost function f(): nat { assert M.l(); 3 }
 }
 
