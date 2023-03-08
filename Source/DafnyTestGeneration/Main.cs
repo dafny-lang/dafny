@@ -160,12 +160,21 @@ namespace DafnyTestGeneration {
         }
       }
 
+      var methodsGenerated = 0;
       await foreach (var method in GetTestMethodsForProgram(program)) {
         yield return method.ToString();
+        methodsGenerated++;
       }
 
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
       yield return "}";
+
+      if (methodsGenerated == 0) {
+        DafnyOptions.O.Printer.ErrorWriteLine(Console.Error, 
+          "Error: No tests were generated, because no code points could be " +
+          "proven reachable (do you have a false assumption in the program)");
+        setNonZeroExitCode = true;
+      }
     }
   }
 }
