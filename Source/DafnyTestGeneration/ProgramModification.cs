@@ -136,27 +136,25 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (DafnyOptions.O.TestGenOptions.Verbose) {
-            Console.WriteLine($"// Test {uniqueId} covers block {blockId}");
+          if (DafnyOptions.O.TestGenOptions.Verbose && 
+              DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
+            Console.WriteLine($"// Test targeting block {uniqueId} also covers block {blockId}");
           }
         }
       }
       if (DafnyOptions.O.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           Console.WriteLine(
-            $"// No test can be generated for {uniqueId} " +
-            "because the verifier suceeded.");
-        } else if (log.Contains("MODEL")) {
+            $"// No test is generated for {uniqueId} " +
+            "because the verifier succeeded. This is can be caused by dead code.");
+        } else if (log.Contains("MODEL") || log.Contains("anon0")) {
           Console.WriteLine(
-            $"// No test can be generated for {uniqueId} " +
-            "because there is no enhanced error trace.");
-        } else if (log.Contains("anon0")) {
-          Console.WriteLine(
-            $"// No test can be generated for {uniqueId} " +
-            "because the model cannot be extracted.");
+            $"// No test is generated for {uniqueId} " +
+            "because there is no enhanced error trace. This can be caused " +
+            "by a bug in boogie counterexample model parsing.");
         } else {
           Console.WriteLine(
-            $"// No test can be generated for {uniqueId} " +
+            $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
       }
@@ -185,7 +183,10 @@ namespace DafnyTestGeneration {
       if (DafnyOptions.O.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Test for {uniqueId} matches a test previously generated " +
-          $"for {duplicate.uniqueId}.");
+          $"for {duplicate.uniqueId}. This happens when test generation tool " +
+          $"does not know how to differentiate between counterexamples, " +
+          $"e.g. if branching is conditional on the result of a trait instance " +
+          $"method call.");
       }
       return null;
     }

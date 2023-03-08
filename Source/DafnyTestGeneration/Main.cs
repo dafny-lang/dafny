@@ -1,8 +1,10 @@
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
 
@@ -76,6 +78,22 @@ namespace DafnyTestGeneration {
         .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
       DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+
+      if (DafnyOptions.O.TestGenOptions.TargetMethod != null) {
+        var targetFound = boogiePrograms.Any(program => 
+          program.Implementations.Any(i => 
+            i.Name.StartsWith("Impl$$") && 
+            i.VerboseName
+              .StartsWith(DafnyOptions.O.TestGenOptions.TargetMethod)));
+        if (!targetFound) {
+          DafnyOptions.O.Printer.ErrorWriteLine(Console.Error,
+            "Cannot find method " + 
+            DafnyOptions.O.TestGenOptions.TargetMethod + 
+            "\nPlease make sure that you are using a fully qualified name.");
+          setNonZeroExitCode = true;
+          return new List<ProgramModification>();
+        }
+      }
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =

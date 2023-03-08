@@ -37,7 +37,8 @@ namespace DafnyTestGeneration {
     /// </summary>
     public IEnumerable<ProgramModification> GetModifications(
       IEnumerable<Program> programs,
-      DafnyInfo dafnyInfo) {
+      DafnyInfo dafnyInfo) 
+    {
       DafnyInfo = dafnyInfo;
       var program = MergeBoogiePrograms(programs);
       program = new FunctionToMethodCallRewriter(this).VisitProgram(program);
@@ -50,9 +51,7 @@ namespace DafnyTestGeneration {
           i.Name.StartsWith("Impl$$")
           && i.VerboseName.StartsWith(
             DafnyOptions.O.TestGenOptions.TargetMethod));
-      } else {
-        ImplementationToTarget = null;
-      }
+      } 
       var callGraphVisitor = new CallGraph();
       callGraphVisitor.VisitProgram(program);
       // DafnyOptions.O.TestGenOptions.TestInlineDepth is multiplied by two

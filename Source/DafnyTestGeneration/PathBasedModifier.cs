@@ -12,7 +12,7 @@ namespace DafnyTestGeneration {
   public class PathBasedModifier : ProgramModifier {
 
     // prefix given to variables indicating whether or not a block was visited
-    private const string BlockVarNamePrefix = "notYetVisited";
+    private const string BlockVarNamePrefix = "block";
     private List<Path> paths = new();
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
@@ -23,7 +23,7 @@ namespace DafnyTestGeneration {
         var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
         yield return ProgramModification.GetProgramModification(p, path.Impl,
           new HashSet<int>(), new HashSet<string>(), name,
-          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
+          $"{name.Split(" ")[0]}(path through {string.Join(",", path.path)})");
         path.NoAssertPath();
       }
     }
