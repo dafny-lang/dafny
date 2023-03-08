@@ -19,8 +19,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// errors much earlier in the pipeline.
   /// </summary>
   internal override void PreResolve(Program program) {
-    Method mainMethod;
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out mainMethod);
+    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
     if (hasMain) {
       Reporter.Error(MessageSource.Rewriter, mainMethod.tok, "Cannot use /runAllTests on a program with a main method");
       return;

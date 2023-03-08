@@ -3,7 +3,7 @@
 
 // The following function gives rise to an inconsistent axiom, except
 // for its CanUseFunctionDefs antecedent, which saves the day.
-function F(x: int): int
+ghost function F(x: int): int
   decreases x;
 {
   F(x) + 1  // error: does not decrease termination metric

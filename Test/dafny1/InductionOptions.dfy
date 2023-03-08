@@ -9,7 +9,7 @@
 
 datatype List = Nil | Cons(int, List)
 
-function Append(xs: List, ys: List): List
+ghost function Append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys

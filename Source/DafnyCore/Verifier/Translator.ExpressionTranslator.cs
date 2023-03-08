@@ -10,6 +10,7 @@ namespace Microsoft.Dafny {
   public partial class Translator {
 
     internal class ExpressionTranslator {
+      private DafnyOptions options;
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Boogie.Expr _the_heap_expr;
       public Boogie.Expr HeapExpr {
@@ -79,6 +80,7 @@ namespace Microsoft.Dafny {
         }
         this.modifiesFrame = modifiesFrame;
         this.stripLits = stripLits;
+        this.options = translator.options;
       }
 
       public static Boogie.IdentifierExpr HeapIdentifierExpr(PredefinedDecls predef, Boogie.IToken heapToken) {
@@ -305,7 +307,7 @@ namespace Microsoft.Dafny {
           } else if (e is CharLiteralExpr) {
             // we expect e.Value to be a string representing exactly one char
             Boogie.Expr rawElement = null;  // assignment to please compiler's definite assignment rule
-            foreach (var ch in Util.UnescapedCharacters((string)e.Value, false)) {
+            foreach (var ch in Util.UnescapedCharacters(options, (string)e.Value, false)) {
               Contract.Assert(rawElement == null);  // we should get here only once
               rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
             }
@@ -314,7 +316,7 @@ namespace Microsoft.Dafny {
           } else if (e is StringLiteralExpr) {
             var str = (StringLiteralExpr)e;
             Boogie.Expr seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqEmpty, predef.BoxType);
-            foreach (var ch in Util.UnescapedCharacters((string)e.Value, str.IsVerbatim)) {
+            foreach (var ch in Util.UnescapedCharacters(options, (string)e.Value, str.IsVerbatim)) {
               var rawElement = translator.FunctionCall(GetToken(expr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
               Boogie.Expr elt = BoxIfNecessary(GetToken(expr), rawElement, Type.Char);
               seq = translator.FunctionCall(GetToken(expr), BuiltinFunction.SeqBuild, predef.BoxType, seq, elt);
@@ -881,7 +883,7 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(GetToken(expr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
                 return FunctionCall(GetToken(expr), "ORD#Less", Boogie.Type.Bool, e0, e1);
-              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
+              } else if (isReal || !options.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Lt;
                 break;
@@ -898,7 +900,7 @@ namespace Microsoft.Dafny {
                 var less = FunctionCall(GetToken(expr), "ORD#Less", Boogie.Type.Bool, e0, e1);
                 var eq = Boogie.Expr.Eq(e0, e1);
                 return BplOr(eq, less);
-              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
+              } else if (isReal || !options.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Le;
                 break;
@@ -913,7 +915,7 @@ namespace Microsoft.Dafny {
                 var less = FunctionCall(GetToken(expr), "ORD#Less", Boogie.Type.Bool, e1, e0);
                 var eq = Boogie.Expr.Eq(e1, e0);
                 return BplOr(eq, less);
-              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
+              } else if (isReal || !options.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Ge;
                 break;
@@ -925,7 +927,7 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(GetToken(expr), "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
                 return FunctionCall(GetToken(expr), "ORD#Less", Boogie.Type.Bool, e1, e0);
-              } else if (isReal || !DafnyOptions.O.DisableNLarith) {
+              } else if (isReal || !options.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Gt;
                 break;
@@ -940,9 +942,9 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(GetToken(expr), "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (e.E0.Type.IsCharType) {
                 return TrToFunctionCall(GetToken(expr), "char#Plus", predef.CharType, e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
+              } else if (!isReal && options.DisableNLarith) {
                 return TrToFunctionCall(GetToken(expr), "INTERNAL_add_boogie", Boogie.Type.Int, e0, e1, liftLit);
-              } else if (!isReal && (DafnyOptions.O.ArithMode == 2 || 5 <= DafnyOptions.O.ArithMode)) {
+              } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
                 return TrToFunctionCall(GetToken(expr), "Add", Boogie.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
@@ -956,9 +958,9 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(GetToken(expr), "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (e.E0.Type.IsCharType) {
                 return TrToFunctionCall(GetToken(expr), "char#Minus", predef.CharType, e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
+              } else if (!isReal && options.DisableNLarith) {
                 return TrToFunctionCall(GetToken(expr), "INTERNAL_sub_boogie", Boogie.Type.Int, e0, e1, liftLit);
-              } else if (!isReal && (DafnyOptions.O.ArithMode == 2 || 5 <= DafnyOptions.O.ArithMode)) {
+              } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
                 return TrToFunctionCall(GetToken(expr), "Sub", Boogie.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
@@ -968,9 +970,9 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Mul:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(GetToken(expr), "mul_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
+              } else if (!isReal && options.DisableNLarith) {
                 return TrToFunctionCall(GetToken(expr), "INTERNAL_mul_boogie", Boogie.Type.Int, e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+              } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                 return TrToFunctionCall(GetToken(expr), "Mul", Boogie.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
@@ -980,9 +982,9 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Div:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(GetToken(expr), "div_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (!isReal && options.DisableNLarith && !isReal) {
                 return TrToFunctionCall(GetToken(expr), "INTERNAL_div_boogie", Boogie.Type.Int, e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+              } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                 return TrToFunctionCall(GetToken(expr), "Div", Boogie.Type.Int, e0, oe1, liftLit);
               } else if (isReal) {
                 typ = Boogie.Type.Real;
@@ -996,9 +998,9 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Mod:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(GetToken(expr), "mod_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (options.DisableNLarith && !isReal) {
                 return TrToFunctionCall(GetToken(expr), "INTERNAL_mod_boogie", Boogie.Type.Int, e0, e1, liftLit);
-              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+              } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
                 return TrToFunctionCall(GetToken(expr), "Mod", Boogie.Type.Int, e0, oe1, liftLit);
               } else {
                 typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
@@ -1266,7 +1268,7 @@ namespace Microsoft.Dafny {
             }
 
             List<bool> freeOfAlloc = null;
-            if (FrugalHeapUseX) {
+            if (options.FrugalHeapUseX) {
               freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
             }
             antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
@@ -1289,7 +1291,7 @@ namespace Microsoft.Dafny {
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
           List<bool> freeOfAlloc = null;
-          if (FrugalHeapUseX) {
+          if (options.FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           }
           // Translate "set xs | R :: T" into:
@@ -1341,7 +1343,7 @@ namespace Microsoft.Dafny {
           //          type)".
           List<Variable> bvars = new List<Variable>();
           List<bool> freeOfAlloc = null;
-          if (FrugalHeapUseX) {
+          if (options.FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           }
 
@@ -1668,7 +1670,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         if (e.Function is TwoStateFunction) {
           args.Add(OldAt(e.AtLabel).HeapExpr);
         }
-        if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
+        if (!omitHeapArgument && (options.AlwaysUseHeap || e.Function.ReadsHeap)) {
           Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
           // If the function doesn't use the heap, but global settings say to use it,
@@ -1821,7 +1823,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           } else {
             // exists xs :: CorrectType(xs) && R && elmt==T
             List<bool> freeOfAlloc = null;
-            if (FrugalHeapUseX) {
+            if (options.FrugalHeapUseX) {
               freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
             }
             var bvars = new List<Variable>();
@@ -1928,7 +1930,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           if (attr.Name == skipThisAttribute
               || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
               || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
-              || (DafnyOptions.O.DisallowExterns && (attr.Name == "extern" || attr.Name == "dllimport")) // omit the extern attribute when /noExterns option is specified.
+              || (options.DisallowExterns && (attr.Name == "extern" || attr.Name == "dllimport")) // omit the extern attribute when /noExterns option is specified.
               || attr.Name == "timeLimitMultiplier"  // This is a Dafny-specific attribute
               || (attr.Name == "timeLimit" && hasNewTimeLimit)
               || (attr.Name == "rlimit" && hasNewRLimit)

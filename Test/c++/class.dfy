@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype uint32 = i:int | 0 <= i < 0x100000000
@@ -23,8 +23,8 @@ class MyClass {
     ar := new uint32[5];
   }
 
-  function method F(): uint32 { 8 }
-  static function method G(): uint32 { 9 }
+  function F(): uint32 { 8 }
+  static function G(): uint32 { 9 }
   method M() returns (r: uint32) { r := 69; }
   static method N() returns (r: uint32) { return 70; }
 

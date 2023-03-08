@@ -9,21 +9,21 @@ codatatype LList<T> = Nil | Cons(head: T, tail: LList)
 
 // Simulate function as arguments
 datatype FunctionHandle<T> = FH(T)
-function Apply<T>(f: FunctionHandle<T>, argument: T): T
+ghost function Apply<T>(f: FunctionHandle<T>, argument: T): T
 
 // Function composition
-function After(f: FunctionHandle, g: FunctionHandle): FunctionHandle
+ghost function After(f: FunctionHandle, g: FunctionHandle): FunctionHandle
 lemma Definition_After<T>(f: FunctionHandle<T>, g: FunctionHandle<T>, arg: T)
   ensures Apply(After(f, g), arg) == Apply(f, Apply(g, arg));
 
-function Lmap(f: FunctionHandle, a: LList): LList
+ghost function Lmap(f: FunctionHandle, a: LList): LList
 {
   match a
   case Nil => Nil
   case Cons(x, xs) => Cons(Apply(f, x), Lmap(f, xs))
 }
 
-function Lappend(a: LList, b: LList): LList
+ghost function Lappend(a: LList, b: LList): LList
 {
   match a
   case Nil => b
@@ -59,7 +59,7 @@ greatest lemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
 // ---------- Section 8.4 ----------
 
 // Iterates(f, M) == [M, f M, f^2 M, ..., f^n M, ...]
-function Iterates<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
+ghost function Iterates<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
 {
   Cons(M, Iterates(f, Apply(f, M)))
 }
@@ -93,19 +93,19 @@ lemma CorollaryEq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
 // Paulson says "The bisimulation for this proof is unusually complex".
 
 // Let h be any function
-function h<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
+ghost function h<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
 // ... that satisfies the property in CorollaryEq24:
 lemma Definition_h<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   ensures h(f, M) == Cons(M, Lmap(f, h(f, M)));
 
 // Functions to support the proof:
 
-function Iter<A>(n: nat, f: FunctionHandle<A>, arg: A): A
+ghost function Iter<A>(n: nat, f: FunctionHandle<A>, arg: A): A
 {
   if n == 0 then arg else Apply(f, Iter(n-1, f, arg))
 }
 
-function LmapIter(n: nat, f: FunctionHandle, arg: LList): LList
+ghost function LmapIter(n: nat, f: FunctionHandle, arg: LList): LList
 {
   if n == 0 then arg else Lmap(f, LmapIter(n-1, f, arg))
 }

@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -26,9 +26,9 @@ method Main() {
   EnumerationRegression.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
-function method FourMore(x: int): int { x + 4 }
+predicate Thirteen(x: int) { x == 13 }
+predicate Even(y: int) { y % 2 == 1 }
+function FourMore(x: int): int { x + 4 }
 
 method AssignSuchThat() {
   var x, y;
@@ -327,7 +327,7 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
@@ -517,7 +517,7 @@ module ObjectTests {
     print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
   }
 
-  predicate method GenEqual<X(==)>(x: X, y: X) {
+  predicate GenEqual<X(==)>(x: X, y: X) {
     x == y
   }
 
@@ -536,7 +536,7 @@ module NewtypeRangeRegression {
   }
 }
 
-module {:options "/functionSyntax:4"} EnumerationRegression {
+module {:options "--function-syntax:4"} EnumerationRegression {
   method Test() {
     // The Java compiler once converted each candidate Long number to a 32-bit int, which meant
     // that none of them fell into the range mentioned by the set. Thus, it erroneously computed

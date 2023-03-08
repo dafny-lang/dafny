@@ -13,10 +13,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
     Contract.Invariant(Name != null);
   }
 
-  public static string IdProtect(string name) {
-    return DafnyOptions.O.Backend.PublicIdProtect(name);
-  }
-
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public Name NameNode;
@@ -104,17 +100,17 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
   protected string compileName;
-  public virtual string CompileName {
-    get {
-      if (compileName == null) {
-        IsExtern(out _, out compileName);
-        compileName ??= SanitizedName;
-      }
-      return compileName;
+
+  public virtual string GetCompileName(DafnyOptions options) {
+    if (compileName == null) {
+      IsExtern(options, out _, out compileName);
+      compileName ??= SanitizedName;
     }
+
+    return compileName;
   }
 
-  public bool IsExtern(out string/*?*/ qualification, out string/*?*/ name) {
+  public bool IsExtern(DafnyOptions options, out string/*?*/ qualification, out string/*?*/ name) {
     // ensures result==false ==> qualification == null && name == null
     Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
     // ensures result==true ==> qualification != null ==> name != null
@@ -122,7 +118,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
     qualification = null;
     name = null;
-    if (!DafnyOptions.O.DisallowExterns) {
+    if (!options.DisallowExterns) {
       var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
       if (externArgs != null) {
         if (externArgs.Count == 0) {
@@ -194,7 +190,7 @@ public class TypeParameter : TopLevelDecl {
     }
   }
 
-  public override string CompileName => SanitizedName; // Ignore :extern
+  public override string GetCompileName(DafnyOptions options) => SanitizedName;
 
   /// <summary>
   /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
@@ -864,20 +860,20 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   string compileName;
-  public string CompileName {
-    get {
-      if (compileName == null) {
-        var externArgs = DafnyOptions.O.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
-        if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-          compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
-        } else if (externArgs != null) {
-          compileName = Name;
-        } else {
-          compileName = SanitizedName;
-        }
+
+  public string GetCompileName(DafnyOptions options) {
+    if (compileName == null) {
+      var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+      if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+        compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+      } else if (externArgs != null) {
+        compileName = Name;
+      } else {
+        compileName = SanitizedName;
       }
-      return compileName;
     }
+
+    return compileName;
   }
 
   /// <summary>
@@ -1153,18 +1149,17 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
       return EnclosingModuleDefinition.Name + "." + Name;
     }
   }
-  public string FullCompileName {
-    get {
-      var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
-      if (!DafnyOptions.O.DisallowExterns && externArgs != null) {
-        if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
-          return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
-        }
-      }
 
-      return DafnyOptions.O.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
-        EnclosingModuleDefinition.CompileName, CompileName);
+  public string GetFullCompileName(DafnyOptions options) {
+    var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
+    if (!options.DisallowExterns && externArgs != null) {
+      if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
+        return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
+      }
     }
+
+    return options.Backend.GetCompileName(EnclosingModuleDefinition.IsDefaultModule,
+      EnclosingModuleDefinition.GetCompileName(options), GetCompileName(options));
   }
 
   public TopLevelDecl ViewAsClass {

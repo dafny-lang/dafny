@@ -54,25 +54,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// </summary>
     /// <param name="sourceWithHovers"></param>
     private async Task AssertHover(string sourceWithHovers) {
-      await WithNoopSolver(async () => {
-        sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
-        // Split the source from hovering tasks
-        var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
-        var source = hoverRegex.Replace(sourceWithHovers, "");
-        var hovers = hoverRegex.Matches(sourceWithHovers);
-        var documentItem = CreateTestDocument(source);
-        client.OpenDocument(documentItem);
-        var lineDelta = 0;
-        for (var i = 0; i < hovers.Count; i++) {
-          var hover = hovers[i];
-          var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
-          var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
-          var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
-          await AssertHoverContains(documentItem, (line, column), expectedContent);
-        }
+      await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+      sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
+      // Split the source from hovering tasks
+      var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
+      var source = hoverRegex.Replace(sourceWithHovers, "");
+      var hovers = hoverRegex.Matches(sourceWithHovers);
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var lineDelta = 0;
+      for (var i = 0; i < hovers.Count; i++) {
+        var hover = hovers[i];
+        var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
+        var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
+        var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
+        await AssertHoverContains(documentItem, (line, column), expectedContent);
+      }
 
-        Assert.IsTrue(hovers.Count > 0, "No hover expression detected.");
-      });
+      Assert.IsTrue(hovers.Count > 0, "No hover expression detected.");
     }
 
     [TestMethod]
@@ -113,7 +112,7 @@ method M2(dt: DT) {
   }
 }
 
-function method F(dt: DT): int {
+function F(dt: DT): int {
   match dt {
     case C => 0
     case A | B => var x := (y => y)(1); assert x == 1; 0
@@ -122,7 +121,7 @@ function method F(dt: DT): int {
                                  ^[```dafny\ny: int\n```]
   }
 }
-function method F2(dt: DT): int {
+function F2(dt: DT): int {
   match dt {
     case C => 0
     case _ => var x := (y => y)(1); assert x == 1; 0
@@ -394,7 +393,7 @@ method f(i: int) {
     [TestMethod]
     public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
       await AssertHover(@"
-predicate f(i: int) {
+ghost predicate f(i: int) {
   forall j :: j + i == i + j
          ^[```dafny\nj: int\n```]
               ^[```dafny\nj: int\n```]
@@ -419,7 +418,7 @@ predicate even(n: nat)
     [TestMethod]
     public async Task HoveringLetInReturnsInferredType() {
       await AssertHover(@"
-function method test(n: nat): nat {
+function test(n: nat): nat {
   var i := n * 2;
       ^[```dafny\ni: int\n```]
            ^[```dafny\nn: nat\n```]
@@ -456,7 +455,7 @@ function f(i: int): (r: int)
     public async Task HoverIngInferredVariable() {
       await AssertHover(@"
 datatype Pos = Pos(line: int)
-function method f(i: int): Pos {
+function f(i: int): Pos {
   if i <= 3 then Pos(i)
   else
    var r := f(i - 2);
