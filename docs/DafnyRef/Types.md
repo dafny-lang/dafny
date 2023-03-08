@@ -1824,6 +1824,10 @@ var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
 
+An additional point with respect to arithmetic overflow is that for (signed)
+`int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
+can also overflow the bounds of the `int32` type.
+
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a
 compiler for Dafny is free to specialize the run-time representation
