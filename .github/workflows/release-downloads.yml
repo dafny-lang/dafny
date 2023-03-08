@@ -11,8 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-
+  download:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -57,80 +56,8 @@ jobs:
         Expand-Archive dafny*.zip
         mv dafny*/dafny dafny
 
-    ## Create a simple smoke test program
-    - name: Make test program
-      run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
-    ## Check that dafny and z3 run and that a simple program verifies or fails
-    - name: Versions
-      run: |
-        dafny/z3/bin/z3-4.8.5 -version
-        dafny/z3/bin/z3-4.12.1 -version
-        dafny/dafny -version
-    - name: Check
-      run: dafny/dafny verify a.dfy
-    - name: Check bad - non Windows
-      if: runner.os != 'Windows'
-      run: dafny/dafny verify b.dfy || echo "EXPECTED FAILURE"
-    - name: Check bad - Windows
-      if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe verify b.dfy || echo "EXPECTED FAILURE") ; exit 0
-    ## Check that a simple program compiles and runs on each supported platform
-    - name: Check C# compile
-      run: |
-        dafny/dafny run -t:cs a.dfy > actual.txt
-        diff expect.txt actual.txt
-        dafny/dafny build -t:cs a.dfy
-        dotnet a.dll > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Go compile
-      run: |
-        dafny/dafny run -t:go a.dfy > actual.txt
-        diff expect.txt actual.txt
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        dafny/dafny build -t:go a.dfy
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        dafny/dafny build -t:go a.dfy
-        $Env:GO111MODULE="auto"
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Javascript compile
-      run: |
-        dafny/dafny run -t:js a.dfy > actual.txt
-        diff expect.txt actual.txt
-        dafny/dafny build -t:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java compile
-      run: |
-        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        dafny/dafny run -t:java a.dfy > actual.txt
-        diff expect.txt actual.txt
-        dafny/dafny build -t:java a.dfy
-        java -jar a.jar > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Python compile
-      run: |
-        dafny/dafny run -t:py a.dfy > actual.txt
-        diff expect.txt actual.txt
-        dafny/dafny build -t:py a.dfy
-        python a.py > actual.txt
-        diff expect.txt actual.txt
-    ## quicktests.sh is a script for users to use to check that their
-    ## installation is OK. We run it here to be sure it works, even if
-    ## it duplicates some of the above.
-    - name: run quicktests
-      run: |
-        npm install bignumber.js
-        dafny/quicktest.sh > log.txt
-        diff log.txt dafny/quicktest.out
+  check:
+    needs: build
+    uses: ./.github/workflows/reusable-smoke-test.yml
+    with:
+      os: ${{ matrix.os }}
