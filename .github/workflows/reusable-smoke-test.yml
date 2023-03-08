@@ -2,8 +2,12 @@ name: Smoke tests of release (reusable)
 
 on:
   workflow_call:
-
+    inputs:
+      os:
+        requires: true
+        type: string
 jobs:
+  runs-on: ${{ inputs.os }}
   smoke-test:
     steps:
     - name: Versions
