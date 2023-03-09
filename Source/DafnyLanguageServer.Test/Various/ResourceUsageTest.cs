@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
+[Collection("Sequential Collection")] // Because this a performance test, we can't run in in parallel with others
 public class ResourceUsageTest : ClientBasedLanguageServerTest {
 
   [Fact]
