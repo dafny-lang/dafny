@@ -132,6 +132,8 @@ const x := 1;
 }");
     }
 
+    private static readonly Regex NewlineRegex = new Regex("\r?\n");
+    
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
@@ -162,7 +164,7 @@ const x := 1;
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.IsNotNull(textDocumentEdit);
               var edit = textDocumentEdit.Edits.Single();
-              Assert.AreEqual(expectedNewText, edit.NewText);
+              Assert.AreEqual(expectedNewText, NewlineRegex.Replace(edit.NewText, "\n"));
               Assert.AreEqual(expectedRange, edit.Range);
             }
           }
