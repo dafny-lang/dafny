@@ -1,6 +1,5 @@
 // Note that  ExternHelloLibrary.dll was produced from this file using
-// csc /t:library ExternHelloLibrary.cs
-
+// csc /t:library ExternHelloLibrary.c
 using System;
 
 namespace ExternHelloLibrary {

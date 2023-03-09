@@ -1965,7 +1965,7 @@ namespace Microsoft.Dafny.Compilers {
       var iterVar = idGenerator.FreshId("_iter");
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
-      var wBody = wr.NewBlock(");;");
+      var wBody = wr.NewBlock(");");
       wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
       return wBody;
@@ -2028,7 +2028,7 @@ namespace Microsoft.Dafny.Compilers {
       var iterVar = idGenerator.FreshId("_iter");
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
-      var wBody = wr.NewBlock(");;");
+      var wBody = wr.NewBlock(");");
       wBody.WriteLine("{0}, {1} := {2}()", boundVarName, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
       return wBody;

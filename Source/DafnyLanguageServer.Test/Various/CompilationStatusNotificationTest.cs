@@ -1,31 +1,31 @@
 ﻿using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.Extensions.DependencyInjection;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
-  [TestClass]
-  public class CompilationStatusNotificationTest : DafnyLanguageServerTestBase {
+  public class CompilationStatusNotificationTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private const int MaxTestExecutionTimeMs = 10000;
 
     private ILanguageClient client;
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
 
-    [TestInitialize]
-    public Task SetUp() => SetUp(null);
+    public Task InitializeAsync() {
+      return SetUp(null);
+    }
 
-    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
+    }
+
+    protected async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       client = await InitializeClient(options => {
         options
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }, modifyOptions);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithParserErrorsSendsParsingFailedStatus() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -54,7 +54,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(otherDoc, CompilationStatus.ParsingFailed);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithResolverErrorsSendsResolutionFailedStatus() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -75,7 +75,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(otherDoc, CompilationStatus.ResolutionFailed);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithoutErrorsSendsCompilationSucceededVerificationStartedAndVerificationSucceededStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -94,15 +94,15 @@ method Abs(x: int) returns (y: int)
     }
     private async Task AssertProgress(TextDocumentItem documentItem, CompilationStatus expectedStatus, [CanBeNull] string expectedMessage = null) {
       var lastResult = await notificationReceiver.AwaitNextNotificationAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, lastResult.Uri);
-      Assert.AreEqual(documentItem.Version, lastResult.Version);
-      Assert.AreEqual(expectedStatus, lastResult.Status);
+      Assert.Equal(documentItem.Uri, lastResult.Uri);
+      Assert.Equal(documentItem.Version, lastResult.Version);
+      Assert.Equal(expectedStatus, lastResult.Status);
       if (expectedMessage != null) {
-        Assert.AreEqual(expectedMessage, lastResult.Message);
+        Assert.Equal(expectedMessage, lastResult.Message);
       }
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyVerifierErrorsSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -117,7 +117,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyCodedVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       var documentItem = CreateTestDocument(SlowToVerify);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -125,7 +125,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentWithOnlyConfiguredVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
       await SetUp(options => options.Set(BoogieOptionBag.VerificationTimeLimit, 3U));
       var documentItem = CreateTestDocument(SlowToVerify);
@@ -134,7 +134,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem, CompilationStatus.CompilationSucceeded);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentLoadWithOnSaveVerificationDoesNotSendVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -158,7 +158,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DocumentLoadAndSaveWithNeverVerifySendsNoVerificationStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -183,7 +183,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem2, CompilationStatus.CompilationSucceeded);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MultisetShouldNotCrashParser() {
       var source = @"
     lemma Something(i: int)

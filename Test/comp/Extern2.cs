@@ -20,8 +20,7 @@ namespace Library {
     }
   }
 
-  // must be partial, since Dafny will also generate some methods into this class
-  public partial class Mixed {
+  // must be partial, since Dafny will also generate some methods into this clas  public partial class Mixed {
     public static void P() {
       System.Console.WriteLine("Mixed.P");
     }
@@ -36,8 +35,7 @@ namespace Library {
     }
   }
   // It's okay for the following class to not be partial, since Dafny won't be adding
-  // any members to it. In fact, this test is to make sure that Dafny does not
-  // generate this class at all.
+  // any members to it. In fact, this test is to make sure that Dafny does no  // generate this class at all.
   public class AllExtern {
     public static void P() {
       System.Console.WriteLine("AllExtern.P");

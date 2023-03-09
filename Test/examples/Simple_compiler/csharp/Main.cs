@@ -1,8 +1,6 @@
 using Antlr4.Runtime;
 
-// This is the C# frontend of a compiler for a simple arithmetic language.  The
-// backend is written in Dafny, except for the final IO stage (printing programs
-// to stdout).
+// This is the C# frontend of a compiler for a simple arithmetic language.  Th// backend is written in Dafny, except for the final IO stage (printing program// to stdout).
 
 namespace SimpleCompiler {
 
@@ -10,8 +8,7 @@ namespace SimpleCompiler {
   // our programs (see the Dafny side for more info on the language):
 
   namespace CSharpAST {
-    public class AST { } // ANTLR root
-
+    public class AST { } // ANTLR roo
     public class Expr : AST { }
 
     public class Const : Expr {
