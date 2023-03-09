@@ -16,6 +16,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     private const int ColumnOffset = -1;
 
+    public static Range ToLspRange(this DafnyRange range) {
+      return new Range(
+        range.Start.GetLspPosition(),
+        range.ExclusiveEnd.GetLspPosition());
+    }
+
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
@@ -23,13 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
     public static Range ToLspRange(this RangeToken range) {
-      var start = GetLspPosition(range.StartToken);
-      return new Range(
-        start,
-        range.EndToken == null
-          ? start
-          : ToLspPosition(range.EndToken.line, range.EndToken.col + range.EndToken.val.Length)
-      );
+      return range.ToDafnyRange().ToLspRange();
     }
 
     /// <summary>
@@ -45,6 +45,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
+    }
+
+    public static Position GetLspPosition(this DafnyPosition position) {
+      return new Position(position.Line, position.Column);
     }
 
     /// <summary>
