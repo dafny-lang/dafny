@@ -1628,8 +1628,7 @@ Legacy options:
 
 * `-noIncludes` - ignore `include` directives in the program.
 
-* `-noExterns` - ignore `extern` and `dllimport` attributes in the
-  program.
+* `-noExterns` - ignore `extern` attributes in the program.
 
 <a id="sec-function-syntax"/>
 
