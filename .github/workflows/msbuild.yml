@@ -116,9 +116,8 @@ jobs:
 
       - name: Merge reports
         run: |
-          mkdir coverage-cobertura
           # Convert the coverage data from the language server to Cobertura format
-          dotnet coverage merge DafnyLanguageServer.Test.coverage -o coverage-cobertura/LSP-Cobertura.xml -f cobertura
+          dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.Cobertura.xml -f cobertura
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \
@@ -131,9 +130,15 @@ jobs:
             -reporttypes:HTML -targetdir:coverage-html
           # Generate HTML from LSP report, including only LSP stuff
           reportgenerator \
-            -reports:"coverage-cobertura/LSP-Cobertura.xml" \
-            -assemblyfilters:"+dafnylanguageserver.dll" \
+            -reports:"DafnyLanguageServer.Test.Cobertura.xml" \
+            -assemblyfilters:"+dafnylanguageserver" \
             -reporttypes:HTML -targetdir:lsp-html
+          # Generate new Cobertura from LSP report, including only LSP stuff
+          reportgenerator \
+            -reports:"DafnyLanguageServer.Test.Cobertura.xml" \
+            -assemblyfilters:"+dafnylanguageserver" \
+            -reporttypes:Cobertura -targetdir:.
+          mv Cobertura.xml coverage-cobertura/LSP-Cobertura.xml
 
       - name: Code coverage report (non-LSP)
         uses: irongut/CodeCoverageSummary@v1.3.0
