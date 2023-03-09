@@ -133,7 +133,7 @@ const x := 1;
     }
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
-    
+
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
