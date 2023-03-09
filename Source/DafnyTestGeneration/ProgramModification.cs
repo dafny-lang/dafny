@@ -24,7 +24,7 @@ namespace DafnyTestGeneration {
 
     public IEnumerable<ProgramModification> Values => idToModification.Values;
   }
-  
+
   /// <summary>
   /// Records a modification of the boogie program under test. The modified
   /// program has an assertion that should fail provided a certain block is
@@ -190,7 +190,7 @@ namespace DafnyTestGeneration {
       return null;
     }
 
-    private bool BlocksAreCovered(Modifications cache, Implementation implementation, 
+    private bool BlocksAreCovered(Modifications cache, Implementation implementation,
       HashSet<int> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(cache, implementation).Where(modification =>
         modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
@@ -202,7 +202,7 @@ namespace DafnyTestGeneration {
       cache.Values.Where(modification =>
         modification.implementation == implementation ||
         Options.TestGenOptions.TargetMethod != null);
-    
+
     public bool IsCovered(Modifications cache) => BlocksAreCovered(cache, implementation, coversBlocks);
   }
 }
