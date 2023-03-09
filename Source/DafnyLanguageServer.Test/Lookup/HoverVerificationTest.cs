@@ -477,7 +477,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
             helper += $"\nThe result string did not contain '{chunk}'";
           }
         }
-        Assert.Fail( $"{value} did not match {regexExpected}." + helper);
+        Assert.Fail($"{value} did not match {regexExpected}." + helper);
       }
     }
 

@@ -8,8 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 public class DafnyLangSymbolResolverTest {
   private DafnyLangSymbolResolver dafnyLangSymbolResolver;
 
-  public DafnyLangSymbolResolverTest()
-  {
+  public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
       loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>()

@@ -28,8 +28,7 @@ public class GhostStateDiagnosticCollectorTest {
     }
   }
 
-  public GhostStateDiagnosticCollectorTest()
-  {
+  public GhostStateDiagnosticCollectorTest() {
     var options = new DafnyOptions();
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(

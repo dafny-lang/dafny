@@ -15,8 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private DafnyLangParser parser;
     private LastDebugLogger lastDebugLogger;
 
-    public ParserExceptionTest()
-    {
+    public ParserExceptionTest() {
       lastDebugLogger = new LastDebugLogger();
       parser = DafnyLangParser.Create(DafnyOptions.Create(), lastDebugLogger);
     }

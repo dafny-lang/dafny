@@ -20,8 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<ILoggerFactory> logger;
     private Mock<INotificationPublisher> diagnosticPublisher;
 
-    public TextDocumentLoaderTest()
-    {
+    public TextDocumentLoaderTest() {
       parser = new();
       symbolResolver = new();
       symbolTableFactory = new();
