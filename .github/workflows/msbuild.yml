@@ -115,12 +115,19 @@ jobs:
 
       - name: Merge reports
         run: |
+          # Convert the coverage data from the language server to Cobertura format
           dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.cobertura.xml -f cobertura
+          # Filter out anything except language server coverage from that report
           reportgenerator \
-            -reports:"./**/coverage.cobertura.xml;*.cobertura.xml" \
+            -reports:DafnyLanguageServer.Test.cobertura.xml \
+            -assemblyfilters:"+dafnylanguageserver.dll" \
+            -reporttypes:Cobertura -targetdir:.
+          # Generate a combined report, including xUnit results
+          reportgenerator \
+            -reports:"./**/coverage.cobertura.xml;Cobertura.xml" \
             -filefilters:"+*/Source/DafnyCore/*;+*/Source/DafnyDriver/*;+*/Source/DafnyLanguageServer/*;+*/Source/DafnyRuntime/*;+*/Source/DafnyTestGeneration/*" \
-            -assemblyfilters:"-dafnycore" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
+          # Render it all as HTML
           reportgenerator -reports:"./coverage-cobertura/Cobertura.xml" -reporttypes:Html -targetdir:coverage-html
 
       - name: Code coverage report
