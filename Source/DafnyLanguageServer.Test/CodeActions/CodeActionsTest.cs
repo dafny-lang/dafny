@@ -125,6 +125,13 @@ const x := 1;
   <)}");
     }
 
+    [TestMethod]
+    public async Task RemoveAbstractFromClass() {
+      await TestCodeAction(@"
+(>remove 'abstract'->:::abstract <)class Foo {
+}");
+    }
+
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
