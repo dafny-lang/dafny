@@ -59,7 +59,7 @@ Modules and the declarations within them are already always static.
 
     ErrorDetail.Add(ErrorID.p_deprecated_attribute,
     @"
-The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
+This attribute is obsolete and unmaintained. It will be removed from dafny in the future.
 ");
 
     Add(ErrorID.p_literal_string_required,
