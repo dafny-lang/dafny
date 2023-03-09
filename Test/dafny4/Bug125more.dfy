@@ -4,11 +4,11 @@
 // See comments in Bug125.dfy
 
 module LibA {
-  function g(): int { 0 }
+  ghost function g(): int { 0 }
 }
 
 module LibB {
-  function g(): int { 1 }
+  ghost function g(): int { 1 }
 }
 
 module R {
@@ -22,7 +22,7 @@ module S0 refines R {
   // this is no longer possible due to too many potential clashes and generally
   // weird behaviour
 
-  function g(): int { 2 }
+  ghost function g(): int { 2 }
   method m() {
     assert g() == 2;
   }
@@ -40,7 +40,7 @@ module S1 refines R {
   // this is no longer possible due to too many potential clashes and generally
   // weird behaviour
 
-  function g(): int { 3 }
+  ghost function g(): int { 3 }
 
   method m() {
     assert g() == 3;
@@ -50,7 +50,7 @@ module S1 refines R {
 */
 module V {
   import opened LibA
-  function g(): int { 4 }
+  ghost function g(): int { 4 }
 }
 
 module W refines V {

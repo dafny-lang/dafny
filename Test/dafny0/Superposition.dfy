@@ -17,13 +17,13 @@ module M0 {
       r := 8;
     }
 
-    predicate Q(x: int)
+    ghost predicate Q(x: int)
       ensures Q(x) ==> x < 60;  // error: postcondition violation
     {
       true
     }
 
-    predicate R(x: int)
+    ghost predicate R(x: int)
       ensures R(x) ==> x < 60;  // error: postcondition violation
     {
       true
@@ -40,7 +40,7 @@ module M1 refines M0 {
       else {}
     }
 
-    predicate Q...  // we don't want another error about Q's body here (because it should not be re-checked here)
+    ghost predicate Q...  // we don't want another error about Q's body here (because it should not be re-checked here)
     // Ditto for R
   }
 }

@@ -27,14 +27,15 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(List<string> loggerConfigs) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options) {
+      var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
 
       var events = new LocalTestLoggerEvents();
-      var verificationResults = (DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+      var verificationResults = (options.Printer as DafnyConsolePrinter).VerificationResults.ToList();
       foreach (var loggerConfig in loggerConfigs) {
         string loggerName;
         int semiColonIndex = loggerConfig.IndexOf(";");

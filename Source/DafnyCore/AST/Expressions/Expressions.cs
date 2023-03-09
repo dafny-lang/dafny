@@ -90,7 +90,7 @@ public abstract class Expression : TokenNode {
 
   public override string ToString() {
     try {
-      return Printer.ExprToString(this);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print expr because: {e.Message}";
     }
@@ -1172,7 +1172,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
   }
   public class ResolverType_Module : ResolverType {
     [System.Diagnostics.Contracts.Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
     }
@@ -1182,7 +1182,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
   }
   public class ResolverType_Type : ResolverType {
     [System.Diagnostics.Contracts.Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
     }

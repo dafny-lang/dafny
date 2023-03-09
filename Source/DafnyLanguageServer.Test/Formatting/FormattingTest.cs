@@ -15,8 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Formatting;
 public class FormattingTest : ClientBasedLanguageServerTest {
   [TestInitialize]
   public override async Task SetUp() {
-    DafnyOptions.Install(DafnyOptions.Create("-proverOpt:SOLVER=noop"));
-    await base.SetUp();
+    await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
 
   [TestMethod]

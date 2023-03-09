@@ -1,11 +1,11 @@
 // AmbiguousGhost.dfy
 
-function method F(x: int): ()
+function F(x: int): ()
 {
   ()
 }
 
-function method a<T, U>(x: int): int
+function a<T, U>(x: int): int
 {
   x
 }

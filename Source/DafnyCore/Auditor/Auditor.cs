@@ -73,9 +73,9 @@ public class Auditor : IRewriter {
   /// the reporter to use to emit errors and warnings
   /// </param>
   public Auditor(ErrorReporter reporter) : base(reporter) {
-    reportFileName = DafnyOptions.O.Get(ReportFileOption);
-    compareReport = DafnyOptions.O.Get(CompareReportOption);
-    var format = DafnyOptions.O.Get(ReportFormatOption);
+    reportFileName = reporter.Options.Get(ReportFileOption);
+    compareReport = reporter.Options.Get(CompareReportOption);
+    var format = reporter.Options.Get(ReportFormatOption);
     if (format is null) {
       if (reportFileName is null) {
         return;

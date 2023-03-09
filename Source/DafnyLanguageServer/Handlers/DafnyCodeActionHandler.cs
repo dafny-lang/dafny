@@ -18,10 +18,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyCodeActionHandler : CodeActionHandlerBase {
+  private readonly DafnyOptions options;
   private readonly ILogger<DafnyCodeActionHandler> logger;
   private readonly IDocumentDatabase documents;
 
-  public DafnyCodeActionHandler(ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+  public DafnyCodeActionHandler(DafnyOptions options, ILogger<DafnyCodeActionHandler> logger, IDocumentDatabase documents) {
+    this.options = options;
     this.logger = logger;
     this.documents = documents;
   }
@@ -86,7 +88,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     , new ErrorMessageDafnyCodeActionProvider()
     }
     .Concat(
-      DafnyOptions.O.Plugins.SelectMany(plugin =>
+      options.Plugins.SelectMany(plugin =>
         plugin is ConfiguredPlugin { Configuration: PluginConfiguration configuration } ?
             configuration.GetDafnyCodeActionProviders() : new DafnyCodeActionProvider[] { })).ToArray();
   }

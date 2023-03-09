@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return visitor.Visit(this);
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return "";
     }
   }

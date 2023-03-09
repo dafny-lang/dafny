@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 CoPrefix.dfy(164,2): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(163,14): Related location: This is the postcondition that might not hold.
 CoPrefix.dfy(169,2): Error: A postcondition might not hold on this return path.

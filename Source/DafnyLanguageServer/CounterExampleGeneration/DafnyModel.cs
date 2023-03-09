@@ -23,7 +23,7 @@ namespace DafnyServer.CounterexampleGeneration {
   /// methods are: GetDafnyType, CanonicalName, and GetExpansion
   /// </summary>
   public class DafnyModel {
-
+    private DafnyOptions options;
     public readonly Model Model;
     public readonly List<DafnyModelState> States = new();
     public static readonly UserDefinedType UnknownType =
@@ -54,8 +54,9 @@ namespace DafnyServer.CounterexampleGeneration {
     private static readonly Regex UnderscoreRemovalRegex = new("__");
 
 
-    public DafnyModel(Model model) {
+    public DafnyModel(Model model, DafnyOptions options) {
       Model = model;
+      this.options = options;
       fSetSelect = MergeMapSelectFunctions(2);
       fSeqLength = model.MkFunc("Seq#Length", 1);
       fSeqBuild = model.MkFunc("Seq#Build", 2);
@@ -108,14 +109,14 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <summary>
     /// Extract and parse the first Dafny model recorded in the model view file.
     /// </summary>
-    public static DafnyModel ExtractModel(string mv) {
+    public static DafnyModel ExtractModel(DafnyOptions options, string mv) {
       const string begin = "*** MODEL";
       const string end = "*** END_MODEL";
       int beginIndex = mv.IndexOf(begin, StringComparison.Ordinal);
       int endIndex = mv.IndexOf(end, StringComparison.Ordinal);
       var modelString = mv.Substring(beginIndex, endIndex + end.Length - beginIndex);
       var model = Model.ParseModels(new StringReader(modelString)).First();
-      return new DafnyModel(model);
+      return new DafnyModel(model, options);
     }
 
     /// <summary>
@@ -258,7 +259,7 @@ namespace DafnyServer.CounterexampleGeneration {
 
         int width = int.Parse(func.Name[6..]);
         if (!bitvectorTypes.ContainsKey(width)) {
-          bitvectorTypes[width] = new BitvectorType(width);
+          bitvectorTypes[width] = new BitvectorType(options, width);
         }
 
         var type = bitvectorTypes[width];
@@ -360,7 +361,7 @@ namespace DafnyServer.CounterexampleGeneration {
         case Model.ElementKind.Real:
           return Type.Real;
         case Model.ElementKind.BitVector:
-          return new BitvectorType(((Model.BitVector)element).Size);
+          return new BitvectorType(options, ((Model.BitVector)element).Size);
         case Model.ElementKind.Uninterpreted:
           return GetDafnyType(element as Model.Uninterpreted);
         case Model.ElementKind.DataValue:
@@ -490,7 +491,7 @@ namespace DafnyServer.CounterexampleGeneration {
         case null:
           return UnknownType;
         case var bv when BvTypeRegex.IsMatch(bv):
-          return new BitvectorType(int.Parse(bv[2..^4]));
+          return new BitvectorType(options, int.Parse(bv[2..^4]));
         case "BoxType":
           var unboxedTypes = fIsBox.AppsWithArg(0, element)
             .Where(tuple => ((Model.Boolean)tuple.Result).Value)
@@ -532,7 +533,7 @@ namespace DafnyServer.CounterexampleGeneration {
           return Type.Char;
       }
       if (fBv.AppWithResult(typeElement) != null) {
-        return new BitvectorType(((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
+        return new BitvectorType(options, ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
       }
 
       Type fallBackType = UnknownType; // to be returned in the event all else fails
@@ -602,7 +603,7 @@ namespace DafnyServer.CounterexampleGeneration {
         var funcName = "U_2_" + typeName[..^4];
         int width = int.Parse(typeName[2..^4]);
         if (!bitvectorTypes.ContainsKey(width)) {
-          bitvectorTypes[width] = new BitvectorType(width);
+          bitvectorTypes[width] = new BitvectorType(options, width);
           reservedNumerals[bitvectorTypes[width]] = new HashSet<int>();
         }
         if (!Model.HasFunc(funcName)) {

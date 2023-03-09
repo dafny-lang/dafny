@@ -31,10 +31,10 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// Possibly migrates previous diagnostics
   /// </summary>
   public void RecomputeVerificationTree() {
-    UpdateTree(document, document.VerificationTree);
+    UpdateTree(options, document, document.VerificationTree);
   }
 
-  public static void UpdateTree(DocumentAfterParsing parsedDocument, VerificationTree rootVerificationTree) {
+  public static void UpdateTree(DafnyOptions options, DocumentAfterParsing parsedDocument, VerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
     List<VerificationTree> result = new List<VerificationTree>();
@@ -73,7 +73,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "datatype",
                 ctor.Name,
-                ctor.CompileName,
+                ctor.GetCompileName(options),
                 ctor.tok.Filename,
                 verificationTreeRange,
                 ctor.tok.GetLspPosition());
@@ -99,7 +99,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 "constant",
                 member.Name,
-                member.CompileName,
+                member.GetCompileName(options),
                 member.tok.Filename,
                 verificationTreeRange,
                 member.tok.GetLspPosition());
@@ -109,7 +109,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
               var verificationTree = new TopLevelDeclMemberVerificationTree(
                 (member is Method ? "method" : "function"),
                 member.Name,
-                member.CompileName,
+                member.GetCompileName(options),
                 member.tok.Filename,
                 verificationTreeRange,
                 member.tok.GetLspPosition());
@@ -119,7 +119,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,
-                  member.CompileName + "_by_method",
+                  member.GetCompileName(options) + "_by_method",
                   member.tok.Filename,
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition());
@@ -138,7 +138,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           var verificationTree = new TopLevelDeclMemberVerificationTree(
             $"subset type",
             subsetTypeDecl.Name,
-            subsetTypeDecl.CompileName,
+            subsetTypeDecl.GetCompileName(options),
             subsetTypeDecl.tok.Filename,
             verificationTreeRange,
             subsetTypeDecl.tok.GetLspPosition());

@@ -76,7 +76,8 @@ namespace Microsoft.Dafny.Triggers {
       foreach (var q in quantifiers) {
         var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
         // filter out the candidates that was "second-class"
-        var filtered = TriggerUtils.Filter(candidates, tr => tr, (tr, _) => !tr.IsTranslatedToFunctionCall(), (tr, _) => { }).ToList();
+        var filtered = TriggerUtils.Filter(candidates, tr => tr,
+          (tr, _) => !triggersCollector.TranslateToFunctionCall(tr.Expr), (tr, _) => { }).ToList();
         // if there are only "second-class" candidates, add them back.
         if (filtered.Count == 0) {
           filtered = candidates;
@@ -145,12 +146,12 @@ namespace Microsoft.Dafny.Triggers {
 
         var safe = TriggerUtils.Filter(
           q.Candidates,
-          candidate => candidate.LoopingSubterms(q.quantifier).ToList(),
+          candidate => candidate.LoopingSubterms(q.quantifier, reporter.Options).ToList(),
           (candidate, loopingSubterms) => !loopingSubterms.Any(),
           (candidate, loopingSubterms) => {
             looping.Add(candidate);
             loopingMatches = loopingSubterms.ToList();
-            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(t.OriginalExpr) + "\"", ", ");
+            candidate.Annotation = "may loop with " + loopingSubterms.MapConcat(t => "\"" + Printer.ExprToString(reporter.Options, t.OriginalExpr) + "\"", ", ");
           }).ToList();
 
         q.CouldSuppressLoops = safe.Count > 0;
@@ -175,7 +176,7 @@ namespace Microsoft.Dafny.Triggers {
         bool rewritten = false;
         foreach (var q in quantifiers) {
           if (TriggerUtils.NeedsAutoTriggers(q.quantifier) && TriggerUtils.WantsMatchingLoopRewrite(q.quantifier)) {
-            var matchingLoopRewriter = new MatchingLoopRewriter();
+            var matchingLoopRewriter = new MatchingLoopRewriter(reporter.Options);
             var qq = matchingLoopRewriter.RewriteMatchingLoops(q);
             splits.Add(qq);
             l.Add(new QuantifierWithTriggers(qq));
@@ -282,7 +283,7 @@ namespace Microsoft.Dafny.Triggers {
       return expr;
     }
 
-    private void CommitOne(QuantifierWithTriggers q, bool addHeader) {
+    private void CommitOne(DafnyOptions options, QuantifierWithTriggers q, bool addHeader) {
       var errorLevel = ErrorLevel.Info;
       var msg = new StringBuilder();
       var indent = addHeader ? "  " : "";
@@ -302,10 +303,10 @@ namespace Microsoft.Dafny.Triggers {
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
-        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
+        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(options, q.quantifier.Term), extraMsg).AppendLine();
       } else {
         if (addHeader) {
-          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();
+          msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(options, q.quantifier.Term)).AppendLine();
         }
 
         foreach (var candidate in q.Candidates) {
@@ -316,7 +317,7 @@ namespace Microsoft.Dafny.Triggers {
         AddTriggersToMessage("Rejected triggers:", q.RejectedCandidates, msg, indent, true);
 
 #if QUANTIFIER_WARNINGS
-        var WARN_TAG = DafnyOptions.O.UnicodeOutput ? "⚠ " : @"/!\ ";
+        var WARN_TAG = options.UnicodeOutput ? "⚠ " : @"/!\ ";
         var WARN_TAG_OVERRIDE = suppressWarnings ? "(Suppressed warning) " : WARN_TAG;
         var WARN_LEVEL = suppressWarnings ? ErrorLevel.Info : ErrorLevel.Warning;
         var WARN = indent + WARN_TAG_OVERRIDE;
@@ -359,9 +360,9 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal void CommitTriggers() {
+    internal void CommitTriggers(DafnyOptions options) {
       foreach (var q in quantifiers) {
-        CommitOne(q, quantifiers.Count > 1);
+        CommitOne(options, q, quantifiers.Count > 1);
       }
     }
   }

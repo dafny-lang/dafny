@@ -26,6 +26,9 @@ public class DafnyLangSymbolResolverTest {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
       return this.AllMessages;
     }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
+    }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {

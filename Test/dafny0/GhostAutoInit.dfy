@@ -285,7 +285,7 @@ module EmptyTypeNotDeclaredAsSuch {
 module EmptyType {
   type Empty = x: int | false witness *
 
-  function F(x: Empty): nat {
+  ghost function F(x: Empty): nat {
     -3  // no problem, since the function can't ever be called
   }
 

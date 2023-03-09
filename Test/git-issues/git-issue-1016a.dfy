@@ -2,15 +2,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<T> = Some(value: T) | None {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     None?
   }
-  function method PropagateFailure<U>(): Option<U>
+  function PropagateFailure<U>(): Option<U>
     requires None?
   {
     None
   }
-  function method Extract(): T
+  function Extract(): T
     requires Some?
   {
     value
@@ -20,7 +20,7 @@ datatype Option<T> = Some(value: T) | None {
 type State(==)
 
 
-function method Gimmie(): Option<int>
+function Gimmie(): Option<int>
 
 
 method Test5(s: State)
