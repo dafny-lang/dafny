@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionTest : ClientBasedLanguageServerTest {
@@ -156,9 +157,9 @@ const x := 1;
 
       initialCode += source.Substring(lastPosition);
 
-      Assert.NotNull(expectedDafnyCodeActionCode); //, "Could not find an expected quick fix code"); TODO ?
-      Assert.NotNull(expectedDafnyCodeActionTitle); //, "Could not find an expected quick fix title");
-      Assert.NotNull(expectedDafnyCodeActionRange); //, "Could not find an expected quick fix range");
+      AssertM.NotNull(expectedDafnyCodeActionCode, "Could not find an expected quick fix code");
+      AssertM.NotNull(expectedDafnyCodeActionTitle, "Could not find an expected quick fix title");
+      AssertM.NotNull(expectedDafnyCodeActionRange, "Could not find an expected quick fix range");
 
       await TestIfCodeAction(initialCode, requestPosition, expectedDafnyCodeActionTitle, expectedDafnyCodeActionCode,
         expectedDafnyCodeActionRange);

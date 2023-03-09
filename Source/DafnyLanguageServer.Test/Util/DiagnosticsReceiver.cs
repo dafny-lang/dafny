@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
-using Assert = XunitAssertMessages.AssertM;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
@@ -13,7 +13,7 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     TextDocumentItem textDocumentItem = null) {
     var result = await AwaitNextNotificationAsync(cancellationToken);
     if (textDocumentItem != null) {
-      Assert.Equal(textDocumentItem.Version, result.Version,
+      AssertM.Equal(textDocumentItem.Version, result.Version,
         $"result diagnostics were: [{string.Join(", ", result.Diagnostics)}]");
       Assert.Equal(textDocumentItem.Uri, result.Uri);
     }

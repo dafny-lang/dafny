@@ -2,7 +2,7 @@
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Xunit;
-using Assert = XunitAssertMessages.AssertM;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
@@ -26,6 +26,6 @@ public class AssertWithDiff {
       message.AppendLine(line.Text);
     }
 
-    Assert.Equal(expected, actual, message.ToString());
+    AssertM.Equal(expected, actual, message.ToString());
   }
 }

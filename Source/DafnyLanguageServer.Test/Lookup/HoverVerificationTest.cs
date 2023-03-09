@@ -11,6 +11,7 @@ using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class HoverVerificationTest : SynchronizationTestBase {
@@ -458,7 +459,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
         Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
         return;
       }
-      Assert.NotNull(hover);
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
       var markup = hover.Contents.MarkupContent;
       Assert.NotNull(markup);
       Assert.Equal(MarkupKind.Markdown, markup.Kind);

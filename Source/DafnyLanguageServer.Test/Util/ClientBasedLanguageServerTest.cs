@@ -13,8 +13,8 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
-using Assert = XunitAssertMessages.AssertM;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
 
@@ -126,7 +126,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var verificationDocumentItem = CreateTestDocument(@"class X {does not parse", $"verification{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
+    AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", resolutionReport.Diagnostics.Select(diagnostic =>
         diagnostic.ToString())));
@@ -148,14 +148,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var verificationDocumentItem = CreateTestDocument("class X {does not parse", $"AssertNoDiagnosticsAreComing{fileIndex++}.dfy");
     await client.OpenDocumentAndWaitAsync(verificationDocumentItem, CancellationToken.None);
     var resolutionReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
+    AssertM.Equal(verificationDocumentItem.Uri, resolutionReport.Uri,
       "1) Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", resolutionReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
     client.DidCloseTextDocument(new DidCloseTextDocumentParams {
       TextDocument = verificationDocumentItem
     });
     var hideReport = await diagnosticsReceiver.AwaitNextNotificationAsync(cancellationToken);
-    Assert.Equal(verificationDocumentItem.Uri, hideReport.Uri,
+    AssertM.Equal(verificationDocumentItem.Uri, hideReport.Uri,
       "2) Unexpected diagnostics were received whereas none were expected:\n" +
       string.Join(",", hideReport.Diagnostics.Select(diagnostic => diagnostic.ToString())));
   }

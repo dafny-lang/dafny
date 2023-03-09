@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
+using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
-using Assert = XunitAssertMessages.AssertM;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -26,7 +26,7 @@ public class PluginsTestWithVerification : PluginsTestBase {
     var verificationReport = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken.None);
     Assert.Equal(documentItem.Uri, resolutionReport.Uri);
     var diagnostics = verificationReport.Diagnostics.ToArray();
-    Assert.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
+    AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
     Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message, null);
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
     Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message, null);

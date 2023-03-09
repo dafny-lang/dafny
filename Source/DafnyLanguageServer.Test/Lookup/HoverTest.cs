@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class HoverTest : ClientBasedLanguageServerTest {
@@ -30,13 +31,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       );
     }
 
-    private async Task AssertHoverContains(TextDocumentItem documentItem, Position position, string expectedContent) {
-      var hover = await RequestHover(documentItem, position);
+    private async Task AssertHoverContains(TextDocumentItem documentItem, Position hoverPosition, string expectedContent) {
+      var hover = await RequestHover(documentItem, hoverPosition);
       if (expectedContent == "null") {
         Assert.Null(hover);
         return;
       }
-      Assert.NotNull(hover);
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
       var markup = hover.Contents.MarkupContent;
       Assert.NotNull(markup);
       Assert.Equal(MarkupKind.Markdown, markup.Kind);
@@ -140,7 +141,7 @@ function F2(dt: DT): int {
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
       Assert.False(verificationTask.IsCompleted);
-      Assert.Same(first, definitionTask);
+      AssertM.Same(first, definitionTask, first.ToString());
     }
 
     [Fact]

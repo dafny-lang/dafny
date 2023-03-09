@@ -20,7 +20,8 @@ namespace Library {
     }
   }
 
-  // must be partial, since Dafny will also generate some methods into this clas  public partial class Mixed {
+  // must be partial, since Dafny will also generate some methods into this class
+  public partial class Mixed {
     public static void P() {
       System.Console.WriteLine("Mixed.P");
     }
