@@ -11,6 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
+  [Collection("Sequential Collection")] // Sequential because we saw test failures after switching to parallel execution
   public class CompilationStatusNotificationTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private const int MaxTestExecutionTimeMs = 10000;
 
