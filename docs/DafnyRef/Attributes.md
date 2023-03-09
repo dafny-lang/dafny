@@ -641,30 +641,7 @@ attribute in Boogie.
 
 ### 11.5.1. `{:heapQuantifier}`
 
-_This attribute has been deprecated._
-
-The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
-When it appears in a quantifier expression, it is as if a new heap-valued
-quantifier variable was added to the quantification. Consider this code
-that is one of the invariants of a while loop.
-
-<!-- %no-check -->
-```dafny
-invariant forall u {:heapQuantifier} :: f(u) == u + r
-```
-
-The quantifier is translated into the following Boogie:
-
-```boogie
-(forall q$heap#8: Heap, u#5: int ::
-    {:heapQuantifier}
-    $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
-       ==> $Unbox(Apply1(TInt, TInt, f#0, q$heap#8, $Box(u#5))): int == u#5 + r#0);
-```
-
-What this is saying is that the quantified expression, `f(u) == u + r`,
-which may depend on the heap, is also valid for any good heap that is either the
-same as the current heap, or that is derived from it by heap update operations.
+_This attribute has been removed._
 
 ### 11.5.2. `{:induction}` {#sec-induction-quantifier}
 See [`{:induction}`](#sec-induction) for functions and methods.
@@ -717,9 +694,10 @@ Here are ways one can prove `assert P(j + 4);`:
 
 ## 11.6. Deprecated attributes
 
-These attributes have been deprecated. They are no longer useful (or perhaps never were) or were experimental.
+These attributes have been deprecated or removed. They are no longer useful (or perhaps never were) or were experimental.
 They will likely be removed entirely sometime soon after the release of Dafny 4.
 
+Removed:
 - :heapQuantifier
 - :dllimport
 - :handle
