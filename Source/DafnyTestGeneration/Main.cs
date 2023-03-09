@@ -22,17 +22,18 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
-      ProgramModification.ResetStatistics();
-      var modifications = GetModifications(program).ToList();
+      
+      var cache = new Modifications();
+      var modifications = GetModifications(cache, program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
 
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
-        await modifications[i].GetCounterExampleLog();
+        await modifications[i].GetCounterExampleLog(cache);
         var deadStates = new HashSet<string>();
-        if (!modifications[i].IsCovered) {
+        if (!modifications[i].IsCovered(cache)) {
           deadStates = modifications[i].CapturedStates;
         }
 
@@ -67,7 +68,7 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
       var options = program.Options;
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
@@ -82,8 +83,8 @@ namespace DafnyTestGeneration {
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
         options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
-          ? new PathBasedModifier()
-          : new BlockBasedModifier();
+          ? new PathBasedModifier(cache)
+          : new BlockBasedModifier(cache);
       return programModifier.GetModifications(boogiePrograms, dafnyInfo);
     }
 
@@ -95,19 +96,19 @@ namespace DafnyTestGeneration {
 
       var options = program.Options;
       options.PrintMode = PrintModes.Everything;
-      ProgramModification.ResetStatistics();
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
-      var programModifications = GetModifications(program).ToList();
+      var cache = new Modifications();
+      var programModifications = GetModifications(cache, program).ToList();
       foreach (var modification in programModifications) {
 
-        var log = await modification.GetCounterExampleLog();
+        var log = await modification.GetCounterExampleLog(cache);
         if (log == null) {
           continue;
         }
-        var testMethod = await modification.GetTestMethod(dafnyInfo);
+        var testMethod = await modification.GetTestMethod(cache, dafnyInfo);
         if (testMethod == null) {
           continue;
         }

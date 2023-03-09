@@ -288,12 +288,12 @@ module Module {
       options.TestGenOptions.TargetMethod =
         "Module.ignoreNonNullableObject";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(1, methods.Count);
+      Assert.Single(methods);
       var m = methods[0];
       Assert.Equal("Module.ignoreNonNullableObject", m.MethodName);
       Assert.True(m.DafnyInfo.IsStatic("Module.ignoreNonNullableObject"));
       Assert.Equal(2, m.ArgValues.Count);
-      Assert.Equal(1, m.ValueCreation.Count);
+      Assert.Single(m.ValueCreation);
       Assert.Equal("Module.Value<char>", m.ValueCreation[0].type.ToString());
     }
 
@@ -315,7 +315,7 @@ module M {
       var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.True(stats.Contains("Code at (6,14) is potentially unreachable."));
+      Assert.Contains("Code at (6,14) is potentially unreachable.", stats);
       Assert.Equal(2, stats.Count); // second is line with stats
     }
 
@@ -334,7 +334,7 @@ method m(a:int) returns (b:int)
       var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.Equal(1, stats.Count); // the only line with stats
+      Assert.Single(stats); // the only line with stats
     }
 
     [Fact]
@@ -481,7 +481,7 @@ module M {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(1, methods.Count);
+      Assert.Single(methods);
       Assert.True(methods.All(m =>
         m.MethodName == "M.Instance.setI"));
       Assert.True(methods.All(m =>

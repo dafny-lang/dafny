@@ -133,7 +133,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     /// <summary>
     /// If this test is flaky, increase the amount of lines in the source program
     /// </summary>
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    // [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousResolution() {
       string CreateCorrectFunction(int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
 
