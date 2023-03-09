@@ -11,6 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   /// to ensure that the language server is capable to load. It helps to ensure
   /// that for example syntax nodes are correctly visited.
   /// </summary>
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class StabilityTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private const int MaxTestExecutionTimeMs = 60000;
 

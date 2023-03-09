@@ -14,6 +14,7 @@ using Xunit;
 using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class HoverVerificationTest : SynchronizationTestBase {
     private const int MaxTestExecutionTimeMs = 30000;
 

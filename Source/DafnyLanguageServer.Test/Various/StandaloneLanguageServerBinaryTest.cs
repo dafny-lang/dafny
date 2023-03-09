@@ -22,6 +22,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class StandaloneLanguageServerBinaryTest {
 
     [Fact]
