@@ -1419,8 +1419,9 @@ If the implicit declaration did not include the type characteristics, they would
 Note that although a type synonym can be declared and used in place of a type name, 
 that does not affect the names of datatype or class constructors.
 For example, consider
+<!-- %check-resolve Types.22.expect -->
 ```dafny
-datatype Pair<T> = Pair(first: T. second: T)
+datatype Pair<T> = Pair(first: T, second: T)
 type IntPair = Pair<int>
 
 const p: IntPair := Pair(1,2) // OK
