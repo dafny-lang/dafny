@@ -125,7 +125,7 @@ jobs:
           # Generate a combined report, including xUnit results
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml;Cobertura.xml" \
-            -filefilters:"+*/Source/DafnyCore/*;+*/Source/DafnyDriver/*;+*/Source/DafnyLanguageServer/*;+*/Source/DafnyRuntime/*;+*/Source/DafnyTestGeneration/*" \
+            -assemblyfilters:"-XUnitExtensions" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           # Render it all as HTML
           reportgenerator -reports:"./coverage-cobertura/Cobertura.xml" -reporttypes:Html -targetdir:coverage-html
