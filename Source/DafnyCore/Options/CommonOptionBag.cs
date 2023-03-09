@@ -171,7 +171,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
-        options.Printer = new DafnyJsonConsolePrinter { Options = options };
+        options.Printer = new DafnyJsonConsolePrinter(options);
         options.DiagnosticsFormat = DafnyOptions.DiagnosticsFormats.JSON;
       }
     });
