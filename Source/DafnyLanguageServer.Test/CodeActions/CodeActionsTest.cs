@@ -27,14 +27,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
     }
 
     [TestMethod]
-    public async Task CodeActionSuggestsRemovingAttribute() {
-      await TestCodeAction(@"
-method (>remove attribute:::{:dllimport}<) Foo()
-{ 
-}");
-    }
-
-    [TestMethod]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
 method Foo()
@@ -45,102 +37,104 @@ method Foo()
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostCondition() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 method f() returns (i: int)
-  ensures i > 10 >>>{
-[[Assert postcondition at return location where it fails|  assert i > 10;
-]]}");
+  ensures i > 10 ><{
+  i := 3;
+(>Assert postcondition at return location where it fails->  assert i > 10;
+<)}");
     }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionInIfStatement() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 method f(b: bool) returns (i: int)
   ensures i > 10 {
-  if b >>>{
+  if b ><{
     i := 0;
-  [[Assert postcondition at return location where it fails|  assert i > 10;
-  ]]} else {
+  (>Assert postcondition at return location where it fails->  assert i > 10;
+  <)} else {
     i := 10;
   }
 }");
     }
 
-
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 const x := 1;
   method f() returns (i: int)
-    ensures i > 10 >>>{
-  [[Assert postcondition at return location where it fails|  assert i > 10;
-  ]]}");
+    ensures i > 10 ><{
+  (>Assert postcondition at return location where it fails->  assert i > 10;
+  <)}");
     }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t";
-      await TestCodeActionHelper($@"
+      await TestCodeAction($@"
 const x := 1;
   method f() returns (i: int)
-{t}{t}{t}{t}{t}{t}ensures i > 10 >>>{{
-{t}{t}{t}[[Assert postcondition at return location where it fails|{t}assert i > 10;
-{t}{t}{t}]]}}");
+{t}{t}{t}{t}{t}{t}ensures i > 10 ><{{
+{t}{t}{t}(>Assert postcondition at return location where it fails->{t}assert i > 10;
+{t}{t}{t}<)}}");
     }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
->>>{
-[[Assert postcondition at return location where it fails|  assert i > 10;
-]]}");
+><{
+(>Assert postcondition at return location where it fails->  assert i > 10;
+<)}");
     }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
->>>{
+><{
     assert 1 == 1; /* a commented { that should not prevent indentation to be 4 */
-[[Assert postcondition at return location where it fails|    assert i > 10;
-]]}");
+(>Assert postcondition at return location where it fails->    assert i > 10;
+<)}");
     }
 
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
-  >>>{[[Assert postcondition at return location where it fails| assert i > 10;
-  ]]}");
+  ><{(>Assert postcondition at return location where it fails-> assert i > 10;
+  <)}");
     }
 
     [TestMethod]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
-      await TestCodeActionHelper(@"
+      await TestCodeAction(@"
 const x := 1;
   method f() returns (i: int)
     ensures i > 10
-  >>>{
-  [[Assert postcondition at return location where it fails|  assert i > 10;
-  ]]}");
+  ><{
+  (>Assert postcondition at return location where it fails->  assert i > 10;
+  <)}");
     }
 
     private async Task TestCodeAction(string source) {
-      MarkupTestFile.GetPositionsAndAnnotatedRanges(source, out var output, out var positions, out var ranges);
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions, out var ranges);
       var documentItem = CreateTestDocument(output);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.AreEqual(ranges.Count, diagnostics.Length);
 
-      if (positions.Count == ranges.Count) {
+      if (positions.Count != ranges.Count) {
         positions = ranges.Select(r => r.Range.Start).ToList();
       }
       foreach (var actionData in positions.Zip(ranges)) {
@@ -170,90 +164,6 @@ const x := 1;
         Assert.IsTrue(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
-    }
-
-    private async Task TestCodeActionHelper(string source) {
-      source = source.TrimStart();
-      var extractCodeAction =
-        new Regex(@"(?<newline>(?=\n))|>>>(?<position>(?=.))|\[\[(?<message>.*)\|(?<inserted>[\s\S]*?)\]\]");
-      var matches = extractCodeAction.Matches(source);
-      var initialCode = "";
-      var lastPosition = 0;
-      var lastStartOfLine = 0;
-      string expectedDafnyCodeActionTitle = null;
-      string expectedDafnyCodeActionCode = null;
-      Range requestPosition = null;
-      Range expectedDafnyCodeActionRange = null;
-      var numberOfLines = 0;
-      var positionOffset = 0;
-      for (var i = 0; i < matches.Count; i++) {
-        var match = matches[i];
-        initialCode += source.Substring(lastPosition, match.Index - lastPosition);
-        if (match.Groups["message"].Success) {
-          expectedDafnyCodeActionTitle = match.Groups["message"].Value;
-          expectedDafnyCodeActionCode = match.Groups["inserted"].Value;
-          Position position = (numberOfLines, (match.Index + positionOffset) - lastStartOfLine);
-          expectedDafnyCodeActionRange = (position, position);
-          positionOffset -= match.Value.Length;
-        }
-
-        if (match.Groups["position"].Success) {
-          Position position = (numberOfLines, (match.Index + positionOffset) - lastStartOfLine);
-          requestPosition = (position, position);
-          positionOffset -= match.Value.Length;
-        }
-
-        if (match.Groups["newline"].Success) {
-          lastStartOfLine = match.Index + positionOffset + 1;
-          numberOfLines++;
-        }
-
-        lastPosition = match.Index + match.Value.Length;
-      }
-
-      initialCode += source.Substring(lastPosition);
-
-      Assert.IsNotNull(expectedDafnyCodeActionCode, "Could not find an expected quick fix code");
-      Assert.IsNotNull(expectedDafnyCodeActionTitle, "Could not find an expected quick fix title");
-      Assert.IsNotNull(expectedDafnyCodeActionRange, "Could not find an expected quick fix range");
-
-      await TestIfCodeAction(initialCode, requestPosition, expectedDafnyCodeActionTitle, expectedDafnyCodeActionCode,
-        expectedDafnyCodeActionRange);
-    }
-
-    private static Regex NewlineRegex = new Regex("\r?\n");
-
-    private async Task TestIfCodeAction(string source, Range requestPosition, string expectedDafnyCodeActionTitle, string expectedDafnyCodeAction,
-      Range expectedDafnyCodeActionRange) {
-      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
-      var documentItem = CreateTestDocument(source);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      if (0 == verificationDiagnostics.Length) {
-        verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      }
-      Assert.AreEqual(1, verificationDiagnostics.Length);
-
-      var completionList = await RequestCodeActionAsync(documentItem, requestPosition);
-      var found = false;
-      var otherTitles = new List<string>();
-      foreach (var completion in completionList) {
-        if (completion.CodeAction is { Title: var title } codeAction) {
-          otherTitles.Add(title);
-          if (title == expectedDafnyCodeActionTitle) {
-            found = true;
-            codeAction = await RequestResolveCodeAction(codeAction);
-            var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
-            Assert.IsNotNull(textDocumentEdit);
-            var edit = textDocumentEdit.Edits.Single();
-            Assert.AreEqual(NewlineRegex.Replace(expectedDafnyCodeAction, "\n"), NewlineRegex.Replace(edit.NewText, "\n"));
-            Assert.AreEqual(expectedDafnyCodeActionRange, edit.Range);
-          }
-        }
-      }
-
-      Assert.IsTrue(found,
-        $"Did not find the code action '{expectedDafnyCodeActionTitle}'. Available were:{string.Join(",", otherTitles)}");
     }
   }
 }

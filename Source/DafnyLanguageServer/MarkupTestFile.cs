@@ -62,7 +62,8 @@ namespace Microsoft.Dafny.LanguageServer {
       var r = new Regex(@"(?<Position>><)|" +
                         @"(?<SpanStart>\[>)|(?<SpanEnd><\])" +
                         @"|(?<NameSpanStart>\{>(?<Name>[-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})" +
-                        @"|(?<AnnotatedSpanStart>\(>(?<Annotation>.+)\:\:\:)|(?<AnnotatedSpanEnd><\))");
+                        @"|(?<AnnotatedSpanStart>\(>(?<Annotation>(.|\n)+)\:\:\:)|(?<AnnotatedSpanEnd><\))" +
+                        @"|(\(>(?<StandaloneAnnotation>(.|\n)+)<\))");
       var outputIndex = 0;
       var inputIndex = 0;
       var matches = r.Matches(input);
@@ -81,6 +82,9 @@ namespace Microsoft.Dafny.LanguageServer {
           namedSpanStartStack.Push((matchIndexInOutput, match.Groups["Name"].Value));
         } else if (match.Groups["AnnotatedSpanStart"].Success) {
           annotatedSpanStartStack.Push((matchIndexInOutput, match.Groups["Annotation"].Value));
+        } else if (match.Groups["StandaloneAnnotation"].Success) {
+          annotatedSpanStartStack.Push((matchIndexInOutput, match.Groups["StandaloneAnnotation"].Value));
+          PopSpan(annotatedSpanStartStack, tempSpans, matchIndexInOutput);
         } else if (match.Groups["SpanEnd"].Success) {
           PopSpan(spanStartStack, tempSpans, matchIndexInOutput);
         } else if (match.Groups["NameSpanEnd"].Success) {
