@@ -64,7 +64,7 @@ static class CommandRegistry {
     public bool IsErrorRedirected => errWriter != null;
     public bool IsInputRedirected => false;
   }
-  
+
   [CanBeNull]
   public static ParseArgumentResult Create(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);

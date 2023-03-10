@@ -111,7 +111,7 @@ public class CsharpBackend : ExecutableBackend {
                 rollForward = "LatestMinor"
               }
             }
-          }, new JsonSerializerOptions() {WriteIndented = true});
+          }, new JsonSerializerOptions() { WriteIndented = true });
         File.WriteAllText(outputJson, configuration + Environment.NewLine);
       } catch (Exception e) {
         outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");

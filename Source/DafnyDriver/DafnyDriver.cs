@@ -472,7 +472,7 @@ namespace Microsoft.Dafny {
         }
 
         // Might not be totally optimized but let's do that for now
-        var err = Dafny.Main.Parse(options.Input, 
+        var err = Dafny.Main.Parse(options.Input,
           new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
           File.Exists(dafnyFile.FilePath) ?
