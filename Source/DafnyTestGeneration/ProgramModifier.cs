@@ -1,4 +1,5 @@
 ﻿#nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -46,22 +47,38 @@ namespace DafnyTestGeneration {
       program = new RemoveChecks(options).VisitProgram(program);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
+      toModify = new HashSet<string>();
       if (options.TestGenOptions.TargetMethod != null) {
         ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
           i.Name.StartsWith("Impl$$")
-          && i.VerboseName.StartsWith(
-            options.TestGenOptions.TargetMethod));
-      } else {
-        ImplementationToTarget = null;
+          && i.VerboseName.Split(" ")[0] ==
+          options.TestGenOptions.TargetMethod);
+        var callGraphVisitor = new CallGraph();
+        callGraphVisitor.VisitProgram(program);
+        // options.TestGenOptions.TestInlineDepth is multiplied by two
+        // because inlining a method call in Dafny is equivalent to inlining
+        // two procedures in Boogie (Call$$- and Impl$$-prefixed procedures)
+        toModify = callGraphVisitor.GetCallees(
+          ImplementationToTarget?.Name,
+          +options.TestGenOptions.TestInlineDepth * 2);
+        toModify.Add(ImplementationToTarget.Name);
       }
-      var callGraphVisitor = new CallGraph();
-      callGraphVisitor.VisitProgram(program);
-      // options.TestGenOptions.TestInlineDepth is multiplied by two
-      // because inlining a method call in Dafny is equivalent to inlining
-      // two procedures in Boogie (Call$$- and Impl$$-prefixed procedures)
-      toModify = callGraphVisitor.GetCallees(
-        ImplementationToTarget?.Name,
-        options.TestGenOptions.TestInlineDepth * 2);
+
+      foreach (var toInline in options.TestGenOptions.TestInline) {
+        var toInlineProcedures = program.Procedures.Where(p =>
+          (p.Name.StartsWith("Impl$$") || p.Name.StartsWith("Call$$"))
+          && p.VerboseName.Split(" ")[0] == toInline).ToList();
+        if (!toInlineProcedures.Any()) {
+          options.Printer.ErrorWriteLine(Console.Error,
+            "Error: Cannot find method " +
+            toInline + " to be inlined (is this name fully-qualified?)");
+          Main.setNonZeroExitCode = true;
+        } else {
+          toModify.UnionWith(
+            toInlineProcedures.Select(implementation => implementation.Name));
+        }
+      }
+
       var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
       AddAxioms(options, program);
@@ -328,17 +345,15 @@ namespace DafnyTestGeneration {
         data.AddRange(node.InParams.Select(var => new IdentifierExpr(new Token(), var)));
 
         var toTest = options.TestGenOptions.TargetMethod;
-        if (toTest == null) {
-          // All methods are tested/modified
+        if ((toTest == null) || (node == modifier.ImplementationToTarget)) {
+          // This method is tested directly without inlining
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (node == modifier.ImplementationToTarget) {
-          // This method is tested/modified
-          node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if ((options.TestGenOptions.TestInlineDepth > 0) &&
+        } else if (((options.TestGenOptions.TestInlineDepth > 0) ||
+                    (options.TestGenOptions.TestInline.Count > 0)) &&
                    modifier.toModify.Contains(node.Name)) {
           // This method is inlined (and hence tested)
           var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(options.TestGenOptions.TestInlineDepth));
+            new LiteralExpr(new Token(), BigNum.FromUInt(1));
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
@@ -457,12 +472,6 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        Function/*?*/ findFunction =
-          functionMap.GetValueOrDefault(node.Name[6..], null);
-        if (!node.Name.StartsWith("Impl$$") ||
-            findFunction == null) {
-          return node; // this implementation is potentially side-effecting
-        }
         currImpl = node;
         return base.VisitImplementation(node);
       }

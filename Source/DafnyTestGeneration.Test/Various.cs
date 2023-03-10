@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -75,6 +76,32 @@ module M {
       Assert.IsTrue(methods.Exists(m => m.ArgValues[1] == "0"));
       Assert.IsTrue(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[1], "-?[1-9][0-9]*")));
+    }
+
+    [TestMethod]
+    public async Task SelectiveInlining() {
+      var source = @"
+module M {
+  class Inlining {
+    static function max(a:int, b:int):(c:int) {
+      if (a > b) then a else b
+    }
+    static function min(a:int, b:int):(c:int) {
+      if (a < b) then a else b
+    }
+    static method test(a:int, b:int, c:int, d:int) returns (r:int) {
+      r := max(c, d);
+      r := min(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      options.TestGenOptions.TestInline = new List<string>() { "M.Inlining.min" };
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.AreEqual(2, methods.Count);
     }
 
     [TestMethod]

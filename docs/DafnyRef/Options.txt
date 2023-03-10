@@ -379,6 +379,9 @@ Usage: dafny [ option ... ] [ filename ... ]
       0 is the default. When used in conjunction with /testTargetMethod,
       this argument specifies the depth up to which all non-tested methods
       should be inlined.
+  /generateTestInline:<methodName,methodName...>
+      A comma-separated list of methods that should be inlined into the method
+      specified by /testTargetMethod. All method names must be fully-qualified.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestVerbose

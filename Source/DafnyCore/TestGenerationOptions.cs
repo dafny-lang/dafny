@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
@@ -12,6 +14,7 @@ namespace Microsoft.Dafny {
     [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
     public uint TestInlineDepth = 0;
+    public List<String> TestInline = new List<string>();
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
@@ -59,6 +62,12 @@ namespace Microsoft.Dafny {
           }
           return true;
 
+        case "generateTestInline":
+          if (ps.ConfirmArgumentCount(1)) {
+            TestInline = args[ps.i].Split(",").ToList();
+          }
+          return true;
+
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
@@ -96,6 +105,9 @@ namespace Microsoft.Dafny {
     0 is the default. When used in conjunction with /testTargetMethod,
     this argument specifies the depth up to which all non-tested methods
     should be inlined.
+/generateTestInline:<methodName,methodName...>
+    A comma-separated list of methods that should be inlined into the method
+    specified by /testTargetMethod. All method names must be fully-qualified.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestVerbose

@@ -13,6 +13,7 @@ public class GenerateTestsCommand : ICommandSpec {
       SequenceLengthLimit,
       Target,
       TestInlineDepth,
+      TestInline,
       BoogieOptionBag.VerificationTimeLimit,
       Verbose,
       PrintBpl,
@@ -60,6 +61,9 @@ path - Prints path-coverage tests for the given program.");
   public static readonly Option<uint> TestInlineDepth = new("--inline-depth",
     "0 is the default. When used in conjunction with --target-method, this argument specifies the depth up to which all non-tested methods should be inlined.") {
   };
+  public static readonly Option<string> TestInline = new("--inline",
+    "A comma-separated list of methods that should be inlined into the method specified by /testTargetMethod. All method names must be fully-qualified.") {
+  };
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
@@ -86,6 +90,12 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(TestInlineDepth, (options, value) => {
       options.TestGenOptions.TestInlineDepth = value;
     });
+    DafnyOptions.RegisterLegacyBinding(TestInline, (options, value) => {
+      options.TestGenOptions.TestInline = value == null
+        ? new List<string>()
+        : value.Split(",").ToList();
+    }
+    );
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.TestGenOptions.TargetMethod = value;
     });
