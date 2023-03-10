@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
+[Collection("Sequential Collection")] // Because this class contains tests that can easily time out
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxSimultaneousVerificationTasks = 5;
 
