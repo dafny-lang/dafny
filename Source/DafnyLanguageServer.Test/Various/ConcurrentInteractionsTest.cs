@@ -133,29 +133,29 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     /// <summary>
     /// If this test is flaky, increase the amount of lines in the source program
     /// </summary>
-    // [Fact(Timeout = MaxTestExecutionTimeMs)]
-    // public async Task ChangeDocumentCancelsPreviousResolution() {
-    //   string CreateCorrectFunction(int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
-    //
-    //   var functionWithResolutionError = "function GetConstant(): int { x }\n";
-    //   var slowToResolveSource = functionWithResolutionError + string.Join("\n", Enumerable.Range(0, 1000).Select(CreateCorrectFunction));
-    //   var documentItem = CreateTestDocument(slowToResolveSource, "veryLongDocument.dfy");
-    //   client.OpenDocument(documentItem);
-    //
-    //   // Change but keep a resolution error, cancel previous diagnostics
-    //   ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "y");
-    //
-    //   // Fix resolution error, cancel previous diagnostics
-    //   ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
-    //
-    //   var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    //   Assert.Empty(resolutionDiagnostics);
-    //
-    //   var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-    //   Assert.Empty(verificationDiagnostics);
-    //
-    //   await AssertNoDiagnosticsAreComing(CancellationToken);
-    // }
+    [Fact(Timeout = MaxTestExecutionTimeMs, Skip = "Not working")]
+    public async Task ChangeDocumentCancelsPreviousResolution() {
+      string CreateCorrectFunction(int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
+
+      var functionWithResolutionError = "function GetConstant(): int { x }\n";
+      var slowToResolveSource = functionWithResolutionError + string.Join("\n", Enumerable.Range(0, 1000).Select(CreateCorrectFunction));
+      var documentItem = CreateTestDocument(slowToResolveSource, "veryLongDocument.dfy");
+      client.OpenDocument(documentItem);
+
+      // Change but keep a resolution error, cancel previous diagnostics
+      ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "y");
+
+      // Fix resolution error, cancel previous diagnostics
+      ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
+
+      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.Empty(resolutionDiagnostics);
+
+      var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
+      Assert.Empty(verificationDiagnostics);
+
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task CanLoadMultipleDocumentsConcurrently() {
