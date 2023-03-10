@@ -499,8 +499,8 @@ namespace DafnyTestGeneration {
           variable.Children[field.name].Count == 1) {
         return ExtractVariable(variable.Children[field.name].First(), null);
       }
-      if (ValueCreation.Any(obj => obj.type == field.type)) {
-        return ValueCreation.First(obj => obj.type == field.type).id;
+      if (ValueCreation.Any(obj => obj.type.ToString() == field.type.ToString())) {
+        return ValueCreation.First(obj => obj.type.ToString() == field.type.ToString()).id;
       }
       return GetDefaultValue(field.type, field.type);
     }
