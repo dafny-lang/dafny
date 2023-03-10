@@ -43,7 +43,6 @@ method Test()
 ");
   }
 
-  public FormatterForApplySuffixRelated([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForApplySuffixRelated([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

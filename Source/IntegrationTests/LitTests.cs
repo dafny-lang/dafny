@@ -169,17 +169,17 @@ namespace IntegrationTests {
       LitTestCase.Run(path, Config, output);
     }
   }
-  
+
   class DafnyDriverLitCommand : ILitCommand {
     private readonly string[] arguments;
 
     public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
       this.arguments = arguments.ToArray();
     }
-    
+
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriter(outputWriter, arguments);
+      var exitCode = DafnyDriver.MainWithWriter(outputWriter,  errorWriter, arguments);
       return (exitCode, "", "");
     }
   }

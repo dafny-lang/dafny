@@ -493,8 +493,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
       );
     }
 
-    public HoverVerificationTest(ITestOutputHelper output) : base(output)
-    {
+    public HoverVerificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

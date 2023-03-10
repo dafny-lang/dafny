@@ -160,7 +160,6 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
-  public DiagnosticMigrationTest(ITestOutputHelper output) : base(output)
-  {
+  public DiagnosticMigrationTest(ITestOutputHelper output) : base(output) {
   }
 }

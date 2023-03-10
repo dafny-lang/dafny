@@ -134,7 +134,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     }
   }
 
-  public ExceptionTests(ITestOutputHelper output) : base(output)
-  {
+  public ExceptionTests(ITestOutputHelper output) : base(output) {
   }
 }

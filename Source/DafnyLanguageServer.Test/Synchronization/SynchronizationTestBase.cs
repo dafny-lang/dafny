@@ -39,8 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
-    public SynchronizationTestBase(ITestOutputHelper output) : base(output)
-    {
+    public SynchronizationTestBase(ITestOutputHelper output) : base(output) {
     }
   }
 }

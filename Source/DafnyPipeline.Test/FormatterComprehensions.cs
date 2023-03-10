@@ -210,7 +210,6 @@ function test(): int {
   }
 
 
-  public FormatterForComprehensions([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForComprehensions([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

@@ -1143,8 +1143,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<_module.uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
     }
 
-    public CounterExampleTest(ITestOutputHelper output) : base(output)
-    {
+    public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

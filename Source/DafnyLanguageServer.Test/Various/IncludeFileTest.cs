@@ -33,7 +33,6 @@ ensures Foo(x) {{
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
-  public IncludeFileTest(ITestOutputHelper output) : base(output)
-  {
+  public IncludeFileTest(ITestOutputHelper output) : base(output) {
   }
 }

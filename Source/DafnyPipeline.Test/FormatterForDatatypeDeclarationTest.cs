@@ -146,7 +146,6 @@ datatype C = C(
 ", reduceBlockiness: false);
   }
 
-  public FormatterForDatatypeDeclarationTest([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForDatatypeDeclarationTest([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

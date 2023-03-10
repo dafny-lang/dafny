@@ -101,8 +101,7 @@ method GetIt(x: int) returns (y: int) {
       Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());
     }
 
-    public SymbolMigrationTest(ITestOutputHelper output) : base(output)
-    {
+    public SymbolMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

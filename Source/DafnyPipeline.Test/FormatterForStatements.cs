@@ -435,7 +435,6 @@ method Test() {
     FormatterWorksFor(test, test);
   }
 
-  public FormatterForStatements([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForStatements([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

@@ -201,8 +201,7 @@ const x := 1;
         $"Did not find the code action '{expectedDafnyCodeActionTitle}'. Available were:{string.Join(",", otherTitles)}");
     }
 
-    public CodeActionTest(ITestOutputHelper output) : base(output)
-    {
+    public CodeActionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

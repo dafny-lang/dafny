@@ -93,54 +93,40 @@ public class CsharpBackend : ExecutableBackend {
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
     var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
-    if (inMemory) {
-      using var stream = new MemoryStream();
-      var emitResult = compilation.Emit(stream);
-      if (emitResult.Success) {
-        tempCompilationResult.CompiledAssembly = Assembly.Load(stream.GetBuffer());
-      } else {
-        outputWriter.WriteLine("Errors compiling program:");
-        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-        foreach (var ce in errors) {
-          outputWriter.WriteLine(ce.ToString());
-          outputWriter.WriteLine();
-        }
+    var emitResult = compilation.Emit(outputPath);
+
+    if (emitResult.Success) {
+      tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
+      if (Options.CompileVerbose) {
+        outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
+      }
+
+      try {
+        var configuration = JsonSerializer.Serialize(
+          new {
+            runtimeOptions = new {
+              tfm = "net6.0",
+              framework = new {
+                name = "Microsoft.NETCore.App",
+                version = "6.0.0",
+                rollForward = "LatestMinor"
+              }
+            }
+          }, new JsonSerializerOptions() {WriteIndented = true});
+        File.WriteAllText(outputJson, configuration + Environment.NewLine);
+      } catch (Exception e) {
+        outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
         return false;
       }
     } else {
-      var emitResult = compilation.Emit(outputPath);
-
-      if (emitResult.Success) {
-        tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-        if (Options.CompileVerbose) {
-          outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
-        }
-        try {
-          var configuration = JsonSerializer.Serialize(
-            new {
-              runtimeOptions = new {
-                tfm = "net6.0",
-                framework = new {
-                  name = "Microsoft.NETCore.App",
-                  version = "6.0.0",
-                  rollForward = "LatestMinor"
-                }
-              }
-            }, new JsonSerializerOptions() { WriteIndented = true });
-          File.WriteAllText(outputJson, configuration + Environment.NewLine);
-        } catch (Exception e) {
-          outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
-          return false;
-        }
-      } else {
-        outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
-        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-        foreach (var ce in errors) {
-          outputWriter.WriteLine(ce.ToString());
-          outputWriter.WriteLine();
-        }
-        return false;
+      outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
+      var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+      foreach (var ce in errors) {
+        outputWriter.WriteLine(ce.ToString());
+        outputWriter.WriteLine();
       }
+
+      return false;
     }
 
     compilationResult = tempCompilationResult;
@@ -166,7 +152,7 @@ public class CsharpBackend : ExecutableBackend {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
 
-    var psi = PrepareProcessStartInfo("dotnet", new[] {crx.CompiledAssembly.Location}.Concat(Options.MainArgs));
+    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter) == 0;
   }
 

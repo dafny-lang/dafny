@@ -48,8 +48,7 @@ function GetConstant(): int {
       Assert.Null(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
-    public CloseDocumentTest(ITestOutputHelper output) : base(output)
-    {
+    public CloseDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

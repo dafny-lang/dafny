@@ -34,7 +34,6 @@ method firstMethod() {
     // The rest is tested elsewhere
   }
 
-  public PluginsDafnyCodeActionTest(ITestOutputHelper output) : base(output)
-  {
+  public PluginsDafnyCodeActionTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -182,7 +182,6 @@ method Test() {
 ", reduceBlockiness: false);
   }
 
-  public FormatterForAssignments([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForAssignments([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

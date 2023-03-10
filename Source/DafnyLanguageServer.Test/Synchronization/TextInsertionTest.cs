@@ -201,8 +201,7 @@ class Test {
       Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    public TextInsertionTest(ITestOutputHelper output) : base(output)
-    {
+    public TextInsertionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

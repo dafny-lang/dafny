@@ -199,7 +199,6 @@ method Foo() ensures false { } ";
  .  |  |  | :}");
   }
 
-  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
-  {
+  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

@@ -195,8 +195,7 @@ method Multiply(x: int, y: int) returns (product: int)
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
 
-    public ConcurrentInteractionsTest(ITestOutputHelper output) : base(output)
-    {
+    public ConcurrentInteractionsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

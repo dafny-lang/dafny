@@ -233,7 +233,6 @@ method m5() { assert false; } //Remove4:
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
   }
 
-  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
-  {
+  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

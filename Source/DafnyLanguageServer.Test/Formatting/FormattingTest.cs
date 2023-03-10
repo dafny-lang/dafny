@@ -164,7 +164,6 @@ module A {
     Assert.Equal(target, finalText);
   }
 
-  public FormattingTest(ITestOutputHelper output) : base(output)
-  {
+  public FormattingTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -10,14 +10,13 @@ namespace DafnyPipeline.Test {
   public class RelativePaths {
     private readonly TextWriter output;
 
-    public RelativePaths(ITestOutputHelper output)
-    {
+    public RelativePaths(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 
     [Fact]
     public void Test() {
-      Assert.Equal(0, DafnyDriver.ThreadMain(output, new string[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
+      Assert.Equal(0, DafnyDriver.ThreadMain(output, output, new string[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
     }
 
     [Fact]

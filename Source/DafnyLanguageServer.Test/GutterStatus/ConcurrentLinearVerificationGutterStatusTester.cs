@@ -59,7 +59,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
-  {
+  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

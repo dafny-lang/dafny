@@ -464,8 +464,7 @@ module B refines ><A {
       await AssertPositionsLineUpWithRanges(source);
     }
 
-    public DefinitionTest(ITestOutputHelper output) : base(output)
-    {
+    public DefinitionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

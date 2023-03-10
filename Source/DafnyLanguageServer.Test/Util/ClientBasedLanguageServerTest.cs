@@ -173,7 +173,6 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return nextNotification.NamedVerifiables.Single().Status;
   }
 
-  public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output)
-  {
+  public ClientBasedLanguageServerTest(ITestOutputHelper output) : base(output) {
   }
 }

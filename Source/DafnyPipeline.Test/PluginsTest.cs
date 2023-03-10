@@ -15,8 +15,7 @@ namespace DafnyPipeline.Test;
 public class PluginsTest {
   private readonly TextWriter output;
 
-  public PluginsTest(ITestOutputHelper output)
-  {
+  public PluginsTest(ITestOutputHelper output) {
     this.output = new WriterFromOutputHelper(output);
   }
 

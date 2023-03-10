@@ -95,8 +95,7 @@ method DoIt() {
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);
     }
 
-    public SaveDocumentTest(ITestOutputHelper output) : base(output)
-    {
+    public SaveDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

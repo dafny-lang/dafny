@@ -30,7 +30,6 @@ class Test {
 ");
   }
 
-  public FormatterForCalcStmt([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForCalcStmt([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

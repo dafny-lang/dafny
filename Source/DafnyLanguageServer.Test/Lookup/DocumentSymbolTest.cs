@@ -152,8 +152,7 @@ class Y {
       Assert.Equal(SymbolKind.Function, methodSymbol.Kind);
     }
 
-    public DocumentSymbolTest(ITestOutputHelper output) : base(output)
-    {
+    public DocumentSymbolTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

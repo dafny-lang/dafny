@@ -538,7 +538,6 @@ module Refinement2 refines BaseModule {
     Assert.Equal(migratedRange, errorStatus.NamedVerifiables[0].NameRange);
   }
 
-  public VerificationStatusTest(ITestOutputHelper output) : base(output)
-  {
+  public VerificationStatusTest(ITestOutputHelper output) : base(output) {
   }
 }

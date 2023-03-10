@@ -34,7 +34,6 @@ public class PluginsTestWithVerification : PluginsTestBase {
     Assert.Equal(new Range((0, 23), (0, 24)), diagnostics[1].Range);
   }
 
-  public PluginsTestWithVerification(ITestOutputHelper output) : base(output)
-  {
+  public PluginsTestWithVerification(ITestOutputHelper output) : base(output) {
   }
 }

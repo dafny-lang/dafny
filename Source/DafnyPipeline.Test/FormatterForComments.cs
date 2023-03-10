@@ -271,7 +271,6 @@ const x: int
 ");
   }
 
-  public FormatterForComments([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForComments([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

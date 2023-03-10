@@ -12,8 +12,7 @@ namespace DafnyTestGeneration.Test {
   public class BasicTypes {
     private readonly TextWriter output;
 
-    public BasicTypes(ITestOutputHelper output)
-    {
+    public BasicTypes(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 

@@ -32,7 +32,6 @@ method Foo()
     Assert.Equal(processes2.Length, processes3.Length);
   }
 
-  public ResourceUsageTest(ITestOutputHelper output) : base(output)
-  {
+  public ResourceUsageTest(ITestOutputHelper output) : base(output) {
   }
 }

@@ -264,7 +264,6 @@ method Main() {
   }
 
 
-  public FormatterForMembers([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForMembers([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

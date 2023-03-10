@@ -191,8 +191,7 @@ class B {
       Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
     }
 
-    public SignatureHelpTest(ITestOutputHelper output) : base(output)
-    {
+    public SignatureHelpTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

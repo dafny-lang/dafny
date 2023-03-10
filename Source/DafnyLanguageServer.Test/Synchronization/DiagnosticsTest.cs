@@ -1145,8 +1145,7 @@ method Foo() {
       Assert.True(diagnostics2.Any());
     }
 
-    public DiagnosticsTest(ITestOutputHelper output) : base(output)
-    {
+    public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

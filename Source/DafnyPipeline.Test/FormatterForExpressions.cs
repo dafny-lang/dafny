@@ -379,7 +379,6 @@ predicate Valid()
     FormatterWorksFor(testCase, testCase);
   }
 
-  public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

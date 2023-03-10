@@ -200,8 +200,7 @@ method Abs(x: int) returns (y: int)
       await AssertProgress(documentItem, CompilationStatus.ParsingFailed);
     }
 
-    public CompilationStatusNotificationTest(ITestOutputHelper output) : base(output)
-    {
+    public CompilationStatusNotificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

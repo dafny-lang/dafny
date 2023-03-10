@@ -17,8 +17,7 @@ namespace DafnyPipeline.Test {
   public class Issue1355 {
     private readonly TextWriter output;
 
-    public Issue1355(ITestOutputHelper output)
-    {
+    public Issue1355(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 

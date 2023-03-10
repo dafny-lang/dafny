@@ -494,8 +494,7 @@ method test(opt: int) {
 ");
     }
 
-    public HoverTest(ITestOutputHelper output) : base(output)
-    {
+    public HoverTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

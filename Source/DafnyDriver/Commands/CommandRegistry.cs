@@ -49,7 +49,7 @@ static class CommandRegistry {
   public static Argument<FileInfo> FileArgument { get; }
 
   [CanBeNull]
-  public static ParseArgumentResult Create(TextWriter writer, string[] arguments) {
+  public static ParseArgumentResult Create(TextWriter writer, string[] arguments, [CanBeNull] IConsole console) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
 
     var wasInvoked = false;
@@ -135,7 +135,7 @@ static class CommandRegistry {
     builder = AddDeveloperHelp(rootCommand, builder);
 
 #pragma warning disable VSTHRD002
-    var exitCode = builder.Build().InvokeAsync(arguments).Result;
+    var exitCode = builder.Build().InvokeAsync(arguments, console).Result;
 #pragma warning restore VSTHRD002
     if (!wasInvoked) {
       if (exitCode == 0) {

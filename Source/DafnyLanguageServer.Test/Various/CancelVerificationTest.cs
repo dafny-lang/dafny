@@ -102,8 +102,7 @@ method {:timeLimit 10} test() {
       }
     }
 
-    public CancelVerificationTest(ITestOutputHelper output) : base(output)
-    {
+    public CancelVerificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

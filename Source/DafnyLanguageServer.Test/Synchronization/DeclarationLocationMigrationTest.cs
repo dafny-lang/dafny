@@ -326,8 +326,7 @@ class A {
       Assert.False(TryFindSymbolDeclarationByName(document, "A", out var _));
     }
 
-    public DeclarationLocationMigrationTest(ITestOutputHelper output) : base(output)
-    {
+    public DeclarationLocationMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

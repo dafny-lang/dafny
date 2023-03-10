@@ -55,8 +55,7 @@ method Test() {
       Assert.Single(document.Diagnostics);
     }
 
-    public MultiFileTest(ITestOutputHelper output) : base(output)
-    {
+    public MultiFileTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

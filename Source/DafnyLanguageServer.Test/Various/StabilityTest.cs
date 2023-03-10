@@ -59,8 +59,7 @@ method NestedExpression() {
       Assert.NotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
-    public StabilityTest(ITestOutputHelper output) : base(output)
-    {
+    public StabilityTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

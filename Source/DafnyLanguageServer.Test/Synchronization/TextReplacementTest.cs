@@ -254,8 +254,7 @@ function GetConstant(): int {
       Assert.Equal(change, document.TextDocumentItem.Text);
     }
 
-    public TextReplacementTest(ITestOutputHelper output) : base(output)
-    {
+    public TextReplacementTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

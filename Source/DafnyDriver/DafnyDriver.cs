@@ -18,6 +18,8 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
+using System.CommandLine.IO;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -96,25 +98,22 @@ namespace Microsoft.Dafny {
     };
 
     public static int Main(string[] args) {
-      var writer = Console.Out;
-      return MainWithWriter(writer, args);
+      return MainWithWriter(Console.Out, Console.Error, args);
     }
 
-    public static int MainWithWriter(TextWriter writer, string[] args)
-    {
+    public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, string[] args) {
       int ret = 0;
-      var thread = new System.Threading.Thread(
-        new System.Threading.ThreadStart(() => { ret = ThreadMain(writer, args); }),
+      var thread = new System.Threading.Thread(() => { ret = ThreadMain(outputWriter, errorWriter, args); },
         0x10000000); // 256MB stack size to prevent stack overflow
       thread.Start();
       thread.Join();
       return ret;
     }
 
-    public static int ThreadMain(TextWriter writer, string[] args) {
+    public static int ThreadMain(TextWriter outWriter, TextWriter errWriter, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var cliArgumentsResult = ProcessCommandLineArguments(writer,
+      var cliArgumentsResult = ProcessCommandLineArguments(outWriter, errWriter,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
@@ -190,13 +189,30 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(TextWriter writer,
+    class WritersConsole : IConsole {
+      private readonly TextWriter errWriter;
+      private readonly TextWriter outWriter;
+
+      public WritersConsole(TextWriter outWriter, TextWriter errWriter) {
+        this.errWriter = errWriter;
+        this.outWriter = outWriter;
+      }
+
+      public IStandardStreamWriter Out => StandardStreamWriter.Create(outWriter ?? TextWriter.Null);
+
+      public bool IsOutputRedirected => outWriter != null;
+      public IStandardStreamWriter Error => StandardStreamWriter.Create(errWriter ?? TextWriter.Null);
+      public bool IsErrorRedirected => errWriter != null;
+      public bool IsInputRedirected => false;
+    }
+
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(TextWriter outputWriter, TextWriter errorWriter,
       string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
       try {
-        switch (CommandRegistry.Create(writer, args)) {
+        switch (CommandRegistry.Create(outputWriter, args, new WritersConsole(outputWriter, errorWriter))) {
           case ParseArgumentSuccess success:
             options = success.DafnyOptions;
             break;
@@ -208,7 +224,7 @@ namespace Microsoft.Dafny {
 
         options.RunningBoogieFromCommandLine = true;
       } catch (ProverException pe) {
-        new DafnyConsolePrinter(DafnyOptions.Create(writer)).ErrorWriteLine(writer, "*** ProverException: {0}", pe.Message);
+        new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
         options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }

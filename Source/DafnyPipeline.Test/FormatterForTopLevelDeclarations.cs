@@ -349,7 +349,6 @@ method M...
 ");
   }
 
-  public FormatterForTopLevelDeclarations([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForTopLevelDeclarations([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

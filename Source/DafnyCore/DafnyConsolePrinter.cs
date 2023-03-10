@@ -21,13 +21,12 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private DafnyOptions options;
   public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
 
-  public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args)
-  {
+  public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
     if (output == Console.Out) {
-      int foregroundColor = (int) Console.ForegroundColor;
+      int foregroundColor = (int)Console.ForegroundColor;
       Console.ForegroundColor = ConsoleColor.Yellow;
       output.WriteLine(format, args);
-      Console.ForegroundColor = (ConsoleColor) foregroundColor;
+      Console.ForegroundColor = (ConsoleColor)foregroundColor;
     } else {
       output.WriteLine(format, args);
     }

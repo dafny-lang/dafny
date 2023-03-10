@@ -27,8 +27,7 @@ namespace DafnyPipeline.Test {
   public class FormatterBaseTest {
     private readonly TextWriter output;
 
-    public FormatterBaseTest(ITestOutputHelper output)
-    {
+    public FormatterBaseTest(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 

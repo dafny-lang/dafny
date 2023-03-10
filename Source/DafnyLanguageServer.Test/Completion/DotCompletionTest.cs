@@ -219,8 +219,7 @@ class X {
       Assert.Equal("GetConstant", completionList[0].Label);
     }
 
-    public DotCompletionTest(ITestOutputHelper output) : base(output)
-    {
+    public DotCompletionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

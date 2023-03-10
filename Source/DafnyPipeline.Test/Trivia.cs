@@ -17,8 +17,7 @@ namespace DafnyPipeline.Test {
 
     private readonly TextWriter output;
 
-    public Trivia(ITestOutputHelper output)
-    {
+    public Trivia(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 

@@ -305,8 +305,7 @@ class Test {
       Assert.Equal("x", symbol.Name);
     }
 
-    public LookupMigrationTest(ITestOutputHelper output) : base(output)
-    {
+    public LookupMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

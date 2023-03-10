@@ -194,8 +194,7 @@ class C {
       Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
     }
 
-    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output)
-    {
+    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

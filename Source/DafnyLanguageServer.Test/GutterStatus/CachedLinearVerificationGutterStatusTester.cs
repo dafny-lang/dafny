@@ -42,7 +42,6 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ][I][S][S][ ]:}");
   }
 
-  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output)
-  {
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

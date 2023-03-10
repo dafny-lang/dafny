@@ -270,7 +270,6 @@ class TestClass {
   }
 
 
-  public FormatterForSpecifications([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterForSpecifications([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

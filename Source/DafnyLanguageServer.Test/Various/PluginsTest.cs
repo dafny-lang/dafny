@@ -29,7 +29,6 @@ public class PluginsTest : PluginsTestBase {
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
   }
 
-  public PluginsTest(ITestOutputHelper output) : base(output)
-  {
+  public PluginsTest(ITestOutputHelper output) : base(output) {
   }
 }

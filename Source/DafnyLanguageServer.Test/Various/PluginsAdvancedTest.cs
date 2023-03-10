@@ -40,7 +40,6 @@ method {:test} myMethodWrongName() {
     related.Dispose();
   }
 
-  public PluginsAdvancedTest(ITestOutputHelper output) : base(output)
-  {
+  public PluginsAdvancedTest(ITestOutputHelper output) : base(output) {
   }
 }

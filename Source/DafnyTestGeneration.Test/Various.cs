@@ -12,8 +12,7 @@ namespace DafnyTestGeneration.Test {
   public class Various {
     private readonly TextWriter output;
 
-    public Various(ITestOutputHelper output)
-    {
+    public Various(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
     }
 

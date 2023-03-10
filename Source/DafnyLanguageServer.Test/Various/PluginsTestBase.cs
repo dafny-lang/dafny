@@ -75,7 +75,6 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
     return base.SetUp(ModifyOptions);
   }
 
-  protected PluginsTestBase(ITestOutputHelper output) : base(output)
-  {
+  protected PluginsTestBase(ITestOutputHelper output) : base(output) {
   }
 }

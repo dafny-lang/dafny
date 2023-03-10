@@ -138,8 +138,7 @@ method Recurse(x: int) returns (r: int) {
       Assert.True(!document.Diagnostics.Any());
     }
 
-    public OpenDocumentTest(ITestOutputHelper output) : base(output)
-    {
+    public OpenDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }
