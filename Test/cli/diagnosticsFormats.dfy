@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %verify "%s" > "%t".raw
-// RUN: %exits-with 4 %verify --json-diagnostics "%s" >> "%t".raw
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t".raw
+// RUN: %exits-with 4 %baredafny verify %args --json-diagnostics "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -printTooltips "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -showSnippets:1 "%s" >> "%t".raw
 // The "pos" field contains a different value on Windows and Linux (because of
