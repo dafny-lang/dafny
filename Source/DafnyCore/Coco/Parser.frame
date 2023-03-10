@@ -33,7 +33,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 -->namespace
 
@@ -68,20 +68,20 @@ public class Parser {
 
   public void SemErr(string msg) {
     Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(ErrorID.None, t, msg);
+    if (errDist >= minErrDist) errors.SemErr(null, t, msg);
     errDist = 0;
   }
 
   public void SemErr(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(ErrorID.None, tok, msg);
+    errors.SemErr(ErrorRegistry.NoneId, tok, msg);
   }
 
-  public void SemErr(ErrorID errorID, IToken tok, string msg) {
+  public void SemErr(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(errorID, tok, msg);
+    errors.SemErr(errorId, tok, msg);
   }
 
   void Get() {
@@ -161,7 +161,7 @@ public class Errors {
   public void SynErr(string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorID.None, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, null, filename, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -177,85 +177,49 @@ public class Errors {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorID.None, tok, msg);
+    Reporting.Error(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
-  public void SemErr(ErrorID errorID, IToken tok, string msg) {  // semantic errors
+  public void SemErr(object errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, errorID, tok, msg);
+    Reporting.Error(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
-  public void SemErr(ErrorID errorID, string filename, int line, int col, string msg) {
+  public void SemErr(object errorId, string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, errorID, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorId.ToString(), filename, line, col, msg);
   }
 
-  public void Deprecated(ErrorID errorID, IToken tok, string msg) {
+  public void Deprecated(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, errorID, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, ErrorID.None, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
-  public void DeprecatedStyle(ErrorID errorID, IToken tok, string msg) {
+  public void DeprecatedStyle(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.DeprecatedStyle(MessageSource.Parser, errorID, tok, msg);
+    Reporting.DeprecatedStyle(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
   public void Warning(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, ErrorID.None, tok, msg);
-  }
-
-  // Code action range has given column and length
-  public static CodeActionRange CodeAction(IToken sourceTok, int column, int len) {
-    return new CodeActionRange(sourceTok, column, len);
-  }
-
-  // Code action range is from start of given token and with given new length
-  public static CodeActionRange CodeAction(IToken sourceTok, int len) {
-    return CodeAction(sourceTok, sourceTok.col, len);
+    Reporting.Warning(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
   // Code action range is up to, not including, the next token
-  public static CodeActionRange CodeAction(IToken sourceTok, IToken next) {
-    return CodeAction(sourceTok, sourceTok.col, next.pos - sourceTok.pos);
-  }
-
-  // Code action range is up to, not including, the next token
-  public static CodeActionRange CodeAction(IToken display, IToken sourceTok, IToken next) {
-    return CodeAction(display, sourceTok.col, next.pos - sourceTok.pos);
-  }
-
-  // Code action range is same as the given token
-  public static CodeActionRange CodeAction(IToken sourceTok, bool IncludeTrailingSpace = false) {
-    if (!IncludeTrailingSpace){
-      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length);
-    } else {
-      string trivia = sourceTok.TrailingTrivia;
-      // Don't want to remove newlines or comments -- just spaces and tabs
-      int i = 0;
-      while (i < trivia.Length && (trivia[i] == ' ' || trivia[i] == '\t')) {
-        i++;
-      }
-      return CodeAction(sourceTok, sourceTok.col, sourceTok.val.Length + i);
-    }
-  }
-
-  public static CodeActionRange FindCodeActionRange(IToken toptok) {
-    var tok = toptok;
-    if (tok is CodeActionRange) return (CodeActionRange)tok;
-    return CodeAction(toptok);
+  public static RangeToken CodeAction(IToken sourceTok, IToken next) {
+    return new RangeToken(sourceTok, next);
   }
 } // Errors
 
