@@ -164,7 +164,9 @@ const x := 1;
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.IsNotNull(textDocumentEdit);
               var edit = textDocumentEdit.Edits.Single();
-              Assert.AreEqual(expectedNewText, NewlineRegex.Replace(edit.NewText, "\n"));
+              Assert.AreEqual(
+                NewlineRegex.Replace(expectedNewText, "\n"),
+                NewlineRegex.Replace(edit.NewText, "\n"));
               Assert.AreEqual(expectedRange, edit.Range);
             }
           }
