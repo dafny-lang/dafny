@@ -78,7 +78,9 @@ public class JavaScriptBackend : ExecutableBackend {
       });
       PassthroughBuffer(nodeProcess.StandardOutput, Options.Writer);
       nodeProcess.WaitForExit();
+#pragma warning disable VSTHRD002
       errorProcessing.Wait();
+#pragma warning restore VSTHRD002
       return nodeProcess.ExitCode == 0;
     } catch (System.ComponentModel.Win32Exception e) {
       outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);

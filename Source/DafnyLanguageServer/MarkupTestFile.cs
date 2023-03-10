@@ -37,16 +37,19 @@ namespace Microsoft.Dafny.LanguageServer {
   /// {>Name: ... <} A span of text in the file annotated with an identifier.  There can be many of
   /// these, including ones with the same name.
   /// 
+  /// (>metadata||| ... <) A span of text in the file annotated with metdata.
+  /// 
   /// Additional encoded features can be added on a case by case basis.
   /// </summary>
+  ///
   public static class MarkupTestFile {
     private const string SpanStartString = "[>";
     private const string SpanEndString = "<]";
 
     private static void Parse(string input, out string output, out List<int> positions,
-      out IDictionary<string, List<TextSpan>> spans) {
+      out IReadOnlyList<AnnotatedSpan> spans) {
       positions = new List<int>();
-      var tempSpans = new Dictionary<string, List<TextSpan>>();
+      var tempSpans = new List<AnnotatedSpan>();
 
       var outputBuilder = new StringBuilder();
 
@@ -54,11 +57,17 @@ namespace Microsoft.Dafny.LanguageServer {
       // have empty string for their annotation name.
       var spanStartStack = new Stack<(int matchIndex, string name)>();
       var namedSpanStartStack = new Stack<(int matchIndex, string name)>();
+      var annotatedSpanStartStack = new Stack<(int matchIndex, string name)>();
 
-      var r = new Regex(@"(?<Position>><)|(?<SpanStart>\[>)|(?<SpanEnd><\])|(?<NameSpanStart>\{>([-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})");
+      var r = new Regex(@"(?<Position>><)|" +
+                        @"(?<SpanStart>\[>)|(?<SpanEnd><\])" +
+                        @"|(?<NameSpanStart>\{>(?<Name>[-_.A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})" +
+                        @"|(?<AnnotatedSpanStart>\(>(?<Annotation>(.|\n)+)\:\:\:)|(?<AnnotatedSpanEnd><\))" +
+                        @"|(\(>(?<StandaloneAnnotation>(.|\n)+)<\))");
       var outputIndex = 0;
       var inputIndex = 0;
-      foreach (Match match in r.Matches(input)) {
+      var matches = r.Matches(input);
+      foreach (Match match in matches) {
         var diff = inputIndex - outputIndex;
         var matchIndexInOutput = match.Index - diff;
         var outputPart = input.Substring(inputIndex, match.Index - inputIndex);
@@ -70,14 +79,20 @@ namespace Microsoft.Dafny.LanguageServer {
         } else if (match.Groups["SpanStart"].Success) {
           spanStartStack.Push((matchIndexInOutput, string.Empty));
         } else if (match.Groups["NameSpanStart"].Success) {
-          namedSpanStartStack.Push((matchIndexInOutput, string.Empty));
+          namedSpanStartStack.Push((matchIndexInOutput, match.Groups["Name"].Value));
+        } else if (match.Groups["AnnotatedSpanStart"].Success) {
+          annotatedSpanStartStack.Push((matchIndexInOutput, match.Groups["Annotation"].Value));
+        } else if (match.Groups["StandaloneAnnotation"].Success) {
+          annotatedSpanStartStack.Push((matchIndexInOutput, match.Groups["StandaloneAnnotation"].Value));
+          PopSpan(annotatedSpanStartStack, tempSpans, matchIndexInOutput);
         } else if (match.Groups["SpanEnd"].Success) {
           PopSpan(spanStartStack, tempSpans, matchIndexInOutput);
         } else if (match.Groups["NameSpanEnd"].Success) {
           PopSpan(namedSpanStartStack, tempSpans, matchIndexInOutput);
+        } else if (match.Groups["AnnotatedSpanEnd"].Success) {
+          PopSpan(annotatedSpanStartStack, tempSpans, matchIndexInOutput);
         }
       }
-
 
       if (spanStartStack.Count > 0) {
         throw new ArgumentException($"Saw {SpanStartString} without matching {SpanEndString}");
@@ -90,17 +105,17 @@ namespace Microsoft.Dafny.LanguageServer {
       // Append the remainder of the string.
       outputBuilder.Append(input.Substring(inputIndex));
       output = outputBuilder.ToString();
-      spans = tempSpans.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+      spans = tempSpans;
     }
 
     private static void PopSpan(
         Stack<(int matchIndex, string name)> spanStartStack,
-        IDictionary<string, List<TextSpan>> spans,
+        List<AnnotatedSpan> spans,
         int finalIndex) {
       var (matchIndex, name) = spanStartStack.Pop();
 
       var span = TextSpan.FromBounds(matchIndex, finalIndex);
-      spans.GetOrCreate(name, () => new List<TextSpan>()).Add(span);
+      spans.Add(new AnnotatedSpan(name, span));
     }
 
     private static void AddMatch(string input, string value, int currentIndex, List<(int, string)> matches) {
@@ -109,45 +124,53 @@ namespace Microsoft.Dafny.LanguageServer {
         matches.Add((index, value));
       }
     }
-
-    private static void GetIndexAndSpans(
-        string input, out string output, out List<int> positions, out ImmutableArray<TextSpan> spans) {
-      Parse(input, out output, out positions, out var dictionary);
-
-      var builder = dictionary.GetOrCreate(string.Empty, () => new List<TextSpan>());
-      builder.Sort((left, right) => left.Start - right.Start);
-      spans = builder.ToImmutableArray();
-    }
+    //
+    // private static void GetIndexAndSpans(
+    //     string input, out string output, out List<int> positions, out ImmutableArray<TextSpan> spans) {
+    //   Parse(input, out output, out positions, out var dictionary);
+    //
+    //   var builder = dictionary.GetOrCreate(string.Empty, () => new List<TextSpan>());
+    //   builder.Sort((left, right) => left.Start - right.Start);
+    //   spans = builder.ToImmutableArray();
+    // }
 
     public static void GetIndexAndSpans(
-        string input, out string output, out List<int> positions, out IDictionary<string, ImmutableArray<TextSpan>> spans) {
-      Parse(input, out output, out positions, out var dictionary);
-      spans = dictionary.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToImmutableArray());
+        string input, out string output, out List<int> positions, out IReadOnlyList<AnnotatedSpan> spans) {
+      Parse(input, out output, out positions, out spans);
     }
 
-    public static void GetSpans(string input, out string output, out IDictionary<string, ImmutableArray<TextSpan>> spans)
-        => GetIndexAndSpans(input, out output, out var cursorPositionOpt, out spans);
-
-    public static void GetPositionAndRange(string input, out string output, out Position position, out Range range) {
-      GetPositionAndRanges(input, out output, out position, out var resultRanges);
-      range = resultRanges.Single();
-    }
+    // public static void GetSpans(string input, out string output, out IDictionary<string, ImmutableArray<TextSpan>> spans)
+    //     => GetIndexAndSpans(input, out output, out var cursorPositionOpt, out spans);
+    //
+    // public static void GetPositionAndRange(string input, out string output, out Position position, out Range range) {
+    //   GetPositionAndRanges(input, out output, out position, out var resultRanges);
+    //   range = resultRanges.Single();
+    // }
 
     public static void GetPositionsAndNamedRanges(string input, out string output, out IList<Position> positions,
-      out IDictionary<string, ImmutableArray<Range>> ranges) {
-      GetIndexAndSpans(input, out output, out var positionIndices, out IDictionary<string, ImmutableArray<TextSpan>> spans);
+      out IDictionary<string, List<Range>> namedRanges) {
+      GetPositionsAndAnnotatedRanges(input, out output, out positions, out var annotatedRanges);
+      namedRanges = new Dictionary<string, List<Range>>();
+      foreach (var annotatedRange in annotatedRanges) {
+        var ranges = namedRanges.GetOrCreate(annotatedRange.Annotation, () => new());
+        ranges.Add(annotatedRange.Range);
+      }
+    }
+
+    public static void GetPositionsAndAnnotatedRanges(string input, out string output, out IList<Position> positions,
+      out IReadOnlyList<AnnotatedRange> ranges) {
+      GetIndexAndSpans(input, out output, out var positionIndices, out var spans);
       var buffer = new TextBuffer(output);
       positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
-      ranges = spans.ToDictionary(span => span.Key,
-        span => span.Value.Select(s =>
-          new Range(buffer.FromIndex(s.Start), buffer.FromIndex(s.End))).ToImmutableArray());
+      ranges = spans.Select(span => new AnnotatedRange(span.Annotation,
+        new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))).ToImmutableArray();
     }
 
     public static void GetPositionsAndRanges(string input, out string output, out IList<Position> positions, out ImmutableArray<Range> ranges) {
-      GetIndexAndSpans(input, out output, out var positionIndices, out ImmutableArray<TextSpan> spans);
+      GetIndexAndSpans(input, out output, out var positionIndices, out var spans);
       var buffer = new TextBuffer(output);
       positions = positionIndices.Select(index => buffer.FromIndex(index)).ToList();
-      ranges = spans.Select(span => new Range(buffer.FromIndex(span.Start), buffer.FromIndex(span.End)))
+      ranges = spans.Select(span => new Range(buffer.FromIndex(span.Span.Start), buffer.FromIndex(span.Span.End)))
         .ToImmutableArray();
     }
 
@@ -156,21 +179,24 @@ namespace Microsoft.Dafny.LanguageServer {
       cursorPosition = positions.Single();
     }
 
-    public static void GetPosition(string input, out string output, out List<int> positions)
-        => GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
+    // public static void GetPosition(string input, out string output, out List<int> positions)
+    //     => GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
+    //
+    // public static void GetPositionAndSpan(string input, out string output, out List<int> positions, out TextSpan textSpan) {
+    //   GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
+    //   textSpan = spans.Single();
+    // }
 
-    public static void GetPositionAndSpan(string input, out string output, out List<int> positions, out TextSpan textSpan) {
-      GetIndexAndSpans(input, out output, out positions, out ImmutableArray<TextSpan> spans);
-      textSpan = spans.Single();
-    }
+    // public static void GetSpans(string input, out string output, out ImmutableArray<TextSpan> spans) {
+    //   GetIndexAndSpans(input, out output, out var pos, out spans);
+    // }
 
-    public static void GetSpans(string input, out string output, out ImmutableArray<TextSpan> spans) {
-      GetIndexAndSpans(input, out output, out var pos, out spans);
-    }
-
-    public static void GetSpan(string input, out string output, out TextSpan textSpan) {
-      GetSpans(input, out output, out ImmutableArray<TextSpan> spans);
-      textSpan = spans.Single();
-    }
+    // public static void GetSpan(string input, out string output, out TextSpan textSpan) {
+    //   GetSpans(input, out output, out ImmutableArray<TextSpan> spans);
+    //   textSpan = spans.Single();
+    // }
   }
+
+  public record AnnotatedSpan(string Annotation, TextSpan Span);
+  public record AnnotatedRange(string Annotation, Range Range);
 }

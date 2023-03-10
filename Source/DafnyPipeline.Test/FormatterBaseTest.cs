@@ -65,7 +65,7 @@ namespace DafnyPipeline.Test {
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
+          Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
         var firstToken = dafnyProgram.GetFirstTopLevelToken();

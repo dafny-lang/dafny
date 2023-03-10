@@ -16,7 +16,7 @@ public class DafnyLangSymbolResolverTest {
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
       return this.AllMessages;
     }
 
