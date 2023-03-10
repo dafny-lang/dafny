@@ -143,19 +143,19 @@ bool IsAssumeTypeKeyword(IToken la) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (bool useStdin, string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (TextReader fileReaderOverride, string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
-  if (useStdin) {
-    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
-    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-  } else {
+  if (fileReaderOverride == null) {
     var newline = SourcePreprocessor.GetNewlineStyle(filename);
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
       return Parse(s, filename, builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
+  } else {
+    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(fileReaderOverride, new List<string>(), Environment.NewLine);
+    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   }
 }
 ///<summary>

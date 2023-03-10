@@ -36,6 +36,7 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
     public TextWriter Writer { get; }
+    public TextReader Input { get; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
     public bool AlwaysUseHeap => Allocated == 2;
     public bool CommonHeapUse => Allocated >= 2;
@@ -180,10 +181,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out);
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
 
-    public static DafnyOptions Create(TextWriter writer, params string[] arguments) {
-      var result = new DafnyOptions(writer);
+    public static DafnyOptions Create(TextWriter writer, TextReader input = null, params string[] arguments) {
+      input ??= TextReader.Null;
+      var result = new DafnyOptions(writer, input);
       result.Parse(arguments);
       return result;
     }
@@ -203,9 +205,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions(TextWriter writer)
+    public DafnyOptions(TextWriter writer, TextReader inputReader)
       : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       Writer = writer;
+      Input = inputReader;
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -368,7 +371,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this(src.Writer) {
+    public DafnyOptions(DafnyOptions src) : this(src.Writer, src.Input) {
       src.CopyTo(this);
     }
 

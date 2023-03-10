@@ -7,7 +7,7 @@ namespace DafnyTestGeneration.Test {
 
 
     public static DafnyOptions GetDafnyOptions(TextWriter writer, params string[] arguments) {
-      var options = DafnyOptions.Create(writer, arguments ?? System.Array.Empty<string>());
+      var options = DafnyOptions.Create(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;

@@ -48,12 +48,29 @@ static class CommandRegistry {
 
   public static Argument<FileInfo> FileArgument { get; }
 
-  [CanBeNull]
-  public static ParseArgumentResult Create(TextWriter writer, string[] arguments, [CanBeNull] IConsole console) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+  class WritersConsole : IConsole {
+    private readonly TextWriter errWriter;
+    private readonly TextWriter outWriter;
 
+    public WritersConsole(TextWriter outWriter, TextWriter errWriter) {
+      this.errWriter = errWriter;
+      this.outWriter = outWriter;
+    }
+
+    public IStandardStreamWriter Out => StandardStreamWriter.Create(outWriter ?? TextWriter.Null);
+
+    public bool IsOutputRedirected => outWriter != null;
+    public IStandardStreamWriter Error => StandardStreamWriter.Create(errWriter ?? TextWriter.Null);
+    public bool IsErrorRedirected => errWriter != null;
+    public bool IsInputRedirected => false;
+  }
+  
+  [CanBeNull]
+  public static ParseArgumentResult Create(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments) {
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    var console = new WritersConsole(outputWriter, errorWriter);
     var wasInvoked = false;
-    var dafnyOptions = new DafnyOptions(writer);
+    var dafnyOptions = new DafnyOptions(outputWriter, inputReader);
     var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
@@ -90,7 +107,7 @@ static class CommandRegistry {
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
         }
-        var oldOptions = new DafnyOptions(writer);
+        var oldOptions = new DafnyOptions(outputWriter, inputReader);
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
         }

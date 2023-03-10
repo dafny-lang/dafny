@@ -44,7 +44,6 @@ public class CsharpBackend : ExecutableBackend {
         MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
-    var inMemory = false;
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();

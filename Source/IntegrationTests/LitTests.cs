@@ -179,7 +179,7 @@ namespace IntegrationTests {
 
     public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriter(outputWriter,  errorWriter, arguments);
+      var exitCode = DafnyDriver.MainWithWriter(outputWriter,  errorWriter, inputReader, arguments);
       return (exitCode, "", "");
     }
   }

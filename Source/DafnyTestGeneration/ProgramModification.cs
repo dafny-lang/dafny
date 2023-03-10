@@ -121,7 +121,7 @@ namespace DafnyTestGeneration {
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
         if (options.TestGenOptions.Verbose) {
-          Console.WriteLine(
+          await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -137,25 +137,25 @@ namespace DafnyTestGeneration {
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
           if (options.TestGenOptions.Verbose) {
-            Console.WriteLine($"// Test {uniqueId} covers block {blockId}");
+            await options.Writer.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
       if (options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
-          Console.WriteLine(
+          await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier suceeded.");
         } else if (log.Contains("MODEL")) {
-          Console.WriteLine(
+          await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because there is no enhanced error trace.");
         } else if (log.Contains("anon0")) {
-          Console.WriteLine(
+          await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the model cannot be extracted.");
         } else {
-          Console.WriteLine(
+          await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -165,7 +165,7 @@ namespace DafnyTestGeneration {
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.TestGenOptions.Verbose) {
-        Console.WriteLine(
+        await dafnyInfo.Options.Writer.WriteLineAsync(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
       var log = await GetCounterExampleLog(cache);
@@ -183,7 +183,7 @@ namespace DafnyTestGeneration {
         return testMethod;
       }
       if (Options.TestGenOptions.Verbose) {
-        Console.WriteLine(
+        await dafnyInfo.Options.Writer.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}.");
       }

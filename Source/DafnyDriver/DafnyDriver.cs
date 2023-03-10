@@ -98,22 +98,23 @@ namespace Microsoft.Dafny {
     };
 
     public static int Main(string[] args) {
-      return MainWithWriter(Console.Out, Console.Error, args);
+      return MainWithWriter(Console.Out, Console.Error, Console.In, args);
     }
 
-    public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, string[] args) {
+    public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+      string[] args) {
       int ret = 0;
-      var thread = new System.Threading.Thread(() => { ret = ThreadMain(outputWriter, errorWriter, args); },
+      var thread = new System.Threading.Thread(() => { ret = ThreadMain(outputWriter, errorWriter, inputReader, args); },
         0x10000000); // 256MB stack size to prevent stack overflow
       thread.Start();
       thread.Join();
       return ret;
     }
 
-    public static int ThreadMain(TextWriter outWriter, TextWriter errWriter, string[] args) {
+    public static int ThreadMain(TextWriter outWriter, TextWriter errWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var cliArgumentsResult = ProcessCommandLineArguments(outWriter, errWriter,
+      var cliArgumentsResult = ProcessCommandLineArguments(outWriter, errWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
@@ -189,30 +190,15 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    class WritersConsole : IConsole {
-      private readonly TextWriter errWriter;
-      private readonly TextWriter outWriter;
-
-      public WritersConsole(TextWriter outWriter, TextWriter errWriter) {
-        this.errWriter = errWriter;
-        this.outWriter = outWriter;
-      }
-
-      public IStandardStreamWriter Out => StandardStreamWriter.Create(outWriter ?? TextWriter.Null);
-
-      public bool IsOutputRedirected => outWriter != null;
-      public IStandardStreamWriter Error => StandardStreamWriter.Create(errWriter ?? TextWriter.Null);
-      public bool IsErrorRedirected => errWriter != null;
-      public bool IsInputRedirected => false;
-    }
-
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(TextWriter outputWriter, TextWriter errorWriter,
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(TextWriter outputWriter,
+      TextWriter errorWriter,
+      TextReader inputReader,
       string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
       try {
-        switch (CommandRegistry.Create(outputWriter, args, new WritersConsole(outputWriter, errorWriter))) {
+        switch (CommandRegistry.Create(outputWriter, errorWriter, inputReader, args)) {
           case ParseArgumentSuccess success:
             options = success.DafnyOptions;
             break;
@@ -267,12 +253,12 @@ namespace Microsoft.Dafny {
         }
       }
       if (options.ShowEnv == ExecutionEngineOptions.ShowEnvironment.Always) {
-        Console.WriteLine("---Command arguments");
+        outputWriter.WriteLine("---Command arguments");
         foreach (string arg in args) {
           Contract.Assert(arg != null);
-          Console.WriteLine(arg);
+          outputWriter.WriteLine(arg);
         }
-        Console.WriteLine("--------------------");
+        outputWriter.WriteLine("--------------------");
       }
 
       ISet<String> filesSeen = new HashSet<string>();
@@ -367,7 +353,7 @@ namespace Microsoft.Dafny {
       var options = reporter.Options;
       if (options.TestGenOptions.WarnDeadCode) {
         await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(options.Writer, dafnyFileNames[0])) {
-          Console.WriteLine(line);
+          await options.Writer.WriteLineAsync(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
@@ -376,7 +362,7 @@ namespace Microsoft.Dafny {
       }
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(options.Writer, dafnyFileNames[0])) {
-          Console.WriteLine(line);
+          await options.Writer.WriteLineAsync(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
@@ -386,8 +372,8 @@ namespace Microsoft.Dafny {
 
       if (options.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
-          Console.WriteLine();
-          Console.WriteLine("-------------------- {0} --------------------", f);
+          await options.Writer.WriteLineAsync();
+          await options.Writer.WriteLineAsync($"-------------------- {f} --------------------");
           var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
@@ -412,13 +398,12 @@ namespace Microsoft.Dafny {
       }
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
-      Program dafnyProgram;
       string err;
       if (Options.Format) {
         return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName);
       }
 
-      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
+      err = Dafny.Main.ParseCheck(Options.Input, dafnyFiles, programName, reporter, out Program dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.Writer, err);
@@ -466,9 +451,10 @@ namespace Microsoft.Dafny {
 
       var failedToParseFiles = new List<string>();
       var emptyFiles = new List<string>();
-      var doCheck = reporter.Options.FormatCheck;
-      var doPrint = reporter.Options.DafnyPrintFile == "-";
-      reporter.Options.DafnyPrintFile = null;
+      var options = reporter.Options;
+      var doCheck = options.FormatCheck;
+      var doPrint = options.DafnyPrintFile == "-";
+      options.DafnyPrintFile = null;
       var neededFormatting = 0;
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
@@ -486,7 +472,8 @@ namespace Microsoft.Dafny {
         }
 
         // Might not be totally optimized but let's do that for now
-        var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
+        var err = Dafny.Main.Parse(options.Input, 
+          new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
           File.Exists(dafnyFile.FilePath) ?
           File.ReadAllText(dafnyFile.FilePath) : null;
@@ -506,11 +493,11 @@ namespace Microsoft.Dafny {
                 exitValue = exitValue != ExitValue.DAFNY_ERROR ? ExitValue.FORMAT_ERROR : exitValue;
               }
 
-              if (doCheck && (!doPrint || reporter.Options.CompileVerbose)) {
-                reporter.Options.Writer.WriteLine("The file " +
-                                      (reporter.Options.UseBaseNameForFileName
-                                        ? Path.GetFileName(dafnyFile.FilePath)
-                                        : dafnyFile.FilePath) + " needs to be formatted");
+              if (doCheck && (!doPrint || options.CompileVerbose)) {
+                options.Writer.WriteLine("The file " +
+                                                 (options.UseBaseNameForFileName
+                                                   ? Path.GetFileName(dafnyFile.FilePath)
+                                                   : dafnyFile.FilePath) + " needs to be formatted");
               }
 
               if (!doCheck && !doPrint) {
@@ -518,16 +505,16 @@ namespace Microsoft.Dafny {
               }
             }
           } else {
-            if (reporter.Options.CompileVerbose) {
+            if (options.CompileVerbose) {
               Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
             }
 
-            emptyFiles.Add((reporter.Options.UseBaseNameForFileName
+            emptyFiles.Add((options.UseBaseNameForFileName
               ? Path.GetFileName(dafnyFile.FilePath)
               : dafnyFile.FilePath));
           }
           if (doPrint) {
-            reporter.Options.Writer.Write(result);
+            options.Writer.Write(result);
           }
         }
 
@@ -555,12 +542,12 @@ namespace Microsoft.Dafny {
       reportMsg = filesNeedFormatting + reportMsg;
 
       if (doCheck) {
-        reporter.Options.Writer.WriteLine(neededFormatting > 0
+        options.Writer.WriteLine(neededFormatting > 0
           ? $"Error: {reportMsg}"
           : "All files are correctly formatted");
-      } else if (failedToParseFiles.Count > 0 || reporter.Options.CompileVerbose) {
+      } else if (failedToParseFiles.Count > 0 || options.CompileVerbose) {
         // We don't display anything if we just format files without verbosity and there was no parse error
-        reporter.Options.Writer.WriteLine($"{reportMsg}");
+        options.Writer.WriteLine($"{reportMsg}");
       }
 
       return exitValue;
@@ -574,14 +561,14 @@ namespace Microsoft.Dafny {
     /// the counterexample </param> 
     private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
       var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
-      Console.WriteLine("Counterexample for first failing assertion: ");
+      options.Writer.WriteLine("Counterexample for first failing assertion: ");
       foreach (var state in model.States.Where(state => !state.IsInitialState)) {
-        Console.WriteLine(state.FullStateName + ":");
+        options.Writer.WriteLine(state.FullStateName + ":");
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
-          Console.WriteLine($"\t{variable.ShortName} : " +
-                            $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                            $"{variable.Value}");
+          options.Writer.WriteLine($"\t{variable.ShortName} : " +
+                                   $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+                                   $"{variable.Value}");
         }
       }
     }

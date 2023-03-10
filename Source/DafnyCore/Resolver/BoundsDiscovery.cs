@@ -300,6 +300,7 @@ namespace Microsoft.Dafny {
         var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
         knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds);
 #if DEBUG_PRINT
+
         if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
           var ib = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
           var lo = ib.LowerBound == null ? "" : Printer.ExprToString(ib.LowerBound);

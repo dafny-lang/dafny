@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       logger = new Mock<ILoggerFactory>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
-        DafnyOptions.Create(this.output),
+        DafnyOptions.Create(this.output, TextReader.Null),
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,

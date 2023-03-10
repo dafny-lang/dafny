@@ -433,7 +433,7 @@ namespace Microsoft.Dafny {
     PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
       if (prog.Resolve(options) != 0) {
-        Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
+        options.Writer.WriteLine("Error: resolution errors encountered in Dafny prelude");
         return null;
       }
 
@@ -576,85 +576,85 @@ namespace Microsoft.Dafny {
         }
       }
       if (seqTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Set");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Set");
       } else if (isetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
       } else if (mapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Map");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Map");
       } else if (imapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (ORDINAL_isLimit == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
       } else if (ORDINAL_offset == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
       } else if (ORDINAL_isNat == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
       } else if (mapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
       } else if (imapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
       } else if (mapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
       } else if (imapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
       } else if (mapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
       } else if (imapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
       } else if (tuple2Constructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
       } else if (tyTagFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (handleType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
       } else if (layerType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
       } else if (dtCtorId == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
       } else if (charType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type char");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type char");
       } else if (refType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Box");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type Box");
       } else if (tickType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
       } else if (heap == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
       } else if (objectTypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
+        options.Writer.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,

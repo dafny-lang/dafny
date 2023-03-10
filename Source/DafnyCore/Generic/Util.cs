@@ -621,20 +621,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMap() {
+    public void PrintMap(DafnyOptions options) {
       SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
-        System.Console.Write(target);
+        options.Writer.Write(target);
         foreach (string dependency in dependencies[target]) {
-          System.Console.Write(";" + dependency);
+          options.Writer.Write(";" + dependency);
           if (!dependencies.ContainsKey(dependency)) {
             leaves.Add(dependency);
           }
         }
-        System.Console.WriteLine();
+        options.Writer.WriteLine();
       }
       foreach (string leaf in leaves) {
-        System.Console.WriteLine(leaf);
+        options.Writer.WriteLine(leaf);
       }
     }
   }

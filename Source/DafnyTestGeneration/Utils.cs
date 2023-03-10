@@ -60,7 +60,7 @@ namespace DafnyTestGeneration {
       var builtIns = new BuiltIns(options);
       var reporter = new ConsoleErrorReporter(options);
       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
-        new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
+        new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
