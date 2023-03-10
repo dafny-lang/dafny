@@ -15,15 +15,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
     private LastDebugLogger lastDebugLogger;
-    private readonly TextWriter output;
 
     public ParserExceptionTest(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
-
-    public ParserExceptionTest() {
       lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(DafnyOptions.Create(output), lastDebugLogger);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), lastDebugLogger);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

@@ -30,7 +30,7 @@ public class WriterFromOutputHelper : TextWriter {
   }
 
   public override void Write(char value) {
-    throw new NotSupportedException();
+    
   }
 
   public override Encoding Encoding => Encoding.Default;
