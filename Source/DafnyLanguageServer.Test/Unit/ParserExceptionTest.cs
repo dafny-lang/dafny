@@ -1,19 +1,14 @@
 ﻿using System;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
-  [TestClass]
   public class ParserExceptionTest {
     private static readonly string TestFilePath = "parserException.dfy";
     private const string LanguageId = "dafny";
@@ -26,21 +21,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       this.output = new WriterFromOutputHelper(output);
     }
 
-    [TestInitialize]
-    public void SetUp() {
+    public ParserExceptionTest() {
       lastDebugLogger = new LastDebugLogger();
       parser = DafnyLangParser.Create(DafnyOptions.Create(output), lastDebugLogger);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public void DocumentWithParserExceptionDisplaysIt() {
       var source = "function t() { / }";
       var options = DafnyOptions.DefaultImmutableOptions;
       var documentItem = CreateTestDocument(source, TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
       parser.Parse(documentItem, errorReporter, default);
-      Assert.AreEqual($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
-      Assert.AreEqual($"file:///{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
+      Assert.Equal($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
+      Assert.Equal($"file:///{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
     /// <summary>

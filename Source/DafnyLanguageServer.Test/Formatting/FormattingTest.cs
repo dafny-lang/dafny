@@ -4,22 +4,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
-[TestClass]
 public class FormattingTest : ClientBasedLanguageServerTest {
-  [TestInitialize]
-  public override async Task SetUp() {
+  public override async Task InitializeAsync() {
     await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting1() {
     var source = @"
 function test
@@ -49,7 +47,7 @@ function test
     await FormattingWorksFor(target, target);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting2() {
     var source = @"
 function Fib(i: nat): nat {
@@ -84,7 +82,7 @@ function Fib(i: nat): nat {
   }
 
 
-  [TestMethod]
+  [Fact]
   public async Task TestFormatting3() {
     var source = @"
 predicate IsBinary(s: seq<int>) {
@@ -104,14 +102,14 @@ predicate IsBinary(s: seq<int>) {
     await FormattingWorksFor(target, target);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestWhenDocIsEmpty() {
     var source = @"
 ";
     await FormattingWorksFor(source);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task TestWhenParsingFails() {
     var source = @"
 function test() {
@@ -155,7 +153,7 @@ module A {
     var edits = await RequestFormattingAsync(documentItem);
     edits.Reverse();
     var finalText = source;
-    Assert.IsNotNull(document, "document != null");
+    Assert.NotNull(document);
     var codeActionInput = new DafnyCodeActionInput(document);
 
     foreach (var edit in edits) {
@@ -163,7 +161,7 @@ module A {
                   edit.NewText +
                   codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
     }
-    Assert.AreEqual(target, finalText);
+    Assert.Equal(target, finalText);
   }
 
   public FormattingTest(ITestOutputHelper output) : base(output)

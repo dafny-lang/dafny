@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -8,26 +7,25 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit.Abstractions;
+using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class HoverVerificationTest : SynchronizationTestBase {
     private const int MaxTestExecutionTimeMs = 30000;
 
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
 
-    [TestInitialize]
-    public new Task SetUp() => SetUp(null);
+    public override async Task InitializeAsync() {
+      await SetUp(null);
+    }
 
-    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    private async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       Client = await InitializeClient(options => {
         options
@@ -35,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       }, modifyOptions);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
 method Abs(x: int) returns (y: int)
@@ -77,7 +75,7 @@ Resource usage: ??? RU"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsForeignContentAsWell() {
       var documentItem = await GetDocumentItem(@"
 include ""foreign-verify.dfy""
@@ -103,7 +101,7 @@ Resource usage: ??? RU"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
       await SetUp(o => {
         o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
@@ -136,7 +134,7 @@ This is the only assertion in [batch](???) #??? of ??? in method f
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MessagesWhenMultipleAssertionsPerBatch() {
       var documentItem = await GetDocumentItem(@"
 function f(x: int): int {
@@ -167,7 +165,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function f
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithoutAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -183,7 +181,7 @@ No assertions."
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageForFailingPreconditions() {
       var documentItem = await GetDocumentItem(@"
 method Test1() {
@@ -200,7 +198,7 @@ Failing precondition:???"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithOneAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -215,7 +213,7 @@ method f(x: int) {
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithTwoAsserts() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -230,7 +228,7 @@ method f(x: int) {
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions2() {
       var documentItem = await GetDocumentItem(@"
 function Id<T>(t: T): T { t }
@@ -263,7 +261,7 @@ Did prove: t.i > 0  "
       );
     }
 
-    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
     public async Task DoNotExtendPastExpressions3() {
       var documentItem = await GetDocumentItem(@"
 datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) | Test3(next: ValidTester2)
@@ -293,7 +291,7 @@ Could not prove: ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions() {
       var documentItem = await GetDocumentItem(@"
 datatype Test = Test(i: int)
@@ -327,7 +325,7 @@ Did prove: i > 0  "
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DisplayNestedFailingPostconditionsAndPreconditions() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
@@ -368,7 +366,7 @@ Could not prove: i <= 0"
       );
     }
 
-    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
     public async Task DisplayWorksOnPreviouslyFailingExample() {
       var documentItem = await GetDocumentItem(@"
 module ProblemModule {
@@ -394,7 +392,7 @@ Could not prove: j == 1"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotDisplayVerificationIfSyntaxError() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
@@ -420,8 +418,7 @@ Could not prove: i <= 0"
         null
       );
     }
-
-    [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
+    [Fact(Timeout = 5 * MaxTestExecutionTimeMs)]
     public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
 lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
@@ -461,14 +458,13 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
     private async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
       var hover = await RequestHover(documentItem, hoverPosition);
       if (expected == null) {
-        Assert.IsTrue(hover == null || hover.Contents.MarkupContent is null or { Value: "" },
-          "Did not expect a message at {0}", hoverPosition);
+        Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
         return;
       }
-      Assert.IsNotNull(hover, "No hover message found at {0}", hoverPosition);
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
       var markup = hover.Contents.MarkupContent;
-      Assert.IsNotNull(markup);
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.NotNull(markup);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
       AssertMatchRegex(expected.ReplaceLineEndings("\n"), markup.Value);
     }
 
@@ -483,7 +479,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
             helper += $"\nThe result string did not contain '{chunk}'";
           }
         }
-        Assert.IsTrue(false, "{0} did not match {1}." + helper, value, regexExpected);
+        Assert.Fail($"{value} did not match {regexExpected}." + helper);
       }
     }
 

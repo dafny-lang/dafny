@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
-[TestClass]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
@@ -15,7 +12,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
 
-  [TestMethod]
+  [Fact]
   public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
     var source = @"
 method Foo() ensures false { } ";
@@ -26,10 +23,10 @@ method Foo() ensures false { } ";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.IsFalse(verificationStatusGutterReceiver.HasPendingNotifications);
+    Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsureEmptyMethodDisplayVerified() {
     await VerifyTrace(@"
  .  | :method x() {
@@ -37,7 +34,7 @@ method Foo() ensures false { } ";
  .  | :}");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsureVerificationGutterStatusIsWorking() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
@@ -59,7 +56,7 @@ method Foo() ensures false { } ";
  .  |  |  |  I  I  |  | :  false
  .  |  |  |  I  I  |  | :}");
   }
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
     |  |  |  I  I  |  |  |  I  I  |  |  | :
@@ -73,7 +70,7 @@ method Foo() ensures false { } ";
  .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  | :predicate F(i: int) {
@@ -86,7 +83,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:}");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs * 10)]
+  [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
@@ -99,7 +96,7 @@ method Foo() ensures false { } ";
     }
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureEmptyDocumentIsVerified() {
     await VerifyTrace(@"
  | :class A {
@@ -108,7 +105,7 @@ method Foo() ensures false { } ";
   }
 
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresEmptyDocumentWithParseErrorShowsError() {
     await VerifyTrace(@"
 /!\:class A {/
@@ -116,13 +113,13 @@ method Foo() ensures false { } ";
    :");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresDefaultArgumentsShowsError() {
     await VerifyTrace(@"
  .  S [~][=]:datatype D = T(i: nat := -2)");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
     await VerifyTrace(@"
     |  |  | :// The following should trigger only one error
@@ -131,7 +128,7 @@ method Foo() ensures false { } ";
  .  S [~][=]:ghost const b := a[-1];");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
  .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
@@ -141,7 +138,7 @@ method Foo() ensures false { } ";
                      [-][~][=]:");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresWorkWithInformationsAsWell() {
     await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
@@ -156,7 +153,7 @@ method Foo() ensures false { } ";
             [I][S][S][ ]:");
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsureMultilineAssertIsCorreclyHandled() {
     await VerifyTrace(@"
  .  S [S][ ]:method x() {
@@ -165,7 +162,7 @@ method Foo() ensures false { } ";
  .  S [S][ ]:}");
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsureBodylessMethodsAreCovered() {
     await VerifyTrace(@"
  .  |  |  | :method test() {
@@ -184,7 +181,7 @@ method Foo() ensures false { } ";
   }
 
 
-  [TestMethod]
+  [Fact]
   public async Task EnsureBodylessFunctionsAreCovered() {
     await VerifyTrace(@"
  .  |  |  | :method test() {

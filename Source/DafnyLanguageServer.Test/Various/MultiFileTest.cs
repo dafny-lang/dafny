@@ -1,27 +1,28 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
-  [TestClass]
-  public class MultiFileTest : DafnyLanguageServerTestBase {
+  public class MultiFileTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private static readonly string TestFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "testFile.dfy");
 
     private ILanguageClient client;
 
-    [TestInitialize]
-    public async Task SetUp() {
+    public async Task InitializeAsync() {
       client = await InitializeClient();
     }
 
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
+    }
+
     // https://github.com/dafny-lang/language-server-csharp/issues/40
-    [TestMethod]
+    [Fact]
     public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotResultInDuplicateError() {
       var source = @"
 include ""multi1.dfy""
@@ -33,12 +34,12 @@ method Test() {
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(!document.Diagnostics.Any());
+      Assert.NotNull(document);
+      Assert.True(!document.Diagnostics.Any());
     }
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
-    [TestMethod]
+    [Fact]
     public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotOverrideActualError() {
       var source = @"
 include ""multi1.dfy""
@@ -50,8 +51,8 @@ method Test() {
       var documentItem = CreateTestDocument(source, TestFilePath);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(1, document.Diagnostics.Count());
+      Assert.NotNull(document);
+      Assert.Single(document.Diagnostics);
     }
 
     public MultiFileTest(ITestOutputHelper output) : base(output)

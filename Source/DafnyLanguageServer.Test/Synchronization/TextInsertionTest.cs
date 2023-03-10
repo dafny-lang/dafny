@@ -1,13 +1,12 @@
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
   public class TextInsertionTest : SynchronizationTestBase {
-    [TestMethod]
+    [Fact]
     public async Task InsertTextAtStart() {
       var source = @"
 function GetConstant(): int {
@@ -27,7 +26,7 @@ function GetConstant2(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetConstant2(): int {
   2
@@ -36,10 +35,10 @@ function GetConstant2(): int {
 function GetConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task InsertTextAtEnd() {
       var source = @"
 function GetConstant(): int {
@@ -59,7 +58,7 @@ function GetConstant2(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetConstant(): int {
   1
@@ -68,10 +67,10 @@ function GetConstant(): int {
 function GetConstant2(): int {
   2
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task InsertTextInTheMiddle() {
       var source = @"
 function GetConstant(): int {
@@ -95,7 +94,7 @@ function GetConstant2(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetConstant(): int {
   1
@@ -108,10 +107,10 @@ function GetConstant2(): int {
 function GetConstant3(): int {
   3
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task InsertSingleLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
@@ -126,15 +125,15 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetAnotherConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task InsertMultiLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
@@ -153,7 +152,7 @@ function Some";
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetIt(): string {
   ""test""
@@ -162,10 +161,10 @@ function GetIt(): string {
 function SomeConstant(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task InsertMultipleInSingleChange() {
       // Note: line breaks are explicitly defined to avoid compatibility issues of \r and \r\n between
       // the change and the verification.
@@ -194,12 +193,12 @@ function SomeConstant(): int {
         }
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 class Test {
   function GetConstant(): int { 1 }
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
     public TextInsertionTest(ITestOutputHelper output) : base(output)

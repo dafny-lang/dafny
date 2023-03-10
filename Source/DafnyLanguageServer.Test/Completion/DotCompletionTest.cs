@@ -1,15 +1,14 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
-  [TestClass]
   public class DotCompletionTest : ClientBasedLanguageServerTest {
 
     private async Task<List<CompletionItem>> RequestCompletionAsync(TextDocumentItem documentItem, Position position) {
@@ -24,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
       return completionList.OrderBy(completion => completion.Label).ToList();
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnThisReturnsClassMembers() {
       var source = @"
 class A {
@@ -39,14 +38,14 @@ class A {
       ApplyChange(ref documentItem, new Range(4, 10, 4, 10), " + this.");
 
       var completionList = await RequestCompletionAsync(documentItem, (4, 18));
-      Assert.AreEqual(2, completionList.Count);
-      Assert.AreEqual(CompletionItemKind.Function, completionList[0].Kind);
-      Assert.AreEqual("GetX", completionList[0].Label);
-      Assert.AreEqual(CompletionItemKind.Field, completionList[1].Kind);
-      Assert.AreEqual("x", completionList[1].Label);
+      Assert.Equal(2, completionList.Count);
+      Assert.Equal(CompletionItemKind.Function, completionList[0].Kind);
+      Assert.Equal("GetX", completionList[0].Label);
+      Assert.Equal(CompletionItemKind.Field, completionList[1].Kind);
+      Assert.Equal("x", completionList[1].Label);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnNothingReturnsEmptyList() {
       var source = @"
 class A {
@@ -61,10 +60,10 @@ class A {
       ApplyChange(ref documentItem, new Range((4, 4), (4, 10)), ".");
 
       var completionList = await RequestCompletionAsync(documentItem, (4, 5));
-      Assert.AreEqual(0, completionList.Count);
+      Assert.Empty(completionList);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnNothingAtLineStartReturnsEmptyList() {
       var source = @"
 class A {
@@ -79,10 +78,10 @@ class A {
       ApplyChange(ref documentItem, new Range((4, 0), (4, 10)), ".");
 
       var completionList = await RequestCompletionAsync(documentItem, (4, 1));
-      Assert.AreEqual(0, completionList.Count);
+      Assert.Empty(completionList);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnTypeWithoutMembersReturnsEmptyList() {
       var source = @"
 class A {
@@ -97,10 +96,10 @@ class A {
       ApplyChange(ref documentItem, new Range((4, 10), (4, 10)), ".");
 
       var completionList = await RequestCompletionAsync(documentItem, (4, 11));
-      Assert.AreEqual(0, completionList.Count);
+      Assert.Empty(completionList);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnLocalArrayReturnsLength() {
       var source = @"
 method DoIt() {
@@ -112,12 +111,12 @@ method DoIt() {
   var y := x.");
 
       var completionList = await RequestCompletionAsync(documentItem, (2, 13));
-      Assert.AreEqual(1, completionList.Count);
-      Assert.AreEqual(CompletionItemKind.Field, completionList[0].Kind);
-      Assert.AreEqual("Length", completionList[0].Label);
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnShadowedVariableReturnsCompletionOfClosestSymbol() {
       var source = @"
 class A {
@@ -139,12 +138,12 @@ class B {
     var y := x.");
 
       var completionList = await RequestCompletionAsync(documentItem, (5, 15));
-      Assert.AreEqual(1, completionList.Count);
-      Assert.AreEqual(CompletionItemKind.Field, completionList[0].Kind);
-      Assert.AreEqual("b", completionList[0].Label);
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("b", completionList[0].Label);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnShadowedVariableReturnsCompletionOfClassIfPrefixedWithThis() {
       var source = @"
 class A {
@@ -166,12 +165,12 @@ class B {
     var y := this.x.");
 
       var completionList = await RequestCompletionAsync(documentItem, (5, 20));
-      Assert.AreEqual(1, completionList.Count);
-      Assert.AreEqual(CompletionItemKind.Field, completionList[0].Kind);
-      Assert.AreEqual("Length", completionList[0].Label);
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Field, completionList[0].Kind);
+      Assert.Equal("Length", completionList[0].Label);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CompleteOnMemberAccessChainRespectsCompleteChain() {
       var source = @"
 class A {
@@ -215,9 +214,9 @@ class X {
       ApplyChange(ref documentItem, new Range((8, 0), (8, 0)), "    var l := b.c.x.");
 
       var completionList = await RequestCompletionAsync(documentItem, (8, 19));
-      Assert.AreEqual(1, completionList.Count);
-      Assert.AreEqual(CompletionItemKind.Method, completionList[0].Kind);
-      Assert.AreEqual("GetConstant", completionList[0].Label);
+      Assert.Single(completionList);
+      Assert.Equal(CompletionItemKind.Method, completionList[0].Kind);
+      Assert.Equal("GetConstant", completionList[0].Label);
     }
 
     public DotCompletionTest(ITestOutputHelper output) : base(output)

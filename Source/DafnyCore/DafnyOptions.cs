@@ -860,12 +860,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:handle}
-      TODO
-
-    {:dllimport}
-      TODO
-
     {:compile}
       The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
       If that argument is false, then that declaration will not be compiled at all.
@@ -1247,7 +1241,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Ignore include directives.
 
 /noExterns
-    Ignore extern and dllimport attributes.
+    Ignore extern attributes.
 
 /functionSyntax:<version>
     The syntax for functions is changing from Dafny version 3 to version

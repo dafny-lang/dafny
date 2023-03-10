@@ -1,22 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Document;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit.Abstractions;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
-[TestClass]
+[Collection("Sequential Collection")] // Because this class contains tests that can easily time out
 public class ConcurrentLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxSimultaneousVerificationTasks = 5;
 
@@ -29,7 +22,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-  public override async Task SetUp(Action<DafnyOptions> modifyOptions) {
+  protected override async Task SetUp(Action<DafnyOptions> modifyOptions) {
     for (var i = 0; i < verificationStatusGutterReceivers.Length; i++) {
       verificationStatusGutterReceivers[i] = new();
     }
@@ -44,7 +37,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     });
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresManyDocumentsCanBeVerifiedAtOnce() {
     var result = new List<Task>();
     // Every verificationStatusGutterReceiver checks that the filename matches and filters out notifications that do not match.

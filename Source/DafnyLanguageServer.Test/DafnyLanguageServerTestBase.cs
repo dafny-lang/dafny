@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -18,12 +16,10 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using MediatR;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {

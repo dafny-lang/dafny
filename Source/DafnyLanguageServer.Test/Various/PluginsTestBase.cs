@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -23,7 +23,7 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
     var assembly = Assembly.GetExecutingAssembly();
     string[] names = assembly.GetManifestResourceNames();
     Stream codeStream = assembly.GetManifestResourceStream($"Microsoft.Dafny.LanguageServer.IntegrationTest._plugins.{assemblyName}.cs");
-    Assert.IsNotNull(codeStream);
+    Assert.NotNull(codeStream);
     string code = new StreamReader(codeStream).ReadToEnd();
 
     var temp = Path.GetTempFileName();
@@ -58,7 +58,7 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
     var assemblyPath = $"{temp}.dll";
     var result = compilation.Emit(assemblyPath);
 
-    Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
+    Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
     return assemblyPath;
   }
 
@@ -66,7 +66,7 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
 
   protected abstract string[] CommandLineArgument { get; }
 
-  public override Task SetUp(Action<DafnyOptions> modifyOptions) {
+  protected override Task SetUp(Action<DafnyOptions> modifyOptions) {
     LibraryPath = GetLibrary(LibraryName);
     void ModifyOptions(DafnyOptions options) {
       options.Set(CommonOptionBag.Plugin, CommandLineArgument.ToList());

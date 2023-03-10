@@ -1,15 +1,13 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
   public class SignatureHelpTest : ClientBasedLanguageServerTest {
 
     private Task<SignatureHelp> RequestSignatureHelpAsync(TextDocumentItem documentItem, Position position) {
@@ -23,14 +21,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       );
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpForUnloadedDocumentReturnsNull() {
       var documentItem = CreateTestDocument("");
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
-      Assert.IsNull(signatureHelp);
+      Assert.Null(signatureHelp);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpOnOpeningParenthesesReturnsSignatureForExistingMethod() {
       var source = @"
 method Multiply(x: int, y: int) returns (p: int)
@@ -52,13 +50,13 @@ method Main() {
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
       var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(1, signatures.Length);
+      Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nmethod Multiply(x: int, y: int) returns (p: int)\n```", markup.Value);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
+      Assert.Equal("```dafny\nmethod Multiply(x: int, y: int) returns (p: int)\n```", markup.Value);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpOnOpeningParenthesesReturnsSignatureForExistingFunction() {
       var source = @"
 function Multiply(x: int, y: int): int
@@ -79,13 +77,13 @@ method Main() {
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (6, 11));
       var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(1, signatures.Length);
+      Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nfunction Multiply(x: int, y: int): int\n```", markup.Value);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
+      Assert.Equal("```dafny\nfunction Multiply(x: int, y: int): int\n```", markup.Value);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpOnOpeningParenthesesReturnsNullIfNoSuchMethodOrFunctionExists() {
       var source = @"
 method Main() {
@@ -100,10 +98,10 @@ method Main() {
       );
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (1, 11));
-      Assert.IsNull(signatureHelp);
+      Assert.Null(signatureHelp);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpOnOpeningParenthesesReturnsSignatureOfClosestFunction() {
       var source = @"
 function Multiply(x: int, y: int): int
@@ -140,13 +138,13 @@ module Mod {
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (20, 15));
       var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(1, signatures.Length);
+      Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nfunction SomeClass.Multiply(n: int, m: int): int\n```", markup.Value);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
+      Assert.Equal("```dafny\nfunction SomeClass.Multiply(n: int, m: int): int\n```", markup.Value);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SignatureHelpOnOpeningParenthesesReturnsSignatureOfClassMemberOfDesignator() {
       var source = @"
 class A {
@@ -187,10 +185,10 @@ class B {
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (25, 15));
       var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(1, signatures.Length);
+      Assert.Single(signatures);
       var markup = signatures[0].Documentation.MarkupContent;
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
+      Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
     }
 
     public SignatureHelpTest(ITestOutputHelper output) : base(output)

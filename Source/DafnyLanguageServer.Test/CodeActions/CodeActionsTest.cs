@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -7,10 +6,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
 using Xunit.Abstractions;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
-  [TestClass]
   public class CodeActionTest : ClientBasedLanguageServerTest {
     private async Task<List<CommandOrCodeAction>> RequestCodeActionAsync(TextDocumentItem documentItem, Range range) {
       var completionList = await client.RequestCodeAction(
@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
       return await client.ResolveCodeAction(codeAction, CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeActionHelper(@"
 method f() returns (i: int)
@@ -36,7 +36,7 @@ method f() returns (i: int)
 ]]}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionInIfStatement() {
       await TestCodeActionHelper(@"
 method f(b: bool) returns (i: int)
@@ -51,7 +51,7 @@ method f(b: bool) returns (i: int)
     }
 
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
       await TestCodeActionHelper(@"
 const x := 1;
@@ -61,7 +61,7 @@ const x := 1;
   ]]}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t";
       await TestCodeActionHelper($@"
@@ -72,7 +72,7 @@ const x := 1;
 {t}{t}{t}]]}}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
       await TestCodeActionHelper(@"
 const x := 1;
@@ -83,7 +83,7 @@ const x := 1;
 ]]}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
       await TestCodeActionHelper(@"
 const x := 1;
@@ -96,7 +96,7 @@ const x := 1;
     }
 
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
       await TestCodeActionHelper(@"
 const x := 1;
@@ -106,7 +106,7 @@ const x := 1;
   ]]}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
       await TestCodeActionHelper(@"
 const x := 1;
@@ -158,9 +158,9 @@ const x := 1;
 
       initialCode += source.Substring(lastPosition);
 
-      Assert.IsNotNull(expectedDafnyCodeActionCode, "Could not find an expected quick fix code");
-      Assert.IsNotNull(expectedDafnyCodeActionTitle, "Could not find an expected quick fix title");
-      Assert.IsNotNull(expectedDafnyCodeActionRange, "Could not find an expected quick fix range");
+      AssertM.NotNull(expectedDafnyCodeActionCode, "Could not find an expected quick fix code");
+      AssertM.NotNull(expectedDafnyCodeActionTitle, "Could not find an expected quick fix title");
+      AssertM.NotNull(expectedDafnyCodeActionRange, "Could not find an expected quick fix range");
 
       await TestIfCodeAction(initialCode, requestPosition, expectedDafnyCodeActionTitle, expectedDafnyCodeActionCode,
         expectedDafnyCodeActionRange);
@@ -177,7 +177,7 @@ const x := 1;
       if (0 == verificationDiagnostics.Length) {
         verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       }
-      Assert.AreEqual(1, verificationDiagnostics.Length);
+      Assert.Single(verificationDiagnostics);
 
       var completionList = await RequestCodeActionAsync(documentItem, requestPosition);
       var found = false;
@@ -189,15 +189,15 @@ const x := 1;
             found = true;
             codeAction = await RequestResolveCodeAction(codeAction);
             var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
-            Assert.IsNotNull(textDocumentEdit);
+            Assert.NotNull(textDocumentEdit);
             var edit = textDocumentEdit.Edits.Single();
-            Assert.AreEqual(NewlineRegex.Replace(expectedDafnyCodeAction, "\n"), NewlineRegex.Replace(edit.NewText, "\n"));
-            Assert.AreEqual(expectedDafnyCodeActionRange, edit.Range);
+            Assert.Equal(NewlineRegex.Replace(expectedDafnyCodeAction, "\n"), NewlineRegex.Replace(edit.NewText, "\n"));
+            Assert.Equal(expectedDafnyCodeActionRange, edit.Range);
           }
         }
       }
 
-      Assert.IsTrue(found,
+      Assert.True(found,
         $"Did not find the code action '{expectedDafnyCodeActionTitle}'. Available were:{string.Join(",", otherTitles)}");
     }
 

@@ -1,15 +1,14 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
   public class SymbolMigrationTest : SynchronizationTestBase {
-    [TestMethod]
+    [Fact]
     public async Task ChangeToSemanticallyCorrectDocumentUsesDafnyResolver() {
       var source = @"
 function GetConstant(): int {
@@ -29,12 +28,12 @@ function GetConstant2(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.Resolved);
-      Assert.AreEqual(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.Resolved);
+      Assert.Equal(2, document.SignatureAndCompletionTable.Locations.Keys.OfType<FunctionSymbol>().Count());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ChangeToSemanticallyIncorrectDocumentUsesMigration() {
       var source = @"
 function GetConstant(): int {
@@ -54,10 +53,10 @@ function GetConstant2(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ChangeToSyntacticallyIncorrectDocumentUsesMigration() {
       var source = @"
 function GetConstant(): int {
@@ -74,10 +73,10 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ChangeToDocumentWithVerificationErrorsUsesDafnyResolver() {
       var source = @"
 method GetIt(x: int) returns (y: int) {
@@ -97,9 +96,9 @@ method GetIt(x: int) returns (y: int) {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.IsTrue(document.SignatureAndCompletionTable.Resolved);
-      Assert.AreEqual(1, document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>().Count());
+      Assert.NotNull(document);
+      Assert.True(document.SignatureAndCompletionTable.Resolved);
+      Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());
     }
 
     public SymbolMigrationTest(ITestOutputHelper output) : base(output)

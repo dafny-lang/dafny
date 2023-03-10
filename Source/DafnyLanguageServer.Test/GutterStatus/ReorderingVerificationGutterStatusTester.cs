@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -20,11 +19,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 /// This class tests whether editing a file results in
 /// methods priorities for verification being set automatically.
 /// </summary>
-[TestClass]
 public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
+  [Fact/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
     await TestPriorities(@"
 method m1() {
@@ -40,7 +38,7 @@ method m2() {
     );
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
@@ -72,7 +70,7 @@ method m5() {
     );
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
     await TestPriorities(@"
 method m1() { assert false; }
@@ -91,7 +89,7 @@ method m5() { assert false; } //Remove3:
       "m4 m3 m1 m2");
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
     await TestPriorities(@"
 method m1() { assert false; }
@@ -137,7 +135,7 @@ method m5() { assert false; } //Remove4:
       try {
         var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
-        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+        Assert.True(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
           $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       } catch (OperationCanceledException) {

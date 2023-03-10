@@ -2,14 +2,12 @@ using System;
 using System.IO;
 using System.Text;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Xunit;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class StandaloneServerTest {
-
   private readonly TextWriter output;
 
   public StandaloneServerTest(ITestOutputHelper output) {
@@ -20,7 +18,7 @@ public class StandaloneServerTest {
   public void OptionParsing() {
     var arguments = new[] { "--documents:verify=onsave", "--verifier:timelimit=3", "--ghost:markStatements=true" };
     var options = Program.GetOptionsFromArgs(output, arguments);
-    Assert.AreEqual(VerifyOnMode.Save, options.Get(ServerCommand.Verification));
+    Assert.Equal(VerifyOnMode.Save, options.Get(ServerCommand.Verification));
   }
 }
 

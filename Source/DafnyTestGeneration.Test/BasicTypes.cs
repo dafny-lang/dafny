@@ -4,14 +4,12 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.IntegrationTest;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
   public class BasicTypes {
-
     private readonly TextWriter output;
 
     public BasicTypes(ITestOutputHelper output)
@@ -36,17 +34,17 @@ module SimpleTest {
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(3, methods.Count);
-      Assert.IsTrue(methods.All(m =>
+      Assert.Equal(3, methods.Count);
+      Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.compareToZero"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToZero")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "0"));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "0"));
+      Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "-[1-9][0-9]*")));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "[1-9][0-9]*")));
     }
 
@@ -64,14 +62,14 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(2, methods.Count);
-      Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.Equal(2, methods.Count);
+      Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.checkIfTrue")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "false"));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "true"));
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "false"));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "true"));
     }
 
     [Fact]
@@ -98,23 +96,23 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(7, methods.Count);
-      Assert.IsTrue(
+      Assert.Equal(7, methods.Count);
+      Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToZero"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToZero")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "0.0"));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "1.0"));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "-1.0"));
-      Assert.IsTrue(methods.Exists(m => Regex.IsMatch(m.ArgValues[0],
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "0.0"));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "1.0"));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "-1.0"));
+      Assert.True(methods.Exists(m => Regex.IsMatch(m.ArgValues[0],
         "-[1-9][0-9]*\\.[0-9]*/[1-9][0-9]*\\.[0-9]*")));
-      Assert.IsTrue(methods.Exists(m => Regex.IsMatch(m.ArgValues[0],
+      Assert.True(methods.Exists(m => Regex.IsMatch(m.ArgValues[0],
         "[1-9][0-9]*\\.[0-9]*/[1-9][0-9]*\\.[0-9]*")));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task BitVectors() {
       var source = @"
 module SimpleTest {
@@ -131,17 +129,17 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(DafnyOptions.Create(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(3, methods.Count);
-      Assert.IsTrue(
+      Assert.Equal(3, methods.Count);
+      Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToBase"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToBase")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "(10 as bv10)"));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "(10 as bv10)"));
+      Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "\\([0-9] as bv10\\)")));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "\\([1-9][0-9]+ as bv10\\)")));
     }
 
@@ -162,16 +160,16 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(3, methods.Count);
-      Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.Equal(3, methods.Count);
+      Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "'B'"));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "'B'"));
+      Assert.True(methods.Exists(m =>
         m.ArgValues[0].Length == 3 && m.ArgValues[0][1] > 'B'));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.Exists(m =>
         m.ArgValues[0].Length == 3 && m.ArgValues[0][1] < 'B'));
     }
 
@@ -193,14 +191,14 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.AreEqual(2, methods.Count);
-      Assert.IsTrue(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
-      Assert.IsTrue(methods.All(m =>
+      Assert.Equal(2, methods.Count);
+      Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
+      Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));
-      Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
-      Assert.IsTrue(methods.All(m => m.ValueCreation.Count == 0));
-      Assert.IsTrue(methods.Exists(m => m.ArgValues[0] == "'B'"));
-      Assert.IsTrue(methods.Exists(m =>
+      Assert.True(methods.All(m => m.ArgValues.Count == 1));
+      Assert.True(methods.All(m => m.ValueCreation.Count == 0));
+      Assert.True(methods.Exists(m => m.ArgValues[0] == "'B'"));
+      Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[0], "'[^B]'")));
     }
 

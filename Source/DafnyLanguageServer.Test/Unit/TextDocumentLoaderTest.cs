@@ -1,7 +1,6 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
@@ -9,10 +8,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
-  [TestClass]
   public class TextDocumentLoaderTest {
     private readonly TextWriter output;
 
@@ -27,11 +26,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     public TextDocumentLoaderTest(ITestOutputHelper output) {
       this.output = new WriterFromOutputHelper(output);
-    }
-
-
-    [TestInitialize]
-    public void SetUp() {
       parser = new();
       symbolResolver = new();
       symbolTableFactory = new();
@@ -40,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       logger = new Mock<ILoggerFactory>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
-        DafnyOptions.Create(output),
+        DafnyOptions.Create(this.output),
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,
@@ -59,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       });
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
@@ -69,13 +63,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         await task;
         Assert.Fail("document load was not cancelled");
       } catch (Exception e) {
-        Assert.IsInstanceOfType(e, typeof(OperationCanceledException));
-        Assert.IsTrue(task.IsCanceled);
-        Assert.IsFalse(task.IsFaulted);
+        Assert.IsType<TaskCanceledException>(e);
+        Assert.True(task.IsCanceled);
+        Assert.False(task.IsFaulted);
       }
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
       parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
@@ -84,9 +78,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         await task;
         Assert.Fail("document load did not fail");
       } catch (Exception e) {
-        Assert.IsNotInstanceOfType(e, typeof(OperationCanceledException));
-        Assert.IsFalse(task.IsCanceled);
-        Assert.IsTrue(task.IsFaulted);
+        Assert.IsType<InvalidOperationException>(e);
+        Assert.False(task.IsCanceled);
+        Assert.True(task.IsFaulted);
       }
     }
   }
