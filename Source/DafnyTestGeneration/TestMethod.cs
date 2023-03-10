@@ -499,8 +499,12 @@ namespace DafnyTestGeneration {
           variable.Children[field.name].Count == 1) {
         return ExtractVariable(variable.Children[field.name].First(), null);
       }
-      if (ValueCreation.Any(obj => obj.type.ToString() == field.type.ToString())) {
-        return ValueCreation.First(obj => obj.type.ToString() == field.type.ToString()).id;
+
+      var previouslyCreated = ValueCreation.FirstOrDefault(obj =>
+        DafnyModelTypeUtils.GetNonNullable(obj.type).ToString() ==
+        DafnyModelTypeUtils.GetNonNullable(field.type).ToString(), (null, null, null)).id;
+      if (previouslyCreated != null) {
+        return previouslyCreated;
       }
       return GetDefaultValue(field.type, field.type);
     }

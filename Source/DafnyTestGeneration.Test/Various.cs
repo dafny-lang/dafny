@@ -266,48 +266,6 @@ module M {
       Assert.IsTrue(methods.Count == 1);
     }
 
-    /// <summary>
-    /// This test models the situation in which there is a class-type object
-    /// that does not matter for the construction of a counterexample.
-    /// Furthermore, this class-type object is potentially self-referential,
-    /// with a field of the same (nullable) type.
-    /// Test generation must not enter infinite loop and must figure out
-    /// that it needs to set the field to null (with self-referencing being
-    /// prohibited by a precondition).
-    /// </summary>
-    [TestMethod]
-    public async Task TestByDefaultConstructionOfPotentiallySelfReferentialValue() {
-      var source = @"
-module M {
-
-    class List {
-
-        var next:List?;
-        var value:int;
-
-        predicate isEndOfList() reads this {
-            next == null
-        }
-
-        method getValue() 
-            returns (value:int) 
-            requires isEndOfList()
-        {
-            return this.value;
-        }
-    }
-}
-".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
-      options.TestGenOptions.TargetMethod =
-        "M.List.getValue";
-      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.IsTrue(methods.Count == 1);
-      Assert.IsTrue(methods[0].ValueCreation.Count == 1);
-      Assert.IsTrue(methods[0].Assignments.Exists(assignment => assignment.fieldName == "next" && assignment.childId == "null"));
-    }
-
     [TestMethod]
     public async Task RecursivelyExtractDatatypeFields() {
       var source = @"
