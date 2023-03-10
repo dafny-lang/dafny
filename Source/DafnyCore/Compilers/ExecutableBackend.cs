@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -48,6 +49,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     var psi = new ProcessStartInfo(programName) {
       UseShellExecute = false,
       CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
+      RedirectStandardOutput = true,
     };
     foreach (var arg in args ?? Enumerable.Empty<string>()) {
       psi.ArgumentList.Add(arg);
@@ -73,6 +75,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
 
     try {
       if (Process.Start(psi) is { } process) {
+        var output = process.StandardOutput.ReadToEnd();
+        outputWriter.Write(output);
         return process;
       }
     } catch (System.ComponentModel.Win32Exception e) {

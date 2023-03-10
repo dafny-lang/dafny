@@ -18,7 +18,7 @@ public class CppCompilerBackend : ExecutableBackend {
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Contract.Assert(assemblyLocation != null);
-    var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+    var codebase = Path.GetDirectoryName(assemblyLocation);
     Contract.Assert(codebase != null);
     compilationResult = null;
     var psi = PrepareProcessStartInfo("g++", new List<string> {

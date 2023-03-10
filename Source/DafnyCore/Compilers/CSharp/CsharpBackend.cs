@@ -44,7 +44,7 @@ public class CsharpBackend : ExecutableBackend {
         MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
-    var inMemory = runAfterCompile;
+    var inMemory = false;
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();
@@ -165,24 +165,9 @@ public class CsharpBackend : ExecutableBackend {
     if (crx.CompiledAssembly == null) {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
-    var entry = crx.CompiledAssembly.EntryPoint;
-    if (entry == null) {
-      throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
-    }
-    try {
-      // TODO, move
-      Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
-      object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { Options.MainArgs.ToArray() };
-      entry.Invoke(null, parameters);
-      return true;
-    } catch (System.Reflection.TargetInvocationException e) {
-      outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-      outputWriter.WriteLine(e.InnerException.ToString());
-    } catch (System.Exception e) {
-      outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-      outputWriter.WriteLine(e.ToString());
-    }
-    return false;
+
+    var psi = PrepareProcessStartInfo("dotnet", new[] {crx.CompiledAssembly.Location}.Concat(Options.MainArgs));
+    return RunProcess(psi, outputWriter) == 0;
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {
