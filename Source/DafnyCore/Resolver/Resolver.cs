@@ -328,23 +328,19 @@ namespace Microsoft.Dafny {
 
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
-      List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateLeft = new SpecialFunction(RangeToken.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false,
-        new List<TypeParameter>(), formals, new SelfType(),
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
-      rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
+      AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
+      AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
+    }
 
-      formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateRight = new SpecialFunction(RangeToken.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false,
-        new List<TypeParameter>(), formals, new SelfType(),
+    public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
+      var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
+      var rotateMember = new SpecialFunction(Token.NoToken, name, builtIns.SystemModule, false, false,
+        new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
-      rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
+      rotateMember.EnclosingClass = enclosingType;
+      rotateMember.AddVisibilityScope(builtIns.SystemModule.VisibilityScope, false);
+      enclosingType.Members.Add(name, rotateMember);
     }
 
     [ContractInvariantMethod]
