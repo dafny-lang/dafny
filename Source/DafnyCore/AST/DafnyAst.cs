@@ -127,7 +127,7 @@ namespace Microsoft.Dafny {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).AbsolutePath;
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
       this.ErrorReported = false;
       CompileIncludedCode = compileIncludedCode;
     }

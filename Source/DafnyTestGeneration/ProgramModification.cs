@@ -11,6 +11,20 @@ using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
 
 namespace DafnyTestGeneration {
+  public class Modifications {
+    private readonly Dictionary<string, ProgramModification> idToModification = new();
+    public ProgramModification GetProgramModification(DafnyOptions options, Program program,
+      Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
+      string uniqueId) {
+      if (!idToModification.ContainsKey(uniqueId)) {
+        idToModification[uniqueId] =
+          new ProgramModification(options, program, impl, coversBlocks, capturedStates, procedure, uniqueId);
+      }
+      return idToModification[uniqueId];
+    }
+
+    public IEnumerable<ProgramModification> Values => idToModification.Values;
+  }
 
   /// <summary>
   /// Records a modification of the boogie program under test. The modified
@@ -19,9 +33,6 @@ namespace DafnyTestGeneration {
   /// </summary>
   public class ProgramModification {
     public DafnyOptions Options { get; }
-
-    private static Dictionary<string, ProgramModification>
-      idToModification = new();
 
     private enum Status { Success, Failure, Untested }
 
@@ -37,17 +48,7 @@ namespace DafnyTestGeneration {
     private string/*?*/ counterexampleLog;
     private TestMethod testMethod;
 
-    public static ProgramModification GetProgramModification(DafnyOptions options, Program program,
-      Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
-      string uniqueId) {
-      if (!idToModification.ContainsKey(uniqueId)) {
-        idToModification[uniqueId] =
-          new ProgramModification(options, program, impl, coversBlocks, capturedStates, procedure, uniqueId);
-      }
-      return idToModification[uniqueId];
-    }
-
-    private ProgramModification(DafnyOptions options, Program program, Implementation impl,
+    public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<int> coversBlocks, HashSet<string> capturedStates,
       string procedure, string uniqueId) {
       Options = options;
@@ -104,9 +105,9 @@ namespace DafnyTestGeneration {
     /// version of the original boogie program. Return null if this
     /// counterexample does not cover any new SourceModifications.
     /// </summary>
-    public async Task<string>/*?*/ GetCounterExampleLog() {
+    public async Task<string>/*?*/ GetCounterExampleLog(Modifications cache) {
       if (counterexampleStatus != Status.Untested ||
-          (coversBlocks.Count != 0 && IsCovered)) {
+          (coversBlocks.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
       var options = SetupOptions(Options, procedure);
@@ -168,12 +169,12 @@ namespace DafnyTestGeneration {
       return counterexampleLog;
     }
 
-    public async Task<TestMethod> GetTestMethod(DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
+    public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.TestGenOptions.Verbose) {
         Console.WriteLine(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
-      var log = await GetCounterExampleLog();
+      var log = await GetCounterExampleLog(cache);
       if (log == null) {
         return null;
       }
@@ -181,7 +182,7 @@ namespace DafnyTestGeneration {
       if (!testMethod.IsValid || !returnNullIfNotUnique) {
         return testMethod;
       }
-      var duplicate = ModificationsForImplementation(implementation)
+      var duplicate = ModificationsForImplementation(cache, implementation)
         .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
         .FirstOrDefault((ProgramModification)null);
       if (duplicate == null) {
@@ -198,21 +199,19 @@ namespace DafnyTestGeneration {
       return null;
     }
 
-    private IEnumerable<ProgramModification> ModificationsForImplementation(Implementation implementation) =>
-      idToModification.Values.Where(modification =>
-        modification.implementation == implementation ||
-        Options.TestGenOptions.TargetMethod != null);
-
-    private bool BlocksAreCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
-      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
+    private bool BlocksAreCovered(Modifications cache, Implementation implementation,
+      HashSet<int> blockIds, bool onlyIfTestsExists = false) {
+      var relevantModifications = ModificationsForImplementation(cache, implementation).Where(modification =>
         modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.All(blockId =>
         relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
     }
-    public bool IsCovered => BlocksAreCovered(implementation, coversBlocks);
 
-    public static void ResetStatistics() {
-      idToModification = new();
-    }
+    private IEnumerable<ProgramModification> ModificationsForImplementation(Modifications cache, Implementation implementation) =>
+      cache.Values.Where(modification =>
+        modification.implementation == implementation ||
+        Options.TestGenOptions.TargetMethod != null);
+
+    public bool IsCovered(Modifications cache) => BlocksAreCovered(cache, implementation, coversBlocks);
   }
 }
