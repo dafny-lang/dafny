@@ -146,6 +146,7 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
 true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
