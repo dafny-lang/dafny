@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -7,9 +6,10 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
-  [TestClass]
   public class CodeActionTest : ClientBasedLanguageServerTest {
     private async Task<List<CommandOrCodeAction>> RequestCodeActionAsync(TextDocumentItem documentItem, Range range) {
       var completionList = await client.RequestCodeAction(
@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
       return await client.ResolveCodeAction(codeAction, CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsRemovingUnderscore() {
       await TestCodeAction(@"
 method Foo()
@@ -35,7 +35,7 @@ method Foo()
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostCondition() {
       await TestCodeAction(@"
 method f() returns (i: int)
@@ -45,7 +45,7 @@ method f() returns (i: int)
 <)}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionInIfStatement() {
       await TestCodeAction(@"
 method f(b: bool) returns (i: int)
@@ -59,7 +59,7 @@ method f(b: bool) returns (i: int)
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
       await TestCodeAction(@"
 const x := 1;
@@ -69,7 +69,7 @@ const x := 1;
   <)}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t";
       await TestCodeAction($@"
@@ -80,7 +80,7 @@ const x := 1;
 {t}{t}{t}<)}}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
       await TestCodeAction(@"
 const x := 1;
@@ -91,7 +91,7 @@ const x := 1;
 <)}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
       await TestCodeAction(@"
 const x := 1;
@@ -104,7 +104,7 @@ const x := 1;
     }
 
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
       await TestCodeAction(@"
 const x := 1;
@@ -114,7 +114,7 @@ const x := 1;
   <)}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
       await TestCodeAction(@"
 const x := 1;
@@ -125,7 +125,7 @@ const x := 1;
   <)}");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task RemoveAbstractFromClass() {
       await TestCodeAction(@"
 (>remove 'abstract'->:::abstract <)class Foo {
@@ -137,15 +137,17 @@ const x := 1;
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
-      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions, out var ranges);
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
+        out var ranges);
       var documentItem = CreateTestDocument(output);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(ranges.Count, diagnostics.Length);
+      Assert.Equal(ranges.Count, diagnostics.Length);
 
       if (positions.Count != ranges.Count) {
         positions = ranges.Select(r => r.Range.Start).ToList();
       }
+
       foreach (var actionData in positions.Zip(ranges)) {
         var position = actionData.First;
         var split = actionData.Second.Annotation.Split("->");
@@ -162,17 +164,17 @@ const x := 1;
               found = true;
               codeAction = await RequestResolveCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
-              Assert.IsNotNull(textDocumentEdit);
+              Assert.NotNull(textDocumentEdit);
               var edit = textDocumentEdit.Edits.Single();
-              Assert.AreEqual(
+              Assert.Equal(
                 NewlineRegex.Replace(expectedNewText, "\n"),
                 NewlineRegex.Replace(edit.NewText, "\n"));
-              Assert.AreEqual(expectedRange, edit.Range);
+              Assert.Equal(expectedRange, edit.Range);
             }
           }
         }
 
-        Assert.IsTrue(found,
+        Assert.True(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
     }
