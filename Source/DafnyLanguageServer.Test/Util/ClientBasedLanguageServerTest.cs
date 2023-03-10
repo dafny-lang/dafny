@@ -64,7 +64,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase {
     Diagnostic[] result;
     do {
       result = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(cancellationToken);
-    } while (!document!.Diagnostics.SequenceEqual(result));
+    } while (!document!.Diagnostics.Select(d => d.ToLspDiagnostic()).SequenceEqual(result));
 
     return result;
   }
