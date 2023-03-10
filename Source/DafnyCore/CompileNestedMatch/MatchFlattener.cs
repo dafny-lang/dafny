@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny; 
 
@@ -114,7 +114,7 @@ public class MatchFlattener : IRewriter {
     if (compiledMatch.Node is Expression expression) {
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
       return expression;
@@ -143,7 +143,7 @@ public class MatchFlattener : IRewriter {
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
 

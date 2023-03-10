@@ -2,6 +2,10 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Looks for every non-ghost comprehensions, and if they are using a subset type,
+/// check that the subset constraint is compilable. If it is not compilable, raises an error.
+/// </summary>
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   public class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
@@ -9,9 +13,9 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     public bool Collected = false;
 
     public bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      return Message(source, level, ErrorDetail.ErrorID.None, tok, msg);
+      return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
-    public override bool Message(MessageSource source, ErrorLevel level, ErrorDetail.ErrorID errorID, IToken tok, string msg) {
+    public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (!Collected && level == ErrorLevel.Error) {
         FirstCollectedMessage = msg;
         FirstCollectedToken = tok;
