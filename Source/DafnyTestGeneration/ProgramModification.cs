@@ -127,7 +127,7 @@ namespace DafnyTestGeneration {
       counterexampleStatus = Status.Failure;
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
-        if (options.TestGenOptions.Verbose) {
+        if (Options.TestGenOptions.Verbose) {
           Console.WriteLine(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
@@ -143,13 +143,13 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (options.TestGenOptions.Verbose &&
-              options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
+          if (Options.TestGenOptions.Verbose &&
+              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
             Console.WriteLine($"// Test targeting block {uniqueId} also covers block {blockId}");
           }
         }
       }
-      if (options.TestGenOptions.Verbose && counterexampleLog == null) {
+      if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
