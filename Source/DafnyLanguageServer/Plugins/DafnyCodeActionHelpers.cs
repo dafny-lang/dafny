@@ -93,7 +93,7 @@ public static class DafnyCodeActionHelpers {
       return null;
     }
 
-    return new DafnyCodeActionEdit(beforeEndBrace.ToDafnyRange(),
+    return new DafnyCodeActionEdit(beforeEndBrace,
       $"{indentationExtra}{statementsToInsert}\n{indentationUntilBrace}");
   }
 

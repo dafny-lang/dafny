@@ -14,7 +14,11 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd);
 /// </summary>
 /// <param name="Range">The range to replace. The start is given by the token's start, and the length is given by the val's length.</param>
 /// <param name="Replacement"></param>
-public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "");
+public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
+  public DafnyCodeActionEdit(RangeToken rangeToken, string replacement = "", bool includeTrailingWhitespace = false)
+    : this(rangeToken.ToDafnyRange(includeTrailingWhitespace), replacement) {
+  }
+}
 
 public delegate List<DafnyAction> ActionSignature(RangeToken range);
 
@@ -44,7 +48,7 @@ public static class ErrorRegistry {
     return range => {
       var actions = new List<DafnyAction>();
       foreach (var replacement in replacements) {
-        var edit = new[] { new DafnyCodeActionEdit(range.ToDafnyRange(), replacement.NewContent) };
+        var edit = new[] { new DafnyCodeActionEdit(range, replacement.NewContent) };
         var action = new DafnyAction(replacement.Title, edit);
         actions.Add(action);
       }
@@ -79,7 +83,7 @@ public static class ErrorRegistry {
   }
 
   private static List<DafnyAction> ReplacementAction(string title, RangeToken range, string newText) {
-    var edit = new[] { new DafnyCodeActionEdit(range.ToDafnyRange(), newText) };
+    var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }
@@ -87,19 +91,17 @@ public static class ErrorRegistry {
   private static List<DafnyAction> ReplacementAction(RangeToken range, string newText) {
     string toBeReplaced = range.PrintOriginal();
     string title = "replace '" + toBeReplaced + "' with '" + newText + "'";
-    var edit = new[] { new DafnyCodeActionEdit(range.ToDafnyRange(), newText) };
-    var action = new DafnyAction(title, edit);
-    return new List<DafnyAction> { action };
+    return ReplacementAction(title, range, newText);
   }
 
   private static List<DafnyAction> InsertAction(string title, RangeToken range, string newText) {
-    var edits = new[] { new DafnyCodeActionEdit(range.ToDafnyRange(), newText) };
+    var edits = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edits);
     return new List<DafnyAction> { action };
   }
 
   private static List<DafnyAction> RemoveAction(string title, RangeToken range, bool includeTrailingSpaces) {
-    var edit = new[] { new DafnyCodeActionEdit(range.ToDafnyRange(includeTrailingSpaces), "") };
+    var edit = new[] { new DafnyCodeActionEdit(range, "", includeTrailingSpaces) };
     var action = new DafnyAction(title, edit);
     return new List<DafnyAction> { action };
   }

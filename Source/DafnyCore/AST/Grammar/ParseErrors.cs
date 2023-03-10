@@ -126,7 +126,7 @@ In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
 ", range => new List<DafnyAction> { new("remove underscore",
     new [] {
-      new DafnyCodeActionEdit(range.ToDafnyRange(), range.PrintOriginal().Substring(1))
+      new DafnyCodeActionEdit(range, range.PrintOriginal().Substring(1))
     })
   });
 
