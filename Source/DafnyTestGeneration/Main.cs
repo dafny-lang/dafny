@@ -83,8 +83,8 @@ namespace DafnyTestGeneration {
         var targetFound = boogiePrograms.Any(program =>
           program.Implementations.Any(i =>
             i.Name.StartsWith("Impl$$") &&
-            i.VerboseName
-              .StartsWith(options.TestGenOptions.TargetMethod)));
+            i.VerboseName.Split(" ")[0]
+            == options.TestGenOptions.TargetMethod));
         if (!targetFound) {
           options.Printer.ErrorWriteLine(Console.Error,
             "Error: Cannot find method " +

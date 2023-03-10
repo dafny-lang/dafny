@@ -49,8 +49,8 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.TargetMethod != null) {
         ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
           i.Name.StartsWith("Impl$$")
-          && i.VerboseName.StartsWith(
-            options.TestGenOptions.TargetMethod));
+          && i.VerboseName.Split(" ")[0]
+          == options.TestGenOptions.TargetMethod);
       }
       var callGraphVisitor = new CallGraph();
       callGraphVisitor.VisitProgram(program);
