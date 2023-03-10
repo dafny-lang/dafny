@@ -12,7 +12,7 @@ NoMoreAssume2Less2.dfy(92,18): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(95,11): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(104,11): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(110,11): Error: assertion might not hold
-NoMoreAssume2Less2.dfy(78,20): Related location
+NoMoreAssume2Less2.dfy(78,26): Related location
 NoMoreAssume2Less2.dfy(113,11): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(119,19): Error: assertion might not hold
 NoMoreAssume2Less2.dfy(135,16): Error: this loop invariant could not be proved on entry

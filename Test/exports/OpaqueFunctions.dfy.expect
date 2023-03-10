@@ -1,4 +1,4 @@
-OpaqueFunctions.dfy(16,11): Error: a postcondition could not be proved on this return path
+OpaqueFunctions.dfy(16,17): Error: a postcondition could not be proved on this return path
 OpaqueFunctions.dfy(17,14): Related location: this is the postcondition that could not be proved
 OpaqueFunctions.dfy(58,2): Error: a postcondition could not be proved on this return path
 OpaqueFunctions.dfy(57,16): Related location: this is the postcondition that could not be proved

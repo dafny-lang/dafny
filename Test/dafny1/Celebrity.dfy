@@ -3,10 +3,10 @@
 
 // Celebrity example, inspired by the Rodin tutorial
 
-predicate method Knows<X>(a: X, b: X)
+predicate Knows<X>(a: X, b: X)
   requires a != b  // forbid asking about the reflexive case
 
-predicate IsCelebrity<Y>(c: Y, people: set<Y>)
+ghost predicate IsCelebrity<Y>(c: Y, people: set<Y>)
 {
   c in people &&
   forall p :: p in people && p != c ==> Knows(p, c) && !Knows(c, p)

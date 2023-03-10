@@ -55,23 +55,23 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(string source, string fileName = "") {
+    public static Program/*?*/ Parse(DafnyOptions options, string source, string fileName = "") {
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      var builtIns = new BuiltIns();
-      var reporter = new ConsoleErrorReporter();
+      var builtIns = new BuiltIns(options);
+      var reporter = new ConsoleErrorReporter(options);
       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = new Program(fileName, module, builtIns, reporter, DafnyOptions.Create());
+        program = new Program(fileName, module, builtIns, reporter);
       }
       if (program == null) {
         return null;
       }
       // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter()).PreResolve(program);
-      program.Reporter = new ErrorReporterSink();
+      new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
+      program.Reporter = new ErrorReporterSink(options);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
@@ -79,9 +79,8 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Deep clone a Boogie program.
     /// </summary>
-    public static Microsoft.Boogie.Program
-      DeepCloneProgram(Microsoft.Boogie.Program program) {
-      var textRepresentation = GetStringRepresentation(program);
+    public static Microsoft.Boogie.Program DeepCloneProgram(DafnyOptions options, Microsoft.Boogie.Program program) {
+      var textRepresentation = GetStringRepresentation(options, program);
       Microsoft.Boogie.Parser.Parse(textRepresentation, "", out var copy);
       return copy;
     }
@@ -89,23 +88,22 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Deep clone and re-resolve a Boogie program.
     /// </summary>
-    public static Microsoft.Boogie.Program
-      DeepCloneProgramAndReresolve(Microsoft.Boogie.Program program, DafnyOptions options) {
-      program = DeepCloneProgram(program);
+    public static Microsoft.Boogie.Program DeepCloneResolvedProgram(Microsoft.Boogie.Program program, DafnyOptions options) {
+      program = DeepCloneProgram(options, program);
       program.Resolve(options);
       program.Typecheck(options);
       return program;
     }
 
-    public static string GetStringRepresentation(Microsoft.Boogie.Program program) {
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      var oldPrintFile = DafnyOptions.O.PrintFile;
-      DafnyOptions.O.PrintInstrumented = true;
-      DafnyOptions.O.PrintFile = "-";
+    public static string GetStringRepresentation(DafnyOptions options, Microsoft.Boogie.Program program) {
+      var oldPrintInstrumented = options.PrintInstrumented;
+      var oldPrintFile = options.PrintFile;
+      options.PrintInstrumented = true;
+      options.PrintFile = "-";
       var output = new StringWriter();
-      program.Emit(new TokenTextWriter(output, DafnyOptions.O));
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
-      DafnyOptions.O.PrintFile = oldPrintFile;
+      program.Emit(new TokenTextWriter(output, options));
+      options.PrintInstrumented = oldPrintInstrumented;
+      options.PrintFile = oldPrintFile;
       return output.ToString();
     }
 

@@ -84,5 +84,6 @@ public class TupleTypeDecl : IndDatatypeDecl {
 
   public override string SanitizedName =>
     sanitizedName ??= $"Tuple{BuiltIns.ArgumentGhostnessToString(ArgumentGhostness)}";
-  public override string CompileName => NonGhostTupleTypeDecl?.CompileName ?? $"Tuple{NonGhostDims}";
+
+  public override string GetCompileName(DafnyOptions options) => NonGhostTupleTypeDecl?.GetCompileName(options) ?? $"Tuple{NonGhostDims}";
 }

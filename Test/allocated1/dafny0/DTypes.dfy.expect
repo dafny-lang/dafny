@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 DTypes.dfy(214,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'm' to have the value 'null', declare its type to be 'MyClass?')
 DTypes.dfy(215,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'b' to have the value 'null', declare its type to be 'Cell?<MyClass>')
 DTypes.dfy(222,14): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'm' to have the value 'null', declare its type to be 'MyClass?')

@@ -1,6 +1,6 @@
 TraitOverride1.dfy(200,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
 TraitOverride1.dfy(205,2): Error: a postcondition could not be proved on this return path
 TraitOverride1.dfy(204,40): Related location: this is the postcondition that could not be proved
-TraitOverride1.dfy(188,26): Related location
+TraitOverride1.dfy(188,32): Related location
 
 Dafny program verifier finished with 29 verified, 2 errors

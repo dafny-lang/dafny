@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class {:autocontracts} Thing {
-    predicate Valid() {
+    ghost predicate Valid() {
         true
     }
 }

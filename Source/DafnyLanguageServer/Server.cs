@@ -14,8 +14,6 @@ namespace Microsoft.Dafny.LanguageServer {
   public class Server {
 
     public static async Task Start(DafnyOptions dafnyOptions) {
-      DafnyOptions.Install(dafnyOptions);
-
       var configuration = CreateConfiguration();
       InitializeLogger(configuration);
       try {

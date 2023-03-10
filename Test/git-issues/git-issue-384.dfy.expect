@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 git-issue-384.dfy(13,2): Error: a postcondition could not be proved on this return path
 git-issue-384.dfy(12,12): Related location: this is the postcondition that could not be proved
 

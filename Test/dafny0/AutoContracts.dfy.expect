@@ -32,10 +32,10 @@ module _System {
   */
 
   class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
+    ghost function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    ghost function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -48,10 +48,10 @@ module _System {
     /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
-    function requires(): bool
+    ghost function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    ghost function reads(): set<object?>
       reads reads()
   }
 
@@ -81,9 +81,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function RotateRight(w: nat): selftype
   }
 
   type map<T, U> {
@@ -136,7 +136,7 @@ module OneModule {
   class {:autocontracts} D {
     ghost var Repr: set<object?>
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       decreases Repr + {this}
@@ -157,7 +157,7 @@ module OneModule {
     var {:autocontracts false} ee: D?
     var arr: array?<C?>
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       decreases Repr + {this}
@@ -222,7 +222,7 @@ module OneModule {
       d := data;
     }
 
-    function F(): nat
+    ghost function F(): nat
       requires Valid()
       reads Repr
       decreases Repr
@@ -230,7 +230,7 @@ module OneModule {
       data
     }
 
-    predicate P()
+    ghost predicate P()
       requires Valid()
       reads Repr
       decreases Repr
@@ -325,7 +325,7 @@ module N0 {
     {
     }
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       decreases Repr + {this}
@@ -444,7 +444,7 @@ module N1 refines N0 {
     {
     }
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       decreases Repr + {this}
@@ -546,7 +546,7 @@ module N2 refines N1 {
     {
     }
 
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       decreases Repr + {this}
@@ -564,28 +564,28 @@ module N2 refines N1 {
 }
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(12,20): Related location
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy(12,14): Related location
-AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy(12,14): Related location
-AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy(12,14): Related location
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(5,25): Related location
 AutoContracts.dfy(50,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(49,24): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,14): Related location
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,14): Related location
+AutoContracts.dfy[N1](65,20): Related location
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy[N1](65,20): Related location
 
 Dafny program verifier finished with 37 verified, 9 errors

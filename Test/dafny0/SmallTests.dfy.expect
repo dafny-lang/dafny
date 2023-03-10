@@ -1,7 +1,11 @@
+SmallTests.dfy(920,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
+SmallTests.dfy(926,4): Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(909,14): Error: target object might be null
 SmallTests.dfy(901,14): Error: target object might be null
+SmallTests.dfy(920,10): Error: assertion might not hold
+SmallTests.dfy(926,10): Error: assertion might not hold
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
@@ -40,7 +44,7 @@ SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion might not hold
 SmallTests.dfy(386,9): Error: assertion might not hold
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,9): Error: a postcondition could not be proved on this return path
+SmallTests.dfy(440,15): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proved
 SmallTests.dfy(604,11): Error: assertion might not hold
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
@@ -53,8 +57,8 @@ SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that 
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 56 verified, 48 errors
-SmallTests.dfy.tmp.dprint.dfy(803,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+Dafny program verifier finished with 56 verified, 50 errors
+SmallTests.dfy.tmp.dprint.dfy(818,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification

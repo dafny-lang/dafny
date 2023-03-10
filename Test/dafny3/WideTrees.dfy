@@ -5,18 +5,18 @@ codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 datatype Tree = Node(children: Stream<Tree>)
 
 // return an infinite stream of trees
-function BigTree(): Tree
+ghost function BigTree(): Tree
 {
   Node(BigTrees())
 }
-function BigTrees(): Stream<Tree>
+ghost function BigTrees(): Stream<Tree>
   decreases 0;
 {
   SCons(BigTree(), BigTrees())
 }
 
 // say whether a tree has finite height
-predicate HasBoundedHeight(t: Tree)
+ghost predicate HasBoundedHeight(t: Tree)
 {
   exists n :: 0 <= n && LowerThan(t.children, n)
 }
@@ -29,11 +29,11 @@ greatest predicate LowerThan(s: Stream<Tree>, n: nat)
 }
 
 // return a finite tree
-function SmallTree(n: nat): Tree
+ghost function SmallTree(n: nat): Tree
 {
   Node(SmallTrees(n))
 }
-function SmallTrees(n: nat): Stream<Tree>
+ghost function SmallTrees(n: nat): Stream<Tree>
   decreases -1;
 {
   if n == 0 then SNil else SCons(SmallTree(n-1), SmallTrees(n))

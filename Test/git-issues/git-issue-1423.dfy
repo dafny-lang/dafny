@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate P(s: seq)
+ghost predicate P(s: seq)
 
 method M(s: seq<int>, i: nat, v: int, n: nat)
   requires i < n <= |s|

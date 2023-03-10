@@ -105,10 +105,10 @@ public class ForallStmtRewriter : IRewriter {
                     var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
                       j.Name,
                       j.Type.ToString(),
-                      Printer.AttributesToString(attributes),
-                      Printer.ExprToString(val.Range),
-                      Printer.ExprToString(lhs),
-                      Printer.ExprToString(newRhs));
+                      Printer.AttributesToString(reporter.Options, attributes),
+                      Printer.ExprToString(reporter.Options, val.Range),
+                      Printer.ExprToString(reporter.Options, lhs),
+                      Printer.ExprToString(reporter.Options, newRhs));
                     reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
                     var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range,

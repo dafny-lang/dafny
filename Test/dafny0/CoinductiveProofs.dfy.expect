@@ -1,5 +1,5 @@
 CoinductiveProofs.dfy(30,11): Error: assertion might not hold
-CoinductiveProofs.dfy(15,36): Related location
+CoinductiveProofs.dfy(15,42): Related location
 CoinductiveProofs.dfy(13,16): Related location
 CoinductiveProofs.dfy(44,11): Error: assertion might not hold
 CoinductiveProofs.dfy(48,11): Error: assertion might not hold
@@ -8,13 +8,13 @@ CoinductiveProofs.dfy(78,0): Error: a postcondition could not be proved on this 
 CoinductiveProofs.dfy(77,10): Related location: this is the postcondition that could not be proved
 CoinductiveProofs.dfy(73,2): Related location
 CoinductiveProofs.dfy(94,11): Error: assertion might not hold
-CoinductiveProofs.dfy(87,29): Related location
+CoinductiveProofs.dfy(87,35): Related location
 CoinductiveProofs.dfy(73,2): Related location
 CoinductiveProofs.dfy(127,0): Error: a postcondition could not be proved on this return path
 CoinductiveProofs.dfy(126,10): Related location: this is the postcondition that could not be proved
 CoinductiveProofs.dfy(115,2): Related location
 CoinductiveProofs.dfy(136,11): Error: assertion might not hold
-CoinductiveProofs.dfy(117,29): Related location
+CoinductiveProofs.dfy(117,35): Related location
 CoinductiveProofs.dfy(115,2): Related location
 CoinductiveProofs.dfy(149,11): Error: assertion might not hold
 CoinductiveProofs.dfy(115,2): Related location

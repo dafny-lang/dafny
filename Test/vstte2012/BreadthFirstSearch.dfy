@@ -5,18 +5,18 @@ class BreadthFirstSearch<Vertex(==)>
 {
   // The following function is left uninterpreted (for the purpose of the
   // verification problem, it can be thought of as a parameter to the class)
-  function method Succ(x: Vertex): set<Vertex>
+  function Succ(x: Vertex): set<Vertex>
 
   // This is the definition of what it means to be a path "p" from vertex
   // "source" to vertex "dest"
-  predicate IsPath(source: Vertex, dest: Vertex, p: List<Vertex>)
+  ghost predicate IsPath(source: Vertex, dest: Vertex, p: List<Vertex>)
   {
     match p
     case Nil => source == dest
     case Cons(v, tail) => dest in Succ(v) && IsPath(source, v, tail)
   }
 
-  predicate IsClosed(S: set<Vertex>)  // says that S is closed under Succ
+  ghost predicate IsClosed(S: set<Vertex>)  // says that S is closed under Succ
   {
     forall v :: v in S ==> Succ(v) <= S
   }
@@ -111,10 +111,7 @@ class BreadthFirstSearch<Vertex(==)>
         C, N, d := N, {}, d+1;
       }
 
-      assert dest in R(source, d, AllVertices) ==> dest in C by { reveal R(); }
-      assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
       assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
-      assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
     }
 
     // show that "dest" in not in any reachability set, no matter
@@ -163,13 +160,13 @@ class BreadthFirstSearch<Vertex(==)>
 
   // Reachability
 
-  opaque function R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
+  ghost opaque function R(source: Vertex, n: nat, AllVertices: set<Vertex>): set<Vertex>
   {
     if n == 0 then {source} else
     R(source, n-1, AllVertices) + Successors(R(source, n-1, AllVertices), AllVertices)
   }
 
-  function Successors(S: set<Vertex>, AllVertices: set<Vertex>): set<Vertex>
+  ghost function Successors(S: set<Vertex>, AllVertices: set<Vertex>): set<Vertex>
   {
     set w | w in AllVertices && exists x :: x in S && w in Succ(x)
   }
@@ -212,12 +209,12 @@ class BreadthFirstSearch<Vertex(==)>
 
   // ValidMap encodes the consistency of maps (think, invariant).
   // An explanation of this idiom is explained in the README file.
-  predicate ValidMap(source: Vertex, m: map<Vertex, List<Vertex>>)
+  ghost predicate ValidMap(source: Vertex, m: map<Vertex, List<Vertex>>)
   {
     forall v :: v in m ==> IsPath(source, v, m[v])
   }
 
-  function Find(source: Vertex, x: Vertex, m: map<Vertex, List<Vertex>>): List<Vertex>
+  ghost function Find(source: Vertex, x: Vertex, m: map<Vertex, List<Vertex>>): List<Vertex>
     requires ValidMap(source, m) && x in m;
     ensures IsPath(source, x, Find(source, x, m));
   {
@@ -248,14 +245,14 @@ class BreadthFirstSearch<Vertex(==)>
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function length(list: List): nat
+ghost function length(list: List): nat
 {
   match list
   case Nil => 0
   case Cons(_, tail) => 1 + length(tail)
 }
 
-function elements<T>(list: List<T>): set<T>
+ghost function elements<T>(list: List<T>): set<T>
 {
   match list
   case Nil => {}
