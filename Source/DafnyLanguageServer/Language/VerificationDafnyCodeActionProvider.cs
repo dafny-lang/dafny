@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Plugins;
-using Microsoft.Dafny.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -16,9 +13,10 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input, Diagnostic diagnostic, Range selection) {
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    DafnyDiagnostic diagnostic, Range selection) {
     var uri = input.Uri;
-    if (diagnostic.Source != MessageSource.Verifier.ToString()) {
+    if (diagnostic.Source != MessageSource.Verifier) {
       return null;
     }
 
@@ -26,13 +24,14 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    if (relatedInformation.Location.Uri != uri) {
+    if (relatedInformation.Token.filename != uri) {
       return null;
     }
 
-    var expression = input.Extract(relatedInformation.Location.Range);
+    var range = relatedInformation.Token.ToRange();
+    var expression = range.PrintOriginal();
     var statement = $"assert {expression};";
-    var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Range.Start, statement);
+    var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Token.GetLspPosition(), statement);
     if (edit == null) {
       return null;
     }
@@ -40,7 +39,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
     return new DafnyCodeAction[] {
       new InstantDafnyCodeAction(
         "Assert postcondition at return location where it fails",
-        new List<Diagnostic>(){diagnostic},
+        new List<Diagnostic>(){diagnostic.ToLspDiagnostic()},
         new[] { edit }
       )
     };
