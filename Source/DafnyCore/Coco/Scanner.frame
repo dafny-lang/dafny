@@ -38,7 +38,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 
 -->namespace
@@ -451,11 +451,11 @@ public class Scanner {
           } catch (FormatException) {
             // just fall down through to produce an error message
           }
-          this.errorHandler.SemErr(ErrorDetail.ErrorID.sc_malformed_pragma, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
+          this.errorHandler.SemErr(ParseErrors.ErrorId.sc_malformed_pragma, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
           continue;
           }
 
-          this.errorHandler.SemErr(ErrorDetail.ErrorID.sc_unknown_pragma, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
+          this.errorHandler.SemErr(ParseErrors.ErrorId.sc_unknown_pragma, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
           continue;
         }
         return;
