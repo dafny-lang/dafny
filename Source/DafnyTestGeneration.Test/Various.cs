@@ -261,7 +261,7 @@ module M {
       options.TestGenOptions.TargetMethod =
         "M.LoopingList.getValue";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(1, methods.Count);
+      Assert.Single(methods);
     }
 
     [Fact]
