@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
       foreach (var rewriter in rewriters) {
         rewriter.PreResolve(prog);
@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
       scope.PopMarker();
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, isAnExport);
+        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, m.Name, isAnExport);
       }
 
       Type.PopScope(moduleInfo.VisibilityScope);
@@ -2291,7 +2291,10 @@ namespace Microsoft.Dafny {
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, bool isAnExport = false) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
+      Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
+      string moduleName, bool isAnExport = false) {
+
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
@@ -2309,15 +2312,22 @@ namespace Microsoft.Dafny {
       // * perform substitution for DefaultValueExpression's
       // ----------------------------------------------------------------------------
 
-      // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
-      // and type inference depends on having resolved names.
-      // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
-      // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
-      // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
-      // in time.
-      // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
-      ResolveNamesAndInferTypes(declarations, true);
-      ResolveNamesAndInferTypes(declarations, false);
+      if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        // Resolve all names and infer types.
+        var preTypeResolver = new PreTypeResolver(this);
+        preTypeResolver.ResolveDeclarations(declarations, moduleName);
+
+      } else {
+        // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
+        // and type inference depends on having resolved names.
+        // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
+        // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
+        // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
+        // in time.
+        // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
+        ResolveNamesAndInferTypes(declarations, true);
+        ResolveNamesAndInferTypes(declarations, false);
+      }
 
       // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {

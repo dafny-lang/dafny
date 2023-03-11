@@ -75,6 +75,7 @@ public interface ICommandSpec {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.ErrorLimit,
   });
 
