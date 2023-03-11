@@ -4048,12 +4048,12 @@ namespace Microsoft.Dafny {
               if (methodCallInfo == null) {
                 reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
+                reporter.Error(MessageSource.Resolver, methodCallInfo.RangeToken, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
+                reporter.Error(MessageSource.Resolver, methodCallInfo.RangeToken, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.RangeToken);
                 s.ResolvedStatements.Add(call);
               }
             } else if (expr is NameSegment or ExprDotName) {
@@ -6499,8 +6499,7 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
-                var tok = Options.Get(DafnyConsolePrinter.ShowSnippets) ? e.RangeToken.ToToken() : e.tok;
-                var cRhs = new MethodCallInformation(tok, mse, e.Bindings.ArgumentBindings);
+                var cRhs = new MethodCallInformation(e.RangeToken, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
@@ -6729,24 +6728,24 @@ namespace Microsoft.Dafny {
   }
 
   public class MethodCallInformation {
-    public readonly IToken Tok;
+    public readonly RangeToken RangeToken;
     public readonly MemberSelectExpr Callee;
     public readonly List<ActualBinding> ActualParameters;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Tok != null);
+      Contract.Invariant(RangeToken != null);
       Contract.Invariant(Callee != null);
       Contract.Invariant(Callee.Member is Method);
       Contract.Invariant(ActualParameters != null);
     }
 
-    public MethodCallInformation(IToken tok, MemberSelectExpr callee, List<ActualBinding> actualParameters) {
-      Contract.Requires(tok != null);
+    public MethodCallInformation(RangeToken rangeToken, MemberSelectExpr callee, List<ActualBinding> actualParameters) {
+      Contract.Requires(rangeToken != null);
       Contract.Requires(callee != null);
       Contract.Requires(callee.Member is Method);
       Contract.Requires(actualParameters != null);
-      this.Tok = tok;
+      this.RangeToken = rangeToken;
       this.Callee = callee;
       this.ActualParameters = actualParameters;
     }

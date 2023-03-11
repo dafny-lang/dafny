@@ -142,7 +142,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
       } else { // it might be ok, if it is a TypeRhs
         Contract.Assert(Rhss.Count == 1);
         if (methodCallInfo != null) {
-          resolver.reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "cannot have method call in return statement.");
+          resolver.reporter.Error(MessageSource.Resolver, methodCallInfo.RangeToken, "cannot have method call in return statement.");
         } else {
           // we have a TypeRhs
           Contract.Assert(Rhss[0] is TypeRhs);
@@ -176,7 +176,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.RangeToken);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }
