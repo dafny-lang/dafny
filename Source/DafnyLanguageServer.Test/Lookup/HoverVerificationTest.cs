@@ -65,7 +65,7 @@ Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 4 in method Abs  
+This is assertion #1 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
