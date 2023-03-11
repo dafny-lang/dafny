@@ -5,13 +5,10 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
-using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
   public abstract class ResolverPass {
