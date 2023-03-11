@@ -3961,7 +3961,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    internal Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);

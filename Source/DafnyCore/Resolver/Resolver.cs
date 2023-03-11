@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
-    ModuleSignature moduleInfo = null;
+    internal ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsRevealedInScope(moduleInfo.VisibilityScope);
     }
 
-    private bool VisibleInScope(Declaration d) {
+    internal bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
+    internal class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
     {
       public static MemberDecl Create(ModuleDefinition m, MemberDecl a, MemberDecl b) {
         ISet<MemberDecl> s;
@@ -233,11 +233,11 @@ namespace Microsoft.Dafny {
       None
     } // note, these are ordered, so they can be used as indices into valuetypeDecls
 
-    readonly ValuetypeDecl[] valuetypeDecls;
+    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
-    private bool useCompileSignatures = false;
+    internal bool useCompileSignatures = false;
 
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
@@ -4857,7 +4857,7 @@ namespace Microsoft.Dafny {
 
     TopLevelDeclWithMembers currentClass;
     public Method currentMethod;
-    readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+    internal readonly Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
     Scope<Statement>/*!*/ enclosingStatementLabels;
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
@@ -5737,7 +5737,7 @@ namespace Microsoft.Dafny {
     /// Callers are expected to provide "arg" as an already resolved type.  (Note, a proxy type is resolved--
     /// only types that contain identifiers stand the possibility of not being resolved.)
     /// </summary>
-    Type ResolvedArrayType(IToken tok, int dims, Type arg, ResolutionContext resolutionContext, bool useClassNameType) {
+    internal Type ResolvedArrayType(IToken tok, int dims, Type arg, ResolutionContext resolutionContext, bool useClassNameType) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
@@ -6081,7 +6081,7 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+    internal Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);
       Contract.Requires(expressionDescription != null);
       Contract.Requires(resolutionContext != null);
@@ -6098,16 +6098,16 @@ namespace Microsoft.Dafny {
       return label;
     }
 
-    private Expression VarDotFunction(IToken tok, string varname, string functionname) {
+    internal Expression VarDotFunction(IToken tok, string varname, string functionname) {
       return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
-    private LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
+    internal LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
       return new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { rhs }, body, true);
     }
 
-    private LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
+    internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
     }
@@ -6381,7 +6381,7 @@ namespace Microsoft.Dafny {
       return isGhost ? "ghost " : "";
     }
 
-    private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
+    internal static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       if (useCompileSignatures) {
@@ -6434,7 +6434,7 @@ namespace Microsoft.Dafny {
     /// Requires "expr" to be successfully resolved.
     /// Ensures that the set returned has no aliases.
     /// </summary>
-    static ISet<IVariable> FreeVariables(Expression expr) {
+    public static ISet<IVariable> FreeVariables(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Ensures(expr.Type != null);
 
