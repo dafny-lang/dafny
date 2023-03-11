@@ -334,7 +334,7 @@ namespace Microsoft.Dafny {
 
     public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
       var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateMember = new SpecialFunction(Token.NoToken, name, builtIns.SystemModule, false, false,
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, builtIns.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
