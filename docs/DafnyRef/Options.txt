@@ -91,6 +91,9 @@ Usage: dafny [ option ... ] [ filename ... ]
   /titrace
       Print type-inference debug info.
   
+  /ntitrace
+      Print type-inference debug info for the new type inference.
+  
   /printTooltips
       Dump additional positional information (displayed as mouse-over
       tooltips by the VS Code plugin) to stdout as 'Info' messages.

@@ -248,6 +248,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
+    public bool NewTypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public List<string> FoldersToFormat { get; } = new();
@@ -532,6 +533,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "titrace":
           TypeInferenceDebug = true;
+          return true;
+
+        case "ntitrace":
+          NewTypeInferenceDebug = true;
           return true;
 
         case "induction":
@@ -1227,6 +1232,9 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /titrace
     Print type-inference debug info.
+
+/ntitrace
+    Print type-inference debug info for the new type inference.
 
 /printTooltips
     Dump additional positional information (displayed as mouse-over
