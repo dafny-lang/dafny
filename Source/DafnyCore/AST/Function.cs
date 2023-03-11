@@ -80,6 +80,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Formals;
   public readonly Formal Result;
+  public PreType ResultPreType;
   public readonly Type ResultType;
   public readonly List<AttributedExpression> Req;
   public readonly List<FrameExpression> Reads;

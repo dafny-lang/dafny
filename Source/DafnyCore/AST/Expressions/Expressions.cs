@@ -41,6 +41,8 @@ public abstract class Expression : TokenNode {
     }
   }
 
+  public PreType PreType;
+
   [FilledInDuringResolution] protected Type type;
   public Type Type {
     get {
@@ -1434,6 +1436,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
   [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<Type> TypeApplication_JustFunction;
   [FilledInDuringResolution] public bool IsByMethodCall;

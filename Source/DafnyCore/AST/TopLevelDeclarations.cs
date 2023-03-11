@@ -2104,6 +2104,7 @@ public interface RevealableTypeDecl {
 public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
+  public PreType BasePreType;
   public Type BaseType { get; set; } // null when refining
   public BoundVar Var { get; set; }  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
   public Expression Constraint { get; set; }  // is null iff Var is
