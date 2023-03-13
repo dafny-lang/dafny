@@ -102,11 +102,11 @@ public class Auditor : IRewriter {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
     if (templateStream is null) {
-      Reporter.Warning(MessageSource.Verifier, ErrorDetail.ErrorID.None, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
+      Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
-    return templateText.Replace("{{TABLE}}", table.ToString());
+    return templateText.Replace("{{TABLE}}\n", table.ToString());
   }
 
   internal override void PostResolve(Program program) {
@@ -115,7 +115,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var assumption in report.AllAssumptions()) {
         foreach (var warning in assumption.Warnings()) {
-          Reporter.Warning(MessageSource.Verifier, ErrorDetail.ErrorID.None, assumption.decl.tok, warning);
+          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.decl.tok, warning);
         }
       }
     } else {

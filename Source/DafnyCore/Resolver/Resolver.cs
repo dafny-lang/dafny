@@ -18,7 +18,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny {
   interface ICanResolve {
@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
       foreach (var rewriter in rewriters) {
         rewriter.PreResolve(prog);
@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
       scope.PopMarker();
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, isAnExport);
+        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, m.Name, isAnExport);
       }
 
       Type.PopScope(moduleInfo.VisibilityScope);
@@ -901,7 +901,7 @@ namespace Microsoft.Dafny {
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
-            reporter.Warning(MessageSource.Resolver, ErrorID.None, d.tok,
+            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
@@ -2291,7 +2291,10 @@ namespace Microsoft.Dafny {
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, bool isAnExport = false) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
+      Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies,
+      string moduleName, bool isAnExport = false) {
+
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
@@ -2309,15 +2312,22 @@ namespace Microsoft.Dafny {
       // * perform substitution for DefaultValueExpression's
       // ----------------------------------------------------------------------------
 
-      // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
-      // and type inference depends on having resolved names.
-      // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
-      // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
-      // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
-      // in time.
-      // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
-      ResolveNamesAndInferTypes(declarations, true);
-      ResolveNamesAndInferTypes(declarations, false);
+      if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        // Resolve all names and infer types.
+        var preTypeResolver = new PreTypeResolver(this);
+        preTypeResolver.ResolveDeclarations(declarations, moduleName);
+
+      } else {
+        // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
+        // and type inference depends on having resolved names.
+        // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
+        // (the right-hand sides of) const declarations, because type resolution sometimes needs to know the base type of newtypes and subset types
+        // and needs to know the type of const fields. Doing these declarations increases the chances the right information will be provided
+        // in time.
+        // Once the task is done for these newtype/subset-type/const parts, the task continues with everything else.
+        ResolveNamesAndInferTypes(declarations, true);
+        ResolveNamesAndInferTypes(declarations, false);
+      }
 
       // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -3120,7 +3130,7 @@ namespace Microsoft.Dafny {
     void CheckForUnnecessaryEqualitySupportDeclarations(MemberDecl member, List<TypeParameter> typeParameters) {
       if (member.IsGhost) {
         foreach (var p in typeParameters.Where(p => p.SupportsEquality)) {
-          reporter.Warning(MessageSource.Resolver, ErrorID.None, p.tok,
+          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, p.tok,
             $"type parameter {p.Name} of ghost {member.WhatKind} {member.Name} is declared (==), which is unnecessary because the {member.WhatKind} doesn't contain any compiled code");
         }
       }
@@ -5591,10 +5601,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, ErrorID.None, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, ErrorID.None, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
@@ -5947,7 +5957,7 @@ namespace Microsoft.Dafny {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
-          origReporter.Deprecated(MessageSource.Resolver, ErrorID.None, tok,
+          origReporter.Deprecated(MessageSource.Resolver, ErrorRegistry.NoneId, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {
@@ -7040,9 +7050,4 @@ namespace Microsoft.Dafny {
       return 0;
     }
   }
-
-
-
-  // Looks for every non-ghost comprehensions, and if they are using a subset type,
-  // check that the subset constraint is compilable. If it is not compilable, raises an error.
 }
