@@ -7,11 +7,13 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using XunitAssertMessages;
+using Assert = Xunit.Assert;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [Collection("Sequential Collection")] // Let slow tests run sequentially
@@ -132,7 +134,7 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenPreconditionSucceeds() {
       await SetUp(o => {
         o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
@@ -140,7 +142,7 @@ This is the only assertion in [batch](???) #??? of ??? in method `f`
       });
       var documentItem = await GetDocumentItem(@"
 method Test(i: int)
-  requires {:error ""argument should be even""} i % 2 == 0
+  requires {:error ""argument should be even"", ""argument is always even""} i % 2 == 0
   requires i > 0
 {
 }
@@ -150,7 +152,7 @@ method main(k: int) {
 }
 ", "testfile.dfy");
       await AssertHoverMatches(documentItem, (6, 6),
-        @"**Success:**???error is impossible: argument should be even  
+        @"**Success:**???argument is always even  
 Did prove: `i % 2 == 0`"
       );
       await AssertHoverMatches(documentItem, (6, 6),
@@ -167,7 +169,7 @@ Could not prove: `i > 0`"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenPostConditionFails() {
       var documentItem = await GetDocumentItem(@"
 method Test(j: int) returns (i: int)

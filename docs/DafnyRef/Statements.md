@@ -1857,6 +1857,8 @@ The attributes recognized for assert statements are discussed in [Section 11.3](
 
 Using `...` as the argument of the statement is deprecated.
 
+An assert statement can have [custom error and success messages](#sec-error-attribute).
+
 ## 8.18. Assume Statement ([grammar](#g-assume-statement)) {#sec-assume-statement}
 
 Examples:

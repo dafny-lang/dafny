@@ -1609,7 +1609,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null));
+        req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null, null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
       mod.Add(etran.Tick());
@@ -1618,7 +1618,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
-          string errorMessage = CustomErrorMessage(p.Attributes);
+          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
@@ -1627,7 +1627,7 @@ namespace Microsoft.Dafny {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, comment));
+                req.Add(Requires(s.Tok, s.IsOnlyFree, s.E, errorMessage, successMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -1640,13 +1640,13 @@ namespace Microsoft.Dafny {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              ens.Add(Ensures(s.Tok, s.IsOnlyFree, s.E, null, comment));
+              ens.Add(Ensures(s.Tok, s.IsOnlyFree, s.E, null, null, comment));
               comment = null;
             }
           }
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
-          ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+          ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
       }
 
@@ -4176,13 +4176,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
+      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = HeapSucc(prevHeap, currHeap);
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
+        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       }
 
       // modifies $Heap, $Tick
@@ -4196,10 +4196,10 @@ namespace Microsoft.Dafny {
         var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
-        string errorMessage = CustomErrorMessage(p.Attributes);
+        var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.Tok, false, s.E, errorMessage, null));
+            AddEnsures(ens, Ensures(s.Tok, false, s.E, errorMessage, successMessage, null));
           }
         }
       }
@@ -4419,7 +4419,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
+      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null, null));
       // modifies $Heap, $Tick
       var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,
@@ -4575,7 +4575,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
+      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
@@ -4647,7 +4647,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
+      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
@@ -6836,10 +6836,11 @@ namespace Microsoft.Dafny {
       public readonly bool IsFree;
       public readonly Bpl.Expr Expr;
       public readonly string ErrorMessage;
+      public readonly string SuccessMessage;
       public readonly string Comment;
 
 
-      public BoilerplateTriple(IToken tok, bool isFree, Bpl.Expr expr, string errorMessage, string comment) {
+      public BoilerplateTriple(IToken tok, bool isFree, Bpl.Expr expr, string errorMessage, string successMessage, string comment) {
         Contract.Requires(tok != null);
         Contract.Requires(expr != null);
         Contract.Requires(isFree || errorMessage != null);
@@ -6847,6 +6848,7 @@ namespace Microsoft.Dafny {
         IsFree = isFree;
         Expr = expr;
         ErrorMessage = errorMessage;
+        SuccessMessage = successMessage;
         Comment = comment;
       }
     }
@@ -6870,18 +6872,18 @@ namespace Microsoft.Dafny {
       var boilerplate = new List<BoilerplateTriple>();
       if (!canAllocate && modifiesClause.Count == 0) {
         // plain and simple:  S1 == S2
-        boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, null, "frame condition"));
       } else {
         bool fieldGranularity = true;
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, null, "frame condition: object granularity"));
         if (modifiesClause.Exists(fe => fe.FieldName != null)) {
-          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
+          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
-        boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, null, "boilerplate"));
       }
       return boilerplate;
     }
@@ -7225,22 +7227,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
+    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      ens.Description = new PODesc.EnsuresDescription(errorMessage);
+      ens.Description = new PODesc.EnsuresDescription(errorMessage, successMessage);
       return ens;
     }
 
-    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment) {
+    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
       Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      req.Description = new PODesc.RequiresDescription(errorMessage);
+      req.Description = new PODesc.RequiresDescription(errorMessage, successMessage);
       return req;
     }
 
@@ -7271,15 +7273,16 @@ namespace Microsoft.Dafny {
       builder.Add(ifCmd);
     }
 
-    string CustomErrorMessage(Attributes attrs) {
-      if (attrs == null) { return null; }
+    (string, string) CustomErrorMessage(Attributes attrs) {
+      if (attrs == null) { return (null, null); }
       List<Expression> args = Attributes.FindExpressions(attrs, "error");
-      if (args == null) { return null; }
+      if (args == null) { return (null, null); }
       if (args.Count > 0) {
-        StringLiteralExpr l = args[0] as StringLiteralExpr;
-        return (string)l.Value;
+        var lErr = (string)(args[0] as StringLiteralExpr)?.Value;
+        var lSucc = args.Count > 1 ? (string)(args[1] as StringLiteralExpr).Value : null;
+        return (lErr, lSucc);
       } else {
-        return null;
+        return (null, null);
       }
     }
 
