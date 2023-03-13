@@ -102,6 +102,10 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /typeSystemRefresh:<value>
+      0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+      1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.
+
   /unicodeChar:<value>
       0 - The char type represents any UTF-16 code unit.
       1 (default) - The char type represents any Unicode scalar value.
@@ -110,7 +114,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       Ignore include directives.
   
   /noExterns
-      Ignore extern and dllimport attributes.
+      Ignore extern attributes.
   
   /functionSyntax:<version>
       The syntax for functions is changing from Dafny version 3 to version
