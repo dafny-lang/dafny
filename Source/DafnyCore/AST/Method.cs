@@ -46,11 +46,15 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return AssumptionDescription.NoBody(IsGhost);
     }
 
-    if (Attributes.Contains(Attributes, "extern") && HasPostcondition) {
+    if (Body is not null && HasConcurrentAttribute) {
+      yield return AssumptionDescription.HasConcurrentAttribute;
+    }
+
+    if (HasExternAttribute && HasPostcondition) {
       yield return AssumptionDescription.ExternWithPostcondition;
     }
 
-    if (Attributes.Contains(Attributes, "extern") && HasPrecondition) {
+    if (HasExternAttribute && HasPrecondition) {
       yield return AssumptionDescription.ExternWithPrecondition;
     }
 
@@ -63,7 +67,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
         yield return a;
       }
     }
-
   }
 
   public override IEnumerable<Expression> SubExpressions {
