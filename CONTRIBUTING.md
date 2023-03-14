@@ -62,6 +62,17 @@ Once it succeeds, one has to go back to (view 1) and re-run the failed jobs, so 
 
 After doing these steps once, for other PRs, one only needs to re-run deep checks in (view 1)
 
+### How to fix nightly build failures / check deep tests?
+
+- Create a branch that should fix the nightly build. Either an actual fix, or reverting a PR that cause the problem.
+- Push your branch and create a PR to merge it
+- Go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
+- Select "Run workflow..."
+- Select your branch
+- Wait for this new run to succeed. if necessary, update your branch.
+- Go back to your PR, re-run the test "check deep tests", which should pick up the last run and now succeed.
+- Have your PR approve and merge it.
+
 ### How can I write portions of Dafny in Dafny itself?
 
 Since https://github.com/dafny-lang/dafny/pull/2399, it is possible to add \*.dfy files next to other source files.
