@@ -1,20 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
-  [TestClass]
   public class CancelVerificationTest : ClientBasedLanguageServerTest {
 
-    [TestMethod]
+    [Fact]
     public async Task ChangingTheDocumentStopsOnChangeVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
@@ -29,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await AssertNothingIsQueued(documentItem);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ChangingTheDocumentStopsOnSaveVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
@@ -48,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await AssertNothingIsQueued(documentItem);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ChangingTheDocumentStopsManualVerification() {
       await SetUp(options => {
         options.Set(BoogieOptionBag.Cores, 2U);
@@ -56,22 +53,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       });
       var documentItem = CreateTestDocument(SlowToVerify2);
       client.OpenDocument(documentItem);
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 30), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 
       await WaitForStatus(new Range(11, 23, 11, 27), PublishedVerificationStatus.Running, CancellationToken);
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
 
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
-      Assert.IsTrue(await client.RunSymbolVerification(documentItem, new Position(0, 30), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
+      Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
       await AssertNothingIsQueued(documentItem);
     }
 
     private static string SlowToVerify2 =>
       @"
-function method {:unroll 100} Ack(m: nat, n: nat): nat
+function {:unroll 100} Ack(m: nat, n: nat): nat
   decreases m, n
 {
   if m == 0 then

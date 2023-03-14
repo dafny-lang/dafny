@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -18,12 +16,10 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using MediatR;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -70,7 +66,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
-      DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
@@ -198,13 +193,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
-    }
-
-    protected async Task WithNoopSolver(Func<Task> action) {
-      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
-      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
-      await action();
-      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
     }
   }
 }

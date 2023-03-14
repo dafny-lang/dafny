@@ -73,8 +73,7 @@ public abstract class MemberDecl : Declaration {
   public override string SanitizedName =>
     (Name == EnclosingClass.Name ? "_" : "") + base.SanitizedName;
 
-  public override string CompileName =>
-    (Name == EnclosingClass.Name ? "_" : "") + base.CompileName;
+  public override string GetCompileName(DafnyOptions options) => (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
 
   public virtual string FullSanitizedName {
     get {
@@ -240,11 +239,9 @@ public class SpecialField : Field {
     }
   }
 
-  public override string CompileName {
-    get {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return EnclosingClass != null ? base.CompileName : Name;
-    }
+  public override string GetCompileName(DafnyOptions options) {
+    Contract.Ensures(Contract.Result<string>() != null);
+    return EnclosingClass != null ? base.GetCompileName(options) : Name;
   }
 }
 

@@ -18,6 +18,7 @@ using System.Text;
 using System.Linq;
 using Microsoft.Dafny;
 using System.CommandLine;
+using static Microsoft.Dafny.ParseErrors;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
@@ -57,7 +58,7 @@ class DeclModifierData {
 public void CheckAndSetToken(ref IToken token)
 {
     if (token != null) {
-      SemErr(ErrorID.p_duplicate_modifier, Errors.CodeAction(t,true), "Duplicate declaration modifier: " + t.val);
+      SemErr(ErrorId.p_duplicate_modifier, t, "Duplicate declaration modifier: " + t.val);
     }
     token = t;
 }
@@ -97,27 +98,27 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
 {
   declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(ErrorID.p_abstract_not_allowed, Errors.CodeAction(dmod.AbstractToken,true), $"{declCaption} cannot be declared 'abstract'");
+    SemErr(ErrorId.p_abstract_not_allowed, dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
       if (declCaption.Contains("-by-method")) {
-        SemErr(ErrorID.p_no_ghost_for_by_method, Errors.CodeAction(dmod.GhostToken,true),
+        SemErr(ErrorId.p_no_ghost_for_by_method, dmod.GhostToken,
           $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else if (declCaption == "a function" || declCaption == "a predicate") {
-        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
+        SemErr(ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
       } else {
-        SemErr(ErrorID.p_ghost_forbidden_default, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
+        SemErr(ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(ErrorID.p_ghost_forbidden, Errors.CodeAction(dmod.GhostToken,true), $"{declCaption} cannot be declared 'ghost'");
+      SemErr(ErrorId.p_ghost_forbidden, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(ErrorID.p_no_static, Errors.CodeAction(dmod.StaticToken,true), $"{declCaption} cannot be declared 'static'");
+    SemErr(ErrorId.p_no_static, dmod.StaticToken, $"{declCaption} cannot be declared 'static'");
     dmod.IsStatic = false;
   }
   if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
@@ -126,14 +127,9 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range, IToken next) {
+void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
-  // next is the next token (after any whitespace)
-  if (attr.val == "dllimport" || attr.val == "handle") {
-    errors.Deprecated(ErrorID.p_deprecated_attribute, Errors.CodeAction(attr, range.StartToken.col, next.pos - range.StartToken.pos),
-      $"Attribute :{attr.val} is deprecated and will be removed in Dafny 4.0");
-  }
 }
 
 bool IsAssumeTypeKeyword(IToken la) {
@@ -157,7 +153,7 @@ public static int Parse (bool useStdin, string/*!*/ filename, Include include, M
     var newline = SourcePreprocessor.GetNewlineStyle(filename);
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
-      return Parse(s, filename, DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+      return Parse(s, filename, builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
 }
@@ -181,11 +177,12 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
+  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
   if((module.RootToken.Filename ?? "") == "") { // This is the first module
-    module.RootToken.Filename = DafnyOptions.O.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
+    module.RootToken.Filename = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
     firstToken = module.RootToken;
   } else {
     firstToken = new Token(); // It's an included file
@@ -211,7 +208,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
       (token: (a as UserSuppliedAttributes)?.tok,
        options: a.Args.Select(arg => {
          if (arg is not LiteralExpr {Value: string optStr}) {
-           SemErr(ErrorID.p_literal_string_required, Errors.CodeAction(arg.tok), "argument to :options attribute must be a literal string");
+           SemErr(ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
            return null;
          }
          return optStr;
@@ -271,7 +268,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
   theCompileThisFile = compileThisFile;
-  theOptions = new DafnyOptions(DafnyOptions.O);
+  theOptions = new DafnyOptions(builtIns.Options);
 }
 
 bool IsIdentifier(int kind) {
@@ -522,15 +519,15 @@ bool IsSuffix() {
   return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
 }
 
-string UnwildIdent(string x, bool allowWildcardId) {
-  if (x.StartsWith("_")) {
-    if (allowWildcardId && x.Length == 1) {
+string UnwildIdent(IToken x, bool allowWildcardId) {
+  if (x.val.StartsWith("_")) {
+    if (allowWildcardId && x.val.Length == 1) {
       return "_v" + anonymousIds++;
     } else {
-      SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(t, 1), "cannot declare identifier beginning with underscore");
+      SemErr(ErrorId.p_no_leading_underscore, x, "cannot declare identifier beginning with underscore");
     }
   }
-  return x;
+  return x.val;
 }
 
 bool IsLambda(bool allowLambda)
@@ -820,7 +817,7 @@ int StringToInt(string s, int defaultValue, string errString, IToken tok) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(errString.Contains("array") ? ErrorID.p_array_dimension_too_large : ErrorID.p_bitvector_too_large, 
+    SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large : ErrorId.p_bitvector_too_large, 
       tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
@@ -1028,8 +1025,8 @@ Dafny
                                  string parsedFile = scanner.FullFilename;
                                  bool isVerbatimString;
                                  string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                 Util.ValidateEscaping(t, includedFile, isVerbatimString, errors);
-                                 includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
+                                 Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
+                                 includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
                                    string basePath = Path.GetDirectoryName(parsedFile);
                                    includedFile = Path.Combine(basePath, includedFile);
@@ -1109,7 +1106,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
-    (. if (isTopLevel) SemErr(ErrorID.p_superfluous_export, submodule.tok.Prev,
+    (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.tok.Prev,
           "There is no point to an export declaration at the top level");
     .)
   )
@@ -1138,7 +1135,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
-   | Ident<out iderr> (. SemErr(ErrorID.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+   | Ident<out iderr> (. SemErr(ErrorId.p_bad_module_decl, t, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
@@ -1246,7 +1243,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
       (. scanner.ResetPeek(); laa = scanner.Peek(); .)
     }
   )
-  [ "," (. SemErr(ErrorID.p_extraneous_comma_in_export, Errors.CodeAction(t), "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
+  [ "," (. SemErr(ErrorId.p_extraneous_comma_in_export, t, "no comma is allowed between provides and reveals and extends clauses in an export declaration"); .) ]
   }
   (. 
      Name name;
@@ -1398,7 +1395,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
-         SemErr(ErrorID.p_top_level_field, la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
+         SemErr(ErrorId.p_top_level_field, la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
          dmod.IsStatic = false;
        }
     .)
@@ -1512,7 +1509,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   SYNC
   "var"                               (. startToken = startToken ?? t;
                                          if (isValueType) {
-                                           SemErr(ErrorID.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
+                                           SemErr(ErrorId.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
                                          }
                                       .)
   { Attribute<ref attrs> }
@@ -1544,10 +1541,10 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   { Attribute<ref attrs> }
   CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
   [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(ErrorID.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
+  [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
-                                                  SemErr(ErrorID.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
+                                                  SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
                                                 }
                                                 var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 mm.Add(c);
@@ -1575,7 +1572,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   NewtypeName<out name>
   (
   "="
-  [ ellipsis                               (. SemErr(ErrorID.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
+  [ ellipsis                               (. SemErr(ErrorId.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
       $"in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype"); .)
   ]
   ( IF(IsIdentColonOrBar())
@@ -1688,10 +1685,10 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
      IToken startToken = t.Next;
   .)
   { IF(IsKeywordForFormal())
-    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorID.p_output_of_function_not_ghost, Errors.CodeAction(t,true), "formal cannot be declared 'older' in this context"); } .)
+    ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'ghost' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
@@ -1703,9 +1700,9 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
 FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
 = NoDigitName<out name> (. ty = null; .)
   ( ":" Type<out ty> 
-  | (. SemErr(ErrorID.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
+  | (. SemErr(ErrorId.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
-  [ ( ":=" | "=" ) (. SemErr(ErrorID.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
+  [ ( ":=" | "=" ) (. SemErr(ErrorId.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
   .
 
 CIdentType<out Name/*!*/ name, out Type ty>
@@ -1777,7 +1774,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
          if (udt != null && udt.TypeArgs.Count == 0) {
            nameToken = firstToken;
          } else {
-           SemErr(ErrorID.p_datatype_formal_is_not_id, firstToken, "invalid formal-parameter name in datatype constructor");
+           SemErr(ErrorId.p_datatype_formal_is_not_id, firstToken, "invalid formal-parameter name in datatype constructor");
          }
       .)
       Type<out ty>
@@ -1795,7 +1792,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
      } else {
        identName = new Name(range, "#" + anonymousIds++);
        if (nameonlyToken != null) {
-         SemErr(ErrorID.p_nameonly_must_have_parameter_name, Errors.CodeAction(nameonlyToken,true), "use of the 'nameonly' modifier must be accompanied with a parameter name");
+         SemErr(ErrorId.p_nameonly_must_have_parameter_name, nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
        }
        isNameOnly = false;
      }
@@ -1836,7 +1833,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, false, ins>
     [ ( "yields"
-      | "returns"           (. SemErr(ErrorID.p_should_be_yields_instead_of_returns, Errors.CodeAction(t), "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
+      | "returns"           (. SemErr(ErrorId.p_should_be_yields_instead_of_returns, t, "iterators don't have a 'returns' clause; did you mean 'yields'?"); .)
       )
       Formals<false, true, false, false, outs>
     ]
@@ -1872,7 +1869,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
   "<"   (. IToken startToken = t.Next; .)
   [ Variance<out variance>  (.
-            if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); }  
+            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); }  
           .)
   ]
   TypeVariableName<out name>
@@ -1884,7 +1881,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
        startToken = t.Next; 
     .)
     [ Variance<out variance>  (. 
-            if (!allowVariance) { SemErr(ErrorID.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } 
+            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } 
         .)
     ]
     TypeVariableName<out name>
@@ -1924,13 +1921,13 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
                       characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
                     }
                   } else {
-                    SemErr(ErrorID.p_unexpected_type_characteristic, t, $"unexpected type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
+                    SemErr(ErrorId.p_unexpected_type_characteristic, t, $"unexpected type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
   | ANY        (. if (t.kind == _closeparen || t.kind == _comma) 
-                      SemErr(ErrorID.p_missing_type_characteristic, t, $"extra comma or missing type characteristic: should be one of == or 0 or 00 or !new");
-                  else SemErr(ErrorID.p_illegal_type_characteristic, t, $"illegal type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
+                      SemErr(ErrorId.p_missing_type_characteristic, t, $"extra comma or missing type characteristic: should be one of == or 0 or 00 or !new");
+                  else SemErr(ErrorId.p_illegal_type_characteristic, t, $"illegal type characteristic: '{t.val}' should be one of == or 0 or 00 or !new");
                 .)
   )
   .
@@ -1976,14 +1973,14 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "lemma"
     | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
-                                       errors.Deprecated(ErrorID.p_deprecated_colemma, Errors.CodeAction(t), "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
+                                       errors.Deprecated(ErrorId.p_deprecated_colemma, t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
                                     .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
-                                       errors.Deprecated(ErrorID.p_deprecated_inductive_lemma, Errors.CodeAction(t), "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
+                                       errors.Deprecated(ErrorId.p_deprecated_inductive_lemma, t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
                                     .)
     )
     "lemma"
@@ -1996,7 +1993,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
-                                         SemErr(ErrorID.p_constructor_not_in_class, t, "constructors are allowed only in classes");
+                                         SemErr(ErrorId.p_constructor_not_in_class, t, "constructors are allowed only in classes");
                                        }
                                        caption = "constructor";
                                        allowed = AllowedDeclModifiers.Ghost;
@@ -2008,7 +2005,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. if (!hasName) {
        if (!isConstructor) {
-         SemErr(ErrorID.p_method_missing_name, la, "a method must be given a name (expecting identifier)");
+         SemErr(ErrorId.p_method_missing_name, la, "a method must be given a name (expecting identifier)");
        }
      }
   .)
@@ -2018,8 +2015,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                     (. if (!(isGreatestLemma || isLeastLemma)) { 
                                          // Note: When ranges are refactored, make the first use of openBracket a range
                                          // that extends through closeBracket
-                                         SemErr(ErrorID.p_extraneous_k, 
-                                                Errors.CodeAction(openBracket, openBracket, closeBracket.Next), 
+                                         SemErr(ErrorId.p_extraneous_k, 
+                                                Errors.CodeAction(openBracket, closeBracket.Next), 
                                                 "type of _k can only be specified for least and greatest lemmas"); 
                                        } 
                                     .)
@@ -2130,7 +2127,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(ErrorID.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -2216,7 +2213,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   [ ":="        (. tok = t; .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
-         SemErr(ErrorID.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
+         SemErr(ErrorId.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
          defaultValue = null;
        }
     .)
@@ -2270,12 +2267,12 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "ORDINAL"                       (. tok = t; startToken = t;  ty = new BigOrdinalType(); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
-                                       ty = new BitvectorType(w);
+                                       ty = new BitvectorType(theOptions, w);
                                     .)
   | "set"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr(ErrorID.p_set_only_one_type_parameter, 
+                                         SemErr(ErrorId.p_set_only_one_type_parameter, 
                                            Errors.CodeAction(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
@@ -2283,7 +2280,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "iset"                          (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr(ErrorID.p_iset_only_one_type_parameter, 
+                                         SemErr(ErrorId.p_iset_only_one_type_parameter, 
                                            Errors.CodeAction(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
@@ -2291,7 +2288,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "multiset"                      (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr(ErrorID.p_multiset_only_one_type_parameter, 
+                                         SemErr(ErrorId.p_multiset_only_one_type_parameter, 
                                            Errors.CodeAction(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
@@ -2299,7 +2296,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | "seq"                           (. tok = t; startToken = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
-                                         SemErr(ErrorID.p_seq_only_one_type_parameter, 
+                                         SemErr(ErrorId.p_seq_only_one_type_parameter, 
                                            Errors.CodeAction(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
@@ -2312,7 +2309,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr(ErrorID.p_map_needs_two_type_parameters, 
+                                         SemErr(ErrorId.p_map_needs_two_type_parameters, 
                                            Errors.CodeAction(startToken.Next, t), "map type expects two type arguments");
                                          ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
@@ -2324,7 +2321,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     (. if (gt == null) {
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
-                                         SemErr(ErrorID.p_imap_needs_two_type_parameters, 
+                                         SemErr(ErrorId.p_imap_needs_two_type_parameters, 
                                            Errors.CodeAction(startToken.Next, t), "imap type expects two type arguments");
                                          ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
@@ -2437,7 +2434,7 @@ GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
   (
-    ">" (. SemErr(ErrorID.None, t, "empty type parameter lists are not permitted"); .)
+    ">" (. SemErr(null, t, "empty type parameter lists are not permitted"); .)
   |
     Type<out ty>                     (. gt.Add(ty); .)
     { "," Type<out ty>               (. gt.Add(ty); .)
@@ -4400,14 +4397,14 @@ LiteralExpression<out Expression e>
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
-                                                  Util.ValidateEscaping(t, s, false, errors);
-                                                  if (Util.UnescapedCharacters(s, false).Count() > 1) {
+                                                  Util.ValidateEscaping(theOptions, t, s, false, errors);
+                                                  if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
                                                     errors.SemErr(t, "too many characters in character literal");
                                                   }
                                                   e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                                  Util.ValidateEscaping(t, s, isVerbatimString, errors);
+                                                  Util.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   ) (. e.RangeToken = new RangeToken(t, t); .)
@@ -5234,7 +5231,7 @@ Attribute<ref Attributes attrs>
   (. 
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
      attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken, la);
+     CheckAttribute(errors, x, attrs.RangeToken);
   .)
   .
 
@@ -5333,7 +5330,7 @@ Name<out Name name>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr(ErrorID.p_no_leading_underscore, Errors.CodeAction(x,1), 
+                        SemErr(ErrorId.p_no_leading_underscore, x, 
                           "cannot declare identifier beginning with underscore");
                       }
                    .)
@@ -5392,7 +5389,7 @@ WildIdentN<out Name name, bool allowWildcardId>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  Ident<out x>     (. x = t.WithVal(UnwildIdent(t.val, allowWildcardId)); .)
+  Ident<out x>     (. x = t.WithVal(UnwildIdent(t, allowWildcardId)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -5400,7 +5397,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorID.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/

@@ -4,7 +4,7 @@ include "Wrappers.dfy"
 import opened Wrappers
 
 datatype Bar = Bar(i: string)
-function method ParseBar(s: string): Result<Bar, string> {
+function ParseBar(s: string): Result<Bar, string> {
    Success(Bar(s))
 }
 
@@ -45,7 +45,7 @@ class Foo2 {
     Repr := {this, leftWrapper, rightWrapper};
   }
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this
   {
     (if isCurrentWrapperLeft then

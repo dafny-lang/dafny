@@ -6,11 +6,11 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CoverageInstrumenter {
   private readonly SinglePassCompiler compiler;
-  private List<(IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
+  private List<(IToken, string)>/*?*/ legend;  // non-null implies options.CoverageLegendFile is non-null
 
   public CoverageInstrumenter(SinglePassCompiler compiler) {
     this.compiler = compiler;
-    if (DafnyOptions.O?.CoverageLegendFile != null) {
+    if (compiler.Options?.CoverageLegendFile != null) {
       legend = new List<(IToken, string)>();
     }
   }
@@ -70,7 +70,7 @@ public class CoverageInstrumenter {
 
   public void WriteLegendFile() {
     if (legend != null) {
-      var filename = DafnyOptions.O.CoverageLegendFile;
+      var filename = compiler.Options.CoverageLegendFile;
       Contract.Assert(filename != null);
       TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
       {

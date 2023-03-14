@@ -11,7 +11,7 @@ module M {
     type T = int
   }
 
-  function f(x: Opened.T): int {
+  ghost function f(x: Opened.T): int {
     5
   }
 }

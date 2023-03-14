@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny; 
 
@@ -55,7 +55,7 @@ public class MatchFlattener : IRewriter {
     }
     foreach (var compileModule in program.CompileModules) {
       var reporter = Reporter;
-      Reporter = new ErrorReporterSink();
+      Reporter = new ErrorReporterSink(program.Options);
       FlattenNode(compileModule);
       Reporter = reporter;
     }
@@ -114,7 +114,7 @@ public class MatchFlattener : IRewriter {
     if (compiledMatch.Node is Expression expression) {
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
       return expression;
@@ -143,7 +143,7 @@ public class MatchFlattener : IRewriter {
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, ErrorID.None, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, state.CaseTok[id], "this branch is redundant");
         }
       }
 
@@ -665,7 +665,7 @@ public class MatchFlattener : IRewriter {
     public override string ToString() {
       var bodyStr = "";
       foreach (var stmt in this.Body) {
-        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), "\t");
+        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, stmt), "\t");
       }
       return string.Format("\t> id: {0}\n\t> patterns: <{1}>\n\t-> body:\n{2} \n", this.CaseId, String.Join(",", this.Patterns.ConvertAll(x => x.ToString())), bodyStr);
     }
@@ -680,7 +680,7 @@ public class MatchFlattener : IRewriter {
 
     public override string ToString() {
       return
-        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(this.Body)}";
+        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this.Body)}";
     }
   }
 

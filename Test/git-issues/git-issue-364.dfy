@@ -5,26 +5,26 @@ datatype NatOutcome =
 | Success(value: nat)
 | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
   // translation of "this" in well-formedness check here previously crashed
-  function method PropagateFailure(): NatOutcome
+  function PropagateFailure(): NatOutcome
     requires IsFailure()
   {
     this
   }
-  function method Extract(): nat
+  function Extract(): nat
     requires !IsFailure()
   {
     this.value
   }
-  function method P(): nat
+  function P(): nat
     ensures this.P() < 20  // translation of "this" here previously crashed
   {
     if Success? then 12 else 14
   }
-  function method R(): nat
+  function R(): nat
   {
     var x :| 0 <= x < this.P() + 1 && x < 1;  // translation of "this" here previously crashed
     x

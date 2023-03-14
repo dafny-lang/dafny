@@ -37,9 +37,8 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+      BatchErrorReporter reporter = new BatchErrorReporter(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -53,12 +52,12 @@ namespace DafnyPipeline.Test {
 
         ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter, options);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
+          Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
         var firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -76,9 +75,9 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns();
+        builtIns = new BuiltIns(options);
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter, options);
+        dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0

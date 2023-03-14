@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate R1(x:int, y:int) { x > 0 ==> R2(x - 1) }
-predicate R2(x:int) { exists y :: R1(x, y) }
+ghost predicate R1(x:int, y:int) { x > 0 ==> R2(x - 1) }
+ghost predicate R2(x:int) { exists y :: R1(x, y) }
 
 lemma L1(x:int)
 {
@@ -21,7 +21,7 @@ lemma L2(x:int)
 
 // are in strictly increasing order
 
-predicate method Increasing(s: seq<int>, n: nat)
+predicate Increasing(s: seq<int>, n: nat)
   requires n <= |s|
 {
   n < 2 ||
@@ -41,8 +41,8 @@ method Extend(s: seq<int>, n: nat) returns (n': nat)
   }
 }
 
-function pred(i:int):int { i - 1 }
-predicate f(a:int, s:int)            { (a <= 0 || (exists s0 :: f(pred(a), s0))) }
+ghost function pred(i:int):int { i - 1 }
+ghost predicate f(a:int, s:int)            { (a <= 0 || (exists s0 :: f(pred(a), s0))) }
 
 lemma Fuel1(a:int, s:int)
 {

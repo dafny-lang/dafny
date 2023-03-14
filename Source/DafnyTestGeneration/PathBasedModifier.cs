@@ -10,10 +10,15 @@ namespace DafnyTestGeneration {
   /// that fail when a particular path is taken
   /// </summary>
   public class PathBasedModifier : ProgramModifier {
+    private readonly Modifications modifications;
 
     // prefix given to variables indicating whether or not a block was visited
     private const string BlockVarNamePrefix = "notYetVisited";
     private List<Path> paths = new();
+
+    public PathBasedModifier(Modifications modifications) {
+      this.modifications = modifications;
+    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       paths = new List<Path>();
@@ -21,7 +26,7 @@ namespace DafnyTestGeneration {
       foreach (var path in paths) {
         path.AssertPath();
         var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
-        yield return ProgramModification.GetProgramModification(p, path.Impl,
+        yield return modifications.GetProgramModification(DafnyInfo.Options, p, path.Impl,
           new HashSet<int>(), new HashSet<string>(), name,
           $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
         path.NoAssertPath();

@@ -8,7 +8,7 @@ abstract module A {
   export Spec provides f, T, m, C
   export Body provides m reveals f, T, C
   type T
-  function f(): T
+  ghost function f(): T
   method m()
 
   class C {
@@ -18,7 +18,7 @@ abstract module A {
 
 module B refines A {
   type T = int
-  function f(): T { 0 }
+  ghost function f(): T { 0 }
   method m() { print "B\n"; }
 
   class C ... {
@@ -32,33 +32,33 @@ abstract module C {
 
   import AF : A`Spec
 
-  function g(): AF.T
+  ghost function g(): AF.T
 }
 
 module DBBody refines C {
   import AF = B`{Body,Spec}
 
-  function g(): AF.T { 0 }
+  ghost function g(): AF.T { 0 }
 
 }
 
 module DBSpec refines C {
   import AF = B`Spec
 
-  function g(): AF.T { AF.f() }
+  ghost function g(): AF.T { AF.f() }
 
 }
 
 module E {
   import D = DBBody`Body
 
-  function h(): int { D.g() }
+  ghost function h(): int { D.g() }
 }
 
 module F {
   import D = DBSpec`Body
 
-  function h(): D.AF.T { D.g() }
+  ghost function h(): D.AF.T { D.g() }
 }
 
 //Extending existing exports
@@ -68,7 +68,7 @@ module A2 refines A {
   export Body ... extends Spec provides C, C.m, C.Init
 
   type T = int
-  function f(): T { 0 }
+  ghost function f(): T { 0 }
   method m() { print "A2\n"; }
 
   class C ... {
@@ -81,7 +81,7 @@ module A2 refines A {
 module B2 {
   import A2`Spec
 
-  function g(): int { A2.f() }
+  ghost function g(): int { A2.f() }
   method m() { print "B2.m()\n"; A2.m(); }
 }
 
