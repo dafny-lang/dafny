@@ -1,6 +1,6 @@
 PatternMatchingErrors.dfy(13,2): Error: missing case in match expression: Cons(_, Nil)
 PatternMatchingErrors.dfy(22,2): Error: missing case in match statement: Cons(_, Nil)
-PatternMatchingErrors.dfy(31,2): Error: missing case in match statement: c: real (not all possibilities for constant 'c' have been covered)
+PatternMatchingErrors.dfy(31,2): Error: missing case in match statement: not all possibilities for selector of type real have been covered
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Leaf
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Branch(_, c: bool, _), _, _) (not all possibilities for constant 'c' have been covered)
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Leaf, _, Branch(_, _, _))

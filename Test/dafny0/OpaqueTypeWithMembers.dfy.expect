@@ -1,7 +1,7 @@
 OpaqueTypeWithMembers.dfy(26,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 OpaqueTypeWithMembers.dfy(64,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 OpaqueTypeWithMembers.dfy(94,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-OpaqueTypeWithMembers.dfy(83,36): Error: possible division by zero
+OpaqueTypeWithMembers.dfy(83,42): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(84,51): Error: possible division by zero
 OpaqueTypeWithMembers.dfy(87,9): Error: index out of range
 OpaqueTypeWithMembers.dfy(90,22): Error: index out of range
@@ -12,6 +12,6 @@ OpaqueTypeWithMembers.dfy(139,15): Error: function precondition could not be pro
 OpaqueTypeWithMembers.dfy(120,13): Related location
 OpaqueTypeWithMembers.dfy(141,16): Error: function precondition could not be proven
 OpaqueTypeWithMembers.dfy(115,13): Related location
-OpaqueTypeWithMembers.dfy(113,35): Related location
+OpaqueTypeWithMembers.dfy(113,28): Related location
 
 Dafny program verifier finished with 15 verified, 9 errors

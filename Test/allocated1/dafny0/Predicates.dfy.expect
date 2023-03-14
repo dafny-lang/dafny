@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Predicates.dfy(62,15): Error: assertion could not be proven
 Predicates.dfy(66,13): Error: assertion could not be proven
 Predicates.dfy(94,31): Error: target object might not be allocated

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -9,9 +8,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
   public class DefinitionTest : ClientBasedLanguageServerTest {
 
     private IRequestProgressObservable<IEnumerable<LocationOrLocationLink>, LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
@@ -24,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       );
     }
 
-    [TestMethod]
+    [Fact]
     public async Task WhileLoop() {
       var source = @"
 method HasLoop() {
@@ -41,7 +40,7 @@ method HasLoop() {
       await AssertPositionsLineUpWithRanges(source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task MatchExprAndMethodWithoutBody() {
       var source = @"  
 datatype Option<+U> = {>0:None<} | Some(val: U) {
@@ -57,7 +56,7 @@ datatype A = A {
   static method create() returns (ret: A)
 }
 datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
-  function method PropagateFailure<U>(): Result<U, E>
+  function PropagateFailure<U>(): Result<U, E>
     requires Err?
   {
     Err(this.er><ror)
@@ -78,16 +77,16 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
         var position = positions[index];
         var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
         var result = (await RequestDefinition(documentItem, position).AsTask()).Single();
-        Assert.AreEqual(range, result.Location!.Range);
+        Assert.Equal(range, result.Location!.Range);
       }
     }
 
-    [TestMethod]
+    [Fact]
     public async Task StaticFunctionCall() {
       var source = @"
 module [>Zaz<] {
   trait [>E<] {
-    static function method [>Foo<](): E
+    static function [>Foo<](): E
   }
 }
 
@@ -99,7 +98,7 @@ function Bar(): Zaz.E {
       await AssertPositionsLineUpWithRanges(source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task FunctionCallAndGotoOnDeclaration() {
       var source = @"
 function [>Fibo><nacciSpec<](><n: nat): nat {
@@ -117,19 +116,19 @@ type seq31<[>T<]> = x: seq<><T> | 0 <= |x| <= 32 as int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var fibonacciSpecOnItself = (await RequestDefinition(documentItem, positions[0]).AsTask());
-      Assert.IsFalse(fibonacciSpecOnItself.Any());
+      Assert.False(fibonacciSpecOnItself.Any());
 
       var nOnItself = (await RequestDefinition(documentItem, positions[1]).AsTask());
-      Assert.IsFalse(nOnItself.Any());
+      Assert.False(nOnItself.Any());
 
       var fibonacciCall = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      Assert.AreEqual(ranges[0], fibonacciCall.Location!.Range);
+      Assert.Equal(ranges[0], fibonacciCall.Location!.Range);
 
       var typeParameter = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
-      Assert.AreEqual(ranges[1], typeParameter.Location!.Range);
+      Assert.Equal(ranges[1], typeParameter.Location!.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DatatypesAndMatches() {
       var source = @"
 datatype Identity<T> = [>Identity<](value: T)
@@ -157,25 +156,25 @@ method Bar([>value<]: Identity<Colors>) returns (x: bool) {
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var matchSource = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
-      Assert.AreEqual(ranges[2], matchSource.Location!.Range);
+      Assert.Equal(ranges[2], matchSource.Location!.Range);
 
       var identity = (await RequestDefinition(documentItem, positions[1]).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 23), (0, 31)), identity.Location!.Range);
+      Assert.Equal(new Range((0, 23), (0, 31)), identity.Location!.Range);
 
       var green = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      Assert.AreEqual(new Range((1, 24), (1, 29)), green.Location!.Range);
+      Assert.Equal(new Range((1, 24), (1, 29)), green.Location!.Range);
 
       var matchSourceStmt = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
-      Assert.AreEqual(ranges[3], matchSourceStmt.Location!.Range);
+      Assert.Equal(ranges[3], matchSourceStmt.Location!.Range);
 
       var identityStmt = (await RequestDefinition(documentItem, positions[4]).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 23), (0, 31)), identityStmt.Location!.Range);
+      Assert.Equal(new Range((0, 23), (0, 31)), identityStmt.Location!.Range);
 
       var greenStmt = (await RequestDefinition(documentItem, positions[5]).AsTask()).Single();
-      Assert.AreEqual(new Range((1, 24), (1, 29)), greenStmt.Location!.Range);
+      Assert.Equal(new Range((1, 24), (1, 29)), greenStmt.Location!.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task JumpToExternModule() {
       var source = @"
 module {:extern} [>Provider<] {
@@ -196,20 +195,20 @@ module Consumer {
       var documentItem = CreateTestDocument(cleanSource);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var usizeReference = (await RequestDefinition(documentItem, positions[2]).AsTask()).Single();
-      Assert.AreEqual(documentItem.Uri, usizeReference.Location!.Uri);
-      Assert.AreEqual(ranges[1], usizeReference.Location.Range);
+      Assert.Equal(documentItem.Uri, usizeReference.Location!.Uri);
+      Assert.Equal(ranges[1], usizeReference.Location.Range);
 
       var lengthDefinition = (await RequestDefinition(documentItem, positions[1]).AsTask());
-      Assert.IsFalse(lengthDefinition.Any());
+      Assert.False(lengthDefinition.Any());
 
       var providerImport = (await RequestDefinition(documentItem, positions[0]).AsTask()).Single();
-      Assert.AreEqual(ranges[0], providerImport.Location!.Range);
+      Assert.Equal(ranges[0], providerImport.Location!.Range);
 
       var lengthAssignment = (await RequestDefinition(documentItem, positions[3]).AsTask()).Single();
-      Assert.AreEqual(ranges[2], lengthAssignment.Location!.Range);
+      Assert.Equal(ranges[2], lengthAssignment.Location!.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task JumpToOtherModule() {
       var source = @"
 module Provider {
@@ -218,7 +217,7 @@ module Provider {
 
     constructor() {}
 
-    function method [>GetX<](): int
+    function [>GetX<](): int
       reads this`><x
     {
       this.x
@@ -244,7 +243,7 @@ module Consumer2 {
       await AssertPositionsLineUpWithRanges(source);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation() {
       var source = @"
 module Container {
@@ -263,30 +262,30 @@ method CallIts() returns () {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var containerReference = (await RequestDefinition(documentItem, (9, 11)).AsTask()).Single();
-      Assert.AreEqual(new Range((0, 7), (0, 16)), containerReference.Location!.Range);
+      Assert.Equal(new Range((0, 7), (0, 16)), containerReference.Location!.Range);
 
       var getItCall = (await RequestDefinition(documentItem, (9, 23)).AsTask()).Single();
-      Assert.AreEqual(new Range((1, 9), (1, 14)), getItCall.Location!.Range);
+      Assert.Equal(new Range((1, 9), (1, 14)), getItCall.Location!.Range);
 
       var doItCall = (await RequestDefinition(documentItem, (10, 12)).AsTask()).Single();
-      Assert.AreEqual(new Range((4, 9), (4, 13)), doItCall.Location!.Range);
+      Assert.Equal(new Range((4, 9), (4, 13)), doItCall.Location!.Range);
 
       var xVar = (await RequestDefinition(documentItem, (10, 17)).AsTask()).Single();
-      Assert.AreEqual(new Range((9, 6), (9, 7)), xVar.Location!.Range);
+      Assert.Equal(new Range((9, 6), (9, 7)), xVar.Location!.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies);
       client.OpenDocument(documentItem);
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestDefinition(documentItem, (4, 14)).AsTask();
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.IsFalse(verificationTask.IsCompleted);
-      Assert.AreSame(first, definitionTask);
+      Assert.False(verificationTask.IsCompleted);
+      Assert.Same(first, definitionTask);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfFieldOfSystemTypeReturnsNoLocation() {
       var source = @"
 method DoIt() {
@@ -295,10 +294,10 @@ method DoIt() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsFalse((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
+      Assert.False((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfFunctionInvocationOfFunctionDeclaredInForeignDocumentReturnsLocation() {
       var source = @"
 include ""foreign.dfy""
@@ -311,11 +310,11 @@ method DoIt() returns (x: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (4, 13)).AsTask()).Single();
       var location = definition.Location;
-      Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
-      Assert.AreEqual(new Range((5, 18), (5, 22)), location.Range);
+      Assert.Equal(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
+      Assert.Equal(new Range((5, 11), (5, 15)), location.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfInvocationOfUnknownFunctionOrMethodReturnsNoLocation() {
       var source = @"
 method DoIt() returns (x: int) {
@@ -323,10 +322,10 @@ method DoIt() returns (x: int) {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsFalse((await RequestDefinition(documentItem, (1, 12)).AsTask()).Any());
+      Assert.False((await RequestDefinition(documentItem, (1, 12)).AsTask()).Any());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfVariableShadowingFieldReturnsTheVariable() {
       var source = @"
 class Test {
@@ -341,11 +340,11 @@ class Test {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 10)).AsTask()).Single();
       var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((4, 8), (4, 9)), location.Range);
+      Assert.Equal(documentItem.Uri, location.Uri);
+      Assert.Equal(new Range((4, 8), (4, 9)), location.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfVariableShadowingFieldReturnsTheFieldIfThisIsUsed() {
       var source = @"
 class Test {
@@ -360,11 +359,11 @@ class Test {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (5, 15)).AsTask()).Single();
       var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((1, 6), (1, 7)), location.Range);
+      Assert.Equal(documentItem.Uri, location.Uri);
+      Assert.Equal(new Range((1, 6), (1, 7)), location.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfVariableShadowingAnotherVariableReturnsTheShadowingVariable() {
       var source = @"
 class Test {
@@ -382,11 +381,11 @@ class Test {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (7, 12)).AsTask()).Single();
       var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((6, 10), (6, 11)), location.Range);
+      Assert.Equal(documentItem.Uri, location.Uri);
+      Assert.Equal(new Range((6, 10), (6, 11)), location.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionOfVariableShadowedByAnotherReturnsTheOriginalVariable() {
       var source = @"
 class Test {
@@ -404,11 +403,11 @@ class Test {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var definition = (await RequestDefinition(documentItem, (8, 10)).AsTask()).Single();
       var location = definition.Location;
-      Assert.AreEqual(documentItem.Uri, location.Uri);
-      Assert.AreEqual(new Range((4, 8), (4, 9)), location.Range);
+      Assert.Equal(documentItem.Uri, location.Uri);
+      Assert.Equal(new Range((4, 8), (4, 9)), location.Range);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DefinitionInConstructorInvocationOfUserDefinedTypeOfForeignFileReturnsLinkToForeignFile() {
       var source = @"
 include ""foreign.dfy""
@@ -421,8 +420,47 @@ method DoIt() returns (x: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var aInNewA = (await RequestDefinition(documentItem, (3, 15)).AsTask()).Single();
       var location = aInNewA.Location;
-      Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
-      Assert.AreEqual(new Range((3, 2), (3, 13)), location.Range);
+      Assert.Equal(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
+      Assert.Equal(new Range((3, 2), (3, 13)), location.Range);
+    }
+
+    [Fact]
+    public async Task Refinement() {
+      var source = @"
+module {>0:A<} {
+  class X { }
+  class T {
+    method M(x: int) returns (y: int)
+      requires 0 <= x;
+      ensures 0 <= y;
+    {
+      y := 2 * x;
+    }
+    method Q() returns (q: int, r: int, {>1:s<}: int)
+      ensures 0 <= q && 0 <= r && 0 <= s;
+    {  // error: failure to establish postcondition about q
+      r, s := 100, 200;
+    }
+  }
+}
+
+module B refines ><A {
+  class C { }
+  datatype Dt = Ax | Bx
+  class T ... {
+    method P() returns (p: int)
+    {
+      p := 18;
+    }
+    method M(x: int) returns (y: int)
+      ensures y % 2 == 0;  // add a postcondition
+    method Q ...
+      ensures 12 <= r;
+      ensures 1200 <= ><s;  // error: postcondition is not established by
+                          // inherited method body
+  }
+}".TrimStart();
+      await AssertPositionsLineUpWithRanges(source);
     }
   }
 }

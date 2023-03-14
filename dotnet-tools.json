@@ -13,6 +13,12 @@
       "commands": [
         "dotnet-format"
       ]
+    },
+    "boogie": {
+      "version": "2.16.0",
+      "commands": [
+        "boogie"
+      ]
     }
   }
 }

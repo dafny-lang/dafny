@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
@@ -272,57 +273,99 @@ public class IsOlderProofObligation : ProofObligationDescription {
 
 //// Contract constraints
 
-public class PreconditionSatisfied : ProofObligationDescription {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "function precondition satisfied"
-      : $"error is impossible: {customErrMsg}";
+public abstract class ProofObligationDescriptionCustomMessages : ProofObligationDescription {
+  protected readonly string customErrMsg;
+  private readonly string customSuccessMsg;
 
+  public override string SuccessDescription =>
+    customSuccessMsg ?? DefaultSuccessDescription;
+
+  public abstract string DefaultSuccessDescription { get; }
   public override string FailureDescription =>
-    customErrMsg ?? "function precondition could not be proven";
+    customErrMsg ?? DefaultFailureDescription;
+  public abstract string DefaultFailureDescription { get; }
+  public ProofObligationDescriptionCustomMessages([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg) {
+    this.customErrMsg = customErrMsg;
+    this.customSuccessMsg = customSuccessMsg;
+  }
+}
+
+public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "function precondition satisfied";
+
+  public override string DefaultFailureDescription =>
+    "function precondition could not be proven";
 
   public override string ShortDescription => "precondition";
 
-  private readonly string customErrMsg;
-
-  public PreconditionSatisfied([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class AssertStatement : ProofObligationDescription {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "assertion always holds"
-      : $"error is impossible: {customErrMsg}";
+public class AssertStatement : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "assertion always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "assertion could not be proven";
+  public override string DefaultFailureDescription =>
+    "assertion could not be proven";
 
   public override string ShortDescription => "assert statement";
 
-  private readonly string customErrMsg;
-
-  public AssertStatement([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public AssertStatement([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
-public class LoopInvariant : ProofObligationDescription {
-  public override string SuccessDescription =>
-    customErrMsg is null
-      ? "loop invariant always holds"
-      : $"error is impossible: {customErrMsg}";
+// The Boogie version does not support custom error messages yet
+public class RequiresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "the precondition always holds";
 
-  public override string FailureDescription =>
-    customErrMsg ?? "loop invariant violation";
+  public override string DefaultFailureDescription =>
+    "a precondition could not be proven";
+
+  public override string ShortDescription => "requires";
+
+  public RequiresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+// The Boogie version does not support custom error messages yet
+public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "this postcondition holds";
+
+  public override string DefaultFailureDescription =>
+    "This is the postcondition that could not be proven.";
+
+  // Same as FailureDescription but used not as a "related" error, but as an error by itself
+  public string FailureDescriptionSingle =>
+    customErrMsg ?? "this postcondition could not be proven on a return path";
+
+  public string FailureAtPathDescription =>
+    customErrMsg ?? new PostconditionDescription().FailureDescription;
+
+  public override string ShortDescription => "ensures";
+
+  public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
+  }
+}
+
+public class LoopInvariant : ProofObligationDescriptionCustomMessages {
+  public override string DefaultSuccessDescription =>
+    "loop invariant always holds";
+
+  public override string DefaultFailureDescription =>
+    "loop invariant violation";
 
   public override string ShortDescription => "loop invariant";
 
-  private readonly string customErrMsg;
-
-  public LoopInvariant([CanBeNull] string customErrMsg) {
-    this.customErrMsg = customErrMsg;
+  public LoopInvariant([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+    : base(customErrMsg, customSuccessMsg) {
   }
 }
 
@@ -404,7 +447,7 @@ public class TraitDecreases : ProofObligationDescription {
     $"{whatKind}'s decreases clause is below or equal to that in the trait";
 
   public override string FailureDescription =>
-    $"{whatKind}'s decreases clause must be below or equal to that in the trait";
+    $"{whatKind}'s (possibly automatically generated) decreases clause must be below or equal to that in the trait";
 
   public override string ShortDescription => "trait decreases";
 

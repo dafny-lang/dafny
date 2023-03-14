@@ -5,6 +5,7 @@ using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -81,7 +82,7 @@ public class Compilation {
       var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
-      var state = documentAfterParsing.InitialIdeState();
+      var state = documentAfterParsing.InitialIdeState(options);
       state = state with {
         VerificationTree = migratedVerificationTree ?? state.VerificationTree
       };
@@ -122,9 +123,9 @@ public class Compilation {
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
     if (loaded.ParseAndResolutionDiagnostics.Any(d =>
-          d.Severity == DiagnosticSeverity.Error &&
-          d.Source != MessageSource.Compiler.ToString() &&
-          d.Source != MessageSource.Verifier.ToString())) {
+          d.Level == ErrorLevel.Error &&
+          d.Source != MessageSource.Compiler &&
+          d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
 
@@ -138,10 +139,10 @@ public class Compilation {
       try {
         if (task.CacheStatus is Completed completed) {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status,
-            GetDiagnosticsFromResult(loaded, completed.Result));
+            GetDiagnosticsFromResult(loaded, completed.Result).ToList());
           initialViews.Add(implementationId, view);
         } else {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<DafnyDiagnostic>());
           initialViews.Add(implementationId, view);
         }
       } catch (ArgumentException) {
@@ -264,14 +265,23 @@ public class Compilation {
       foreach (var counterExample in verificationResult.Errors) {
         document.Counterexamples.Add(counterExample);
       }
+      // Sometimes, the boogie status is set as Completed
+      // but the assertion batches were not reported yet.
+      // because they are on a different thread.
+      // This loop will ensure that every vc result has been dealt with
+      // before we report that the verification of the implementation is finished 
+      foreach (var result in completed.Result.VCResults) {
+        document.GutterProgressReporter.ReportAssertionBatchResult(
+          new AssertionBatchResult(implementationTask.Implementation, result));
+      }
 
-      var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
+      var diagnostics = GetDiagnosticsFromResult(document, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
       document.ImplementationIdToView[id] = view;
       document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
-                         new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
+                         new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
       document.ImplementationIdToView[id] = existingView with { Status = status };
     }
 
@@ -280,8 +290,8 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<Diagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -291,7 +301,8 @@ public class Compilation {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
+    var diagnostics = errorReporter.GetDiagnostics(document.Uri);
+    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
@@ -345,4 +356,28 @@ public class Compilation {
 
       return ResolvedDocument;
     }, TaskScheduler.Current).Unwrap();
+
+  public async Task<TextEditContainer?> GetTextEditToFormatCode() {
+    // TODO https://github.com/dafny-lang/dafny/issues/3416
+    var parsedDocument = await ResolvedDocument;
+    if (parsedDocument.Diagnostics.Any(diagnostic =>
+          diagnostic.Level == ErrorLevel.Error &&
+          diagnostic.Source == MessageSource.Parser
+        )) {
+      return null;
+    }
+
+    var firstToken = parsedDocument.Program.GetFirstTopLevelToken();
+    if (firstToken == null) {
+      return null;
+    }
+    var result = Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+      IndentationFormatter.ForProgram(parsedDocument.Program));
+
+    // TODO: https://github.com/dafny-lang/dafny/issues/3415
+    return new TextEditContainer(new TextEdit[] {
+      new() {NewText = result, Range = parsedDocument.TextDocumentItem.Range}
+    });
+
+  }
 }

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 OpaqueFunctions.dfy(38,15): Error: assertion could not be proven
 OpaqueFunctions.dfy(69,7): Error: a precondition for this call could not be proven
 OpaqueFunctions.dfy(35,15): Related location: this is the precondition that could not be proven

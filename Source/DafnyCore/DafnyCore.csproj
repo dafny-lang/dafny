@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg">
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg;$(ProjectDir)/CoCo/Parser.frame;$(ProjectDir)/CoCo/Scanner.frame">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --info" />
     <Exec Command="dotnet tool run coco &quot;$(ProjectDir)Dafny.atg&quot; -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
@@ -37,4 +37,9 @@
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="assets\audit_template.html">
+      <LogicalName>audit_template.html</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

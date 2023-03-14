@@ -3,20 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
 
-[TestClass]
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
@@ -34,8 +28,7 @@ public class GhostStateDiagnosticCollectorTest {
     }
   }
 
-  [TestInitialize]
-  public void SetUp() {
+  public GhostStateDiagnosticCollectorTest() {
     var options = new DafnyOptions();
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
@@ -44,28 +37,32 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
       return this.AllMessages;
+    }
+
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+      new DefaultModuleDefinition(), null) {
     }
     public override object Dereference() {
       return this;
     }
   }
 
-  [TestMethod]
+  [Fact]
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
+    var options = DafnyOptions.DefaultImmutableOptions;
+    var reporter = new CollectingErrorReporter(options);
     var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);
-    Assert.AreEqual(0, ghostDiagnostics.Count());
+    Assert.Empty(ghostDiagnostics);
   }
 }

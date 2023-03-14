@@ -1,4 +1,22 @@
-zeroCores.dfy(4,27): Error: a postcondition could not be proven on this return path
-zeroCores.dfy(4,21): Related location: this is the postcondition that could not be proven.
+Number of cores to use must be greater than 0
+
+Could not parse number earga
+
+Could not parse percentage earga%
+
+zeroCores.dfy(10,27): Error: a postcondition could not be proven on this return path
+zeroCores.dfy(10,21): Related location: this is the postcondition that might not hold
+
+Dafny program verifier finished with 0 verified, 1 error
+zeroCores.dfy(10,27): Error: a postcondition could not be proven on this return path
+zeroCores.dfy(10,21): Related location: this is the postcondition that might not hold
+
+Dafny program verifier finished with 0 verified, 1 error
+zeroCores.dfy(10,27): Error: a postcondition could not be proven on this return path
+zeroCores.dfy(10,21): Related location: this is the postcondition that might not hold
+
+Dafny program verifier finished with 0 verified, 1 error
+zeroCores.dfy(10,27): Error: a postcondition could not be proven on this return path
+zeroCores.dfy(10,21): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 0 verified, 1 error

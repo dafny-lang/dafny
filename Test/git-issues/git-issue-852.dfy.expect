@@ -1,4 +1,4 @@
 git-issue-852.dfy(11,10): Error: to redeclare and refine declaration 'T' from module 'M0', you must use the refining (`...`) notation
-git-issue-852.dfy(18,14): Error: a refining predicate is not allowed to extend/change the body
-git-issue-852.dfy(24,14): Error: a refining predicate is not allowed to extend/change the body
+git-issue-852.dfy(18,20): Error: a refining predicate is not allowed to extend/change the body
+git-issue-852.dfy(24,20): Error: a refining predicate is not allowed to extend/change the body
 3 resolution/type errors detected in git-issue-852.dfy

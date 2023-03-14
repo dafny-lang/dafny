@@ -2,17 +2,16 @@ using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
-  [TestClass]
   public class ConcurrentInteractionsTest : ClientBasedLanguageServerTest {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
@@ -25,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
-    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+    protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       await base.SetUp(modifyOptions);
 
       // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
@@ -33,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task VerificationErrorDetectedAfterCanceledSave() {
       // Create a document that'll be slightly slow to verify
       var source = @"
@@ -99,13 +98,13 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(documentItem.Version + 11, document.Version);
-      Assert.AreEqual(1, document.Diagnostics.Count());
-      Assert.AreEqual("assertion could not be proven", document.Diagnostics.First().Message);
+      Assert.NotNull(document);
+      Assert.Equal(documentItem.Version + 11, document.Version);
+      Assert.Single(document.Diagnostics);
+      Assert.Equal("assertion could not be proven", document.Diagnostics.First().Message);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task ChangeDocumentCancelsPreviousOpenAndChangeVerification() {
       var source = NeverVerifies.Substring(0, NeverVerifies.Length - 2);
       var documentItem = CreateTestDocument(source);
@@ -113,20 +112,20 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // The original document contains a syntactic error.
       var initialLoadDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-      Assert.AreEqual(1, initialLoadDiagnostics.Length);
+      Assert.Single(initialLoadDiagnostics);
 
       ApplyChange(ref documentItem, new Range((2, 1), (2, 1)), "\n}");
 
       // Wait for resolution diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.AreEqual(0, parseErrorFixedDiagnostics.Length);
+      Assert.Empty(parseErrorFixedDiagnostics);
 
       // Cancel the slow verification and start a fast verification
       ApplyChange(ref documentItem, new Range((0, 0), (3, 1)), "function GetConstant(): int ensures false { 1 }");
 
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
-      Assert.AreEqual(1, verificationDiagnostics.Length);
+      Assert.Single(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
     }
@@ -134,7 +133,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
     /// <summary>
     /// If this test is flaky, increase the amount of lines in the source program
     /// </summary>
-    // [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs, Skip = "Not working")]
     public async Task ChangeDocumentCancelsPreviousResolution() {
       string CreateCorrectFunction(int index) => @$"function GetConstant{index}(x: int): int {{ x }}";
 
@@ -150,15 +149,15 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       ApplyChange(ref documentItem, new Range((0, 30), (0, 31)), "1");
 
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(0, resolutionDiagnostics.Length);
+      Assert.Empty(resolutionDiagnostics);
 
       var verificationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken, documentItem);
-      Assert.AreEqual(0, verificationDiagnostics.Length);
+      Assert.Empty(verificationDiagnostics);
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task CanLoadMultipleDocumentsConcurrently() {
       // The current implementation of DafnyLangParser, DafnyLangSymbolResolver, and DafnyProgramVerifier are only mutual
       // exclusive to themselves. This "stress test" ensures that loading multiple documents at once is possible.
@@ -186,7 +185,7 @@ method Multiply(x: int, y: int) returns (product: int)
       }
       for (int i = 0; i < documentsToLoadConcurrently; i++) {
         var report = await GetLastDiagnostics(loadingDocuments[i], CancellationTokenWithHighTimeout);
-        Assert.AreEqual(0, report.Length);
+        Assert.Empty(report);
       }
 
       foreach (var loadingDocument in loadingDocuments) {

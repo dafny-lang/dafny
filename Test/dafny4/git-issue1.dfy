@@ -2,9 +2,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype T = T(n:int)
-function P(x: int) : int { x - 1}
+ghost function P(x: int) : int { x - 1}
 
-function ToInt(t:T) : int
+ghost function ToInt(t:T) : int
  ensures ToInt(t) == t.n as int;
  {
     t.n as int

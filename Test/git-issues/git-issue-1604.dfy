@@ -8,19 +8,19 @@ trait Tr { }
 class A extends Tr { }
 class B extends Tr { }
 
-predicate SpecialA(a: A)
+ghost predicate SpecialA(a: A)
 {
   false
 }
 type Ap  = x : A | SpecialA(x) witness *
 
-function method testSpecial(x: Tr): bool
+function testSpecial(x: Tr): bool
   requires x is A && SpecialA(x)
 {
   1/0 == 0
 }
 
-function method test(x: Tr): bool
+function test(x: Tr): bool
   requires x is A
 {
   if x is B then 1/0 == 0 else true

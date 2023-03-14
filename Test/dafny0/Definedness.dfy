@@ -7,18 +7,18 @@ class SoWellformed {
   var xyz: int
   var next: SoWellformed?
 
-  function F(x: int): int
+  ghost function F(x: int): int
   { 5 / x }  // error: possible division by zero
 
-  function G(x: int): int
+  ghost function G(x: int): int
     requires 0 < x;
   { 5 / x }
 
-  function H(x: int): int
+  ghost function H(x: int): int
     decreases 5/x;  // error: possible division by zero
   { 12 }
 
-  function I(x: int): int
+  ghost function I(x: int): int
     requires 0 < x;
     decreases 5/x;
   { 12 }
@@ -75,7 +75,7 @@ class SoWellformed {
 class StatementTwoShoes {
   var x: int
   var s: StatementTwoShoes?
-  function method F(b: int): StatementTwoShoes?
+  function F(b: int): StatementTwoShoes?
     requires 0 <= b
     reads this
   {
@@ -185,8 +185,8 @@ class StatementTwoShoes {
     }
   }
 
-  function G(w: int): int { 5 }
-  function method H(x: int): int { -x }
+  ghost function G(w: int): int { 5 }
+  function H(x: int): int { -x }
 
   method W(x: int)
   {
@@ -204,7 +204,7 @@ class StatementTwoShoes {
 
 class Mountain { var x: int; }
 
-function Postie0(c: Mountain?): Mountain?
+ghost function Postie0(c: Mountain?): Mountain?
   requires c != null;
   ensures Postie0(c) != null && Postie0(c).x <= Postie0(c).x;
   ensures Postie0(c).x == Postie0(c).x;
@@ -212,21 +212,21 @@ function Postie0(c: Mountain?): Mountain?
   c
 }
 
-function Postie1(c: Mountain?): Mountain?
+ghost function Postie1(c: Mountain?): Mountain?
   requires c != null;
   ensures Postie1(c) != null && Postie1(c).x == 5;  // error: postcondition violation (but no well-formedness problem)
 {
   c
 }
 
-function Postie2(c: Mountain?): Mountain?
+ghost function Postie2(c: Mountain?): Mountain?
   requires c != null && c.x == 5; reads c;
   ensures Postie2(c).x == 5;  // error: well-formedness error (null dereference)
 {
   c
 }
 
-function Postie3(c: Mountain?): Mountain?  // all is cool
+ghost function Postie3(c: Mountain?): Mountain?  // all is cool
   requires c != null && c.x == 5; reads c;
   ensures Postie3(c) != null && Postie3(c).x < 10;
   ensures Postie3(c).x == 5;
@@ -234,7 +234,7 @@ function Postie3(c: Mountain?): Mountain?  // all is cool
   c
 }
 
-function Postie4(c: Mountain?): Mountain?
+ghost function Postie4(c: Mountain?): Mountain?
   requires c != null && c.x <= 5; reads c;
   ensures Postie4(c) != null && Postie4(c).x < 10;
   ensures Postie4(c).x == 5;  // error: could not prove postcondition

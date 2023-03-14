@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 AutoReq.dfy(247,4): Error: function precondition could not be proven
 AutoReq.dfy(239,13): Related location
 AutoReq.dfy(239,35): Related location

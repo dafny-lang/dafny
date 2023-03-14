@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(340,18): Error: value does not satisfy the subset constraints of 'nat'
@@ -15,6 +16,7 @@ LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expre
 LetExpr.dfy(109,22): Error: assertion could not be proven
 
 Dafny program verifier finished with 37 verified, 13 errors
+The /allocated:<n> option is deprecated
 LetExpr.dfy.tmp.dprint.dfy(281,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy.tmp.dprint.dfy(46,2): Warning: /!\ No terms found to trigger on.
 

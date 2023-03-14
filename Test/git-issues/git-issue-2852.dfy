@@ -3,7 +3,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 // Returns a function that computes the sum of n consecutive integers starting at pos
-function method Sum(
+function Sum(
   ghost remaining: nat,
   n: nat
 ): (p: nat -> nat)

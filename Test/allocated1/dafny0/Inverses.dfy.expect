@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Inverses.dfy(70,2): Error: a postcondition could not be proven on this return path
 Inverses.dfy(67,10): Related location: this is the postcondition that could not be proven.
 Inverses.dfy(67,40): Related location

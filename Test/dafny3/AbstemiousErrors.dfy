@@ -5,34 +5,34 @@ codatatype Stream<T> = Cons(head: T, tail: Stream<T>)
 
 // -----
 
-function {:abstemious} TrivallyGood(): Stream<int>
+ghost function {:abstemious} TrivallyGood(): Stream<int>
 {
   Cons(0, TrivallyGood())
 }
 
-function {:abstemious} Inc(s: Stream<int>): Stream<int>
+ghost function {:abstemious} Inc(s: Stream<int>): Stream<int>
 {
   Cons(s.head + 1, Inc(s.tail))
 }
 
-function {:abstemious} Duplicate(s: Stream): Stream
+ghost function {:abstemious} Duplicate(s: Stream): Stream
 {
   Cons(s.head, Cons(s.head, Duplicate(s.tail)))
 }
 
-function {:abstemious} add(a: Stream<int>, b: Stream<int>): Stream<int>
+ghost function {:abstemious} add(a: Stream<int>, b: Stream<int>): Stream<int>
 {
   Cons(a.head + b.head, add(a.tail, b.tail))
 }
 
-function voraciousAdd(a: Stream<int>, b: Stream<int>): Stream<int>
+ghost function voraciousAdd(a: Stream<int>, b: Stream<int>): Stream<int>
 {
   Cons(a.head + b.head, voraciousAdd(a.tail, b.tail))
 }
 
 // -----
 
-function Fib(): Stream<int>
+ghost function Fib(): Stream<int>
 {
   Cons(0, Cons(1,
     voraciousAdd(
@@ -40,7 +40,7 @@ function Fib(): Stream<int>
       Fib().tail)))
 }
 
-function FibSortof(): Stream<int>
+ghost function FibSortof(): Stream<int>
 {
   Cons(0, Cons(1,
     voraciousAdd(
@@ -48,12 +48,12 @@ function FibSortof(): Stream<int>
       FibSortof())))
 }
 
-function ThisAintGoinNowhere(): Stream<int>
+ghost function ThisAintGoinNowhere(): Stream<int>
 {
   ThisAintGoinNowhere()  // error (termination): not sufficiently guarded
 }
 
-function BadFib(): Stream<int>
+ghost function BadFib(): Stream<int>
 {
   Cons(1,
     add(
@@ -61,7 +61,7 @@ function BadFib(): Stream<int>
       BadFib().tail))
 }
 
-function AnotherBadFib(): Stream<int>
+ghost function AnotherBadFib(): Stream<int>
 {
   Cons(1,
     voraciousAdd(

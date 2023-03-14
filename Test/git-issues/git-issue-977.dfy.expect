@@ -9,10 +9,10 @@ git-issue-977.dfy(229,13): Info: co-recursive call
 git-issue-977.dfy(234,18): Info: Pos#[_k - 1]
 git-issue-977.dfy(95,19): Info: _k: ORDINAL
 git-issue-977.dfy(113,19): Info: _k: nat
-git-issue-977.dfy(84,10): Info: tail recursive
+git-issue-977.dfy(84,16): Info: tail recursive
 git-issue-977.dfy(95,19): Info: tail recursive
 git-issue-977.dfy(113,19): Info: tail recursive
-git-issue-977.dfy(146,10): Info: tail recursive
+git-issue-977.dfy(146,16): Info: tail recursive
 git-issue-977.dfy(97,21): Info: GreatestPredOrd#[_k - 1]
 git-issue-977.dfy(115,21): Info: GreatestPredNat#[_k - 1]
 git-issue-977.dfy(217,13): Info: Selected triggers: {AAA#[k](t)}
@@ -20,13 +20,13 @@ git-issue-977.dfy(71,4): Info: Selected triggers:
    {RicochetOrd(m, num)}, {GreatestManualOrd(m, num)}, {GreatestPredOrd#[m](num)}, {m < k}
 git-issue-977.dfy(138,4): Info: Selected triggers:
    {GreatestManualOrd(m, num)}, {m < k}
-git-issue-977.dfy(227,11): Info: decreases 1, n
+git-issue-977.dfy(227,17): Info: decreases 1, n
 git-issue-977.dfy(237,36): Info: Theorem2# decreases _k, n
-git-issue-977.dfy(50,9): Info: decreases n
+git-issue-977.dfy(50,15): Info: decreases n
 git-issue-977.dfy(61,6): Info: decreases k, num
-git-issue-977.dfy(84,10): Info: decreases num
-git-issue-977.dfy(129,10): Info: decreases k, num
-git-issue-977.dfy(146,10): Info: decreases k, num
+git-issue-977.dfy(84,16): Info: decreases num
+git-issue-977.dfy(129,16): Info: decreases k, num
+git-issue-977.dfy(146,16): Info: decreases k, num
 git-issue-977.dfy(54,6): Info: {:induction num}
 git-issue-977.dfy(61,6): Info: {:induction k, num}
 git-issue-977.dfy(77,6): Info: {:induction k, num}

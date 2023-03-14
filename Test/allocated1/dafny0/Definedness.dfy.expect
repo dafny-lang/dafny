@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Definedness.dfy(11,6): Error: possible division by zero
 Definedness.dfy(18,15): Error: possible division by zero
 Definedness.dfy(27,15): Error: target object might be null
@@ -45,11 +46,11 @@ Definedness.dfy(196,18): Error: possible division by zero
 Definedness.dfy(196,22): Error: this loop invariant could not be proven on entry
 Definedness.dfy(196,22): Related message: loop invariant violation
 Definedness.dfy(196,27): Error: possible division by zero
-Definedness.dfy(215,9): Error: a postcondition could not be proven on this return path
+Definedness.dfy(215,15): Error: a postcondition could not be proven on this return path
 Definedness.dfy(217,48): Related location: this is the postcondition that could not be proven.
 Definedness.dfy(224,21): Error: target object might be null
 Definedness.dfy(224,21): Error: target object might not be allocated
-Definedness.dfy(237,9): Error: a postcondition could not be proven on this return path
+Definedness.dfy(237,15): Error: a postcondition could not be proven on this return path
 Definedness.dfy(240,23): Related location: this is the postcondition that could not be proven.
 
 Dafny program verifier finished with 9 verified, 38 errors

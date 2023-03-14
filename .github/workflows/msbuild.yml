@@ -1,48 +1,53 @@
 name: Build and Test
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [ master ]
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
 
 jobs:
+  check-deep-tests:
+    uses: ./.github/workflows/check-deep-tests-reusable.yml
+    with:
+      branch: master
+
   singletons:
+    needs: check-deep-tests
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-20.04
     steps:
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: dafny
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
-    - name: Get XML
-      id: boogieVersion
-      uses: QwerMike/xpath-action@v1
-      with:
-        filename: 'dafny/Source/DafnyCore/DafnyCore.csproj'
-        expression: "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version"
-
-    - uses: actions-ecosystem/action-regex-match@v2
-      id: regex-match
-      with:
-        text: ${{ steps.boogieVersion.outputs.result }}
-        regex: ' Version="([\d\.]+)"'
+    - name: Get Boogie Version
+      run: |
+        sudo apt-get install -qq libxml2-utils
+        echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
     - name: Attempt custom Boogie patch
       working-directory: dafny
       run: git apply customBoogie.patch
     - name: Checkout Boogie
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: boogie-org/boogie
         path: dafny/boogie
-        ref: v${{ steps.regex-match.outputs.group1 }}
+        ref: v${{ env.boogieVersion }}
     - name: Build Dafny with local Boogie
       working-directory: dafny
       run: dotnet build Source/Dafny.sln
@@ -52,18 +57,123 @@ jobs:
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
-  check-deep-tests:
-    uses: ./.github/workflows/check-deep-tests-reusable.yml
-    with:
-      branch: master
+  xunit-tests:
+    needs: check-deep-tests
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    uses: ./.github/workflows/xunit-tests-reusable.yml
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       # By default run only on one platform, but run on all platforms if the PR has the "run-deep-tests"
       # label, and skip checking the nightly build above.
       # This is the best way to fix an issue in master that was only caught by the nightly build.
-      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') }}
+      all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
       num_shards: 5
+
+  test-coverage-analysis:
+    runs-on: ubuntu-20.04
+    # Don't include in run-deep-tests, because those tests run on
+    # release builds instead of source packages.
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
+    needs: [xunit-tests, integration-tests]
+    steps:
+      # Check out Dafny so that highlighted source is possible
+      - name: Checkout Dafny
+        uses: actions/checkout@v3
+        with:
+          path: dafny
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{env.dotnet-version}}
+
+      - name: Install dotnet-reportgenerator and coverage
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet tool install --global dotnet-coverage
+
+      - name: Install and run Coco
+        run: |
+          # Run coco to ensure that all source code is available. It's faster to do this alone than to rebuild everything.
+          cd dafny
+          dotnet tool restore
+          dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
+
+      - name: Download integration test artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: integration-test-results-ubuntu-20.04
+
+      - name: Download unit test artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: unit-test-results-ubuntu-20.04
+
+      - name: Merge reports
+        run: |
+          # Convert the coverage data from the language server to Cobertura format
+          dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.Cobertura.xml -f cobertura
+          # Generate a combined report, including xUnit results but not
+          # LSP results
+          reportgenerator \
+            -reports:"./**/coverage.cobertura.xml" \
+            -reporttypes:Cobertura -targetdir:coverage-cobertura
+          # Generate HTML from combined report, leaving out XUnitExtensions
+          reportgenerator \
+            -reports:"coverage-cobertura/Cobertura.xml" \
+            -assemblyfilters:"-XUnitExtensions" \
+            -reporttypes:HTML -targetdir:coverage-html
+          # Generate HTML from LSP report, including only LSP stuff
+          reportgenerator \
+            -reports:"DafnyLanguageServer.Test.Cobertura.xml" \
+            -assemblyfilters:"+dafnylanguageserver" \
+            -reporttypes:HTML -targetdir:lsp-html
+          # Generate new Cobertura from LSP report, including only LSP stuff
+          reportgenerator \
+            -reports:"DafnyLanguageServer.Test.Cobertura.xml" \
+            -assemblyfilters:"+dafnylanguageserver" \
+            -reporttypes:Cobertura -targetdir:.
+          mv Cobertura.xml coverage-cobertura/LSP-Cobertura.xml
+
+      - name: Code coverage report (non-LSP)
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: ./coverage-cobertura/Cobertura.xml
+          badge: true
+          fail_below_min: true
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          # Fail if less than 86% total coverage, measured across all packages combined.
+          # Report "yellow" status if less than 90% total coverage.
+          thresholds: '86 90'
+
+      - name: Code coverage report (LSP)
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: ./coverage-cobertura/LSP-Cobertura.xml
+          badge: true
+          fail_below_min: true
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          # Fail if less than 86% total coverage, measured across all packages combined.
+          # Report "yellow" status if less than 90% total coverage.
+          thresholds: '86 90'
+
+      - uses: actions/upload-artifact@v3
+        if: always() # Upload results even if the job fails
+        with:
+          name: test-coverage-results
+          path: |
+            coverage-cobertura
+            coverage-html
+            lsp-html

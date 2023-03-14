@@ -1,9 +1,9 @@
 Naked.dfy(9,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(12,7): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(17,52): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(17,58): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(22,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(26,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-Naked.dfy(30,44): Error: function precondition could not be proven
+Naked.dfy(30,50): Error: function precondition could not be proven
 Naked.dfy(32,13): Related location
 Naked.dfy(32,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(38,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.

@@ -33,6 +33,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 using System;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorRegistry;
 
 -->namespace
 
@@ -65,22 +66,32 @@ public class Parser {
     errDist = 0;
   }
 
-  public void SemErr (string msg) {
+  public void SemErr(string msg) {
     Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(t, msg);
+    if (errDist >= minErrDist) errors.SemErr(null, t, msg);
     errDist = 0;
   }
 
   public void SemErr(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(tok, msg);
+    errors.SemErr(ErrorRegistry.NoneId, tok, msg);
   }
 
-  void Get () {
-    for (;;) {
-      t = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+  public void SemErr(object errorId, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    errors.SemErr(errorId, tok, msg);
+  }
+
+  void Get() {
+    for (; ; ) {
+      var tmp = la;
       la = scanner.Scan();
+      la = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
+      tmp.Next = la;
+      la.Prev = tmp;
+      t = tmp;
       if (la.kind <= maxT) { ++errDist; break; }
 -->pragmas
       la = t;
@@ -150,7 +161,7 @@ public class Errors {
   public void SynErr(string filename, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, null, filename, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -166,31 +177,49 @@ public class Errors {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, tok, msg);
+    Reporting.Error(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
-  public void SemErr(string filename, int line, int col, string msg) {
+  public void SemErr(object errorId, IToken tok, string msg) {  // semantic errors
+    Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorId.ToString(), tok, msg);
+  }
+
+  public void SemErr(object errorId, string filename, int line, int col, string msg) {
+    Contract.Requires(msg != null);
+    ErrorCount++;
+    Reporting.Error(MessageSource.Parser, errorId.ToString(), filename, line, col, msg);
+  }
+
+  public void Deprecated(object errorId, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Reporting.Deprecated(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
   public void Deprecated(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, tok, msg);
+    Reporting.Deprecated(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
-  public void DeprecatedStyle(IToken tok, string msg) {
+  public void DeprecatedStyle(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.DeprecatedStyle(MessageSource.Parser, tok, msg);
+    Reporting.DeprecatedStyle(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
   public void Warning(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, tok, msg);
+    Reporting.Warning(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
+  }
+
+  // Code action range is up to, not including, the next token
+  public static RangeToken CodeAction(IToken sourceTok, IToken next) {
+    return new RangeToken(sourceTok, next);
   }
 } // Errors
 

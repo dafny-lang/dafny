@@ -3,7 +3,7 @@
 
 // -----
 
-function method Func<T(00)>(): int {
+function Func<T(00)>(): int {
   5
 }
 
@@ -17,7 +17,7 @@ method Test()
 
 // -----
 
-function GetInhabitant<T(0)>(): T {
+ghost function GetInhabitant<T(0)>(): T {
   var x: T :| true; x
 }
 

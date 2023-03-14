@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
@@ -19,13 +18,14 @@ using OmniSharp.Extensions.JsonRpc.Client;
 using OmniSharp.Extensions.JsonRpc.Serialization;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
-  [TestClass]
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class StandaloneLanguageServerBinaryTest {
 
-    [TestMethod]
+    [Fact]
     public async Task InitialisationWorks() {
 
       var process = StartLanguageServer();
@@ -33,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
-      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      Assert.False(string.IsNullOrEmpty(initializedResponseFirstLine));
       process.Kill();
       await process.WaitForExitAsync();
     }
@@ -41,35 +41,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private Process StartLanguageServer() {
       var serverBinary = Path.Join(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DafnyLanguageServer.dll");
 
-      var processInfo = new ProcessStartInfo("dotnet", serverBinary) {
+      var processInfo = new ProcessStartInfo("dotnet") {
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         RedirectStandardInput = true,
-        UseShellExecute = false
+        UseShellExecute = false,
+        ArgumentList = { serverBinary }
       };
 
       return Process.Start(processInfo)!;
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LanguageServerStaysAliveIfParentDiesButNoParentIdWasProvided() {
       var process = await StartLanguageServerRunnerProcess();
 
       var languageServerProcessId = await process.StandardOutput.ReadLineAsync();
-      Assert.IsNotNull(languageServerProcessId);
+      Assert.NotNull(languageServerProcessId);
 
       await Task.Delay(1000); // Give the process some time to die
       var initializeMessage = await GetLspInitializeMessage(null);
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
-      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      Assert.False(string.IsNullOrEmpty(initializedResponseFirstLine));
 
       await process.WaitForExitAsync();
 
       await Task.Delay(100); // Give the process some time to die
 
-      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      Assert.False(string.IsNullOrEmpty(initializedResponseFirstLine));
       try {
         var languageServer = Process.GetProcessById(int.Parse(languageServerProcessId));
         languageServer.Kill();
@@ -78,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       }
     }
 
-    [TestMethod, Timeout(10_000)]
+    [Fact(Timeout = 10_000)]
     public async Task LanguageServerShutsDownIfParentDies() {
       var process = await StartLanguageServerRunnerProcess();
 
@@ -88,13 +89,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await process.StandardInput.WriteAsync(initializeMessage);
 
       var initializedResponseFirstLine = await process.StandardOutput.ReadLineAsync();
-      Assert.IsFalse(string.IsNullOrEmpty(initializedResponseFirstLine));
+      Assert.False(string.IsNullOrEmpty(initializedResponseFirstLine));
 
       var error = await process.StandardError.ReadToEndAsync();
       var didExit = process.WaitForExit(-1);
-      Assert.IsTrue(didExit);
-      Assert.IsNotNull(languageServerProcessId, error);
-      Assert.IsTrue(string.IsNullOrEmpty(error), error);
+      Assert.True(didExit);
+      Assert.NotNull(languageServerProcessId);
+      Assert.True(string.IsNullOrEmpty(error), error);
 
       // Wait for the language server to kill itself by waiting until it closes the output stream.
       await process.StandardOutput.ReadToEndAsync();
@@ -212,7 +213,7 @@ public class ShortLivedProcessStarter {{
         }, new JsonSerializerOptions() { WriteIndented = true });
       await File.WriteAllTextAsync(temp + ".runtimeconfig.json", configuration + Environment.NewLine);
 
-      Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
+      Assert.True(result.Success, string.Join("\n", result.Diagnostics.Select(d => d.ToString())));
       return assemblyPath;
     }
   }

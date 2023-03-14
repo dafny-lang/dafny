@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 UnfoldingPerformance.dfy(23,11): Error: assertion could not be proven
 UnfoldingPerformance.dfy(30,11): Error: assertion could not be proven
 UnfoldingPerformance.dfy(51,11): Error: assertion could not be proven

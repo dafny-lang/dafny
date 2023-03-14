@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Char.dfy(81,13): Error: char addition might overflow
 Char.dfy(89,7): Error: char subtraction might underflow
 Char.dfy(48,20): Error: assertion could not be proven

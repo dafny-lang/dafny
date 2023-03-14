@@ -1,12 +1,12 @@
 // RUN: %exits-with 4 %dafny /dprint:- /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate P(n: int)
+ghost predicate P(n: int)
 {
   n % 2 == 0
 }
 
-predicate R(r: real)
+ghost predicate R(r: real)
 {
   0.0 <= r
 }
@@ -158,14 +158,14 @@ method P3(m: int, n: int)
   }
 }
 
-function f(s:set<int>):int
+ghost function f(s:set<int>):int
 {
   if x :| x in s then x else 0
 }
 
 // -------------- optional curly-brace syntax
 
-predicate method AltSyntaxP(x: int) { true }
+predicate AltSyntaxP(x: int) { true }
 datatype Color = Red | Green | Blue
 
 method AltSyntax0(x: int, y: int, c: Color) returns (z: int) {

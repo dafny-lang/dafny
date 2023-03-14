@@ -12,7 +12,7 @@ method M()
   assert 200 in numbers;  // error
 }
 
-function method Id(x: int): int { x }  // for triggering
+function Id(x: int): int { x }  // for triggering
 
 datatype D = A | B
 // The following mainly test that set comprehensions can be compiled, but one would
@@ -84,108 +84,108 @@ method Sequences0() {
 class SeqOp {
   var x: real
 
-  function method G(i: nat): real
+  function G(i: nat): real
     reads this
   {
     if i < 20 then 2.5 else x
   }
-  function method H(i: nat): real
+  function H(i: nat): real
     reads if i < 20 then {} else {this}
   {
     if i < 20 then 2.5 else x
   }
 
-  function method S0(n: nat): seq<real> {
+  function S0(n: nat): seq<real> {
     seq(n, G)  // error: S0 reads {this}
   }
-  function method S1(n: nat): seq<real>
+  function S1(n: nat): seq<real>
     reads this
   {
     seq(n, G)
   }
-  function method S2(n: nat): seq<real> {
+  function S2(n: nat): seq<real> {
     seq(n, H)  // error: S2 reads {this}
   }
-  function method S3(n: nat): seq<real>
+  function S3(n: nat): seq<real>
     reads this
   {
     seq(n, H)
   }
-  function method S4(n: nat): seq<real> {
+  function S4(n: nat): seq<real> {
     seq(n, i => if i < 20 then 2.5 else x)  // error: lambda reads {this}
   }
-  function method S5(n: nat): seq<real> {
+  function S5(n: nat): seq<real> {
     seq(n, i reads this => if i < 20 then 2.5 else x)  // error: S5 reads {this}
   }
-  function method S6(n: nat): seq<real>
+  function S6(n: nat): seq<real>
     reads this
   {
     seq(n, i reads this => if i < 20 then 2.5 else x)
   }
-  function method S7(n: nat): seq<real> {
+  function S7(n: nat): seq<real> {
     seq(n, i requires i < 20 => if i < 20 then 2.5 else x)  // error: S7 violates lambda's precondition
   }
 
-  function method T0(n: nat): seq<real>
+  function T0(n: nat): seq<real>
     requires n <= 20
   {
     seq(n, G)  // error: T0 reads {this}
   }
-  function method T1(n: nat): seq<real>
+  function T1(n: nat): seq<real>
     requires n <= 20
     reads this
   {
     seq(n, G)
   }
-  function method T2(n: nat): seq<real>
+  function T2(n: nat): seq<real>
     requires n <= 20
   {
     seq(n, H)
   }
-  function method T3(n: nat): seq<real>
+  function T3(n: nat): seq<real>
     requires n <= 20
   {
     seq(n, i reads this => if i < 20 then 2.5 else x)  // error: T3 reads {this}
   }
-  function method T4(n: nat): seq<real>
+  function T4(n: nat): seq<real>
     requires n <= 20
   {
     seq(n, i requires i < 20 => if i < 20 then 2.5 else x)
   }
-  function method T5(n: nat): seq<real>
+  function T5(n: nat): seq<real>
     requires n <= 20
   {
     seq(n, i reads if i < 20 then {} else {this} => if i < 20 then 2.5 else x)
   }
 
-  function method XT0(n: nat): seq<int> {
+  function XT0(n: nat): seq<int> {
     seq<int>(n, _ => 7)
   }
-  function method XT1(n: nat): seq<int> {
+  function XT1(n: nat): seq<int> {
     seq<nat>(n, _ => 7)
   }
-  function method XT2(n: nat): seq<int> {
+  function XT2(n: nat): seq<int> {
     seq<nat>(n, _ => -7)  // error: -7 is not a nat
   }
-  function method XT3(n: nat): seq<nat> {
+  function XT3(n: nat): seq<nat> {
     seq(n, _ => -7)  // error: this is not a seq<nat>
   }
-  function method XT4(n: nat): seq<nat> {
+  function XT4(n: nat): seq<nat> {
     seq(n, i requires 0 <= i < 3 => 10)  // error: init function doesn't accept all indices
   }
-  function method XT5(n: nat): seq<nat> {
+  function XT5(n: nat): seq<nat> {
     seq(n, i requires 0 <= i < n => 10)
   }
-  function method XT6(n: nat): seq<nat> {
+  function XT6(n: nat): seq<nat> {
     seq(n, i => if i < n then 10 else -7)  // error: type of lambda is inferred to be int->nat, so the -7 gives an error
   }
-  function method XT7(n: nat): seq<nat> {
+  function XT7(n: nat): seq<nat> {
     seq(n, i => var u: int := if i < n then 10 else -7; u)  // fine: lambda has type int->int; use of this lambda always gives a nat
   }
-  function method XT8(n: nat): seq<nat> {
+  function XT8(n: nat): seq<nat> {
     seq(n, i => if i < n then -7 else 10)  // error: this can't be assigned to a seq<nat>
   }
-  function method XT9(n: nat): seq<nat> {
+  function XT9(n: nat): seq<nat> {
     seq<nat>(n, i => if i < n then -7 else 10)  // error: this can't be assigned to a seq<nat>
   }
 }

@@ -1,5 +1,5 @@
-OpaqueTypes.dfy(13,11): Error: Function body type mismatch (expected nat, got T)
+OpaqueTypes.dfy(13,17): Error: Function body type mismatch (expected nat, got T)
 OpaqueTypes.dfy(16,13): Error: arguments to <= must have a common supertype (got int and A.T)
-OpaqueTypes.dfy(40,29): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got T)
+OpaqueTypes.dfy(40,35): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got T)
 OpaqueTypes.dfy(43,13): Error: arguments to <= must have a common supertype (got int and A.T)
 4 resolution/type errors detected in OpaqueTypes.dfy

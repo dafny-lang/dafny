@@ -1,0 +1,59 @@
+# Default module
+
+## Type `T`
+
+* Trait method calls may not terminate (uses `{:termination false}`). MUST remove if possible.
+
+## Top level
+
+### Member `MinusBv8NoBody`
+
+* Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
+### Member `LeftShiftBV128`
+
+* Declaration has explicit `{:axiom}` attribute. MUST provide a proof or test.
+
+* Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
+### Member `MinusBv8Assume`
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+### Member `GenerateBytes`
+
+* Compiled declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`).
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+
+### Member `GenerateBytesWithModel`
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`).
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+
+### Member `GenerateBytesWrapper`
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+### Member `GenerateBytesNoGuarantee`
+
+* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+
+### Member `DoesNotTerminate`
+
+* Method may not terminate (uses `decreases *`). MUST provide a valid `decreases` clause.
+
+### Member `ForallWithoutBody`
+
+* Definition contains `forall` statement with no body. MUST provide a body.
+
+### Member `LoopWithoutBody`
+
+* Definition contains loop with no body. MUST provide a body.
+
+### Member `ConcurrentMethod`
+
+* Declaration has `{:concurrent}` attribute. MUST manually review and test in a concurrent setting.

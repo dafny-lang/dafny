@@ -1,18 +1,33 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
+  public override IEnumerable<Node> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
+  public override IEnumerable<Node> PreResolveChildren => Children;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);
     Contract.Invariant(Rhs != null);
   }
 
-  public override IEnumerable<INode> Children => new INode[] { Lhs, Rhs };
+  public override IToken Tok {
+    get {
+      var previous = Rhs.StartToken.Prev;
+      // If there was a single assignment, report on the operator.
+      var singleAssignment = previous.val == ":=";
+      // If there was an implicit return assignment, report on the return.
+      var implicitAssignment = previous.val == "return";
+      if (singleAssignment || implicitAssignment) {
+        return previous;
+      }
+      return Rhs.StartToken;
+    }
+  }
 
   public AssignStmt Clone(Cloner cloner) {
     return new AssignStmt(cloner, this);
@@ -23,10 +38,9 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public AssignStmt(IToken tok, IToken endTok, Expression lhs, AssignmentRhs rhs)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public AssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);
     Contract.Requires(rhs != null);
     this.Lhs = lhs;
@@ -36,6 +50,14 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public override IEnumerable<Statement> SubStatements {
     get {
       foreach (var s in Rhs.SubStatements) {
+        yield return s;
+      }
+    }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      foreach (var s in Rhs.PreResolveSubStatements) {
         yield return s;
       }
     }

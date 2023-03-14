@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         GetNamedVerifiableStatuses(state.ImplementationIdToView));
     }
 
-    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, ImplementationView> implementationViews) {
+    private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, IdeImplementationView> implementationViews) {
       var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
       return namedVerifiableGroups.Select(taskGroup => {
         var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
@@ -120,6 +120,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static GhostDiagnosticsParams GetGhostness(IdeState state) {
+
       return new GhostDiagnosticsParams {
         Uri = state.TextDocumentItem.Uri,
         Version = state.TextDocumentItem.Version,

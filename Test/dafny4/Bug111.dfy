@@ -4,7 +4,7 @@
 datatype A = A(i:int)
 datatype B = B1(a1:A) | B2(a2:A)
 
-function f(b:B):int
+ghost function f(b:B):int
 {
   match b
   {

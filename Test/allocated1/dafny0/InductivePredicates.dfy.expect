@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 InductivePredicates.dfy(80,9): Error: assertion could not be proven
 InductivePredicates.dfy(92,10): Error: assertion could not be proven
 

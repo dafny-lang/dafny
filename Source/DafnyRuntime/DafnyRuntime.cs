@@ -1426,6 +1426,7 @@ namespace Dafny {
 
     public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
     public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');  // See CharType.DefaultValue in Dafny source code
+    public static readonly TypeDescriptor<Rune> RUNE = new TypeDescriptor<Rune>(new Rune('D'));  // See CharType.DefaultValue in Dafny source code
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);

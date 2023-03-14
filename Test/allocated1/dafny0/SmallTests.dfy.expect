@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(34,11): Error: index out of range
@@ -38,7 +39,7 @@ SmallTests.dfy(332,40): Related location
 SmallTests.dfy(379,11): Error: assertion could not be proven
 SmallTests.dfy(386,9): Error: assertion could not be proven
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(440,9): Error: a postcondition could not be proven on this return path
+SmallTests.dfy(440,15): Error: a postcondition could not be proven on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proven.
 SmallTests.dfy(604,11): Error: assertion could not be proven
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
@@ -52,6 +53,7 @@ SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that 
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
 Dafny program verifier finished with 51 verified, 46 errors
+The /allocated:<n> option is deprecated
 SmallTests.dfy.tmp.dprint.dfy(740,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 

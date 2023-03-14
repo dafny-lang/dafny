@@ -1,12 +1,11 @@
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
   public class TextReplacementTest : SynchronizationTestBase {
-    [TestMethod]
+    [Fact]
     public async Task ReplaceSingleLineTextAtStart() {
       var source = @"
 function GetConstant(): int {
@@ -21,15 +20,15 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetIt():int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceMultiLineTextAtStart() {
       var source = @"
 function GetConstant(): int {
@@ -46,16 +45,16 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function Get21(): int
 {
   21
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceSingleLineTextAtEnd() {
       var source = @"
 function GetConstant(): int {
@@ -70,15 +69,15 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetConstant(): int {
   1
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceMultiLineTextAtEnd() {
       var source = @"
 function GetConstant(): int {
@@ -95,15 +94,15 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetConstant(): int {
   23
 /* test */ }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceMultiLineTextInTheMiddle() {
       var source = @"
 class Test {
@@ -141,7 +140,7 @@ method GetXY() returns (x: int, y: int)
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 class Test {
     var x: int;
@@ -165,10 +164,10 @@ class Test {
         this.y
     }
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceSingleLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
@@ -183,15 +182,15 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function GetAnother(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceMultiLineTextInTheMiddleOfALine() {
       var source = @"
 function GetConstant(): int {
@@ -210,7 +209,7 @@ function Some";
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = @"
 function It(): string {
   ""test""
@@ -219,10 +218,10 @@ function It(): string {
 function Some(): int {
   1
 }".TrimStart();
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task RemoveCompleteDocumentContent() {
       var source = @"
 function GetConstant(): int {
@@ -237,21 +236,21 @@ function GetConstant(): int {
         change
       );
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
+      Assert.NotNull(document);
       var expected = "";
-      Assert.AreEqual(expected, document.TextDocumentItem.Text);
+      Assert.Equal(expected, document.TextDocumentItem.Text);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ReplaceCompleteDocumentContent() {
-      var source = "function GetConstant(): int { 1 }";
-      var change = "function method ReturnSame(x: int): int { x }";
+      var source = "ghost function GetConstant(): int { 1 }";
+      var change = "function ReturnSame(x: int): int { x }";
       var documentItem = CreateTestDocument(source);
       await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await ApplyChangeAndWaitCompletionAsync(documentItem, null, change);
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
-      Assert.IsNotNull(document);
-      Assert.AreEqual(change, document.TextDocumentItem.Text);
+      Assert.NotNull(document);
+      Assert.Equal(change, document.TextDocumentItem.Text);
     }
   }
 }

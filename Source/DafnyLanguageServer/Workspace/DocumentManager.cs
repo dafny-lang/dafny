@@ -57,7 +57,7 @@ public class DocumentManager {
       document,
       null);
 
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState()).Subscribe(observer);
+    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
 
     if (VerifyOnOpen) {
       var _ = VerifyEverythingAsync();
@@ -127,9 +127,9 @@ public class DocumentManager {
     Compilation.Start();
   }
 
-  private Dictionary<ImplementationId, ImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
-    IReadOnlyDictionary<ImplementationId, ImplementationView> oldVerificationDiagnostics) {
-    var result = new Dictionary<ImplementationId, ImplementationView>();
+  private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
+    IReadOnlyDictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
+    var result = new Dictionary<ImplementationId, IdeImplementationView>();
     foreach (var entry in oldVerificationDiagnostics) {
       var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
       if (newRange != null) {
@@ -221,7 +221,7 @@ public class DocumentManager {
 
   private IEnumerable<Position> GetChangedVerifiablesFromRanges(DocumentAfterResolution loaded, IEnumerable<Range> changedRanges) {
     var tree = new DocumentVerificationTree(loaded.TextDocumentItem);
-    VerificationProgressReporter.UpdateTree(loaded, tree);
+    VerificationProgressReporter.UpdateTree(options, loaded, tree);
     var intervalTree = new IntervalTree<Position, Position>();
     foreach (var childTree in tree.Children) {
       intervalTree.Add(childTree.Range.Start, childTree.Range.End, childTree.Position);

@@ -9,7 +9,7 @@
 // works properly, then the 'i' in the right-hand side of the forall assignments
 // below will not be chosen in any trigger, and then the methods should
 // verify.
-function method Id(x: int): int { x }
+function Id(x: int): int { x }
 
 method Copy<T>(a: array<T>) returns (r: array<T>)
   ensures fresh(r) && r.Length == a.Length && forall k :: 0 <= k < a.Length ==> r[k] == a[k];

@@ -1,18 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
-[TestClass]
 public class LinearRenderingTest {
   public static LineVerificationStatus RenderLineVerificationStatusOriginal(
       bool isSingleLine, bool contextHasErrors, bool contextIsPending,
@@ -73,14 +64,14 @@ public class LinearRenderingTest {
     };
   }
 
-  [TestMethod]
+  [Fact]
   public void EnsureRenderingIsCoherent() {
     foreach (GutterVerificationStatus verificationStatus in Enum.GetValues(typeof(GutterVerificationStatus))) {
       foreach (CurrentStatus currentStatus in Enum.GetValues(typeof(CurrentStatus))) {
         var isSingleLine = true; do {
           var contextHasError = true; do {
             var contextIsPending = true; do {
-              Assert.AreEqual(
+              Assert.Equal(
                 RenderLineVerificationStatusOriginal(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus),
                 VerificationTree.RenderLineVerificationStatus(isSingleLine, contextHasError, contextIsPending, currentStatus, verificationStatus)
                 );
