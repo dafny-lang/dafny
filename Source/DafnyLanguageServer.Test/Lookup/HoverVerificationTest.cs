@@ -92,7 +92,7 @@ method DoIt() returns (x: int)
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) a postcondition could not be proven on this return path  
 Inside `Q(x)`  
 Inside `P(i)`  
 Could not prove: `i >= 0`  
@@ -183,7 +183,7 @@ Could not prove: `i % 2 == 0`"
       );
 
       await AssertHoverMatches(documentItem, (3, 0),
-        @"**Error:**???A postcondition might not hold on this return path.  
+        @"**Error:**???a postcondition could not be proven on this return path  
 Could not prove: `i > 0`"
       );
     }
@@ -301,11 +301,11 @@ datatype Test = Test(i: int)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (4, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `t.i > 0`  "
       );
       await AssertHoverMatches(documentItem, (5, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `t.i > 1`  "
       );
       await AssertHoverMatches(documentItem, (5, 20),
@@ -339,7 +339,7 @@ datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (10, 16),
-        @"**Error:**???function precondition might not hold???
+        @"**Error:**???function precondition could not be proven???
 Inside `Valid()`  
 Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())`  "
       );
@@ -365,11 +365,11 @@ function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (9, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `i > 0`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `i > 1`  "
       );
       await AssertHoverMatches(documentItem, (10, 20),
@@ -404,17 +404,17 @@ method Test(i: int) returns (j: nat)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (12, 11),
-        @"**Error:**???this postcondition might not hold on a return path???
+        @"**Error:**???this postcondition could not be proven on a return path???
 Could not prove: `i == j || -i == j`???
 Return path: testfile2.dfy(18, 5)"
       );
       await AssertHoverMatches(documentItem, (17, 6),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proven on this return path???
 Inside `Q(i, j)`???
 Could not prove: `i == j || -i == j`"
       );
       await AssertHoverMatches(documentItem, (17, 13),
-        @"**Error:**???function precondition might not hold???
+        @"**Error:**???function precondition could not be proven???
 Inside `P(i)`???
 Could not prove: `i <= 0`"
       );
@@ -441,7 +441,7 @@ method Test() returns (j: int)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (14, 5),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proven on this return path???
 Could not prove: `j == 1`"
       );
     }
@@ -459,7 +459,7 @@ method Test(i: int)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (6, 11),
-        @"**Error:**???assertion might not hold  
+        @"**Error:**???assertion could not be proven  
 Inside `P(1)`  
 Could not prove: `i <= 0`"
       );
