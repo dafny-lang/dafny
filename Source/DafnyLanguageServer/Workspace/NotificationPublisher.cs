@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
       var notification = GetFileVerificationStatus(state);
-      if (notification == null || !options.Verify) {
+      if (notification == null) {
         // Do not publish verification status while resolving
         return;
       }
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void PublishGutterIcons(IdeState state, bool verificationStarted) {
-      if (!options.Get(ServerCommand.LineVerificationStatus)) {
+      if (!options.Get(ServerCommand.LineVerificationStatus) || !options.Verify) {
         return;
       }
 
