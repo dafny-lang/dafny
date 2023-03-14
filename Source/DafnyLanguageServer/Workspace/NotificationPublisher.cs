@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void PublishVerificationStatus(IdeState previousState, IdeState state) {
       var notification = GetFileVerificationStatus(state);
-      if (notification == null) {
+      if (notification == null || !options.Verify) {
         // Do not publish verification status while resolving
         return;
       }
