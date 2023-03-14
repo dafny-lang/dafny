@@ -69,6 +69,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
 1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
+      RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
+0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
@@ -859,12 +862,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:handle}
-      TODO
-
-    {:dllimport}
-      TODO
-
     {:compile}
       The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
       If that argument is false, then that declaration will not be compiled at all.
@@ -1246,7 +1243,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Ignore include directives.
 
 /noExterns
-    Ignore extern and dllimport attributes.
+    Ignore extern attributes.
 
 /functionSyntax:<version>
     The syntax for functions is changing from Dafny version 3 to version

@@ -1830,10 +1830,6 @@ namespace Microsoft.Dafny.Compilers {
       var errorWr = classWriter.ErrorWriter();
       var v = new CheckHasNoAssumes_Visitor(this, errorWr);
 
-      if (c is ClassDecl) {
-        CheckHandleWellformed((ClassDecl)c, errorWr);
-      }
-
       var inheritedMembers = c.InheritedMembers;
       CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
@@ -1992,7 +1988,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!Options.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))))) {
+              !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -2033,7 +2029,7 @@ namespace Microsoft.Dafny.Compilers {
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-                     !(!Options.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
+                     !(!Options.DisallowExterns && IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!Options.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -2319,26 +2315,6 @@ namespace Microsoft.Dafny.Compilers {
       return c;
     }
 
-    void CheckHandleWellformed(ClassDecl cl, ConcreteSyntaxTree/*?*/ errorWr) {
-      Contract.Requires(cl != null);
-      var isHandle = true;
-      if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-        foreach (var trait in cl.ParentTraitHeads) {
-          isHandle = true;
-          if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
-            // all is good
-          } else {
-            Error(cl.tok, "{0} '{1}' is marked as :handle, so all the traits it extends must be be marked as :handle as well: {2}", errorWr, cl.WhatKind, cl.Name, trait.Name);
-          }
-        }
-        foreach (var member in cl.InheritedMembers.Concat(cl.Members)) {
-          if (!member.IsGhost && !member.IsStatic) {
-            Error(member.tok, "{0} '{1}' is marked as :handle, so all its non-static members must be ghost: {2}", errorWr, cl.WhatKind, cl.Name, member.Name);
-          }
-        }
-      }
-    }
-
     /// <summary>
     /// Check whether two declarations have the same name if capitalized.
     /// </summary>
@@ -2417,7 +2393,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileFunction(Function f, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
-      Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
+      Contract.Requires(f.Body != null || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
         f.Formals, f.ResultType, f.tok, f.IsStatic,
@@ -2471,7 +2447,7 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
-      Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
+      Contract.Requires(m.Body != null || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(Options, out _, out _), false, lookasideBody);
       if (w != null) {
@@ -2637,18 +2613,28 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        ConcreteSyntaxTree guardWriter;
-        var wStmts = wr.Fork();
-        var thn = EmitIf(out guardWriter, true, wr);
-        guardWriter.Append(Expr(e.Test, false, wStmts));
-        Coverage.Instrument(e.Thn.tok, "then branch", thn);
-        TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
-        ConcreteSyntaxTree els = wr;
-        if (!(e.Els is ITEExpr)) {
-          els = EmitBlock(wr);
-          Coverage.Instrument(e.Thn.tok, "else branch", els);
+        switch (e.HowToCompile) {
+          case ITEExpr.ITECompilation.CompileJustThenBranch:
+            TrExprOpt(e.Thn, resultType, wr, accumulatorVar);
+            break;
+          case ITEExpr.ITECompilation.CompileJustElseBranch:
+            TrExprOpt(e.Els, resultType, wr, accumulatorVar);
+            break;
+          case ITEExpr.ITECompilation.CompileBothBranches:
+            ConcreteSyntaxTree guardWriter;
+            var wStmts = wr.Fork();
+            var thn = EmitIf(out guardWriter, true, wr);
+            guardWriter.Append(Expr(e.Test, false, wStmts));
+            Coverage.Instrument(e.Thn.tok, "then branch", thn);
+            TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
+            ConcreteSyntaxTree els = wr;
+            if (!(e.Els is ITEExpr { HowToCompile: ITEExpr.ITECompilation.CompileBothBranches })) {
+              els = EmitBlock(wr);
+              Coverage.Instrument(e.Thn.tok, "else branch", els);
+            }
+            TrExprOpt(e.Els, resultType, els, accumulatorVar);
+            break;
         }
-        TrExprOpt(e.Els, resultType, els, accumulatorVar);
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, accumulatorVar);
@@ -5270,6 +5256,9 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
+        // The ghost-ITE optimization applies only to at "the top" of the expression structure of a function
+        // body. Those cases are handled in TrExprOpt, so we expect the be compiling both branches here.
+        Contract.Assert(e.HowToCompile == ITEExpr.ITECompilation.CompileBothBranches);
         EmitITE(e.Test, e.Thn, e.Els, e.Type, inLetExprBody, wr, wStmts);
 
       } else if (expr is ConcreteSyntaxExpression) {

@@ -63,6 +63,9 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
   public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+  public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
+    IsHidden = true
+  };
 
   public static readonly Option<IList<string>> Libraries = new("--library",
     @"
@@ -139,6 +142,13 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
+  public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
+    @"
+false - The type-inference engine and supported types are those of Dafny 4.0.
+true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
   };
@@ -166,6 +176,12 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
   static CommonOptionBag() {
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
+    DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
+      if (value) {
+        options.Printer = new DafnyJsonConsolePrinter(options);
+        options.DiagnosticsFormat = DafnyOptions.DiagnosticsFormats.JSON;
+      }
+    });
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
       if (value != null) {
         options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");

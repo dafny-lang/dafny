@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         diagnostics,
         SymbolTable.Empty(),
         SignatureAndCompletionTable.Empty(options, textDocument),
-        new Dictionary<ImplementationId, ImplementationView>(),
+        new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
         Array.Empty<Diagnostic>(),
