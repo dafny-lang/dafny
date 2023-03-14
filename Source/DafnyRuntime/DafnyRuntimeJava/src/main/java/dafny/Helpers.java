@@ -273,6 +273,23 @@ public class Helpers {
     public static short remainderUnsignedShort(short a, short b) {
         return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
     }
+    
+    public static int unsignedShiftRightByte(byte a, byte amount) {
+        if(a < 0)  {
+          // Explanation (G = original, g = opposite)
+          // a = 1XXX,YYYY
+          // a >> 3 = 1111,XXXY
+          // -1 == 1111,1111
+          // -1 << (8-3) == 1110,0000
+          // (-1 << (8-3)) ^ (a >> 3) == 0001,XXXY
+          if(!(0 <= amount && amount <= 8)) {
+            amount = 8;
+          }
+          return (byte)((byte)0xFF << (byte)(8-amount))^(byte)((byte)a >>> (byte)amount);
+        } else {
+          return a >>> amount;
+        }
+    }
 
     public static void withHaltHandling(Runnable runnable) {
         try {
