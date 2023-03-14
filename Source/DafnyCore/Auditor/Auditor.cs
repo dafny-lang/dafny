@@ -109,7 +109,7 @@ public class Auditor : IRewriter {
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
-    return TableRegex.Replace(templateText, table.ToString());
+    return TableRegex.Replace(templateText, table);
   }
 
   internal override void PostResolve(Program program) {
