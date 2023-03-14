@@ -64,7 +64,7 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 
 ### How to fix nightly build failures / check deep tests?
 
-- Create a branch that should fix the nightly build. Either an actual fix, or reverting a PR that cause the problem.
+- Create a branch that should fix the nightly build. Either an actual fix, or reverting a PR that caused the problem.
 - Push your branch and create a PR to merge it
 - Go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
 - Select "Run workflow..."
