@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
+public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
   public readonly Specification<FrameExpression> Mod;
   public readonly BlockStmt Body;
 
@@ -16,10 +16,9 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
     Body = cloner.CloneBlockStmt(original.Body);
   }
 
-  public ModifyStmt(IToken tok, IToken endTok, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public ModifyStmt(RangeToken rangeToken, List<FrameExpression> mod, Attributes attrs, BlockStmt body)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(mod != null);
     Mod = new Specification<FrameExpression>(mod, attrs);
     Body = body;
@@ -40,5 +39,41 @@ public class ModifyStmt : Statement, ICloneable<ModifyStmt> {
         yield return fe.E;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var commaIndent = indentBefore + formatter.SpaceTab;
+    var afterCommaIndent = commaIndent;
+    foreach (var token in OwnedTokens) {
+      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
+        continue;
+      }
+      switch (token.val) {
+        case "modifies":
+        case "modify":
+          if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+          } else {
+            formatter.SetAlign(indentBefore, token, out afterCommaIndent, out commaIndent);
+          }
+          break;
+        case ",":
+          formatter.SetIndentations(token, afterCommaIndent, commaIndent, afterCommaIndent);
+          break;
+        case "{":
+          formatter.SetOpeningIndentedRegion(token, indentBefore);
+          break;
+        case "}":
+        case ";":
+          formatter.SetClosingIndentedRegion(token, indentBefore);
+          break;
+      }
+    }
+
+    if (Body != null && Body.StartToken.line > 0) {
+      formatter.SetOpeningIndentedRegion(Body.StartToken, indentBefore);
+    }
+
+    return true;
   }
 }

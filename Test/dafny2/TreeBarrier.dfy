@@ -11,7 +11,7 @@ class Node {
   var pc: int
 
 
-  predicate validDown()
+  ghost predicate validDown()
     reads this, desc
   {
     this !in desc &&
@@ -38,7 +38,7 @@ class Node {
 
 
 
-  predicate validUp()
+  ghost predicate validUp()
     reads this, anc
   {
     this !in anc &&
@@ -47,19 +47,19 @@ class Node {
     (after() ==> forall m :: m in anc ==> m.after())
   }
 
-  predicate valid()
+  ghost predicate valid()
     reads this, desc, anc
   { validUp() && validDown() && desc !! anc }
 
-  predicate before()
+  ghost predicate before()
     reads this
   { !sense && pc <= 2 }
 
-  predicate blocked()
+  ghost predicate blocked()
     reads this
   { sense }
 
-  predicate after()
+  ghost predicate after()
     reads this
   { !sense && 3 <= pc }
 

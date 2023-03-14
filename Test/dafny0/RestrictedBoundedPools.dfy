@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Methods_EverythingGoes {
-  predicate R<Y>(y: Y) { true }
+  ghost predicate R<Y>(y: Y) { true }
 
   type Opaque(==)
   type OpaqueNoAlloc(!new)
@@ -63,7 +63,7 @@ module Methods_EverythingGoes {
 }
 
 module Functions_RestrictionsApply {
-  predicate R<Y>(y: Y) { true }
+  ghost predicate R<Y>(y: Y) { true }
 
   type Opaque(==)
 
@@ -73,74 +73,74 @@ module Functions_RestrictionsApply {
 
   datatype List<G> = Nil | Cons(G, List<G>)
 
-  predicate M0()
+  ghost predicate M0()
   {
     forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
   }
 
-  predicate E0()
+  ghost predicate E0()
   {
     exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
   }
 
-  predicate M1<X>()
+  ghost predicate M1<X>()
   {
     forall x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
   }
 
-  predicate E1<X>()
+  ghost predicate E1<X>()
   {
     exists x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
   }
 
-  predicate M2()
+  ghost predicate M2()
   {
     forall c: Cell :: R(c)  // error: quantifies over all references
   }
 
-  predicate M2'(S: set<Cell>)
+  ghost predicate M2'(S: set<Cell>)
   {
     forall c: Cell :: c in S ==> R(c)  // fine
   }
 
-  predicate M3()
+  ghost predicate M3()
   {
     forall xs: List<nat> :: R(xs)  // fine (no issues of allocation here)
   }
 
-  predicate M4()
+  ghost predicate M4()
   {
     forall xs: List<Cell> :: R(xs)  // error: involves references
   }
 
-  predicate M4'(S: set<List<Cell>>)
+  ghost predicate M4'(S: set<List<Cell>>)
   {
     forall xs: List<Cell> :: xs in S ==> R(xs)  // fine
   }
 
-  predicate M5<H>()
+  ghost predicate M5<H>()
   {
     forall xs: List<H> :: R(xs)  // error: may involved allocation state
   }
 
-  predicate M5'<H>(S: set<List<H>>)
+  ghost predicate M5'<H>(S: set<List<H>>)
   {
     forall xs: List<H> :: xs in S ==> R(xs)  // fine
   }
 
-  predicate M6()
+  ghost predicate M6()
   {
     forall xs: List<Opaque> :: R(xs)  // error: may involved allocation state
   }
 
-  predicate M6'(S: set<List<Opaque>>)
+  ghost predicate M6'(S: set<List<Opaque>>)
   {
     forall xs: List<Opaque> :: xs in S ==> R(xs)  // fine
   }
 }
 
 module OtherComprehensions {
-  predicate R<Y>(y: Y) { true }
+  ghost predicate R<Y>(y: Y) { true }
 
   type Opaque(==)
   type OpaqueNoAlloc(!new)
@@ -166,31 +166,31 @@ module OtherComprehensions {
       assert iset{} == iset o: OpaqueNoAlloc | R(o);  // fine
   }
 
-  function F0(): int
+  ghost function F0(): int
     requires iset{} == iset o: Opaque | R(o)  // error: may involve references
   {
     15
   }
 
-  function F1(): int
+  ghost function F1(): int
     requires iset{} == iset n: nat | R(n)  // fine
   {
     15
   }
 
-  function F2<G>(): int
+  ghost function F2<G>(): int
     requires iset{} == iset xs: List<G> | R(xs)  // error: may involve references
   {
     15
   }
 
-  function H0<G>(): (s: iset<List<G>>)
+  ghost function H0<G>(): (s: iset<List<G>>)
     ensures s == iset xs: List<G> | R(xs)  // error: may involve references
   {
     iset{}
   }
 
-  function K0<G>(c: Cell): int
+  ghost function K0<G>(c: Cell): int
     reads if iset{} == iset xs: List<G> | R(xs) then {c} else {}  // error: may involve references
   {
     15
@@ -198,7 +198,7 @@ module OtherComprehensions {
 }
 
 module CompiledComprehensions {
-  predicate method R<Y>(y: Y) { true }
+  predicate R<Y>(y: Y) { true }
 
   type OpaqueNoAlloc(!new)
     
@@ -238,11 +238,11 @@ module Allocated1 {
     var data: int
   }
 
-  function F(): set<Cell> {
+  ghost function F(): set<Cell> {
     set c: Cell | allocated(c) && c.data < 100  // error: function not allowed to depend on allocation state
   }
 
-  function A(c: Cell): bool
+  ghost function A(c: Cell): bool
   {
     allocated(c)  // error: function not allowed to depend on allocation state
   }
@@ -282,13 +282,13 @@ module FiniteBecauseOfType {
 module WithoutOlder {
   datatype List<T> = Nil | Cons(T, List<T>)
 
-  predicate ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
+  ghost predicate ElementsContainedIn<X>(xs: List<X>, S: set<X>) {
     match xs
     case Nil => true
     case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
   }
 
-  function Collection<X>(S: set<X>): iset<List<X>> {
+  ghost function Collection<X>(S: set<X>): iset<List<X>> {
     iset zs: List<X> | ElementsContainedIn(zs, S) // error: needs 'older zs' for ElementsContainedIn
   }
 }
@@ -297,13 +297,13 @@ module WithOlder {
   datatype List<T> = Nil | Cons(T, List<T>)
 
   // For a proof the 'older' in the following line, see OlderVerification.dfy.
-  predicate ElementsContainedIn<X>(older xs: List<X>, S: set<X>) {
+  ghost predicate ElementsContainedIn<X>(older xs: List<X>, S: set<X>) {
     match xs
     case Nil => true
     case Cons(x, tail) => x in S && ElementsContainedIn(tail, S)
   }
 
-  function Collection<X>(S: set<X>): iset<List<X>> {
+  ghost function Collection<X>(S: set<X>): iset<List<X>> {
     iset zs: List<X> | ElementsContainedIn(zs, S)
   }
 }

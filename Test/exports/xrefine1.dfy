@@ -8,7 +8,7 @@ module ProtocolImpl {
 
     type ProtoT = bool
 
-    predicate Init(p:ProtoT) { !p }
+    ghost predicate Init(p:ProtoT) { !p }
 
     method orange(i:nat) returns (j:nat)
     {
@@ -24,7 +24,7 @@ module HostImpl {
 
     type HostT = int
 
-    function method foo(h:HostT) : P.ProtoT
+    function foo(h:HostT) : P.ProtoT
     {
         h > 0
     }

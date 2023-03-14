@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) { }
 
-    public abstract string GetDetailText(CancellationToken cancellationToken);
+    public abstract string GetDetailText(DafnyOptions options, CancellationToken cancellationToken);
   }
 
   public abstract class TypeWithMembersSymbolBase<TNode> : TypeWithMembersSymbolBase where TNode : TopLevelDeclWithMembers {
@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = declaration;
     }
 
-    public override string GetDetailText(CancellationToken cancellationToken) {
+    public override string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"{Declaration.WhatKind} {Declaration.Name}";
     }
   }

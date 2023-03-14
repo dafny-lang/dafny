@@ -3,11 +3,11 @@
 
 codatatype Stream<T> = Cons(head: T, tail: Stream)
 
-function Tail(s: Stream, n: nat): Stream
+ghost function Tail(s: Stream, n: nat): Stream
 {
   if n == 0 then s else Tail(s.tail, n-1)
 }
-predicate In<T>(x: T, s: Stream<T>)
+ghost predicate In<T>(x: T, s: Stream<T>)
 {
   exists n :: 0 <= n && Tail(s, n).head == x
 }
@@ -74,7 +74,7 @@ lemma Lemma_InAllP<T>(x: T, s: Stream<T>, P: Predicate)
   }
 }
 
-predicate IsAnother(s: Stream, P: Predicate)
+ghost predicate IsAnother(s: Stream, P: Predicate)
 {
   exists n :: 0 <= n && P(Tail(s, n).head)
 }
@@ -89,7 +89,7 @@ greatest lemma Lemma_AllImpliesAlwaysAnother(s: Stream, P: Predicate)
   assert Tail(s, 0) == s;
 }
 
-function Next(s: Stream, P: Predicate): nat
+ghost function Next(s: Stream, P: Predicate): nat
   requires AlwaysAnother(s, P)
   ensures P(Tail(s, Next(s, P)).head)
   ensures forall i :: 0 <= i < Next(s, P) ==> !P(Tail(s, i).head)
@@ -98,7 +98,7 @@ function Next(s: Stream, P: Predicate): nat
   NextMinimizer(s, P, n)
 }
 // the following is an auxiliary function of the definition of Next
-function NextMinimizer(s: Stream, P: Predicate, n: nat): nat
+ghost function NextMinimizer(s: Stream, P: Predicate, n: nat): nat
   requires P(Tail(s, n).head)
   ensures P(Tail(s, NextMinimizer(s, P, n)).head)
   ensures forall i :: 0 <= i < NextMinimizer(s, P, n) ==> !P(Tail(s, i).head)
@@ -117,7 +117,7 @@ lemma NextLemma(s: Stream, P: Predicate)
   assert forall i :: 0 < i ==> Tail(s, i) == Tail(s.tail, i-1);
 }
 
-function Filter(s: Stream, P: Predicate): Stream
+ghost function Filter(s: Stream, P: Predicate): Stream
   requires AlwaysAnother(s, P)
   decreases Next(s, P)
 {
@@ -214,13 +214,13 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
     assert fs == Cons(s.head, Filter(s.tail, P));  // reminder of where we are
     calc {
       true;
-    //==  { FS_Pong(s.tail, h, x, k-1); }
+    ==  { FS_Pong(s.tail, P, x, k-1); }
       In(x, Filter(s.tail, P));
     ==> { assert fs.head != x;  Lemma_InTail(x, fs); }
       In(x, fs);
     }
   } else {
-    //assert fs == Filter(s.tail, h);  // reminder of where we are
+    assert fs == Filter(s.tail, P);  // reminder of where we are
     //FS_Pong(s.tail, h, x, k-1);
   }
 }

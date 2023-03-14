@@ -42,13 +42,14 @@ Send notifications about the verification status of each line in the program.
   };
 
   public IEnumerable<Option> Options => new Option[] {
+    BoogieOptionBag.NoVerify,
     Verification,
     GhostIndicators,
     LineVerificationStatus,
     VerifySnapshots,
     CommonOptionBag.EnforceDeterminism,
   }.Concat(ICommandSpec.VerificationOptions).
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var command = new Command("server", "Start the Dafny language server");

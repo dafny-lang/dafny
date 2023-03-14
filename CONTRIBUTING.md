@@ -62,3 +62,18 @@ Once it succeeds, one has to go back to (view 1) and re-run the failed jobs, so 
 
 After doing these steps once, for other PRs, one only needs to re-run deep checks in (view 1)
 
+### How can I write portions of Dafny in Dafny itself?
+
+Since https://github.com/dafny-lang/dafny/pull/2399, it is possible to add \*.dfy files next to other source files.
+The plugin `dafny-msbuild` takes all the dafny files and compiles them into a single file `Source/DafnyCore/obj/Debug/net6.0/GeneratedFromDafny.cs`
+that is automatically included in the build process. This file contains also the Dafny run-time in C#.
+One example of such file is `Source/DafnyCore/AST/Formatting.dfy`, and you can use it as a starting point.
+
+Since Dafny cannot read C# files directly, you have to declare the C# functions it is calling using the `{:extern}` attribute to
+interoperate with Dafny.
+For example, `Formatting.dfy`
+
+- Defines `System.CsString` as an alias for c# strings and concatenation, so that we can interoperate with existing strings rather than using sequences of characters
+- Defines `CsStringEmpty` as an alias for `System.String.Empty`
+- Defines `Microsoft.Dafny.HelperString.FinishesByNewline` by also using externs. That helper is defined in `IndentationFormatter.cs`
+- Defines a trait `IIndentationFormatter` that Dafny can extend and provide to `ReindentProgramFromFirstToken`

@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
         solverPath = proverOptions.ExecutablePath();
-        HandleZ3Version(telemetryPublisher, proverOptions);
+        HandleZ3Version(options, telemetryPublisher, proverOptions);
       } catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
@@ -69,42 +69,22 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
-      var z3Process = new ProcessStartInfo(proverOptions.ProverPath, "-version") {
-        CreateNoWindow = true,
-        RedirectStandardError = true,
-        RedirectStandardOutput = true,
-        RedirectStandardInput = true
-      };
-      var run = Process.Start(z3Process);
-      if (run == null) {
+    private static void HandleZ3Version(DafnyOptions options, ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
+      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         return;
       }
 
-      var actualOutput = run.StandardOutput.ReadToEnd();
-      run.WaitForExit();
-      var versionMatch = Z3VersionRegex.Match(actualOutput);
-      if (!versionMatch.Success) {
-        // Might be another solver.
-        return;
-      }
-
-      telemetryPublisher.PublishZ3Version(versionMatch.Value);
-      var major = int.Parse(versionMatch.Groups["major"].Value);
-      var minor = int.Parse(versionMatch.Groups["minor"].Value);
-      var patch = int.Parse(versionMatch.Groups["patch"].Value);
-      if (major <= 4 && (major < 4 || minor <= 8) && (minor < 8 || patch <= 6)) {
-        return;
-      }
+      telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
 
       var toReplace = "O:model_compress=false";
-      var i = DafnyOptions.O.ProverOptions.IndexOf(toReplace);
+      var i = options.ProverOptions.IndexOf(toReplace);
       if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", DafnyOptions.O.ProverOptions)));
+        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", options.ProverOptions)));
         return;
       }
 
-      DafnyOptions.O.ProverOptions[i] = "O:model.compact=false";
+      options.ProverOptions[i] = "O:model.compact=false";
     }
 
     /// <summary>

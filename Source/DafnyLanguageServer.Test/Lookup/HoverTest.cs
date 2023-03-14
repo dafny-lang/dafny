@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
@@ -8,12 +7,12 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
   public class HoverTest : ClientBasedLanguageServerTest {
-
-    public override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
+    protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
         options.ProverOptions.Add("-proverOpt:SOLVER=noop");
         modifyOptions?.Invoke(options);
@@ -32,17 +31,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       );
     }
 
-    private async Task AssertHoverContains(TextDocumentItem documentItem, Position position, string expectedContent) {
-      var hover = await RequestHover(documentItem, position);
+    private async Task AssertHoverContains(TextDocumentItem documentItem, Position hoverPosition, string expectedContent) {
+      var hover = await RequestHover(documentItem, hoverPosition);
       if (expectedContent == "null") {
-        Assert.IsNull(hover);
+        Assert.Null(hover);
         return;
       }
-      Assert.IsNotNull(hover);
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
       var markup = hover.Contents.MarkupContent;
-      Assert.IsNotNull(markup);
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.IsTrue(markup.Value.Contains(expectedContent), "Could not find {1} in {0}", markup.Value, expectedContent);
+      Assert.NotNull(markup);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
+      Assert.True(markup.Value.Contains(expectedContent), $"Could not find {expectedContent} in {markup.Value}");
     }
 
     /// <summary>
@@ -54,28 +53,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// </summary>
     /// <param name="sourceWithHovers"></param>
     private async Task AssertHover(string sourceWithHovers) {
-      await WithNoopSolver(async () => {
-        sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
-        // Split the source from hovering tasks
-        var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
-        var source = hoverRegex.Replace(sourceWithHovers, "");
-        var hovers = hoverRegex.Matches(sourceWithHovers);
-        var documentItem = CreateTestDocument(source);
-        client.OpenDocument(documentItem);
-        var lineDelta = 0;
-        for (var i = 0; i < hovers.Count; i++) {
-          var hover = hovers[i];
-          var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
-          var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
-          var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
-          await AssertHoverContains(documentItem, (line, column), expectedContent);
-        }
+      await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+      sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
+      // Split the source from hovering tasks
+      var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
+      var source = hoverRegex.Replace(sourceWithHovers, "");
+      var hovers = hoverRegex.Matches(sourceWithHovers);
+      var documentItem = CreateTestDocument(source);
+      client.OpenDocument(documentItem);
+      var lineDelta = 0;
+      for (var i = 0; i < hovers.Count; i++) {
+        var hover = hovers[i];
+        var column = hover.Groups["ColumnChar"].Index - (hover.Index + 1);
+        var line = sourceWithHovers.Take(hover.Index).Count(x => x == '\n') - (lineDelta++);
+        var expectedContent = hover.Groups["ExpectedContent"].Value.Replace("\\n", "\n");
+        await AssertHoverContains(documentItem, (line, column), expectedContent);
+      }
 
-        Assert.IsTrue(hovers.Count > 0, "No hover expression detected.");
-      });
+      Assert.True(hovers.Count > 0, "No hover expression detected.");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringMethodInvocationOfMethodDeclaredInSameDocumentReturnsSignature() {
       await AssertHover(@"
 method DoIt() returns (x: int) {
@@ -88,7 +86,7 @@ method CallDoIt() returns () {
     }
 
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringBoundVariablesFormalsLocalVariablesInMatchExprOrStatement() {
       await AssertHover(@"
 datatype DT = A | B | C
@@ -113,7 +111,7 @@ method M2(dt: DT) {
   }
 }
 
-function method F(dt: DT): int {
+function F(dt: DT): int {
   match dt {
     case C => 0
     case A | B => var x := (y => y)(1); assert x == 1; 0
@@ -122,7 +120,7 @@ function method F(dt: DT): int {
                                  ^[```dafny\ny: int\n```]
   }
 }
-function method F2(dt: DT): int {
+function F2(dt: DT): int {
   match dt {
     case C => 0
     case _ => var x := (y => y)(1); assert x == 1; 0
@@ -134,7 +132,7 @@ function method F2(dt: DT): int {
 ");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoverReturnsBeforeVerificationIsComplete() {
       var documentItem = CreateTestDocument(NeverVerifies);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -142,11 +140,11 @@ function method F2(dt: DT): int {
       var verificationTask = GetLastDiagnostics(documentItem, CancellationToken);
       var definitionTask = RequestHover(documentItem, (4, 14));
       var first = await Task.WhenAny(verificationTask, definitionTask);
-      Assert.IsFalse(verificationTask.IsCompleted);
-      Assert.AreSame(first, definitionTask, first.ToString());
+      Assert.False(verificationTask.IsCompleted);
+      AssertM.Same(first, definitionTask, first.ToString());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringFieldOfSystemTypeReturnsDefinition() {
       await AssertHover(@"
 method DoIt() {
@@ -156,7 +154,7 @@ method DoIt() {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringFunctionInvocationOfFunctionDeclaredInForeignDocumentReturnsSignature() {
       // TODO Actually, the invoked function is a compiled function.
       var source = @"
@@ -171,7 +169,7 @@ method DoIt() returns (x: int) {
       await AssertHoverContains(documentItem, (4, 13), "```dafny\nfunction A.GetX(): int\n```");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringInvocationOfUnknownFunctionOrMethodReturnsNull() {
       await AssertHover(@"
 method DoIt() returns (x: int) {
@@ -180,7 +178,7 @@ method DoIt() returns (x: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringVariableShadowingFieldReturnsTheVariable() {
       await AssertHover(@"
 class Test {
@@ -194,7 +192,7 @@ class Test {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringVariableShadowingFieldReturnsTheFieldIfThisIsUsed() {
       await AssertHover(@"
 class Test {
@@ -208,7 +206,7 @@ class Test {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringVariableShadowingAnotherVariableReturnsTheShadowingVariable() {
       await AssertHover(@"
 class Test {
@@ -225,7 +223,7 @@ class Test {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringVariableShadowedByAnotherReturnsTheOriginalVariable() {
       await AssertHover(@"
 class Test {
@@ -242,7 +240,7 @@ class Test {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringTypeOfFieldReturnsTheUserDefinedType() {
       await AssertHover(@"
 class A {
@@ -259,7 +257,7 @@ class B {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringTypeOfConstructorInvocationReturnsTheUserDefinedType() {
       await AssertHover(@"
 class A {
@@ -276,7 +274,7 @@ class B {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringParameterOfMethodReturnsTheUserDefinedType() {
       await AssertHover(@"
 class A {
@@ -287,7 +285,7 @@ method DoIt(a: A) {}
                ^[```dafny\nclass A\n```]");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringParentTraitOfUserDefinedTypeReturnsTheParentTrait() {
       await AssertHover(@"
 trait Base {}
@@ -295,7 +293,7 @@ class Sub extends Base {}
                    ^[```dafny\ntrait Base\n```]");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringParameterDesignatorOfMethodInsideDataTypeReturnsTheParameterType() {
       await AssertHover(@"
 datatype SomeType = SomeType {
@@ -306,7 +304,7 @@ datatype SomeType = SomeType {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringMethodInvocationOfDataTypeReturnsMethodSignature() {
       await AssertHover(@"
 datatype SomeType = SomeType {
@@ -322,7 +320,7 @@ method Main() {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringFormalReturnsFormalType() {
       await AssertHover(@"
 method f(i: int) {
@@ -331,7 +329,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringDeclarationVariableReturnsInferredVariableType() {
       await AssertHover(@"
 method f(i: int) {
@@ -340,7 +338,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringForallBoundVarReturnsBoundVarInferredType() {
       await AssertHover(@"
 method f(i: int) {
@@ -350,7 +348,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringExistsBoundVarReturnsBoundVarInferredType() {
       await AssertHover(@"
 method f(i: int) {
@@ -360,7 +358,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringSetBoundVarReturnsBoundVarInferredType() {
       await AssertHover(@"
 method f(i: int) {
@@ -371,7 +369,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringMapBoundVarReturnsBoundVarInferredType() {
       await AssertHover(@"
 method f(i: int) {
@@ -381,7 +379,7 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringLambdaBoundVarReturnsBoundVarInferredType() {
       await AssertHover(@"
 method f(i: int) {
@@ -391,17 +389,17 @@ method f(i: int) {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringForAllBoundVarInPredicateReturnsBoundVarInferredType() {
       await AssertHover(@"
-predicate f(i: int) {
+ghost predicate f(i: int) {
   forall j :: j + i == i + j
          ^[```dafny\nj: int\n```]
               ^[```dafny\nj: int\n```]
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringByMethodReturnsInferredType() {
       await AssertHover(@"
 predicate even(n: nat)
@@ -416,10 +414,10 @@ predicate even(n: nat)
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringLetInReturnsInferredType() {
       await AssertHover(@"
-function method test(n: nat): nat {
+function test(n: nat): nat {
   var i := n * 2;
       ^[```dafny\ni: int\n```]
            ^[```dafny\nn: nat\n```]
@@ -427,7 +425,7 @@ function method test(n: nat): nat {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringSpecificationBoundVariableReturnsInferredType() {
       await AssertHover(@"
 method returnBiggerThan(n: nat) returns (y: int)
@@ -440,7 +438,7 @@ method returnBiggerThan(n: nat) returns (y: int)
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringResultVarReturnsInferredType() {
       await AssertHover(@"
 function f(i: int): (r: int)
@@ -452,11 +450,11 @@ function f(i: int): (r: int)
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoverIngInferredVariable() {
       await AssertHover(@"
 datatype Pos = Pos(line: int)
-function method f(i: int): Pos {
+function f(i: int): Pos {
   if i <= 3 then Pos(i)
   else
    var r := f(i - 2);
@@ -465,7 +463,7 @@ function method f(i: int): Pos {
 }");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoverIngResultTypeShouldNotCrash() {
       await AssertHover(@"
 datatype Position = Position(Line: nat)
@@ -477,7 +475,7 @@ function ToRelativeIndependent(): (p: Position)
 ");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task HoveringVariablesInsideNestedMatchStmtWorks() {
       await AssertHover(@"
 lemma dummy(e: int) {

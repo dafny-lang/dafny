@@ -31,10 +31,9 @@ public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
     }
   }
 
-  public BreakStmt(IToken tok, IToken endTok, IToken targetLabel, bool isContinue)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public BreakStmt(RangeToken rangeToken, IToken targetLabel, bool isContinue)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(targetLabel != null);
     this.TargetLabel = targetLabel;
     this.IsContinue = isContinue;
@@ -44,10 +43,9 @@ public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
   /// For "isContinue == false", represents the statement "break ^breakAndContinueCount ;".
   /// For "isContinue == true", represents the statement "break ^(breakAndContinueCount - 1) continue;".
   /// </summary>
-  public BreakStmt(IToken tok, IToken endTok, int breakAndContinueCount, bool isContinue)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public BreakStmt(RangeToken rangeToken, int breakAndContinueCount, bool isContinue)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(1 <= breakAndContinueCount);
     this.BreakAndContinueCount = breakAndContinueCount;
     this.IsContinue = isContinue;

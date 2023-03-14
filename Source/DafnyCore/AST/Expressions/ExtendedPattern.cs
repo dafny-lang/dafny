@@ -11,16 +11,16 @@ ExtendedPattern is either:
 2 - An IdPattern of a string and a list of ExtendedPattern, representing either
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
-public abstract class ExtendedPattern : INode {
+public abstract class ExtendedPattern : TokenNode {
   public bool IsGhost;
 
   public ExtendedPattern(IToken tok, bool isGhost = false) {
     Contract.Requires(tok != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.IsGhost = isGhost;
   }
 
-  public IEnumerable<INode> DescendantsAndSelf =>
+  public IEnumerable<Node> DescendantsAndSelf =>
     new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
 
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,

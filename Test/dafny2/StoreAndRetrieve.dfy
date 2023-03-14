@@ -13,10 +13,10 @@
 abstract module AbstractInterface {
   class {:autocontracts} StoreAndRetrieve<Thing(==)> {
     ghost var Contents: set<Thing>
-    predicate Valid() {
+    ghost predicate Valid() {
       Valid'()
     }
-    predicate {:autocontracts false} Valid'()
+    ghost predicate {:autocontracts false} Valid'()
       reads this, Repr
     constructor Init()
       ensures Contents == {}
@@ -54,7 +54,7 @@ abstract module A refines AbstractInterface {
 abstract module B refines A {
   class StoreAndRetrieve<Thing(==)> ... {
     var arr: seq<Thing>
-    predicate Valid'...
+    ghost predicate Valid'...
     {
       Contents == set x | x in arr
     }

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 RealCompare.dfy(35,5): Error: decreases clause might not decrease
 RealCompare.dfy(50,3): Error: decreases expression must be bounded below by 0.0
 RealCompare.dfy(48,12): Related location

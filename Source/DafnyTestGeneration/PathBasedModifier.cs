@@ -1,4 +1,6 @@
+#nullable disable
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Boogie;
 
 namespace DafnyTestGeneration {
@@ -8,83 +10,87 @@ namespace DafnyTestGeneration {
   /// that fail when a particular path is taken
   /// </summary>
   public class PathBasedModifier : ProgramModifier {
+    private readonly Modifications modifications;
 
     // prefix given to variables indicating whether or not a block was visited
-    private const string BlockVarNamePrefix = "$$visited$$_";
+    private const string BlockVarNamePrefix = "notYetVisited";
     private List<Path> paths = new();
+
+    public PathBasedModifier(Modifications modifications) {
+      this.modifications = modifications;
+    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       paths = new List<Path>();
-      var result = new List<ProgramModification>();
-      p = VisitProgram(p); // populates paths
+      VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        result.Add(new ProgramModification(p,
-          ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName));
+        var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
+        yield return modifications.GetProgramModification(DafnyInfo.Options, p, path.Impl,
+          new HashSet<int>(), new HashSet<string>(), name,
+          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
         path.NoAssertPath();
       }
-      return result;
+    }
+
+    private void VisitProgram(Program node) {
+      foreach (var implementation in node.Implementations) {
+        VisitImplementation(implementation);
+      }
     }
 
     /// <summary>
     /// Insert variables to register which blocks are visited
     /// and then populate the paths field.
     /// </summary>
-    public override Implementation VisitImplementation(Implementation node) {
-      if (!ImplementationIsToBeTested(node)) {
-        return node;
+    private void VisitImplementation(Implementation node) {
+      if (!ImplementationIsToBeTested(node) ||
+          !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
+        return;
       }
-      InitBlockVars(node);
-      var blockNameToId = GetIdToBlock(node);
+      var blockToVariable = InitBlockVars(node);
       GeneratePaths(node,
-        blockNameToId,
+        blockToVariable,
         node.Blocks[0],
-        new HashSet<int>(),
-        new List<int>());
-      return node;
-    }
-
-    /// <summary>
-    /// Create a map from block ids (aka labels) to blocks themselves
-    /// </summary>
-    private static Dictionary<string, Block> GetIdToBlock(Implementation impl) {
-      var result = new Dictionary<string, Block>();
-      foreach (var block in impl.Blocks) {
-        result[block.Label] = block;
-      }
-      return result;
+        new HashSet<Variable>(),
+        new List<Variable>());
     }
 
     /// <summary>
     /// Modify implementation by adding variables indicating whether or not
     /// certain blocks were visited.
     /// </summary>
-    private static void InitBlockVars(Implementation node) {
+    internal static Dictionary<Block, Variable> InitBlockVars(Implementation node) {
+      var blockToVariable = new Dictionary<Block, Variable>();
       foreach (var block in node.Blocks) {
-        var var = BlockVarNamePrefix + block.UniqueId;
+        var varName = BlockVarNamePrefix + block.UniqueId;
         // variable declaration:
-        node.LocVars.Add(new LocalVariable(new Token(),
-          new TypedIdent(new Token(), var, Type.Bool)));
+        var variable = GetNewLocalVariable(node, Type.Bool, varName);
+        // set variable to false when visiting a block
+        block.cmds.Insert(0, new AssignCmd(new Token(),
+          new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
+          new List<Expr>() { new LiteralExpr(new Token(), false) }));
+        blockToVariable[block] = variable;
         // initialization:
-        block.cmds.Insert(0, GetCmd($"{var} := true;", returns: $"{var}:bool"));
-        // set variable to true when visiting a block
-        node.Blocks[0].cmds.Insert(0, GetCmd(
-          $"var {var}:bool; {var} := false;"));
+        node.Blocks[0].cmds.Insert(0, new AssignCmd(new Token(),
+          new List<AssignLhs>() { new SimpleAssignLhs(new Token(), new IdentifierExpr(new Token(), variable)) },
+          new List<Expr>() { new LiteralExpr(new Token(), true) }));
       }
+      return blockToVariable;
     }
 
     /// <summary>
     /// Populate paths field with paths generated for the given implementation
     /// </summary>
     /// <param name="impl">implementation to generate paths for</param>
-    /// <param name="idToBlock">maps block ids to blocks</param>
+    /// <param name="blockToVariable"> maps block to flag variables</param>
     /// <param name="block">block with which to start AST traversal</param>
     /// <param name="currSet">set of block already inside the path</param>
     /// <param name="currList">the blocks forming the path</param>
     private void GeneratePaths(Implementation impl,
-      Dictionary<string, Block> idToBlock, Block block,
-      HashSet<int> currSet, List<int> currList) {
-      if (currSet.Contains(block.UniqueId)) {
+      Dictionary<Block, Variable> blockToVariable, Block block,
+      HashSet<Variable> currSet, List<Variable> currList) {
+      if (currSet.Contains(blockToVariable[block])) {
         return;
       }
 
@@ -95,44 +101,58 @@ namespace DafnyTestGeneration {
       }
 
       // otherwise, each goto statement presents a new path to take:
-      currSet.Add(block.UniqueId);
-      currList.Add(block.UniqueId);
+      currSet.Add(blockToVariable[block]);
+      currList.Add(blockToVariable[block]);
       var gotoCmd = block.TransferCmd as GotoCmd;
-      foreach (var b in gotoCmd?.labelNames ?? new List<string>()) {
-        GeneratePaths(impl, idToBlock, idToBlock[b], currSet, currList);
+      foreach (var b in gotoCmd?.labelTargets ?? new List<Block>()) {
+        GeneratePaths(impl, blockToVariable, b, currSet, currList);
       }
       currList.RemoveAt(currList.Count - 1);
-      currSet.Remove(block.UniqueId);
+      currSet.Remove(blockToVariable[block]);
     }
 
-    private class Path {
+    internal class Path {
 
       public readonly Implementation Impl;
-      private readonly List<int> path; // indices of blocks along the path
-      private readonly Block returnBlock; // block where the path ends
+      public readonly List<Variable> path; // flags for the blocks along the path
+      private readonly List<Block> returnBlocks; // block(s) where the path ends
 
-      internal Path(Implementation impl, IEnumerable<int> path, Block returnBlock) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlocks)
+        : this(impl, path, new List<Block>() { returnBlocks }) {
+      }
+
+      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks) {
         Impl = impl;
-        this.path = new List<int>();
+        this.path = new();
         this.path.AddRange(path); // deepcopy is necessary here
-        this.returnBlock = returnBlock;
+        this.returnBlocks = returnBlocks;
       }
 
       internal void AssertPath() {
-        if (path.Count == 0) {
-          returnBlock.cmds.Add(GetCmd("assert false;"));
-          return;
+        foreach (var returnBlock in returnBlocks) {
+          if (path.Count == 0) {
+            returnBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+            return;
+          }
         }
 
-        var vars = path.ConvertAll(x => BlockVarNamePrefix + x);
-        var varsCond = string.Join("||", vars.ConvertAll(x => $"!{x}"));
-        // The only purpose of varsIn is to make a call to GetCmd possible
-        var varsIn = string.Join(", ", vars.ConvertAll(x => $"{x}:bool"));
-        returnBlock.cmds.Add(GetCmd($"assert {varsCond};", varsIn));
+        Expr condition = new IdentifierExpr(new Token(), path[0]);
+        for (int i = 1; i < path.Count(); i++) {
+          condition = new NAryExpr(new Token(),
+            new BinaryOperator(new Token(), BinaryOperator.Opcode.Or),
+            new List<Expr>()
+              { condition, new IdentifierExpr(new Token(), path[i]) });
+        }
+
+        foreach (var returnBlock in returnBlocks) {
+          returnBlock.cmds.Add(new AssertCmd(new Token(), condition));
+        }
       }
 
       internal void NoAssertPath() {
-        returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+        foreach (var returnBlock in returnBlocks) {
+          returnBlock.cmds.RemoveAt(returnBlock.cmds.Count - 1);
+        }
       }
     }
   }

@@ -8,8 +8,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -61,5 +59,9 @@ class SlowVerifier : IProgramVerifier {
     public void Cancel() {
       source.OnError(new TaskCanceledException());
     }
+  }
+
+  public void Dispose() {
+    verifier?.Dispose();
   }
 }

@@ -13,12 +13,12 @@ trait Universe {
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (Object.join below) to add the object to the universe,
   // without having to check the object invariants.
-  predicate globalBaseInv() reads this, content {
+  ghost predicate globalBaseInv() reads this, content {
     && (forall o: Object | o in content :: o.universe == this && o as object != this && o.baseFieldsInv() && o.triggerAxioms())
   }
 
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate globalInv() reads * {
+  ghost predicate globalInv() reads * {
     globalBaseInv() && (forall o: Object | o in content :: o.inv())
   }
 
@@ -198,15 +198,15 @@ trait Object {
   const universe: Universe
 
   // Global base invariant (from o's perspective)
-  predicate objectGlobalBaseInv() reads * { this in universe.content && baseFieldsInv() && universe.globalBaseInv() }
+  ghost predicate objectGlobalBaseInv() reads * { this in universe.content && baseFieldsInv() && universe.globalBaseInv() }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate objectGlobalInv() reads * { this in universe.content && universe.globalInv() }
+  ghost predicate objectGlobalInv() reads * { this in universe.content && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { objectGlobalBaseInv() && universe.globalInv2() }
 
-  predicate triggerAxioms() reads this ensures triggerAxioms() {
+  ghost predicate triggerAxioms() reads this ensures triggerAxioms() {
     assume (this is OwnedObject || this is Thread) && !(this is OwnedObject && this is Thread);
     && (this is OwnedObject || this is Thread)
     && !(this is OwnedObject && this is Thread)
@@ -240,12 +240,12 @@ trait Object {
   }
 
   // To be implemented: 1-state invariant, 2-state invariant, admissibility proof...
-  predicate isOwnedObject() // To prevent a class from extending both OwnedObject and Thread
-  predicate baseFieldsInv() reads this, universe // All fields of this object are in the universe
+  ghost predicate isOwnedObject() // To prevent a class from extending both OwnedObject and Thread
+  ghost predicate baseFieldsInv() reads this, universe // All fields of this object are in the universe
   twostate lemma baseFieldsInvMonotonicity() requires old(baseFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseFieldsInv()
-  predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv()
+  ghost predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv()
   twostate predicate localInv2() reads *
-  predicate inv() ensures inv() ==> localInv() reads *
+  ghost predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate sequenceInv2() reads * // This should be transitive. See `CheckSequenceInv2` below.
   twostate predicate inv2() ensures inv2() ==> localInv2() && sequenceInv2() reads *
   twostate lemma sequenceAdmissibility(running: set<Thread>) requires goodPreAndLegalChangesSequence(running) ensures sequenceInv2()
@@ -254,17 +254,17 @@ trait Object {
 
 class Thread extends Object {
   // To prevent a class from extending both OwnedObject and Thread
-  predicate isOwnedObject() { false }
+  ghost predicate isOwnedObject() { false }
 
-  predicate baseFieldsInv() reads this, universe {
+  ghost predicate baseFieldsInv() reads this, universe {
     true
   }
   twostate lemma baseFieldsInvMonotonicity() requires old(baseFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseFieldsInv() {}
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
   }
 
@@ -317,9 +317,9 @@ trait OwnedObject extends Object {
   //ghost var stealable: bool // nonvolatile
 
   // To prevent a class from extending both OwnedObject and Thread
-  predicate isOwnedObject() { true }
+  ghost predicate isOwnedObject() { true }
 
-  predicate baseFieldsInv() reads this, universe {
+  ghost predicate baseFieldsInv() reads this, universe {
     && owner in universe.content
     && baseUserFieldsInv()
   }
@@ -332,11 +332,11 @@ trait OwnedObject extends Object {
     && unchangedNonvolatileUserFields()
   }
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * ensures localInv() ==> objectGlobalBaseInv() {
     && objectGlobalBaseInv()
     && localUserInv()
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
     && userInv()
   }
@@ -399,13 +399,13 @@ trait OwnedObject extends Object {
   }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, admissibility proof...
-  predicate volatileOwns() // If true, the set of owned objects can change without changing the nonvolatileVersion
-  predicate baseUserFieldsInv() reads this, universe
+  ghost predicate volatileOwns() // If true, the set of owned objects can change without changing the nonvolatileVersion
+  ghost predicate baseUserFieldsInv() reads this, universe
   twostate lemma baseUserFieldsInvMonotonicity() requires old(baseUserFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseUserFieldsInv()
   twostate predicate unchangedNonvolatileUserFields() reads this // Checking transitivity is up to the classes that implement this trait.
-  predicate localUserInv() reads *
+  ghost predicate localUserInv() reads *
   twostate predicate localUserInv2() reads *
-  predicate userInv() reads * ensures userInv() ==> localUserInv()
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv()
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2()
 
   // Every class should check the transitivity of unchangedNonvolatileFields():
@@ -435,16 +435,16 @@ method BumpVersion(ghost last: int) returns (res: int) ensures res > last
 class OwnedU32 extends OwnedObject {
   var value: int // nonvolatile
 
-  predicate volatileOwns() { false }
-  predicate baseUserFieldsInv() reads this, universe { true }
+  ghost predicate volatileOwns() { false }
+  ghost predicate baseUserFieldsInv() reads this, universe { true }
   twostate lemma baseUserFieldsInvMonotonicity() requires old(baseUserFieldsInv()) && old(universe.content) <= universe.content && unchanged(this) ensures baseUserFieldsInv() {}
 
   twostate predicate unchangedNonvolatileUserFields() reads this {
     && old(value) == value
   }
 
-  predicate localUserInv() reads * { true }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() { localUserInv() }
+  ghost predicate localUserInv() reads * { true }
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() { localUserInv() }
   twostate predicate localUserInv2() reads * { true }
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2() { localUserInv2() }
 
@@ -472,8 +472,8 @@ class Mutex extends OwnedObject {
   var locked: bool // volatile (it was UnsafeCell<bool>)
   ghost var guards: set<MutexGuardU32> // volatile
 
-  predicate volatileOwns() { true }
-  predicate baseUserFieldsInv() reads this, universe {
+  ghost predicate volatileOwns() { true }
+  ghost predicate baseUserFieldsInv() reads this, universe {
     && data in universe.content
     && guards <= universe.content
   }
@@ -481,7 +481,7 @@ class Mutex extends OwnedObject {
 
   twostate predicate unchangedNonvolatileUserFields() reads this { true }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && (locked ==>
       && data.owner is MutexGuardU32
       && (data.owner as MutexGuardU32).mutex == this
@@ -492,7 +492,7 @@ class Mutex extends OwnedObject {
       && guards == {}
     )
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
     && (forall g: MutexGuardU32 | g in guards :: g.localInv())
   }
@@ -534,8 +534,8 @@ class MutexGuardU32 extends OwnedObject {
   var mutex: Mutex // nonvolatile
   ghost var data: OwnedU32 // nonvolatile
 
-  predicate volatileOwns() { false }
-  predicate baseUserFieldsInv() reads this, universe {
+  ghost predicate volatileOwns() { false }
+  ghost predicate baseUserFieldsInv() reads this, universe {
     && mutex in universe.content
     && data in universe.content
   }
@@ -546,13 +546,13 @@ class MutexGuardU32 extends OwnedObject {
     && old(data) == data
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && mutex.locked
     && mutex.guards == { this }
     && mutex.data.owner == this
     && mutex.data == data
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
     && mutex.localInv()
   }
@@ -649,7 +649,7 @@ method Acquire(universe: Universe, running: Thread, mutex: Mutex)
 //   drop(l); // deallocate a guard == release mutex
 // }
 
-method SetData(universe: Universe, running: Thread, mutex: Mutex)
+method {:vcs_split_on_every_assert} SetData(universe: Universe, running: Thread, mutex: Mutex)
   requires universe.globalInv() && running in universe.content && mutex in universe.content
   modifies universe, universe.content
   decreases *
