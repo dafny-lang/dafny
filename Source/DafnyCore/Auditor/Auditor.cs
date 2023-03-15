@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny.Auditor;
 
@@ -97,6 +98,8 @@ public class Auditor : IRewriter {
     }
   }
 
+  private static Regex TableRegex = new Regex(@"\{\{TABLE\}\}\r?\n");
+
   private string GenerateHTMLReport(AuditReport report) {
     var table = report.RenderHTMLTable();
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
@@ -106,7 +109,7 @@ public class Auditor : IRewriter {
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
-    return templateText.Replace("{{TABLE}}\n", table.ToString());
+    return TableRegex.Replace(templateText, table);
   }
 
   internal override void PostResolve(Program program) {
