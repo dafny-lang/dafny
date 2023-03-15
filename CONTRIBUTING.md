@@ -64,13 +64,23 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 
 ### How to fix nightly build failures / check deep tests?
 
-- Create a branch that should fix the nightly build. Either an actual fix, or reverting a PR that caused the problem.
-- Push your branch and create a PR tagged with `run-deep-tests` to merge it
-- Go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
+- Create a branch (e.g. `fix-ci-<date>`) that should fix the nightly build.
+  (Either an actual fix, or reverting a PR that caused the problem - look at the logs)
+- Push your branch to the main Dafny repository.
+- After pushing, you'll get a link to create a PR, click on it.
+- **Before clicking on the "Create PR" button**, add the label `run-deep-tests`. If you add it later, you'll have to push a new commit to trigger the deep tests.
+- Click on the "Create PR" button.
+  The CI will run the deep tests within this PR (and for every new commit pushed to the branch). Note that only the "required" tests count.
+- If some required tests fail, investigate and push more commits, but know that each CI run takes a lot of time, so try to fix the problem with as few commits as possible (ideally 1)
+  It is also possible you find some tests that fail randomly, in that case, feel free to relaunch them again and report to the team.
+- Have someone approve the PR and merge it (or auto-merge).
+- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
 - Select "Run workflow..."
 - Select master
 - Wait for this new run to succeed.
-- Go back to your original PR, update it, and the new CI run should pick up the last `deep-tests` run. This unblocks all tests.
+- Now go back to all the PRs where check-deep-tests were failing. Relaunch the failing tests.
+
+The new CI run should pick up the last `deep-tests` run and will make the CI item `check-deep-tests` to succeed.
 
 ### How can I write portions of Dafny in Dafny itself?
 
