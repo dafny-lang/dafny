@@ -101,6 +101,9 @@ public class Compilation {
 
   private async Task<DocumentAfterTranslation> TranslateAsync() {
     var parsedCompilation = await ResolvedDocument;
+    if (!options.Verify) {
+      throw new OperationCanceledException();
+    }
     if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
       throw new OperationCanceledException();
     }
