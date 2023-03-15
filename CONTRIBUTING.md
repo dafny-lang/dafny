@@ -65,13 +65,12 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 ### How to fix nightly build failures / check deep tests?
 
 - Create a branch that should fix the nightly build. Either an actual fix, or reverting a PR that caused the problem.
-- Push your branch and create a PR to merge it
+- Push your branch and create a PR tagged with `run-deep-tests` to merge it
 - Go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
 - Select "Run workflow..."
-- Select your branch
-- Wait for this new run to succeed. if necessary, update your branch.
-- Go back to your PR, re-run the test "check deep tests", which should pick up the last run and now succeed.
-- Have your PR approve and merge it.
+- Select master
+- Wait for this new run to succeed.
+- Go back to your original PR, update it, and the new CI run should pick up the last `deep-tests` run. This unblocks all tests.
 
 ### How can I write portions of Dafny in Dafny itself?
 
