@@ -1,5 +1,5 @@
-// RUN: %baredafny run --target cs "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %baredafny verify "%s"
+ // RUN: %testDafnyForEachCompiler "%s"
 
 newtype uint8 = x : int | 0 <= x < 256
 
