@@ -274,21 +274,52 @@ public class Helpers {
         return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
     }
     
-    public static int unsignedShiftRightByte(byte a, byte amount) {
+    // Explanation (G = original, g = opposite)
+    // a = 1XXX,YYYY
+    // (int)a = 1111,1111,...,1111,1XXX,YYYY (power of two's complement)
+    // (int)a & 0xFF = 0000,0000,...,0000,1XXX,YYYY
+    // Now right-shift works nicely
+    public static int bv8ShiftRight(byte a, byte amount) {
         if(a < 0)  {
-          // Explanation (G = original, g = opposite)
-          // a = 1XXX,YYYY
-          // a >> 3 = 1111,XXXY
-          // -1 == 1111,1111
-          // -1 << (8-3) == 1110,0000
-          // (-1 << (8-3)) ^ (a >> 3) == 0001,XXXY
-          if(!(0 <= amount && amount <= 8)) {
-            amount = 8;
-          }
-          return (byte)((byte)0xFF << (byte)(8-amount))^(byte)((byte)a >>> (byte)amount);
+          return (((int)a) & 0xFF) >>> amount;
         } else {
           return a >>> amount;
         }
+    }
+    public static int bv16ShiftRight(short a, byte amount) {
+        if(a < 0)  {
+          return (((int)a) & 0xFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static int bv32ShiftRight(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        if(a < 0)  {
+          return (((int)a) & 0xFFFFFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static long bv64ShiftRight(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a >>> amount;
+    }
+    public static int bv32ShiftLeft(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        return a << amount;
+    }
+    public static long bv64ShiftLeft(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a << amount;
     }
 
     public static void withHaltHandling(Runnable runnable) {
