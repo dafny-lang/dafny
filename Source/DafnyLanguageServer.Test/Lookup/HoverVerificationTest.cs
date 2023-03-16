@@ -57,7 +57,7 @@ Return path: testFile.dfy(6, 5)"
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) a postcondition could not be proved on this return path???
 Could not prove: `y >= 0`  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU"
@@ -92,7 +92,7 @@ method DoIt() returns (x: int)
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) a postcondition could not be proved on this return path???
 Inside `Q(x)`  
 Inside `P(i)`  
 Could not prove: `i >= 0`  
@@ -261,7 +261,7 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 1 assertion."
       );
     }
@@ -277,7 +277,7 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 2 assertions."
       );
     }
@@ -409,7 +409,7 @@ Could not prove: `i == j || -i == j`???
 Return path: testfile2.dfy(18, 5)"
       );
       await AssertHoverMatches(documentItem, (17, 6),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proved on this return path???
 Inside `Q(i, j)`???
 Could not prove: `i == j || -i == j`"
       );
@@ -441,7 +441,7 @@ method Test() returns (j: int)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (14, 5),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proved on this return path???
 Could not prove: `j == 1`"
       );
     }

@@ -3417,7 +3417,8 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw new dafny.DafnyHaltException(");
       if (tok != null) {
-        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+        EmitStringLiteral(ErrorReporter.TokenToString(tok) + ": ", true, wr);
+        wr.Write(" + ");
       }
 
       EmitToString(wr, messageExpr, wStmts);

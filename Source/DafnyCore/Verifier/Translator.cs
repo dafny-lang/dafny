@@ -10715,7 +10715,7 @@ namespace Microsoft.Dafny {
             Names.Add(nm);
           }
         }
-        return base.VisitBinderExpr(node);
+        return (BinderExpr)base.VisitBinderExpr(node);
       }
     }
 
