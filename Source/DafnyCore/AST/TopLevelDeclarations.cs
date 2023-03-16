@@ -1497,6 +1497,28 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
 
     return true;
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    IToken candidate = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return (candidate, leadingTrivia: false);
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, leadingTrivia: false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, leadingTrivia: true);
+    }
+
+    return (Token.NoToken, leadingTrivia: false);
+  }
 }
 
 public class DefaultClassDecl : ClassDecl {

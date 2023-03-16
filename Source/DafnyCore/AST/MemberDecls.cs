@@ -173,6 +173,18 @@ public class Field : MemberDecl, ICanFormat {
 
     return true;
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    if (EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, leadingTrivia: false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, leadingTrivia: true);
+    }
+
+    return (Token.NoToken, leadingTrivia: false);
+  }
 }
 
 public class SpecialFunction : Function, ICallable {

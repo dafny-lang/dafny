@@ -153,9 +153,9 @@ method ComputeThing4(i: int)
       DocstringWorksFor(@"
 class X {
   const x2 := 29
-  // The biggest prime number less than 30 
+  // The biggest prime number less than 30
 
-  // The biggest prime number less than 20 
+  // The biggest prime number less than 20
   const x1 := 19
 
   // Unrelated todo 
