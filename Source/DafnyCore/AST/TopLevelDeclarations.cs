@@ -1729,6 +1729,20 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
     return true;
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    foreach (var token in OwnedTokens) {
+      if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
+        return (token, leadingTrivia: false);
+      }
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, leadingTrivia: true);
+    }
+
+    return (Token.NoToken, false);
+  }
 }
 
 public class IndDatatypeDecl : DatatypeDecl {
@@ -1854,6 +1868,22 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 
       return "#" + EnclosingDatatype.FullName + "." + Name;
     }
+  }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    if (EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, leadingTrivia: false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, leadingTrivia: true);
+    }
+
+    if (StartToken.Prev.val == "|" && StartToken.Prev.TrailingTrivia.Trim() != "") {
+      return (StartToken.Prev, leadingTrivia: false);
+    }
+
+    return (Token.NoToken, leadingTrivia: false);
   }
 }
 
@@ -2074,6 +2104,29 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     }
 
     return true;
+  }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    IToken openingBlock = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        openingBlock = token;
+      }
+    }
+
+    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
+      return (openingBlock.Prev, false);
+    }
+
+    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, true);
+    }
+
+    return (Token.NoToken, false);
   }
 }
 
@@ -2327,6 +2380,31 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   public override bool IsEssentiallyEmpty() {
     // A synonym/subset type is not considered "essentially empty", because it always has a parent type to be resolved.
     return false;
+  }
+
+
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    IToken openingBlock = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        openingBlock = token;
+      }
+    }
+
+    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
+      return (openingBlock.Prev, false);
+    }
+
+    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, true);
+    }
+
+    return (Token.NoToken, false);
   }
 }
 

@@ -190,7 +190,7 @@ public abstract class Node : INode {
 
     var extraction = new Regex(
       $@"(?<multiline>(?<indentation>[ \t]*)/\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/)" +
-      $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*)(?:{TriviaFormatterHelper.AnyNewline}|$))");
+      $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*?)[ \t]*(?:{TriviaFormatterHelper.AnyNewline}|$))");
     var rawDocstring = new List<string>() { };
     var matches = extraction.Matches(trivia);
     for (var i = 0; i < matches.Count; i++) {

@@ -171,20 +171,42 @@ class X {
     [Fact]
     public void DocstringWorksForSubsetType() {
       DocstringWorksFor(@"
-class X {
-  type Odd := x: int | x % 2 == 1 witness 1
-  // Type of number that are not divisible by 2 
+type Odd = x: int | x % 2 == 1 witness 1
+// Type of number that are not divisible by 2 
 
-  // Type of numbers divisible by 2
-  type Even := x: int | x % 2 == 1 witness 1
+// Type of numbers divisible by 2
+type Even = x: int | x % 2 == 1 witness 1
 
-  // Unrelated comment
-  type Weird := x: int | x % 2 == x % 3 witness 0
-  // Type of numbers whose remainder modulo 2 or 3 is the same
-}", new List<(string nodeTokenValue, string expectedDocstring)> {
+// Unrelated comment
+type Weird = x: int | x % 2 == x % 3 witness 0
+// Type of numbers whose remainder modulo 2 or 3 is the same
+
+// Unattached comment
+type ZeroOrMore = nat
+// ZeroOrMore is the same as nat
+
+// ZeroOrMore2 is the same as nat 
+type ZeroOrMore2 = nat
+
+// Unattached comment
+type OpaqueType
+// OpaqueType has opaque methods so you don't see them
+{
+}
+
+// OpaqueType2 has opaque methods so you don't see them
+type OpaqueType2
+{
+}
+", new List<(string nodeTokenValue, string expectedDocstring)> {
         ("Odd", "Type of number that are not divisible by 2"),
         ("Even", "Type of numbers divisible by 2"),
-        ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same")});
+        ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same"),
+        ("ZeroOrMore", "ZeroOrMore is the same as nat"),
+        ("ZeroOrMore2", "ZeroOrMore2 is the same as nat"),
+        ("OpaqueType", "OpaqueType has opaque methods so you don't see them"),
+        ("OpaqueType2", "OpaqueType2 has opaque methods so you don't see them")
+      });
     }
 
     [Fact]
