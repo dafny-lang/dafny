@@ -1,4 +1,4 @@
-text.dfy(2,14): Error: assertion might not hold
-text.dfy(3,11): Error: assertion might not hold
+text.dfy(2,14): Error: assertion could not be proven
+text.dfy(3,11): Error: assertion could not be proven
 
 Dafny program verifier finished with 0 verified, 2 errors

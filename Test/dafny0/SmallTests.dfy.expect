@@ -4,8 +4,8 @@ SmallTests.dfy(599,12): Warning: Argument to 'old' does not dereference the muta
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(909,14): Error: target object might be null
 SmallTests.dfy(901,14): Error: target object might be null
-SmallTests.dfy(920,10): Error: assertion might not hold
-SmallTests.dfy(926,10): Error: assertion might not hold
+SmallTests.dfy(920,10): Error: assertion could not be proven
+SmallTests.dfy(926,10): Error: assertion could not be proven
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero

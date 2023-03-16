@@ -1,4 +1,4 @@
-text.dfy(14,20): Error: This loop invariant might not hold on entry.
+text.dfy(14,20): Error: this loop invariant could not be proven on entry
 text.dfy(14,20): Related message: loop invariant violation
 
 Dafny program verifier finished with 1 verified, 1 error

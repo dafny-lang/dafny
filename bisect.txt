@@ -1,0 +1,17 @@
+git bisect start
+# bad: [67287b2369277f125210f65467442c5e4b605225] Remove included lemma body (#3659)
+git bisect bad 67287b2369277f125210f65467442c5e4b605225
+# good: [510b67904b38c1ea429b00287ff0a2d444e2273f] Release Dafny 3.10.0 (#3201)
+git bisect good 510b67904b38c1ea429b00287ff0a2d444e2273f
+# good: [791a1270e2136edc8cfb84483bbb856307f63552] The Dafny scanner no longer recognizes lines beginning with # as pragmas (#3452)
+git bisect good 791a1270e2136edc8cfb84483bbb856307f63552
+# good: [ce42e8ad19f0bdcd490104b0367cc62ad8d77fa6] Fix reindentation of forall statements after resolution (#3548)
+git bisect good ce42e8ad19f0bdcd490104b0367cc62ad8d77fa6
+# good: [800b204caf2bdd666516b972739858139dcb27f5] Check ide-vscode for blockers in release script (#3604)
+git bisect good 800b204caf2bdd666516b972739858139dcb27f5
+# good: [09ab6ad05ecfabf5e0814d424965a383b1b70ad6] Add documentation for getting Dafny toolchain developer help (#3583)
+git bisect good 09ab6ad05ecfabf5e0814d424965a383b1b70ad6
+# bad: [041d4bba437b57a432b89569205cb90df5e8ae6c] Move towards a return value based style for our code generating methods (#3546)
+git bisect bad 041d4bba437b57a432b89569205cb90df5e8ae6c
+# bad: [0af4408bb788fb8dc50742f5fcb324c5379ee428] Another attempt at #3622 (#3638)
+git bisect bad 0af4408bb788fb8dc50742f5fcb324c5379ee428
