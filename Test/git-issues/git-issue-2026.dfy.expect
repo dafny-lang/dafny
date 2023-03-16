@@ -1,38 +1,33 @@
-git-issue-2026.dfy(17,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(17,18): Error: this invariant could not be proved to be maintained by the loop
 git-issue-2026.dfy(17,18): Related message: loop invariant violation
-git-issue-2026.dfy(18,18): Error: This loop invariant might not be maintained by the loop.
+git-issue-2026.dfy(18,18): Error: this invariant could not be proved to be maintained by the loop
 git-issue-2026.dfy(18,18): Related message: loop invariant violation
 
 Dafny program verifier finished with 0 verified, 2 errors
 Counterexample for first failing assertion: 
 git-issue-2026.dfy(11,0): initial state:
-	n : int = 5854
+	n : int = 8099
 	ret : _System.array?<seq<char>> = ()
 git-issue-2026.dfy(12,24):
-	n : int = 5854
-	ret : _System.array?<seq<char>> = (Length := 5854, [(- 1)] := @0, [0] := @1)
-	@0 : ? = ()
-	@1 : seq<char> = ['o', 'd', 'd']
+	n : int = 8099
+	ret : _System.array?<seq<char>> = (Length := 8099, [0] := @0)
+	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(14,14):
-	n : int = 5854
-	ret : _System.array?<seq<char>> = (Length := 5854, [(- 1)] := @0, [0] := @1)
+	n : int = 8099
+	ret : _System.array?<seq<char>> = (Length := 8099, [0] := @0)
 	i : int = 0
-	@0 : ? = ()
-	@1 : seq<char> = ['o', 'd', 'd']
+	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(15,4): after some loop iterations:
-	n : int = 5854
-	ret : _System.array?<seq<char>> = (Length := 5854, [(- 1)] := @0)
+	n : int = 8099
+	ret : _System.array?<seq<char>> = (Length := 8099)
 	i : int = 0
-	@0 : ? = ()
 git-issue-2026.dfy(21,27):
-	n : int = 5854
-	ret : _System.array?<seq<char>> = (Length := 5854, [(- 1)] := @0, [0] := @1)
+	n : int = 8099
+	ret : _System.array?<seq<char>> = (Length := 8099, [0] := @0)
 	i : int = 0
-	@0 : ? = ()
-	@1 : seq<char> = ['o', 'd', 'd']
+	@0 : seq<char> = ['o', 'd', 'd']
 git-issue-2026.dfy(25,18):
-	n : int = 5854
-	ret : _System.array?<seq<char>> = (Length := 5854, [(- 1)] := @0, [0] := @1)
+	n : int = 8099
+	ret : _System.array?<seq<char>> = (Length := 8099, [0] := @0)
 	i : int = 1
-	@0 : ? = ()
-	@1 : seq<char> = ['o', 'd', 'd']
+	@0 : seq<char> = ['o', 'd', 'd']

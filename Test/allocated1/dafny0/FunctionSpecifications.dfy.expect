@@ -1,17 +1,17 @@
 The /allocated:<n> option is deprecated
-FunctionSpecifications.dfy(35,24): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(31,12): Related location: This is the postcondition that might not hold.
-FunctionSpecifications.dfy(45,2): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(40,23): Related location: This is the postcondition that might not hold.
+FunctionSpecifications.dfy(35,24): Error: a postcondition could not be proved on this return path
+FunctionSpecifications.dfy(31,12): Related location: this is the postcondition that could not be proved
+FunctionSpecifications.dfy(45,2): Error: a postcondition could not be proved on this return path
+FunctionSpecifications.dfy(40,23): Related location: this is the postcondition that could not be proved
 FunctionSpecifications.dfy(53,10): Error: cannot prove termination; try supplying a decreases clause
-FunctionSpecifications.dfy(60,15): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(61,21): Related location: This is the postcondition that might not hold.
+FunctionSpecifications.dfy(60,15): Error: a postcondition could not be proved on this return path
+FunctionSpecifications.dfy(61,21): Related location: this is the postcondition that could not be proved
 FunctionSpecifications.dfy(109,22): Error: assertion might not hold
 FunctionSpecifications.dfy(112,22): Error: assertion might not hold
 FunctionSpecifications.dfy(127,26): Error: assertion might not hold
 FunctionSpecifications.dfy(131,26): Error: assertion might not hold
-FunctionSpecifications.dfy(136,25): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(138,28): Related location: This is the postcondition that might not hold.
+FunctionSpecifications.dfy(136,25): Error: a postcondition could not be proved on this return path
+FunctionSpecifications.dfy(138,28): Related location: this is the postcondition that could not be proved
 FunctionSpecifications.dfy(147,2): Error: decreases clause might not decrease
 FunctionSpecifications.dfy(154,2): Error: decreases clause might not decrease
 FunctionSpecifications.dfy(159,2): Error: cannot prove termination; try supplying a decreases clause
