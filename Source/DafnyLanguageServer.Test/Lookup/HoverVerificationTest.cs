@@ -183,7 +183,7 @@ Could not prove: `i % 2 == 0`"
       );
 
       await AssertHoverMatches(documentItem, (3, 0),
-        @"**Error:**???A postcondition might not hold on this return path.  
+        @"**Error:**???a postcondition could not be proved on this return path  
 Could not prove: `i > 0`"
       );
     }
