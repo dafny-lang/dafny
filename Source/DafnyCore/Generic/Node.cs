@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
@@ -12,6 +13,7 @@ public interface INode {
   RangeToken RangeToken { get; }
 
   IToken Tok { get; }
+  string GetDocString(DafnyOptions options);
 }
 
 public interface ICanFormat : INode {
@@ -164,6 +166,90 @@ public abstract class Node : INode {
   }
 
   public abstract RangeToken RangeToken { get; set; }
+
+  // Applies plugin-defined docstring filters
+  public string GetDocString(DafnyOptions options) {
+    var plugins = options.Plugins;
+    var (token, leadingTrivia) = GetDocStringToken(options);
+    if (token == null || token == Token.NoToken || token.line == 0) {
+      return null;
+    }
+
+    var rawDocstring = ExtractDocstring(token, leadingTrivia);
+    foreach (var plugin in plugins) {
+      foreach (var docstringRewriter in plugin.GetDocstringRewriters(options)) {
+        rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring);
+      }
+    }
+
+    return rawDocstring;
+  }
+
+  private string ExtractDocstring(IToken token, bool leadingTrivia) {
+    var trivia = leadingTrivia ? token.LeadingTrivia : token.TrailingTrivia;
+
+    var extraction = new Regex(
+      $@"(?<multiline>(?<indentation>[ \t]*)/\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/)" +
+      $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*)(?:{TriviaFormatterHelper.AnyNewline}|$))");
+    var rawDocstring = new List<string>() { };
+    var matches = extraction.Matches(trivia);
+    for (var i = 0; i < matches.Count; i++) {
+      var match = matches[i];
+      if (match.Groups["multiline"].Success) {
+        // For each line except the first,
+        // we need to remove the indentation up to the first "/" of the comment
+        // Additionally, if there is a "* " or a " *" or a "  * ", we remove it as well
+        // provided it always started with a star.
+        //var startIndex = match.Groups["multiline"].Index;
+        //var indentation = trivia.
+        var indentation = match.Groups["indentation"].Value;
+        var multilineContent = match.Groups["multilinecontent"].Value;
+        var newlineRegex = new Regex(TriviaFormatterHelper.AnyNewline);
+        var contentLines = newlineRegex.Split(multilineContent);
+        var starRegex = new Regex(@"^[ \t]*\*\ ?(?<remaining>.*)$");
+        var wasNeverInterrupted = true;
+        var localDocstring = "";
+        for (var j = 0; j < contentLines.Length; j++) {
+          if (j != 0) {
+            localDocstring += "\n";
+          }
+          var contentLine = contentLines[j];
+          var lineMatch = starRegex.Match(contentLine);
+          if (lineMatch.Success && wasNeverInterrupted) {
+            localDocstring += lineMatch.Groups["remaining"].Value;
+          } else {
+            if (j == 0) {
+              localDocstring += contentLine.TrimStart();
+            } else {
+              wasNeverInterrupted = false;
+              if (contentLine.StartsWith(indentation)) {
+                var trimmedIndentation =
+                  contentLine.Substring(0, Math.Min(indentation.Length + 3, contentLine.Length)).TrimStart();
+                var remaining = (contentLine.Length >= indentation.Length + 3
+                  ? contentLine.Substring(indentation.Length + 3)
+                  : "");
+                localDocstring += trimmedIndentation + remaining;
+              } else {
+                localDocstring += contentLine.Trim();
+              }
+            }
+          }
+        }
+
+        localDocstring = localDocstring.Trim();
+        rawDocstring.Add(localDocstring);
+      } else if (match.Groups["singleline"].Success) {
+        rawDocstring.Add(match.Groups["singlelinecontent"].Value);
+      }
+    }
+
+    return string.Join("\n", rawDocstring);
+  }
+
+  // Unfiltered version that only returns the trivia containing the docstring
+  protected virtual (IToken token, bool leadingTrivia) GetDocStringToken(DafnyOptions options) {
+    return (token: Token.NoToken, leadingTrivia: true);
+  }
 }
 
 public abstract class TokenNode : Node {

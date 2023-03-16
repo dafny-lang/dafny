@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the method node representing the declaration of this symbol.
     /// </summary>
     public Method Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     /// <summary>
     /// Gets the method parameters.

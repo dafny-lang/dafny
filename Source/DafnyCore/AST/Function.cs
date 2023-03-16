@@ -437,4 +437,23 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocStringToken(DafnyOptions options) {
+    if (Body == null) {
+      if (EndToken.TrailingTrivia.Trim() != "") {
+        return (EndToken, false);
+      }
+
+      if (StartToken.LeadingTrivia.Trim() != "") {
+        return (StartToken, true);
+      }
+    } else if (Body.StartToken.Prev.Prev is var tokenWhereTrailingIsDocstring &&
+              tokenWhereTrailingIsDocstring.TrailingTrivia.Trim() != "") {
+      return (tokenWhereTrailingIsDocstring, false);
+    } else if (StartToken is var tokenWhereLeadingIsDocstring &&
+        tokenWhereLeadingIsDocstring.LeadingTrivia.Trim() != "") {
+      return (tokenWhereLeadingIsDocstring, true);
+    }
+    return (Token.NoToken, false);
+  }
 }

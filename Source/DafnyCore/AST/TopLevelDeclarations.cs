@@ -1880,6 +1880,10 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   protected ICallable cwInner => (ICallable)inner;
   public IToken Tok => cwInner.Tok;
+  public string GetDocString(DafnyOptions options) {
+    return ((ICallable)inner).GetDocString(options);
+  }
+
   public string WhatKind => cwInner.WhatKind;
   public string NameRelativeToModule => cwInner.NameRelativeToModule;
   public Specification<Expression> Decreases => cwInner.Decreases;
@@ -1903,6 +1907,10 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
+  public string GetDocString(DafnyOptions options) {
+    throw new cce.UnreachableException();
+  }
+
   public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
   public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
   public bool InferredDecreases {

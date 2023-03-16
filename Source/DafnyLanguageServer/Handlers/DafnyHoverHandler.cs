@@ -346,7 +346,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```";
+      var docString = symbol.Node.GetDocString(options);
+      return (docString + $"```\ndafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
     }
   }
 }
