@@ -2625,26 +2625,16 @@ namespace Microsoft.Dafny.Compilers {
         out string postOpS, out string callS, out string staticCallS) {
         if (AsNativeType(resultType) != null) {
           var nativeName = GetNativeTypeName(AsNativeType(resultType));
-          if (o == ">>>" && resultType.NormalizeExpand() is
-                BitvectorType { Width: var width and (8 or 16 or 32 or 64) }) {
-            /// Solves https://github.com/dafny-lang/dafny/issues/3734
-            preOpS = width switch {
-              8 => "(byte)",
-              16 => "(short)",
-              32 => "(int)",
-              _ /*64*/ => "(long)"
-            };
+          if (o == ">>>" && resultType.AsBitVectorType is { Width: var width and (8 or 16 or 32 or 64) }) {
+            // Solves https://github.com/dafny-lang/dafny/issues/3734
+            preOpS = CastIfSmallNativeType(resultType);
             opS = null;
             postOpS = "";
             callS = null;
             staticCallS = $"{DafnyHelpersClass}.bv{width}ShiftRight";
-          } else if (o == "<<" && resultType.NormalizeExpand() is
-                       BitvectorType { Width: var width2 and (32 or 64) }) {
-            /// Solves https://github.com/dafny-lang/dafny/issues/3734
-            preOpS = width2 switch {
-              32 => "(int)",
-              _ /*64*/ => "(long)"
-            };
+          } else if (o == "<<" && resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
+            // Solves https://github.com/dafny-lang/dafny/issues/3734
+            preOpS = CastIfSmallNativeType(resultType);
             opS = null;
             postOpS = "";
             callS = null;

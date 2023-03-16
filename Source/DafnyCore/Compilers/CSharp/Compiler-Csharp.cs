@@ -2881,8 +2881,7 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          if (resultType.NormalizeExpand() is
-              BitvectorType { Width: var width and (32 or 64) }) {
+          if (resultType.AsBitVectorType is { Width: var width and (32 or 64) }) {
             staticCallString = $"{DafnyHelpersClass}.Bv{width}ShiftLeft";
             convertE1_to_int = true;
             truncateResult = true;
@@ -2893,8 +2892,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          if (resultType.NormalizeExpand() is
-              BitvectorType { Width: var width2 and (32 or 64) }) {
+          if (resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
             staticCallString = $"{DafnyHelpersClass}.Bv{width2}ShiftRight";
             convertE1_to_int = true;
           } else {
