@@ -21,7 +21,7 @@ jobs:
         brew install dafny
     - name: Make test program
       run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
+        echo "method Main() { assert true; print 42, ['\n']; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
         echo "42" > expect.txt
     - name: Versions
