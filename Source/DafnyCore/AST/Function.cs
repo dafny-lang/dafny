@@ -438,7 +438,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocStringToken(DafnyOptions options) {
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
     if (Body == null) {
       if (EndToken.TrailingTrivia.Trim() != "") {
         return (EndToken, false);

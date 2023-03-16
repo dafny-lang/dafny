@@ -336,4 +336,23 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       resolver.currentMethod = null;
     }
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    IToken lastClosingParenthesis = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == ")") {
+        lastClosingParenthesis = token;
+      }
+    }
+
+    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
+      return (lastClosingParenthesis, false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, true);
+    }
+
+    return (Token.NoToken, false);
+  }
 }

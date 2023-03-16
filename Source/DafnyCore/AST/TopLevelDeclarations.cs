@@ -375,6 +375,31 @@ public abstract class ModuleDecl : TopLevelDecl {
     // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
     return true;
   }
+
+  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+    IToken candidate = null;
+    var tokens = OwnedTokens.Any() ?
+      OwnedTokens :
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+    foreach (var token in tokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return (candidate, leadingTrivia: false);
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return (EndToken, leadingTrivia: false);
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return (StartToken, leadingTrivia: true);
+    }
+
+    return (Token.NoToken, leadingTrivia: false);
+  }
 }
 // Represents module X { ... }
 public class LiteralModuleDecl : ModuleDecl, ICanFormat {
