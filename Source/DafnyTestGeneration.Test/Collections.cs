@@ -20,7 +20,7 @@ namespace DafnyTestGeneration.Test {
     public async Task StringLength() {
       var source = @"
 module C {
-  static method compareStringLengthToOne(s: string) returns (ret: int) {
+  method compareStringLengthToOne(s: string) returns (ret: int) {
       if (|s| == 1) {
           return 0;
       } else if (|s| > 1) {
@@ -57,7 +57,7 @@ module SimpleTest {
      var value:char;
   }
 
-  static method compareStringToSeqOfChars(s: string, c:seq<CharObject>)
+  method compareStringToSeqOfChars(s: string, c:seq<CharObject>)
       returns (ret: bool)
   {
       if ((|s| != |c|) || (|s| < 2)) {

@@ -47,6 +47,7 @@
 <tr><td>DoesNotTerminate</td><td>True</td><td>False</td><td>False</td><td>Method may not terminate (uses <code>decreases *</code>).</td><td>Provide a valid <code>decreases</code> clause.</td></tr>
 <tr><td>ForallWithoutBody</td><td>False</td><td>False</td><td>False</td><td>Definition contains <code>forall</code> statement with no body.</td><td>Provide a body.</td></tr>
 <tr><td>LoopWithoutBody</td><td>True</td><td>False</td><td>False</td><td>Definition contains loop with no body.</td><td>Provide a body.</td></tr>
+<tr><td>ConcurrentMethod</td><td>True</td><td>False</td><td>False</td><td>Declaration has <code>{:concurrent}</code> attribute.</td><td>Manually review and test in a concurrent setting.</td></tr>
 </table>
 <script>$( "table" ).last().addClass( "sortable" );</script>
 </body>

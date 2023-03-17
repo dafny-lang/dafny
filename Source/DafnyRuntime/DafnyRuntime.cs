@@ -1650,6 +1650,20 @@ namespace Dafny {
     public static Rune SubtractRunes(Rune left, Rune right) {
       return (Rune)(left.Value - right.Value);
     }
+
+    public static uint Bv32ShiftLeft(uint a, int amount) {
+      return amount == 32 ? 0 : a << amount;
+    }
+    public static ulong Bv64ShiftLeft(ulong a, int amount) {
+      return amount == 64 ? 0 : a << amount;
+    }
+
+    public static uint Bv32ShiftRight(uint a, int amount) {
+      return amount == 32 ? 0 : a >> amount;
+    }
+    public static ulong Bv64ShiftRight(ulong a, int amount) {
+      return amount == 64 ? 0 : a >> amount;
+    }
   }
 
   public class BigOrdinal {
