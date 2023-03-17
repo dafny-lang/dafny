@@ -178,7 +178,7 @@ public abstract class Node : INode {
     var rawDocstring = ExtractDocstring(token, leadingTrivia);
     foreach (var plugin in plugins) {
       foreach (var docstringRewriter in plugin.GetDocstringRewriters(options)) {
-        rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring);
+        rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring) ?? rawDocstring;
       }
     }
 
