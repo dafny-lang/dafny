@@ -10,7 +10,7 @@ Snapshots8.v0.dfy(8,13): Related location: this is the precondition that could n
 Processing command (at Snapshots8.v0.dfy(13,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(17,9): Error: a postcondition could not be proved on this return path
-Snapshots8.v0.dfy(13,12): Related location: this is the postcondition that could not be proved
+Snapshots8.v0.dfy(13,12): Related location: This is the postcondition that might not hold.
 Processing command (at Snapshots8.v0.dfy(23,12)) assert u#0 != 53;
   >>> DoNothingToAssert
 Snapshots8.v0.dfy(23,11): Error: assertion might not hold
@@ -38,6 +38,6 @@ Processing command (at Snapshots8.v1.dfy(23,12)) assert Lit(true);
 Processing command (at Snapshots8.v1.dfy(19,13)) assert LitInt(2) <= z#0;
   >>> DoNothingToAssert
 Snapshots8.v1.dfy(24,9): Error: a postcondition could not be proved on this return path
-Snapshots8.v1.dfy(19,12): Related location: this is the postcondition that could not be proved
+Snapshots8.v1.dfy(19,12): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 1 verified, 5 errors

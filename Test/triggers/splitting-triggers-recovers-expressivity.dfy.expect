@@ -21,8 +21,8 @@ splitting-triggers-recovers-expressivity.dfy(49,11): Info: For expression "j >= 
 splitting-triggers-recovers-expressivity.dfy(58,11): Info: Selected triggers:
    {P(i)}, {Q(i)}
 splitting-triggers-recovers-expressivity.dfy(12,63): Error: a postcondition could not be proved on this return path
-splitting-triggers-recovers-expressivity.dfy(12,10): Related location: this is the postcondition that could not be proved
+splitting-triggers-recovers-expressivity.dfy(12,10): Related location: This is the postcondition that might not hold.
 splitting-triggers-recovers-expressivity.dfy(19,15): Error: a postcondition could not be proved on this return path
-splitting-triggers-recovers-expressivity.dfy(19,10): Related location: this is the postcondition that could not be proved
+splitting-triggers-recovers-expressivity.dfy(19,10): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 5 verified, 2 errors

@@ -1,8 +1,8 @@
 ComputationsNeg.dfy(7,2): Error: decreases clause might not decrease
 ComputationsNeg.dfy(11,0): Error: a postcondition could not be proved on this return path
-ComputationsNeg.dfy(10,16): Related location: this is the postcondition that could not be proved
+ComputationsNeg.dfy(10,16): Related location: This is the postcondition that might not hold.
 ComputationsNeg.dfy(23,0): Error: a postcondition could not be proved on this return path
-ComputationsNeg.dfy(22,10): Related location: this is the postcondition that could not be proved
+ComputationsNeg.dfy(22,10): Related location: This is the postcondition that might not hold.
 ComputationsNeg.dfy(19,28): Related location
 ComputationsNeg.dfy(19,62): Related location
 ComputationsNeg.dfy(19,65): Related location

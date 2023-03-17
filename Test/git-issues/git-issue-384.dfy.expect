@@ -1,5 +1,5 @@
 The /allocated:<n> option is deprecated
 git-issue-384.dfy(13,2): Error: a postcondition could not be proved on this return path
-git-issue-384.dfy(12,12): Related location: this is the postcondition that could not be proved
+git-issue-384.dfy(12,12): Related location: This is the postcondition that might not hold.
 
 Dafny program verifier finished with 2 verified, 1 error

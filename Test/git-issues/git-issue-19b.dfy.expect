@@ -6,7 +6,7 @@ git-issue-19b.dfy(64,11): Error: assertion might not hold
 git-issue-19b.dfy(71,11): Error: assertion might not hold
 git-issue-19b.dfy(102,11): Error: assertion might not hold
 git-issue-19b.dfy(115,4): Error: a postcondition could not be proved on this return path
-git-issue-19b.dfy(113,14): Related location: this is the postcondition that could not be proved
+git-issue-19b.dfy(113,14): Related location: This is the postcondition that might not hold.
 git-issue-19b.dfy(113,36): Related location
 git-issue-19b.dfy(131,36): Error: a precondition for this call could not be proved
 git-issue-19b.dfy(124,17): Related location: this is the precondition that could not be proved

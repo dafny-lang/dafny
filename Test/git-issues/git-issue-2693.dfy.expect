@@ -1,7 +1,7 @@
 git-issue-2693.dfy(10,10): Warning: Support for member 'PropagateFailure' in type 'EvenGood_OddBad?' (used indirectly via a :- statement) being a method is deprecated; declare it to be a function instead
 git-issue-2693.dfy(10,10): Warning: Support for member 'Extract' in type 'EvenGood_OddBad?' (used indirectly via a :- statement) being a method is deprecated; declare it to be a function instead
 git-issue-2693.dfy(10,10): Error: a postcondition could not be proved on this return path
-git-issue-2693.dfy(6,37): Related location: this is the postcondition that could not be proved
+git-issue-2693.dfy(6,37): Related location: This is the postcondition that might not hold.
 git-issue-2693.dfy(21,12): Related location
 git-issue-2693.dfy(11,11): Error: assertion might not hold
 

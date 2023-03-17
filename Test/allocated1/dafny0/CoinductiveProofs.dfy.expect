@@ -6,13 +6,13 @@ CoinductiveProofs.dfy(44,11): Error: assertion might not hold
 CoinductiveProofs.dfy(48,11): Error: assertion might not hold
 CoinductiveProofs.dfy(13,16): Related location
 CoinductiveProofs.dfy(78,0): Error: a postcondition could not be proved on this return path
-CoinductiveProofs.dfy(77,10): Related location: this is the postcondition that could not be proved
+CoinductiveProofs.dfy(77,10): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(73,2): Related location
 CoinductiveProofs.dfy(94,11): Error: assertion might not hold
 CoinductiveProofs.dfy(87,35): Related location
 CoinductiveProofs.dfy(73,2): Related location
 CoinductiveProofs.dfy(127,0): Error: a postcondition could not be proved on this return path
-CoinductiveProofs.dfy(126,10): Related location: this is the postcondition that could not be proved
+CoinductiveProofs.dfy(126,10): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(115,2): Related location
 CoinductiveProofs.dfy(136,11): Error: assertion might not hold
 CoinductiveProofs.dfy(117,35): Related location
@@ -22,13 +22,13 @@ CoinductiveProofs.dfy(115,2): Related location
 CoinductiveProofs.dfy(153,11): Error: assertion might not hold
 CoinductiveProofs.dfy(115,2): Related location
 CoinductiveProofs.dfy(164,0): Error: a postcondition could not be proved on this return path
-CoinductiveProofs.dfy(163,10): Related location: this is the postcondition that could not be proved
+CoinductiveProofs.dfy(163,10): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(159,2): Related location
 CoinductiveProofs.dfy(203,0): Error: a postcondition could not be proved on this return path
-CoinductiveProofs.dfy(202,21): Related location: this is the postcondition that could not be proved
+CoinductiveProofs.dfy(202,21): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(4,23): Related location
 CoinductiveProofs.dfy(209,0): Error: a postcondition could not be proved on this return path
-CoinductiveProofs.dfy(208,21): Related location: this is the postcondition that could not be proved
+CoinductiveProofs.dfy(208,21): Related location: This is the postcondition that might not hold.
 CoinductiveProofs.dfy(4,23): Related location
 
 Dafny program verifier finished with 23 verified, 12 errors
