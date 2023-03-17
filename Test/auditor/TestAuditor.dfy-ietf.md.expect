@@ -53,3 +53,7 @@
 ### Member `LoopWithoutBody`
 
 * Definition contains loop with no body. MUST provide a body.
+
+### Member `ConcurrentMethod`
+
+* Declaration has `{:concurrent}` attribute. MUST manually review and test in a concurrent setting.
