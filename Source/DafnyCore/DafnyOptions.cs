@@ -374,7 +374,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this(src.Writer, src.Input) {
+    public DafnyOptions(DafnyOptions src) : this(src.Writer, src.Input) { // TODO should we allow this? Shouldn't the options own the writers?
       src.CopyTo(this);
     }
 

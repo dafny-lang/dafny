@@ -111,10 +111,10 @@ namespace Microsoft.Dafny {
       return ret;
     }
 
-    public static int ThreadMain(TextWriter outWriter, TextWriter errWriter, TextReader inputReader, string[] args) {
+    public static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var cliArgumentsResult = ProcessCommandLineArguments(outWriter, errWriter, inputReader,
+      var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
