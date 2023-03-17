@@ -79,7 +79,7 @@ module M {
     public async Task PathBasedTests() {
       var source = @"
 module Paths {
-  static method eightPaths (i:int)
+  method eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
     if (i % 2 == 0) {
@@ -128,7 +128,7 @@ module Paths {
     public async Task BlockBasedTests() {
       var source = @"
 module Paths {
-  static method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
+  method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
     if (i % 2 == 0) {
       divBy2 := true;
     } else {
