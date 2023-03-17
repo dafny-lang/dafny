@@ -3,7 +3,7 @@
 
 trait O {
   var rep:set<O>
-  function union<T>(s:set<set<T>>):set<T> {
+  ghost function union<T>(s:set<set<T>>):set<T> {
     set o,o1 | o in s && o1 in o :: o1
   }
 
@@ -13,13 +13,13 @@ trait O {
     rep=={} || (forall o:O | o in rep :: o.ag())
   }
 
-  predicate ldp(n:ORDINAL)
+  ghost predicate ldp(n:ORDINAL)
     reads *
   {
     ag#[n]() && (forall n1:ORDINAL | n1 < n:: !ag#[n1]())
   }
 
-  function ld(n:ORDINAL):ORDINAL
+  ghost function ld(n:ORDINAL):ORDINAL
     reads *
     requires ag#[n]()
     ensures ldp(ld(n))
@@ -27,7 +27,7 @@ trait O {
     if ldp(n) then n else var n1:ORDINAL :| n1 < n && ag#[n1](); ld(n1)
   }
 
-  function level():ORDINAL
+  ghost function level():ORDINAL
     reads fr()
     requires ag()
     ensures ldp(level())
@@ -41,7 +41,7 @@ trait O {
     decreases level()
   {}
 
-  function  fr():set<O>
+  ghost function fr():set<O>
     requires ag()
     reads *
     decreases level()

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate IsPrime(n: int)
+ghost predicate IsPrime(n: int)
 {
   2 <= n && forall m :: 2 <= m < n ==> n % m != 0 // WISH It would be great to think about the status of modulo as a trigger
 }
@@ -30,7 +30,7 @@ lemma NoFiniteSetContainsAllPrimes(s: set<int>)
 
 // ------------------------- lemmas and auxiliary definitions
 
-predicate AllPrimes(s: set<int>, bound: int)
+ghost predicate AllPrimes(s: set<int>, bound: int)
 {
   // s contains only primes
   (forall x :: x in s ==> IsPrime(x)) &&
@@ -56,7 +56,7 @@ lemma GetLargerPrime(s: set<int>, bound: int) returns (p: int)
   }
 }
 
-function product(s: set<int>): int
+ghost function product(s: set<int>): int
 {
   if s == {} then 1 else
   var a := PickLargest(s); a * product(s - {a})
@@ -131,7 +131,7 @@ lemma RemoveFactor(x: int, s: set<int>)
 }
 
 // This definition is like IsPrime above, except that the quantification is only over primes.
-predicate IsPrime_Alt(n: int)
+ghost predicate IsPrime_Alt(n: int)
 {
   2 <= n && forall m :: 2 <= m < n && IsPrime(m) ==> n % m != 0
 }
@@ -186,7 +186,7 @@ lemma Composite(c: int) returns (a: int, b: int)
   }
 }
 
-function PickLargest(s: set<int>): int
+ghost function PickLargest(s: set<int>): int
   requires s != {}
 {
   LargestElementExists(s);

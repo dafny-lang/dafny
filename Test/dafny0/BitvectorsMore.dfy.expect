@@ -32,10 +32,10 @@ module _System {
   */
 
   class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
+    ghost function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    ghost function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -48,10 +48,10 @@ module _System {
     /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
-    function requires(): bool
+    ghost function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    ghost function reads(): set<object?>
       reads reads()
   }
 
@@ -64,10 +64,10 @@ module _System {
     /*special witness*/
 
   class {:compile false} /*_#Func11*/ (-T0, -T1, -T2, -T3, -T4, -T5, -T6, -T7, -T8, -T9, -T10) ~> +R {
-    function requires(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): bool
+    ghost function requires(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): bool
       reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
 
-    function reads(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): set<object?>
+    ghost function reads(x0: T0, x1: T1, x2: T2, x3: T3, x4: T4, x5: T5, x6: T6, x7: T7, x8: T8, x9: T9, x10: T10): set<object?>
       reads reads(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10)
   }
 
@@ -97,9 +97,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function RotateRight(w: nat): selftype
   }
 
   type map<T, U> {
@@ -274,7 +274,7 @@ method R(x: bv60, y: bv60)
   assert a0 == a1;
 }
 
-predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
+ghost predicate PQ(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, bb: bv2, noll: bv0, h: Handful)
   decreases x, n, r, even, small, b67, w, seven, bb, noll, h
 {
   x == x &&
@@ -452,6 +452,7 @@ BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the
 BitvectorsMore.dfy(105,38): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
 BitvectorsMore.dfy(107,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
 BitvectorsMore.dfy(115,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
 BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
 BitvectorsMore.dfy(116,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
@@ -463,6 +464,7 @@ BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the
 BitvectorsMore.dfy(135,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
 BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
 BitvectorsMore.dfy(136,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
 BitvectorsMore.dfy(137,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
 BitvectorsMore.dfy(146,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
 BitvectorsMore.dfy(147,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
@@ -471,7 +473,9 @@ BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the
 BitvectorsMore.dfy(157,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
 BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
 BitvectorsMore.dfy(158,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
 BitvectorsMore.dfy(159,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
 BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
 BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
@@ -479,4 +483,4 @@ BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector,
 BitvectorsMore.dfy(193,26): Error: shift amount must not exceed the width of the result (5)
 BitvectorsMore.dfy(194,26): Error: shift amount must not exceed the width of the result (5)
 
-Dafny program verifier finished with 9 verified, 37 errors
+Dafny program verifier finished with 9 verified, 41 errors

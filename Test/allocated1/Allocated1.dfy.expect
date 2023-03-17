@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 AllocatedCommon.dfyi(23,26): Error: assertion might not hold
 AllocatedCommon.dfyi(24,26): Error: assertion might not hold
 AllocatedCommon.dfyi(25,26): Error: assertion might not hold

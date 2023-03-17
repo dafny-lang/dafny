@@ -118,11 +118,11 @@ jobs:
       run: |
         sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
-        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.8.5-ubuntu-20.04-bin.zip | bsdtar -xf -
-        mv z3-4.8.5 dafny/Binaries/z3/bin/
-        chmod +x dafny/Binaries/z3/bin/z3-4.8.5
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
+        mv z3-4.12.1 dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-4.12.1
         mkdir -p unzippedRelease/dafny/z3/bin
-        ln dafny/Binaries/z3/bin/z3-4.8.5 unzippedRelease/dafny/z3/bin/z3-4.8.5
+        ln dafny/Binaries/z3/bin/z3-4.12.1 unzippedRelease/dafny/z3/bin/z3-4.12.1
     - name: Run integration tests (Windows)
       if: runner.os == 'Windows'
       env:
@@ -130,8 +130,8 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
       run: |
-        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.8.5.exe
-        dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
+        cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
+        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
@@ -139,10 +139,11 @@ jobs:
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
-        echo $DAFNY_RELEASE
-        dotnet test --logger trx --logger "console;verbosity=normal" dafny/Source/IntegrationTests
+        dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: integration-test-results-${{ matrix.os }}
-        path: dafny/Source/IntegrationTests/TestResults/*.trx
+        path: |
+          dafny/Source/*/TestResults/*.trx
+          dafny/Source/*/TestResults/*/coverage.cobertura.xml

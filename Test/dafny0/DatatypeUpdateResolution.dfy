@@ -34,11 +34,11 @@ module MainStuff {
 
     type ConcreteType = GenericType<int>
 
-    function F(c:ConcreteType): ConcreteType {
+    ghost function F(c:ConcreteType): ConcreteType {
       c.(value := 0)
     }
 
-    function G(): int {
+    ghost function G(): int {
       ConcreteType.GenericType(5).value
     }
   }

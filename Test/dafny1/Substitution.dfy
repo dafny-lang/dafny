@@ -8,7 +8,7 @@ datatype Expr =
   Var(int) |
   Nary(int, List)
 
-function Subst(e: Expr, v: int, val: int): Expr
+ghost function Subst(e: Expr, v: int, val: int): Expr
 {
   match e
   case Const(c) => e
@@ -16,7 +16,7 @@ function Subst(e: Expr, v: int, val: int): Expr
   case Nary(op, args) => Expr.Nary(op, SubstList(args, v, val))
 }
 
-function SubstList(l: List, v: int, val: int): List
+ghost function SubstList(l: List, v: int, val: int): List
 {
   match l
   case Nil => l
@@ -52,7 +52,7 @@ datatype Expression =
   Var(int) |
   Nary(int, seq<Expression>)
 
-function Substitute(e: Expression, v: int, val: int): Expression
+ghost function Substitute(e: Expression, v: int, val: int): Expression
   decreases e;
 {
   match e
@@ -61,7 +61,7 @@ function Substitute(e: Expression, v: int, val: int): Expression
   case Nary(op, args) => Expression.Nary(op, SubstSeq(e, args, v, val))
 }
 
-function SubstSeq(/*ghost*/ parent: Expression,
+ghost function SubstSeq(/*ghost*/ parent: Expression,
                          q: seq<Expression>, v: int, val: int): seq<Expression>
   requires (forall a :: a in q ==> a < parent);
   decreases parent, q;

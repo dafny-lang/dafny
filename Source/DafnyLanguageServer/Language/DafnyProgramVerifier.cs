@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
         InsertChecksums = true,
         ReportRanges = true
       }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);

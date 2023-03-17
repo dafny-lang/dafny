@@ -213,6 +213,7 @@ or as `function method` instead of `function` in Dafny 3.
 
 <!-- TODO: Need example? -->
 
+
 The `{:synthesize}` attribute is an experimental attribute used to create 
 a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.

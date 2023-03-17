@@ -47,17 +47,15 @@ Dafny supports both reference types that contain the special `null` value
 
 ### 5.1.3. Named Types ([grammar](#g-type))
 
-A _Named Type_ is used to specify a user-defined type by name
-(possibly module-qualified). Named types are introduced by
+A _Named Type_ is used to specify a user-defined type by a (possibly module- or class-qualified) name.
+Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
-A Named Type is denoted by a dot-separated sequence of `NameSegmentForTypeName`s
+A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
-A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation``, which supplies type parameters to a generic
-type, if needed. It is a special case of a ``NameSegment``
-([Section 9.32](#sec-name-segment))
-that does not allow a ``HashCall``.
+A name segment (for a type) is a type name optionally followed by a
+_generic instantiation_, which supplies type parameters to a generic
+type, if needed.
 
 The following sections describe each of these kinds of types in more detail.
 
@@ -140,6 +138,18 @@ is simply a shorthand for
 ```dafny
 A == B && B == C
 ```
+
+Also,
+<!-- %no-check -->
+```dafny
+A <==> B == C <==> D
+```
+is
+<!-- %no-check -->
+```dafny
+A <==> (B == C) <==> D
+```
+
 
 #### 5.2.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 
@@ -647,8 +657,30 @@ At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
 If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
-that is, the variable is _auto-initialized_.
+that is, the variable is _auto-initialized_, but to an arbitrary value.
 For example,
+<!-- %check-verify Types.21.expect -->
+```dafny
+class Example<A(0), X> {
+  var n: nat
+  var i: int
+  var a: A
+  var x: X
+
+  constructor () {
+    new; // error: field 'x' has not been given a value`
+    assert n >= 0; // true, regardless of the value of 'n'
+    assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
+    // 'a' does not require an explicit initialization, since 'A' is auto-init
+  }
+}
+```
+In the example above, the class fields do not need to be explicitly initialized
+in the constructor because they are auto-initialized to an arbitrary value.
+
+Local variables and out-parameters are however, subject to definite assignment
+rules. The following example requires `--relax-definite-assignment`,
+which is not the default.
 <!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
 ```dafny
 method m() {
@@ -658,13 +690,16 @@ method m() {
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
+With the default behavior of definite assignment, `n` and `i` need to be initialized
+to an explicit value of their type or to an arbitrary value using, for example,
+`var n: nat := *;`.
 
 For some types (known as _auto-init types_), the compiler can choose an
 initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 12.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
+For more details see [Section 12.6](#sec-definite-assignment) and the `--relax-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.

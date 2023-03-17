@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -8,25 +7,24 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
-  [TestClass]
+  [Collection("Sequential Collection")] // Let slow tests run sequentially
   public class HoverVerificationTest : SynchronizationTestBase {
     private const int MaxTestExecutionTimeMs = 30000;
 
     private TestNotificationReceiver<CompilationStatusParams> notificationReceiver;
 
-    [TestInitialize]
-    public new Task SetUp() => SetUp(null);
+    public override async Task InitializeAsync() {
+      await SetUp(null);
+    }
 
-    public async Task SetUp(Action<DafnyOptions> modifyOptions) {
+    private async Task SetUp(Action<DafnyOptions> modifyOptions) {
       notificationReceiver = new();
       Client = await InitializeClient(options => {
         options
@@ -34,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
       }, modifyOptions);
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsBasicAssertionInformation() {
       var documentItem = await GetDocumentItem(@"
 method Abs(x: int) returns (y: int)
@@ -51,22 +49,22 @@ method Abs(x: int) returns (y: int)
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
         @"[**Error:**](???) This postcondition might not hold on a return path.  
-This is assertion #1 of 4 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
       );
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) a postcondition could not be proved on this return path???
 Could not prove: y >= 0  
-This is assertion #1 of 4 in method Abs  
+This is assertion #2 of 4 in method Abs  
 Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (7, 11),
         @"[**Error:**](???) assertion might not hold  
-This is assertion #2 of 4 in method Abs  
-Resource usage: 9K RU"
+This is assertion #1 of 4 in method Abs  
+Resource usage: ??? RU"
       );
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method Abs**:
@@ -76,7 +74,7 @@ Resource usage: 9K RU"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverGetsForeignContentAsWell() {
       var documentItem = await GetDocumentItem(@"
 include ""foreign-verify.dfy""
@@ -93,7 +91,7 @@ method DoIt() returns (x: int)
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
       // When hovering the failing path, it should extract text from the included file
       await AssertHoverMatches(documentItem, (9, 4),
-        @"[**Error:**](???) A postcondition might not hold on this return path.  
+        @"[**Error:**](???) a postcondition could not be proved on this return path???
 Could not prove: Q(x)  
 Could not prove: P(i)  
 Could not prove: i >= 0  
@@ -102,7 +100,7 @@ Resource usage: ??? RU"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task BetterMessageWhenOneAssertPerBatch() {
       await SetUp(o => {
         o.Set(CommonOptionBag.RelaxDefiniteAssignment, true);
@@ -135,7 +133,7 @@ This is the only assertion in [batch](???) #??? of ??? in method f
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MessagesWhenMultipleAssertionsPerBatch() {
       var documentItem = await GetDocumentItem(@"
 function f(x: int): int {
@@ -166,7 +164,7 @@ This is assertion #1 of 2 in [batch](???) #2 of 2 in function f
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithoutAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -182,7 +180,7 @@ No assertions."
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageForFailingPreconditions() {
       var documentItem = await GetDocumentItem(@"
 method Test1() {
@@ -199,7 +197,7 @@ Failing precondition:???"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithOneAssert() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -208,13 +206,13 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 1 assertion."
       );
     }
 
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task MeaningfulMessageWhenMethodWithTwoAsserts() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {
@@ -224,15 +222,15 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method f**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 2 assertions."
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions2() {
       var documentItem = await GetDocumentItem(@"
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 datatype Test = Test(i: int)
 {
   method Tester(other: Test) {
@@ -262,7 +260,7 @@ Did prove: t.i > 0  "
       );
     }
 
-    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
     public async Task DoNotExtendPastExpressions3() {
       var documentItem = await GetDocumentItem(@"
 datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) | Test3(next: ValidTester2)
@@ -271,7 +269,7 @@ datatype ValidTester = Tester(next: ValidTester2) | Tester2(next: ValidTester2) 
     ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())
   }
 
-  function method apply(): int requires Valid() {
+  function apply(): int requires Valid() {
     2
   }
   static method Test(c: ValidTester) {
@@ -292,7 +290,7 @@ Could not prove: ((this.Tester? || this.Tester2?) && this.next.Valid()) || (this
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotExtendPastExpressions() {
       var documentItem = await GetDocumentItem(@"
 datatype Test = Test(i: int)
@@ -308,7 +306,7 @@ datatype Test = Test(i: int)
     assert Id(other).CanAct();
   }
 }
-function method Id<T>(t: T): T { t }
+function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (9, 20),
@@ -326,7 +324,7 @@ Did prove: i > 0  "
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DisplayNestedFailingPostconditionsAndPreconditions() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
@@ -337,7 +335,7 @@ predicate Q(i: int, j: int) {
   i == j || -i == j
 }
 
-function method Toast(i: int): int
+function Toast(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: nat)
@@ -356,7 +354,7 @@ Could not prove: i == j || -i == j???
 Return path: testfile2.dfy(18, 5)"
       );
       await AssertHoverMatches(documentItem, (17, 6),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proved on this return path???
 Could not prove: Q(i, j)???
 Could not prove: i == j || -i == j"
       );
@@ -367,7 +365,7 @@ Could not prove: i <= 0"
       );
     }
 
-    [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+    [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
     public async Task DisplayWorksOnPreviouslyFailingExample() {
       var documentItem = await GetDocumentItem(@"
 module ProblemModule {
@@ -375,7 +373,7 @@ module ProblemModule {
     | Cons(head: int, tail: X)
     | Nil
   {
-    predicate method Valid() {
+    predicate Valid() {
       this.Cons? && tail.Valid()
     }
   }
@@ -388,12 +386,12 @@ method Test() returns (j: int)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (14, 5),
-        @"**Error:**???A postcondition might not hold on this return path.???
+        @"**Error:**???a postcondition could not be proved on this return path???
 Could not prove: j == 1"
       );
     }
 
-    [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+    [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task DoNotDisplayVerificationIfSyntaxError() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
@@ -419,8 +417,7 @@ Could not prove: i <= 0"
         null
       );
     }
-
-    [TestMethod, Timeout(5 * MaxTestExecutionTimeMs)]
+    [Fact(Timeout = 5 * MaxTestExecutionTimeMs)]
     public async Task IndicateClickableWarningSignsOnMethodHoverWhenResourceLimitReached10MThreshold() {
       var documentItem = await GetDocumentItem(@"
 lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
@@ -460,14 +457,13 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
     private async Task AssertHoverMatches(TextDocumentItem documentItem, Position hoverPosition, [CanBeNull] string expected) {
       var hover = await RequestHover(documentItem, hoverPosition);
       if (expected == null) {
-        Assert.IsTrue(hover == null || hover.Contents.MarkupContent is null or { Value: "" },
-          "Did not expect a message at {0}", hoverPosition);
+        Assert.True(hover == null || hover.Contents.MarkupContent is null or { Value: "" });
         return;
       }
-      Assert.IsNotNull(hover, "No hover message found at {0}", hoverPosition);
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
       var markup = hover.Contents.MarkupContent;
-      Assert.IsNotNull(markup);
-      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.NotNull(markup);
+      Assert.Equal(MarkupKind.Markdown, markup.Kind);
       AssertMatchRegex(expected.ReplaceLineEndings("\n"), markup.Value);
     }
 
@@ -482,7 +478,7 @@ lemma {:rlimit 12000} SquareRoot2NotRational(p: nat, q: nat)
             helper += $"\nThe result string did not contain '{chunk}'";
           }
         }
-        Assert.IsTrue(false, "{0} did not match {1}." + helper, value, regexExpected);
+        Assert.Fail($"{value} did not match {regexExpected}." + helper);
       }
     }
 

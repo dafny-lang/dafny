@@ -1,15 +1,14 @@
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
-[TestClass]
 public class StandaloneServerTest {
 
-  [TestMethod]
+  [Fact]
   public void OptionParsing() {
     var arguments = new[] { "--documents:verify=onsave", "--verifier:timelimit=3", "--ghost:markStatements=true" };
     var options = Program.GetOptionsFromArgs(arguments);
-    Assert.AreEqual(VerifyOnMode.Save, options.Get(ServerCommand.Verification));
+    Assert.Equal(VerifyOnMode.Save, options.Get(ServerCommand.Verification));
   }
 }

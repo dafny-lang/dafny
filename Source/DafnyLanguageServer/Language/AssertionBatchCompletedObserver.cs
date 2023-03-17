@@ -16,6 +16,9 @@ public class OutputLogger : OutputPrinter {
   public void AdvisoryWriteLine(TextWriter writer, string format, params object[] args) {
   }
 
+  public void ReportEndVerifyImplementation(Implementation implementation, VerificationResult result) {
+  }
+
   public ExecutionEngineOptions? Options { get; set; }
 
   public void ErrorWriteLine(TextWriter tw, string s) {

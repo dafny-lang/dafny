@@ -9,7 +9,7 @@ abstract module M0 {
   class Counter {
     ghost var N: int
     ghost var Repr: set<object>
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
 
@@ -55,7 +55,7 @@ module M1 refines M0 {
   class Counter ... {
     var c: Cell
     var d: Cell
-    predicate Valid...
+    ghost predicate Valid...
     {
       this in Repr &&
       c in Repr &&

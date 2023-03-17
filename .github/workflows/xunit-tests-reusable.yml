@@ -1,30 +1,20 @@
 name: Run XUnit tests
 
 on:
-  workflow_dispatch:
-  pull_request:
-    branches: [ master, main-* ]
-
-concurrency:
-  group: unit-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  workflow_call:
 
 ## In the matrix:
 ##  os - name of the Github actions runner
 ##  suffix - name used in the description of the job
 ##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
 ##  chmod - whether the Z3 download needs execute permissions added
-##  coverage -- unused?
+
+defaults:
+  run:
+    working-directory: dafny
 
 jobs:
-  check-deep-tests:
-     uses: ./.github/workflows/check-deep-tests-reusable.yml
-     with:
-       branch: master
-
   build:
-    needs: check-deep-tests
-    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ${{matrix.os}}
     name: ${{matrix.suffix}}
     strategy:
@@ -34,15 +24,12 @@ jobs:
           - os: macos-11
             suffix: osx
             chmod: true
-            coverage: false
           - os: windows-2019
             suffix: win
             chmod: false
-            coverage: false
           - os: ubuntu-20.04
             suffix: ubuntu-20.04
             chmod: true
-            coverage: true
     env:
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
@@ -50,17 +37,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
+        path: dafny
         submodules: recursive
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
     - name: Install dependencies
-      run: dotnet restore ${{env.solutionPath}}
+      run: |
+        dotnet restore ${{env.solutionPath}}
+        dotnet tool install dotnet-coverage
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.8.5-${{matrix.os}}-bin.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
     - name: Move Z3
@@ -76,20 +66,25 @@ jobs:
     - name: Run DafnyLanguageServer Tests
       run: |
         ## Run twice to catch unstable code (Issue #2673)
-        dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
-        dotnet test --no-restore --verbosity normal --logger trx Source/DafnyLanguageServer.Test
+        dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyLanguageServer.Test
+        ## On the second run, collect test coverage data
+        ##  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
+        dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
-      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyDriver.Test
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
-      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyPipeline.Test
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
-      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyTestGeneration.Test
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyTestGeneration.Test
     - name: Run AutoExtern Tests
-      run: dotnet test --no-restore --verbosity normal --logger trx Source/AutoExtern.Test
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/AutoExtern.Test
     - name: Run DafnyRuntime Tests
-      run: dotnet test --no-restore --verbosity normal --logger trx Source/DafnyRuntime.Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyRuntime.Tests
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: unit-test-results-${{ matrix.os }}
-        path: Source/*/TestResults/*.trx
+        path: |
+          dafny/Source/*/TestResults/*.trx
+          dafny/Source/*/TestResults/*/coverage.cobertura.xml
+          dafny/DafnyLanguageServer.Test.coverage

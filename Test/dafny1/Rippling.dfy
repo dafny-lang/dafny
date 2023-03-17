@@ -17,28 +17,28 @@ datatype Tree = Leaf | Node(Tree, Nat, Tree)
 
 // Boolean functions
 
-function not(b: Bool): Bool
+ghost function not(b: Bool): Bool
 {
   match b
   case False => True
   case True => False
 }
 
-function and(a: Bool, b: Bool): Bool
+ghost function and(a: Bool, b: Bool): Bool
 {
   if a == True && b == True then True else False
 }
 
 // Natural number functions
 
-function add(x: Nat, y: Nat): Nat
+ghost function add(x: Nat, y: Nat): Nat
 {
   match x
   case Zero => y
   case Suc(w) => Suc(add(w, y))
 }
 
-function minus(x: Nat, y: Nat): Nat
+ghost function minus(x: Nat, y: Nat): Nat
 {
   match x
   case Zero => Zero
@@ -47,7 +47,7 @@ function minus(x: Nat, y: Nat): Nat
     case Suc(b) => minus(a, b)
 }
 
-function eq(x: Nat, y: Nat): Bool
+ghost function eq(x: Nat, y: Nat): Bool
 {
   match x
   case Zero => (match y
@@ -58,7 +58,7 @@ function eq(x: Nat, y: Nat): Bool
     case Suc(b) => eq(a, b))
 }
 
-function leq(x: Nat, y: Nat): Bool
+ghost function leq(x: Nat, y: Nat): Bool
 {
   match x
   case Zero => True
@@ -67,7 +67,7 @@ function leq(x: Nat, y: Nat): Bool
     case Suc(b) => leq(a, b)
 }
 
-function less(x: Nat, y: Nat): Bool
+ghost function less(x: Nat, y: Nat): Bool
 {
   match y
   case Zero => False
@@ -76,7 +76,7 @@ function less(x: Nat, y: Nat): Bool
     case Suc(a) => less(a, b)
 }
 
-function min(x: Nat, y: Nat): Nat
+ghost function min(x: Nat, y: Nat): Nat
 {
   match x
   case Zero => Zero
@@ -85,7 +85,7 @@ function min(x: Nat, y: Nat): Nat
     case Suc(b) => Suc(min(a, b))
 }
 
-function max(x: Nat, y: Nat): Nat
+ghost function max(x: Nat, y: Nat): Nat
 {
   match x
   case Zero => y
@@ -96,21 +96,21 @@ function max(x: Nat, y: Nat): Nat
 
 // List functions
 
-function concat(xs: List, ys: List): List
+ghost function concat(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
   case Cons(x,tail) => Cons(x, concat(tail, ys))
 }
 
-function mem(x: Nat, xs: List): Bool
+ghost function mem(x: Nat, xs: List): Bool
 {
   match xs
   case Nil => False
   case Cons(y, ys) => if x == y then True else mem(x, ys)
 }
 
-function delete(n: Nat, xs: List): List
+ghost function delete(n: Nat, xs: List): List
 {
   match xs
   case Nil => Nil
@@ -118,7 +118,7 @@ function delete(n: Nat, xs: List): List
     if y == n then delete(n, ys) else Cons(y, delete(n, ys))
 }
 
-function drop(n: Nat, xs: List): List
+ghost function drop(n: Nat, xs: List): List
 {
   match n
   case Zero => xs
@@ -127,7 +127,7 @@ function drop(n: Nat, xs: List): List
     case Cons(x, tail) => drop(m, tail)
 }
 
-function take(n: Nat, xs: List): List
+ghost function take(n: Nat, xs: List): List
 {
   match n
   case Zero => Nil
@@ -136,14 +136,14 @@ function take(n: Nat, xs: List): List
     case Cons(x, tail) => Cons(x, take(m, tail))
 }
 
-function len(xs: List): Nat
+ghost function len(xs: List): Nat
 {
   match xs
   case Nil => Zero
   case Cons(y, ys) => Suc(len(ys))
 }
 
-function count(x: Nat, xs: List): Nat
+ghost function count(x: Nat, xs: List): Nat
 {
   match xs
   case Nil => Zero
@@ -151,7 +151,7 @@ function count(x: Nat, xs: List): Nat
     if x == y then Suc(count(x, ys)) else count(x, ys)
 }
 
-function last(xs: List): Nat
+ghost function last(xs: List): Nat
 {
   match xs
   case Nil => Zero
@@ -160,7 +160,7 @@ function last(xs: List): Nat
     case Cons(z, zs) => last(ys)
 }
 
-function apply(f: Nat -> Nat, xs: List): List
+ghost function apply(f: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
@@ -170,7 +170,7 @@ function apply(f: Nat -> Nat, xs: List): List
 // In the following two functions, parameter "p" stands for a predicate:  applying p and
 // getting Zero means "false" and getting anything else means "true".
 
-function takeWhileAlways(p: Nat -> Nat, xs: List): List
+ghost function takeWhileAlways(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
@@ -180,7 +180,7 @@ function takeWhileAlways(p: Nat -> Nat, xs: List): List
     else Nil
 }
 
-function dropWhileAlways(p: Nat -> Nat, xs: List): List
+ghost function dropWhileAlways(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
@@ -190,7 +190,7 @@ function dropWhileAlways(p: Nat -> Nat, xs: List): List
     else Cons(y, ys)
 }
 
-function filter(p: Nat -> Nat, xs: List): List
+ghost function filter(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
@@ -200,7 +200,7 @@ function filter(p: Nat -> Nat, xs: List): List
     else filter(p, ys)
 }
 
-function insort(n: Nat, xs: List): List
+ghost function insort(n: Nat, xs: List): List
 {
   match xs
   case Nil => Cons(n, Nil)
@@ -210,7 +210,7 @@ function insort(n: Nat, xs: List): List
     else Cons(y, insort(n, ys))
 }
 
-function ins(n: Nat, xs: List): List
+ghost function ins(n: Nat, xs: List): List
 {
   match xs
   case Nil => Cons(n, Nil)
@@ -220,7 +220,7 @@ function ins(n: Nat, xs: List): List
     else Cons(y, ins(n, ys))
 }
 
-function ins1(n: Nat, xs: List): List
+ghost function ins1(n: Nat, xs: List): List
 {
   match xs
   case Nil => Cons(n, Nil)
@@ -230,14 +230,14 @@ function ins1(n: Nat, xs: List): List
     else Cons(y, ins1(n, ys))
 }
 
-function sort(xs: List): List
+ghost function sort(xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) => insort(y, sort(ys))
 }
 
-function reverse(xs: List): List
+ghost function reverse(xs: List): List
 {
   match xs
   case Nil => Nil
@@ -246,7 +246,7 @@ function reverse(xs: List): List
 
 // Pair list functions
 
-function zip(a: List, b: List): PList
+ghost function zip(a: List, b: List): PList
 {
   match a
   case Nil => PNil
@@ -255,7 +255,7 @@ function zip(a: List, b: List): PList
     case Cons(y, ys) => PCons(Pair.Pair(x, y), zip(xs, ys))
 }
 
-function zipConcat(x: Nat, xs: List, more: List): PList
+ghost function zipConcat(x: Nat, xs: List, more: List): PList
 {
   match more
   case Nil => PNil
@@ -264,14 +264,14 @@ function zipConcat(x: Nat, xs: List, more: List): PList
 
 // Binary tree functions
 
-function height(t: Tree): Nat
+ghost function height(t: Tree): Nat
 {
   match t
   case Leaf => Zero
   case Node(l, x, r) => Suc(max(height(l), height(r)))
 }
 
-function mirror(t: Tree): Tree
+ghost function mirror(t: Tree): Tree
 {
   match t
   case Leaf => Leaf
@@ -283,8 +283,8 @@ function mirror(t: Tree): Tree
 // The following functions stand for the constant "false" and "true" functions,
 // respectively.
 
-function AlwaysFalseFunction(): Nat -> Nat { n => Zero }
-function AlwaysTrueFunction(): Nat -> Nat { n => Suc(Zero) }
+ghost function AlwaysFalseFunction(): Nat -> Nat { n => Zero }
+ghost function AlwaysTrueFunction(): Nat -> Nat { n => Suc(Zero) }
 
 lemma AboutAlwaysFalseFunction()
   ensures forall n :: AlwaysFalseFunction()(n) == Zero

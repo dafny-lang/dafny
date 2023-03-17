@@ -58,7 +58,7 @@ method GenerateBytesWrapper(i: int32) returns (res: seq<uint8>)
 }
 
 // Function or method with no body
-function WhoKnows(x: int): int
+ghost function WhoKnows(x: int): int
 
 // Method declared {:extern} with no body and no ensures clauses
 method {:extern} GenerateBytesNoGuarantee(i: int32) returns (res: seq<uint8>)
@@ -103,4 +103,10 @@ abstract module M {
 
 opaque function f(): int {
   0
+}
+
+// A method that's safe for concurrent use because it doesn't touch the
+// heap.
+method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
+  return x;
 }
