@@ -15,10 +15,3 @@ method m1() {
   assert ∃ x: int • true;
 }
 
-// Some chains not tested elsewhere
-method m2(s: set<int>) {
-  assert 9 == 9 > 8;
-  assert 9 == 9 >= 9;
-  assert s !! s != true;
-  assert true <== true ==> true <== true ==> true;
-}

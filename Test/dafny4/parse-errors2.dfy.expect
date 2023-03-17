@@ -1,0 +1,5 @@
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors2.dfy(6,13): Error: invalid relational operator (perhaps you intended "!!" with no intervening whitespace?)
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors2.dfy(7,13): Error: invalid relational operator
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors2.dfy(11,23): Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors2.dfy(12,16): Error: this operator cannot continue this chain
+4 parse errors detected in /Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors2.dfy

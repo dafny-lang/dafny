@@ -1,8 +1,7 @@
+// RUN: %exits-with 2 %baredafny resolve %args "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype D = B | CCC | E { predicate IsFailure() { E? } function PropagateFailure(): D { E } }
-// method m1(d: D) {
-//   //var e := f._$;
-//   var x := (var 0 := d; 7);
-// }
 
 // Careful: some errors will prevent subsequent ones from begin reported
 

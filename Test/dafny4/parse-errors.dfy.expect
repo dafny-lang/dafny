@@ -1,0 +1,7 @@
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(9,17): Error: ':-' can have at most one left-hand side
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(10,26): Error: ':-' must have exactly one right-hand side
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(11,18): Error: a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(12,16): Error: LHS of let-such-that expression must be variables, not general patterns
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(13,25): Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'
+/Users/davidcok/projects/dafny2/dafny/Test/dafny4/parse-errors.dfy(14,13): Error: binding not allowed in parenthesized expression
+Expected exit code 2 , actual result is 134
