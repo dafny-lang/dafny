@@ -86,7 +86,7 @@ function Test11(i: int): int
     *  It takes an int and adds 11 to it */
 { i + 1 }
 ", Enumerable.Range(1, 9).Select(i =>
-        ($"Test{i}", $"Test{i} computes an int\nIt takes an int and adds {i} to it")
+        ($"Test{i}", (string?)$"Test{i} computes an int\nIt takes an int and adds {i} to it")
         ).Concat(
         new List<(string, string?)>() {
           ($"Test10", $"Test10 computes an int\n It takes an int and adds 10 to it"),
