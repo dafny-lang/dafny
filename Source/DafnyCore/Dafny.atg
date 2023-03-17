@@ -4698,6 +4698,8 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
      bool isGhost = false;
      var letLHSs = new List<CasePattern<BoundVar>>();
      var letRHSs = new List<Expression>();
+     IToken lastLHS = null;
+     IToken lastRHS = null;
      CasePattern<BoundVar> pat;
      bool exact = true;
      bool isLetOrFail = false;
@@ -4709,6 +4711,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     "var"                           (. if (!isGhost) { x = t; } .)
     CasePattern<out pat>            (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
+                                       lastLHS = la;
                                     .)
     { "," CasePattern<out pat>      (. if (isGhost) { pat.Vars.Iter(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
@@ -4726,7 +4729,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     | ":-"                          (. isLetOrFail = true; .)
     | "=" (. SemErr(t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
     )
-    Expression<out e, false, true>        (. letRHSs.Add(e); .)
+    Expression<out e, false, true>        (. letRHSs.Add(e); lastRHS = la; .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
     }
     ";"
@@ -4738,14 +4741,14 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       if (letLHSs.Count == 1) {
         lhs = letLHSs[0];
       } else {
-        SemErr("':-' can have at most one left-hand side");
+        SemErr(lastLHS, "':-' can have at most one left-hand side");
       }
       Expression rhs = null;
       Contract.Assert(letRHSs.Count > 0);
       if (letRHSs.Count == 1) {
         rhs = letRHSs[0];
       } else {
-        SemErr("':-' must have exactly one right-hand side");
+        SemErr(lastRHS, "':-' must have exactly one right-hand side");
       }
       e = new LetOrFailExpr(x, lhs, rhs, e);
     } else {
