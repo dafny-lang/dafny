@@ -1,6 +1,6 @@
 FnRef.dfy(17,44): Error: function precondition could not be proved
 FnRef.dfy(32,7): Error: function precondition could not be proved
-FnRef.dfy(46,11): Error: assertion could not be proved
-FnRef.dfy(65,13): Error: assertion could not be proved
+FnRef.dfy(46,11): Error: assertion might not hold
+FnRef.dfy(65,13): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 4 errors

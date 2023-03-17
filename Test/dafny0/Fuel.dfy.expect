@@ -1,20 +1,20 @@
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
-Fuel.dfy(17,22): Error: assertion could not be proved
-Fuel.dfy(69,27): Error: assertion could not be proved
-Fuel.dfy(92,22): Error: assertion could not be proved
-Fuel.dfy(93,23): Error: assertion could not be proved
-Fuel.dfy(94,22): Error: assertion could not be proved
-Fuel.dfy(120,22): Error: assertion could not be proved
-Fuel.dfy(121,23): Error: assertion could not be proved
-Fuel.dfy(122,22): Error: assertion could not be proved
-Fuel.dfy(132,26): Error: assertion could not be proved
-Fuel.dfy(133,26): Error: assertion could not be proved
-Fuel.dfy(157,22): Error: assertion could not be proved
-Fuel.dfy(200,55): Error: assertion could not be proved
-Fuel.dfy(245,22): Error: assertion could not be proved
-Fuel.dfy(247,22): Error: assertion could not be proved
-Fuel.dfy(280,26): Error: assertion could not be proved
+Fuel.dfy(17,22): Error: assertion might not hold
+Fuel.dfy(69,27): Error: assertion might not hold
+Fuel.dfy(92,22): Error: assertion might not hold
+Fuel.dfy(93,23): Error: assertion might not hold
+Fuel.dfy(94,22): Error: assertion might not hold
+Fuel.dfy(120,22): Error: assertion might not hold
+Fuel.dfy(121,23): Error: assertion might not hold
+Fuel.dfy(122,22): Error: assertion might not hold
+Fuel.dfy(132,26): Error: assertion might not hold
+Fuel.dfy(133,26): Error: assertion might not hold
+Fuel.dfy(157,22): Error: assertion might not hold
+Fuel.dfy(200,55): Error: assertion might not hold
+Fuel.dfy(245,22): Error: assertion might not hold
+Fuel.dfy(247,22): Error: assertion might not hold
+Fuel.dfy(280,26): Error: assertion might not hold
 Fuel.dfy(335,26): Error: function precondition could not be proved
 Fuel.dfy(324,21): Related location
 Fuel.dfy(312,58): Related location
@@ -56,11 +56,11 @@ Fuel.dfy(336,45): Error: function precondition could not be proved
 Fuel.dfy(329,21): Related location
 Fuel.dfy(312,58): Related location
 Fuel.dfy(336,71): Error: index out of range
-Fuel.dfy(397,22): Error: assertion could not be proved
-Fuel.dfy(398,22): Error: assertion could not be proved
-Fuel.dfy(399,23): Error: assertion could not be proved
-Fuel.dfy(435,22): Error: assertion could not be proved
-Fuel.dfy(436,22): Error: assertion could not be proved
-Fuel.dfy(437,23): Error: assertion could not be proved
+Fuel.dfy(397,22): Error: assertion might not hold
+Fuel.dfy(398,22): Error: assertion might not hold
+Fuel.dfy(399,23): Error: assertion might not hold
+Fuel.dfy(435,22): Error: assertion might not hold
+Fuel.dfy(436,22): Error: assertion might not hold
+Fuel.dfy(437,23): Error: assertion might not hold
 
 Dafny program verifier finished with 30 verified, 38 errors

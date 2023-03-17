@@ -4,8 +4,8 @@ some-proofs-only-work-without-autoTriggers.dfy(27,11): Info: Selected triggers: 
 some-proofs-only-work-without-autoTriggers.dfy(28,11): Info: Selected triggers: {a[i]}
 some-proofs-only-work-without-autoTriggers.dfy(31,11): Info: Selected triggers: {x in a[..3]}
 some-proofs-only-work-without-autoTriggers.dfy(33,11): Info: Selected triggers: {x in a[..2]}
-some-proofs-only-work-without-autoTriggers.dfy(20,11): Error: assertion could not be proved
-some-proofs-only-work-without-autoTriggers.dfy(28,11): Error: assertion could not be proved
-some-proofs-only-work-without-autoTriggers.dfy(33,11): Error: assertion could not be proved
+some-proofs-only-work-without-autoTriggers.dfy(20,11): Error: assertion might not hold
+some-proofs-only-work-without-autoTriggers.dfy(28,11): Error: assertion might not hold
+some-proofs-only-work-without-autoTriggers.dfy(33,11): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 3 errors

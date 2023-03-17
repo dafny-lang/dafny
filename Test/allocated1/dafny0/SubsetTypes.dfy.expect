@@ -84,11 +84,11 @@ SubsetTypes.dfy(396,26): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-SubsetTypes.dfy(427,13): Error: assertion could not be proved
-SubsetTypes.dfy(434,15): Error: assertion could not be proved
-SubsetTypes.dfy(443,15): Error: assertion could not be proved
-SubsetTypes.dfy(450,15): Error: assertion could not be proved
-SubsetTypes.dfy(457,15): Error: assertion could not be proved
-SubsetTypes.dfy(462,13): Error: assertion could not be proved
+SubsetTypes.dfy(427,13): Error: assertion might not hold
+SubsetTypes.dfy(434,15): Error: assertion might not hold
+SubsetTypes.dfy(443,15): Error: assertion might not hold
+SubsetTypes.dfy(450,15): Error: assertion might not hold
+SubsetTypes.dfy(457,15): Error: assertion might not hold
+SubsetTypes.dfy(462,13): Error: assertion might not hold
 
 Dafny program verifier finished with 13 verified, 91 errors

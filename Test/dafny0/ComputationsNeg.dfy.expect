@@ -6,7 +6,7 @@ ComputationsNeg.dfy(22,10): Related location: this is the postcondition that cou
 ComputationsNeg.dfy(19,28): Related location
 ComputationsNeg.dfy(19,62): Related location
 ComputationsNeg.dfy(19,65): Related location
-ComputationsNeg.dfy(36,12): Error: assertion could not be proved
-ComputationsNeg.dfy(45,12): Error: assertion could not be proved
+ComputationsNeg.dfy(36,12): Error: assertion might not hold
+ComputationsNeg.dfy(45,12): Error: assertion might not hold
 
 Dafny program verifier finished with 5 verified, 5 errors

@@ -11,8 +11,8 @@ CoPrefix.dfy(76,55): Error: cannot prove termination; try supplying a decreases 
 CoPrefix.dfy(114,0): Error: a postcondition could not be proved on this return path
 CoPrefix.dfy(113,10): Related location: this is the postcondition that could not be proved
 CoPrefix.dfy(101,16): Related location
-CoPrefix.dfy(138,24): Error: assertion could not be proved
-CoPrefix.dfy(142,24): Error: assertion could not be proved
+CoPrefix.dfy(138,24): Error: assertion might not hold
+CoPrefix.dfy(142,24): Error: assertion might not hold
 CoPrefix.dfy(117,22): Related location
 CoPrefix.dfy(151,0): Error: a postcondition could not be proved on this return path
 CoPrefix.dfy(150,10): Related location: this is the postcondition that could not be proved

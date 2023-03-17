@@ -1,12 +1,12 @@
 Processing command (at Snapshots3.v0.dfy(9,14)) assert Lit(0 != 0);
   >>> DoNothingToAssert
-Snapshots3.v0.dfy(9,13): Error: assertion could not be proved
+Snapshots3.v0.dfy(9,13): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
 Processing command (at Snapshots3.v1.dfy(5,12)) assert Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots3.v1.dfy(9,14)) assert Lit(0 != 0);
   >>> RecycleError
-Snapshots3.v0.dfy(9,13): Error: assertion could not be proved
+Snapshots3.v0.dfy(9,13): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error

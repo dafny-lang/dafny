@@ -1,4 +1,4 @@
-git-issue-555.dfy(17,11): Error: assertion could not be proved
+git-issue-555.dfy(17,11): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 1 error
 

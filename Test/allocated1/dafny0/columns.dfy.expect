@@ -1,7 +1,7 @@
 The /allocated:<n> option is deprecated
 columns.dfy(8,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-columns.dfy(9,9): Error: assertion could not be proved
-columns.dfy(10,11): Error: assertion could not be proved
-columns.dfy(11,11): Error: assertion could not be proved
+columns.dfy(9,9): Error: assertion might not hold
+columns.dfy(10,11): Error: assertion might not hold
+columns.dfy(11,11): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 3 errors

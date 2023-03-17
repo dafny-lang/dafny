@@ -4,6 +4,6 @@ Processing command (at Snapshots6.v0.dfy(20,14)) assert false;
 Dafny program verifier finished with 1 verified, 0 errors
 Processing command (at Snapshots6.v1.dfy(20,14)) assert false;
   >>> DoNothingToAssert
-Snapshots6.v1.dfy(20,13): Error: assertion could not be proved
+Snapshots6.v1.dfy(20,13): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error

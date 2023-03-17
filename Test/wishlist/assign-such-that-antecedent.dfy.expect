@@ -1,4 +1,4 @@
 assign-such-that-antecedent.dfy(8,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-assign-such-that-antecedent.dfy(13,9): Error: assertion could not be proved
+assign-such-that-antecedent.dfy(13,9): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 2 errors

@@ -1,4 +1,4 @@
-LitInt.dfy(22,22): Error: assertion could not be proved
-LitInt.dfy(32,26): Error: assertion could not be proved
+LitInt.dfy(22,22): Error: assertion might not hold
+LitInt.dfy(32,26): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 2 errors

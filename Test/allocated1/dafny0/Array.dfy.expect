@@ -2,7 +2,7 @@ The /allocated:<n> option is deprecated
 Array.dfy(13,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(20,15): Error: target object might be null
 Array.dfy(26,5): Error: index out of range
-Array.dfy(50,19): Error: assertion could not be proved
+Array.dfy(50,19): Error: assertion might not hold
 Array.dfy(58,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(65,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(108,20): Error: upper bound below lower bound or above length of array

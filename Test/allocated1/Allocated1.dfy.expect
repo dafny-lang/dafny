@@ -1,100 +1,100 @@
 The /allocated:<n> option is deprecated
-AllocatedCommon.dfyi(23,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(24,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(25,26): Error: assertion could not be proved
+AllocatedCommon.dfyi(23,26): Error: assertion might not hold
+AllocatedCommon.dfyi(24,26): Error: assertion might not hold
+AllocatedCommon.dfyi(25,26): Error: assertion might not hold
 AllocatedCommon.dfyi(26,30): Error: target object might not be allocated
-AllocatedCommon.dfyi(27,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(28,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(29,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(30,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(31,56): Error: assertion could not be proved
-AllocatedCommon.dfyi(32,59): Error: assertion could not be proved
-AllocatedCommon.dfyi(33,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(34,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(35,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(37,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(46,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(47,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(48,26): Error: assertion could not be proved
+AllocatedCommon.dfyi(27,26): Error: assertion might not hold
+AllocatedCommon.dfyi(28,26): Error: assertion might not hold
+AllocatedCommon.dfyi(29,55): Error: assertion might not hold
+AllocatedCommon.dfyi(30,55): Error: assertion might not hold
+AllocatedCommon.dfyi(31,56): Error: assertion might not hold
+AllocatedCommon.dfyi(32,59): Error: assertion might not hold
+AllocatedCommon.dfyi(33,9): Error: assertion might not hold
+AllocatedCommon.dfyi(34,9): Error: assertion might not hold
+AllocatedCommon.dfyi(35,9): Error: assertion might not hold
+AllocatedCommon.dfyi(37,9): Error: assertion might not hold
+AllocatedCommon.dfyi(46,26): Error: assertion might not hold
+AllocatedCommon.dfyi(47,26): Error: assertion might not hold
+AllocatedCommon.dfyi(48,26): Error: assertion might not hold
 AllocatedCommon.dfyi(49,30): Error: target object might not be allocated
-AllocatedCommon.dfyi(50,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(51,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(52,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(53,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(54,56): Error: assertion could not be proved
-AllocatedCommon.dfyi(55,59): Error: assertion could not be proved
-AllocatedCommon.dfyi(56,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(57,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(58,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(60,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(82,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(83,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(84,26): Error: assertion could not be proved
+AllocatedCommon.dfyi(50,26): Error: assertion might not hold
+AllocatedCommon.dfyi(51,26): Error: assertion might not hold
+AllocatedCommon.dfyi(52,55): Error: assertion might not hold
+AllocatedCommon.dfyi(53,55): Error: assertion might not hold
+AllocatedCommon.dfyi(54,56): Error: assertion might not hold
+AllocatedCommon.dfyi(55,59): Error: assertion might not hold
+AllocatedCommon.dfyi(56,9): Error: assertion might not hold
+AllocatedCommon.dfyi(57,9): Error: assertion might not hold
+AllocatedCommon.dfyi(58,9): Error: assertion might not hold
+AllocatedCommon.dfyi(60,9): Error: assertion might not hold
+AllocatedCommon.dfyi(82,26): Error: assertion might not hold
+AllocatedCommon.dfyi(83,26): Error: assertion might not hold
+AllocatedCommon.dfyi(84,26): Error: assertion might not hold
 AllocatedCommon.dfyi(85,30): Error: target object might not be allocated
-AllocatedCommon.dfyi(86,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(87,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(88,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(89,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(90,56): Error: assertion could not be proved
-AllocatedCommon.dfyi(91,59): Error: assertion could not be proved
-AllocatedCommon.dfyi(92,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(93,44): Error: assertion could not be proved
-AllocatedCommon.dfyi(94,35): Error: assertion could not be proved
-AllocatedCommon.dfyi(95,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(96,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(97,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(98,19): Error: assertion could not be proved
-AllocatedCommon.dfyi(99,19): Error: assertion could not be proved
-AllocatedCommon.dfyi(100,23): Error: assertion could not be proved
-AllocatedCommon.dfyi(118,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(119,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(120,26): Error: assertion could not be proved
+AllocatedCommon.dfyi(86,26): Error: assertion might not hold
+AllocatedCommon.dfyi(87,26): Error: assertion might not hold
+AllocatedCommon.dfyi(88,55): Error: assertion might not hold
+AllocatedCommon.dfyi(89,55): Error: assertion might not hold
+AllocatedCommon.dfyi(90,56): Error: assertion might not hold
+AllocatedCommon.dfyi(91,59): Error: assertion might not hold
+AllocatedCommon.dfyi(92,26): Error: assertion might not hold
+AllocatedCommon.dfyi(93,44): Error: assertion might not hold
+AllocatedCommon.dfyi(94,35): Error: assertion might not hold
+AllocatedCommon.dfyi(95,9): Error: assertion might not hold
+AllocatedCommon.dfyi(96,9): Error: assertion might not hold
+AllocatedCommon.dfyi(97,9): Error: assertion might not hold
+AllocatedCommon.dfyi(98,19): Error: assertion might not hold
+AllocatedCommon.dfyi(99,19): Error: assertion might not hold
+AllocatedCommon.dfyi(100,23): Error: assertion might not hold
+AllocatedCommon.dfyi(118,26): Error: assertion might not hold
+AllocatedCommon.dfyi(119,26): Error: assertion might not hold
+AllocatedCommon.dfyi(120,26): Error: assertion might not hold
 AllocatedCommon.dfyi(121,30): Error: target object might not be allocated
-AllocatedCommon.dfyi(122,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(123,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(124,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(125,55): Error: assertion could not be proved
-AllocatedCommon.dfyi(126,56): Error: assertion could not be proved
-AllocatedCommon.dfyi(127,59): Error: assertion could not be proved
-AllocatedCommon.dfyi(128,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(129,44): Error: assertion could not be proved
-AllocatedCommon.dfyi(130,35): Error: assertion could not be proved
-AllocatedCommon.dfyi(131,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(132,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(133,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(134,19): Error: assertion could not be proved
-AllocatedCommon.dfyi(135,19): Error: assertion could not be proved
-AllocatedCommon.dfyi(136,23): Error: assertion could not be proved
-AllocatedCommon.dfyi(179,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(180,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(181,26): Error: assertion could not be proved
+AllocatedCommon.dfyi(122,26): Error: assertion might not hold
+AllocatedCommon.dfyi(123,26): Error: assertion might not hold
+AllocatedCommon.dfyi(124,55): Error: assertion might not hold
+AllocatedCommon.dfyi(125,55): Error: assertion might not hold
+AllocatedCommon.dfyi(126,56): Error: assertion might not hold
+AllocatedCommon.dfyi(127,59): Error: assertion might not hold
+AllocatedCommon.dfyi(128,26): Error: assertion might not hold
+AllocatedCommon.dfyi(129,44): Error: assertion might not hold
+AllocatedCommon.dfyi(130,35): Error: assertion might not hold
+AllocatedCommon.dfyi(131,9): Error: assertion might not hold
+AllocatedCommon.dfyi(132,9): Error: assertion might not hold
+AllocatedCommon.dfyi(133,9): Error: assertion might not hold
+AllocatedCommon.dfyi(134,19): Error: assertion might not hold
+AllocatedCommon.dfyi(135,19): Error: assertion might not hold
+AllocatedCommon.dfyi(136,23): Error: assertion might not hold
+AllocatedCommon.dfyi(179,26): Error: assertion might not hold
+AllocatedCommon.dfyi(180,26): Error: assertion might not hold
+AllocatedCommon.dfyi(181,26): Error: assertion might not hold
 AllocatedCommon.dfyi(182,31): Error: target object might not be allocated
-AllocatedCommon.dfyi(183,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(184,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(185,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(186,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(187,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(188,60): Error: assertion could not be proved
-AllocatedCommon.dfyi(189,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(190,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(191,44): Error: assertion could not be proved
-AllocatedCommon.dfyi(192,45): Error: assertion could not be proved
-AllocatedCommon.dfyi(193,41): Error: assertion could not be proved
-AllocatedCommon.dfyi(194,37): Error: assertion could not be proved
-AllocatedCommon.dfyi(195,57): Error: assertion could not be proved
-AllocatedCommon.dfyi(196,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(197,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(198,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(199,20): Error: assertion could not be proved
-AllocatedCommon.dfyi(200,9): Error: assertion could not be proved
-AllocatedCommon.dfyi(201,24): Error: assertion could not be proved
-AllocatedCommon.dfyi(202,27): Error: assertion could not be proved
+AllocatedCommon.dfyi(183,26): Error: assertion might not hold
+AllocatedCommon.dfyi(184,26): Error: assertion might not hold
+AllocatedCommon.dfyi(185,26): Error: assertion might not hold
+AllocatedCommon.dfyi(186,26): Error: assertion might not hold
+AllocatedCommon.dfyi(187,26): Error: assertion might not hold
+AllocatedCommon.dfyi(188,60): Error: assertion might not hold
+AllocatedCommon.dfyi(189,26): Error: assertion might not hold
+AllocatedCommon.dfyi(190,26): Error: assertion might not hold
+AllocatedCommon.dfyi(191,44): Error: assertion might not hold
+AllocatedCommon.dfyi(192,45): Error: assertion might not hold
+AllocatedCommon.dfyi(193,41): Error: assertion might not hold
+AllocatedCommon.dfyi(194,37): Error: assertion might not hold
+AllocatedCommon.dfyi(195,57): Error: assertion might not hold
+AllocatedCommon.dfyi(196,9): Error: assertion might not hold
+AllocatedCommon.dfyi(197,9): Error: assertion might not hold
+AllocatedCommon.dfyi(198,9): Error: assertion might not hold
+AllocatedCommon.dfyi(199,20): Error: assertion might not hold
+AllocatedCommon.dfyi(200,9): Error: assertion might not hold
+AllocatedCommon.dfyi(201,24): Error: assertion might not hold
+AllocatedCommon.dfyi(202,27): Error: assertion might not hold
 AllocatedCommon.dfyi(218,5): Error: insufficient reads clause to read field
 AllocatedCommon.dfyi(225,5): Error: insufficient reads clause to read field
 AllocatedCommon.dfyi(284,9): Error: function precondition could not be proved
-AllocatedCommon.dfyi(284,15): Error: assertion could not be proved
-AllocatedCommon.dfyi(301,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(302,26): Error: assertion could not be proved
-AllocatedCommon.dfyi(310,9): Error: assertion could not be proved
+AllocatedCommon.dfyi(284,15): Error: assertion might not hold
+AllocatedCommon.dfyi(301,26): Error: assertion might not hold
+AllocatedCommon.dfyi(302,26): Error: assertion might not hold
+AllocatedCommon.dfyi(310,9): Error: assertion might not hold
 
 Dafny program verifier finished with 15 verified, 97 errors
