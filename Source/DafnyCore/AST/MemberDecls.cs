@@ -174,7 +174,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     return true;
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }

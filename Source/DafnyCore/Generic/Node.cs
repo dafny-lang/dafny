@@ -175,7 +175,7 @@ public abstract class Node : INode {
   // Applies plugin-defined docstring filters
   public string GetDocstring(DafnyOptions options) {
     var plugins = options.Plugins;
-    string trivia = GetDocstringToken();
+    string trivia = GetDocstringFromTokens();
     if (string.IsNullOrEmpty(trivia)) {
       return null;
     }
@@ -250,7 +250,7 @@ public abstract class Node : INode {
   }
 
   // Unfiltered version that only returns the trivia containing the docstring
-  protected virtual string GetDocstringToken() {
+  protected virtual string GetDocstringFromTokens() {
     return null;
   }
 }

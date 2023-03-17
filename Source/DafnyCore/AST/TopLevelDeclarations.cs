@@ -376,7 +376,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     return true;
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -607,6 +607,14 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     return true;
+  }
+
+  protected override string GetDocstringFromTokens() {
+    if (Tok.TrailingTrivia.Trim() != "") {
+      return Tok.TrailingTrivia;
+    }
+
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 
@@ -1494,7 +1502,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
     return true;
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -1722,7 +1730,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return true;
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     foreach (var token in OwnedTokens) {
       if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
         return token.TrailingTrivia;
@@ -1858,7 +1866,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     }
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
@@ -2091,7 +2099,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     return true;
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2180,7 +2188,7 @@ public interface RevealableTypeDecl {
   TypeDeclSynonymInfo SynonymInfo { get; set; }
 }
 
-public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
+public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
   public Type BaseType { get; set; } // null when refining
@@ -2265,6 +2273,24 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   public override bool IsEssentiallyEmpty() {
     // A "newtype" is not considered "essentially empty", because it always has a parent type to be resolved.
     return false;
+  }
+
+  protected override string GetDocstringFromTokens() {
+    IToken candidate = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return candidate.TrailingTrivia;
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 
@@ -2365,7 +2391,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
 
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {

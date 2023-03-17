@@ -482,7 +482,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
   }
 
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {

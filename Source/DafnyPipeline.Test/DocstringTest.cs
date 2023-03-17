@@ -128,7 +128,7 @@ method ComputeThing(i: int) returns (j: int)
 // Unattached comment
 
 // Unattached comment
-method ComputeThing2(i: int) returns (j: int)
+lemma ComputeThing2(i: int) returns (j: int)
   // ComputeThing2 prints something to the screen
   requires i == 2
 { print i; }
@@ -182,6 +182,26 @@ type Weird = x: int | x % 2 == x % 3 witness 0
 // Type of numbers whose remainder modulo 2 or 3 is the same
 
 // Unattached comment
+newtype Digit = x: int | 0 <= x < 10
+// A single digit
+
+// A hex digit
+newtype HexDigit = x: int | 0 <= x < 16
+
+newtype BinDigit = x: int | 0 <= x < 2 witness 1
+// A binary digit
+{
+  function flip(): BinDigit {
+    1 - this
+  }
+}
+
+// Unrelated comment
+type Weird = x: int | x % 2 == x % 3 witness 0
+// Type of numbers whose remainder modulo 2 or 3 is the same
+
+
+// Unattached comment
 type ZeroOrMore = nat
 // ZeroOrMore is the same as nat
 
@@ -202,6 +222,9 @@ type OpaqueType2
         ("Odd", "Type of number that are not divisible by 2"),
         ("Even", "Type of numbers divisible by 2"),
         ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same"),
+        ("Digit", "A single digit"),
+        ("HexDigit", "A hex digit"),
+        ("BinDigit", "A binary digit"),
         ("ZeroOrMore", "ZeroOrMore is the same as nat"),
         ("ZeroOrMore2", "ZeroOrMore2 is the same as nat"),
         ("OpaqueType", "OpaqueType has opaque methods so you don't see them"),
@@ -269,6 +292,40 @@ class A2 extends T
         ("T2", "A typical extending trait with an even number"),
         ("A", "A typical example of a class extending a trait"),
         ("A2", "Another typical example of a class extending a trait")
+      });
+    }
+
+
+    [Fact]
+    public void DocstringWorksForExport() {
+      DocstringWorksFor(@"
+module Test {
+
+  // You only get the signatures of f and g
+  export hidden provides f
+         provides g
+
+  // Unattached comment
+  export consistent
+    // You get the definition of g but not f
+    provides f
+    reveals g
+
+  // You get both the definition of f and g
+  export full provides f
+         reveals g
+
+  function g(): int {
+    f() + f()
+  }
+  function f(): int {
+    1
+  }
+}
+", new List<(string nodeTokenValue, string expectedDocstring)> {
+        ("hidden", "You only get the signatures of f and g"),
+        ("consistent", "You get the definition of g but not f"),
+        ("full", "You get both the definition of f and g")
       });
     }
 

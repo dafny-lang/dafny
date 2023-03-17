@@ -337,7 +337,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override string GetDocstringToken() {
+  protected override string GetDocstringFromTokens() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
