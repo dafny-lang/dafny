@@ -194,6 +194,7 @@ public class Compilation {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
+          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
