@@ -114,6 +114,9 @@ public abstract class Node : INode {
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
+  private static readonly Regex StartDocstringExtractor =
+    new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -172,10 +175,26 @@ public abstract class Node : INode {
 
   public abstract RangeToken RangeToken { get; set; }
 
+  // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
+  protected string GetTriviaContainingDocstringFromStartTokeOrNull() {
+    var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
+    if (matches.Count > 0) {
+      return matches[^1].Value;
+    }
+
+    if (StartToken.Prev.val is "|" or "{") {
+      matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
+      if (matches.Count > 0) {
+        return matches[^1].Value;
+      }
+    }
+    return null;
+  }
+
   // Applies plugin-defined docstring filters
   public string GetDocstring(DafnyOptions options) {
     var plugins = options.Plugins;
-    string trivia = GetDocstringFromTokens();
+    string trivia = GetTriviaContainingDocstring();
     if (string.IsNullOrEmpty(trivia)) {
       return null;
     }
@@ -250,7 +269,7 @@ public abstract class Node : INode {
   }
 
   // Unfiltered version that only returns the trivia containing the docstring
-  protected virtual string GetDocstringFromTokens() {
+  protected virtual string GetTriviaContainingDocstring() {
     return null;
   }
 }

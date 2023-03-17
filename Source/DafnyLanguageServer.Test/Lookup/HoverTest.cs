@@ -564,16 +564,16 @@ type T = x: D | x.value % 2 == 0 witness DD(0)
 /* Even numbers hidden in a newtype */
 newtype Even = x: int | x % 2 == 0
 
-// A useful lemma
+/** A useful lemma */
 lemma lem() {}
 
-// A useful greatest lemma
+/** A useful greatest lemma */
 greatest lemma greatestLemma() {}
 
-// A useful least lemma
+/** A useful least lemma */
 least lemma leastLemma() {}
 
-// A useful twostate lemma
+/** A useful twostate lemma */
 twostate lemma twostateLemma() {}
 
 method test(d: D, t: T, e: Even) {

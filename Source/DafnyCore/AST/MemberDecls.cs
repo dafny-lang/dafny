@@ -174,12 +174,12 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 

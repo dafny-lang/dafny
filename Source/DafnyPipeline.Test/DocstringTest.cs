@@ -1,12 +1,8 @@
 #nullable enable
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics.Contracts;
-using System.IO;
 using System.Text.RegularExpressions;
-using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -92,7 +88,7 @@ function Test11(i: int): int
 ", Enumerable.Range(1, 9).Select(i =>
         ($"Test{i}", $"Test{i} computes an int\nIt takes an int and adds {i} to it")
         ).Concat(
-        new List<(string, string)>() {
+        new List<(string, string?)>() {
           ($"Test10", $"Test10 computes an int\n It takes an int and adds 10 to it"),
           ($"Test11", $"Test11 computes an int\n It takes an int and adds 11 to it")
         }
@@ -114,7 +110,7 @@ class X {
   static predicate Test2(i: int)
   { i == 2 }
 }
-", new List<(string nodeTokenValue, string expectedDocstring)>() {
+", new List<(string nodeTokenValue, string? expectedDocstring)>() {
         ("Test1", "Test1 checks if an int\nis equal to 1"),
         ("Test2", "Test2 checks if an int\nis equal to 2")});
     }
@@ -122,7 +118,7 @@ class X {
     [Fact]
     public void DocstringWorksForMethodsAndLemmas() {
       DocstringWorksFor(@"
-// ComputeThing prints something to the screen
+/** ComputeThing prints something to the screen */
 method ComputeThing(i: int) returns (j: int)
 { print i; }
 // Unattached comment
@@ -141,7 +137,7 @@ method ComputeThing3(i: int) returns (j: int)
 method ComputeThing4(i: int)
   // ComputeThing4 prints something to the screen
   requires i == 2
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("ComputeThing", "ComputeThing prints something to the screen"),
         ("ComputeThing2", "ComputeThing2 prints something to the screen"),
         ("ComputeThing3", "ComputeThing3 prints something to the screen"),
@@ -155,14 +151,14 @@ class X {
   const x2 := 29
   // The biggest prime number less than 30
 
-  // The biggest prime number less than 20
+  /** The biggest prime number less than 20 */
   const x1 := 19
 
   // Unrelated todo 
   const x3 := 37
   // The biggest prime number less than 40
 }
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("x1", "The biggest prime number less than 20"),
         ("x2", "The biggest prime number less than 30"),
         ("x3", "The biggest prime number less than 40")});
@@ -174,7 +170,7 @@ class X {
 type Odd = x: int | x % 2 == 1 witness 1
 // Type of number that are not divisible by 2 
 
-// Type of numbers divisible by 2
+/** Type of numbers divisible by 2 */
 type Even = x: int | x % 2 == 1 witness 1
 
 // Unrelated comment
@@ -185,7 +181,7 @@ type Weird = x: int | x % 2 == x % 3 witness 0
 newtype Digit = x: int | 0 <= x < 10
 // A single digit
 
-// A hex digit
+/** A hex digit */
 newtype HexDigit = x: int | 0 <= x < 16
 
 newtype BinDigit = x: int | 0 <= x < 2 witness 1
@@ -205,7 +201,7 @@ type Weird = x: int | x % 2 == x % 3 witness 0
 type ZeroOrMore = nat
 // ZeroOrMore is the same as nat
 
-// ZeroOrMore2 is the same as nat 
+/** ZeroOrMore2 is the same as nat */ 
 type ZeroOrMore2 = nat
 
 // Unattached comment
@@ -214,11 +210,11 @@ type OpaqueType
 {
 }
 
-// OpaqueType2 has opaque methods so you don't see them
+/** OpaqueType2 has opaque methods so you don't see them */
 type OpaqueType2
 {
 }
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("Odd", "Type of number that are not divisible by 2"),
         ("Even", "Type of numbers divisible by 2"),
         ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same"),
@@ -245,19 +241,22 @@ datatype State =
     End(time: int)
     // The end of the process
 
-// Another typical log message from a process monitoring
+/** Another typical log message from a process monitoring */
 datatype State2 =
-  | // The start of the process
+  | /** The start of the process */
     Start(time: int)
-  | // The finishing state of the process
+  | /** The finishing state of the process */
     Finish(time: int)
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+  | // Not a docstring
+    Idle(time: int)
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("State", "A typical log message from a process monitoring"),
         ("Begin", "The beginning of the process"),
         ("End", "The end of the process"),
         ("State2", "Another typical log message from a process monitoring"),
         ("Start", "The start of the process"),
         ("Finish", "The finishing state of the process"),
+        ("Idle", null)
       });
     }
 
@@ -274,7 +273,7 @@ trait T1 extends X
 // A typical extending trait
 {}
 
-// A typical extending trait with an even number
+/** A typical extending trait with an even number */
 trait T2 extends X
 {}
 
@@ -283,10 +282,10 @@ class A extends T
   // A typical example of a class extending a trait
 {}
 
-// Another typical example of a class extending a trait
+/** Another typical example of a class extending a trait */
 class A2 extends T
 {}
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("X", "A typical base class"),
         ("T1", "A typical extending trait"),
         ("T2", "A typical extending trait with an even number"),
@@ -300,8 +299,7 @@ class A2 extends T
     public void DocstringWorksForExport() {
       DocstringWorksFor(@"
 module Test {
-
-  // You only get the signatures of f and g
+  /** You only get the signatures of f and g */
   export hidden provides f
          provides g
 
@@ -311,7 +309,7 @@ module Test {
     provides f
     reveals g
 
-  // You get both the definition of f and g
+  /** You get both the definition of f and g */
   export full provides f
          reveals g
 
@@ -322,7 +320,7 @@ module Test {
     1
   }
 }
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("hidden", "You only get the signatures of f and g"),
         ("consistent", "You get the definition of g but not f"),
         ("full", "You get both the definition of f and g")
@@ -343,10 +341,10 @@ module B refines A
 {}
 // Unattached comment
 
-// Clearly, modules can be abstract as well
+/** Clearly, modules can be abstract as well */
 abstract module C
 {}
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("A", "A is the most interesting module"),
         ("B", "But it can be refined"),
         ("C", "Clearly, modules can be abstract as well")
@@ -356,7 +354,7 @@ abstract module C
     [Fact]
     public void DocstringWorksForIterators() {
       DocstringWorksFor(@"
-// Iter is interesting
+/** Iter is interesting */
 iterator Iter(x: int) yields (y: int)
   requires A: 0 <= x
 {
@@ -368,7 +366,7 @@ iterator Iter2(x: int) yields (y: int)
   requires A: 0 <= x
 {
 }
-", new List<(string nodeTokenValue, string expectedDocstring)> {
+", new List<(string nodeTokenValue, string? expectedDocstring)> {
         ("Iter", "Iter is interesting"),
         ("Iter2", "Iter2 is interesting")
       });
@@ -391,13 +389,13 @@ iterator Iter2(x: int) yields (y: int)
       }
     }
 
-    protected void DocstringWorksFor(string source, string nodeTokenValue, string expectedDocstring) {
-      DocstringWorksFor(source, new List<(string nodeTokenValue, string expectedDocstring)>() {
+    protected void DocstringWorksFor(string source, string nodeTokenValue, string? expectedDocstring) {
+      DocstringWorksFor(source, new List<(string nodeTokenValue, string? expectedDocstring)>() {
         (nodeTokenValue, expectedDocstring)
       });
     }
 
-    protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string expectedDocstring)> tests) {
+    protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
       var options = DafnyOptions.Create();
       BatchErrorReporter reporter = new BatchErrorReporter(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));

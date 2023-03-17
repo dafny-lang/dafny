@@ -337,7 +337,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -349,6 +349,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       return lastClosingParenthesis.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }

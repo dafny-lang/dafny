@@ -376,7 +376,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -394,7 +394,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 // Represents module X { ... }
@@ -609,12 +609,12 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     if (Tok.TrailingTrivia.Trim() != "") {
       return Tok.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -1502,7 +1502,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -1517,7 +1517,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -1730,14 +1730,14 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     foreach (var token in OwnedTokens) {
       if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
         return token.TrailingTrivia;
       }
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -1866,20 +1866,12 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     }
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     if (EndToken.TrailingTrivia.Trim() != "") {
       return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return StartToken.LeadingTrivia;
-    }
-
-    if (StartToken.Prev.val == "|" && StartToken.Prev.TrailingTrivia.Trim() != "") {
-      return StartToken.Prev.TrailingTrivia;
-    }
-
-    return null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -2099,7 +2091,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     return true;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2115,7 +2107,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -2275,7 +2267,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     return false;
   }
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2290,7 +2282,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
@@ -2391,7 +2383,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
 
 
-  protected override string GetDocstringFromTokens() {
+  protected override string GetTriviaContainingDocstring() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2407,7 +2399,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
       return EndToken.TrailingTrivia;
     }
 
-    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
+    return GetTriviaContainingDocstringFromStartTokeOrNull();
   }
 }
 
