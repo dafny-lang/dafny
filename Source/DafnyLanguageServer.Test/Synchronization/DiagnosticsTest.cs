@@ -364,7 +364,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.Equal("this postcondition could not be proven: product >= 0", relatedInformation.Message);
+      Assert.Equal("this postcondition could not be proved: product >= 0", relatedInformation.Message);
       Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -705,7 +705,7 @@ class Test {
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("this postcondition could not be proven: Valid()", relatedInformation[0].Message);
+      Assert.Equal("this postcondition could not be proved: Valid()", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
       Assert.Equal("could not prove: b < c", relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);

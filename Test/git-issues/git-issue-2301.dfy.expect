@@ -1,5 +1,5 @@
 git-issue-2301.dfy(15,14): Error: insufficient reads clause to read state of 'unchanged' object
-git-issue-2301.dfy(23,11): Error: assertion could not be proven
+git-issue-2301.dfy(23,11): Error: assertion could not be proved
 git-issue-2301.dfy(10,4): Related location
 git-issue-2301.dfy(39,8): Error: insufficient reads clause to read state of 'unchanged' object
 git-issue-2301.dfy(40,8): Error: insufficient reads clause to read state of 'unchanged' object

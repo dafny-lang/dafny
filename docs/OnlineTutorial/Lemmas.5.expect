@@ -1,4 +1,4 @@
-text.dfy(3,0): Error: a postcondition could not be proven on this return path
-text.dfy(2,23): Related location: this is the postcondition that could not be proven
+text.dfy(3,0): Error: a postcondition could not be proved on this return path
+text.dfy(2,23): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 1 verified, 1 error

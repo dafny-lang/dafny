@@ -1,4 +1,4 @@
-text.dfy(27,23): Error: assertion could not be proven
-text.dfy(37,23): Error: assertion could not be proven
+text.dfy(27,23): Error: assertion could not be proved
+text.dfy(37,23): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 2 errors

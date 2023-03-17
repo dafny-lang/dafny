@@ -1,4 +1,4 @@
-text.dfy(10,14): Error: This loop invariant could not be proven to be maintained by the loop.
+text.dfy(10,14): Error: This loop invariant could not be proved to be maintained by the loop.
 text.dfy(10,14): Related message: loop invariant violation
 
 Dafny program verifier finished with 1 verified, 1 error

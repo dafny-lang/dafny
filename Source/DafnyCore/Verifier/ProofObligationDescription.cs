@@ -127,7 +127,7 @@ public class ConversionFit : ProofObligationDescription {
     $"{prefix}{what} to be converted will always fit in {toType}";
 
   public override string FailureDescription =>
-    $"{prefix}{what} to be converted could not be proven to fit in {toType}";
+    $"{prefix}{what} to be converted could not be proved to fit in {toType}";
 
   public override string ShortDescription => "conversion fit";
 
@@ -220,7 +220,7 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} could not be proven to be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -295,7 +295,7 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
     "function precondition satisfied";
 
   public override string DefaultFailureDescription =>
-    "function precondition could not be proven";
+    "function precondition could not be proved";
 
   public override string ShortDescription => "precondition";
 
@@ -309,7 +309,7 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
     "assertion always holds";
 
   public override string DefaultFailureDescription =>
-    "assertion could not be proven";
+    "assertion could not be proved";
 
   public override string ShortDescription => "assert statement";
 
@@ -324,7 +324,7 @@ public class RequiresDescription : ProofObligationDescriptionCustomMessages {
     "the precondition always holds";
 
   public override string DefaultFailureDescription =>
-    "a precondition could not be proven";
+    "a precondition could not be proved";
 
   public override string ShortDescription => "requires";
 
@@ -339,11 +339,11 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
     "this postcondition holds";
 
   public override string DefaultFailureDescription =>
-    "This is the postcondition that could not be proven.";
+    "This is the postcondition that could not be proved.";
 
   // Same as FailureDescription but used not as a "related" error, but as an error by itself
   public string FailureDescriptionSingle =>
-    customErrMsg ?? "this postcondition could not be proven on a return path";
+    customErrMsg ?? "this postcondition could not be proved on a return path";
 
   public string FailureAtPathDescription =>
     customErrMsg ?? new PostconditionDescription().FailureDescription;
@@ -374,7 +374,7 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line could not be proven";
+    "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
 }
@@ -497,7 +497,7 @@ public class Terminates : ProofObligationDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : $"decreases {FormDescription} could not be proven to decrease") +
+      : $"decreases {FormDescription} could not be proved to decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -730,7 +730,7 @@ public class WitnessCheck : ProofObligationDescription {
 
   public override string FailureDescription =>
     witnessString is null
-      ? "the given witness expression could not be proven to satisfy constraint"
+      ? "the given witness expression could not be proved to satisfy constraint"
       : (witnessString == "" ? $"{errMsg}{hintMsg}" : $"{errMsg} (only tried {witnessString}){hintMsg}");
 
   public override string ShortDescription => "witness check";
@@ -824,7 +824,7 @@ public class ElementInDomain : ProofObligationDescription {
     "element is in domain";
 
   public override string FailureDescription =>
-    "element could not be proven to be in domain";
+    "element could not be proved to be in domain";
 
   public override string ShortDescription => "element in domain";
 }
