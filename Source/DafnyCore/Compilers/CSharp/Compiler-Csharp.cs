@@ -1244,9 +1244,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var hasDllImportAttribute = ProcessDllImport(m, wr);
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
-      var keywords = Keywords(createBody, m.IsStatic || customReceiver, hasDllImportAttribute);
+      var keywords = Keywords(createBody, m.IsStatic || customReceiver, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
       AddTestCheckerIfNeeded(m.Name, m, wr);
       var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)));
@@ -1256,7 +1255,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Format($"{keywords}{returnType} {IdName(m)}{typeParameters}({parameters})");
 
-      if (!createBody || hasDllImportAttribute) {
+      if (!createBody) {
         wr.WriteLine(";");
         return null;
       }
@@ -1318,18 +1317,17 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
-      wr.Write(Keywords(createBody, isStatic || customReceiver, hasDllImportAttribute));
+      wr.Write(Keywords(createBody, isStatic || customReceiver, false));
 
       var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)));
       var parameters = GetFunctionParameters(formals, member, typeArgs, lookasideBody, customReceiver);
 
       wr.Write($"{TypeName(resultType, wr, tok)} {name}{typeParameters}({parameters})");
-      if (!createBody || hasDllImportAttribute) {
+      if (!createBody) {
         wr.WriteLine(";");
         return null;
       }
@@ -1357,44 +1355,6 @@ namespace Microsoft.Dafny.Compilers {
         setterWriter = null;
         return null;
       }
-    }
-
-    /// <summary>
-    /// Process the declaration's "dllimport" attribute, if any, by emitting the corresponding .NET custom attribute.
-    /// Returns "true" if the declaration has an active "dllimport" attribute; "false", otherwise.
-    /// </summary>
-    public bool ProcessDllImport(MemberDecl decl, ConcreteSyntaxTree wr) {
-      Contract.Requires(decl != null);
-      Contract.Requires(wr != null);
-
-      var dllimportsArgs = Attributes.FindExpressions(decl.Attributes, "dllimport");
-      if (!Options.DisallowExterns && dllimportsArgs != null) {
-        StringLiteralExpr libName = null;
-        StringLiteralExpr entryPoint = null;
-        if (dllimportsArgs.Count == 2) {
-          libName = dllimportsArgs[0] as StringLiteralExpr;
-          entryPoint = dllimportsArgs[1] as StringLiteralExpr;
-        } else if (dllimportsArgs.Count == 1) {
-          libName = dllimportsArgs[0] as StringLiteralExpr;
-          // use the given name, not the .CompileName (if user needs something else, the user can supply it as a second argument to :dllimport)
-          entryPoint = new StringLiteralExpr(decl.tok, decl.Name, false);
-        }
-        if (libName == null || entryPoint == null) {
-          Error(decl.tok, "Expected arguments are {{:dllimport dllName}} or {{:dllimport dllName, entryPoint}} where dllName and entryPoint are strings: {0}", wr, decl.FullName);
-        } else if ((decl is Method m && m.Body != null) || (decl is Function f && f.Body != null)) {
-          Error(decl.tok, "A {0} declared with :dllimport is not allowed a body: {1}", wr, decl.WhatKind, decl.FullName);
-        } else if (!decl.IsStatic) {
-          Error(decl.tok, "A {0} declared with :dllimport must be static: {1}", wr, decl.WhatKind, decl.FullName);
-        } else {
-          wr.Write("[System.Runtime.InteropServices.DllImport(");
-          TrStringLiteral(libName, wr);
-          wr.Write(", EntryPoint=");
-          TrStringLiteral(entryPoint, wr);
-          wr.WriteLine(")]");
-        }
-        return true;
-      }
-      return false;
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
@@ -2921,9 +2881,25 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
+          if (resultType.AsBitVectorType is { Width: var width and (32 or 64) }) {
+            staticCallString = $"{DafnyHelpersClass}.Bv{width}ShiftLeft";
+            convertE1_to_int = true;
+            truncateResult = true;
+          } else {
+            opString = "<<";
+            truncateResult = true;
+            convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          opString = ">>"; convertE1_to_int = true; break;
+          if (resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
+            staticCallString = $"{DafnyHelpersClass}.Bv{width2}ShiftRight";
+            convertE1_to_int = true;
+          } else {
+            opString = ">>";
+            convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType) {
             if (CharIsRune) {

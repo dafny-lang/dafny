@@ -3,8 +3,8 @@ Parallel.dfy(267,4): Warning: a forall statement with no bound variables is depr
 Parallel.dfy(279,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(286,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(293,21): Error: assertion might not hold
-Parallel.dfy(33,9): Error: A precondition for this call might not hold.
-Parallel.dfy(59,13): Related location: This is the precondition that might not hold.
+Parallel.dfy(33,9): Error: a precondition for this call could not be proved
+Parallel.dfy(59,13): Related location: this is the precondition that could not be proved
 Parallel.dfy(37,4): Error: target object might be null
 Parallel.dfy(41,17): Error: possible violation of postcondition of forall statement
 Parallel.dfy(46,18): Error: assertion might not hold
