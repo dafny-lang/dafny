@@ -7231,7 +7231,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      ens.Description = new PODesc.AssertStatement(errorMessage ?? "This is the postcondition that might not hold.");
+      ens.Description = new PODesc.AssertStatement(errorMessage ?? "this is the postcondition that could not be proved");
       return ens;
     }
 
@@ -7240,7 +7240,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
       Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      req.Description = new PODesc.AssertStatement(errorMessage ?? "This is the precondition that might not hold.");
+      req.Description = new PODesc.AssertStatement(errorMessage ?? "this is the precondition that could not be proved");
       return req;
     }
 
@@ -10712,7 +10712,7 @@ namespace Microsoft.Dafny {
             Names.Add(nm);
           }
         }
-        return base.VisitBinderExpr(node);
+        return (BinderExpr)base.VisitBinderExpr(node);
       }
     }
 
