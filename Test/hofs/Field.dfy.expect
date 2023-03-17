@@ -1,6 +1,6 @@
-Field.dfy(12,11): Error: function precondition might not hold
-Field.dfy(12,14): Error: assertion might not hold
-Field.dfy(21,11): Error: function precondition might not hold
-Field.dfy(21,13): Error: assertion might not hold
+Field.dfy(12,11): Error: function precondition could not be proved
+Field.dfy(12,14): Error: assertion could not be proved
+Field.dfy(21,11): Error: function precondition could not be proved
+Field.dfy(21,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 4 errors

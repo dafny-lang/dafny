@@ -1,7 +1,7 @@
 The /allocated:<n> option is deprecated
 MultiSets.dfy(177,19): Error: new number of occurrences might be negative
-MultiSets.dfy(268,23): Error: assertion might not hold
-MultiSets.dfy(291,15): Error: assertion might not hold
+MultiSets.dfy(268,23): Error: assertion could not be proved
+MultiSets.dfy(291,15): Error: assertion could not be proved
 MultiSets.dfy(158,2): Error: a postcondition could not be proved on this return path
 MultiSets.dfy(157,14): Related location: this is the postcondition that could not be proved
 MultiSets.dfy(164,2): Error: a postcondition could not be proved on this return path

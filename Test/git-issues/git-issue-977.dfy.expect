@@ -37,13 +37,13 @@ git-issue-977.dfy(220,11): Info: Some instances of this call are not inlined.
 git-issue-977.dfy(110,9): Info: Some instances of this call are not inlined.
 git-issue-977.dfy(143,9): Info: Some instances of this call are not inlined.
 git-issue-977.dfy(162,2): Info: Some instances of this call are not inlined.
-git-issue-977.dfy(39,11): Error: assertion might not hold
+git-issue-977.dfy(39,11): Error: assertion could not be proved
 git-issue-977.dfy(14,20): Related location
 git-issue-977.dfy(9,7): Related location
-git-issue-977.dfy(41,11): Error: assertion might not hold
+git-issue-977.dfy(41,11): Error: assertion could not be proved
 git-issue-977.dfy(22,4): Related location
 git-issue-977.dfy(9,7): Related location
-git-issue-977.dfy(43,11): Error: assertion might not hold
+git-issue-977.dfy(43,11): Error: assertion could not be proved
 git-issue-977.dfy(30,20): Related location
 git-issue-977.dfy(9,7): Related location
 

@@ -7,7 +7,7 @@ Reads.dfy(18,29): Error: insufficient reads clause to read field
 Reads.dfy(28,32): Error: insufficient reads clause to read field
 Reads.dfy(37,29): Error: insufficient reads clause to read field
 Reads.dfy(56,29): Error: insufficient reads clause to read field
-Reads.dfy(122,35): Error: function precondition might not hold
+Reads.dfy(122,35): Error: function precondition could not be proved
 Reads.dfy(122,35): Error: insufficient reads clause to invoke function
 Reads.dfy(125,37): Error: insufficient reads clause to invoke function
 

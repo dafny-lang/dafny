@@ -2,17 +2,17 @@ The /allocated:<n> option is deprecated
 Parallel.dfy(267,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(279,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
 Parallel.dfy(286,4): Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead
-Parallel.dfy(293,21): Error: assertion might not hold
+Parallel.dfy(293,21): Error: assertion could not be proved
 Parallel.dfy(33,9): Error: a precondition for this call could not be proved
 Parallel.dfy(59,13): Related location: this is the precondition that could not be proved
 Parallel.dfy(37,4): Error: target object might be null
 Parallel.dfy(41,17): Error: possible violation of postcondition of forall statement
-Parallel.dfy(46,18): Error: assertion might not hold
-Parallel.dfy(91,18): Error: assertion might not hold
+Parallel.dfy(46,18): Error: assertion could not be proved
+Parallel.dfy(91,18): Error: assertion could not be proved
 Parallel.dfy(97,19): Error: possible violation of postcondition of forall statement
 Parallel.dfy(119,11): Error: value does not satisfy the subset constraints of 'nat'
 Parallel.dfy(182,11): Error: left-hand sides for different forall-statement bound variables might refer to the same location
-Parallel.dfy(342,9): Error: assertion might not hold
+Parallel.dfy(342,9): Error: assertion could not be proved
 Parallel.dfy(329,32): Related location
 
 Dafny program verifier finished with 19 verified, 10 errors

@@ -1,4 +1,4 @@
-Classes.dfy(60,11): Error: assertion might not hold
-Classes.dfy(38,5): Error: function precondition might not hold
+Classes.dfy(60,11): Error: assertion could not be proved
+Classes.dfy(38,5): Error: function precondition could not be proved
 
 Dafny program verifier finished with 4 verified, 2 errors

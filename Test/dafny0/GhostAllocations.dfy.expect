@@ -7,12 +7,12 @@ GhostAllocations.dfy(180,2): Error: field 'h', which is subject to definite-assi
 GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(28,11): Error: assertion might not hold
-GhostAllocations.dfy(31,11): Error: assertion might not hold
-GhostAllocations.dfy(63,9): Error: assertion might not hold
-GhostAllocations.dfy(76,9): Error: assertion might not hold
-GhostAllocations.dfy(82,9): Error: assertion might not hold
-GhostAllocations.dfy(93,9): Error: assertion might not hold
-GhostAllocations.dfy(105,9): Error: assertion might not hold
+GhostAllocations.dfy(28,11): Error: assertion could not be proved
+GhostAllocations.dfy(31,11): Error: assertion could not be proved
+GhostAllocations.dfy(63,9): Error: assertion could not be proved
+GhostAllocations.dfy(76,9): Error: assertion could not be proved
+GhostAllocations.dfy(82,9): Error: assertion could not be proved
+GhostAllocations.dfy(93,9): Error: assertion could not be proved
+GhostAllocations.dfy(105,9): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 14 errors

@@ -1,12 +1,12 @@
 
 Verifying CheckReads (well-formedness) ...
   [3 proof obligations]  errors
-ArrowTypeOptimizations.dfy(10,2): Error: function precondition might not hold
+ArrowTypeOptimizations.dfy(10,2): Error: function precondition could not be proved
 ArrowTypeOptimizations.dfy(10,2): Error: insufficient reads clause to invoke function
 
 Verifying CheckPre (well-formedness) ...
   [2 proof obligations]  error
-ArrowTypeOptimizations.dfy(16,2): Error: function precondition might not hold
+ArrowTypeOptimizations.dfy(16,2): Error: function precondition could not be proved
 
 Verifying CheckReadsTot (well-formedness) ...
   [1 proof obligation]  verified

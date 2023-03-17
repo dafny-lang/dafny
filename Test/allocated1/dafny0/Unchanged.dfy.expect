@@ -1,8 +1,8 @@
 The /allocated:<n> option is deprecated
-Unchanged.dfy(33,25): Error: assertion might not hold
-Unchanged.dfy(34,25): Error: assertion might not hold
-Unchanged.dfy(35,25): Error: assertion might not hold
-Unchanged.dfy(38,13): Error: assertion might not hold
+Unchanged.dfy(33,25): Error: assertion could not be proved
+Unchanged.dfy(34,25): Error: assertion could not be proved
+Unchanged.dfy(35,25): Error: assertion could not be proved
+Unchanged.dfy(38,13): Error: assertion could not be proved
 Unchanged.dfy(46,35): Error: object might not be allocated in the old-state of the 'unchanged' predicate
 Unchanged.dfy(47,35): Error: object might not be allocated in the old-state of the 'unchanged' predicate
 Unchanged.dfy(48,41): Error: object might not be allocated in the old-state of the 'unchanged' predicate

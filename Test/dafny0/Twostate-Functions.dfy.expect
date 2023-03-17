@@ -1,17 +1,17 @@
 Twostate-Functions.dfy(11,27): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(18,12): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(23,8): Error: insufficient reads clause to read field
-Twostate-Functions.dfy(66,17): Error: assertion might not hold
+Twostate-Functions.dfy(66,17): Error: assertion could not be proved
 Twostate-Functions.dfy(54,14): Related location
-Twostate-Functions.dfy(68,15): Error: assertion might not hold
+Twostate-Functions.dfy(68,15): Error: assertion could not be proved
 Twostate-Functions.dfy(54,14): Related location
 Twostate-Functions.dfy(92,24): Error: argument ('u') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(97,40): Error: argument at index 1 ('x') might not be allocated in the two-state function's previous state
 Twostate-Functions.dfy(129,25): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(147,12): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Functions.dfy(164,15): Error: argument ('d') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(167,13): Error: function precondition might not hold
+Twostate-Functions.dfy(167,13): Error: function precondition could not be proved
 Twostate-Functions.dfy(183,15): Error: argument ('d') might not be allocated in the two-state function's previous state
-Twostate-Functions.dfy(186,13): Error: function precondition might not hold
+Twostate-Functions.dfy(186,13): Error: function precondition could not be proved
 
 Dafny program verifier finished with 19 verified, 13 errors

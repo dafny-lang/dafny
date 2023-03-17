@@ -1,14 +1,14 @@
 ArrayElementInit.dfy(13,31): Error: possible division by zero
 ArrayElementInit.dfy(19,11): Error: all array indices must be in the domain of the initialization function
 ArrayElementInit.dfy(39,11): Error: all array indices must be in the domain of the initialization function
-ArrayElementInit.dfy(66,22): Error: assertion might not hold
+ArrayElementInit.dfy(66,22): Error: assertion could not be proved
 ArrayElementInit.dfy(86,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 ArrayElementInit.dfy(88,23): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 ArrayElementInit.dfy(102,24): Error: value does not satisfy the subset constraints of 'nat'
 ArrayElementInit.dfy(110,32): Error: value does not satisfy the subset constraints of 'nat'
 ArrayElementInit.dfy(113,20): Error: given array size must agree with the number of expressions in the initializing display (4)
-ArrayElementInit.dfy(139,14): Error: assertion might not hold
-ArrayElementInit.dfy(144,22): Error: function precondition might not hold
+ArrayElementInit.dfy(139,14): Error: assertion could not be proved
+ArrayElementInit.dfy(144,22): Error: function precondition could not be proved
 ArrayElementInit.dfy(152,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 ArrayElementInit.dfy(154,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 ArrayElementInit.dfy(158,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
