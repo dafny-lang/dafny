@@ -1,6 +1,6 @@
-regression-calc.dfy(8,16): Error: a postcondition could not be proven on this return path
-regression-calc.dfy(8,10): Related location: this is the postcondition that could not be proven.
-regression-calc.dfy(15,16): Error: a postcondition could not be proven on this return path
-regression-calc.dfy(15,10): Related location: this is the postcondition that could not be proven.
+regression-calc.dfy(8,16): Error: a postcondition could not be proved on this return path
+regression-calc.dfy(8,10): Related location: this is the postcondition that could not be proved.
+regression-calc.dfy(15,16): Error: a postcondition could not be proved on this return path
+regression-calc.dfy(15,10): Related location: this is the postcondition that could not be proved.
 
 Dafny program verifier finished with 0 verified, 2 errors

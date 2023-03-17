@@ -1,3 +1,3 @@
-text.dfy(7,13): Error: assertion could not be proven
+text.dfy(7,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error

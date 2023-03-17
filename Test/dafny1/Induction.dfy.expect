@@ -1,6 +1,6 @@
-Induction.dfy(240,11): Error: a postcondition could not be proven on this return path
-Induction.dfy(236,15): Related location: this is the postcondition that could not be proven.
-Induction.dfy(251,9): Error: a postcondition could not be proven on this return path
-Induction.dfy(247,16): Related location: this is the postcondition that could not be proven.
+Induction.dfy(240,11): Error: a postcondition could not be proved on this return path
+Induction.dfy(236,15): Related location: this is the postcondition that could not be proved.
+Induction.dfy(251,9): Error: a postcondition could not be proved on this return path
+Induction.dfy(247,16): Related location: this is the postcondition that could not be proved.
 
 Dafny program verifier finished with 32 verified, 2 errors

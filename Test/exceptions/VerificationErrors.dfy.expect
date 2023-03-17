@@ -1,4 +1,4 @@
-VerificationErrors.dfy(8,38): Error: assertion could not be proven
-VerificationErrors.dfy(15,18): Error: assertion could not be proven
+VerificationErrors.dfy(8,38): Error: assertion could not be proved
+VerificationErrors.dfy(15,18): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

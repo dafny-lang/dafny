@@ -1,37 +1,37 @@
 The /allocated:<n> option is deprecated
-OpaqueFunctions.dfy(38,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(69,7): Error: a precondition for this call could not be proven
-OpaqueFunctions.dfy(35,15): Related location: this is the precondition that could not be proven
-OpaqueFunctions.dfy(75,19): Error: assertion could not be proven
-OpaqueFunctions.dfy(77,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(80,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(96,22): Error: assertion could not be proven
-OpaqueFunctions.dfy(98,11): Error: a precondition for this call could not be proven
-OpaqueFunctions.dfy[A'](35,15): Related location: this is the precondition that could not be proven
-OpaqueFunctions.dfy(102,17): Error: assertion could not be proven
-OpaqueFunctions.dfy(109,19): Error: assertion could not be proven
-OpaqueFunctions.dfy(111,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(114,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(123,31): Error: assertion could not be proven
-OpaqueFunctions.dfy(146,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(148,9): Error: a precondition for this call could not be proven
-OpaqueFunctions.dfy[A'](35,15): Related location: this is the precondition that could not be proven
-OpaqueFunctions.dfy(155,19): Error: assertion could not be proven
-OpaqueFunctions.dfy(157,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(160,20): Error: assertion could not be proven
-OpaqueFunctions.dfy(165,31): Error: assertion could not be proven
-OpaqueFunctions.dfy(181,11): Error: assertion could not be proven
-OpaqueFunctions.dfy(246,11): Error: assertion could not be proven
-OpaqueFunctions.dfy(261,11): Error: assertion could not be proven
-OpaqueFunctions.dfy(326,16): Error: assertion could not be proven
-OpaqueFunctions.dfy(328,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(330,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(343,38): Error: assertion could not be proven
-OpaqueFunctions.dfy(350,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(352,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(354,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(367,17): Error: assertion could not be proven
-OpaqueFunctions.dfy(214,15): Error: assertion could not be proven
-OpaqueFunctions.dfy(229,19): Error: assertion could not be proven
+OpaqueFunctions.dfy(38,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(69,7): Error: a precondition for this call could not be proved
+OpaqueFunctions.dfy(35,15): Related location: this is the precondition that could not be proved
+OpaqueFunctions.dfy(75,19): Error: assertion could not be proved
+OpaqueFunctions.dfy(77,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(80,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(96,22): Error: assertion could not be proved
+OpaqueFunctions.dfy(98,11): Error: a precondition for this call could not be proved
+OpaqueFunctions.dfy[A'](35,15): Related location: this is the precondition that could not be proved
+OpaqueFunctions.dfy(102,17): Error: assertion could not be proved
+OpaqueFunctions.dfy(109,19): Error: assertion could not be proved
+OpaqueFunctions.dfy(111,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(114,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(123,31): Error: assertion could not be proved
+OpaqueFunctions.dfy(146,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(148,9): Error: a precondition for this call could not be proved
+OpaqueFunctions.dfy[A'](35,15): Related location: this is the precondition that could not be proved
+OpaqueFunctions.dfy(155,19): Error: assertion could not be proved
+OpaqueFunctions.dfy(157,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(160,20): Error: assertion could not be proved
+OpaqueFunctions.dfy(165,31): Error: assertion could not be proved
+OpaqueFunctions.dfy(181,11): Error: assertion could not be proved
+OpaqueFunctions.dfy(246,11): Error: assertion could not be proved
+OpaqueFunctions.dfy(261,11): Error: assertion could not be proved
+OpaqueFunctions.dfy(326,16): Error: assertion could not be proved
+OpaqueFunctions.dfy(328,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(330,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(343,38): Error: assertion could not be proved
+OpaqueFunctions.dfy(350,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(352,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(354,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(367,17): Error: assertion could not be proved
+OpaqueFunctions.dfy(214,15): Error: assertion could not be proved
+OpaqueFunctions.dfy(229,19): Error: assertion could not be proved
 
 Dafny program verifier finished with 20 verified, 31 errors

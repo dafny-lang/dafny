@@ -2,6 +2,6 @@
 
 Verifying A (correctness) ...
   [1 proof obligation]  error
-transcript(3,9): Error: assertion could not be proven
+transcript(3,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

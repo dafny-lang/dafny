@@ -7,15 +7,15 @@ git-issue-2597-verification.dfy(8,18): Related location: this is the preconditio
 git-issue-2597-verification.dfy(54,16): Error: a precondition for this call could not be proved
 git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
 git-issue-2597-verification.dfy(61,11): Error: assertion could not be proved
-git-issue-2597-verification.dfy(77,27): Error: assertion could not be proven
-git-issue-2597-verification.dfy(84,32): Error: assertion could not be proven
-git-issue-2597-verification.dfy(97,18): Error: a precondition for this call could not be proven
-git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proven
-git-issue-2597-verification.dfy(111,20): Error: a precondition for this call could not be proven
-git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proven
-git-issue-2597-verification.dfy(124,20): Error: a precondition for this call could not be proven
-git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proven
-git-issue-2597-verification.dfy(133,20): Error: a precondition for this call could not be proven
-git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proven
+git-issue-2597-verification.dfy(77,27): Error: assertion could not be proved
+git-issue-2597-verification.dfy(84,32): Error: assertion could not be proved
+git-issue-2597-verification.dfy(97,18): Error: a precondition for this call could not be proved
+git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
+git-issue-2597-verification.dfy(111,20): Error: a precondition for this call could not be proved
+git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
+git-issue-2597-verification.dfy(124,20): Error: a precondition for this call could not be proved
+git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
+git-issue-2597-verification.dfy(133,20): Error: a precondition for this call could not be proved
+git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
 
 Dafny program verifier finished with 1 verified, 11 errors

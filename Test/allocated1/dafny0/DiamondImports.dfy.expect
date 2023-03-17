@@ -1,8 +1,8 @@
 The /allocated:<n> option is deprecated
-DiamondImports.dfy(34,15): Error: assertion could not be proven
-DiamondImports.dfy(50,15): Error: assertion could not be proven
-DiamondImports.dfy(101,15): Error: assertion could not be proven
-DiamondImports.dfy(120,15): Error: assertion could not be proven
-DiamondImports.dfy(140,25): Error: assertion could not be proven
+DiamondImports.dfy(34,15): Error: assertion could not be proved
+DiamondImports.dfy(50,15): Error: assertion could not be proved
+DiamondImports.dfy(101,15): Error: assertion could not be proved
+DiamondImports.dfy(120,15): Error: assertion could not be proved
+DiamondImports.dfy(140,25): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 5 errors

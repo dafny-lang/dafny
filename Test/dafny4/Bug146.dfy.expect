@@ -1,5 +1,5 @@
 Bug146.dfy(6,75): Error: insufficient reads clause to read array element
-Bug146.dfy(37,15): Error: assertion could not be proven
+Bug146.dfy(37,15): Error: assertion could not be proved
 Bug146.dfy(26,4): Related location
 Bug146.dfy(26,67): Related location
 Bug146.dfy(26,75): Related location

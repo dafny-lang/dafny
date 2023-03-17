@@ -1,12 +1,12 @@
-OpaqueConstants.dfy(11,20): Error: assertion could not be proven
-OpaqueConstants.dfy(26,20): Error: assertion could not be proven
-OpaqueConstants.dfy(56,16): Error: assertion could not be proven
-OpaqueConstants.dfy(58,15): Error: assertion could not be proven
-OpaqueConstants.dfy(60,15): Error: assertion could not be proven
-OpaqueConstants.dfy(73,38): Error: assertion could not be proven
-OpaqueConstants.dfy(82,21): Error: assertion could not be proven
-OpaqueConstants.dfy(84,24): Error: assertion could not be proven
-OpaqueConstants.dfy(86,24): Error: assertion could not be proven
-OpaqueConstants.dfy(99,47): Error: assertion could not be proven
+OpaqueConstants.dfy(11,20): Error: assertion could not be proved
+OpaqueConstants.dfy(26,20): Error: assertion could not be proved
+OpaqueConstants.dfy(56,16): Error: assertion could not be proved
+OpaqueConstants.dfy(58,15): Error: assertion could not be proved
+OpaqueConstants.dfy(60,15): Error: assertion could not be proved
+OpaqueConstants.dfy(73,38): Error: assertion could not be proved
+OpaqueConstants.dfy(82,21): Error: assertion could not be proved
+OpaqueConstants.dfy(84,24): Error: assertion could not be proved
+OpaqueConstants.dfy(86,24): Error: assertion could not be proved
+OpaqueConstants.dfy(99,47): Error: assertion could not be proved
 
 Dafny program verifier finished with 3 verified, 10 errors

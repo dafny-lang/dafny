@@ -2,16 +2,16 @@ LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(340,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(344,13): Error: value does not satisfy the subset constraints of 'nat'
-LetExpr.dfy(390,33): Error: assertion could not be proven
-LetExpr.dfy(403,24): Error: assertion could not be proven
-LetExpr.dfy(109,22): Error: assertion could not be proven
-LetExpr.dfy(9,11): Error: assertion could not be proven
+LetExpr.dfy(390,33): Error: assertion could not be proved
+LetExpr.dfy(403,24): Error: assertion could not be proved
+LetExpr.dfy(109,22): Error: assertion could not be proved
+LetExpr.dfy(9,11): Error: assertion could not be proved
 LetExpr.dfy(260,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(263,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(265,23): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(294,13): Error: RHS is not certain to look like the pattern 'Agnes'
 LetExpr.dfy(311,41): Error: value does not satisfy the subset constraints of 'nat'
-LetExpr.dfy(313,11): Error: assertion could not be proven
+LetExpr.dfy(313,11): Error: assertion could not be proved
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 
 Dafny program verifier finished with 37 verified, 13 errors

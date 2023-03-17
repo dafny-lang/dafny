@@ -8,7 +8,7 @@ Processing command (at Snapshots4.v1.dfy(9,14)) assert LitInt(0) == LitInt(0);
   >>> MarkAsFullyVerified
 Processing command (at Snapshots4.v1.dfy(10,14)) assert Lit(2 != 2);
   >>> DoNothingToAssert
-Snapshots4.v1.dfy(5,13): Error: assertion could not be proven
-Snapshots4.v1.dfy(10,13): Error: assertion could not be proven
+Snapshots4.v1.dfy(5,13): Error: assertion could not be proved
+Snapshots4.v1.dfy(10,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

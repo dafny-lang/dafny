@@ -1,4 +1,4 @@
-xrefine1.dfy(64,12): Error: a precondition for this call could not be proven
-xrefine1.dfy(49,32): Related location: this is the precondition that could not be proven
+xrefine1.dfy(64,12): Error: a precondition for this call could not be proved
+xrefine1.dfy(49,32): Related location: this is the precondition that could not be proved
 
 Dafny program verifier finished with 3 verified, 1 error

@@ -2,7 +2,7 @@ The /allocated:<n> option is deprecated
 Array.dfy(13,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(20,15): Error: target object might be null
 Array.dfy(26,5): Error: index out of range
-Array.dfy(50,19): Error: assertion could not be proven
+Array.dfy(50,19): Error: assertion could not be proved
 Array.dfy(58,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(65,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(108,20): Error: upper bound below lower bound or above length of array
@@ -14,12 +14,12 @@ Array.dfy(160,5): Error: insufficient reads clause to read array element
 Array.dfy(168,5): Error: insufficient reads clause to read array element
 Array.dfy(184,5): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(191,5): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(216,0): Error: a postcondition could not be proven on this return path
-Array.dfy(215,10): Related location: this is the postcondition that could not be proven.
-Array.dfy(240,0): Error: a postcondition could not be proven on this return path
-Array.dfy(239,10): Related location: this is the postcondition that could not be proven.
-Array.dfy(246,0): Error: a postcondition could not be proven on this return path
-Array.dfy(245,10): Related location: this is the postcondition that could not be proven.
+Array.dfy(216,0): Error: a postcondition could not be proved on this return path
+Array.dfy(215,10): Related location: this is the postcondition that could not be proved.
+Array.dfy(240,0): Error: a postcondition could not be proved on this return path
+Array.dfy(239,10): Related location: this is the postcondition that could not be proved.
+Array.dfy(246,0): Error: a postcondition could not be proved on this return path
+Array.dfy(245,10): Related location: this is the postcondition that could not be proved.
 Array.dfy(255,12): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(256,5): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(257,12): Error: value does not satisfy the subset constraints of 'nat'

@@ -1,4 +1,4 @@
-Bug73.dfy(7,13): Error: assertion could not be proven
-Bug73.dfy(13,13): Error: assertion could not be proven
+Bug73.dfy(7,13): Error: assertion could not be proved
+Bug73.dfy(13,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

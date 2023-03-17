@@ -1,4 +1,4 @@
 The /allocated:<n> option is deprecated
-NestedMatch.dfy(173,14): Error: the calculation step between the previous line and this line could not be proven
+NestedMatch.dfy(173,14): Error: the calculation step between the previous line and this line could not be proved
 
 Dafny program verifier finished with 12 verified, 1 error

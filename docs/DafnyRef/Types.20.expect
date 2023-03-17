@@ -1,5 +1,5 @@
-text.dfy(26,0): Error: a postcondition could not be proven on this return path
-text.dfy(25,10): Related location: this is the postcondition that could not be proven
+text.dfy(26,0): Error: a postcondition could not be proved on this return path
+text.dfy(25,10): Related location: this is the postcondition that could not be proved
 text.dfy(10,9): Related location
 
 Dafny program verifier finished with 1 verified, 1 error

@@ -41,8 +41,8 @@ GhostAutoInit.dfy(257,23): Error: variable 'm', which is subject to definite-ass
 GhostAutoInit.dfy(257,29): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
 GhostAutoInit.dfy(257,32): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
 GhostAutoInit.dfy(282,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-GhostAutoInit.dfy(298,2): Error: a postcondition could not be proven on this return path
-GhostAutoInit.dfy(297,12): Related location: this is the postcondition that could not be proven.
+GhostAutoInit.dfy(298,2): Error: a postcondition could not be proved on this return path
+GhostAutoInit.dfy(297,12): Related location: this is the postcondition that could not be proved.
 GhostAutoInit.dfy(303,9): Error: value does not satisfy the subset constraints of 'nat'
 GhostAutoInit.dfy(308,9): Error: value does not satisfy the subset constraints of 'nat'
 GhostAutoInit.dfy(315,9): Error: value does not satisfy the subset constraints of 'nat'

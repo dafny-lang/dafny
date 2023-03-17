@@ -1,4 +1,4 @@
-InductivePredicates.dfy(80,9): Error: assertion could not be proven
-InductivePredicates.dfy(92,10): Error: assertion could not be proven
+InductivePredicates.dfy(80,9): Error: assertion could not be proved
+InductivePredicates.dfy(92,10): Error: assertion could not be proved
 
 Dafny program verifier finished with 32 verified, 2 errors

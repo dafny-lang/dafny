@@ -2,6 +2,6 @@ git-issue-2605.dfy(6,14): Error: possible division by zero
 git-issue-2605.dfy(6,23): Error: possible division by zero
 git-issue-2605.dfy(7,13): Error: index out of range
 git-issue-2605.dfy(7,21): Error: index out of range
-git-issue-2605.dfy(9,11): Error: assertion could not be proven
+git-issue-2605.dfy(9,11): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 5 errors

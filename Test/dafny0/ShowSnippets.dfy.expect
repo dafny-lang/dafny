@@ -1,14 +1,14 @@
-ShowSnippets.dfy(13,9): Error: assertion could not be proven
+ShowSnippets.dfy(13,9): Error: assertion could not be proved
    |
 13 |   assert false;
    |          ^^^^^
 
-ShowSnippets.dfy(17,2): Error: a precondition for this call could not be proven
+ShowSnippets.dfy(17,2): Error: a precondition for this call could not be proved
    |
 17 |   Never();
    |   ^^^^^^^^
 
-ShowSnippets.dfy(10,32): Related location: this is the precondition that could not be proven
+ShowSnippets.dfy(10,32): Related location: this is the precondition that could not be proved
    |
 10 | method Never() requires true && false {}
    |                                 ^^^^^

@@ -2,7 +2,7 @@
 
 Verifying B.Bar (correctness) ...
   [1 proof obligation]  error
-Cache.dfy(9,21): Error: assertion could not be proven
+Cache.dfy(9,21): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 

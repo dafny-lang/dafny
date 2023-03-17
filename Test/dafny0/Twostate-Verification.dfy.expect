@@ -21,15 +21,15 @@ Twostate-Verification.dfy(680,22): Warning: Argument to 'old' does not dereferen
 Twostate-Verification.dfy(681,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(682,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(33,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-Twostate-Verification.dfy(271,13): Error: a postcondition could not be proven on this return path
-Twostate-Verification.dfy(263,24): Related location: this is the postcondition that could not be proven.
-Twostate-Verification.dfy(277,4): Error: a postcondition could not be proven on this return path
-Twostate-Verification.dfy(276,26): Related location: this is the postcondition that could not be proven.
-Twostate-Verification.dfy(313,38): Error: assertion could not be proven
-Twostate-Verification.dfy(337,23): Error: a precondition for this call could not be proven
-Twostate-Verification.dfy(317,29): Related location: this is the precondition that could not be proven
-Twostate-Verification.dfy(359,18): Error: assertion could not be proven
-Twostate-Verification.dfy(361,18): Error: assertion could not be proven
+Twostate-Verification.dfy(271,13): Error: a postcondition could not be proved on this return path
+Twostate-Verification.dfy(263,24): Related location: this is the postcondition that could not be proved.
+Twostate-Verification.dfy(277,4): Error: a postcondition could not be proved on this return path
+Twostate-Verification.dfy(276,26): Related location: this is the postcondition that could not be proved.
+Twostate-Verification.dfy(313,38): Error: assertion could not be proved
+Twostate-Verification.dfy(337,23): Error: a precondition for this call could not be proved
+Twostate-Verification.dfy(317,29): Related location: this is the precondition that could not be proved
+Twostate-Verification.dfy(359,18): Error: assertion could not be proved
+Twostate-Verification.dfy(361,18): Error: assertion could not be proved
 Twostate-Verification.dfy(384,17): Error: receiver argument might not be allocated in the two-state function's previous state
 Twostate-Verification.dfy(386,17): Error: receiver argument might not be allocated in the two-state function's previous state
 Twostate-Verification.dfy(391,26): Error: argument at index 0 ('c') might not be allocated in the two-state function's previous state
@@ -63,7 +63,7 @@ Twostate-Verification.dfy(37,26): Error: receiver might not be allocated in the 
 Twostate-Verification.dfy(41,32): Error: receiver argument might not be allocated in the state in which the function is invoked
 Twostate-Verification.dfy(56,26): Error: receiver might not be allocated in the state in which its fields are accessed
 Twostate-Verification.dfy(58,32): Error: receiver argument might not be allocated in the state in which the function is invoked
-Twostate-Verification.dfy(74,15): Error: assertion could not be proven
+Twostate-Verification.dfy(74,15): Error: assertion could not be proved
 Twostate-Verification.dfy(6,4): Error: parameter at index 0 ('c') might not be allocated in the two-state lemma's previous state
 Twostate-Verification.dfy(12,17): Error: receiver might not be allocated in the state in which its fields are accessed
 

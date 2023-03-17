@@ -1,5 +1,5 @@
-RevealProvideAll.dfy(25,45): Error: a postcondition could not be proven on this return path
-RevealProvideAll.dfy(25,26): Related location: this is the postcondition that could not be proven.
-RevealProvideAll.dfy(30,13): Error: assertion could not be proven
+RevealProvideAll.dfy(25,45): Error: a postcondition could not be proved on this return path
+RevealProvideAll.dfy(25,26): Related location: this is the postcondition that could not be proved.
+RevealProvideAll.dfy(30,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 3 verified, 2 errors

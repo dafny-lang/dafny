@@ -17,7 +17,7 @@ ComprehensionsNewSyntax.dfy(174,4): Error: all sequence indices must be in the d
 ComprehensionsNewSyntax.dfy(180,38): Error: value does not satisfy the subset constraints of 'nat'
 ComprehensionsNewSyntax.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
 ComprehensionsNewSyntax.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
-ComprehensionsNewSyntax.dfy(12,13): Error: assertion could not be proven
-ComprehensionsNewSyntax.dfy(78,22): Error: assertion could not be proven
+ComprehensionsNewSyntax.dfy(12,13): Error: assertion could not be proved
+ComprehensionsNewSyntax.dfy(78,22): Error: assertion could not be proved
 
 Dafny program verifier finished with 16 verified, 15 errors

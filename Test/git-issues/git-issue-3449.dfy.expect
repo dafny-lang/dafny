@@ -1,4 +1,4 @@
-git-issue-3449.dfy(11,11): Error: assertion could not be proven
-git-issue-3449.dfy(13,11): Error: assertion could not be proven
+git-issue-3449.dfy(11,11): Error: assertion could not be proved
+git-issue-3449.dfy(13,11): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

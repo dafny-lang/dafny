@@ -2,8 +2,8 @@
 
 Verifying Abs (correctness) ...
   [1 proof obligation]  error
-c:\DEV\Dafny\abs.dfy(4,4): Error: a postcondition could not be proven on this return path
-c:\DEV\Dafny\abs.dfy(3,10): Related location: this is the postcondition that could not be proven
+c:\DEV\Dafny\abs.dfy(4,4): Error: a postcondition could not be proved on this return path
+c:\DEV\Dafny\abs.dfy(3,10): Related location: this is the postcondition that could not be proved
 COUNTEREXAMPLE_START {"States":[{"Column":0,"Line":0,"Name":"<initial>","Variables":[{"CanonicalName":"-1","Name":"x","RealName":null,"Value":"-1"}]},{"Column":15,"Line":3,"Name":"c:\\DEV\\Dafny\\abs.dfy(3,15): initial state","Variables":[{"CanonicalName":"-1","Name":"x","RealName":null,"Value":"-1"}]},{"Column":12,"Line":4,"Name":"c:\\DEV\\Dafny\\abs.dfy(4,12)","Variables":[{"CanonicalName":"-1","Name":"x","RealName":null,"Value":"-1"},{"CanonicalName":"-1","Name":"y","RealName":null,"Value":"-1"}]}]} COUNTEREXAMPLE_END
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

@@ -1,8 +1,8 @@
-git-issue-952.dfy(35,15): Error: assertion could not be proven
-git-issue-952.dfy(38,20): Error: assertion could not be proven
-git-issue-952.dfy(71,15): Error: assertion could not be proven
-git-issue-952.dfy(74,20): Error: assertion could not be proven
-git-issue-952.dfy(100,15): Error: assertion could not be proven
-git-issue-952.dfy(103,20): Error: assertion could not be proven
+git-issue-952.dfy(35,15): Error: assertion could not be proved
+git-issue-952.dfy(38,20): Error: assertion could not be proved
+git-issue-952.dfy(71,15): Error: assertion could not be proved
+git-issue-952.dfy(74,20): Error: assertion could not be proved
+git-issue-952.dfy(100,15): Error: assertion could not be proved
+git-issue-952.dfy(103,20): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 6 errors

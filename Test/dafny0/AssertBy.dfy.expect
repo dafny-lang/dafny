@@ -14,8 +14,8 @@ method M1(x: int, y: int)
   }
   assert y == 8;
 }
-AssertBy.dfy(6,11): Error: assertion could not be proven
-AssertBy.dfy(7,11): Error: assertion could not be proven
-AssertBy.dfy(16,11): Error: assertion could not be proven
+AssertBy.dfy(6,11): Error: assertion could not be proved
+AssertBy.dfy(7,11): Error: assertion could not be proved
+AssertBy.dfy(16,11): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 3 errors

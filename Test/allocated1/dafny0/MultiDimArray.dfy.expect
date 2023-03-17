@@ -1,5 +1,5 @@
 The /allocated:<n> option is deprecated
-MultiDimArray.dfy(53,20): Error: assertion could not be proven
-MultiDimArray.dfy(79,24): Error: assertion could not be proven
+MultiDimArray.dfy(53,20): Error: assertion could not be proved
+MultiDimArray.dfy(79,24): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 2 errors

@@ -1,7 +1,7 @@
 The /allocated:<n> option is deprecated
-UnfoldingPerformance.dfy(23,11): Error: assertion could not be proven
-UnfoldingPerformance.dfy(30,11): Error: assertion could not be proven
-UnfoldingPerformance.dfy(51,11): Error: assertion could not be proven
-UnfoldingPerformance.dfy(61,11): Error: assertion could not be proven
+UnfoldingPerformance.dfy(23,11): Error: assertion could not be proved
+UnfoldingPerformance.dfy(30,11): Error: assertion could not be proved
+UnfoldingPerformance.dfy(51,11): Error: assertion could not be proved
+UnfoldingPerformance.dfy(61,11): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 4 errors

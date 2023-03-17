@@ -1,4 +1,4 @@
 The /allocated:<n> option is deprecated
-IndexIntoUpdate.dfy(7,18): Error: assertion could not be proven
+IndexIntoUpdate.dfy(7,18): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error

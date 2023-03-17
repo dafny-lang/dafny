@@ -1,6 +1,6 @@
 The /allocated:<n> option is deprecated
 ComputationsLoop2.dfy(6,2): Error: cannot prove termination; try supplying a decreases clause
 ComputationsLoop2.dfy(11,2): Error: cannot prove termination; try supplying a decreases clause
-ComputationsLoop2.dfy(16,25): Error: assertion could not be proven
+ComputationsLoop2.dfy(16,25): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 3 errors
