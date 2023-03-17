@@ -19,7 +19,7 @@ else
   output="GeneratedFromDafny.cs"
 fi
 
-../../Binaries/Dafny.exe translate cs --output $output AST/Formatting.dfy
+../../Scripts/dafny translate cs --output $output AST/Formatting.dfy
 python -c "
 import re
 with open ('$output', 'r' ) as f:
