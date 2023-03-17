@@ -5,7 +5,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
@@ -337,7 +337,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -346,13 +346,9 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     }
 
     if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return (lastClosingParenthesis, false);
+      return lastClosingParenthesis.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, true);
-    }
-
-    return (Token.NoToken, false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }

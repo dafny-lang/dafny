@@ -93,7 +93,7 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
-public class Field : MemberDecl, ICanFormat {
+public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
@@ -174,16 +174,12 @@ public class Field : MemberDecl, ICanFormat {
     return true;
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     if (EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, leadingTrivia: false);
+      return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, leadingTrivia: true);
-    }
-
-    return (Token.NoToken, leadingTrivia: false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 

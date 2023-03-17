@@ -345,7 +345,7 @@ public class TypeParameter : TopLevelDecl {
 }
 
 // Represents a submodule declaration at module level scope
-public abstract class ModuleDecl : TopLevelDecl {
+public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   public override string WhatKind { get { return "module"; } }
   [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
@@ -376,7 +376,7 @@ public abstract class ModuleDecl : TopLevelDecl {
     return true;
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken candidate = null;
     var tokens = OwnedTokens.Any() ?
       OwnedTokens :
@@ -385,20 +385,16 @@ public abstract class ModuleDecl : TopLevelDecl {
       if (token.val == "{") {
         candidate = token.Prev;
         if (candidate.TrailingTrivia.Trim() != "") {
-          return (candidate, leadingTrivia: false);
+          return candidate.TrailingTrivia;
         }
       }
     }
 
     if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, leadingTrivia: false);
+      return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, leadingTrivia: true);
-    }
-
-    return (Token.NoToken, leadingTrivia: false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 // Represents module X { ... }
@@ -1374,7 +1370,7 @@ public class TraitDecl : ClassDecl {
   }
 }
 
-public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
+public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "class"; } }
   public override bool CanBeRevealed() { return true; }
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
@@ -1498,26 +1494,22 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
     return true;
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         candidate = token.Prev;
         if (candidate.TrailingTrivia.Trim() != "") {
-          return (candidate, leadingTrivia: false);
+          return candidate.TrailingTrivia;
         }
       }
     }
 
     if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, leadingTrivia: false);
+      return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, leadingTrivia: true);
-    }
-
-    return (Token.NoToken, leadingTrivia: false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 
@@ -1571,7 +1563,7 @@ public class ArrowTypeDecl : ClassDecl {
   }
 }
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -1730,18 +1722,14 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     return true;
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     foreach (var token in OwnedTokens) {
       if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
-        return (token, leadingTrivia: false);
+        return token.TrailingTrivia;
       }
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, leadingTrivia: true);
-    }
-
-    return (Token.NoToken, false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 
@@ -1833,7 +1821,7 @@ public class ValuetypeDecl : TopLevelDecl {
   }
 }
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
@@ -1870,20 +1858,20 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
     }
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     if (EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, leadingTrivia: false);
+      return EndToken.TrailingTrivia;
     }
 
     if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, leadingTrivia: true);
+      return StartToken.LeadingTrivia;
     }
 
     if (StartToken.Prev.val == "|" && StartToken.Prev.TrailingTrivia.Trim() != "") {
-      return (StartToken.Prev, leadingTrivia: false);
+      return StartToken.Prev.TrailingTrivia;
     }
 
-    return (Token.NoToken, leadingTrivia: false);
+    return null;
   }
 }
 
@@ -1957,9 +1945,6 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   protected ICallable cwInner => (ICallable)inner;
   public IToken Tok => cwInner.Tok;
-  public string GetDocString(DafnyOptions options) {
-    return ((ICallable)inner).GetDocString(options);
-  }
 
   public string WhatKind => cwInner.WhatKind;
   public string NameRelativeToModule => cwInner.NameRelativeToModule;
@@ -1984,7 +1969,7 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public string GetDocString(DafnyOptions options) {
+  public string GetDocstring(DafnyOptions options) {
     throw new cce.UnreachableException();
   }
 
@@ -2024,7 +2009,7 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat {
+public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "opaque type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
@@ -2106,7 +2091,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     return true;
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2115,18 +2100,14 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
     }
 
     if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return (openingBlock.Prev, false);
+      return openingBlock.Prev.TrailingTrivia;
     }
 
     if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, false);
+      return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, true);
-    }
-
-    return (Token.NoToken, false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 
@@ -2287,7 +2268,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   }
 }
 
-public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
+public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, IHasDocstring {
   public override string WhatKind { get { return "type synonym"; } }
   public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
   public bool SupportsEquality {
@@ -2384,7 +2365,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
 
 
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
@@ -2393,18 +2374,14 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
     }
 
     if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
-      return (openingBlock.Prev, false);
+      return openingBlock.Prev.TrailingTrivia;
     }
 
     if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
-      return (EndToken, false);
+      return EndToken.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, true);
-    }
-
-    return (Token.NoToken, false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }
 

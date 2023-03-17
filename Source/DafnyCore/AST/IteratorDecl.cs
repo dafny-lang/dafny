@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext {
+public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -482,7 +482,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
   }
 
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     IToken lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
@@ -491,13 +491,9 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
     }
 
     if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
-      return (lastClosingParenthesis, false);
+      return lastClosingParenthesis.TrailingTrivia;
     }
 
-    if (StartToken.LeadingTrivia.Trim() != "") {
-      return (StartToken, true);
-    }
-
-    return (Token.NoToken, false);
+    return StartToken.LeadingTrivia.Trim() != "" ? StartToken.LeadingTrivia : null;
   }
 }

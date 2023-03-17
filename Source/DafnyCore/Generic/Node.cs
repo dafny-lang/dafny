@@ -9,11 +9,11 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
+
 public interface INode {
   RangeToken RangeToken { get; }
 
   IToken Tok { get; }
-  string GetDocString(DafnyOptions options);
 }
 
 public interface ICanFormat : INode {
@@ -21,6 +21,11 @@ public interface ICanFormat : INode {
   /// the new indentation set by the tokens preceding this node
   /// Returns if further traverse needs to occur (true) or if it already happened (false)
   bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
+}
+
+// A node that can have a docstring attached to it
+public interface IHasDocstring : INode {
+  string GetDocstring(DafnyOptions options);
 }
 
 public abstract class Node : INode {
@@ -168,14 +173,14 @@ public abstract class Node : INode {
   public abstract RangeToken RangeToken { get; set; }
 
   // Applies plugin-defined docstring filters
-  public string GetDocString(DafnyOptions options) {
+  public string GetDocstring(DafnyOptions options) {
     var plugins = options.Plugins;
-    var (token, leadingTrivia) = GetDocstringToken();
-    if (token == null || token == Token.NoToken || token.line == 0) {
+    string trivia = GetDocstringToken();
+    if (string.IsNullOrEmpty(trivia)) {
       return null;
     }
 
-    var rawDocstring = ExtractDocstring(token, leadingTrivia);
+    var rawDocstring = ExtractDocstring(trivia);
     foreach (var plugin in plugins) {
       foreach (var docstringRewriter in plugin.GetDocstringRewriters(options)) {
         rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring) ?? rawDocstring;
@@ -185,9 +190,7 @@ public abstract class Node : INode {
     return rawDocstring;
   }
 
-  private string ExtractDocstring(IToken token, bool leadingTrivia) {
-    var trivia = leadingTrivia ? token.LeadingTrivia : token.TrailingTrivia;
-
+  private string ExtractDocstring(string trivia) {
     var extraction = new Regex(
       $@"(?<multiline>(?<indentation>[ \t]*)/\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/)" +
       $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*?)[ \t]*(?:{TriviaFormatterHelper.AnyNewline}|$))");
@@ -247,8 +250,8 @@ public abstract class Node : INode {
   }
 
   // Unfiltered version that only returns the trivia containing the docstring
-  protected virtual (IToken token, bool leadingTrivia) GetDocstringToken() {
-    return (token: Token.NoToken, leadingTrivia: true);
+  protected virtual string GetDocstringToken() {
+    return null;
   }
 }
 

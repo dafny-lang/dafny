@@ -7,7 +7,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat {
+public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring {
   public override string WhatKind => "function";
 
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
@@ -438,22 +438,22 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
   }
 
-  protected override (IToken token, bool leadingTrivia) GetDocstringToken() {
+  protected override string GetDocstringToken() {
     if (Body == null) {
       if (EndToken.TrailingTrivia.Trim() != "") {
-        return (EndToken, false);
+        return EndToken.TrailingTrivia;
       }
 
       if (StartToken.LeadingTrivia.Trim() != "") {
-        return (StartToken, true);
+        return StartToken.LeadingTrivia;
       }
     } else if (Body.StartToken.Prev.Prev is var tokenWhereTrailingIsDocstring &&
               tokenWhereTrailingIsDocstring.TrailingTrivia.Trim() != "") {
-      return (tokenWhereTrailingIsDocstring, false);
+      return tokenWhereTrailingIsDocstring.TrailingTrivia;
     } else if (StartToken is var tokenWhereLeadingIsDocstring &&
         tokenWhereLeadingIsDocstring.LeadingTrivia.Trim() != "") {
-      return (tokenWhereLeadingIsDocstring, true);
+      return tokenWhereLeadingIsDocstring.LeadingTrivia;
     }
-    return (Token.NoToken, false);
+    return null;
   }
 }

@@ -365,7 +365,7 @@ iterator Iter2(x: int) yields (y: int)
             Assert.NotNull(targetNode);
           }
 
-          var docString = targetNode.GetDocString(options);
+          var docString = targetNode.GetDocstring(options);
           Assert.Equal(expectedDocstring, docString);
         }
       }
