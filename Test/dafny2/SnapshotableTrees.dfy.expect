@@ -1,5 +1,3 @@
-SnapshotableTrees.dfy(459,4): Error: a postcondition could not be proved on this return path
-SnapshotableTrees.dfy(457,17): Related location: this is the postcondition that could not be proved
 SnapshotableTrees.dfy(71,25): Error: a precondition for this call could not be proved
 SnapshotableTrees.dfy(610,15): Related location: this is the precondition that could not be proved
 

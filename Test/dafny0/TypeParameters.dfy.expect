@@ -12,7 +12,7 @@ TypeParameters.dfy(144,4): Related location
 TypeParameters.dfy(144,14): Related location
 TypeParameters.dfy(161,11): Error: assertion could not be proved
 TypeParameters.dfy(146,7): Related location
-TypeParameters.dfy(175,14): Error: this loop invariant might not be maintained by the loop
+TypeParameters.dfy(175,14): Error: this invariant could not be proved to be maintained by the loop
 TypeParameters.dfy(175,37): Related location
 TypeParameters.dfy(175,14): Related message: loop invariant violation
 TypeParameters.dfy(175,37): Related location

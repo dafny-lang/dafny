@@ -10,7 +10,7 @@ ControlStructures.dfy(238,29): Error: assertion could not be proved
 ControlStructures.dfy(241,16): Error: assertion could not be proved
 ControlStructures.dfy(350,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 ControlStructures.dfy(381,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-ControlStructures.dfy(448,16): Error: this loop invariant might not be maintained by the loop
+ControlStructures.dfy(448,16): Error: this invariant could not be proved to be maintained by the loop
 ControlStructures.dfy(448,16): Related message: loop invariant violation
 
 Dafny program verifier finished with 18 verified, 13 errors

@@ -10,9 +10,9 @@ CustomErrorMesage.dfy(32,0): Error: a postcondition could not be proved on this 
 CustomErrorMesage.dfy(31,85): Related location: cannot establish that return value of bar is always negative
 CustomErrorMesage.dfy(42,63): Error: this loop invariant could not be proved on entry
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
-CustomErrorMesage.dfy(42,63): Error: this loop invariant might not be maintained by the loop
+CustomErrorMesage.dfy(42,63): Error: this invariant could not be proved to be maintained by the loop
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
-CustomErrorMesage.dfy(43,63): Error: this loop invariant might not be maintained by the loop
+CustomErrorMesage.dfy(43,63): Error: this invariant could not be proved to be maintained by the loop
 CustomErrorMesage.dfy(43,63): Related message: output array doesn't match input arry
 
 Dafny program verifier finished with 1 verified, 9 errors

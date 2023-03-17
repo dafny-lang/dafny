@@ -261,7 +261,7 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 1 assertion."
       );
     }
@@ -277,7 +277,7 @@ method f(x: int) {
       await AssertHoverMatches(documentItem, (0, 7),
         @"**Verification performance metrics for method `f`**:
 
-- Total resource usage: 8K RU  
+- Total resource usage: ??? RU  
 - Only one [assertion batch](???) containing 2 assertions."
       );
     }
