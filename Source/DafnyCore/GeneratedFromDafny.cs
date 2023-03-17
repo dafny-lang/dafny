@@ -13,15 +13,8 @@ namespace Formatting {
   public interface IIndentationFormatter {
     System.String GetNewLeadingTrivia(Microsoft.Dafny.IToken token);
     System.String GetNewTrailingTrivia(Microsoft.Dafny.IToken token);
-    void GetNewLeadingTrailingTrivia(Microsoft.Dafny.IToken token, out System.String newLeadingTrivia, out System.String newTrailingTrivia);
   }
   public class _Companion_IIndentationFormatter {
-    public static void GetNewLeadingTrailingTrivia(Formatting.IIndentationFormatter _this, Microsoft.Dafny.IToken token, out System.String newLeadingTrivia, out System.String newTrailingTrivia) {
-      newLeadingTrivia = default(System.String);
-      newTrailingTrivia = default(System.String);
-      newLeadingTrivia = (_this).GetNewLeadingTrivia(token);
-      newTrailingTrivia = (_this).GetNewTrailingTrivia(token);
-    }
   }
 
   public partial class __default {
@@ -34,20 +27,17 @@ namespace Formatting {
       sb = _nw0;
       while ((token) != (object)((Microsoft.Dafny.IToken)null)) {
         System.String newLeadingTrivia;
+        newLeadingTrivia = (reindent).GetNewLeadingTrivia(token);
         System.String newTrailingTrivia;
-        System.String _out0;
-        System.String _out1;
-        (reindent).GetNewLeadingTrailingTrivia(token, out _out0, out _out1);
-        newLeadingTrivia = _out0;
-        newTrailingTrivia = _out1;
+        newTrailingTrivia = (reindent).GetNewTrailingTrivia(token);
         (sb).Append(newLeadingTrivia);
         (sb).Append(token.val);
         (sb).Append(newTrailingTrivia);
         token = token.Next;
       }
-      System.String _out2;
-      _out2 = (sb).ToString().ToString();
-      s = _out2;
+      System.String _out0;
+      _out0 = (sb).ToString().ToString();
+      s = _out0;
       return s;
     }
   }
