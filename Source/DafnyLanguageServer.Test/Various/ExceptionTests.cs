@@ -105,8 +105,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return verifier.GetVerificationTasksAsync(document, cancellationToken);
     }
 
-    public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
-
     public void Dispose() {
       verifier?.Dispose();
     }
