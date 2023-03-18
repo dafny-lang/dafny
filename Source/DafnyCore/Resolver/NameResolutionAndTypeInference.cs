@@ -5048,7 +5048,7 @@ namespace Microsoft.Dafny {
               var prevErrorCount = reporter.Count(ErrorLevel.Error);
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
-              // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
+              // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);

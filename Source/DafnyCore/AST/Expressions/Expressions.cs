@@ -18,7 +18,7 @@ public abstract class Expression : TokenNode {
 
   [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
-    return Type != null;
+    return PreType != null || Type != null;
   }
 
   public Expression Resolved {
@@ -934,6 +934,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, 
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
   [FilledInDuringResolution] public bool IsCoCall;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1702,6 +1703,12 @@ public class UnaryOpExpr : UnaryExpr {
     }
 
     return _ResolvedOp;
+  }
+
+  public void SetResolveOp(ResolvedOpcode resolvedOpcode) {
+    Contract.Assert(resolvedOpcode != ResolvedOpcode.YetUndetermined);
+    Contract.Assert(_ResolvedOp == ResolvedOpcode.YetUndetermined || _ResolvedOp == resolvedOpcode);
+    _ResolvedOp = resolvedOpcode;
   }
 
   public UnaryOpExpr(IToken tok, Opcode op, Expression e)
@@ -2815,6 +2822,28 @@ public class CasePattern<VT> : TokenNode
       dtValue.Ctor = this.Ctor;  // resolve here
       dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
       dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
+      this.Expr = dtValue;
+    }
+  }
+
+  /// <summary>
+  /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
+  /// to Expr.
+  /// </summary>
+  public void AssembleExprPreType(List<PreType> dtvPreTypeArgs) {
+    Contract.Requires(Var != null || dtvPreTypeArgs != null);
+    if (Var != null) {
+      Contract.Assert(this.Id == this.Var.Name);
+      this.Expr = new IdentifierExpr(this.tok, this.Var) {
+        PreType = this.Var.PreType
+      };
+    } else {
+      var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
+        Ctor = this.Ctor,
+        PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
+      };
+      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs); // resolve here
       this.Expr = dtValue;
     }
   }

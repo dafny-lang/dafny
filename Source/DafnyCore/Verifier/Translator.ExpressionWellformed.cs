@@ -752,6 +752,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(arg, wfOptions, locals, builder, etran);
           }
           // Cannot use the datatype's formals, so we substitute the inferred type args:
+          Contract.Assert(dtv.Ctor.EnclosingDatatype.TypeArgs.Count == dtv.InferredTypeArgs.Count);
           var su = new Dictionary<TypeParameter, Type>();
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
             su[p.Item1] = p.Item2;

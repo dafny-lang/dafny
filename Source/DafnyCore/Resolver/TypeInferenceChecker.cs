@@ -112,7 +112,6 @@ partial class Resolver {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          var what = lhs is IdentifierExpr ? $"variable '{((IdentifierExpr)lhs).Name}'" : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
         }
       }
