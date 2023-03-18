@@ -191,16 +191,17 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
-public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
-}
+// Unused code
+//public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+//                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
+//  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+//  parser.la = new Token();
+//  parser.la.val = "";
+//  parser.Get();
+//  Expression e;
+//  parser.Expression(out e, true, true, true);
+//  return e;
+//}
 
 public void ApplyOptionsFromAttributes(Attributes attrs) {
   var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
@@ -364,10 +365,10 @@ bool IsGets() {
   return la.kind == _gets;
 }
 
-bool IsVar() {
+bool IsPeekVar() {
   scanner.ResetPeek();
   IToken x = scanner.Peek();
-  return la.kind == _var || (x.kind == _var && la.kind == _ghost);
+  return x.kind == _var;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -4501,12 +4502,12 @@ ParensExpression<out Expression e>
 TupleArgs<.List<ActualBinding> args.>
 = (. ActualBinding binding; bool isGhost = false; .)
   // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
-  [ IF(la.kind == _ghost && !IsVar())
+  [ IF(la.kind == _ghost && !IsPeekVar())
     "ghost"                             (. isGhost = true; .)
   ]
   ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
   { ","                                 (. isGhost = false; .)
-    [ IF(la.kind == _ghost && !IsVar())
+    [ IF(la.kind == _ghost && !IsPeekVar())
       "ghost"                           (. isGhost = true; .)
     ]
     ActualBinding<out binding, isGhost> (. args.Add(binding); .)

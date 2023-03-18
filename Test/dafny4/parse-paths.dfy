@@ -1,4 +1,7 @@
 // RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny -?
+// RUN: %baredafny -h
+// RUN: %baredafny --help
 
 // Checks unicode symbols
 method m1() {
