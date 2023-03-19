@@ -250,7 +250,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
-    public List<string> FoldersToFormat { get; } = new();
+    public bool AllowSourceFolders = false;
+    public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -264,6 +265,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public Command Command = null;
     public bool Format = false;
     public bool FormatCheck = false;
 

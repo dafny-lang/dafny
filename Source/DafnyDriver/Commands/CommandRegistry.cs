@@ -36,6 +36,7 @@ static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new TranslateCommand());
     AddCommand(new FormatCommand());
+    AddCommand(new DocCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(new ServerCommand());
     AddCommand(new TestCommand());
@@ -100,7 +101,7 @@ static class CommandRegistry {
     }
     dafnyOptions.UsingNewCli = true;
 
-    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
+    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
     foreach (var command in commandToSpec.Keys) {
       rootCommand.AddCommand(command);
     }
@@ -109,6 +110,7 @@ static class CommandRegistry {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
+      dafnyOptions.Command = command;
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {

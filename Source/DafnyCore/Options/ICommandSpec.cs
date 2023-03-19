@@ -27,6 +27,12 @@ public interface ICommandSpec {
     DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
 
+  public static IEnumerable<Option> DocOptions => new Option[] {
+    CommonOptionBag.Verbose,
+    CommonOptionBag.Output,
+    DeveloperOptionBag.UseBaseFileName
+  }.Concat(ResolverOptions);
+
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,

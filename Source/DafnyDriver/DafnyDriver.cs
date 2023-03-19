@@ -284,8 +284,8 @@ namespace Microsoft.Dafny {
             options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {nameToShow} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
-        } else if (options.Format && Directory.Exists(file)) {
-          options.FoldersToFormat.Add(file);
+        } else if (options.AllowSourceFolders && Directory.Exists(file)) {
+          options.SourceFolders.Add(file);
         } else if (!isDafnyFile) {
           if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
             options.Printer.ErrorWriteLine(Console.Out,
@@ -305,15 +305,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0) {
-        if (!options.Format) {
+      if (dafnyFiles.Count == 0 && options.SourceFolders.Count == 0) {
+        if (!options.AllowSourceFolders) {
           options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
-        }
-
-        if (options.FoldersToFormat.Count == 0) {
-          options.Printer.ErrorWriteLine(Console.Out,
-            "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
+        } else {
+          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files or folders");
+          //options.Printer.ErrorWriteLine(Console.Out,
+          //  "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
@@ -391,7 +390,10 @@ namespace Microsoft.Dafny {
       Program dafnyProgram;
       string err;
       if (Options.Format) {
-        return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName);
+        return DoFormatting(dafnyFiles, Options.SourceFolders, reporter, programName);
+      }
+      if (Options.Command.Name == "doc") {
+        return DafnyDoc.DoDocumenting(dafnyFiles, Options.SourceFolders, reporter, programName, reporter.Options);
       }
 
       err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
