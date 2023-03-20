@@ -71,13 +71,7 @@ jobs:
       run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
-    ## Create a simple smoke test program
-    - name: Make test program
-      run: |
-        echo 'method Main() { assert true; print 42, "\n"; }' > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
-    ## Check that dafny and z3 run and that a simple program verifies or fails
+    ## Record versions, checking that executables run
     - name: Versions
       run: |
         z3 -version
@@ -93,40 +87,13 @@ jobs:
       if: "${{ steps.dafny.outputs.release != '' }}"
       run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
       shell: bash
-    - name: Check
-      run: dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check bad
-      run: dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
-    - name: Check C# compile
-      run: |
-        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-    - name: Check Go compile
-      run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go | diff expect.txt -
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        $Env:GO111MODULE="auto"
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Javascript compile
+    - name: run quicktests
       run: |
         npm install bignumber.js
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java compile
-      run: |
-        dafny build -t:java a.dfy
-        java -jar a.jar > actual.txt
-        diff expect.txt actual.txt
+        dafny/quicktest.sh > log.txt
+        diff log.txt dafny/quicktest.out
+
 
   test-dafny-libraries:
 
