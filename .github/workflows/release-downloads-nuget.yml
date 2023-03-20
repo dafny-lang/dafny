@@ -94,7 +94,6 @@ jobs:
         dafny/quicktest.sh > log.txt
         diff log.txt dafny/quicktest.out
 
-
   test-dafny-libraries:
 
     runs-on: ${{ matrix.os }}
