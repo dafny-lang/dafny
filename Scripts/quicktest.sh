@@ -18,28 +18,30 @@ echo Should fail
 $DAFNY verify --use-basename-for-filename  b.dfy
 echo Compiling on C#
 $DAFNY run -t:cs c.dfy
-echo Compiling to Javascript
+echo Compiling on Javascript
 $DAFNY run -t:js c.dfy
-echo Compiling to Java
+echo Compiling on Java
 $DAFNY run -t:java c.dfy
-echo Compiling to Go
+echo Compiling on Go
 $DAFNY run -t:go c.dfy
-echo Compiling to Python
+echo Compiling on Python
 $DAFNY run -t:py c.dfy
 echo Building on C#
+rm -rf c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json
 $DAFNY build -t:cs c.dfy
 dotnet c.dll
-echo Building to Javascript
+echo Building on Javascript
 $DAFNY build -t:js c.dfy
 node c.js
-echo Building to Java
+echo Building on Java
 $DAFNY build -t:java c.dfy
 java -jar c.jar
-echo Building to Go
+echo Building on Go
 $DAFNY build -t:go c.dfy
+./c
 (cd c-go; GO111MODULE=auto GOPATH=`pwd` go run src/c.go)
-echo Building to Python
+echo Building on Python
 $DAFNY build -t:py c.dfy
 python c-py/c.py
 
-rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe
+rm -rf a.dfy b.dfy c.dfy c-go c-java c-py c.jar c c.dll c.exe c.js c.runtimeconfig.json

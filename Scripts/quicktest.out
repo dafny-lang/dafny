@@ -1,3 +1,4 @@
+Using: Scripts/dafny
 Should succeed
 
 Dafny program verifier finished with 1 verified, 0 errors
@@ -9,19 +10,19 @@ Compiling on C#
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Javascript
+Compiling on Javascript
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Java
+Compiling on Java
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Go
+Compiling on Go
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Python
+Compiling on Python
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
@@ -29,19 +30,20 @@ Building on C#
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Building to Javascript
+Building on Javascript
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Building to Java
+Building on Java
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Building to Go
+Building on Go
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Building to Python
+(42, 131)
+Building on Python
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
