@@ -193,7 +193,7 @@ namespace Microsoft.Dafny {
           // this is a regular return/yield statement.
           s.HiddenUpdate = null;
         } else {
-          var cmc = resolutionContext as IMethodCodeContext;
+          var cmc = resolutionContext.AsMethodCodeContext;
           if (cmc == null) {
             // an error has already been reported above
           } else if (cmc.Outs.Count != s.Rhss.Count) {
@@ -1029,9 +1029,9 @@ namespace Microsoft.Dafny {
         firstType = s.Rhs.Type;
       }
 
-      if ((resolutionContext as Method).Outs.Count == 0 && s.KeywordToken == null) {
+      if ((resolutionContext.AsMethod).Outs.Count == 0 && s.KeywordToken == null) {
         ReportError(s.Tok, "A method containing a :- statement must have an out-parameter ({0})",
-          (resolutionContext as Method).Name);
+          (resolutionContext.AsMethod).Name);
         return;
       }
       if (firstType != null) {
@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny {
 
       Expression lhsExtract = null;
       if (expectExtract) {
-        Method caller = resolutionContext as Method;
+        Method caller = resolutionContext.AsMethod;
         if (caller != null && caller.Outs.Count == 0 && s.KeywordToken == null) {
           ReportError(s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
             caller.Name);
