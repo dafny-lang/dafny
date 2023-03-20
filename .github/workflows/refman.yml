@@ -70,9 +70,8 @@ jobs:
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
-        brew update-reset && brew update
         brew install pandoc
-        brew install --cask mactex-no-gui
+        brew install --cask mactex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
