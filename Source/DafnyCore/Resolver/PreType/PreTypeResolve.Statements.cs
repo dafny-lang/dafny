@@ -736,6 +736,8 @@ namespace Microsoft.Dafny {
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
+
+        ResolveAttributes(rhs, resolutionContext, false);
       }
 
       // figure out what kind of UpdateStmt this is
