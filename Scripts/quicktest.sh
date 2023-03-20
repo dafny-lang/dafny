@@ -2,7 +2,7 @@
 
 echo "method m() { assert 1+1 == 2; }" > a.dfy
 echo "method m() { assert 1+1 == 3; }" > b.dfy
-echo "method Main() { print (42,131), '\n'; }" > c.dfy
+echo 'method Main() { print (42,131), "\n"; }' > c.dfy
 
 DIR="$(dirname ${BASH_SOURCE[0]})"
 if [ -n "$1" ]; then

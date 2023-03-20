@@ -58,7 +58,7 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(OrigLit);
+    return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, OrigLit);
   }
 
   public override IEnumerable<Node> Children => new[] { OrigLit };

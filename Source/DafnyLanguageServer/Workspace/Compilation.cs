@@ -101,6 +101,9 @@ public class Compilation {
 
   private async Task<DocumentAfterTranslation> TranslateAsync() {
     var parsedCompilation = await ResolvedDocument;
+    if (!options.Verify) {
+      throw new OperationCanceledException();
+    }
     if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
       throw new OperationCanceledException();
     }
@@ -123,9 +126,9 @@ public class Compilation {
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
     if (loaded.ParseAndResolutionDiagnostics.Any(d =>
-          d.Severity == DiagnosticSeverity.Error &&
-          d.Source != MessageSource.Compiler.ToString() &&
-          d.Source != MessageSource.Verifier.ToString())) {
+          d.Level == ErrorLevel.Error &&
+          d.Source != MessageSource.Compiler &&
+          d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
 
@@ -139,10 +142,10 @@ public class Compilation {
       try {
         if (task.CacheStatus is Completed completed) {
           var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status,
-            GetDiagnosticsFromResult(loaded, completed.Result));
+            GetDiagnosticsFromResult(loaded, completed.Result).ToList());
           initialViews.Add(implementationId, view);
         } else {
-          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<Diagnostic>());
+          var view = new ImplementationView(task.Implementation.tok.GetLspRange(), status, Array.Empty<DafnyDiagnostic>());
           initialViews.Add(implementationId, view);
         }
       } catch (ArgumentException) {
@@ -275,13 +278,13 @@ public class Compilation {
           new AssertionBatchResult(implementationTask.Implementation, result));
       }
 
-      var diagnostics = GetDiagnosticsFromResult(document, verificationResult);
+      var diagnostics = GetDiagnosticsFromResult(document, verificationResult).ToList();
       var view = new ImplementationView(implementationRange, status, diagnostics);
       document.ImplementationIdToView[id] = view;
       document.GutterProgressReporter.ReportEndVerifyImplementation(implementationTask.Implementation, verificationResult);
     } else {
       var existingView = document.ImplementationIdToView.GetValueOrDefault(id) ??
-                         new ImplementationView(implementationRange, status, Array.Empty<Diagnostic>());
+                         new ImplementationView(implementationRange, status, Array.Empty<DafnyDiagnostic>());
       document.ImplementationIdToView[id] = existingView with { Status = status };
     }
 
@@ -290,8 +293,8 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<Diagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(document.TextDocumentItem.Text, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -301,7 +304,8 @@ public class Compilation {
       errorReporter.ReportBoogieError(outcomeError);
     }
 
-    return errorReporter.GetDiagnostics(document.Uri).OrderBy(d => d.Range.Start).ToList();
+    var diagnostics = errorReporter.GetDiagnostics(document.Uri);
+    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
   private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
@@ -360,8 +364,8 @@ public class Compilation {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedDocument;
     if (parsedDocument.Diagnostics.Any(diagnostic =>
-          diagnostic.Severity == DiagnosticSeverity.Error &&
-          diagnostic.Source == MessageSource.Parser.ToString()
+          diagnostic.Level == ErrorLevel.Error &&
+          diagnostic.Source == MessageSource.Parser
         )) {
       return null;
     }

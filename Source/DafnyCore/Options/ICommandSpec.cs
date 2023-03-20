@@ -40,6 +40,7 @@ public interface ICommandSpec {
     CommonOptionBag.SolverResourceLimit,
     CommonOptionBag.SolverPlugin,
     CommonOptionBag.SolverLog,
+    CommonOptionBag.JsonDiagnostics
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -74,6 +75,7 @@ public interface ICommandSpec {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.ErrorLimit,
   });
 

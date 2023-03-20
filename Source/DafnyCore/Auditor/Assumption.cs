@@ -43,6 +43,10 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
     mitigation: "Provide a body.",
     isExplicit: false
   );
+  public static AssumptionDescription HasConcurrentAttribute = new(
+    issue: "Declaration has [{:concurrent}] attribute.",
+    mitigation: "Manually review and test in a concurrent setting.",
+    isExplicit: false);
 
   public static AssumptionDescription NoBody(bool isGhost) {
     return new(

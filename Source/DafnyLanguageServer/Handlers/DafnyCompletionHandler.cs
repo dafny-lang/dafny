@@ -17,11 +17,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
     private readonly ISymbolGuesser symbolGuesser;
+    private DafnyOptions options;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents,
+      ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;
       this.symbolGuesser = symbolGuesser;
+      this.options = options;
     }
 
     protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
@@ -46,20 +49,22 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList();
       }
       logger.LogDebug($"Completion params retrieved document state with version {document.Version}");
-      return new CompletionProcessor(symbolGuesser, document, request, cancellationToken).Process();
+      return new CompletionProcessor(symbolGuesser, document, request, cancellationToken, options).Process();
     }
 
     private class CompletionProcessor {
+      private DafnyOptions options;
       private readonly ISymbolGuesser symbolGuesser;
       private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, IdeState state, CompletionParams request, CancellationToken cancellationToken) {
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, IdeState state, CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
         this.symbolGuesser = symbolGuesser;
         this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
+        this.options = options;
       }
 
       public CompletionList Process() {
@@ -112,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Label = symbol.Name,
           Kind = GetCompletionKind(symbol),
           InsertText = GetCompletionText(symbol),
-          Detail = (symbol as ILocalizableSymbol)?.GetDetailText(cancellationToken)
+          Detail = (symbol as ILocalizableSymbol)?.GetDetailText(options, cancellationToken)
         };
       }
 

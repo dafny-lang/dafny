@@ -21,18 +21,19 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
-      ProgramModification.ResetStatistics();
-      var modifications = GetModifications(program).ToList();
+      program.Reporter.Options.PrintMode = PrintModes.Everything;
+
+      var cache = new Modifications();
+      var modifications = GetModifications(cache, program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
 
       // Generate tests based on counterexamples produced from modifications
       for (var i = modifications.Count - 1; i >= 0; i--) {
-        await modifications[i].GetCounterExampleLog();
+        await modifications[i].GetCounterExampleLog(cache);
         var deadStates = new HashSet<string>();
-        if (!modifications[i].IsCovered) {
+        if (!modifications[i].IsCovered(cache)) {
           deadStates = modifications[i].CapturedStates;
         }
 
@@ -54,9 +55,10 @@ namespace DafnyTestGeneration {
     }
 
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile) {
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      var options = DafnyOptions.Create();
+      options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(source, sourceFile);
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
@@ -66,22 +68,23 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
+      var options = program.Options;
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Translate the Program to Boogie:
-      var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
-      DafnyOptions.O.PrintInstrumented = true;
+      var oldPrintInstrumented = options.PrintInstrumented;
+      options.PrintInstrumented = true;
       var boogiePrograms = Translator
         .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
-      DafnyOptions.O.PrintInstrumented = oldPrintInstrumented;
+      options.PrintInstrumented = oldPrintInstrumented;
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
-        DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
-          ? new PathBasedModifier()
-          : new BlockBasedModifier();
+        options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
+          ? new PathBasedModifier(cache)
+          : new BlockBasedModifier(cache);
       return programModifier.GetModifications(boogiePrograms, dafnyInfo);
     }
 
@@ -91,19 +94,21 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
-      ProgramModification.ResetStatistics();
+      var options = program.Options;
+      options.PrintMode = PrintModes.Everything;
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
-      foreach (var modification in GetModifications(program)) {
+      var cache = new Modifications();
+      var programModifications = GetModifications(cache, program).ToList();
+      foreach (var modification in programModifications) {
 
-        var log = await modification.GetCounterExampleLog();
+        var log = await modification.GetCounterExampleLog(cache);
         if (log == null) {
           continue;
         }
-        var testMethod = await modification.GetTestMethod(dafnyInfo);
+        var testMethod = await modification.GetTestMethod(cache, dafnyInfo);
         if (testMethod == null) {
           continue;
         }
@@ -117,10 +122,11 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      DafnyOptions.O.PrintMode = PrintModes.Everything;
+      var options = DafnyOptions.Create();
+      options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
-      var source = new StreamReader(sourceFile).ReadToEnd();
-      var program = Utils.Parse(source, sourceFile);
+      var source = await new StreamReader(sourceFile).ReadToEndAsync();
+      var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield break;
       }
