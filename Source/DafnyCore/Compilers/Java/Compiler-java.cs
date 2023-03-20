@@ -2622,30 +2622,48 @@ namespace Microsoft.Dafny.Compilers {
       coerceE1 = false;
 
       void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
-        out string postOpS, out string callS) {
+        out string postOpS, out string callS, out string staticCallS) {
         if (AsNativeType(resultType) != null) {
           var nativeName = GetNativeTypeName(AsNativeType(resultType));
-          preOpS = $"({nativeName}) {CastIfSmallNativeType(resultType)} (";
-          opS = o;
-          postOpS = ")";
-          callS = null;
+          if (o == ">>>" && resultType.AsBitVectorType is { Width: var width and (8 or 16 or 32 or 64) }) {
+            // Solves https://github.com/dafny-lang/dafny/issues/3734
+            preOpS = CastIfSmallNativeType(resultType);
+            opS = null;
+            postOpS = "";
+            callS = null;
+            staticCallS = $"{DafnyHelpersClass}.bv{width}ShiftRight";
+          } else if (o == "<<" && resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
+            // Solves https://github.com/dafny-lang/dafny/issues/3734
+            preOpS = CastIfSmallNativeType(resultType);
+            opS = null;
+            postOpS = "";
+            callS = null;
+            staticCallS = $"{DafnyHelpersClass}.bv{width2}ShiftLeft";
+          } else {
+            preOpS = $"({nativeName}) {CastIfSmallNativeType(resultType)} (";
+            opS = o;
+            postOpS = ")";
+            callS = null;
+            staticCallS = null;
+          }
         } else {
           callS = name;
           preOpS = "";
           opS = null;
           postOpS = "";
+          staticCallS = null;
         }
       }
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          doPossiblyNativeBinOp("&", "and", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp("&", "and", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          doPossiblyNativeBinOp("|", "or", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp("|", "or", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          doPossiblyNativeBinOp("^", "xor", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp("^", "xor", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
@@ -2726,12 +2744,12 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           truncateResult = true;
           convertE1_to_int = AsNativeType(e1.Type) == null;
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          doPossiblyNativeBinOp(">>>", "shiftRight", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp(">>>", "shiftRight", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           convertE1_to_int = AsNativeType(e1.Type) == null;
           break;
         case BinaryExpr.ResolvedOpcode.Add:
@@ -2741,7 +2759,7 @@ namespace Microsoft.Dafny.Compilers {
             postOpString = ")";
             opString = "+";
           } else {
-            doPossiblyNativeBinOp("+", "add", out preOpString, out opString, out postOpString, out callString);
+            doPossiblyNativeBinOp("+", "add", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
@@ -2751,11 +2769,11 @@ namespace Microsoft.Dafny.Compilers {
             opString = "-";
             postOpString = ")";
           } else {
-            doPossiblyNativeBinOp("-", "subtract", out preOpString, out opString, out postOpString, out callString);
+            doPossiblyNativeBinOp("-", "subtract", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
-          doPossiblyNativeBinOp("*", "multiply", out preOpString, out opString, out postOpString, out callString);
+          doPossiblyNativeBinOp("*", "multiply", out preOpString, out opString, out postOpString, out callString, out staticCallString);
           truncateResult = true;
           break;
         case BinaryExpr.ResolvedOpcode.Div:
@@ -3417,7 +3435,8 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw new dafny.DafnyHaltException(");
       if (tok != null) {
-        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+        EmitStringLiteral(ErrorReporter.TokenToString(tok) + ": ", true, wr);
+        wr.Write(" + ");
       }
 
       EmitToString(wr, messageExpr, wStmts);

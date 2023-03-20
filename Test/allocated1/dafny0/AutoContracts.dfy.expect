@@ -1,27 +1,27 @@
 The /allocated:<n> option is deprecated
-AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(12,20): Related location
-AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(12,20): Related location
-AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(12,20): Related location
-AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(12,20): Related location
-AutoContracts.dfy(50,4): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(49,24): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
-AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(50,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(49,24): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy[N1](65,20): Related location
-AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
-AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
+AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy[N1](65,20): Related location
 
 Dafny program verifier finished with 37 verified, 9 errors

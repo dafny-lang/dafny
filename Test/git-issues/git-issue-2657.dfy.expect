@@ -1,4 +1,4 @@
-git-issue-2657.dfy(9,7): Error: A precondition for this call might not hold.
-git-issue-2657.dfy(5,13): Related location: This is the precondition that might not hold.
+git-issue-2657.dfy(9,7): Error: a precondition for this call could not be proved
+git-issue-2657.dfy(5,13): Related location: this is the precondition that could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error
