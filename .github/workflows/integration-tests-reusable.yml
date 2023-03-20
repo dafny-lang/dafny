@@ -94,7 +94,6 @@ jobs:
       run: pip install lit OutputCheck pyyaml
     - uses: actions/setup-node@v3
     - run: npm install bignumber.js
-
     - name: Checkout Dafny
       uses: actions/checkout@v3
       with:
