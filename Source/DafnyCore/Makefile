@@ -20,4 +20,4 @@ test: build-regenerated-from-dafny
 	(diff $(GENERATED_FROM_DAFNY) $(REGENERATED_FROM_DAFNY) && rm $(REGENERATED_FROM_DAFNY)) || (rm $(REGENERATED_FROM_DAFNY) && (exit 1))
 
 check-format:
-	$(DAFNY) format . --check
+	../../Scripts/dafny format . --check
