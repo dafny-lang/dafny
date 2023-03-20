@@ -71,6 +71,7 @@ jobs:
       if: runner.os == 'MacOS'
       run: |
         brew update
+        brew upgrade
         brew install pandoc
         brew install --cask basictex
         eval "$(/usr/libexec/path_helper)"
