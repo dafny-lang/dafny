@@ -1827,7 +1827,9 @@ in which case it is legal for both `int` and `int32`.
 
 An additional point with respect to arithmetic overflow is that for (signed)
 `int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
-can also overflow the bounds of the `int32` type.
+can also overflow the bounds of the `int32` type. So you could also write:
+```dafny
+var mid := hi/2 - lo/2;
 
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a
