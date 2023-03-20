@@ -1274,13 +1274,11 @@ namespace Microsoft.Dafny {
           ReportError(tok, $"Wrong number of type arguments ({n} instead of {decl.TypeArgs.Count}) passed to {decl.WhatKind}: {name}");
         }
       }
-      List<Type> tpArgs = new List<Type>();
-      for (int i = 0; i < decl.TypeArgs.Count; i++) {
-        tpArgs.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
+      var typeArguments = new List<Type>();
+      for (var i = 0; i < decl.TypeArgs.Count; i++) {
+        typeArguments.Add(i < n ? optTypeArguments[i] : new InferredTypeProxy());
       }
-      return new Resolver_IdentifierExpr(tok, decl, tpArgs) {
-        PreType = Type2PreType(new UserDefinedType(tok, decl.Name, decl, tpArgs).NormalizeExpand())
-      };
+      return new Resolver_IdentifierExpr(tok, decl, typeArguments);
     }
 
     private bool ResolveDatatypeConstructor(NameSegment expr, List<ActualBinding>/*?*/ args, ResolutionContext resolutionContext, bool complain,

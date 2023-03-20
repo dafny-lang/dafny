@@ -1202,6 +1202,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Decl = decl;
     TypeArgs = typeArgs;
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
   public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
     : this(tok, tp, new List<Type>()) {
