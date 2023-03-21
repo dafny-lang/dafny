@@ -1416,6 +1416,20 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
+Note that although a type synonym can be declared and used in place of a type name, 
+that does not affect the names of datatype or class constructors.
+For example, consider
+<!-- %check-resolve Types.22.expect -->
+```dafny
+datatype Pair<T> = Pair(first: T, second: T)
+type IntPair = Pair<int>
+
+const p: IntPair := Pair(1,2) // OK
+const q: IntPair := IntPair(3,4) // Error
+```
+
+In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
+
 ### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
 Examples:
@@ -1810,6 +1824,14 @@ code fragment can be rewritten as
 var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
+
+An additional point with respect to arithmetic overflow is that for (signed)
+`int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
+can also overflow the bounds of the `int32` type. So you could also write:
+<!-- %no-check -->
+```dafny
+var mid := lo + (hi/2 - lo/2);
+```
 
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a
