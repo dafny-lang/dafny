@@ -506,6 +506,16 @@ axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,ly) } AtLayer(f
 axiom (forall<A> f : [LayerType]A, ly : LayerType :: { AtLayer(f,$LS(ly)) } AtLayer(f,$LS(ly)) == AtLayer(f,ly));
 
 // ---------------------------------------------------------------
+// -- Opaqueness encoding ----------------------------------------
+// ---------------------------------------------------------------
+
+function CanRevealFuel(LayerType, bool) : LayerType;
+
+axiom (forall $ly: LayerType :: 
+  { CanRevealFuel($LS($ly), true) }
+  CanRevealFuel($LS($ly), true) == $LS(CanRevealFuel($ly, true)));
+
+// ---------------------------------------------------------------
 // -- Fields -----------------------------------------------------
 // ---------------------------------------------------------------
 

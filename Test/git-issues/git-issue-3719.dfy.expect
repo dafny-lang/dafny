@@ -1,2 +1,4 @@
+git-issue-3719.dfy(13,9): Error: assertion might not hold
+git-issue-3719.dfy(8,35): Related location
 
-Dafny program verifier finished with TODO verified, TODO errors
+Dafny program verifier finished with 3 verified, 1 error
