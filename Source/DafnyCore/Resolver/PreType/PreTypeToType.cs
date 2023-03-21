@@ -125,7 +125,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     if (casePattern.Var != null) {
       UpdateIfOmitted(casePattern.Var.Type, casePattern.Var.PreType);
     }
-    PostVisitOneExpression(casePattern.Expr, context);
+    VisitExpression(casePattern.Expr, context);
 
     if (casePattern.Arguments != null) {
       casePattern.Arguments.ForEach(v => VisitPattern(v, context));
@@ -142,13 +142,17 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       tRhs.Type = PreType2Type(tRhs.PreType);
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
       foreach (var lhs in assignSuchThatStmt.Lhss) {
-        PostVisitOneExpression(lhs, context);
+        VisitExpression(lhs, context);
       }
     } else if (stmt is ProduceStmt produceStmt) {
-      PostVisitOneStatement(produceStmt.HiddenUpdate, context);
+      if (produceStmt.HiddenUpdate != null) {
+        VisitStatement(produceStmt.HiddenUpdate, context);
+      }
     } else if (stmt is CalcStmt calcStmt) {
       // The expression in each line has been visited, but pairs of those lines are then put together to
-      // form steps. These steps (are always boolean, and) need to be visited, too.
+      // form steps. These steps (are always boolean, and) need to be visited, too. Their subexpressions
+      // have already been visited, so it suffices to call PostVisitOneExpression (instead of VisitExpression)
+      // here.
       foreach (var step in calcStmt.Steps) {
         PostVisitOneExpression(step, context);
       }
