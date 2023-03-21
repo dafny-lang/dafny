@@ -433,11 +433,16 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
-There are currently no other options specific to the `dafny test` command.
+`dafny test` also accepts these options:
+
+- `-spill-translation` - (default disabled) when enabled the compilation artifacts are retained
+- `--output` - gives the folder and filename root for compilation artifacts
+- `--methods-to-test` - the value is a (.NET) regular expression that is matched against the fully
+  qualified name of the method; only those methods that match are tested
 
 The order in which the tests are run is not specified.
 
@@ -473,6 +478,17 @@ M.q: 42
 PASSED
 A.t: T
 PASSED
+m: mm
+Hi!
+PASSED
+```
+
+and this command-line
+```bash
+dafny test --no-verify --methods-to-test='m' t.dfy
+```
+produce this output text:
+```text
 m: mm
 Hi!
 PASSED
