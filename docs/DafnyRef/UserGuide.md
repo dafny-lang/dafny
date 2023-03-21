@@ -487,7 +487,7 @@ and this command-line
 ```bash
 dafny test --no-verify --methods-to-test='m' t.dfy
 ```
-produce this output text:
+produces this output text:
 ```text
 m: mm
 Hi!
