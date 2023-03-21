@@ -11,19 +11,19 @@ is called. So how do I tell Dafny that it can be modified?
 Here is an example situation:
 ```dafny
 class WrapArray {
-  var intarray:array<int>; 
+  var intarray: array<int>; 
   constructor (i:int) 
-    requires i>0
+    requires i > 0
   {
-      this.intarray := new int[i];
+    this.intarray := new int[i];
   }
   method init(i: int)
     modifies intarray
   {
-   var index:int:=0;
-   while (index<intarray.Length){
-      intarray[index]:=i;
-      index:=index+1;
+    var index: int := 0;
+    while (index < intarray.Length){
+      intarray[index] := i;
+      index := index+1;
     }
   }
 }
