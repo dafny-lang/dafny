@@ -102,7 +102,7 @@ jobs:
 ##    - name: Install latex pandoc
 ##      run: |
 ##        brew install pandoc
-##        brew install --cask basictex
+##        brew install --cask mactex
 ##        eval "$(/usr/libexec/path_helper)"
 ##        sudo tlmgr update --self
 ##        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
