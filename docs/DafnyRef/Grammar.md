@@ -180,15 +180,14 @@ Such comments contain natural language descriptions of program elements and may 
 by IDEs and documentation generation tools to present information to users.
 
 In Dafny programs.
-* Documentation comments are recommended to begin with `/**`, though some 
-  comments that begin with `//` or /*` are also interpreted as doc-comments
-* Doc-comments may be associated with any declaration, including type definitions and export declarations.
+* Documentation comments (a) either begin with `/**` or (b) begin with `//` or /*` in specific locations
+* Doc-comments may be associated with any declaration, including type definitions, export declarations, and datatype constructors.
 * They may be placed before or after the declaration. 
    * If before, it must be a `/**` comment and may not have any blank or white-space lines between the comment
      and the declaration.
-   * If after any comments are placed after the signature (with no intervening lines), but before any
-     specifications or left-brace that starts a body, and may be `//` or `/**` comments.
-   * If doc-comments are in both places the content is concatenated.
+   * If after, any comments are placed after the signature (with no intervening lines), but before any
+     specifications or left-brace that starts a body, and may be `//` or `/**` or `/*` comments.
+   * If doc-comments are in both places, only the comments after the declaration are used.
 * Doc-comments after the declaration are preferred.
 * If the first of a series of single-line or multi-line comments is interpreted as a doc-string, then any subsequent comments
   are appended to it, so long as there are no intervening lines, whether blank, all white-space or containing program text.
