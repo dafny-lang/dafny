@@ -159,7 +159,6 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
   };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
-    IsHidden = true
   };
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
     "Treat warnings as errors.");
