@@ -167,12 +167,6 @@ public class Compilation {
     }
     translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
       verificationTasks.Select(t => t.Implementation).ToArray());
-
-    var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
-
-    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
-      implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
-    cancellationToken.Register(() => subscription.Dispose());
     return translated;
   }
 
@@ -200,6 +194,7 @@ public class Compilation {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
+          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
@@ -261,6 +256,11 @@ public class Compilation {
     logger.LogDebug($"Received status {boogieStatus} for {implementationTask.Implementation.Name}");
     if (boogieStatus is Running) {
       document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
+    }
+
+    if (boogieStatus is BatchCompleted batchCompleted) {
+      document.GutterProgressReporter.ReportAssertionBatchResult(
+        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
     }
 
     if (boogieStatus is Completed completed) {
