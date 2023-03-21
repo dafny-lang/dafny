@@ -88,13 +88,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
 
   protected override void PostVisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is FunctionCallExpr functionCallExpr) {
-      Contract.Assert(functionCallExpr.TypeApplication_AtEnclosingClass == null);
-      Contract.Assert(functionCallExpr.TypeApplication_JustFunction == null);
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2Type);
       functionCallExpr.TypeApplication_JustFunction = functionCallExpr.PreTypeApplication_JustFunction.ConvertAll(PreType2Type);
     } else if (expr is MemberSelectExpr memberSelectExpr) {
-      Contract.Assert(memberSelectExpr.TypeApplication_AtEnclosingClass == null);
-      Contract.Assert(memberSelectExpr.TypeApplication_JustMember == null);
       memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2Type);
       memberSelectExpr.TypeApplication_JustMember = memberSelectExpr.PreTypeApplication_JustMember.ConvertAll(PreType2Type);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
@@ -105,35 +101,24 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         VisitPattern(lhs, context);
       }
     } else if (expr is DatatypeValue datatypeValue) {
-      Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0);
-      foreach (var preTypeArgument in datatypeValue.InferredPreTypeArgs) {
-        datatypeValue.InferredTypeArgs.Add(PreType2Type(preTypeArgument));
+      Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
+      if (datatypeValue.InferredTypeArgs.Count == 0) {
+        foreach (var preTypeArgument in datatypeValue.InferredPreTypeArgs) {
+          datatypeValue.InferredTypeArgs.Add(PreType2Type(preTypeArgument));
+        }
       }
     }
 
-    if (expr.PreType is not UnusedPreType) {
+    if (expr.PreType is UnusedPreType) {
+      expr.Type = new InferredTypeProxy();
+    } else {
       expr.Type = PreType2Type(expr.PreType);
     }
     base.PostVisitOneExpression(expr, context);
-  }
 
-  protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
-    if (stmt is VarDeclStmt varDeclStmt) {
-      UpdateTypeOfVariables(varDeclStmt.Locals);
-    } else if (stmt is VarDeclPattern varDeclPattern) {
-      UpdateTypeOfVariables(varDeclPattern.LocalVars);
-      VisitPattern(varDeclPattern.LHS, context);
-    } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
-      Contract.Assert(tRhs.Type == null);
-      tRhs.Type = PreType2Type(tRhs.PreType);
-    } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
-      foreach (var lhs in assignSuchThatStmt.Lhss) {
-        Contract.Assert(lhs.Type == null);
-        lhs.Type = PreType2Type(lhs.PreType);
-      }
+    if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
+      VisitExpression(resolvedExpression, context);
     }
-
-    return base.VisitOneStatement(stmt, context);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
@@ -148,15 +133,36 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
-    if (stmt is CalcStmt calcStmt) {
+    if (stmt is VarDeclStmt varDeclStmt) {
+      UpdateTypeOfVariables(varDeclStmt.Locals);
+    } else if (stmt is VarDeclPattern varDeclPattern) {
+      UpdateTypeOfVariables(varDeclPattern.LocalVars);
+      VisitPattern(varDeclPattern.LHS, context);
+    } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
+      tRhs.Type = PreType2Type(tRhs.PreType);
+    } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
+      foreach (var lhs in assignSuchThatStmt.Lhss) {
+        PostVisitOneExpression(lhs, context);
+      }
+    } else if (stmt is ProduceStmt produceStmt) {
+      PostVisitOneStatement(produceStmt.HiddenUpdate, context);
+    } else if (stmt is CalcStmt calcStmt) {
       // The expression in each line has been visited, but pairs of those lines are then put together to
       // form steps. These steps (are always boolean, and) need to be visited, too.
       foreach (var step in calcStmt.Steps) {
         PostVisitOneExpression(step, context);
       }
       PostVisitOneExpression(calcStmt.Result, context);
+    } else if (stmt is ForallStmt forallStmt) {
+      UpdateTypeOfVariables(forallStmt.BoundVars);
     }
 
     base.PostVisitOneStatement(stmt, context);
+
+    if (stmt is UpdateStmt updateStmt) {
+      foreach (var ss in updateStmt.ResolvedStatements) {
+        VisitStatement(ss, context);
+      }
+    }
   }
 }

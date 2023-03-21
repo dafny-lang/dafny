@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
       var t = Normalize();
       if (!(t is DPreType pt)) {
         return false;
-      } else if (pt.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0) {
+      } else if (PreTypeResolver.HasTraitSupertypes(pt)) {
         return false;
       }
       // Now, it comes down to the type arguments
