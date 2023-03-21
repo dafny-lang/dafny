@@ -8,6 +8,8 @@ namespace Microsoft.Dafny;
 public class TestCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
+      CommonOptionBag.Output,
+      CommonOptionBag.SpillTranslation
     }.Concat(ICommandSpec.ExecutionOptions).
       Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);

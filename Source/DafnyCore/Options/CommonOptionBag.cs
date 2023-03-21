@@ -154,6 +154,13 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
   };
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
+  public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
+    "When parsing use basename of file for tokens instead of the path supplied on the command line") {
+  };
+  public static readonly Option<bool> SpillTranslation = new("--spill-translation",
+    @"In case the Dafny source code is translated to another language, emit that translation.") {
+    IsHidden = true
+  };
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
     "Treat warnings as errors.");
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
@@ -197,6 +204,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
@@ -246,6 +254,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+    DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
