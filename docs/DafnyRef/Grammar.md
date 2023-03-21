@@ -173,6 +173,99 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
+## 2.5. Documentation comments
+
+Like many other languages, Dafny permits _documentation comments_ in a program file.
+Such comments contain natural language descriptions of program elements and may be used
+by IDEs and documentation generation tools to present information to users.
+
+In Dafny programs.
+* Documentation comments are recommended to begin with `/**`, though some 
+  comments that begin with `//` or /*` are also interpreted as doc-comments
+* Doc-comments may be associated with any declaration, including type definitions and export declarations.
+* They may be placed before or after the declaration. 
+   * If before, it must be a `/**` comment and may not have any blank or white-space lines between the comment
+     and the declaration.
+   * If after any comments are placed after the signature (with no intervening lines), but before any
+     specifications or left-brace that starts a body, and may be `//` or `/**` comments.
+   * If doc-comments are in both places the content is concatenated.
+* Doc-comments after the declaration are preferred.
+* If the first of a series of single-line or multi-line comments is interpreted as a doc-string, then any subsequent comments
+  are appended to it, so long as there are no intervening lines, whether blank, all white-space or containing program text.
+* Within a multi-line doc-comment, on any line after the first one, 
+    * initial white-space is removed from the string if followed by a '*/'
+    * if there is initial white-space followed by a '*' or '* ', the white-space and
+      star and the optional space or tab character are removed
+    * the opening `/**` (plus any immediately following `*` characters and the closing
+      `*/` along with any immediately preceding '*' characters are also not part of the
+      documentation string
+* The documentation string is interpreted as plain text, but it is possible to provide a user-written
+  plugin that provides other interpretations. VSCode as used by Dafny interprets any markdown
+  syntax in the doc-string.
+
+Here are examples:
+<!-- %resolve -->
+```dafny
+const c0 := 8
+/** docstring about c0 */
+
+/** docstring about c1 */
+const c1 := 8
+
+/** first line of docstring */
+const c2 := 8
+/** second line of docstring */
+
+const c3 := 8
+// docstring about c3
+// on two lines
+
+const c4 := 8
+
+// just a comment
+
+
+// just a comment
+const c5 := 8
+
+```
+
+Datatype constructors may also have comments:
+<!-- %resolve -->
+```dafany
+datatype T =  // Docstring for T
+  | A(x: int,
+      y: int) // Docstring for A
+  | B()       /* Docstring for B */ |
+    C()       // Docstring for C
+
+/** Docstring for T0*/
+datatype T0 =
+  | /** Docstring for A */
+    A(x: int,
+      y: int)
+  | /** Docstring for B */
+    B()
+  | /** Docstring for C */
+    C()
+```
+
+As can `export` declarations:
+<!-- %resolve -->
+```dafny
+export
+  // This is the eponymous export set intended for most clients
+  provides A, B, C
+
+
+export Friends extends M
+  // This export set is for clients who need to know more of the
+  // details of the module's definitions.
+  reveals A
+  provides D
+```
+
+
 ## 2.5. Tokens ([grammar](#sec-g-tokens)) {#sec-tokens}
 
 The Dafny tokens are defined in this section.
