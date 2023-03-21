@@ -211,7 +211,7 @@ Example: `1_234_567`.
 
 A `hexdigits` token denotes a hexadecimal constant, and is a sequence of hexadecimal digits (`hexdigit`)
 prefaced by `0x` and
- possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `0xffff_ffff`.
 
 A `decimaldigits` token is a decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
