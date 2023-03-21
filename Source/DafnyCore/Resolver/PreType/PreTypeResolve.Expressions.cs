@@ -328,7 +328,7 @@ namespace Microsoft.Dafny {
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         Contract.Assert(false); // this case is always handled by ResolveExprDotCall
-#if TODO
+#if PROBABLY_NEVER
         ResolveFunctionCallExpr(e, resolutionContext);
 #endif
 

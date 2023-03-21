@@ -85,9 +85,10 @@ namespace Microsoft.Dafny {
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
           typeArgs => new BitvectorType(resolver.Options, width));
-        resolver.AddRotateMember(bvDecl, "RotateLeft", new SelfType());
-        resolver.AddRotateMember(bvDecl, "RotateRight", new SelfType());
-        decl = bvDecl;
+        preTypeBuiltins.Add(name, bvDecl);
+        AddRotateMember(bvDecl, "RotateLeft", width);
+        AddRotateMember(bvDecl, "RotateRight", width);
+        return bvDecl;
       } else {
         foreach (var valueTypeDecl in resolver.valuetypeDecls) {
           if (valueTypeDecl.Name == name) {
@@ -110,6 +111,25 @@ namespace Microsoft.Dafny {
       }
       preTypeBuiltins.Add(name, decl);
       return decl;
+    }
+
+    public void AddRotateMember(ValuetypeDecl enclosingType, string name, int width) {
+      var argumentType = resolver.builtIns.Nat();
+      var formals = new List<Formal> {
+        new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
+          PreType = Type2PreType(argumentType)
+        }
+      };
+      var resultType = new BitvectorType(resolver.Options, width);
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.builtIns.SystemModule, false, false,
+        new List<TypeParameter>(), formals, resultType,
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null) {
+        EnclosingClass = enclosingType,
+        ResultPreType = Type2PreType(resultType)
+      };
+      rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
+      enclosingType.Members.Add(name, rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -158,8 +178,6 @@ namespace Microsoft.Dafny {
       type = type.Normalize();
       if (type is TypeProxy) {
         return CreatePreTypeProxy(description ?? $"from type proxy {type}");
-      } else if (type is SelfType) {
-        return CreatePreTypeProxy("self type"); // TODO: handle this differently
       }
 
       DPreType printablePreType = null;
@@ -180,7 +198,7 @@ namespace Microsoft.Dafny {
 
     TopLevelDecl Type2PreTypeDecl(Type type) {
       Contract.Requires(type != null);
-      Contract.Requires(type is NonProxyType && !(type is SelfType));
+      Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;
       if (type is BoolType) {
         decl = BuiltInTypeDecl("bool");
