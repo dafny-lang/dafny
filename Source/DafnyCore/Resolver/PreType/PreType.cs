@@ -270,11 +270,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(preTypeResolver != null);
 
       var decl = Decl;
-#if SOON
       if (decl is InternalTypeSynonymDecl isyn) {
-        decl = isyn.RhsWithArgumentIgnoringScope(Arguments) as UserDefinedType;
+        var rhsType = isyn.Rhs as UserDefinedType;
+        // we expect the .RHS of an InternalTypeSynonymDecl to be a UserDefinedType whose type arguments
+        // are exactly the type parameters
+        Contract.Assert(rhsType != null);
+        var cl = rhsType.ResolvedClass;
+        Contract.Assert(isyn.TypeArgs.Count == cl.TypeArgs.Count);
+        for (var i = 0; i < isyn.TypeArgs.Count; i++) {
+          var typeParameter = isyn.TypeArgs[i];
+          Contract.Assert(typeParameter == cl.TypeArgs[i]);
+          Contract.Assert(rhsType.TypeArgs[i] is UserDefinedType { ResolvedClass: var tpDecl } && tpDecl == typeParameter);
+        }
+        decl = cl;
       }
-#endif
       if (decl == parent) {
         return this;
       }
