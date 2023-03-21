@@ -176,7 +176,7 @@ public abstract class Node : INode {
   public abstract RangeToken RangeToken { get; set; }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected string GetTriviaContainingDocstringFromStartTokeOrNull() {
+  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
     if (matches.Count > 0) {
       return matches[^1].Value;
@@ -219,11 +219,10 @@ public abstract class Node : INode {
       var match = matches[i];
       if (match.Groups["multiline"].Success) {
         // For each line except the first,
-        // we need to remove the indentation up to the first "/" of the comment
+        // we need to remove the indentation on every line.
+        // The length of removed indentation is maximum the space before the first "/*" + 3 characters
         // Additionally, if there is a "* " or a " *" or a "  * ", we remove it as well
         // provided it always started with a star.
-        //var startIndex = match.Groups["multiline"].Index;
-        //var indentation = trivia.
         var indentation = match.Groups["indentation"].Value;
         var multilineContent = match.Groups["multilinecontent"].Value;
         var newlineRegex = new Regex(TriviaFormatterHelper.AnyNewline);

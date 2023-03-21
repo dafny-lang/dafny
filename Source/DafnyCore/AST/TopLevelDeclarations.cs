@@ -394,7 +394,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 // Represents module X { ... }
@@ -614,7 +614,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
       return Tok.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -1517,7 +1517,7 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -1737,7 +1737,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
       }
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -1871,7 +1871,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -2107,7 +2107,7 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -2282,7 +2282,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -2399,7 +2399,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 

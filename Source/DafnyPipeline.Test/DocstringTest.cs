@@ -79,12 +79,12 @@ function Test9(i: int): int /*
 function Test10(i: int): int
   /* Test10 computes an int
       It takes an int and adds 10 to it */
-{ i + 1 }
+{ i + 10 }
 
 function Test11(i: int): int
   /** Test11 computes an int
     *  It takes an int and adds 11 to it */
-{ i + 1 }
+{ i + 11 }
 ", Enumerable.Range(1, 9).Select(i =>
         ($"Test{i}", (string?)$"Test{i} computes an int\nIt takes an int and adds {i} to it")
         ).Concat(
@@ -168,7 +168,7 @@ class X {
     public void DocstringWorksForSubsetType() {
       DocstringWorksFor(@"
 type Odd = x: int | x % 2 == 1 witness 1
-// Type of number that are not divisible by 2 
+// Type of numbers that are not divisible by 2 
 
 /** Type of numbers divisible by 2 */
 type Even = x: int | x % 2 == 1 witness 1
@@ -215,7 +215,7 @@ type OpaqueType2
 {
 }
 ", new List<(string nodeTokenValue, string? expectedDocstring)> {
-        ("Odd", "Type of number that are not divisible by 2"),
+        ("Odd", "Type of numbers that are not divisible by 2"),
         ("Even", "Type of numbers divisible by 2"),
         ("Weird", "Type of numbers whose remainder modulo 2 or 3 is the same"),
         ("Digit", "A single digit"),

@@ -179,7 +179,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
       return EndToken.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 

@@ -494,6 +494,6 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
       return lastClosingParenthesis.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }

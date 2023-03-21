@@ -349,6 +349,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       return lastClosingParenthesis.TrailingTrivia;
     }
 
-    return GetTriviaContainingDocstringFromStartTokeOrNull();
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
