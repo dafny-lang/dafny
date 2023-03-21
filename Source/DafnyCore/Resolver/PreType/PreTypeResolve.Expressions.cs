@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          ReportError(expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.Decl.Name, ri.Decl.WhatKind);
+          ReportError(expr.tok, $"member '{name}' does not exist in {ri.Decl.WhatKind} '{ri.Decl.Name}'");
         }
 
       } else if (lhs != null) {

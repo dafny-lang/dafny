@@ -1734,7 +1734,7 @@ public class CoDatatypeDecl : DatatypeDecl {
 /// Its primary function is to hold the formal type parameters and built-in members of these types.
 /// </summary>
 public class ValuetypeDecl : TopLevelDecl {
-  public override string WhatKind { get { return Name; } }
+  public override string WhatKind { get { return "type"; } }
   public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
   readonly Func<Type, bool> typeTester;
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
