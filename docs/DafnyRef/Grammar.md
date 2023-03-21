@@ -192,7 +192,7 @@ In Dafny programs.
 * If the first of a series of single-line or multi-line comments is interpreted as a doc-string, then any subsequent comments
   are appended to it, so long as there are no intervening lines, whether blank, all white-space or containing program text.
 * The extraction of the doc-string from a multiline comment follow these rules 
-  * On the first line, an optional `*` right after `/*`and an optional space are removed, if present
+  * On the first line, an optional `*` right after `/*` and an optional space are removed, if present
   * On other lines, the indentation space (with possibly one star in it) is removed, as if the content was supposed to align with A if the comment started with `/** A` for example.
 * The documentation string is interpreted as plain text, but it is possible to provide a user-written
   plugin that provides other interpretations. VSCode as used by Dafny interprets any markdown
