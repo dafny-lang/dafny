@@ -2,6 +2,7 @@ name: Build and Test
 
 on:
   workflow_dispatch:
+  push:
   pull_request:
     branches: [ master, main-* ]
 
@@ -73,12 +74,39 @@ jobs:
       all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
       num_shards: 5
 
+  doctest-coverage:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Checkout Dafny
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Load Z3
+      run: |
+        sudo apt-get install -qq libarchive-tools
+        mkdir -p dafny/Binaries/z3/bin
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
+        mv z3-* dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-*
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Measure coverage from doc tests
+      run: |
+        cd dafny/docs
+        chmod +x ./check-examples
+        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-*.md
+
   test-coverage-analysis:
     runs-on: ubuntu-20.04
     # Don't include in run-deep-tests, because those tests run on
     # release builds instead of source packages.
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
-    needs: [xunit-tests, integration-tests]
+    needs: [xunit-tests, integration-tests, doctest-coverage ]
     steps:
       # Check out Dafny so that highlighted source is possible
       - name: Checkout Dafny

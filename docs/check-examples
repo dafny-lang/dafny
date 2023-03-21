@@ -67,8 +67,14 @@
 ##   check
 
 dir=$(dirname "${BASH_SOURCE[0]}")
-dafny="$dir/../Scripts/dafny"
+dafny=`(cd "$dir/../Scripts" && pwd)`/dafny
+cov=$1
+if [ "$1" == "-coverage" ]; then
+  shift 1
+fi
+echo $dafny
 
+nc=1
 defaultCommand=
 defaultExit=
 defaultLang=
@@ -200,7 +206,6 @@ do
       if [ "$command" == "%no-check" ]; then
         echo -n ""
       elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
-        capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
           ##cat $text
@@ -237,10 +242,12 @@ do
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
         else
-          if [ "$capture" == "2" ]; then
-            "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
-          elif [ "$com" == "%check-legacy" ]; then
+          if [ "$com" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
+          elif [ "$cov" == "-coverage" ]; then
+            dotnet coverage collect -o doctests.$nc.coverage "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
+            let nc++
+            continue
           else
             "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
           fi
@@ -328,7 +335,13 @@ do
           fi
         fi
       elif [ "$command" == "%check-error" ]; then
-        "$dafny" resolve -useBaseNameForFileName --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
+        if [ "$cov" == "-coverage" ]; then
+          dotnet coverage colleddt -o doctest.$nc.coverage "$dafny" resolve -useBaseNameForFileName --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
+          let nc++
+          continue
+        else 
+          "$dafny" resolve -useBaseNameForFileName --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
+        fi
         act=`cat actual`
 	dif=`echo "$act" | sed -e "s/$msg//"`
         if [ -n "$dif" ] ; then
