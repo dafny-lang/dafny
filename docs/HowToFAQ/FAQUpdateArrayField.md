@@ -4,7 +4,8 @@ title: How do I tell Dafny that a class field may be updated?
 
 ## Question
 
-I have a field in a class that is ian array whose elements are being modified by a call, but the field does not exist when the enclosing method
+I get a "call might violate context's modifies clause" in the following context.
+I have a field in a class that is is an array whose elements are being modified by a call, but the field does not exist when the enclosing method
 is called. So how do I tell Dafny that it can be modified?
 
 Here is an example situation:
