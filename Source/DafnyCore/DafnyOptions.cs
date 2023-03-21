@@ -290,6 +290,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public string MethodsToTest = null;
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;

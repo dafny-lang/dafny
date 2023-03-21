@@ -2,10 +2,16 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny; 
 
 public class RunAllTestsMainMethod : IRewriter {
+
+  /** The name used for Main when executing tests. Should be a name that cannot be a Dafny name,
+      that Dafny will not use as a mangled Dafny name for any backend, and that is not likely
+      to be chosen by the user as an extern name. **/
+  public static string SyntheticTestMainName = "_Test__Main_";
 
   public RunAllTestsMainMethod(ErrorReporter reporter) : base(reporter) {
   }
@@ -19,17 +25,12 @@ public class RunAllTestsMainMethod : IRewriter {
   /// errors much earlier in the pipeline.
   /// </summary>
   internal override void PreResolve(Program program) {
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
-    if (hasMain) {
-      Reporter.Error(MessageSource.Rewriter, mainMethod.tok, "Cannot use /runAllTests on a program with a main method");
-      return;
-    }
 
     // Verifying the method isn't yet possible since the translation of try/recover statments is not implemented,
     // and would be low-value anyway.
     var noVerifyAttribute = new Attributes("verify", new List<Expression> { new LiteralExpr(Token.NoToken, false) }, null);
 
-    mainMethod = new Method(RangeToken.NoToken, new Name("Main"), false, false,
+    var mainMethod = new Method(RangeToken.NoToken, new Name(SyntheticTestMainName), false, false,
       new List<TypeParameter>(), new List<Formal>(), new List<Formal>(),
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
@@ -98,6 +99,12 @@ public class RunAllTestsMainMethod : IRewriter {
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
+          var regex = program.Options.MethodsToTest;
+          if (regex != null) {
+            string name = method.FullDafnyName;
+            if (!Regex.Match(name, regex).Success) continue;
+          }
+
           // print "TestMethod: ";
           mainMethodStatements.Add(Statement.CreatePrintStmt(tok,
             Expression.CreateStringLiteral(tok, $"{method.FullDafnyName}: ")));
