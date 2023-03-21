@@ -2161,7 +2161,7 @@ How do I model extern methods that return objects?
 ## Answer:
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
-It's better to have a predicate that takes the input of a function, an object, and relates the two together.
+It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.
 
 For example:
 
@@ -2184,8 +2184,8 @@ trait {:extern} {:compile false} Importer {
 }
 ```
 
-In this case, it's better to write a predicate, and use existential quantifiers along with the :| operator, 
-and there no need to prove uniqueness because we are in ghost code!
+In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
+and there is no need to prove uniqueness because we are in ghost code!
 
 ```dafny
 trait {:extern} {:compile false} Test {
@@ -2205,30 +2205,32 @@ trait {:extern} {:compile false} Importer {
   }
 }
 ```
+
 # How do I tell Dafny that a class field may be updated?
 
 
 ## Question
 
-I have a field in a class that is ian array whose elements are being modified by a call, but the field does not exist when the enclosing method
+I get a "call might violate context's modifies clause" in the following context.
+I have a field in a class that is is an array whose elements are being modified by a call, but the field does not exist when the enclosing method
 is called. So how do I tell Dafny that it can be modified?
 
 Here is an example situation:
 ```dafny
 class WrapArray {
-  var intarray:array<int>; 
+  var intarray: array<int>; 
   constructor (i:int) 
-    requires i>0
+    requires i > 0
   {
-      this.intarray := new int[i];
+    this.intarray := new int[i];
   }
   method init(i: int)
     modifies intarray
   {
-   var index:int:=0;
-   while (index<intarray.Length){
-      intarray[index]:=i;
-      index:=index+1;
+    var index: int := 0;
+    while (index < intarray.Length){
+      intarray[index] := i;
+      index := index+1;
     }
   }
 }
