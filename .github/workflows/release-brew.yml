@@ -28,6 +28,10 @@ jobs:
         node --version
         java -version
         python --version
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
     - name: Perform smoke tests on each platform
       run: |
         wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh
