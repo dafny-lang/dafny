@@ -70,6 +70,7 @@ jobs:
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
+        brew update-reset && brew update
         brew install pandoc
         brew install --cask basictex
         eval "$(/usr/libexec/path_helper)"
