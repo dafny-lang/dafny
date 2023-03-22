@@ -101,6 +101,7 @@ jobs:
 ## Skip building RM until brew install pandoc is working once more
     - name: Install latex pandoc
       run: |
+        brew update-reset && brew update
         brew install pandoc
         brew install --cask mactex
         eval "$(/usr/libexec/path_helper)"
