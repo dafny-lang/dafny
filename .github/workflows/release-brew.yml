@@ -32,12 +32,18 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    ## The smoke tests were upgraded to be a script that internally
-    ## checks results after 4.0. Up through 4.0, the script relied on
-    ## visual check of the results.
-    - name: Perform smoke tests on each platform
+    ## To be consistent, the download should be tested with the quicktest.sh corresponding to
+    ## that release. But earlier releases relied on inline tests. So for up through 4.0,
+    ## we downliad quicktest.sh from the repo -- which will eventually fail if the quicktest
+    ## evolves beyond the capabilities of old versions.
+    ## But post-4.0, the script is part of the release and internally checks its results.
+    - name: Perform smoke tests on each platform (up through 4.0.0)
       run: |
         npm install bignumber.js
-        cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh .
+        if [ "`dafny -version`" < "4.0.0.99999" ]; then \
+          wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh; \
+        else \
+          cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh . ;\
+        fi
         chmod +x quicktest.sh
         ./quicktest.sh `which dafny`
