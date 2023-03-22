@@ -99,7 +99,13 @@ jobs:
       run: |
         cd dafny/docs
         chmod +x ./check-examples
-        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-Parser.mda HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
+        PATH=../bin:$PATH ./check-examples -coverage HowToFAQ/Errors-Parser.mda HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: doctest-coverage-results-${{ matrix.os }}
+        path: dafny/docs/doctests.*.coverage
+`
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
@@ -140,6 +146,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: unit-test-results-ubuntu-20.04
+
+      - name: Download doctest coveage artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: doctest-coveage-results-ubuntu-20.04
 
       - name: Merge reports
         run: |

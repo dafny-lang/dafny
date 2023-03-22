@@ -9,6 +9,7 @@ namespace Microsoft.Dafny;
 public class ParseErrors {
 
   public enum ErrorId {
+    None,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
