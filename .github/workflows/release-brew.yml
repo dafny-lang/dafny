@@ -32,13 +32,12 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+    ## The smoke tests were upgraded to be a script that internally
+    ## checks results after 4.0. Up through 4.0, the script relied on
+    ## visual check of the results.
     - name: Perform smoke tests on each platform
       run: |
-        find / -name 'quicktest.*'
-        wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh
-        wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.out
         npm install bignumber.js
+        cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh .
         chmod +x quicktest.sh
-        ./quicktest.sh `which dafny` | tee tmp
-        sed -i -e 'sx/usr/local/binx../../Scriptsx' tmp
-        diff tmp quicktest.out
+        ./quicktest.sh `which dafny`
