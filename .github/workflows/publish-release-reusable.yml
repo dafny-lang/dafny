@@ -142,5 +142,5 @@ jobs:
         prerelease: ${{ inputs.prerelease }}
         files: |
           dafny/Package/dafny-${{ inputs.name }}*
-##          dafny/docs/DafnyRef/DafnyRef.pdf
+###         dafny/docs/DafnyRef/DafnyRef.pdf
         fail_on_unmatched_files: false
