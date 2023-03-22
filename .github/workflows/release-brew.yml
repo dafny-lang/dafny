@@ -37,13 +37,15 @@ jobs:
     ## we downliad quicktest.sh from the repo -- which will eventually fail if the quicktest
     ## evolves beyond the capabilities of old versions.
     ## But post-4.0, the script is part of the release and internally checks its results.
-    - name: Perform smoke tests on each platform (up through 4.0.0)
+    - name: Perform smoke tests on each platform
       run: |
         npm install bignumber.js
         if [ "`dafny -version`" < "4.0.0.99999" ]; then \
           wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh; \
+          echo "4.0 or prior"
         else \
           cp /usr/local/Cellar/dafny/*/libexec/quicktest.sh . ;\
+          echo "Post 4.0" ;\
         fi
         chmod +x quicktest.sh
         ./quicktest.sh `which dafny`
