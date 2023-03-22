@@ -315,6 +315,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool IncludeRuntime = true;
+    public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public int Allocated = 4;
     public bool UseStdin = false;
@@ -327,7 +328,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static string DefaultZ3Version = "4.12.1";
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
+      new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
     public List<Plugin> AdditionalPlugins = new();
