@@ -39,4 +39,5 @@ jobs:
         npm install bignumber.js
         chmod +x quicktest.sh
         ./quicktest.sh `which dafny` | tee tmp
+        sed -i -e 'sx/usr/local/binx../../Scriptsx' tmp
         diff tmp quicktest.out
