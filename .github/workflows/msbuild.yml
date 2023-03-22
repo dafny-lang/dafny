@@ -107,7 +107,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: always()
       with:
-        name: doctest-coverage-results-${{ matrix.os }}
+        name: doctest-coverage-results
         path: dafny/docs/doctests.*.coverage
 
   test-coverage-analysis:
@@ -153,7 +153,7 @@ jobs:
       - name: Download doctest coveage artifacts
         uses: actions/download-artifact@v3
         with:
-          name: doctest-coverage-results-ubuntu-20.04
+          name: doctest-coverage-results
 
       - name: Merge reports
         run: |
