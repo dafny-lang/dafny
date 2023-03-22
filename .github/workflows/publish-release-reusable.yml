@@ -110,21 +110,21 @@ jobs:
 ##        which latex || echo NOT FOUND latex
 ##        which xelatex || echo NOT FOUND xelatex
 ##        sudo gem install rouge -v 3.30.0
-##    - name: Clean Dafny
-##      run: dotnet clean dafny/Source/Dafny.sln
-##    # First we build the ZIPs (which do not include the refman)
-##    - name: Package release files (release)
-##      if: ${{ !inputs.prerelease }}
-##      run: |
-##        python dafny/Scripts/package.py ${{ inputs.name }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
-##    - name: Package release files (prerelease)
-##      if: ${{ inputs.prerelease }}
-##      run: |
-##        python dafny/Scripts/package.py ${{ inputs.name }} --trial=true --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
-##    # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
-##    # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
-##    # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
-##    # a platform-specific directory), we build Dafny once here.
+    - name: Clean Dafny
+      run: dotnet clean dafny/Source/Dafny.sln
+    # First we build the ZIPs (which do not include the refman)
+    - name: Package release files (release)
+      if: ${{ !inputs.prerelease }}
+      run: |
+        python dafny/Scripts/package.py ${{ inputs.name }} --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+    - name: Package release files (prerelease)
+      if: ${{ inputs.prerelease }}
+      run: |
+        python dafny/Scripts/package.py ${{ inputs.name }} --trial=true --skip_manual=true --github_secret=${{ secrets.GITHUB_TOKEN }}
+    # Then we build the reference manual separately, because that depends on evaluating the path_helper script,
+    # and that perturbs the path enough that `python` above would resolve to an older built-in Python version.
+    # Additionally, since the refman build scripts expect to find Dafny in its usual Binaries/ folder (not in
+    # a platform-specific directory), we build Dafny once here.
 ##    - name: Re-build Dafny
 ##      run: dotnet build dafny/Source/Dafny.sln
 ##    - name: Build reference manual
