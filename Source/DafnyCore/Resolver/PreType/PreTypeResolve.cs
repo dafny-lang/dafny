@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
-    public void AddRotateMember(ValuetypeDecl enclosingType, string name, int width) {
+    public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
       var argumentType = resolver.builtIns.Nat();
       var formals = new List<Formal> {
         new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
@@ -125,11 +125,11 @@ namespace Microsoft.Dafny {
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
-        EnclosingClass = enclosingType,
+        EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
       };
       rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(name, rotateMember);
+      bitvectorTypeDecl.Members.Add(name, rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
