@@ -96,7 +96,7 @@ Furthermore, if the iterator is non-ghost, it cannot be executed if it does not 
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).**
 
-<!-- %check-legacy %options -compile:2 -Main:mmm -->
+<!-- %check-legacy -compile:2 -Main:mmm -->
 ```dafny
 method mmm(i: int) {}
 ```
@@ -115,7 +115,7 @@ Most commonly and for clarity, the intended main method is marked with the attri
 
 ## **Error: Could not find the method named by the -Main option: _name_**
 
-<!-- %check-legacy %options /compile:2 -Main:m -->
+<!-- %check-legacy /compile:2 -Main:m -->
 ```dafny
 class A { static method mm() {} }
 ```

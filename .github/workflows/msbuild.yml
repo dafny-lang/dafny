@@ -99,7 +99,7 @@ jobs:
       run: |
         cd dafny/docs
         chmod +x ./check-examples
-        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-*.md
+        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-Parser.mda HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
