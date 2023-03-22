@@ -105,7 +105,6 @@ jobs:
       with:
         name: doctest-coverage-results-${{ matrix.os }}
         path: dafny/docs/doctests.*.coverage
-`
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
