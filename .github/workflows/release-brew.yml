@@ -63,6 +63,6 @@ jobs:
       run: |
         wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh
         wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.out
-        chmod +x qucktest.sh
+        chmod +x quicktest.sh
         ./quicktest.sh | tee tmp
         diff tmp quicktest.out
