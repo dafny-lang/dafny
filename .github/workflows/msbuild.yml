@@ -81,6 +81,10 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+    - name: Install dotnet-reportgenerator and coverage
+      run: |
+        dotnet tool install --global dotnet-reportgenerator-globaltool
+        dotnet tool install --global dotnet-coverage
     - name: Checkout Dafny
       uses: actions/checkout@v3
       with:
@@ -99,7 +103,7 @@ jobs:
       run: |
         cd dafny/docs
         chmod +x ./check-examples
-        PATH=../bin:$PATH ./check-examples -coverage HowToFAQ/Errors-Parser.mda HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
+        PATH=../bin:$PATH ./check-examples -coverage HowToFAQ/Errors-Parser.md HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
     - uses: actions/upload-artifact@v3
       if: always()
       with:
