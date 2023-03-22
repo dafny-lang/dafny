@@ -143,4 +143,4 @@ jobs:
         files: |
           dafny/Package/dafny-${{ inputs.name }}*
 ##          dafny/docs/DafnyRef/DafnyRef.pdf
-        fail_on_unmatched_files: true
+        fail_on_unmatched_files: false
