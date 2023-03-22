@@ -1,0 +1,4 @@
+* Added `.GetDocstring(DafnyOptions)` to every AST node
+* Plugin support for custom Docstring formatter, 
+* Activatable plugin to support a subset of Javadoc through `--javadoclike-docstring-plugin`
+* Support for displaying docstring in VSCode
