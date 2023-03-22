@@ -34,6 +34,7 @@ jobs:
         python-version: '3.11'
     - name: Perform smoke tests on each platform
       run: |
+        find / -name 'quicktest.*'
         wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh
         wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.out
         npm install bignumber.js
