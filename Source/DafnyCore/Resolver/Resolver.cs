@@ -481,6 +481,10 @@ namespace Microsoft.Dafny {
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
+
+      new PreTypeResolver(this).FillInPreTypesInSignatures(
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ArrowTypeDecl || d is not ClassDecl).ToList());
+
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes =

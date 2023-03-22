@@ -1694,7 +1694,7 @@ namespace Microsoft.Dafny {
                 ReportError(e.tok, "{0} call is not allowed to be used in an expression resolutionContext ({1})", mse.Member.WhatKind, mse.Member.Name);
               }
             } else if (lhs != null) {  // if e.Lhs.Resolved is null, then e.Lhs was not successfully resolved and an error has already been reported
-              ReportError(e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.Type);
+              ReportError(e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.PreType);
             }
           }
           // resolve the arguments, even in the presence of the errors above

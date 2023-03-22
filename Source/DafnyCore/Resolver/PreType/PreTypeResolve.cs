@@ -134,17 +134,10 @@ namespace Microsoft.Dafny {
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
       Contract.Requires(0 <= arity);
-      var name = $"{arity}~>";
+      var name = ArrowType.ArrowTypeName(arity);
       if (!preTypeBuiltins.TryGetValue(name, out var decl)) {
-        var variances = new List<TypeParameter.TPVarianceSyntax>();
-        for (var i = 0; i < arity; i++) {
-          variances.Add(TypeParameter.TPVarianceSyntax.Contravariance);
-        }
-        variances.Add(TypeParameter.TPVarianceSyntax.Covariant_Strict);
-        decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false,
-          typeArguments => new ArrowType(Token.NoToken,
-            typeArguments.GetRange(0, typeArguments.Count - 1),
-            typeArguments.Last()));
+        // the arrow type declaration should already have been created by the parser
+        decl = resolver.builtIns.ArrowTypeDecls[arity];
         preTypeBuiltins.Add(name, decl);
       }
       return decl;
@@ -536,7 +529,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void FillInPreTypesInSignatures(List<TopLevelDecl> declarations) {
+    public void FillInPreTypesInSignatures(List<TopLevelDecl> declarations) {
       void ComputePreType(Formal formal) {
         Contract.Assume(formal.PreType == null); // precondition
         formal.PreType = Type2PreType(formal.Type);
@@ -577,8 +570,7 @@ namespace Microsoft.Dafny {
           foreach (var ctor in dtd.Ctors) {
             ctor.Formals.ForEach(ComputePreType);
           }
-        } else if (d is ClassDecl cl && !cl.IsDefaultClass) {
-          var nntd = cl.NonNullTypeDecl;
+        } else if (d is ClassDecl { IsDefaultClass: false, NonNullTypeDecl: { } nntd }) {
           nntd.Var.PreType = Type2PreType(nntd.Var.Type);
         }
 

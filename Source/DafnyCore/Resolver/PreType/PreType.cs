@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsArrowType(TopLevelDecl decl) {
       Contract.Requires(decl != null);
-      return decl.Name.EndsWith("~>");
+      return ArrowType.IsArrowTypeName(decl.Name);
     }
 
     public static bool IsTupleType(TopLevelDecl decl) {
