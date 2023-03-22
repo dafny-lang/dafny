@@ -10,7 +10,7 @@ if [ -n "$1" ]; then
 else
   DAFNY=$DIR/dafny
 fi
-echo "Using:" $DAFNY
+##echo "Using:" $DAFNY
 
 echo Should succeed
 $DAFNY verify a.dfy
