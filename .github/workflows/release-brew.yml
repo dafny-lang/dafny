@@ -59,3 +59,9 @@ jobs:
         #dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
         #java -cp a:dafny/DafnyRuntime.jar a > actual.txt
         #diff expect.txt actual.txt
+    - name: Perform smoke tests on each platform
+      run: |
+        wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.sh
+        wget https://github.com/dafny-lang/dafny/raw/master/Scripts/quicktest.ou        chmod +x qucktest.sh
+        ./quicktest.sh | tee tmp
+        diff tmp quicktest.out
