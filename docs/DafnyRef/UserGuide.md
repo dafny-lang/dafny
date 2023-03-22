@@ -128,6 +128,7 @@ the command-name must be the first command-line argument.
 The command-line `dafny --help` or `dafny -h` lists all the available commands.
 
 The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular \<command\>, including the list of options.
+Some options for a particular command are intended only for internal tool development; those are shown using the `--help-internal` option instead of `--help`.
 
 Also, the command-style command-line has modernized the syntax of options; they are now POSIX-compliant.
 Like many other tools, options now typically begin with a double hyphen, 

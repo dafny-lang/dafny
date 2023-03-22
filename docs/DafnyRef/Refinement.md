@@ -190,7 +190,7 @@ Formally, a child `method` definition may refine a parent `method`
 declaration or definition by performing one or more of the following
 operations:
 
-* provide a body missing in the parent (as in `ToDefine`),
+* provide a body missing in the parent (as in `ToImplement`),
 * strengthen the postcondition of the parent method by adding one or more
   `ensures` clauses (as in `ToStrengthen`),
 * provide a more deterministic version of a non-deterministic parent
