@@ -169,7 +169,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
 
       type = type.Normalize();
-      if (type is TypeProxy) {
+      var expandedType = type.NormalizeExpand();
+      if (expandedType is TypeProxy) {
         return CreatePreTypeProxy(description ?? $"from type proxy {type}");
       }
 
@@ -183,7 +184,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      type = type.NormalizeExpand();
+      type = expandedType;
       var decl = Type2PreTypeDecl(type);
       var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
       return new DPreType(decl, arguments, printablePreType);
