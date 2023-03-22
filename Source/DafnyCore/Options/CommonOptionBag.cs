@@ -164,6 +164,10 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
 
+  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
+    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
+  );
+
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -197,6 +201,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
+      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });

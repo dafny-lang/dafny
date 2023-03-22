@@ -1,5 +1,5 @@
 ﻿using System.Threading;
-using AstNode = System.Object;
+using AstNode = Microsoft.Dafny.INode;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>

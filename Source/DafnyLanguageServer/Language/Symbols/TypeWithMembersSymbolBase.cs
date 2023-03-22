@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public abstract class TypeWithMembersSymbolBase : Symbol, ILocalizableSymbol {
-    public abstract object Node { get; }
+    public abstract INode Node { get; }
 
     public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
   public abstract class TypeWithMembersSymbolBase<TNode> : TypeWithMembersSymbolBase where TNode : TopLevelDeclWithMembers {
     public TNode Declaration { get; }
-    public override object Node => Declaration;
+    public override Node Node => Declaration;
 
     protected TypeWithMembersSymbolBase(ISymbol? scope, TNode declaration) : base(scope, declaration.Name) {
       Declaration = declaration;
