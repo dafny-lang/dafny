@@ -41,6 +41,12 @@ public abstract class Expression : TokenNode {
     }
   }
 
+  public virtual IEnumerable<Expression> TerminalExpressions {
+    get {
+      yield return this;
+    }
+  }
+
   [FilledInDuringResolution] protected Type type;
   public Type Type {
     get {
@@ -1095,6 +1101,13 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     if (cloner.CloneResolvedFields) {
       Var = cloner.CloneIVariable(original.Var, true);
     }
+  }
+
+  /// <summary>
+  /// Returns whether or not "expr" is an IdentifierExpr for "variable".
+  /// </summary>
+  public static bool Is(Expression expr, IVariable variable) {
+    return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
@@ -2620,6 +2633,14 @@ public class StmtExpr : Expression, ICanFormat {
     }
   }
 
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in E.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
   /// <summary>
   /// Returns a conclusion that S gives rise to, that is, something that is known after
   /// S is executed.
@@ -2655,6 +2676,14 @@ public class ITEExpr : Expression, ICanFormat {
   public readonly Expression Test;
   public readonly Expression Thn;
   public readonly Expression Els;
+
+  public enum ITECompilation {
+    CompileBothBranches,
+    CompileJustThenBranch,
+    CompileJustElseBranch
+  };
+  public ITECompilation HowToCompile = ITECompilation.CompileBothBranches; // updated by CheckIsCompilable during resolution
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Test != null);
@@ -2679,6 +2708,17 @@ public class ITEExpr : Expression, ICanFormat {
       yield return Test;
       yield return Thn;
       yield return Els;
+    }
+  }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in Thn.TerminalExpressions) {
+        yield return e;
+      }
+      foreach (var e in Els.TerminalExpressions) {
+        yield return e;
+      }
     }
   }
 
@@ -3028,6 +3068,14 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get {
       if (ResolvedExpression != null) {
         yield return ResolvedExpression;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in ResolvedExpression.TerminalExpressions) {
+        yield return e;
       }
     }
   }

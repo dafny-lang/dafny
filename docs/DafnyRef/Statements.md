@@ -636,7 +636,7 @@ If there is a mix of failure-compatible types, then the program will need to use
 explicit handling of failure values.
 
 
-### 8.6.9. Failure returns and exceptions
+### 8.6.9. Failure returns and exceptions {#sec-failure-return-and-exceptions}
 
 The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 

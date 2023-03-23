@@ -69,6 +69,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
 0 - The char type represents any UTF-16 code unit.
 1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
+      RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
+0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
@@ -311,6 +314,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
     public bool IncludeRuntime = true;
+    public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
     public int Allocated = 4;
     public bool UseStdin = false;
@@ -323,7 +327,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static string DefaultZ3Version = "4.12.1";
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
+      new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
     public List<Plugin> AdditionalPlugins = new();

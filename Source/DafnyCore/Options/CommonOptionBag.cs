@@ -142,6 +142,13 @@ false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
+  public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
+    @"
+false - The type-inference engine and supported types are those of Dafny 4.0.
+true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
   };
@@ -156,6 +163,10 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
 
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
+
+  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
+    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
+  );
 
   public enum TestAssumptionsMode {
     None,
@@ -190,6 +201,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
+      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });

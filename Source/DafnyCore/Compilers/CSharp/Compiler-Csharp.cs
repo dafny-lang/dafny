@@ -2881,9 +2881,25 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
+          if (resultType.AsBitVectorType is { Width: var width and (32 or 64) }) {
+            staticCallString = $"{DafnyHelpersClass}.Bv{width}ShiftLeft";
+            convertE1_to_int = true;
+            truncateResult = true;
+          } else {
+            opString = "<<";
+            truncateResult = true;
+            convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          opString = ">>"; convertE1_to_int = true; break;
+          if (resultType.AsBitVectorType is { Width: var width2 and (32 or 64) }) {
+            staticCallString = $"{DafnyHelpersClass}.Bv{width2}ShiftRight";
+            convertE1_to_int = true;
+          } else {
+            opString = ">>";
+            convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsCharType) {
             if (CharIsRune) {
