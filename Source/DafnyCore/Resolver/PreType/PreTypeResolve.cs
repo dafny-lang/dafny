@@ -65,6 +65,66 @@ namespace Microsoft.Dafny {
   }
 
   public partial class PreTypeResolver : ResolverPass {
+    public enum Type2PreTypeOption { GoodForInference, GoodForPrinting, GoodForBoth }
+
+    public PreType Type2PreType(Type type, string description = null, Type2PreTypeOption option = Type2PreTypeOption.GoodForBoth) {
+      Contract.Requires(type != null);
+
+      type = type.Normalize();
+      var expandedType = type.NormalizeExpand();
+      if (expandedType is TypeProxy) {
+        return CreatePreTypeProxy(description ?? $"from type proxy {type}");
+      }
+
+      DPreType printablePreType = null;
+      if (option != Type2PreTypeOption.GoodForInference) {
+        var printableDecl = Type2PreTypeDecl(type);
+        var printableArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForPrinting));
+        printablePreType = new DPreType(printableDecl, printableArguments, null);
+        if (option == Type2PreTypeOption.GoodForPrinting) {
+          return printablePreType;
+        }
+      }
+
+      type = expandedType;
+      var decl = Type2PreTypeDecl(type);
+      var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
+      return new DPreType(decl, arguments, printablePreType);
+    }
+
+    TopLevelDecl Type2PreTypeDecl(Type type) {
+      Contract.Requires(type != null);
+      Contract.Requires(type is NonProxyType and not SelfType);
+      TopLevelDecl decl;
+      if (type is BoolType) {
+        decl = BuiltInTypeDecl("bool");
+      } else if (type is CharType) {
+        decl = BuiltInTypeDecl("char");
+      } else if (type is IntType) {
+        decl = BuiltInTypeDecl("int");
+      } else if (type is RealType) {
+        decl = BuiltInTypeDecl("real");
+      } else if (type is BigOrdinalType) {
+        decl = BuiltInTypeDecl("ORDINAL");
+      } else if (type is BitvectorType bitvectorType) {
+        decl = BuiltInTypeDecl("bv" + bitvectorType.Width);
+      } else if (type is CollectionType) {
+        var name =
+          type is SetType st ? (st.Finite ? "set" : "iset") :
+          type is MultiSetType ? "multiset" :
+          type is MapType mt ? (mt.Finite ? "map" : "imap") :
+          "seq";
+        decl = BuiltInTypeDecl(name);
+      } else if (type is ArrowType at) {
+        decl = BuiltInArrowTypeDecl(at.Arity);
+      } else if (type is UserDefinedType udt) {
+        decl = udt.ResolvedClass;
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+      return decl;
+    }
+
     public PreTypeResolver(Resolver resolver)
       : base(resolver) {
       Contract.Requires(resolver != null);
