@@ -104,11 +104,12 @@ jobs:
         cd dafny/docs
         chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples -coverage HowToFAQ/Errors-Parser.md HowToFAQ/Errors-Compiler.md HowToFAQ/Errors-Rewriter.md
+        dotnet coverage merge 'doctests.*.coverage' -f cobertura
     - uses: actions/upload-artifact@v3
       if: always()
       with:
         name: doctest-coverage-results
-        path: dafny/docs/doctests.*.coverage
+        path: dafny/docs/output.cobertura.xml
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04
@@ -164,7 +165,7 @@ jobs:
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \
-            -reports:"./**/coverage.cobertura.xml;./**/doctests.*.coverage" \
+            -reports:"./**/coverage.cobertura.xml;./**/output.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
