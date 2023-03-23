@@ -98,7 +98,6 @@ jobs:
       # version.
       run: dotnet nuget push --skip-duplicate "dafny/Binaries/Dafny*.nupkg" -k ${{ secrets.nuget_api_key }} -s https://api.nuget.org/v3/index.json
 
-## Skip building RM until brew install pandoc is working once more
     - name: Install latex pandoc
       run: |
         brew update-reset && brew update
