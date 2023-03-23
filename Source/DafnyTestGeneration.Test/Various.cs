@@ -79,7 +79,7 @@ module M {
     public async Task PathBasedTests() {
       var source = @"
 module Paths {
-  static method eightPaths (i:int)
+  method eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
     if (i % 2 == 0) {
@@ -128,7 +128,7 @@ module Paths {
     public async Task BlockBasedTests() {
       var source = @"
 module Paths {
-  static method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
+  method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
     if (i % 2 == 0) {
       divBy2 := true;
     } else {
@@ -205,25 +205,25 @@ module Objects {
       // This test is too specific. A test input may be valid and still not satisfy it.
       /*
       Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
+        (m.Assignments.Count == 1 && m.Assignments[0] == ("node0", "next", "node0") &&
         m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v0") &&
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "node0") &&
         m.ValueCreation.Count == 2)));
         */
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count > 2 && m.ValueCreation.Count > 2 &&
-        m.Assignments.Last() == ("v0", "next", "v1") &&
-        m.Assignments[^2] == ("v1", "next", "v2")) ||
+        m.Assignments.Last() == ("node0", "next", "node1") &&
+        m.Assignments[^2] == ("node1", "next", "node2")) ||
         (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
-        m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v1"))));
+        m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "node1"))));
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count == 1 &&
-        m.Assignments[0] == ("v0", "next", "null") &&
+        m.Assignments[0] == ("node0", "next", "null") &&
         m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "null") &&
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "null") &&
         m.ValueCreation.Count == 2)));
     }
 
@@ -487,7 +487,7 @@ module M {
       Assert.True(methods.All(m =>
         !m.DafnyInfo.IsStatic("M.Instance.setI")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
-      Assert.True(methods.All(m => m.ToString().Contains("expect v0.i == 10")));
+      Assert.True(methods.All(m => m.ToString().Contains("expect instance0.i == 10")));
     }
 
   }

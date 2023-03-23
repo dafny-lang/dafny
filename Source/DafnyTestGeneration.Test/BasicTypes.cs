@@ -12,7 +12,7 @@ namespace DafnyTestGeneration.Test {
     public async Task Ints() {
       var source = @"
 module SimpleTest {
-  static method compareToZero(i: int) returns (ret: int) {
+  method compareToZero(i: int) returns (ret: int) {
     if (i == 0) {
         return 0;
     } else if (i > 0) {
@@ -43,7 +43,7 @@ module SimpleTest {
     public async Task Bools() {
       var source = @"
 module SimpleTest {
-  static method checkIfTrue(b: bool) returns (ret: bool) {
+  method checkIfTrue(b: bool) returns (ret: bool) {
     if (b) {
         return true;
     }
@@ -67,7 +67,7 @@ module SimpleTest {
     public async Task Reals() {
       var source = @"
 module SimpleTest {
-  static method compareToZero(r: real) returns (ret: int) {
+  method compareToZero(r: real) returns (ret: int) {
     if (r == 0.0) {
         return 0;
     } else if ((r > 0.0) && (r < 1.0)) {
@@ -107,7 +107,7 @@ module SimpleTest {
     public async Task BitVectors() {
       var source = @"
 module SimpleTest {
-  static method compareToBase(r: bv10) returns (ret: int) {
+  method compareToBase(r: bv10) returns (ret: int) {
     if (r == (10 as bv10)) {
         return 0;
     } else if (r > (10 as bv10)) {
@@ -138,7 +138,7 @@ module SimpleTest {
     public async Task Chars() {
       var source = @"
 module SimpleTest {
-  static method compareToB(c: char) returns (ret: int) {
+  method compareToB(c: char) returns (ret: int) {
     if (c == 'B') {
         return 0;
     } else if (c > 'B') {
@@ -171,7 +171,7 @@ module SimpleTest {
       // c != 'B"
       var source = @"
 module SimpleTest {
-  static method compareToB(c: char) returns (b:bool) {
+  method compareToB(c: char) returns (b:bool) {
     if (c == 'B') {
       return false;
     } else {

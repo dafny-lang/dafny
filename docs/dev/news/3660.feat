@@ -1,0 +1,1 @@
+The `dafny audit` command now reports instances of the `{:concurrent}` attribute, intended to flag code that is intended, but can't be proven, to be safe for use in a concurrent setting.
