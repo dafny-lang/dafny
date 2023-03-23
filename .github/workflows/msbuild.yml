@@ -157,12 +157,14 @@ jobs:
 
       - name: Merge reports
         run: |
+          pwd
+          ls
           # Convert the coverage data from the language server to Cobertura format
           dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.Cobertura.xml -f cobertura
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \
-            -reports:"./**/coverage.cobertura.xml;doctests.*.coverage" \
+            -reports:"./**/coverage.cobertura.xml;./**/doctests.*.coverage" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
