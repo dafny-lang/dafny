@@ -165,7 +165,7 @@ jobs:
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \
-            -reports:"./**/coverage.cobertura.xml;./**/output.cobertura.xml" \
+            -reports:"./**/*.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
