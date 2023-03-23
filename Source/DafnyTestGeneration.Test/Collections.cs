@@ -82,7 +82,7 @@ module SimpleTest {
         Regex.IsMatch(m.ValueCreation[0].value, "\".*\"")));
       Assert.True(methods.All(m =>
         Regex.IsMatch(m.ValueCreation.Last().value,
-          "\\[(v[0-9]+|null)(, (v[0-9]+|null))*\\]") ||
+          "\\[(charObject[0-9]+|null)(, (charObject[0-9]+|null))*\\]") ||
         m.ValueCreation[1].value == "[]"));
 
       Assert.True(methods.Exists(m =>
