@@ -150,7 +150,7 @@ jobs:
         with:
           name: unit-test-results-ubuntu-20.04
 
-      - name: Download doctest coveage artifacts
+      - name: Download doctest coverage artifacts
         uses: actions/download-artifact@v3
         with:
           name: doctest-coverage-results
@@ -162,7 +162,7 @@ jobs:
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \
-            -reports:"./**/coverage.cobertura.xml" \
+            -reports:"./**/coverage.cobertura.xml;doctests.*.coverage" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
