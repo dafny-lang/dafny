@@ -4,7 +4,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ValueTypeSymbol : Symbol, ILocalizableSymbol {
     public ValuetypeDecl Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
