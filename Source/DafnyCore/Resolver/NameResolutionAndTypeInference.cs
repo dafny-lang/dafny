@@ -505,10 +505,7 @@ namespace Microsoft.Dafny {
             e.TypeApplication_JustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
-          e.Type = SelectAppropriateArrowType(fn.tok,
-            fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
-            fn.ResultType.Subst(subst),
-            fn.Reads.Count != 0, fn.Req.Count != 0);
+          e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -1047,7 +1044,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, builtIns);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, builtIns.ObjectQ());
       } else if (expr is StmtExpr) {
@@ -6423,10 +6420,7 @@ namespace Microsoft.Dafny {
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.Type = SelectAppropriateArrowType(fn.tok,
-          fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
-          fn.ResultType.Subst(subst),
-          fn.Reads.Count != 0, fn.Req.Count != 0);
+        rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
       } else {
         // the member is a method
         var m = (Method)member;
