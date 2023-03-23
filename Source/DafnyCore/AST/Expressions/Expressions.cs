@@ -18,7 +18,7 @@ public abstract class Expression : TokenNode {
 
   [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
-    return Type != null;
+    return PreType != null || Type != null;
   }
 
   public Expression Resolved {
@@ -40,6 +40,9 @@ public abstract class Expression : TokenNode {
       }
     }
   }
+
+
+  public PreType PreType;
 
   public virtual IEnumerable<Expression> TerminalExpressions {
     get {
@@ -979,6 +982,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, 
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
   [FilledInDuringResolution] public bool IsCoCall;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1253,6 +1257,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Decl = decl;
     TypeArgs = typeArgs;
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
   public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
     : this(tok, tp, new List<Type>()) {
@@ -1488,6 +1493,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
   [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<Type> TypeApplication_JustFunction;
   [FilledInDuringResolution] public bool IsByMethodCall;
