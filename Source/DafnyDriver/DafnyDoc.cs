@@ -85,6 +85,7 @@ class DafnyDoc {
   public ErrorReporter Reporter;
   public DafnyOptions Options;
   public string Outputdir;
+  public Dictionary<string, string> nameIndex = new Dictionary<string, string>();
 
   public DafnyDoc(Program dafnyProgram, ErrorReporter reporter, DafnyOptions options, string outputdir) {
     this.DafnyProgram = dafnyProgram;
@@ -94,38 +95,52 @@ class DafnyDoc {
   }
 
   public void GenerateDocs(IList<DafnyFile> dafnyFiles) {
-    WriteIndex();
-    foreach (var m in DafnyProgram.ModuleSigs.Keys) {
+    var modDecls = new List<LiteralModuleDecl>();
+    CollectDecls(DafnyProgram.DefaultModule as LiteralModuleDecl, modDecls);
+    WriteTOC(modDecls);
+    foreach (var m in modDecls) {
       WriteModule(m);
+    }
+    WriteIndex();
+  }
+
+  public void CollectDecls(LiteralModuleDecl mod, List<LiteralModuleDecl> modDecls) {
+    modDecls.Add(mod);
+    foreach (var d in mod.ModuleDef.TopLevelDecls) {
+      if (d is LiteralModuleDecl) CollectDecls(d as LiteralModuleDecl, modDecls);
     }
   }
 
-  public void WriteModule(ModuleDefinition module) {
+  public void WriteModule(LiteralModuleDecl module) {
+    var moduleDef = module.ModuleDef;
+    var fullName = moduleDef.FullDafnyName;
+    nameIndex.Add(module.Name + " " + nameIndex.Count, "module " + QualifiedNameWithLinks(fullName));
     bool formatIsHtml = true;
-    var defaultClass = module.TopLevelDecls.Where(d => d is ClassDecl && (d as ClassDecl).IsDefaultClass).ToList()[0] as ClassDecl;
+    var defaultClass = moduleDef.TopLevelDecls.Where(d => d is ClassDecl && (d as ClassDecl).IsDefaultClass).ToList()[0] as ClassDecl;
     if (formatIsHtml) {
-      string filename = Outputdir + "/" + module.FullDafnyName + ".html";
-      var fullName = module.FullDafnyName;
+      var contentslink = "<a href=\"index.html\">[table of contents]</a><br><br>";
+      var indexlink = "<a href=\"nameindex.html\">[index]</a>";
+      string filename = Outputdir + "/" + moduleDef.FullDafnyName + ".html";
       using StreamWriter file = new(filename);
       file.Write(head1);
       file.Write($"Module {fullName} in program {DafnyProgram.Name}");
       file.Write(head2);
       file.Write(style);
-      var abs = module.IsAbstract ? "abstract " : "";
-      file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullName, false)}</h1>\n</div>");
+      var abs = moduleDef.IsAbstract ? "abstract " : "";
+      file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullName, false)}&nbsp;&nbsp;&nbsp;{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
-      bool wroteStuff = false;
-      if (module.RefinementQId != null) {
-        file.WriteLine("refines " + QualifiedNameWithLinks(module.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
-        wroteStuff = true;
+      var docstring = module.GetDocstring(DafnyProgram.Options);
+      if (!String.IsNullOrEmpty(docstring)) {
+        file.WriteLine(docstring);
+        file.Write(br);
+        file.Write(br);
       }
-      var attributes = Attributes(module.Attributes);
+      if (moduleDef.RefinementQId != null) {
+        file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
+      }
+      var attributes = Attributes(moduleDef.Attributes);
       if (!String.IsNullOrEmpty(attributes)) {
         file.WriteLine("Attributes: " + attributes + br);
-        wroteStuff = true;
-      }
-      if (wroteStuff) {
-        file.WriteLine(br);
       }
 
       string moduleFilename = module.Tok.Filename;
@@ -133,17 +148,19 @@ class DafnyDoc {
       //var modifyTime = File.GetLastWriteTime(moduleFilename);
       //file.WriteLine($"Last modified: {modifyTime}" + br);
 
-      WriteExports(file, module);
-      WriteImports(file, module);
-      WriteSubModules(file, module);
-      WriteTypes(file, module);
-      WriteConstants(file, module);
+      file.WriteLine(Heading2("module summary"));
+      WriteExports(file, moduleDef);
+      WriteImports(file, moduleDef);
+      WriteSubModules(file, moduleDef);
+      WriteTypes(file, moduleDef);
+      WriteConstants(file, moduleDef);
       WriteFunctions(file, defaultClass);
       WriteMethods(file, defaultClass);
       WriteLemmas(file, defaultClass);
+      file.WriteLine(Heading2("module details"));
       file.Write(foot);
       AnnounceFile(filename);
-      var declsWithMembers = module.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
+      var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
       foreach (var c in declsWithMembers) {
         if (c is not ClassDecl) continue; // TODO : handle these later
         var cl = c as ClassDecl;
@@ -154,10 +171,11 @@ class DafnyDoc {
   }
 
   public void WriteDecl(TopLevelDeclWithMembers decl) {
+    var fullName = decl.FullDafnyName;
+    nameIndex.Add(decl.Name + " " + nameIndex.Count, decl.WhatKind + " " + QualifiedNameWithLinks(fullName));
     bool formatIsHtml = true;
     if (formatIsHtml) {
-      string filename = Outputdir + "/" + decl.FullDafnyName + ".html";
-      var fullName = decl.FullDafnyName;
+      string filename = Outputdir + "/" + fullName + ".html";
       using StreamWriter file = new(filename);
       file.Write(head1);
       file.Write($"{decl.WhatKind} {fullName}");
@@ -188,7 +206,7 @@ class DafnyDoc {
 
   public void WriteExports(StreamWriter file, ModuleDefinition module) {
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
-    file.WriteLine(Heading2("Export sets"));
+    file.WriteLine(Heading3("Export sets"));
     if (exports.Count() == 0) {
       file.WriteLine("export " + Bold(module.Name + "`" + module.Name) + " : reveals *");
     } else {
@@ -209,7 +227,7 @@ class DafnyDoc {
     var absimports = module.TopLevelDecls.Where(d => d is AbstractModuleDecl).Select(d => d as AbstractModuleDecl).ToList();
     absimports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (imports.Count() + absimports.Count() > 0) {
-      file.WriteLine(Heading2("Imports"));
+      file.WriteLine(Heading3("Imports"));
       foreach (var imp in imports) {
         var name = imp.Name;
         var target = imp.Dereference();
@@ -227,7 +245,7 @@ class DafnyDoc {
     var submods = module.TopLevelDecls.Where(d => d is LiteralModuleDecl).Select(d => d as LiteralModuleDecl).ToList();
     submods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (submods.Count() > 0) {
-      file.WriteLine(Heading2("Submodules"));
+      file.WriteLine(Heading3("Submodules"));
       foreach (var submod in submods) {
         file.WriteLine("module " + QualifiedNameWithLinks(submod.FullDafnyName) + br);
       }
@@ -238,7 +256,7 @@ class DafnyDoc {
     var types = module.TopLevelDecls.Where(c => c is RevealableTypeDecl).ToList(); // TODO - what kind of types does this leave out?
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 0) {
-      file.WriteLine(Heading2("Types"));
+      file.WriteLine(Heading3("Types"));
       file.WriteLine("<table>");
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) continue;
@@ -266,7 +284,7 @@ class DafnyDoc {
     var constants = ModuleDefinition.AllFields(module.TopLevelDecls).Where(c => c is ConstantField).ToList();
     constants.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (constants.Count() > 0) {
-      file.WriteLine(Heading2("Constants"));
+      file.WriteLine(Heading3("Constants"));
       // TODO: opaque, ghost, init, link for type
 
       foreach (var c in constants) {
@@ -288,7 +306,7 @@ class DafnyDoc {
     var fields = decl.Members.Where(c => c is Field && c is not ConstantField).Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
-      file.WriteLine(Heading2("Mutable Fields"));
+      file.WriteLine(Heading3("Mutable Fields"));
       // TODO: opaque, ghost, link for type
 
       file.WriteLine(BeginTable());
@@ -318,7 +336,7 @@ class DafnyDoc {
     var functions = decl.Members.Where(m => m is Function).Select(m => m as Function).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (functions.Count > 0) {
-      file.WriteLine(Heading2("Functions"));
+      file.WriteLine(Heading3("Functions"));
       foreach (var f in functions) {
         file.WriteLine(f.GetFunctionDeclarationKeywords(Options) + " " + Bold(f.Name) + br);
       }
@@ -329,7 +347,7 @@ class DafnyDoc {
     var methods = decl.Members.Where(m => m is Method && m is not Lemma).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      file.WriteLine(Heading2("Methods"));
+      file.WriteLine(Heading3("Methods"));
       foreach (var m in methods) {
         file.WriteLine((m.IsGhost ? "ghost " : "") + (m.IsStatic ? "static " : "") + br);
         file.WriteLine(Bold(m.Name) + br + br);
@@ -342,7 +360,7 @@ class DafnyDoc {
     var methods = decl.Members.Where(m => m is Lemma).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      file.WriteLine(Heading2("Lemmas"));
+      file.WriteLine(Heading3("Lemmas"));
       foreach (var m in methods) {
         file.WriteLine(Bold(m.Name) + br + br);
         // TODO Needs attributes, needs specs, static?
@@ -350,11 +368,9 @@ class DafnyDoc {
     }
   }
 
-  public void WriteIndex() {
+  public void WriteTOC(List<LiteralModuleDecl> mdecls) {
     bool formatIsHtml = true;
-    var modulesByName = DafnyProgram.ModuleSigs.Keys.Select(m => m.FullDafnyName).ToList();
-    modulesByName.Sort();
-    modulesByName[0] = "_";
+    mdecls.Sort((k, m) => k.FullDafnyName.CompareTo(m.FullDafnyName));
     if (formatIsHtml) {
       string filename = Outputdir + "/index.html";
       using StreamWriter file = new(filename);
@@ -362,11 +378,14 @@ class DafnyDoc {
       file.Write($"Modules in program {DafnyProgram.Name}");
       file.Write(head2);
       file.Write(style);
-      file.Write($"<div>\n<h1>Dafny Program: {DafnyProgram.Name}</h1>\n</div>");
+      var indexlink = "<a href=\"nameindex.html\">[index]</a>";
+      file.Write($"<div>\n<h1>Dafny Program: {DafnyProgram.Name}&nbsp;&nbsp'&nbsp;&nbsp;{Smaller(indexlink)}</h1>\n</div>");
       file.Write(bodystart);
       file.WriteLine("<ul>");
       int currentIndent = 0;
-      foreach (var name in modulesByName) {
+      foreach (var decl in mdecls) {
+        var name = decl.FullDafnyName;
+        if (name.Length == 0) name = "_";
         int level = Regex.Matches(name, "\\.").Count;
         while (level > currentIndent) {
           file.WriteLine("<ul>");
@@ -376,20 +395,12 @@ class DafnyDoc {
           file.WriteLine("</ul>");
           currentIndent--;
         }
-        file.WriteLine($"<li>Module <a href=\"{name}.html\">{name}</a></li>");
+        var ds = ShortDocstring(decl).Trim();
+        if (ds.Length > 0) ds = " &mdash; " + ds;
+        file.WriteLine($"<li>Module <a href=\"{name}.html\">{name}</a>" + ds + "</li>");
       }
       file.WriteLine("</ul>");
       file.Write(foot);
-      AnnounceFile(filename);
-    } else { // markdown
-      string filename = Outputdir + "/index.md";
-      using StreamWriter file = new(filename);
-      file.WriteLine($"# Modules in program {DafnyProgram.Name}");
-      foreach (var name in modulesByName) {
-        int level = Regex.Matches(name, "\\.").Count;
-        string indent = new String(' ', 3 * level);
-        file.WriteLine($"{indent}* Module [{name}]({name}.md)");
-      }
       AnnounceFile(filename);
     }
   }
@@ -404,8 +415,20 @@ class DafnyDoc {
     }
   }
 
+  public string ShortDocstring(IHasDocstring d) {
+    var ds = d.GetDocstring(DafnyProgram.Options);
+    if (ds == null) return String.Empty;
+    var k = ds.IndexOf('.');
+    if (k == -1) return ds;
+    return ds.Substring(0, k + 1);
+  }
+
   public static string Heading2(string text) {
     return "<div>\n<h2>" + text + "</h2>\n</div>";
+  }
+
+  public static string Heading3(string text) {
+    return "<div>\n<h3>" + text + "</h3>\n</div>";
   }
 
   public static string Smaller(string text) {
@@ -469,12 +492,13 @@ class DafnyDoc {
     return "</table>";
   }
 
-  public string Modifiers(Member d) {
-    string result = "";
-    if (d.IsGhost) result += "ghost ";
-    if (d.IsAbstract) result += "abstract ";
-    if (d.IsStatic) result += "static ";
-    if (d.IsOpaque) result += "opaque ";
+  public string Modifiers(object d) { //Member d) {
+    string result = "<mods>";
+    // if (d.IsGhost) result += "ghost ";
+    // if (d.IsAbstract) result += "abstract ";
+    // if (d.IsStatic) result += "static ";
+    // if (d.IsOpaque) result += "opaque ";
+    return result;
   }
 
   public string Attributes(Attributes attribute) {
@@ -495,6 +519,25 @@ class DafnyDoc {
     if (Options.CompileVerbose) {
       Console.WriteLine("Writing " + filename);
     }
+  }
+
+  public void WriteIndex() {
+    var keys = nameIndex.Keys.ToList();
+    keys.Sort();
+
+    string filename = Outputdir + "/nameindex.html";
+    using StreamWriter file = new(filename);
+    file.Write(head1);
+    file.Write($"Index for program {DafnyProgram.Name}");
+    file.Write(head2);
+    file.Write(style);
+    file.Write($"<div>\n<h1>Index for Dafny Program: {DafnyProgram.Name}</h1>\n</div>");
+    file.Write(bodystart);
+    foreach (var key in keys) {
+      var k = key.IndexOf(' ');
+      file.WriteLine(key.Substring(0, k) + " &mdash; " + nameIndex[key] + br);
+    }
+    file.Write(foot);
   }
 
   public static string br = "<br>";
@@ -532,6 +575,11 @@ h1 {
   background-color: #fceb6c
 }
 h2 {
+  color: blue;
+  text-align: left;
+  background-color: #fceb6c
+}
+h3 {
   color: blue;
   text-align: left;
   background-color: #fceb6c
