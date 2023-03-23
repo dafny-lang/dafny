@@ -131,12 +131,12 @@ namespace Microsoft.Dafny {
               if (methodCallInfo == null) {
                 ReportError(expr.tok, "expression has no reveal lemma");
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                ReportError(methodCallInfo.RangeToken, "a two-state function can only be revealed in a two-state context");
+                ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                ReportError(methodCallInfo.RangeToken, "to reveal a two-state function, do not list any parameters or @-labels");
+                ReportError(methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(methodCallInfo.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
             } else {
@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
         } else { // it might be ok, if it is a TypeRhs
           Contract.Assert(update.Rhss.Count == 1);
           if (methodCallInfo != null) {
-            ReportError(methodCallInfo.RangeToken, "cannot have method call in return statement.");
+            ReportError(methodCallInfo.Tok, "cannot have method call in return statement.");
           } else {
             // we have a TypeRhs
             var tr = (TypeRhs)update.Rhss[0];
@@ -793,7 +793,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(methodCallInfo.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
