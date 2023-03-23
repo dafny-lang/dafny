@@ -6357,7 +6357,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions, Type/*?*/ receiverTypeBound = null) {
+    public Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions,
+      Type/*?*/ receiverTypeBound = null) {
       Contract.Requires(typeArgumentSubstitutions != null);
 
       var subst = new Dictionary<TypeParameter, Type>();
@@ -6372,19 +6373,25 @@ namespace Microsoft.Dafny {
       }
 
       if (receiverTypeBound != null) {
-        TopLevelDeclWithMembers cl;
-        var udt = receiverTypeBound?.AsNonNullRefType;
-        if (udt != null) {
-          cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
-        } else {
-          udt = receiverTypeBound.NormalizeExpand() as UserDefinedType;
-          cl = udt?.ResolvedClass as TopLevelDeclWithMembers;
-        }
-        if (cl != null) {
-          foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-            var v = entry.Value.Subst(subst);
-            subst.Add(entry.Key, v);
-          }
+        subst = AddParentTypeParameterSubstitutions(subst, receiverTypeBound);
+      }
+
+      return subst;
+    }
+
+    public static Dictionary<TypeParameter, Type> AddParentTypeParameterSubstitutions(Dictionary<TypeParameter, Type> subst, Type receiverType = null) {
+      TopLevelDeclWithMembers cl;
+      var udt = receiverType?.AsNonNullRefType;
+      if (udt != null) {
+        cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
+      } else {
+        udt = receiverType.NormalizeExpand() as UserDefinedType;
+        cl = udt?.ResolvedClass as TopLevelDeclWithMembers;
+      }
+      if (cl != null) {
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = entry.Value.Subst(subst);
+          subst.Add(entry.Key, v);
         }
       }
 
