@@ -65,6 +65,80 @@ namespace Microsoft.Dafny {
   }
 
   public partial class PreTypeResolver : ResolverPass {
+    private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
+
+    TopLevelDecl BuiltInTypeDecl(string name) {
+      Contract.Requires(name != null);
+      if (preTypeBuiltins.TryGetValue(name, out var decl)) {
+        return decl;
+      }
+      if (IsArrayName(name, out var dims)) {
+        // make sure the array class has been created
+        var at = resolver.builtIns.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true);
+        decl = resolver.builtIns.arrayTypeDecls[dims];
+      } else if (IsBitvectorName(name, out var width)) {
+        var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
+          typeArgs => new BitvectorType(resolver.Options, width));
+        preTypeBuiltins.Add(name, bvDecl);
+        AddRotateMember(bvDecl, "RotateLeft", width);
+        AddRotateMember(bvDecl, "RotateRight", width);
+        return bvDecl;
+      } else {
+        foreach (var valueTypeDecl in resolver.valuetypeDecls) {
+          if (valueTypeDecl.Name == name) {
+            // bool, int, real, ORDINAL, map, imap
+            decl = valueTypeDecl;
+            break;
+          }
+        }
+        if (decl == null) {
+          if (name == "set" || name == "seq" || name == "multiset") {
+            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
+            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+          } else if (name == "iset") {
+            var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
+            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+          } else {
+            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, _ => false, null);
+          }
+        }
+      }
+      preTypeBuiltins.Add(name, decl);
+      return decl;
+    }
+
+    TopLevelDecl BuiltInArrowTypeDecl(int arity) {
+      Contract.Requires(0 <= arity);
+      var name = ArrowType.ArrowTypeName(arity);
+      if (!preTypeBuiltins.TryGetValue(name, out var decl)) {
+        // the arrow type declaration should already have been created by the parser
+        decl = resolver.builtIns.ArrowTypeDecls[arity];
+        preTypeBuiltins.Add(name, decl);
+      }
+      return decl;
+    }
+
+    DPreType BuiltInArrowType(List<PreType> inPreTypes, PreType resultPreType) {
+      return new DPreType(BuiltInArrowTypeDecl(inPreTypes.Count), Util.Snoc(inPreTypes, resultPreType));
+    }
+
+    DPreType BuiltInArrayType(int dims, PreType elementPreType) {
+      Contract.Requires(1 <= dims);
+      var arrayName = dims == 1 ? "array" : $"array{dims}";
+      return new DPreType(BuiltInTypeDecl(arrayName), new List<PreType>() { elementPreType });
+    }
+
+    private int typeProxyCount = 0; // used to give each PreTypeProxy a unique ID
+
+    private readonly List<(PreTypeProxy, string)> allPreTypeProxies = new();
+
+    public PreType CreatePreTypeProxy(string description = null) {
+      var proxy = new PreTypeProxy(typeProxyCount++);
+      allPreTypeProxies.Add((proxy, description));
+      return proxy;
+    }
+
     public enum Type2PreTypeOption { GoodForInference, GoodForPrinting, GoodForBoth }
 
     public PreType Type2PreType(Type type, string description = null, Type2PreTypeOption option = Type2PreTypeOption.GoodForBoth) {
@@ -123,6 +197,25 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
       return decl;
+    }
+
+    public static bool HasTraitSupertypes(DPreType dp) {
+      /*
+       * When traits can be used as supertypes for non-reference types (and "object" is an implicit parent trait of every
+       * class), then this method can be implemented by
+       *         return dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0;
+       * For now, every reference type except "object" has trait supertypes.
+       */
+      if (dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0) {
+        // this type has explicitly declared parent traits
+        return true;
+      }
+      if (dp.Decl is TraitDecl trait && trait.IsObjectTrait) {
+        // the built-in type "object" has no parent traits
+        return false;
+      }
+      // any non-object reference type has "object" as an implicit parent trait
+      return DPreType.IsReferenceTypeDecl(dp.Decl);
     }
 
     public PreTypeResolver(Resolver resolver)
