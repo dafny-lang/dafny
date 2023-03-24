@@ -318,19 +318,9 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
   }
 
-  public void SetTypeIndentation(Type type) {
-    var tokens = type.OwnedTokens.ToList();
-    if (!tokens.Any()) {
-      return;
-    }
-
-    var indent = GetIndentInlineOrAbove(tokens[0]);
-    if (tokens.Count > 1) {
-      SetIndentations(tokens[0], below: indent + 2);
-    }
-
-    var commaIndent = indent + 2;
-    var rightIndent = indent + 2;
+  public void SetTypeLikeIndentation(int indent, IEnumerable<IToken> tokens) {
+    var commaIndent = indent + SpaceTab;
+    var rightIndent = indent + SpaceTab;
     foreach (var token in tokens) {
       switch (token.val) {
         case "<": {
@@ -352,10 +342,27 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
           }
       }
     }
+  }
+
+  public void SetTypeIndentation(Type type) {
+    var tokens = type.OwnedTokens.ToList();
+    if (tokens.Any()) {
+
+      var indent = GetIndentInlineOrAbove(tokens[0]);
+      if (tokens.Count > 1) {
+        SetIndentations(tokens[0], below: indent + 2);
+      }
+
+      SetTypeLikeIndentation(indent, tokens);
+    }
 
     if (type is UserDefinedType userDefinedType) {
-      foreach (var subtype in userDefinedType.TypeArgs) {
-        SetTypeIndentation(subtype);
+      foreach (var subtype in userDefinedType.PreResolveChildren) {
+        if (subtype is Type subType2) {
+          SetTypeIndentation(subType2);
+        } else if (subtype is Expression expr) {
+          Visit(expr, 0);
+        }
       }
     }
   }

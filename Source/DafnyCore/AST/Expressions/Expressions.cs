@@ -3508,7 +3508,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -3530,6 +3530,13 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   }
 
   public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
+    foreach (var subType in PreResolveChildren.OfType<Type>()) {
+      formatter.SetTypeIndentation(subType);
+    }
+    return false;
+  }
 }
 
 /// <summary>
