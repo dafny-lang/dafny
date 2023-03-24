@@ -568,7 +568,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(lhs.Var != null);  // the parser already checked that every LHS is a BoundVar, not a general pattern
             var v = lhs.Var;
             resolver.ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            ScopePushAndReport(v, "let-variable", true);
+            ScopePushAndReport(v, "let-variable", false);
             lhs.AssembleExprPreType(null);
 #if SOON
             resolver.AddTypeDependencyEdges(resolutionContext, v.Type);

@@ -311,7 +311,7 @@ namespace Microsoft.Dafny {
         if (s.IsBindingGuard) {
           var exists = (ExistsExpr)s.Guard;
           foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", true);
+            ScopePushAndReport(v, "bound-variable", false);
           }
         }
         dominatingStatementLabels.PushMarker();
@@ -1376,7 +1376,7 @@ namespace Microsoft.Dafny {
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", true);
+            ScopePushAndReport(v, "bound-variable", false);
           }
         }
         ResolveAttributes(alternative, resolutionContext, false);
