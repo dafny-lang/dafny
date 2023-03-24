@@ -1492,7 +1492,7 @@ namespace Microsoft.Dafny {
             AddSubtypeConstraint(tentativeReceiverType, receiver.PreType, expr.tok, $"receiver type ({{1}}) does not have a member named '{name}'");
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)tentativeReceiverType.Decl, true);
+            var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)tentativeReceiverType.Decl, true, lhs);
             receiver.PreType = Type2PreType(receiver.Type);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
