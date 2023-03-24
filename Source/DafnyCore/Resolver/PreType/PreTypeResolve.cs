@@ -108,6 +108,25 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
+    public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
+      var argumentType = resolver.builtIns.Nat();
+      var formals = new List<Formal> {
+        new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
+          PreType = Type2PreType(argumentType)
+        }
+      };
+      var resultType = new BitvectorType(resolver.Options, width);
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.builtIns.SystemModule, false, false,
+        new List<TypeParameter>(), formals, resultType,
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null) {
+        EnclosingClass = bitvectorTypeDecl,
+        ResultPreType = Type2PreType(resultType)
+      };
+      rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
+      bitvectorTypeDecl.Members.Add(name, rotateMember);
+    }
+
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
       Contract.Requires(0 <= arity);
       var name = ArrowType.ArrowTypeName(arity);
@@ -216,6 +235,36 @@ namespace Microsoft.Dafny {
       }
       // any non-object reference type has "object" as an implicit parent trait
       return DPreType.IsReferenceTypeDecl(dp.Decl);
+    }
+
+    public static bool IsBitvectorName(string name, out int width) {
+      Contract.Requires(name != null);
+      if (name.StartsWith("bv")) {
+        var bits = name.Substring(2);
+        width = 0; // set to 0, in case the first disjunct of the next line evaluates to true
+        return bits == "0" || (bits.Length != 0 && bits[0] != '0' && int.TryParse(bits, out width));
+      }
+      width = 0; // unused by caller
+      return false;
+    }
+
+    public static bool IsBitvectorName(string name) {
+      return IsBitvectorName(name, out _);
+    }
+
+    public static bool IsArrayName(string name, out int dimensions) {
+      Contract.Requires(name != null);
+      if (name.StartsWith("array")) {
+        var dims = name.Substring(5);
+        if (dims.Length == 0) {
+          dimensions = 1;
+          return true;
+        } else if (dims[0] != '0' && dims != "1" && int.TryParse(dims, out dimensions)) {
+          return true;
+        }
+      }
+      dimensions = 0; // unused by caller
+      return false;
     }
 
     public PreTypeResolver(Resolver resolver)

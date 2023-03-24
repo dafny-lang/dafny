@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
       None
     } // note, these are ordered, so they can be used as indices into valuetypeDecls
 
-    readonly ValuetypeDecl[] valuetypeDecls;
+    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
