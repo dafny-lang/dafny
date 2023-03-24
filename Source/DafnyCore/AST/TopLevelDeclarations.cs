@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
@@ -1231,6 +1232,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   public readonly List<MemberDecl> Members;
 
+  public readonly ImmutableList<MemberDecl> MembersBeforeResolution;
+
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
   public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
@@ -1300,6 +1303,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
+    MembersBeforeResolution = members.ToImmutableList();
     ParentTraits = traits ?? new List<Type>();
   }
 
@@ -1320,7 +1324,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).

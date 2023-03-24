@@ -412,12 +412,14 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
-      foreach (var member in declWithMembers.Members) {
-        if (member.tok is IncludeToken) {
+      foreach (var member in declWithMembers.PreResolveChildren) {
+        if (member.Tok is IncludeToken) {
           continue;
         }
 
-        SetMemberIndentation(member, initialMemberIndent);
+        if (member is MemberDecl memberDecl) {
+          SetMemberIndentation(memberDecl, initialMemberIndent);
+        }
       }
     } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
       SetRedirectingTypeDeclDeclIndentation(indent, subsetTypeDecl);
@@ -660,7 +662,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
                   commaIndent = indent;
                 } else {
                   rightIndent = indent + SpaceTab;
-                  commaIndent = indent = SpaceTab;
+                  commaIndent = indent + SpaceTab;
                 }
 
                 SetIndentations(assignmentOperator, afterStartIndent, opIndentDefault, rightIndent);
@@ -690,6 +692,10 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       foreach (var node in rhs.PreResolveSubExpressions) {
         Visit(node, rightIndent);
       }
+    }
+
+    if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
+      Visit(assignSuchThatStmt.Expr, rightIndent);
     }
 
     return false;
