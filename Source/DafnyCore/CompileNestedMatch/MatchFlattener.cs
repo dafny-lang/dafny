@@ -147,7 +147,7 @@ public class MatchFlattener : IRewriter {
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).
+      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false, false).
         Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     }
