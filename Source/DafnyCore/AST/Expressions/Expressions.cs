@@ -783,7 +783,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
+    var e = new IdentifierExpr(v.Tok, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
