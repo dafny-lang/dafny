@@ -439,15 +439,12 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt calcStmt) {
         ResolveCalc(calcStmt, resolutionContext);
 
-#if SOON
       } else if (stmt is MatchStmt matchStmt) {
-        ResolveMatchStmt(matchStmt, resolutionContext);
-#endif
+        Contract.Assert(false); // a plain MatchStmt isn't introduced until post-resolution
 
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        ResolveNestedMatchStmt(nestedMatchStmt, resolutionContext);
 #if SOON
-        var opts = resolutionContext;
-        ResolveNestedMatchStmt(nestedMatchStmt, opts);
         nestedMatchStmt.ResolvedStatement = new BlockStmt(stmt.RangeToken, new List<Statement>());
 #endif
 
