@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,6 +8,10 @@ namespace Microsoft.Dafny;
 public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolve {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
+
+  public override IEnumerable<Node> PreResolveChildren =>
+  Lhss.Concat<Node>(new List<Node>() {
+  Expr });
 
   public override IToken Tok {
     get {
