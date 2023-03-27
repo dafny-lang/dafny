@@ -1110,20 +1110,17 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
 
-  // TODO: Add attributes, ensure we take TopLevelDecls BEFORE resolution
-  // and PrefixNamedModules BEFORE resolution (take snapshots)
-
-  public IEnumerable<Node> PreResolveTopLevelDecls = null;
-  public IEnumerable<Node> PreResolvePrefixNamedModules = null;
+  private IEnumerable<Node> preResolveTopLevelDecls;
+  private IEnumerable<Node> preResolvePrefixNamedModules;
   public override IEnumerable<Node> PreResolveChildren =>
     Includes.Concat<Node>(Attributes != null ?
       new List<Node> { Attributes } :
-      Enumerable.Empty<Node>()).Concat(PreResolveTopLevelDecls ?? TopLevelDecls).Concat(
-    (PreResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+      Enumerable.Empty<Node>()).Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
+    (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
 
   public void PreResolveSnapshotForFormatter() {
-    PreResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
-    PreResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
+    preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
+    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
   }
 }
 
