@@ -101,7 +101,7 @@ public class RunAllTestsMainMethod : IRewriter {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
         if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
           var regex = program.Options.MethodsToTest;
-          if (regex != null) {
+          if (!System.String.IsNullOrEmpty(regex)) {
             string name = method.FullDafnyName;
             if (!Regex.Match(name, regex).Success) {
               continue;
