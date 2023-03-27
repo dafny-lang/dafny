@@ -36,6 +36,7 @@ public class RunAllTestsMainMethod : IRewriter {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
       null, noVerifyAttribute, null);
+    mainMethod.Attributes = new Attributes("main", new List<Expression>(), mainMethod.Attributes);
     var defaultModule = program.RawModules().Single(m => m.IsDefaultModule);
     var defaultClass = (DefaultClassDecl)defaultModule.TopLevelDecls.Single(d => d is DefaultClassDecl);
     defaultClass.Members.Add(mainMethod);
@@ -102,7 +103,9 @@ public class RunAllTestsMainMethod : IRewriter {
           var regex = program.Options.MethodsToTest;
           if (regex != null) {
             string name = method.FullDafnyName;
-            if (!Regex.Match(name, regex).Success) continue;
+            if (!Regex.Match(name, regex).Success) {
+              continue;
+            }
           }
 
           // print "TestMethod: ";
