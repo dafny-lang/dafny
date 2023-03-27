@@ -26,3 +26,8 @@ method AlsoNondetAssignButAccepted() returns (x: int) {
   var y: int;
   x := y;
 }
+
+method ArrayAllocation() returns (x: int) {
+  var a := new int[10];
+  return a[0];
+}
