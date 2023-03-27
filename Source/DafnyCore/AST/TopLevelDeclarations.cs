@@ -1600,6 +1600,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
 
+  public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
+
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
