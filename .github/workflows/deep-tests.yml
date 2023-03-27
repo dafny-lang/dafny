@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
+          submodules: recursive
 
       - name: Get short sha
         run: echo "sha_short=`git rev-parse --short HEAD`" >> $GITHUB_ENV
