@@ -62,7 +62,11 @@ The `text` format also includes a more detailed breakdown of what assertions app
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
-  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+
+  public static readonly Option<string> SolverLog =
+    new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
+      IsHidden = true
+    };
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
@@ -164,6 +168,10 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
   public static readonly Option<bool> IncludeRuntimeOption = new("--include-runtime",
     "Include the Dafny runtime as source in the target language.");
 
+  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
+    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
+  );
+
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -197,6 +205,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
+      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
