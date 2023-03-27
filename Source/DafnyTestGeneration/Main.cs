@@ -1,4 +1,5 @@
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -54,8 +55,7 @@ namespace DafnyTestGeneration {
                    "loops. False positives are always possible.";
     }
 
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(TextWriter writer, string sourceFile) {
-      var options = DafnyOptions.Create(writer);
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
       var program = Utils.Parse(options, source, sourceFile);
@@ -79,6 +79,22 @@ namespace DafnyTestGeneration {
         .Translate(program, program.Reporter)
         .ToList().ConvertAll(tuple => tuple.Item2);
       options.PrintInstrumented = oldPrintInstrumented;
+
+      if (options.TestGenOptions.TargetMethod != null) {
+        var targetFound = boogiePrograms.Any(program =>
+          program.Implementations.Any(i =>
+            i.Name.StartsWith("Impl$$") &&
+            i.VerboseName.Split(" ")[0]
+            == options.TestGenOptions.TargetMethod));
+        if (!targetFound) {
+          options.Printer.ErrorWriteLine(Console.Error,
+            "Error: Cannot find method " +
+            options.TestGenOptions.TargetMethod +
+            " (is this name fully-qualified?)");
+          setNonZeroExitCode = true;
+          return new List<ProgramModification>();
+        }
+      }
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
@@ -120,9 +136,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static async IAsyncEnumerable<string> GetTestClassForProgram(TextWriter writer, string sourceFile) {
-
-      var options = DafnyOptions.Create(writer);
+    public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options) {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
@@ -148,12 +162,21 @@ namespace DafnyTestGeneration {
         }
       }
 
+      var methodsGenerated = 0;
       await foreach (var method in GetTestMethodsForProgram(program)) {
         yield return method.ToString();
+        methodsGenerated++;
       }
 
       yield return TestMethod.EmitSynthesizeMethods(dafnyInfo);
       yield return "}";
+
+      if (methodsGenerated == 0) {
+        options.Printer.ErrorWriteLine(Console.Error,
+          "Error: No tests were generated, because no code points could be " +
+          "proven reachable (do you have a false assumption in the program?)");
+        setNonZeroExitCode = true;
+      }
     }
   }
 }

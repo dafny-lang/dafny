@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit.Abstractions;
 using Xunit;
@@ -38,11 +39,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
         Assert.Null(hover);
         return;
       }
-      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}");
+      AssertM.NotNull(hover, $"No hover message found at {hoverPosition}, was supposed to display {expectedContent}");
       var markup = hover.Contents.MarkupContent;
       Assert.NotNull(markup);
       Assert.Equal(MarkupKind.Markdown, markup.Kind);
-      Assert.True(markup.Value.Contains(expectedContent), $"Could not find {expectedContent} in {markup.Value}");
+      Assert.True(markup.Value.Contains(expectedContent), $"Could not find '{expectedContent}'\n in \n'{markup.Value}'");
     }
 
     /// <summary>
@@ -53,11 +54,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// at the place where a user would hover.
     /// </summary>
     /// <param name="sourceWithHovers"></param>
-    private async Task AssertHover(string sourceWithHovers) {
-      await SetUp(o => o.ProverOptions.Add("SOLVER=noop"));
+    /// <param name="modifyOptions"></param>
+    private async Task AssertHover(string sourceWithHovers, [CanBeNull] Action<DafnyOptions> modifyOptions = null) {
+      await SetUp(o => {
+        o.ProverOptions.Add("SOLVER=noop");
+        if (modifyOptions != null) {
+          modifyOptions(o);
+        }
+      });
       sourceWithHovers = sourceWithHovers.TrimStart().Replace("\r", ""); // Might not be necessary
       // Split the source from hovering tasks
-      var hoverRegex = new Regex(@"\n\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
+      var hoverRegex = new Regex(@"\n//\s*(?<ColumnChar>\^)\[(?<ExpectedContent>.*)\](?=\n|$)");
       var source = hoverRegex.Replace(sourceWithHovers, "");
       var hovers = hoverRegex.Matches(sourceWithHovers);
       var documentItem = CreateTestDocument(source);
@@ -82,7 +89,7 @@ method DoIt() returns (x: int) {
 
 method CallDoIt() returns () {
   var x := DoIt();
-              ^[```dafny\nmethod DoIt() returns (x: int)\n```]
+//            ^[```dafny\nmethod DoIt() returns (x: int)\n```]
 }");
     }
 
@@ -96,9 +103,9 @@ method M(dt: DT) {
   match dt {
     case C => 
     case A | B => var x := (y => y)(1); assert x == 1;
-                      ^[```dafny\nx: int\n```]
-                            ^[```dafny\ny: int\n```]
-                                 ^[```dafny\ny: int\n```]
+//                    ^[```dafny\nx: int\n```]
+//                          ^[```dafny\ny: int\n```]
+//                               ^[```dafny\ny: int\n```]
   }
 }
 
@@ -106,9 +113,9 @@ method M2(dt: DT) {
   match dt {
     case C => 
     case _ => var x := (y => y)(1); assert x == 1;
-                  ^[```dafny\nx: int\n```]
-                        ^[```dafny\ny: int\n```]
-                             ^[```dafny\ny: int\n```]
+//                ^[```dafny\nx: int\n```]
+//                      ^[```dafny\ny: int\n```]
+//                           ^[```dafny\ny: int\n```]
   }
 }
 
@@ -116,18 +123,18 @@ function F(dt: DT): int {
   match dt {
     case C => 0
     case A | B => var x := (y => y)(1); assert x == 1; 0
-                      ^[```dafny\nx: int\n```]
-                            ^[```dafny\ny: int\n```]
-                                 ^[```dafny\ny: int\n```]
+//                    ^[```dafny\nx: int\n```]
+//                          ^[```dafny\ny: int\n```]
+//                               ^[```dafny\ny: int\n```]
   }
 }
 function F2(dt: DT): int {
   match dt {
     case C => 0
     case _ => var x := (y => y)(1); assert x == 1; 0
-                  ^[```dafny\nx: int\n```]
-                        ^[```dafny\ny: int\n```]
-                             ^[```dafny\ny: int\n```]
+//                ^[```dafny\nx: int\n```]
+//                      ^[```dafny\ny: int\n```]
+//                           ^[```dafny\ny: int\n```]
   }
 }
 ");
@@ -151,7 +158,7 @@ function F2(dt: DT): int {
 method DoIt() {
   var x := new int[0];
   var y := x.Length;
-              ^[```dafny\nconst array.Length: int\n```]
+//            ^[```dafny\nconst array.Length: int\n```]
 }");
     }
 
@@ -175,7 +182,7 @@ method DoIt() returns (x: int) {
       await AssertHover(@"
 method DoIt() returns (x: int) {
   return GetX();
-            ^[null]
+//          ^[null]
 }");
     }
 
@@ -188,7 +195,7 @@ class Test {
   method DoIt() {
     var x := """";
     print x;
-          ^[```dafny\nx: string\n```]
+//        ^[```dafny\nx: string\n```]
   }
 }");
     }
@@ -202,7 +209,7 @@ class Test {
   method DoIt() {
     var x := 1;
     print this.x;
-               ^[```dafny\nvar Test.x: int\n```]
+//             ^[```dafny\nvar Test.x: int\n```]
   }
 }");
     }
@@ -218,7 +225,7 @@ class Test {
     {
       var x := ""2"";
       print x;
-            ^[```dafny\nx: string\n```]
+//          ^[```dafny\nx: string\n```]
     }
   }
 }");
@@ -236,7 +243,7 @@ class Test {
       var x := 2;
     }
     print x;
-          ^[```dafny\nx: string\n```]
+//        ^[```dafny\nx: string\n```]
   }
 }");
     }
@@ -250,7 +257,7 @@ class A {
 
 class B {
   var a: A;
-         ^[```dafny\nclass A\n```]
+//       ^[```dafny\nclass A\n```]
 
   constructor() {
     a := new A();
@@ -270,7 +277,7 @@ class B {
 
   constructor() {
     a := new A();
-             ^[```dafny\nclass A\n```]
+//           ^[```dafny\nclass A\n```]
   }
 }");
     }
@@ -283,7 +290,7 @@ class A {
 }
 
 method DoIt(a: A) {}
-               ^[```dafny\nclass A\n```]");
+//             ^[```dafny\nclass A\n```]");
     }
 
     [Fact]
@@ -291,7 +298,7 @@ method DoIt(a: A) {}
       await AssertHover(@"
 trait Base {}
 class Sub extends Base {}
-                   ^[```dafny\ntrait Base\n```]");
+//                 ^[```dafny\ntrait Base\n```]");
     }
 
     [Fact]
@@ -300,7 +307,7 @@ class Sub extends Base {}
 datatype SomeType = SomeType {
   method AssertEqual(x: int, y: int) {
     var j:=x == y;
-           ^[```dafny\nx: int\n```]
+//         ^[```dafny\nx: int\n```]
   }
 }");
     }
@@ -317,7 +324,7 @@ datatype SomeType = SomeType {
 method Main() {
   var instance: SomeType;
   instance.AssertEqual(1, 2);
-            ^[```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```]
+//          ^[```dafny\nmethod SomeType.AssertEqual(x: int, y: int)\n```]
 }");
     }
 
@@ -326,7 +333,7 @@ method Main() {
       await AssertHover(@"
 method f(i: int) {
   var r := i;
-           ^[```dafny\ni: int\n```]
+//         ^[```dafny\ni: int\n```]
 }");
     }
 
@@ -335,7 +342,7 @@ method f(i: int) {
       await AssertHover(@"
 method f(i: int) {
   var r := i;
-      ^[```dafny\nr: int\n```]
+//    ^[```dafny\nr: int\n```]
 }");
     }
 
@@ -344,8 +351,8 @@ method f(i: int) {
       await AssertHover(@"
 method f(i: int) {
   var x:=forall j :: j + i == i + j;
-                ^[```dafny\nj: int\n```]
-                     ^[```dafny\nj: int\n```]
+//              ^[```dafny\nj: int\n```]
+//                   ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -354,8 +361,8 @@ method f(i: int) {
       await AssertHover(@"
 method f(i: int) {
   var x:=exists j :: j + i == i;
-                ^[```dafny\nj: int\n```]
-                     ^[```dafny\nj: int\n```]
+//              ^[```dafny\nj: int\n```]
+//                   ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -365,8 +372,8 @@ method f(i: int) {
 method f(i: int) {
   var x := {1, 2, 3};
   var y := set j | j in x && j < 3;
-               ^[```dafny\nj: int\n```]
-                   ^[```dafny\nj: int\n```]
+//             ^[```dafny\nj: int\n```]
+//                 ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -375,8 +382,8 @@ method f(i: int) {
       await AssertHover(@"
 method f(i: int) {
   var m := map j : int | 0 <= j <= i :: j * j;
-               ^[```dafny\nj: int\n```]
-                              ^[```dafny\nj: int\n```]
+//             ^[```dafny\nj: int\n```]
+//                            ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -385,8 +392,8 @@ method f(i: int) {
       await AssertHover(@"
 method f(i: int) {
   var m := j => j * i;
-           ^[```dafny\nj: int\n```]
-                ^[```dafny\nj: int\n```]
+//         ^[```dafny\nj: int\n```]
+//              ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -395,8 +402,8 @@ method f(i: int) {
       await AssertHover(@"
 ghost predicate f(i: int) {
   forall j :: j + i == i + j
-         ^[```dafny\nj: int\n```]
-              ^[```dafny\nj: int\n```]
+//       ^[```dafny\nj: int\n```]
+//            ^[```dafny\nj: int\n```]
 }");
     }
 
@@ -409,8 +416,8 @@ predicate even(n: nat)
   if n < 2 then n == 0 else even(n - 2)
 } by method {
   var x := n % 2 == 0;
-      ^[```dafny\nx: bool\n```]
-           ^[```dafny\nn: nat\n```]
+//    ^[```dafny\nx: bool\n```]
+//         ^[```dafny\nn: nat\n```]
   return x;
 }");
     }
@@ -420,8 +427,8 @@ predicate even(n: nat)
       await AssertHover(@"
 function test(n: nat): nat {
   var i := n * 2;
-      ^[```dafny\ni: int\n```]
-           ^[```dafny\nn: nat\n```]
+//    ^[```dafny\ni: int\n```]
+//         ^[```dafny\nn: nat\n```]
   if i == 4 then 3 else 2
 }");
     }
@@ -431,8 +438,8 @@ function test(n: nat): nat {
       await AssertHover(@"
 method returnBiggerThan(n: nat) returns (y: int)
   requires var y := 100; forall i :: i < n ==> i < y 
-               ^[```dafny\ny: int\n```]
-                                ^[```dafny\ni: int\n```]
+//             ^[```dafny\ny: int\n```]
+//                              ^[```dafny\ni: int\n```]
   ensures forall i :: i > y ==> i > n 
  {
   return n + 2;
@@ -443,9 +450,9 @@ method returnBiggerThan(n: nat) returns (y: int)
     public async Task HoveringResultVarReturnsInferredType() {
       await AssertHover(@"
 function f(i: int): (r: int)
-                     ^[```dafny\nr: int\n```]
+//                   ^[```dafny\nr: int\n```]
   ensures r - i < 10
-          ^[```dafny\nr: int\n```]
+//        ^[```dafny\nr: int\n```]
 {
   i + 2
 }");
@@ -459,7 +466,7 @@ function f(i: int): Pos {
   if i <= 3 then Pos(i)
   else
    var r := f(i - 2);
-       ^[```dafny\nr: Pos\n```]
+//     ^[```dafny\nr: Pos\n```]
    Pos(r.line + 2)
 }");
     }
@@ -469,7 +476,7 @@ function f(i: int): Pos {
       await AssertHover(@"
 datatype Position = Position(Line: nat)
 function ToRelativeIndependent(): (p: Position)
-                                         ^[```dafny\ndatatype Position\n```]
+//                                       ^[```dafny\ndatatype Position\n```]
 {
    Position(12)
 }
@@ -482,19 +489,157 @@ function ToRelativeIndependent(): (p: Position)
 lemma dummy(e: int) {
   match e {
     case _ => var xx := 1;
-                   ^[```dafny\nghost xx: int\n```]
+//                 ^[```dafny\nghost xx: int\n```]
   }
 }
 method test(opt: int) {
   match(opt)
   case 1 =>
     var s := 1;
-        ^[```dafny\ns: int\n```]
+//      ^[```dafny\ns: int\n```]
 }
 ");
     }
 
     public HoverTest(ITestOutputHelper output) : base(output) {
+    }
+
+    [Fact]
+    public async Task HoverShouldDisplayComments() {
+      await AssertHover(@"
+predicate pm()
+  // No comment for pm
+{ true }
+
+/** Rich comment
+  * @param k The input
+  *          that is ignored
+  * @param l The second input that is ignored
+  * @returns 1 no matter what*/
+function g(k: int, l: int): int { 1 }
+
+// No comment for pt
+twostate predicate pt() { true }
+
+least predicate pl()
+  // No comment for pl
+{ true }
+
+// A comment for pg
+// That spans two lines
+greatest predicate pg() { true }
+
+/** Returns an integer without guarantee
+  * @returns The integer
+  */
+method m() returns (i: int) { i := *; }
+
+/** The class C. Should be used like this:
+  * ```dafny
+  * new C();
+  * ```
+  */
+class C {
+  // Unformatted comment
+  static method m() {}
+
+  // This is the constructor
+  constructor() {}
+
+  /** Should be the number of x in C */
+  var x: int
+
+  const X: int
+  // The expected number of x
+}
+
+function f(): int
+  /** Rich comment
+    * @returns 1 no matter what
+    */
+{ 1 }
+
+/** Rich comment for D */
+datatype D = DD(value: int)
+
+/* D whose value is even */
+type T = x: D | x.value % 2 == 0 witness DD(0)
+
+/* Even numbers hidden in a newtype */
+newtype Even = x: int | x % 2 == 0
+
+/** A useful lemma */
+lemma lem() {}
+
+/** A useful greatest lemma */
+greatest lemma greatestLemma() {}
+
+/** A useful least lemma */
+least lemma leastLemma() {}
+
+/** A useful twostate lemma */
+twostate lemma twostateLemma() {}
+
+method test(d: D, t: T, e: Even) {
+//             ^[Rich comment for D]
+ //                   ^[D whose value is even] // Not working yet
+ //                         ^[Even numbers hidden in a newtype] // Not working yet
+  var x1 := pm();
+//          ^[No comment for pm]
+  var x2 := pg();
+//          ^[A comment for pg\nThat spans two lines]
+  var x3 := pl();
+//          ^[No comment for pl]
+  var x4 := pt();
+//          ^[No comment for pt]
+  var xg := g(0, 1);
+//          ^[Rich comment\n@param k The input\n         that is ignored\n@param l The second input that is ignored\n@returns 1 no matter what]
+  C.m(); // TODO
+ //  ^[Unformatted comment] // Does not work yet.
+  var c: C := new C();
+//                ^[The class C. Should be used like this:\n```dafny\nnew C();\n```]
+  var xc := c.x;
+//            ^[Should be the number of x in C]
+  var xx := c.X;
+//            ^[The expected number of x]
+  var xf := f();
+//          ^[Rich comment\n@returns 1 no matter what]
+  lem();
+//^[A useful lemma]
+  greatestLemma();
+//^[A useful greatest lemma]
+  leastLemma();
+//^[A useful least lemma]
+  twostateLemma();
+//^[A useful twostate lemma]
+}");
+      await AssertHover(@"
+/** Rich comment
+  * @param k The input
+  *          that is ignored
+  * @param l The second input that is ignored
+  * @returns 1 no matter what*/
+function g(k: int, l: int): int { 1 }
+
+/** Returns an integer without guarantee
+  * @returns The integer
+  */
+method m() returns (i: int) { i := *; }
+
+function f(): int
+  /** Rich comment
+    * @returns 1 no matter what
+    */
+{ 1 }
+
+method test() {
+  var xg := g(0, 1);
+//          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Params** | **k** - The input<br>         that is ignored |\n| | **l** - The second input that is ignored |\n| **Returns** | 1 no matter what |]
+  var i := m();
+//         ^[Unformatted comment] // Does not work yet.
+  var xf := f();
+//          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Returns** | 1 no matter what |]
+}", o => o.Set(CommonOptionBag.UseJavadocLikeDocstringRewriterOption, true));
     }
   }
 }

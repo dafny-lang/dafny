@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
 
@@ -76,12 +77,19 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
+      var proverOptions = new SMTLibSolverOptions(options);
+      proverOptions.Parse(options.ProverOptions);
+      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       options.ProverOptions = new List<string>() {
-        // TODO: condition this on Z3 version
-        "O:model.compact=false",
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        options.ProverOptions.Insert(0, "O:model.compress=false");
+      } else {
+        options.ProverOptions.Insert(0, "O:model.compact=false");
+      }
+
       options.Prune = !original.TestGenOptions.DisablePrune;
       options.ProverOptions.AddRange(original.ProverOptions);
       options.LoopUnrollCount = original.LoopUnrollCount;
@@ -120,7 +128,7 @@ namespace DafnyTestGeneration {
       counterexampleStatus = Status.Failure;
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
-        if (options.TestGenOptions.Verbose) {
+        if (Options.TestGenOptions.Verbose) {
           await options.Writer.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
@@ -136,27 +144,25 @@ namespace DafnyTestGeneration {
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
           coversBlocks.Add(blockId);
-          if (options.TestGenOptions.Verbose) {
+          if (Options.TestGenOptions.Verbose &&
+              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
             await options.Writer.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
-      if (options.TestGenOptions.Verbose && counterexampleLog == null) {
+      if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           await options.Writer.WriteLineAsync(
-            $"// No test can be generated for {uniqueId} " +
-            "because the verifier suceeded.");
-        } else if (log.Contains("MODEL")) {
+            $"// No test is generated for {uniqueId} " +
+            "because the verifier proved that no inputs could cause this block to be visited.");
+        } else if (log.Contains("MODEL") || log.Contains("anon0")) {
           await options.Writer.WriteLineAsync(
-            $"// No test can be generated for {uniqueId} " +
-            "because there is no enhanced error trace.");
-        } else if (log.Contains("anon0")) {
-          await options.Writer.WriteLineAsync(
-            $"// No test can be generated for {uniqueId} " +
-            "because the model cannot be extracted.");
+            $"// No test is generated for {uniqueId} " +
+            "because there is no enhanced error trace. This can be caused " +
+            "by a bug in boogie counterexample model parsing.");
         } else {
           await options.Writer.WriteLineAsync(
-            $"// No test can be generated for {uniqueId} " +
+            $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
       }
@@ -185,7 +191,10 @@ namespace DafnyTestGeneration {
       if (Options.TestGenOptions.Verbose) {
         await dafnyInfo.Options.Writer.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
-          $"for {duplicate.uniqueId}.");
+          $"for {duplicate.uniqueId}. This happens when test generation tool " +
+          $"does not know how to differentiate between counterexamples, " +
+          $"e.g. if branching is conditional on the result of a trait instance " +
+          $"method call.");
       }
       return null;
     }

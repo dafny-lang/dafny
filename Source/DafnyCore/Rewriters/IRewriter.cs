@@ -5,11 +5,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
   /// <summary>
-  /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
-  ///
-  /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
-  /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
-  /// as the first and only argument.
+  /// Internal rewriters used in the resolution pipeline
   /// </summary>
   public abstract class IRewriter {
     /// <summary>
