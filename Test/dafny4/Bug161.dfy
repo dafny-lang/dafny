@@ -3,9 +3,9 @@
 
 type t = seq<int>
 
-predicate P(x:t)
-function F(x:t) : int
-function C() : int { assume (exists x :: P(x)); var x :| P(x); F(x) }
+ghost predicate P(x:t)
+ghost function F(x:t) : int
+ghost function C() : int { assume (exists x :: P(x)); var x :| P(x); F(x) }
 
 lemma L(x:t)
 {

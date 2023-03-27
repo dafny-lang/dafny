@@ -1,8 +1,12 @@
-# 4. Modules {#sec-modules}
+# 4. Modules ([grammar](#g-module)) {#sec-modules}
 
-````grammar
-SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
-````
+Examples:
+<!-- %no-check -->
+```dafny
+module N  { }
+import A
+export A reveals f
+```
 
 Structuring a program by breaking it into parts is an important part of
 creating large programs. In Dafny, this is accomplished via _modules_.
@@ -12,29 +16,33 @@ declarations. Modules may import each other for code reuse, and it is
 possible to abstract over modules to separate an implementation from an
 interface.
 
-## 4.1. Declaring New Modules
-````grammar
-ModuleDefinition = "module" { Attribute } ModuleQualifiedName
-        [ "refines" ModuleQualifiedName ]
-        "{" { TopDecl } "}"
-````
-A `ModuleQualifiedName` is a qualified name that is expected to refer to a module;
-a _qualified name_ is a sequence of `.`-separated identifiers, which designates
-a program entity by representing increasingly-nested scopes.
+Module declarations are of three types:
+- a module definition
+- a module import
+- a module export definition
 
-A new module is declared with the `module` keyword, followed by the name
-of the new module, and a pair of curly braces ({}) enclosing the body
-of the module:
+Module definitions and imports each declare a submodule
+of its enclosing module, which may be the
+implicit, undeclared, top-level module. 
 
+## 4.1. Declaring New Modules ([grammar](#g-module-definition)) {#sec-module-definition}
+
+Examples:
 <!-- %check-resolve -->
 ```dafny
-module Mod { 
-   ...
-}
+module P { const i: int }
+abstract module A.Q { method m() {} }
+module M { module N { } }
 ```
 
-A module body can consist of anything that you could put at the top
-level. This includes classes, datatypes, types, methods, functions, etc.
+A _module definition_
+- has an optional modifier (only `abstract` is allowed)
+- followed by the keyword "module"
+- followed by a name (a sequence of dot-separated identifiers)
+- followed by a body enclosed in curly braces
+
+A module body consists of any declarations that are allowed at the top
+level: classes, datatypes, types, methods, functions, etc.
 
 <!-- %check-resolve -->
 ```dafny
@@ -94,7 +102,7 @@ module.
 ```dafny
 module Mod {
   module Helpers {
-    function method addOne(n: nat): nat {
+    function addOne(n: nat): nat {
       n + 1
     }
   }
@@ -135,30 +143,25 @@ This feature provides flexibility in writing and maintenance;
 for example, it can reduce the size of module `A` by extracting module `A.B`
 into a separate body of text.
 
-However, it can also lead to confusion and program authors need to take care.
+However, it can also lead to confusion, and program authors need to take care.
 It may not be apparent to a reader of module `A` that module `A.B` exists;
 the existence of `A.B` might cause names to be resolved differently and
 the semantics of the program might be (silently) different if `A.B` is
 present or absent.
 
-## 4.3. Importing Modules {#sec-importing-modules}
-````grammar
-ModuleImport =
-    "import"
-    [ "opened" ]
-    ( QualifiedModuleExport
-    | ModuleName "=" QualifiedModuleExport
-    | ModuleName ":" QualifiedModuleExport
-    )
+## 4.3. Importing Modules ([grammar](#g-module-import)) {#sec-importing-modules}
 
-QualifiedModuleExport =
-    ModuleQualifiedName [ "`" ModuleExportSuffix ]
-
-ModuleExportSuffix =
-    ( ExportId
-    | "{" ExportId { "," ExportId } "}"
-    )
-````
+Examples:
+<!-- %no-check -->
+```dafny
+import A
+import opened B
+import A = B
+import A : B
+import A.B
+import A`E
+import X = A.B`{E,F}
+```
 
 Sometimes you want to refer to
 things from an existing module, such as a library. In this case, you
@@ -166,7 +169,7 @@ can _import_ one module into another. This is done via the `import`
 keyword, which has two forms with different meanings.
 The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
-module `B` (which must already exist), and binds it to the new name
+module `B` (which must already exist), and binds it to the new local name
 `A`. This form can also be used to create a reference to a nested
 module, as in `import A = B.C`. The other form, using a `:`, is
 described in [Section 4.6](#sec-module-abstraction).
@@ -182,7 +185,7 @@ it:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -195,7 +198,7 @@ module Mod {
 ```
 
 Note that inside `m()`, we have to use `A` instead of `Helpers`, as we bound
-it to a different name. The name `Helpers` is not available inside `m()`,
+it to a different name. The name `Helpers` is not available inside `m()` (or anywhere else inside `Mod`),
 as only names that have been bound inside `Mod` are available. In order
 to use the members from another module, that other module either has to be declared
 there with `module` or imported with `import`. (As described below, the
@@ -212,15 +215,17 @@ sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a submodule of the
-importing module, with a
-sibling module of the importing module, or with a sibling module of some containing module. 
+The first identifier in the dot-separated sequence of identifers that constitute
+the qualified name of the module being imported is resolved as (in order)
+- a submodule of the importing module, 
+- or a sibling module of the importing module, 
+- or a sibling module of some containing module, traversing outward. 
 There is no way to refer to a containing module, only
 sibling modules (and their submodules).
 
 Import statements may occur at the top-level of a program
 (that is, in the implicit top-level module of the program) as well.
-There they serve simply as a way to give a new name, perhaps a
+There they serve as a way to give a new name, perhaps a
 shorthand name, to a module. For example,
 
 <!-- %check-resolve Modules.1.expect -->
@@ -233,7 +238,7 @@ import M = MyModule // OK. M and MyModule are equivalent
 
 ## 4.4. Opening Modules {#sec-opening-modules}
 
-Sometimes, prefixing the members of the module you imported with the
+Sometimes, prefixing the members of the module you imported with its
 name is tedious and ugly, even if you select a short name when
 importing it. In this case, you can import the module as `opened`,
 which causes all of its members to be available without adding the
@@ -243,7 +248,7 @@ For example, we could write the previous example as:
 <!-- %check-verify -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
@@ -265,19 +270,19 @@ the name that was bound to get to anything that is hidden.
 <!-- %check-verify Modules.2.expect -->
 ```dafny
 module Helpers {
-  function method addOne(n: nat): nat {
+  function addOne(n: nat): nat {
     n + 1
   }
 }
 module Mod {
-  import opened Helpers
+  import opened H = Helpers
   function addOne(n: nat): nat {
     n - 1
   }
   method m() {
     assert addOne(5) == 6; // this is now false,
                            // as this is the function just defined
-    assert Helpers.addOne(5) == 6; // this is still true
+    assert H.addOne(5) == 6; // this is still true
   }
 }
 ```
@@ -301,7 +306,9 @@ import opened MyModule // does not declare a new module, but does
                        // qualification
 import opened M = MyModule // names in MyModule are available in
                        // the current scope without qualification
-                       // or qualified with either M or MyModule
+                       // or qualified with either M (because of this
+                       // import) or MyModule (because of the original
+                       // module definition)
 ```
 
 The Dafny style guidelines suggest using opened imports sparingly.
@@ -313,7 +320,7 @@ There is a special case in which the behavior described above is altered.
 If a module `M` declares a type `M` and `M` is `import opened` without renaming inside 
 another module `X`, then the rules above would have, within `X`,
 `M` mean the module and `M.M` mean the type. This is verbose. So in this 
-somewhat common case, the type `M` is effectively made a local declaration of `X`
+somewhat common case, the type `M` is effectively made a local declaration within `X`
 so that it has precedence over the module name. Now `M` refers to the type.
 If one needs to refer to the module, it will have to be renamed as part of
 the `import opened` statement.	
@@ -333,37 +340,37 @@ module X {
 }
 ```
 `Option.a` now means the `a` in the datatype instead of the `a` in the module.
-To avoid confusion in such cases, it is an ambiguity error to `import open`
-a module without renaming that contains a declaration with the same name as a declaration in 
-a type in the module when the type has the same name as the module.
+To avoid confusion in such cases, it is an ambiguity error if a name
+that is declared in both the datatype and the module is used
+when there is an `import open` of
+the module (without renaming).
 
-## 4.5. Export Sets and Access Control {#sec-export-sets}
-````grammar
-ModuleExport =
-  "export"
-  [ ExportId ]
-  [ "..." ]
-  {
-    "extends"  ExportId { "," ExportId }
-  | "provides" ( ExportSignature { "," ExportSignature } | "*" )
-  | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
-  }
+## 4.5. Export Sets and Access Control ([grammar](#g-module-export)) {#sec-export-sets}
 
-ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
-````
+Examples:
+<!-- %no-check -->
+```dafny
+export E extends F reveals f,g provides g,h
+export E reveals *
+export reveals f
+export E
+export
+export E ... reveals f
+```
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
 are used to control access to (that is, visibility of) declared program entities.
 In Dafny, modules and export sets provide that capability.
 Modules combine declarations into logically related groups.
-Export sets then permit selectively exposing subsets of declarations;
+Export sets then permit selectively exposing subsets of a module's declarations;
 another module can import the export set appropriate to its needs.
 A user can define as many export sets as are needed to provide different
 kinds of access to the module's declarations.
 Each export set designates a list of names, which must be
 names that are declared in the module (or in a refinement parent).
 
-By default all the names declared in a module are available outside the
+By default (in the absence of any export set declarations)
+all the names declared in a module are available outside the
 module using the `import` mechanism.
 An _export set_ enables a module to disallow the
 use of some declarations outside the module.
@@ -395,7 +402,7 @@ names that are listed in export set `E` or to the union of those in export sets
 then an export set designator must be used: in that case you cannot write
 simply ``import Z = M``.
 
-_`M` has an unnamed export set, along with other export sets (e.g., `E`)_. The unnamed
+_`M` has an unnamed export set, along with other export sets (e.g., named `E`)_. The unnamed
 export set is the default export set and implicitly has the same name as
 the module. Because there is a default export set, another module may write
 either ``import Z = M`` or ``import Z = M`M`` to import the names in that
@@ -460,7 +467,7 @@ There are a few unusual cases to be noted:
 `export least predicate P() { true }`
 In this case, the `least` (or `greatest`) is the identifier naming the export set.
 Consequently, `export least predicate P[nat]() { true }` is illegal because `[nat]` cannot be part of a non-extreme predicate.
-Also, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
+So, it is not possible to declare an eponymous, empty export set by omitting the export id immediately prior to a declaration of an extreme predicate,
 because the `least` or `greatest` token is parsed as the export set identifier. The workaround for this situation is to 
 either put the name of the module in explicitly as the export ID (not leaving it to the default) or reorder the declarations.
 - To avoid confusion, the code
@@ -756,12 +763,13 @@ instead of getting the exact module `B`, you get any module which
 _adheres_ to `B`.  Typically, the module `B` may have abstract type
 definitions, classes with bodiless methods, or otherwise be unsuitable
 to use directly.  Because of the way refinement is defined, any
-refinement of `B` can be used safely. For example, if we start with:
+refinement of `B` can be used safely. For example, suppose we start with
+these declarations:
 
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -780,7 +788,7 @@ Interface module.
 <!-- %check-verify -->
 ```dafny
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -794,7 +802,7 @@ declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 <!-- %check-verify -->
 ```dafny
 module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -804,7 +812,7 @@ abstract module Mod {
   }
 }
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -921,7 +929,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 22](#sec-module-refinement)).
+in [Section 10](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
@@ -933,7 +941,7 @@ A qualified name may be used to refer to a module in an import statement or a re
 Such a qualified name is resolved as follows, with respect to its syntactic
 location within a module `Z`:
 
-1. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
+1. The leading identifier of the qualified name is resolved as a local or imported module name of `Z`, if there
 is one with a matching name. The target of a `refines` clause does not
 consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
 are not considered in finding `A`.
@@ -945,8 +953,9 @@ No consideration of export sets, default or otherwise, is used in this step.
 However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
-3a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
-   is resolved as a local or imported  module name within `M`.
+3a. Once the leading identifier is resolved as say module `M`, the next
+   identifier in the quallified name
+   is resolved as a local or imported module name within `M`.
    The resolution is restricted to the default export set of `M`.
 
 3b. If the resolved module name is a module alias (from an `import` statement)
@@ -956,7 +965,7 @@ modules so far). Since `Z` depends on `M`, any such alias target will
 already have been resolved, because modules are resolved in order of
 dependency.
 
-4. Step 3 is iterated for each ``NameSegment`` in the qualified module id,
+4. Step 3 is iterated for each identifier in the qualified module id,
    resulting in a module that is the final resolution of the complete
    qualified id.
 
@@ -982,7 +991,7 @@ In the example, the `A` in `refines A` refers to the global `A`, not the submodu
 
 ### 4.8.3. Expression Context Name Resolution
 
-The leading ``NameSegment`` is resolved using the first following
+The leading identifier is resolved using the first following
 rule that succeeds.
 
 0. Local variables, parameters and bound variables. These are things like
@@ -1043,7 +1052,7 @@ First resolve expression E and any type arguments.
 
 ### 4.8.4. Type Context Name Resolution
 
-In a type context the priority of ``NameSegment`` resolution is:
+In a type context the priority of identifier resolution is:
 
 1. Type parameters.
 
@@ -1056,4 +1065,4 @@ To resolve expression `E.id`:
      class, datatype, etc.
 * If `E` denotes a type:
   1. Then the validity and meaning of `id` depends on the type and
-     must be a user-declared or pre-defined member of the type,
+     must be a user-declared or pre-defined member of the type.

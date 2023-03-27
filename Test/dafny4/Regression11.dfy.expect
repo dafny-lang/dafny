@@ -1,12 +1,12 @@
-Regression11.dfy(14,38): Error: Undeclared top-level type or type parameter: B (did you forget to qualify a name or declare a module import 'opened'?)
-Regression11.dfy(16,36): Error: Undeclared top-level type or type parameter: C (did you forget to qualify a name or declare a module import 'opened'?)
-Regression11.dfy(18,39): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name or declare a module import 'opened'?)
+Regression11.dfy(14,38): Error: Type or type parameter is not declared in this scope: B (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Regression11.dfy(16,36): Error: Type or type parameter is not declared in this scope: C (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Regression11.dfy(18,39): Error: Type or type parameter is not declared in this scope: D (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 Regression11.dfy(18,45): Error: type of 'null' is a reference type, but it is used as MyClass<D>
-Regression11.dfy(20,31): Error: Undeclared top-level type or type parameter: MaiKlass (did you forget to qualify a name or declare a module import 'opened'?)
+Regression11.dfy(20,31): Error: Type or type parameter is not declared in this scope: MaiKlass (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 Regression11.dfy(20,51): Error: type of 'null' is a reference type, but it is used as MaiKlass<object>
-Regression11.dfy(25,37): Error: Undeclared top-level type or type parameter: B (did you forget to qualify a name or declare a module import 'opened'?)
-Regression11.dfy(27,36): Error: Undeclared top-level type or type parameter: C (did you forget to qualify a name or declare a module import 'opened'?)
-Regression11.dfy(29,44): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name or declare a module import 'opened'?)
+Regression11.dfy(25,37): Error: Type or type parameter is not declared in this scope: B (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Regression11.dfy(27,36): Error: Type or type parameter is not declared in this scope: C (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Regression11.dfy(29,44): Error: Type or type parameter is not declared in this scope: D (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 Regression11.dfy(29,32): Error: Wrong number of type arguments (2 instead of 1) passed to non-null type: MyClass
 Regression11.dfy(29,50): Error: type of 'null' is a reference type, but it is used as MyClass<int, D>
 11 resolution/type errors detected in Regression11.dfy

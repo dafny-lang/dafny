@@ -1,11 +1,11 @@
 // RUN: %dafny /warnShadowing  /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function P(x:int):int
-function Q(x:int):int
-function R(x:int):int
+ghost function P(x:int):int
+ghost function Q(x:int):int
+ghost function R(x:int):int
 
-function Example0(y:int) : int
+ghost function Example0(y:int) : int
 {
   var state0 := y;
   var state0 := P(state0);
@@ -15,7 +15,7 @@ function Example0(y:int) : int
 }
 
 
-function {:warnShadowing false} Example(y:int) : int
+ghost function {:warnShadowing false} Example(y:int) : int
 {
   var state := y;
   var state := P(state);
@@ -24,7 +24,7 @@ function {:warnShadowing false} Example(y:int) : int
   state
 }
 
-function Example2(y:int) : int
+ghost function Example2(y:int) : int
 {
   var state1 := y;
   var state1 := P(state1);

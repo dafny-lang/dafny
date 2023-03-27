@@ -12,7 +12,7 @@ class Node<T(0)> {
   var data: T
   var next: Node?<T>
 
-  static predicate ListSegment(q: seq<T>, from: Node?<T>, to: Node?<T>, S: set<Node<T>>)
+  static ghost predicate ListSegment(q: seq<T>, from: Node?<T>, to: Node?<T>, S: set<Node<T>>)
     reads S
   {
     if q == []
@@ -55,7 +55,7 @@ class ListNode<T(0)> {
   var data: T
   var next: ListNode?<T>
 
-  static predicate IsList(l: ListNode?<T>)
+  static ghost predicate IsList(l: ListNode?<T>)
     reads l, if l != null then l.Repr else {}
   {
     if l == null then
@@ -111,7 +111,7 @@ class List<T(0)>
   ghost var Repr: set<object>
   var head: LLNode<T>
 
-  predicate IsList()
+  ghost predicate IsList()
     reads this, Repr
   {
     this in Repr && head in Repr &&
@@ -158,7 +158,7 @@ class LLNode<T(0)>
   ghost var TailContents: seq<T>
   ghost var Repr: set<object>
 
-  predicate IsWellFormed()
+  ghost predicate IsWellFormed()
     reads this, Repr
   {
     this in Repr &&

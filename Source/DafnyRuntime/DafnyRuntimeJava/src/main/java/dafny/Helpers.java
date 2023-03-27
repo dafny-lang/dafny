@@ -168,12 +168,11 @@ public class Helpers {
         return () -> IntStream.range(0, 0x1_0000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
     }
 
-    // Note we don't use CodePoint here because this is only used in the implementation of quantification,
-    // where we want to enumerate primitive values, and it's challenging to customize that logic
-    // to unbox CodePoints manually.
-    public static Iterable<Integer> AllUnicodeChars() {
+    public static Iterable<CodePoint> AllUnicodeChars() {
         return () -> IntStream.concat(IntStream.range(0, 0xD800), 
-                                      IntStream.range(0xE000, 0x11_0000)).iterator();
+                                      IntStream.range(0xE000, 0x11_0000))
+                              .mapToObj(CodePoint::valueOf)
+                              .iterator();
     }
 
     public static <G> String toString(G g) {
@@ -273,6 +272,54 @@ public class Helpers {
 
     public static short remainderUnsignedShort(short a, short b) {
         return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+    
+    // Explanation (G = original, g = opposite)
+    // a = 1XXX,YYYY
+    // (int)a = 1111,1111,...,1111,1XXX,YYYY (power of two's complement)
+    // (int)a & 0xFF = 0000,0000,...,0000,1XXX,YYYY
+    // Now right-shift works nicely
+    public static int bv8ShiftRight(byte a, byte amount) {
+        if(a < 0)  {
+          return (((int)a) & 0xFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static int bv16ShiftRight(short a, byte amount) {
+        if(a < 0)  {
+          return (((int)a) & 0xFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static int bv32ShiftRight(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        if(a < 0)  {
+          return (((int)a) & 0xFFFFFFFF) >>> amount;
+        } else {
+          return a >>> amount;
+        }
+    }
+    public static long bv64ShiftRight(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a >>> amount;
+    }
+    public static int bv32ShiftLeft(int a, byte amount) {
+        if(amount == 32) { // Only the 5 lower bits are considered and Dafny goes up to 32
+          return 0;
+        }
+        return a << amount;
+    }
+    public static long bv64ShiftLeft(long a, byte amount) {
+        if(amount == 64) { // Only the 6 lower bits are considered and Dafny goes up to 64
+          return 0;
+        }
+        return a << amount;
     }
 
     public static void withHaltHandling(Runnable runnable) {

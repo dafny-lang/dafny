@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class PrintStmt : Statement, ICloneable<PrintStmt> {
+public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
   public readonly List<Expression> Args;
 
   public static readonly Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
@@ -29,10 +29,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt> {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(IToken tok, IToken endTok, List<Expression> args)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public PrintStmt(RangeToken rangeToken, List<Expression> args)
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(args));
 
     Args = args;
@@ -44,5 +43,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt> {
         yield return arg;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }

@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -23,11 +23,12 @@ method Main() {
   TestImplicitTypeTests.Test();
   ObjectTests.Test();
   NewtypeRangeRegression.Test();
+  EnumerationRegression.Test();
 }
 
-predicate method Thirteen(x: int) { x == 13 }
-predicate method Even(y: int) { y % 2 == 1 }
-function method FourMore(x: int): int { x + 4 }
+predicate Thirteen(x: int) { x == 13 }
+predicate Even(y: int) { y % 2 == 1 }
+function FourMore(x: int): int { x + 4 }
 
 method AssignSuchThat() {
   var x, y;
@@ -326,7 +327,7 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};
@@ -516,7 +517,7 @@ module ObjectTests {
     print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
   }
 
-  predicate method GenEqual<X(==)>(x: X, y: X) {
+  predicate GenEqual<X(==)>(x: X, y: X) {
     x == y
   }
 
@@ -532,5 +533,67 @@ module NewtypeRangeRegression {
   method Test() {
     var k: MyInt :| k != 2; // this once caused an infinite loop in the target Java code
     print k, "\n";
+  }
+}
+
+module {:options "--function-syntax:4"} EnumerationRegression {
+  method Test() {
+    // The Java compiler once converted each candidate Long number to a 32-bit int, which meant
+    // that none of them fell into the range mentioned by the set. Thus, it erroneously computed
+    // the empty set. (issue #3204)
+    var s := set l: Long | 0x20_0000_0002 <= l < 0x20_0000_0008 && l.True() && l != 0x20_0000_0006;
+    var s' := ToSeq(s, (x, y) => x < y);
+    print s', "\n";
+
+    var t := set l: AlsoLong | l.True() && l != 0x20_0000_0006;
+    var c := set l | l in s :: Digit(l as int);
+    var u := set l: AlsoLong | l.True() && l != 0x20_0000_0006 :: Digit(l as int);
+    var t' := ToSeq(t, (x, y) => x < y);
+    var c' := ToSeq(c, (x, y) => x < y);
+    var u' := ToSeq(u, (x, y) => x < y);
+    print t', "\n";
+    print c', "\n";
+    print u', "\n";
+  }
+
+  // Another previous problem with the Java compiler was that it generated names that confused
+  // the following "Long" with the built-in "java.lang.Long".
+  newtype Long = x | 0x1F_FFFF_FFF0 <= x < 0x20_0000_0100 witness 0x1F_FFFF_FFF0 {
+    predicate True() { true }
+  }
+
+  newtype AlsoLong = x | 0x20_0000_0002 <= x < 0x20_0000_0008 witness 0x20_0000_0002 {
+    predicate True() { true }
+  }
+
+  function Digit(x: int): char
+    requires 0x20_0000_0000 <= x < 0x20_0000_000a
+  {
+    'a' + (x - 0x20_0000_0000) as char
+  }
+
+  method ToSeq<X>(s: set<X>, below: (X, X) -> bool) returns (r: seq<X>) {
+    r := [];
+    var ss := s;
+    while ss != {} {
+      var x :| x in ss;
+      ss, r := ss - {x}, r + [x];
+    }
+    // sort r
+    ghost var n := |r|;
+    for i := 0 to |r|
+      invariant |r| == n
+    {
+      var y := r[i];
+      for j := i downto 0
+        invariant |r| == n
+      {
+        if below(r[j], r[j + 1]) {
+          break;
+        }
+        // swap elements j and j+1
+        r := r[j := r[j + 1]][j + 1 := r[j]];
+      }
+    }
   }
 }

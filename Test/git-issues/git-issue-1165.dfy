@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate method P()
+predicate P()
 
 method TestMapMethod(s0: set<int>, s1: set<int>) {
   var m;
@@ -12,7 +12,7 @@ method TestMapMethod(s0: set<int>, s1: set<int>) {
   assert true;
 }
 
-function TestMap(s0: set<int>, s1: set<int>): bool {
+ghost function TestMap(s0: set<int>, s1: set<int>): bool {
   // Once, these caused malformed Boogie, because the parentheses had fooled the
   // RewriteInExpr mechanism when generating CanCall assumptions.
   // Ditto for the comprehensions in functions below.
@@ -23,7 +23,7 @@ function TestMap(s0: set<int>, s1: set<int>): bool {
   true
 }
 
-function TestSet(s0: set<int>, s1: set<int>): bool {
+ghost function TestSet(s0: set<int>, s1: set<int>): bool {
   var t0 := set key | key in (s0 + s1) && P() :: key;
   var t1 := set key | key in (s0 + s1) :: key;
   var t2 := set key | key in s0 + s1 && P() :: key;
@@ -31,7 +31,7 @@ function TestSet(s0: set<int>, s1: set<int>): bool {
   true
 }
 
-function TestInMultiset(s0: multiset<int>, s1: multiset<int>): bool {
+ghost function TestInMultiset(s0: multiset<int>, s1: multiset<int>): bool {
   var t0 := set key | key in (s0 + s1) && P() :: key;
   var t1 := set key | key in (s0 + s1) :: key;
   var t2 := set key | key in s0 + s1 && P() :: key;
@@ -50,7 +50,7 @@ method ModifiesClauses(S: set<object>, T: set<object>, p: Cell, q: Cell, n: int)
   q.data := n;
 }
 
-function Id(S: set<object>): set<object> { S }
+ghost function Id(S: set<object>): set<object> { S }
 
 method Fresh0(p: Cell, q: Cell, n: int) returns (S: set<object>, T: set<object>)
   ensures fresh(S - T)
@@ -70,7 +70,7 @@ method Fresh2(p: Cell, q: Cell, n: int) returns (S: set<object>, T: set<object>)
   S, T := {p}, {p};
 }
 
-function ReadsClauses(S: set<object>, T: set<object>, p: Cell, q: Cell, n: int): int
+ghost function ReadsClauses(S: set<object>, T: set<object>, p: Cell, q: Cell, n: int): int
   requires p in S + T
   requires q in S
   reads S + T

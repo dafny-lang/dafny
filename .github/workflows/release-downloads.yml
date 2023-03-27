@@ -6,6 +6,10 @@ on:
   # For manual testing through the Actions UI
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
 
@@ -17,14 +21,14 @@ jobs:
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu\-20.04'
+          osn: 'ubuntu-20.04'
         - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
+          osn: 'ubuntu-20.04'
         - os:  'macos-latest'
-          osn: 'osx-.*'
+          osn: 'x64-macos-11'
         - os:  'windows-2019'
-          osn: 'win'
-    # There is no hosted environment for Unbuntu 14.04 or for debian
+          osn: 'windows-2019'
+    # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
 
@@ -53,75 +57,16 @@ jobs:
         Expand-Archive dafny*.zip
         mv dafny*/dafny dafny
 
-    ## Create a simple smoke test program
-    - name: Make test program
-      run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
-    ## Check that dafny and z3 run and that a simple program verifies or fails
+    ## Record versions, checking that dafny runs
     - name: Versions
       run: |
-        dafny/z3/bin/z3 -version
+        dafny/z3/bin/z3-4.8.5 -version
+        dafny/z3/bin/z3-4.12.1 -version
         dafny/dafny -version
-    - name: Check
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - non Windows
-      if: runner.os != 'Windows'
-      run: |
-        dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - Windows
-      if: runner.os == 'Windows'
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
-    - name: Check bad - non Windows
-      if: runner.os != 'Windows'
-      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
-    - name: Check bad - Windows
-      if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
+    
     ## Check that a simple program compiles and runs on each supported platform
     - name: run quicktests
       run: |
         npm install bignumber.js
         dafny/quicktest.sh > log.txt
         diff log.txt dafny/quicktest.out
-    - name: Check C# compile
-      run: |
-        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-    - name: Check Go compile
-      run: |
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        $Env:GO111MODULE="auto"
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Javascript compile
-      run: |
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java compile
-      run: |
-        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
-    - name: Check Java artifacts
-      if: runner.os != 'Windows'
-      run: |
-        java -cp a-java:dafny/DafnyRuntime.jar a > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java artifacts - Windows
-      if: runner.os == 'Windows'
-      run: |
-        java -cp "a-java;dafny/DafnyRuntime.jar" a > actual.txt
-        diff expect.txt actual.txt

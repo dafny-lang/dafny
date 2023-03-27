@@ -1,0 +1,1 @@
+Right shift on native byte has the same consistent semantics even in Java

@@ -1,32 +1,23 @@
-# 6. Types {#sec-types}
-````grammar
-Type = DomainType_ | ArrowType_
-````
-A Dafny type is a domain type (i.e., a type that can be the domain of an
-arrow type) optionally followed by an arrow and a range type.
+# 5. Types {#sec-types}
 
-````grammar
-DomainType_ =
-  ( BoolType_ | CharType_ | IntType_ | RealType_
-  | OrdinalType_ | BitVectorType_ | ObjectType_
-  | FiniteSetType_ | InfiniteSetType_
-  | MultisetType_
-  | FiniteMapType_ | InfiniteMapType_
-  | SequenceType_
-  | NatType_
-  | StringType_
-  | ArrayType_
-  | TupleType
-  | NamedType
-  )
-````
-The domain types comprise the builtin scalar types, the builtin
-collection types, tuple types (including as a special case
-a parenthesized type) and reference types.
+A Dafny type is a (possibly-empty) set of values or heap data-structures,
+together with allowed operations on those values.
+Types are classified as mutable reference types or immutable value types,
+depending on whether their values are stored in the heap or are 
+(mathematical) values independent of the heap.
 
-Dafny types may be categorized as either value types or reference types.
+Dafny supports the following kinds of types,
+all described in later sections of this manual:
+* [builtin scalar types](#sec-basic-type), 
+* [builtin collection types](#sec-collection-types), 
+* [reference types](#sec-class-types) (classes, traits, iterators),
+* [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
+* [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
+* [function (arrow) types](#sec-arrow-subset-types), and
+* [types, such as subset types, derived from other types](#sec-subset-types).
 
-## 6.1. Value Types
+## 5.1. Kinds of types
+### 5.1.1. Value Types
 The value types are those whose values do not lie in the program heap.
 These are:
 
@@ -44,7 +35,7 @@ The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
 
 Dafny does not include types themselves as values, nor is there a type of types.
 
-## 6.2. Reference Types {#sec-reference-types}
+### 5.1.2. Reference Types {#sec-reference-types}
 Dafny offers a host of _reference types_.  These represent
 _references_ to objects allocated dynamically in the program heap.  To
 access the members of an object, a reference to (that is, a _pointer_
@@ -54,38 +45,28 @@ The reference types are class types, traits and array types.
 Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
-## 6.3. Named Types
-````grammar
-NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
-````
+### 5.1.3. Named Types ([grammar](#g-type))
 
-A ``NamedType`` is used to specify a user-defined type by name
-(possibly module-qualified). Named types are introduced by
+A _Named Type_ is used to specify a user-defined type by a (possibly module- or class-qualified) name.
+Named types are introduced by
 class, trait, inductive, coinductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
+A Named Type is denoted by a dot-separated sequence of name segments ([Section 9.32](#sec-name-segment)).
 
-````grammar
-NameSegmentForTypeName = Ident [ GenericInstantiation ]
-````
-A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation``, which supplies type parameters to a generic
-type, if needed. It is a special case of a ``NameSegment``
-([Section 21.41](#sec-name-segment))
-that does not allow a ``HashCall``.
+A name segment (for a type) is a type name optionally followed by a
+_generic instantiation_, which supplies type parameters to a generic
+type, if needed.
 
 The following sections describe each of these kinds of types in more detail.
 
 <!--PDF NEWPAGE-->
-# 7. Basic types {#sec-basic-types}
+## 5.2. Basic types {#sec-basic-type}
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## 7.1. Booleans {#sec-booleans}
-````grammar
-BoolType_ = "bool"
-````
+### 5.2.1. Booleans ([grammar](#g-basic-type)) {#sec-booleans}
 
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
@@ -128,7 +109,8 @@ A && (B || C)
 ```
 depending on the intended meaning.
 
-### 7.1.1. Equivalence Operator {#sec-equivalence-operator}
+#### 5.2.1.1. Equivalence Operator {#sec-equivalence-operator}
+
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
@@ -157,7 +139,20 @@ is simply a shorthand for
 A == B && B == C
 ```
 
-### 7.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
+Also,
+<!-- %no-check -->
+```dafny
+A <==> B == C <==> D
+```
+is
+<!-- %no-check -->
+```dafny
+A <==> (B == C) <==> D
+```
+
+
+#### 5.2.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
+
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
@@ -167,7 +162,8 @@ evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
-### 7.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
+#### 5.2.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
+
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
 `A ==> B`, but gives the ability to write the operands in the opposite
@@ -184,7 +180,7 @@ C <== B <== A
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
-[Section 6.2](#sec-reference-types)), which means the following two
+[Section 5.1.2](#sec-reference-types)), which means the following two
 expressions are well-formed:
 <!-- %no-check -->
 ```dafny
@@ -216,20 +212,15 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in [Section 21.35](#sec-quantifier-expression).
+exists), described in [Section 9.31.4](#sec-quantifier-expression).
 
-## 7.2. Numeric Types {#sec-numeric-types}
-
-````grammar
-IntType_ = "int"
-RealType_ = "real"
-````
+### 5.2.2. Numeric Types ([grammar](#g-basic-type)) {#sec-numeric-types}
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
-are described in [Section 11.3](#sec-subset-types) and [Section 12](#sec-newtypes).
+are described in [Section 5.6.3](#sec-subset-types) and [Section 5.7](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -249,7 +240,7 @@ Real literals using exponents are not supported in Dafny. For now, you'd have to
 <!-- %check-verify -->
 ```dafny
 // realExp(2.37, 100) computes 2.37e100
-function method realExp(r: real, e: int): real decreases if e > 0 then e else -e {
+function realExp(r: real, e: int): real decreases if e > 0 then e else -e {
   if e == 0 then r
   else if e < 0 then realExp(r/10.0, e+1)
   else realExp(r*10.0, e-1)
@@ -315,7 +306,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explicit conversion (cf. [Section 21.10](#sec-as-expression)).
+`as real` conversions to write an explicit conversion (cf. [Section 9.10](#sec-as-is-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -346,18 +337,15 @@ method m(r: real, r': real) {
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
 function `as real` from `int` to `real`, as described in
-[Section 21.10](#sec-as-expression).
+[Section 9.10](#sec-as-is-expression).
 
-## 7.3. Bit-vector Types {#sec-bit-vector-types}
-````grammar
-BitVectorType_ = bvToken
-````
+### 5.2.3. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 
 Dafny includes a family of bit-vector types, each type having a specific,
 constant length, the number of bits in its values.
 Each such type is
 distinct and is designated by the prefix `bv` followed (without white space) by
-a postive integer without leading zeros or zero, stating the number of bits. For example,
+a positive integer without leading zeros or zero, stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
 The type `bv0` is also legal; it is a bit-vector type with no bits and just one value, `0x0`.
 
@@ -403,13 +391,19 @@ unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arith
 
 The groups of operators lower in the table above bind more tightly.[^binding]
 All operators bind more tightly than equality, disequality, and comparisons.
-All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+All binary operators are left-associative, but the 
+bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+The `+`, `|`, `^`, and `&` operators are commutative.
 
 The right-hand operand of bit-shift operations is an `int` value,
 must be non-negative, and
 no more than the number of bits in the type.
 There is no signed right shift as all bit-vector values correspond to
 non-negative integers.
+
+Bit-vector negation returns an unsigned value in the correct range for the type.
+It has the properties `x + (-x) == 0` and `(!x) + 1 == -x`, for a bitvector value `x`
+of at least one bit.
 
 The argument of the `RotateLeft` and `RotateRight` operations is a
 non-negative `int` that is no larger than the bit-width of the value being rotated.
@@ -499,10 +493,7 @@ But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-## 7.4. Ordinal type {#sec-ordinals}
-````grammar
-OrdinalType_ = "ORDINAL"
-````
+### 5.2.4. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -510,7 +501,7 @@ represented as $\omega$ in mathematics, though there is no literal expression in
 
 The natural numbers are ordinals.
 Any ordinal has a successor ordinal (equivalent to adding `1`).
-Some ordinals are _limit_ ordinals, meaning they are not a successor to any other ordinal;
+Some ordinals are _limit_ ordinals, meaning they are not a successor of any other ordinal;
 the natural number `0` and  $\omega$ are limit ordinals.
 
 The _offset_ of an ordinal is the number of successor operations it takes to reach it from a limit ordinal.
@@ -529,14 +520,9 @@ In addition,
 - `*`, `/` and `%` are not defined for `ORDINAL`s
 - two `ORDINAL`s may be subtracted if the RHS satisfies `.IsNat` and the offset of the LHS is not smaller than the offset of the RHS
 
-
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
-## 7.5. Characters {#sec-characters}
-
-````grammar
-CharType_ = "char"
-````
+### 5.2.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
 
 Dafny supports a type `char` of _characters_.  
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
@@ -548,7 +534,6 @@ If `--unicode-char` is enabled, then `char` represents any [Unicode scalar value
 This excludes surrogate code points.
 
 Character literals are enclosed in single quotes, as in `'D'`. 
-Their form is described by the ``charToken`` nonterminal in the grammar.
 To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
@@ -569,7 +554,7 @@ supported escape sequences are the following:
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
-escape sequences in string literals ([Section 10.3.5](#sec-strings)).
+escape sequences in string literals ([Section 5.5.3.5](#sec-strings)).
 
 In the form `\u`_xxxx_, which is only allowed if `--unicode-char` is disabled,
 the `u` is always lower case, but the four
@@ -595,7 +580,7 @@ relational operators:
   `>`              | greater than
 
 Sequences of characters represent _strings_, as described in
-[Section 10.3.5](#sec-strings).
+[Section 5.5.3.5](#sec-strings).
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
@@ -607,29 +592,24 @@ by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
 <!--PDF NEWPAGE-->
-# 8. Type parameters {#sec-type-parameters}
+## 5.3. Type parameters ([grammar](#g-type-parameter)) {#sec-type-parameters}
 
-````grammar
-GenericParameters(allowVariance) =
-  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
-  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
-  ">"
+Examples:
+<!-- %check-resolve -->
+```dafny
+type G1<T>
+type G2<T(0)>
+type G3<+T(==),-U>
+```
 
-// The optional Variance indicator is permitted only if allowVariance is true
-Variance = ( "*" | "+" | "!" | "-" )
-
-TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
-
-TPCharOption = ( "==" | "0" | "00" | "!" "new" )
-````
 Many of the types, functions, and methods in Dafny can be
-parameterized by types.  These _type parameters_ are typically
+parameterized by types.  These _type parameters_ are 
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in [Section 24.2](#sec-type-inference)).
+cluttered (described in [Section 12.2](#sec-type-inference)).
 
-## 8.1. Declaring restrictions on type parameters {#sec-type-characteristics}
+### 5.3.1. Declaring restrictions on type parameters {#sec-type-characteristics}
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
@@ -646,7 +626,7 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
-### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
+#### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced in non-ghost contexts
@@ -671,14 +651,36 @@ code.  Coinductive datatypes, arrow types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### 8.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
+#### 5.3.1.2. Auto-initializable types: `T(0)` {#sec-auto-init}
 
 At every access of a variable `x` of a type `T`, Dafny ensures that
 `x` holds a legal value of type `T`.
 If no explicit initialization is given, then an arbitrary value is
 assumed by the verifier and supplied by the compiler,
-that is, the variable is _auto-initialized_.
+that is, the variable is _auto-initialized_, but to an arbitrary value.
 For example,
+<!-- %check-verify Types.21.expect -->
+```dafny
+class Example<A(0), X> {
+  var n: nat
+  var i: int
+  var a: A
+  var x: X
+
+  constructor () {
+    new; // error: field 'x' has not been given a value`
+    assert n >= 0; // true, regardless of the value of 'n'
+    assert i >= 0; // possibly false, since an arbitrary 'int' may be negative
+    // 'a' does not require an explicit initialization, since 'A' is auto-init
+  }
+}
+```
+In the example above, the class fields do not need to be explicitly initialized
+in the constructor because they are auto-initialized to an arbitrary value.
+
+Local variables and out-parameters are however, subject to definite assignment
+rules. The following example requires `--relax-definite-assignment`,
+which is not the default.
 <!-- %check-verify Types.7a.expect %options --relax-definite-assignment -->
 ```dafny
 method m() {
@@ -688,13 +690,16 @@ method m() {
   assert i >= 0; // possibly false, arbitrary ints may be negative
 }
 ```
+With the default behavior of definite assignment, `n` and `i` need to be initialized
+to an explicit value of their type or to an arbitrary value using, for example,
+`var n: nat := *;`.
 
 For some types (known as _auto-init types_), the compiler can choose an
 initial value, but for others it does not.
 Variables and fields whose type the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 24.6](#sec-definite-assignment) and the `--strict-definite-assignment` command-line option.
+For more details see [Section 12.6](#sec-definite-assignment) and the `--relax-definite-assignment` command-line option.
 More detail on auto-initializing is in [this document](../Compilation/AutoInitialization).
 
 Dafny supports auto-init as a type characteristic.
@@ -715,12 +720,13 @@ type parameter `A` is declared to be restricted to auto-init types,
 the program does not need to explicitly assign any value to the
 out-parameter `a`.
 
-### 8.1.3. Nonempty types: `T(00)`
+#### 5.3.1.3. Nonempty types: `T(00)` {#sec-nonempty-types}
 
 Auto-init types are important in compiled contexts. In ghost contexts, it
 may still be important to know that a type is nonempty. Dafny supports
 a type characteristic for nonempty types, written with the suffix `(00)`.
-For example,
+For example, with `--relax-definite-assignment`, the following example happens:
+
 <!-- %check-verify Types.8.expect %options --relax-definite-assignment -->
 ```dafny
 method NonemptyExamples<B(00), X>() returns (b: B, ghost g: B, ghost h: X)
@@ -737,7 +743,12 @@ for `h`, since the type `X` could be empty.
 
 Note that every auto-init type is nonempty.
 
-### 8.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
+In the default definite-assignment mode (that is, without `--relax-definite-assignment`)
+there will be errors for all three formal parameters in the example just given.
+
+For more details see [Section 12.6](#sec-definite-assignment).
+
+#### 5.3.1.4. Non-heap based: `T(!new)` {#sec-non-heap-based}
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
@@ -781,7 +792,7 @@ method m() {
 }
 ```
 
-## 8.2. Type parameter variance {#sec-type-parameter-variance}
+### 5.3.2. Type parameter variance {#sec-type-parameter-variance}
 
 Type parameters have several different variance and cardinality properties.
 These properties of type parameters are designated in a generic type definition.
@@ -818,26 +829,21 @@ This states that `T` does not preserve the cardinality of `X`, meaning there cou
 A more detailed explanation of these topics is [here](http://leino.science/papers/krml280.html).
 
 <!--PDF NEWPAGE-->
-# 9. Generic Instantiation
-````grammar
-GenericInstantiation = "<" Type { "," Type } ">"
-````
-When a generic entity is used, actual types must be specified for each
-generic parameter. This is done using a ``GenericInstantiation``.
-If the `GenericInstantiation` is omitted, type inference will try
-to fill these in (cf. [Section 24.2](#sec-type-inference)).
+## 5.4. Generic Instantiation ([grammar](#g-generic-instantiation)) {#sec-generic-instantiation}
+
+A generic instantiation consists of a comma-separated list of 1 or more Types,
+enclosed in angle brackets (`<` `>`),
+providing actual types to be used in place of the type parameters of the 
+declaration of the generic type.
+If there is no instantion for a generic type, type inference will try
+to fill these in (cf. [Section 12.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
-# 10. Collection types {#sec-collection-types}
+## 5.5. Collection types {#sec-collection-types}
 
 Dafny offers several built-in collection types.
 
-## 10.1. Sets {#sec-sets}
-````grammar
-FiniteSetType_ = "set" [ GenericInstantiation ]
-
-InfiniteSetType_ = "iset" [ GenericInstantiation ]
-````
+### 5.5.1. Sets ([grammar](#g-collection-type)) {#sec-sets}
 
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
@@ -849,7 +855,7 @@ so `set<T>` can be used in a non-ghost context only if `T` is
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
 
-A set can be formed using a _set display_ expression, which is a
+A set can be formed using a [_set display_ expression](#sec-set-display-expression), which is a
 possibly empty, unordered, duplicate-insensitive list of expressions
 enclosed in curly braces.  To illustrate,
 <!-- %no-check -->
@@ -858,17 +864,17 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-[Section 21.36](#sec-set-comprehension-expression).
+[Section 9.31.5](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
 
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
- `<`             | proper subset
- `<=`            | subset
- `>=`            | superset
- `>`             | proper superset
+ `<`             | 4 | proper subset
+ `<=`            | 4 | subset
+ `>=`            | 4 | superset
+ `>`             | 4 | proper superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -912,10 +918,10 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-## 10.2. Multisets {#sec-multisets}
-````grammar
-MultisetType_ = "multiset" [ GenericInstantiation ]
-````
+(No white space is permitted between `!` and `in`, making `!in` effectively
+the one example of a mixed-character-class token in Dafny.)
+
+### 5.5.2. Multisets ([grammar](#g-collection-type)) {#sec-multisets}
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
 of each element, not just its presence or absence.  For any type `T`,
@@ -942,12 +948,13 @@ comprehension expression.
 In addition to equality and disequality, multiset types
 support the following relational operations:
 
- operator          | description
+
+ operator          | precedence | description
 -------------------|-----------------------------------
-  `<`              | proper multiset subset
-  `<=`             | multiset subset
-  `>=`             | multiset superset
-  `>`              | proper multiset superset
+  `<`              | 4 | proper multiset subset
+  `<=`             | 4 | multiset subset
+  `>=`             | 4 | multiset superset
+  `>`              | 4 | proper multiset superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -959,7 +966,7 @@ increasing binding power:
 ---------------|:---:|------------------------------------
  `!!`          | 4 | multiset disjointness
 ---------------|------------------------------------
- `+`           | 6 |multiset union
+ `+`           | 6 |multiset sum
  `-`           | 6 |multiset difference
 ---------------|------------------------------------
  `*`           | 7 | multiset intersection
@@ -969,7 +976,8 @@ arithmetic operators with the same names. The `+` operator
 adds the multiplicity of corresponding elements, the `-` operator
 subtracts them (but 0 is the minimum multiplicity),
 and the `*` has multiplicity that is the minimum of the
-multiplicity of the operands.
+multiplicity of the operands. There is no operator for multiset
+union, which would compute the maximum of the multiplicities of the operands.
 
 The expression `A !! B`
 says that multisets `A` and `B` have no elements in common, that is,
@@ -1005,16 +1013,13 @@ without any occurrences of `e` (whether or not `s` has occurrences of
 if e in s then s[e := s[e] - 1] else s
 ```
 
-## 10.3. Sequences {#sec-sequences}
-````grammar
-SequenceType_ = "seq" [ GenericInstantiation ]
-````
+### 5.5.3. Sequences ([grammar](#g-collection-type)) {#sec-sequences}
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
 numbers (called _indices_) to `T` values.
 
-### 10.3.1. Sequence Displays {#sec-sequence-displays}
+#### 5.5.3.1. Sequence Displays {#sec-sequence-displays}
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
@@ -1025,36 +1030,36 @@ brackets.  To illustrate,
 are three examples of sequence displays.
 
   There is also a sequence
-comprehension expression ([Section 21.28](#sec-seq-comprehension)):
+comprehension expression ([Section 9.28](#sec-seq-comprehension)):
 <!-- %no-check -->
 ```dafny
 seq(5, i => i*i)
 ```
 is equivalent to `[0, 1, 4, 9, 16]`.
 
-### 10.3.2. Sequence Relational Operators
+#### 5.5.3.2. Sequence Relational Operators
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
- operator        | description
+ operator        | precedence | description
 -----------------|------------------------------------
-  <              | proper prefix
-  <=             | prefix
+  <              | 4 | proper prefix
+  <=             | 4 | prefix
 
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
 
-### 10.3.3. Sequence Concatenation
+#### 5.5.3.3. Sequence Concatenation
 Sequences support the following binary operator:
 
- operator      | description
+ operator      | precedence | description
 ---------------|------------------------------------
- `+`           | concatenation
+ `+`           | 6 | concatenation
 
 Operator `+` is associative, like the arithmetic operator with the
 same name.
 
-### 10.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
+#### 5.5.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
@@ -1065,7 +1070,7 @@ integer-based numerics `lo` and `hi` satisfying
  `e in s`           | 4 | `bool` | sequence membership
  `e !in s`          | 4 | `bool` | sequence non-membership
  `|s|`              | 11 | `nat` | sequence length
- `s[i]`             | 11 | `T` |sequence selection
+ `s[i]`             | 11 | `T` | sequence selection
  `s[i := e]`        | 11 | `seq<T>` | sequence update
  `s[lo..hi]`        | 11 | `seq<T>`| subsequence
  `s[lo..]`          | 11 | `seq<T>` | drop
@@ -1120,10 +1125,7 @@ The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
 type `T` is [equality supporting](#sec-equality-supporting).
 
-### 10.3.5. Strings {#sec-strings}
-````grammar
-StringType_ = "string"
-````
+#### 5.5.3.5. Strings ([grammar](#g-collection-type)) {#sec-strings}
 
 A special case of a sequence type is `seq<char>`, for which Dafny
 provides a synonym: `string`.  Strings are like other sequences, but
@@ -1135,7 +1137,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals ([Section 7.5](#sec-characters)).
+are the same as those for character literals ([Section 5.2.5](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
@@ -1165,12 +1167,7 @@ still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
-## 10.4. Finite and Infinite Maps {#sec-maps}
-````grammar
-FiniteMapType_ = "map" [ GenericInstantiation ]
-
-InfiniteMapType_ = "imap" [ GenericInstantiation ]
-````
+### 5.5.4. Finite and Infinite Maps ([grammar](#g-collection-type)) {#sec-maps}
 
 For any types `T` and `U`, a value of type `map<T,U>` denotes a
 _(finite) map_
@@ -1186,7 +1183,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see [``MapDisplayExpr``](#sec-map-display-expression)),
+A map can be formed using a _map display_ expression (see [Section 9.30](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
@@ -1205,7 +1202,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 21.40](#sec-map-comprehension-expression).
+explained in [Section 9.31.8](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -1271,7 +1268,7 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
-## 10.5. Iterating over collections
+### 5.5.5. Iterating over collections
 
 Collections are very commonly used in programming and one frequently
 needs to iterate over the elements of a collection. Dafny does not have
@@ -1279,7 +1276,7 @@ built-in iterator methods, but the idioms by which to do so are straightforward.
 The subsections below give some introductory examples; more
 detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-### 10.5.1. Sequences and arrays
+#### 5.5.5.1. Sequences and arrays
 
 Sequences and arrays are indexable and have a length. So the idiom to
 iterate over the contents is well-known. For an array:
@@ -1307,7 +1304,7 @@ method m(s: seq<int>) {
 }
 ```
 
-The `forall` statement ([Section 20.21](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 8.21](#sec-forall-statement)) can also be used
 with arrays where parallel assignment is needed:
 <!-- %check-resolve -->
 ```dafny
@@ -1319,9 +1316,9 @@ method m(s: array<int>) {
 }
 ```
 
-See [Section 15.2](#sec-array-to-seq) on how to convert an array to a sequence.
+See [Section 5.10.2](#sec-array-to-seq) on how to convert an array to a sequence.
 
-### 10.5.2. Sets
+#### 5.5.5.2. Sets
 There is no intrinsic order to the elements of a set. Nevertheless, we can
 extract an arbitrary element of a nonempty set, performing an iteration
 as follows:
@@ -1341,7 +1338,7 @@ method m(s: set<int>) {
 
 Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
 
-### 10.5.3. Maps
+#### 5.5.5.3. Maps
 
 Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`, and `Items`. The iteration loop follows the same patterns as for sets:
 
@@ -1363,30 +1360,23 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 
 <!--PDF NEWPAGE-->
-# 11. Types that stand for other types
-
-````grammar
-SynonymTypeDecl =
-  SynonymTypeDecl_ | OpaqueTypeDecl_ | SubsetTypeDecl_
-````
+## 5.6. Types that stand for other types ([grammar](#g-type-definition)) {#sec-type-definition}
 
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
 
-* ([Section 11.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
-* ([Section 11.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
-* ([Section 11.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
+* ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
+* ([Section 5.6.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
+* ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
+* ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
-## 11.1. Type synonyms {#sec-synonym-type}
-````grammar
-SynonymTypeName = NoUSIdent
+### 5.6.1. Type synonyms ([grammar](#g-type-definition)) {#sec-synonym-type}
 
-SynonymTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   "=" Type
-````
+<!-- %check-resolve -->
+```dafny
+type T = int
+type SS<T> = set<set<T>>
+```
 
 A _type synonym_ declaration:
 <!-- %no-check -->
@@ -1395,7 +1385,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.
 If the `= G` is omitted then the declaration just declares a name as an uninterpreted
-_opaque_ type, as described in [Section 11.2](#sec-opaque-types).  Such types may be
+_opaque_ type, as described in [Section 5.6.2](#sec-opaque-types).  Such types may be
 given a definition elsewhere in the Dafny program.
 
   Here, `T` is a
@@ -1417,7 +1407,7 @@ type Vertex = int
 The new type name itself may have type characteristics declared, though these are typically
 inferred from the definition, if there is one.
 
-As already described in [Section 10.3.5](#sec-strings), `string` is a built-in
+As already described in [Section 5.5.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
 <!-- %check-resolve -->
@@ -1426,25 +1416,28 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-## 11.2. Opaque types {#sec-opaque-types}
-````grammar
-OpaqueTypeDecl_ =
-  "type" { Attribute } SynonymTypeName
-   { TypeParameterCharacteristics }
-   [ GenericParameters ]
-   [ TypeMembers ]
+Note that although a type synonym can be declared and used in place of a type name, 
+that does not affect the names of datatype or class constructors.
+For example, consider
+<!-- %check-resolve Types.22.expect -->
+```dafny
+datatype Pair<T> = Pair(first: T, second: T)
+type IntPair = Pair<int>
 
-TypeMembers =
-  "{"
-  {
-    { DeclModifier }
-    ClassMemberDecl(allowConstructors: false,
-                    isValueType: true,
-                    moduleLevelDecl: false,
-                    isWithinAbstractModule: module.IsAbstract)
-  }
-  "}"
-````
+const p: IntPair := Pair(1,2) // OK
+const q: IntPair := IntPair(3,4) // Error
+```
+
+In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
+
+### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+type T
+type Q { function toString(t: T): string }
+```
 
 An opaque type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
@@ -1452,9 +1445,9 @@ a type is declared simply by:
 ```dafny
 type Y<T>
 ```
-Its definition can be revealed in a
+Its definition can be stated in a
 refining module.  The name `Y` can be immediately followed by
-a type characteristics suffix ([Section 8.1](#sec-type-characteristics)).
+a type characteristics suffix ([Section 5.3.1](#sec-type-characteristics)).
 Because there is no defining RHS, the type characteristics cannot be inferred and so
 must be stated. If, in some refining module, a definition of the type is given, the
 type characteristics must match those of the new definition.
@@ -1496,26 +1489,16 @@ In the refining module `X`, `T` is declared to be a `newtype`, in which `ToStrin
 It would be an error to refine `P.T` as a simple type synonym or subset type in `X`, say `type T = int`, because
 type synonyms may not have members.
 
-## 11.3. Subset types {#sec-subset-types}
+### 5.6.3. Subset types ([grammar](#g-type-definition)) {#sec-subset-types}
 
-````grammar
-SubsetTypeDecl_ =
-  "type"
-  { Attribute }
-  SynonymTypeName [ GenericParameters ]
-  "="
-  LocalIdentTypeOptional
-  "|"
-  Expression(allowLemma: false, allowLambda: true)
-  [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-  | "witness" Expression((allowLemma: false, allowLambda: true)
-  | "witness" "*"
-  ]
-````
-
-````grammar
-NatType_ = "nat"
-````
+Examples:
+<!-- %check-resolve -->
+```dafny
+type Pos = i: int | i > 0 witness 1
+type PosReal = r | r > 0.0 witness 1.0
+type Empty = n: nat | n < 0 witness *
+type Big = n: nat | n > 1000 ghost witness 10000
+```
 
 A _subset type_ is a restricted use of an existing type, called
 the _base type_ of the subset type.  A subset type is like a
@@ -1533,13 +1516,13 @@ satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
-[Section 21.10](#sec-as-expression).)
+[Section 9.10](#sec-as-is-expression).)
 
 The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
 
 Dafny builds in three families of subset types, as described next.
 
-### 11.3.1. Type `nat`
+#### 5.6.3.1. Type `nat`
 
 The built-in type `nat`, which represents the non-negative integers
 (that is, the natural numbers), is a subset type:
@@ -1572,7 +1555,7 @@ function Fib(n: int): int
 }
 ```
 
-### 11.3.2. Non-null types
+#### 5.6.3.2. Non-null types
 
 Every class, trait, and iterator declaration `C` gives rise to two types.
 
@@ -1618,12 +1601,21 @@ For example,
 Note that `?` is not an operator. Instead, it is simply the last
 character of the name of these various possibly-null types.
 
-### 11.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
+#### 5.6.3.3. Arrow types: `->`, `-->`, and `~>` {#sec-arrow-subset-types}
 
-The built-in type `->` stands for total functions, `-->` stands for
-partial functions (that is, functions with possible `requires` clauses),
-and `~>` stands for all functions. More precisely, these are type constructors
-that exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
+For more information about arrow types (function types), see [Section 5.12](#sec-arrow-types).
+This section is a preview to point out the subset-type relationships among the kinds
+of function types.
+
+The built-in type 
+
+- `->` stands for total functions, 
+- `-->` stands for partial functions (that is, functions with possible `requires` clauses),
+and 
+- `~>` stands for all functions. 
+
+More precisely, type constructors
+exist for any arity (`() -> X`, `A -> X`, `(A, B) -> X`, `(A, B, C) -> X`,
 etc.).
 
 For a list of types `TT` and a type `U`, the values of the arrow type `(TT) ~> U`
@@ -1684,9 +1676,9 @@ type is a total arrow type and the verifier is not able to prove that the
 partial function really is total, then you'll get an error saying that the subset-type
 constraint may not be satisfied.
 
-For more information about arrow types, see [Section 17](#sec-arrow-types).
+For more information about arrow types, see [Section 5.12](#sec-arrow-types).
 
-### 11.3.4. Witness clauses {#sec-witness}
+#### 5.6.3.4. Witness clauses {#sec-witness}
 
 The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
@@ -1742,10 +1734,10 @@ If you are wrong, you have introduced an unsoundness into your program.
 In addition though, types are allowed to be empty or possibly empty.
 This is indicated by the clause `witness *`, which tells the verifier not to check for a satisfying witness.
 A declaration like this produces an empty type:
-<!-- %check-verify -->
+<!-- %check-verify %save ReallyEmpty.tmp -->
 ```dafny
 type ReallyEmpty = x: int | false witness *
-``` <!-- %save ReallyEmpty.tmp -->
+```
 The type can be used in code like
 <!-- %check-verify %use ReallyEmpty.tmp -->
 ```dafny
@@ -1770,21 +1762,16 @@ does not complain about `x` unless `x` is actually used, in which case it must h
 The postcondition in `P` does not verify, but not because of the empty type.
 
 <!--PDF NEWPAGE-->
-# 12. Newtypes {#sec-newtypes}
-````grammar
-NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  [ ellipsis ]
-  ( LocalIdentTypeOptional
-    "|"
-    Expression(allowLemma: false, allowLambda: true)
-    [ "ghost" "witness" Expression(allowLemma: false, allowLambda: true)
-    | "witness" Expression((allowLemma: false, allowLambda: true)
-    | "witness" "*"
-    ]
-  | Type
-  )
-  [ TypeMembers ]
-````
+## 5.7. Newtypes ([grammar](#g-type-definition)) {#sec-newtypes}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+newtype I = int
+newtype D = i: int | 0 <= i < 10
+newtype uint8 = i | 0 <= i < 256
+```
+
 A newtype is like a type synonym or subset type except that it declares a wholly new type
 name that is distinct from its base type. It also accepts an optional [`witness` clause](#sec-witness).
 
@@ -1838,6 +1825,14 @@ var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
 
+An additional point with respect to arithmetic overflow is that for (signed)
+`int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
+can also overflow the bounds of the `int32` type. So you could also write:
+<!-- %no-check -->
+```dafny
+var mid := lo + (hi/2 - lo/2);
+```
+
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a
 compiler for Dafny is free to specialize the run-time representation
@@ -1848,7 +1843,7 @@ signed 32-bit integers in the target hardware.
 The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
-the subset types described in [Section 11.3](#sec-subset-types)
+the subset types described in [Section 5.6.3](#sec-subset-types)
  may be more appropriate.
 
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
@@ -1867,7 +1862,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-is to use a conversion operation, described in [Section 12.1](#sec-conversion), on `c` to
+is to use a conversion operation, described in [Section 5.7.1](#sec-conversion), on `c` to
 convert it to the base type:
 <!-- %no-check -->
 ```dafny
@@ -1878,25 +1873,25 @@ If possible, Dafny compilers will represent values of the newtype using
 a native type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
-[Section 23.1.2](#sec-nativetype).
+[Section 11.1.2](#sec-nativetype).
 
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 21.47](#sec-compile-time-constants).
+in [Section 9.38](#sec-compile-time-constants).
 
-## 12.1. Conversion operations {#sec-conversion}
+### 5.7.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [Section 21.10](#sec-as-expression).
+name `as N`, described more fully in [Section 9.10](#sec-as-is-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see [Section 7.2](#sec-numeric-types).)
+see [Section 5.2.2](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -1926,39 +1921,30 @@ and `o is C` is a downcast. A downcast requires the LHS expression to
 have the RHS type, as is enforced by the verifier.
 
 For some types (in particular, reference types), there is also a
-corresponding `is` operation ([Section 21.10](#sec-as-expression)) that
+corresponding `is` operation ([Section 9.10](#sec-as-is-expression)) that
 tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
-# 13. Class types {#sec-class-types}
+## 5.8. Class types ([grammar](#g-class-type)) {#sec-class-types}
 
-````grammar
-ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
-  ["extends" Type {"," Type} | ellipsis ]
-  "{" { { DeclModifier }
-        ClassMemberDecl(allowConstructors: true,
-                        isValueType: false,
-                        moduleLevelDecl: false,
-                        isWithinAbstractModule: false) }
-  "}"
+Examples:
+<!-- %check-resolve -->
+```dafny
+trait T {}
+class A {}
+class B extends T {
+  const b: B?
+  var v: int
+  constructor (vv: int) { v := vv; b := null; }
+  function toString(): string { "a B" }
+  method m(i: int) { var x := new B(0); }
+  static method q() {}
+}
+```
 
-ClassMemberDecl(allowConstructors, isValueType,
-                moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
-  | ConstantFieldDecl(moduleLevelDecl)
-  | FunctionDecl(isWithinAbstractModule)
-  | MethodDecl(isGhost: "ghost" was present,
-               allowConstructors, isWithinAbstractModule)
-  )
-````
+Declarations within a class all begin with keywords and do not end with semicolons.
 
-Declarations within a class all begin with reserved keywords and do not end with semicolons.
 
-The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
-the member declaration is at the top level or directly within a
-module declaration. It will be false for ``ClassMemberDecl``s
-that are part of a class or trait declaration. If `moduleLevelDecl` is
-true ``FieldDecl``s are not allowed.
 
 A _class_ `C` is a reference type declared as follows:
 <!-- %no-check -->
@@ -1968,9 +1954,9 @@ class C<T> extends J1, ..., Jn
   _members_
 }
 ```
-where the list of type parameters `T` is optional. The text
+where the <>-enclosed list of one-or-more type parameters `T` is optional. The text
 "`extends J1, ..., Jn`" is also optional and says that the class extends traits `J1` ... `Jn`.
-The members of a class are _fields_, _functions_, and
+The members of a class are _fields_, _constant fields_, _functions_, and
 _methods_.  These are accessed or invoked by dereferencing a reference
 to a `C` instance.
 
@@ -2007,7 +1993,7 @@ unqualified accesses to the same receiver and member.
 
 A `C` instance is created using `new`. There are three forms of `new`,
 depending on whether or not the class declares any _constructors_
-(see [Section 13.3.2](#sec-constructor-methods)):
+(see [Section 6.3.2](#sec-constructor-methods)):
 
 <!-- %no-check -->
 ```dafny
@@ -2036,1026 +2022,10 @@ constructor (here, named `Init`), which allocates and initializes the object.
 The third form is the same as the second, but invokes the _anonymous constructor_
 of the class (that is, a constructor declared with the empty-string name).
 
-## 13.1. Field Declarations {#sec-field-declarations}
-````grammar
-FieldDecl(isValueType) =
-  "var" { Attribute } FIdentType { "," FIdentType }
-````
-A `FieldDecl` is not permitted in a value type (i.e., if `isValueType` is true).
-
-An ``FIdentType`` is used to declare a field. The field name is either an
-identifier (that is not allowed to start with a leading underscore) or
-some digits. Digits are used if you want to number your fields, e.g. "0",
-"1", etc.
-
-A field x of some type T is declared as:
-<!-- %no-check -->
-```dafny
-var x: T
-```
-
-A field declaration declares one or more fields of the enclosing class.
-Each field is a named part of the state of an object of that class. A
-field declaration is similar to but distinct from a variable declaration
-statement. Unlike for local variables and bound variables, the type is
-required and will not be inferred.
-
-Unlike method and function declarations, a field declaration
-cannot be given at the top level. Fields can be declared in either a
-class or a trait. A class that inherits from multiple traits will
-have all the fields declared in any of its parent traits.
-
-Fields that are declared as `ghost` can only be used in specifications,
-not in code that will be compiled into executable code.
-
-Fields may not be declared static.
-
-## 13.2. Constant Field Declarations {#sec-constant-field-declarations}
-````grammar
-ConstantFieldDecl(moduleLeavelDecl) =
-  "const" { Attribute } CIdentType [ ellipsis ]
-   [ ":=" Expression(allowLemma: false, allowLambda:true) ]
-````
-
-A `const` declaration declares a name bound to a value,
-which value is fixed after initialization.
-
-The declaration must either have a type or an initializing expression (or both).
-If the type is omitted, it is inferred from the initializing expression.
-
-* A const declaration may include the `ghost` and `static` modifiers, but no
-others.
-* A const declaration may appear within a module or within any declaration
-that may contain members (class, trait, datatype, newtype).
-* If it is in a module, it is implicitly `static`, and may not also be declared
-`static`.
-* If the declaration has an initializing expression that is a ghost
-expression, then the ghost-ness of the declaration is inferred; the `ghost`
-modifier may be omitted.
-* The initialization expression may refer to other constant fields that are in scope and declared either
-before or after this declaration, but circular references are not allowed.
-
-## 13.3. Method Declarations {#sec-method-declarations}
-````grammar
-MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
-  MethodKeyword_ { Attribute } [ MethodFunctionName ]
-  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
-                                   or greatest lemma declaration)
-  | ellipsis
-  )
-  MethodSpec(isConstructor: true iff
-                       this is a constructor declaration)
-  [ BlockStmt ]
-````
-The `isGhost` parameter is true iff the `ghost` keyword
-preceded the method declaration.
-
-If the `allowConstructor` parameter is false then
-the ``MethodDecl`` must not be a `constructor`
-declaration.
-
-````grammar
-MethodKeyword_ = ( "method"
-                 | "constructor"
-                 | "lemma"
-                 | "twostate" "lemma"
-                 | "least" "lemma"
-                 | "greatest" "lemma"
-                 )
-````
-The method keyword is used to specify special kinds of methods
-as explained below.
-
-````grammar
-MethodSignature_(isGhost, isExtreme) =
-  [ GenericParameters ]
-  [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowOlderKeyword: false, allowDefault: true))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowOlderKeyword: false, allowDefault: false) ]
-````
-A method signature specifies the method generic parameters,
-input parameters and return parameters.
-The formal parameters are not allowed to have `ghost` specified
-if `ghost` was already specified for the method.
-Within the body of a method, formal parameters are immutable, that is, 
-they may not be assigned to, though their array elements or fields may be
-assigned, if otherwise permitted.
-The out-parameters are mutable and must be assigned in the body of the method.
-
-A ``ellipsis`` is used when a method or function is being redeclared
-in a module that refines another module. (cf. [Section 22](#sec-module-refinement))
-In that case the signature is
-copied from the module that is being refined. This works because
-Dafny does not support method or function overloading, so the
-name of the class method uniquely identifies it without the
-signature.
-
-````grammar
-KType = "[" ( "nat" | "ORDINAL" ) "]"
-````
-The _KType_ may be specified only for least and greatest lemmas and is described
-in [Section 24.5.3](#sec-friendliness) and subsequent sections.
-
-````grammar
-Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowNameOnlyKeyword: true, allowDefault) }
-      ]
-  ")"
-````
-The ``Formals`` specifies the names and types of the method input or
-output parameters.
-
-
-See [Section 5.2](#sec-method-specification) for a description of ``MethodSpec``.
-
-A method declaration adheres to the ``MethodDecl`` grammar above.
-Here is an example of a method declaration.
-
-<!-- %no-check -->
-```dafny
-method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
-                                        returns (x: X, y: Y, z: Z)
-  requires Pre
-  modifies Frame
-  ensures Post
-  decreases Rank
-{
-  Body
-}
-```
-
-where `:att1` and `:att2` are attributes of the method,
-`T1` and `T2` are type parameters of the method (if generic),
-`a, b, c` are the method’s in-parameters, `x, y, z` are the
-method’s out-parameters, `Pre` is a boolean expression denoting the
-method’s precondition, `Frame` denotes a set of objects whose fields may
-be updated by the method, `Post` is a boolean expression denoting the
-method’s postcondition, `Rank` is the method’s variant function, and
-`Body` is a list of statements that implements the method. `Frame` can be a list
-of expressions, each of which is a set of objects or a single object, the
-latter standing for the singleton set consisting of that one object. The
-method’s frame is the union of these sets, plus the set of objects
-allocated by the method body. For example, if `c` and `d` are parameters
-of a class type `C`, then
-
-<!-- %no-check -->
-```dafny
-modifies {c, d}
-modifies {c} + {d}
-modifies c, {d}
-modifies c, d
-```
-
-all mean the same thing.
-
-### 13.3.1. Ordinary methods
-
-A method can be declared as ghost by preceding the declaration with the
-keyword `ghost` and as static by preceding the declaration with the keyword `static`.
-The default is non-static (i.e., instance) and non-ghost.
-An instance method has an implicit receiver parameter, `this`.
-A static method M in a class C can be invoked by `C.M(…)`.
-
-An ordinary method is declared with the `method` keyword;
-[the section about constructors](#sec-constructor-methods) explains methods that instead use the
-`constructor` keyword; [the section about lemmas](#sec-lemmas) discusses methods that are
-declared with the `lemma` keyword. Methods declared with the
-`least lemma` or `greatest lemma` keyword phrases
-are discussed later in the context of extreme
-predicates (see [the section about greatest lemmas](#sec-colemmas)).
-
-A method without a body is _abstract_. A method is allowed to be
-abstract under the following circumstances:
-
-* It contains an `{:axiom}` attribute
-* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
-* It is a declaration in an abstract module.
-Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof.
-
-### 13.3.2. Constructors {#sec-constructor-methods}
-To write structured object-oriented programs, one often relies on
-objects being constructed only in certain ways.  For this purpose, Dafny
-provides _constructor (method)s_.
-A constructor is declared with the keyword
-`constructor` instead of `method`; constructors are permitted only in classes.
-A constructor is allowed to be declared as `ghost`, in which case it
-can only be used in ghost contexts.
-
-A constructor can only be called at the time an object is allocated (see
-object-creation examples below). Moreover, when a class contains a
-constructor, every call to `new` for a class must be accompanied
-by a call to one of its constructors. A class may
-declare no constructors or one or more constructors.
-
-In general, a constructor is responsible for initializating the 
-instance fields of its class. However, any field that is given an
-initializer in its declaration may not be reassigned in the body
-of the constructor.
-
-#### 13.3.2.1. Classes with no explicit constructors
-
-For a class that declares no constructors, an instance of the class is
-created with
-<!-- %no-check -->
-```dafny
-c := new C;
-```
-This allocates an object and initializes its fields to values of their
-respective types (and initializes each `const` field with a RHS to its specified
-value). The RHS of a `const` field may depend on other `const` or `var` fields,
-but circular dependencies are not allowed.
-
-This simple form of `new` is allowed only if the class declares no constructors,
-which is not possible to determine in every scope.
-It is easy to determine whether or not a class declares any constructors if the
-class is declared in the same module that performs the `new`. If the class is
-declared in a different module and that module exports a constructor, then it is
-also clear that the class has a constructor (and thus this simple form of `new`
-cannot be used). (Note that an export set that `reveals` a class `C` also exports
-the anonymous constructor of `C`, if any.)
-But if the module that declares `C` does not export any constructors
-for `C`, then callers outside the module do not know whether or not `C` has a
-constructor. Therefore, this simple form of `new` is allowed only for classes that
-are declared in the same module as the use of `new`.
-
-The simple `new C` is allowed in ghost contexts. Also, unlike the forms of `new`
-that call a constructor or initialization method, it can be used in a simultaneous
-assignment; for example
-<!-- %no-check -->
-```dafny
-c, d, e := new C, new C, 15;
-```
-is legal.
-
-As a shorthand for writing
-<!-- %no-check -->
-```dafny
-c := new C;
-c.Init(args);
-```
-where `Init` is an initialization method (see the top of [the section about class types](#sec-class-types)),
-one can write
-<!-- %no-check -->
-```dafny
-c := new C.Init(args);
-```
-but it is more typical in such a case to declare a constructor for the class.
-
-(The syntactic support for initialization methods is provided for historical
-reasons. It may be deprecated in some future version of Dafny. In most cases,
-a constructor is to be preferred.)
-
-#### 13.3.2.2. Classes with one or more constructors
-
-Like other class members, constructors have names. And like other members,
-their names must be distinct, even if their signatures are different.
-Being able to name constructors promotes names like `InitFromList` or
-`InitFromSet` (or just `FromList` and `FromSet`).
-Unlike other members, one constructor is allowed to be _anonymous_;
-in other words, an _anonymous constructor_ is a constructor whose name is
-essentially the empty string.  For example:
-<!-- %check-resolve -->
-```dafny
-class Item {
-  constructor I(xy: int) // ...
-  constructor (x: int, y: int)
-  // ...
-}
-```
-The named constructor is invoked as
-<!-- %no-check -->
-```dafny
-  i := new Item.I(42);
-```
-The anonymous constructor is invoked as
-<!-- %no-check -->
-```dafny
-  m := new Item(45, 29);
-```
-dropping the "`.`".
-
-#### 13.3.2.3. Two-phase constructors
-
-The body of a constructor contains two sections,
-an initialization phase and a post-initialization phase, separated by a `new;` statement.
-If there is no `new;` statement, the entire body is the initialization phase.
-The initialization phase is intended to initialize field variables
-that were not given values in their declaration; it may not reassign
-to fields that do have initializers in their declarations.
-In this phase, uses of the object reference `this` are restricted;
-a program may use `this`
-
- - as the receiver on the LHS,
- - as the entire RHS of an assignment to a field of `this`,
- - and as a member of a set on the RHS that is being assigned to a field of `this`.
-
-A `const` field with a RHS is not allowed to be assigned anywhere else.
-A `const` field without a RHS may be assigned only in constructors, and more precisely
-only in the initialization phase of constructors. During this phase, a `const` field
-may be assigned more than once; whatever value the `const` field has at the end of the
-initialization phase is the value it will have forever thereafter.
-
-For a constructor declared as `ghost`, the initialization phase is allowed to assign
-both ghost and non-ghost fields. For such an object, values of non-ghost fields at
-the end of the initialization phase are in effect no longer changeable.
-
-There are no restrictions on expressions or statements in the post-initialization phase.
-
-### 13.3.3. Lemmas {#sec-lemmas}
-Sometimes there are steps of logic required to prove a program correct,
-but they are too complex for Dafny to discover and use on its own. When
-this happens, we can often give Dafny assistance by providing a lemma.
-This is done by declaring a method with the `lemma` keyword.
-Lemmas are implicitly ghost methods and the `ghost` keyword cannot
-be applied to them.
-
-Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
-a significantly different function. First of all, a lemma is forbidden to have 
-`modifies` clause: it may not change anything about even the ghost state; ghost methods
-may have `modifies` clauses and may change ghost (but not non-ghost) state. 
-Furthermore, a lemma is not allowed to allocate any new objects.
-And a lemma may be used in the program text in places where ghost methods may not,
-such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
-
-Lemmas may, but typically do not, have out-parameters.
-
-In summary, a lemma states a logical fact, summarizing an inference that the verifier
-cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
-to use that fact at that location with the actual arguments substituted for the 
-formal parameters. The lemma is proved separately for all cases of its formal parameters
-that satisfy the preconditions of the lemma. 
-
-For an example, see the `FibProperty` lemma in
-[Section 24.5.2](#sec-proofs-in-dafny).
-
-See [the Dafny Lemmas tutorial](../OnlineTutorial/Lemmas)
-for more examples and hints for using lemmas.
-
-### 13.3.4. Two-state lemmas and functions {#sec-two-state}
-
-The heap is an implicit parameter to every function, though a function is only allowed
-to read those parts of the mutable heap that it admits to in its `reads` clause.
-Sometimes, it is useful for a function to take two heap parameters, for example, so
-the function can return the difference between the value of a field in the two heaps.
-Such a _two-state function_ is declared by `twostate function` (or `twostate predicate`,
-which is the same as a `twostate function` that returns a `bool`). A two-state function
-is always ghost. It is appropriate to think of these two implicit heap parameters as
-representing a "current" heap and an "old" heap.
-
-For example, the predicate
-<!-- %check-verify -->
-```dafny
-class Cell { var data: int  constructor(i: int) { data := i; } }
-twostate predicate Increasing(c: Cell)
-  reads c
-{
-  old(c.data) <= c.data
-}
-``` <!-- %save Increasing.tmp -->
-returns `true` if the value of `c.data` has not been reduced from the old state to the
-current. Dereferences in the current heap are written as usual (e.g., `c.data`) and
-must, as usual, be accounted for in the function's `reads` clause. Dereferences in the
-old heap are enclosed by `old` (e.g., `old(c.data)`), just like when one dereferences
-a  method's initial heap. The function is allowed to read anything in the old heap;
-the `reads` clause only declares dependencies on locations in the current heap.
-Consequently, the frame axiom for a two-state function is sensitive to any change
-in the old-heap parameter; in other words, the frame axiom says nothing about two
-invocations of the two-state function with different old-heap parameters.
-
-At a call site, the two-state function's current-heap parameter is always passed in
-as the caller's current heap. The two-state function's old-heap parameter is by
-default passed in as the caller's old heap (that is, the initial heap if the caller
-is a method and the old heap if the caller is a two-state function). While there is
-never a choice in which heap gets passed as the current heap, the caller can use
-any preceding heap as the argument to the two-state function's old-heap parameter.
-This is done by labeling a state in the caller and passing in the label, just like
-this is done with the built-in `old` function.
-
-For example, the following assertions all hold:
-<!-- %check-verify %use Increasing.tmp -->
-```dafny
-method Caller(c: Cell)
-  modifies c
-{
-  c.data := c.data + 10;
-  label L:
-  assert Increasing(c);
-  c.data := c.data - 2;
-  assert Increasing(c);
-  assert !Increasing@L(c);
-}
-```
-The first call to `Increasing` uses `Caller`'s initial state as the old-heap parameter,
-and so does the second call. The third call instead uses as the old-heap parameter
-the heap at label `L`, which is why the third call returns `false`.
-As shown in the example, an explicitly given old-heap parameter is given after
-an `@`-sign (which follows the name of the function and any explicitly given type
-parameters) and before the open parenthesis (after which the ordinary parameters are
-given).
-
-A two-state function is allowed to be called only from a two-state context, which
-means a method, a two-state lemma (see below), or another two-state function.
-Just like a label used with an `old` expression, any label used in a call to a
-two-state function must denote a program point that _dominates_ the call. This means
-that any control leading to the call must necessarily have passed through the labeled
-program point.
-
-Any parameter (including the receiver parameter, if any) passed to a two-state function
-must have been allocated already in the old state. For example, the second call to
-`Diff` in method `M` is illegal, since `d` was not allocated on entry to `M`:
-<!-- %check-verify Types.11.expect %use Increasing.tmp -->
-```dafny
-twostate function Diff(c: Cell, d: Cell): int
-  reads d
-{
-  d.data - old(c.data)
-}
-
-method M(c: Cell) {
-  var d := new Cell(10);
-  label L:
-  ghost var x := Diff@L(c, d);
-  ghost var y := Diff(c, d); // error: d is not allocated in old state
-}
-```
-
-A two-state function can declare that it only assumes a parameter to be allocated
-in the current heap. This is done by preceding the parameter with the `new` modifier,
-as illustrated in the following example, where the first call to `DiffAgain` is legal:
-<!-- %check-verify Types.12.expect %use Increasing.tmp -->
-```dafny
-twostate function DiffAgain(c: Cell, new d: Cell): int
-  reads d
-{
-  d.data - old(c.data)
-}
-
-method P(c: Cell) {
-  var d := new Cell(10);
-  ghost var x := DiffAgain(c, d);
-  ghost var y := DiffAgain(d, c); // error: d is not allocated in old state
-}
-```
-
-A _two-state lemma_ works in an analogous way. It is a lemma with both a current-heap
-parameter and an old-heap parameter, it can use `old` expressions in its
-specification (including in the precondition) and body, its parameters may
-use the `new` modifier, and the old-heap parameter is by default passed in as
-the caller's old heap, which can be changed by using an `@`-parameter.
-
-Here is an example of something useful that can be done with a two-state lemma:
-<!-- %check-verify %use Increasing.tmp -->
-```dafny
-function SeqSum(s: seq<Cell>): int
-  reads s
-{
-  if s == [] then 0 else s[0].data + SeqSum(s[1..])
-}
-
-twostate lemma IncSumDiff(s: seq<Cell>)
-  requires forall c :: c in s ==> Increasing(c)
-  ensures old(SeqSum(s)) <= SeqSum(s)
-{
-  if s == [] {
-  } else {
-    calc {
-      old(SeqSum(s));
-    ==  // def. SeqSum
-      old(s[0].data + SeqSum(s[1..]));
-    ==  // distribute old
-      old(s[0].data) + old(SeqSum(s[1..]));
-    <=  { assert Increasing(s[0]); }
-      s[0].data + old(SeqSum(s[1..]));
-    <=  { IncSumDiff(s[1..]); }
-      s[0].data + SeqSum(s[1..]);
-    ==  // def. SeqSum
-      SeqSum(s);
-    }
-  }
-}
-```
-
-A two-state function can be used as a first-class function value, where the receiver
-(if any), type parameters (if any), and old-heap parameter are determined at the
-time the first-class value is mentioned. While the receiver and type parameters can
-be explicitly instantiated in such a use (for example, `p.F<int>` for a two-state
-instance function `F` that takes one type parameter), there is currently no syntactic
-support for giving the old-heap parameter explicitly. A caller can work
-around this restriction by using (fancy-word alert!) eta-expansion, meaning
-wrapping a lambda expression around the call, as in `x => p.F<int>@L(x)`.
-The following example illustrates using such an eta-expansion:
-<!-- %check-verify -->
-```dafny
-class P {
-  twostate function F<X>(x: X): X
-}
-
-method EtaExample(p: P) returns (ghost f: int -> int) {
-  label L:
-  f := x => p.F<int>@L(x);
-}
-```
-
-## 13.4. Function Declarations {#sec-function-declarations}
-
-````grammar
-FunctionDecl(isWithinAbstractModule) =
-  ( [ "twostate" ] "function" [ "method" ] { Attribute }
-    MethodFunctionName
-    FunctionSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                 allowNewKeyword:
-                                           "twostate" present)
-  | "predicate" [ "method" ] { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present),
-                                  allowNewKeyword:
-                                           "twostate" present,
-                                  allowOlderKeyword: true)
-  | ( "least" | "greatest" ) "predicate" { Attribute }
-    MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
-                         allowNewKeyword: "twostate" present,
-                         allowOlderKeyword: false))
-  )
-  FunctionSpec
-  [ FunctionBody ]
-
-FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-  FunctionSignature_(allowGhostKeyword) | ellipsis
-
-FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
-  [ GenericParameters ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword: true, allowDefault: true)
-  ":"
-  ( Type
-  | "(" GIdentType(allowGhostKeyword: false,
-                   allowNewKeyword: false,
-                   allowOlderKeyword: false,
-                   allowNameOnlyKeyword: false,
-                   allowDefault: false)
-    ")"
-  )
-
-PredicateSignatureOrEllipsis_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) | ellipsis
-
-PredicateSignature_(allowGhostKeyword, allowNewKeyword, allowOlderKeyword) =
-  [ GenericParameters ]
-  [ KType ]
-  Formals(allowGhostKeyword, allowNewKeyword, allowOlderKeyword, allowDefault: true)
-  [
-    ":"
-    ( Type
-    | "(" Ident ":" "bool" ")"
-    )
-  ]
-
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
-               "}" [ "by" "method" BlockStmt ]
-````
-
-### 13.4.1. Functions
-
-In the above productions, `allowGhostKeyword` is true if the optional
-`method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as `ghost`.
-
-See [Section 5.3](#sec-function-specification) for a description of ``FunctionSpec``.
-
-A Dafny function is a pure mathematical function. It is allowed to
-read memory that was specified in its `reads` expression but is not
-allowed to have any side effects.
-
-Here is an example function declaration:
-<!-- %no-check -->
-```dafny
-function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
-  requires Pre
-  reads Frame
-  ensures Post
-  decreases Rank
-{
-  Body
-}
-```
-
-where `:att1` and `:att2` are attributes of the function, if any, `T1`
-and `T2` are type parameters of the function (if generic), `a, b, c` are
-the function’s parameters, `T` is the type of the function’s result,
-`Pre` is a boolean expression denoting the function’s precondition,
-`Frame` denotes a set of objects whose fields the function body may
-depend on, `Post` is a boolean expression denoting the function’s
-postcondition, `Rank` is the function’s variant function, and `Body` is
-an expression that defines the function's return value. The precondition
-allows a function to be partial, that is, the precondition says when the
-function is defined (and Dafny will verify that every use of the function
-meets the precondition).
-
-The postcondition is usually not needed, since
-the body of the function gives the full definition. However, the
-postcondition can be a convenient place to declare properties of the
-function that may require an inductive proof to establish, such as when
-the function is recursive. For example:
-
-<!-- %check-verify -->
-```dafny
-function Factorial(n: int): int
-  requires 0 <= n
-  ensures 1 <= Factorial(n)
-{
-  if n == 0 then 1 else Factorial(n-1) * n
-}
-```
-
-says that the result of Factorial is always positive, which Dafny
-verifies inductively from the function body.
-
-Within a postcondition, the result of the function is designated by
-a call of the function, such as `Factorial(n)` in the example above.
-Alternatively, a name for the function result can be given in the signature,
-as in the following rewrite of the example above.
-
-<!-- %check-verify -->
-```dafny
-function Factorial(n: int): (f: int)
-  requires 0 <= n
-  ensures 1 <= f
-{
-  if n == 0 then 1 else Factorial(n-1) * n
-}
-```
-
-Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
-code. To make it non-ghost, replace the keyword `function` with the two
-keywords "`function method`". From v4.0 on, a function is non-ghost by
-default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
-(See the [/functionSyntax option](#sec-function-syntax) for a description 
-of the migration path for this change in behavior.}
-
-Like methods, functions can be either _instance_ (which they are by default) or
-_static_ (when the function declaration contains the keyword `static`).
-An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
-by `C.F(…)`. This provides a convenient way to declare a number of helper
-functions in a separate class.
-
-As for methods, a ``...`` is used when declaring
-a function in a module refinement (cf. [Section 22](#sec-module-refinement)).
- For example, if module `M0` declares
-function `F`, a module `M1` can be declared to refine `M0` and
-`M1` can then refine `F`. The refinement function, `M1.F` can have
-a ``...`` which means to copy the signature from
-`M0.F`. A refinement function can furnish a body for a function
-(if `M0.F` does not provide one). It can also add `ensures`
-clauses.
-
-If a function definition does not have a body, the program that contains it may still be verified.
-The function itself has nothing to verify.
-However, any calls of a body-less function are treated as unverified assumptions by the caller,
-asserting the preconditions and assuming the postconditions.
-Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](https://dafny.org/latest/DafnyRef/DafnyRef#256-using-dafny-from-the-command-line)
-
-### 13.4.2. Predicates
-A function that returns a `bool` result is called a _predicate_. As an
-alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and possibly omitting a declaration of the
-return type (if it is not named).
-
-### 13.4.3. Function-by-method {#sec-function-by-method}
-
-A function with a `by method` clause declares a _function-by-method_.
-A function-by-method gives a way to implement a
-(deterministic, side-effect free) function by a method (whose body may be
-nondeterministic and may allocate objects that it modifies). This can
-be useful if the best implementation uses nondeterminism (for example,
-because it uses `:|` in a nondeterministic way) in a way that does not
-affect the result, or if the implementation temporarily makes use of some
-mutable data structures, or if the implementation is done with a loop.
-For example, here is the standard definition of the Fibonacci function
-but with an efficient implementation that uses a loop:
-
-<!-- %check-verify -->
-```dafny
-function Fib(n: nat): nat {
-  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
-} by method {
-  var x, y := 0, 1;
-  for i := 0 to n
-    invariant x == Fib(i) && y == Fib(i + 1)
-  {
-    x, y := y, x + y;
-  }
-  return x;
-}
-```
-
-The `by method` clause is allowed only for non-ghost `function` or `predicate`
-declarations (without `twostate`, `least`, and `greatest`, but
-possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
-clauses of the function. The method also gets one out-parameter, corresponding
-to the function's result value (and the name of it, if present). Finally,
-the method gets an empty `modifies` clause and a postcondition
-`ensures r == F(args)`, where `r` is the name of the out-parameter and
-`F(args)` is the function with its arguments. In other words, the method
-body must compute and return exactly what the function says, and must
-do so without modifying any previously existing heap state.
-
-The function body of a function-by-method is allowed to be ghost, but the
-method body must be compilable. In non-ghost contexts, the compiler turns a
-call of the function-by-method into a call that leads to the method body.
-
-Note, the method body of a function-by-method may contain `print` statements.
-This means that the run-time evaluation of an expression may have print effects.
-Dafny does not track print effects, but this is the only situation that an
-expression can have a print effect.
-
-### 13.4.4. Function Transparency
-A function is said to be _transparent_ in a location if the
-body of the function is visible at that point.
-A function is said to be _opaque_ at a location if it is not
-transparent. However the ``FunctionSpec`` of a function
-is always available.
-
-A function is usually transparent up to some unrolling level (up to
-1, or maybe 2 or 3). If its arguments are all literals it is
-transparent all the way.
-
-But the transparency of a function is affected by
-whether the function was given the `{:opaque}` attribute (as explained
-in [Section 23.2.8](#sec-opaque)).
-
-The following table summarizes where the function is transparent.
-The module referenced in the table is the module in which the
-function is defined.
-
- `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
-:------------:|:-----------:|:-----------:
- N            | Y           | Y
- Y            | N           | N
-
-When `{:opaque}` is specified for function `g`, `g` is opaque,
-however the statement `reveal g();` is available to give the semantics
-of `g` whether in the defining module or outside.
-
-### 13.4.5. Extreme (Least or Greatest) Predicates and Lemmas
-See [Section 24.5.3](#sec-friendliness) for descriptions
-of extreme predicates and lemmas.
-
-### 13.4.6. `older` parameters in predicates
-
-A parameter of any predicate (more precisely, of any
-boolean-returning, non-extreme function) can be marked as
-`older`. This specifies that the truth of the predicate implies that
-the allocatedness of the parameter follows from the allocatedness of
-the non-`older` parameters.
-
-To understand what this means and why this attribute is useful,
-consider the following example, which specifies reachability between
-nodes in a directed graph. A `Node` is declared to have any number of
-children:
-
-<!-- %check-verify -->
-```dafny
-class Node {
-  var children: seq<Node>
-}
-``` <!-- %save Node.tmp -->
-
-There are several ways one could specify reachability between
-nodes. One way (which is used in `Test/dafny1/SchorrWaite.dfy` in the
-Dafny test suite) is to define a type `Path`, representing lists of
-`Node`s, and to define a predicate that checks if a given list of
-`Node`s is indeed a path between two given nodes:
-
-<!-- %check-verify %use Node.tmp -->
-```dafny
-datatype Path = Empty | Extend(Path, Node)
-
-predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
-  reads S
-  decreases p
-{
-  match p
-  case Empty =>
-    source == sink
-  case Extend(prefix, n) =>
-    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
-}
-``` <!-- %save ReachableVia.tmp -->
-
-In a nutshell, the definition of `ReachableVia` says
-
-* An empty path lets `source` reach `sink` just when
-  `source` and `sink` are the same node.
-* A path `Extend(prefix, n)` lets `source` reach `sink` just when
-  the path `prefix` lets `source` reach `n` and `sink` is one of
-  the children nodes of `n`.
-
-To be admissible by Dafny, the recursive predicate must be shown to
-terminate. Termination is assured by the specification `decreases p`,
-since every such datatype value has a finite structure and every
-recursive call passes in a path that is structurally included in the
-previous. Predicate `ReachableVia` must also declare (an upper bound
-on) which heap objects that it depends on. For this purpose, the
-predicate takes an additional parameter `S`, which is used to limit
-the set of intermediate nodes in the path. More precisely, predicate
-`ReachableVia(source, p, sink, S)` returns `true` if and only if `p`
-is a list of nodes in `S` and `source` can reach `sink` via `p`.
-
-Using predicate `ReachableVia`, we can now define reachability in `S`:
-
-<!-- %check-resolve Types.13.expect %use ReachableVia.tmp -->
-```dafny
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
-  reads S
-{
-  exists p :: ReachableVia(source, p, sink, S)
-}
-```
-
-This looks like a good definition of reachability, but Dafny won't
-admit it. The reason is twofold:
-
-* Quantifiers and comprehensions are allowed to range only over
-  allocated state. Ater all, Dafny is a type-safe language where every
-  object reference is _valid_ (that is, a pointer to allocated storage
-  of the right type)---it should not be possible, not even through a
-  bound variable in a quantifier or comprehension, for a program to
-  obtain an object reference that isn't valid.
-
-* This property is ensured by disallowing _open-ended_ quantifiers.
-  More precisely, the object references that a quantifier may range
-  over must be shown to be confined to object references that were
-  allocated before some of the non-`older` parameters passed to the
-  predicate. Quantifiers that are not open-ended are called
-  _close-ended_. Note that close-ended refers only to the object
-  references that the quantification or comprehension ranges over---it
-  does not say anything about values of other types, like integers.
-
-Often, it is easy to show that a quantifier is close-ended. In fact,
-if the type of a bound variable does not contain any object
-references, then the quantifier is trivially close-ended. For example,
-
-<!-- %no-check -->
-```dafny
-forall x: int :: x <= Square(x)
-```
-
-is trivially close-ended.
-
-Another innocent-looking quantifier occurs in the following example:
-
-<!-- %check-resolve Types.14.expect -->
-```dafny
-predicate IsCommutative<X>(r: (X, X) -> bool)
-{
-  forall x, y :: r(x, y) == r(y, x) // error: open-ended quantifier
-}
-```
-
-Since nothing is known about type `X`, this quantifier might be
-open-ended.  For example, if `X` were passed in as a class type, then
-the quantifier would be open-ended. One way to fix this predicate is
-to restrict it to non-heap based types, which is indicated with the
-`(!new)` type characteristic (see [Section 8.1.4](#sec-non-heap-based)):
-
-<!-- %check-verify -->
-```dafny
-predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
-{
-  forall x, y :: r(x, y) == r(y, x) // allowed
-}
-```
-
-Another way to make `IsCommutative` close-ended is to constrain the values
-of the bound variables `x` and `y`. This can be done by adding a parameter
-to the predicate and limiting the quantified values to ones in the given set:
-
-<!-- %check-verify -->
-```dafny
-predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
-{
-  forall x, y :: x in S && y in S ==> r(x, y) == r(y, x) // close-ended
-}
-```
-
-Through a simple syntactic analysis, Dafny detects the antecedents
-`x in S` and `y in S`, and since `S` is a parameter and thus can only be
-passed in as something that the caller has already allocated, the
-quantifier in `IsCommutativeInS` is determined to be close-ended.
-
-Note, the `x in S` trick does not work for the motivating example,
-`Reachable`. If you try to write
-
-<!-- %check-resolve Types.15.expect %use ReachableVia.tmp -->
-```dafny
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
-  reads S
-{
-  exists p :: p in S && ReachableVia(source, p, sink, S) // type error: p
-}
-```
-
-you will get a type error, because `p in S` does not make sense if `p`
-has type `Path`. We need some other way to justify that the
-quantification in `Reachable` is close-ended.
-
-Dafny offers a way to extend the `x in S` trick to more situations.
-This is where the `older` modifier comes in. Before we apply `older`
-in the `Reachable` example, let's first look at what `older` does in a
-less cluttered example.
-
-Suppose we rewrite `IsCommutativeInS` using a programmer-defined predicate `In`:
-
-<!-- %check-resolve Types.16.expect -->
-```dafny
-predicate In<X>(x: X, S: set<X>) {
-  x in S
-}
-
-predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
-{
-  forall x, y :: In(x, S) && In(y, S) ==> r(x, y) == r(y, x) // error: open-ended?
-}
-```
-
-The simple syntactic analysis that looks for `x in S` finds nothing
-here, because the `in` operator is relegated to the body of predicate
-`In`. To inform the analysis that `In` is a predicate that, in effect,
-is like `in`, you can mark parameter `x` with `older`:
-
-<!-- %check-verify -->
-```dafny
-predicate In<X>(older x: X, S: set<X>) {
-  x in S
-}
-```
-
-This causes the simple syntactic analysis to accept the quantifier in
-`IsCommutativeInS`. Adding `older` also imposes a semantic check on
-the body of predicate `In`, enforced by the verifier. The semantic
-check is that all the object references in the value `x` are older (or
-equally old as) the object references that are part of the other
-parameters, _in the event that the predicate returns true_. That is,
-`older` is designed to help the caller only if the predicate returns
-`true`, and the semantic check amounts to nothing if the predicate
-returns `false`.
-
-Finally, let's get back to the motivating example. To allow the quantifier
-in `Reachable`, mark parameter `p` of `ReachableVia` with `older`:
-
-<!-- %check-verify -->
-```dafny
-class Node {
-  var children: seq<Node>
-}
-
-datatype Path = Empty | Extend(Path, Node)
-
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
-  reads S
-{
-  exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
-}
-
-predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
-  reads S
-  decreases p
-{
-  match p
-  case Empty =>
-    source == sink
-  case Extend(prefix, n) =>
-    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
-}
-```
-
-This example is more involved than the simpler `In` example
-above. Because of the `older` modifier on the parameter, the quantifier in
-`Reachable` is allowed. For intuition, you can think of the effect of
-`older p` as adding an antecedent `p in {source} + {sink} + S`
-(but, as we have seen, this is not type correct). The semantic check
-imposed on the body of `ReachableVia` makes sure that, if the
-predicate returns `true`, then every object reference in `p` is as old
-as some object reference in another parameter to the predicate.
-
+The details of constructors and other class members are described in [Section 6.3.2](#sec-constructor-methods).
 
 <!--PDF NEWPAGE-->
-# 14. Trait types {#sec-trait-types}
-````grammar
-TraitDecl =
-  "trait" { Attribute } ClassName [ GenericParameters ]
-  [ "extends" Type { "," Type } | ellipsis ]
-  "{"
-   { { DeclModifier } ClassMemberDecl(allowConstructors: true,
-                                      isValueType: false,
-                                      moduleLevelDecl: false,
-                                      isWithinAbstractModule: false) }
-  "}"
-````
+## 5.9. Trait types ([grammar](#g-trait-type)) {#sec-trait-types}
 
 A _trait_ is an abstract superclass, similar to an "interface" or
 "mixin". A trait can be _extended_ only by another trait or
@@ -3072,7 +2042,7 @@ trait J
   _members_
 }
 ```
-where _members_ can include fields, functions, methods and declarations of nested traits, but
+where _members_ can include fields, constant fields, functions, methods and declarations of nested traits, but
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
@@ -3086,17 +2056,14 @@ of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
 specification and a body for the member. There is further discussion on
-this point in [Section 14.2](#sec-inheritance).
+this point in [Section 5.9.2](#sec-inheritance).
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
-## 14.1. Type `object` {#sec-object-type}
-````grammar
-ObjectType_ = "object" | "object?"
-````
+### 5.9.1. Type `object` ([grammar](#g-object-type)) {#sec-object-type}
 
 There is a built-in trait `object` that is implicitly extended by all classes and traits.
 It produces two types: the type `object?` that is a supertype of all
@@ -3121,7 +2088,7 @@ The dynamic allocation of objects is done using `new C`...,
 (`new object?` makes no sense; always use `new object` instead because the result of
 `new` is always non-null.)
 
-## 14.2. Inheritance {#sec-inheritance}
+### 5.9.2. Inheritance {#sec-inheritance}
 
 The purpose of traits is to be able to express abstraction: a trait
 encapsulates a set of behaviors; classes and traits that extend it
@@ -3212,13 +2179,13 @@ When names are inherited from multiple traits, they must be different.
 If two traits declare a common name (even with the same signature),
 they cannot both be extendees of the same class or trait.
 
-## 14.3. Example of traits
+### 5.9.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
-<!-- %check-verify -->
+<!-- %check-verify %save Shape.tmp -->
 ```dafny
 trait Shape
 {
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 1
   method Move(dx: real, dy: real)
@@ -3229,18 +2196,18 @@ trait Shape
     Move(dx, 0.0);
   }
 }
-``` <!-- %save Shape.tmp -->
+```
 Members `Width` and `Move` are _abstract_ (that is, body-less) and can
 be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
 is used by all classes that extend `Shape`.  Here are two classes
 that each extend `Shape`:
-<!-- %check-verify %use Shape.tmp -->
+<!-- %check-verify %use Shape.tmp %save UnitSquare.tmp -->
 ```dafny
 class UnitSquare extends Shape
 {
   var x: real, y: real
-  function method Width(): real 
+  function Width(): real 
     decreases 0
   {  // note the empty reads clause
     1.0
@@ -3255,7 +2222,7 @@ class UnitSquare extends Shape
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real
-  function method Width(): real
+  function Width(): real
     reads this
     decreases 0
   {
@@ -3267,7 +2234,7 @@ class LowerRightTriangle extends Shape
     xNW, yNW, xSE, ySE := xNW + dx, yNW + dy, xSE + dx, ySE + dy;
   }
 }
-``` <!-- %save UnitSquare.tmp -->
+```
 Note that the classes can declare additional members, that they supply
 implementations for the abstract members of the trait,
 that they repeat the member signatures, and that they are responsible
@@ -3291,20 +2258,17 @@ method m() {
 ```
 
 <!--PDF NEWPAGE-->
-# 15. Array types {#sec-array-types}
-````grammar
-ArrayType_ = arrayToken [ GenericInstantiation ]
-````
+## 5.10. Array types ([grammar](#g-array-type)) {#sec-array-type}
 
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
 `arrayToken` is a kind of [reserved token](#sec-reserved-words),
-such as `array`, `array2`, `array3`, an so on (but not `array1`).
-The suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
+such as `array`, `array?`, `array2`, `array2?`, `array3`, and so on (but not `array1`).
+The type parameter suffix giving the element type can be omitted if the element type can be inferred, though in that case it is likely that the `arrayToken` itself is also
 inferrable and can be omitted.
 
-## 15.1. One-dimensional arrays
+### 5.10.1. One-dimensional arrays
 
 A one-dimensional array of `n` `T` elements may be initialized by
 any expression that returns a value of the desired type.
@@ -3383,7 +2347,7 @@ okay to leave off the "`<T>`" in the fourth statement above.  However,
 as with the third statement, `array` has no anonymous constructor, so
 an error message is generated.
 
-## 15.2. Converting arrays to sequences {#sec-array-to-seq}
+### 5.10.2. Converting arrays to sequences {#sec-array-to-seq}
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
@@ -3445,7 +2409,7 @@ conversion:
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
-## 15.3. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
+### 5.10.3. Multi-dimensional arrays {#sec-multi-dimensional-arrays}
 
 An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
@@ -3487,23 +2451,13 @@ convert stretches of elements from a multi-dimensional array to a
 sequence.
 
 There is however syntax to create a multi-dimensional array value
-using a function: see [Section 21.16](#sec-array-allocation).
+using a function: see [Section 9.16](#sec-array-allocation).
 
 
 <!--PDF NEWPAGE-->
-# 16. Iterator types {#sec-iterator-types}
-````grammar
-IteratorDecl = "iterator" { Attribute } IteratorName
-  ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false)
-    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false, allowOlderKeyword: false) ]
-  | ellipsis
-  )
-  IteratorSpec
-  [ BlockStmt ]
-````
+## 5.11. Iterator types ([grammar](#g-iterator-type)) {#sec-iterator-types}
 
-See [Section 5.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
+See [Section 7.5](#sec-iterator-specification) for a description of iterator specifications.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -3546,7 +2500,7 @@ constructor (_in-params_)
 An iterator is created using `new` and this anonymous constructor.
 For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
-<!-- %check-verify -->
+<!-- %check-verify %save Gen.tmp -->
 ```dafny
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
@@ -3558,7 +2512,7 @@ iterator Gen(start: int) yields (x: int)
     i := i + 1;
   }
 }
-``` <-- %save Gen.tmp -->
+```
 An instance of this iterator is created using
 <!-- %no-check -->
 ```dafny
@@ -3743,14 +2697,15 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Arrow types {#sec-arrow-types}
+## 5.12. Arrow types ([grammar](#g-arrow-type)) {#sec-arrow-types}
 
-````grammar
-ArrowType_ = ( DomainType_ "~>" Type
-             | DomainType_ "-->" Type
-             | DomainType_ "->" Type
-             )
-````
+Examples:
+<!-- %no-check -->
+```dafny
+(int) -> int
+(bool,int) ~> bool
+() --> object?
+```
 
 Functions are first-class values in Dafny. The types of function values
 are called _arrow types_ (aka, _function types_).
@@ -3769,9 +2724,10 @@ is `(int, array<bool>) ~> real`.
 As seen in the example above, the functions that are values of a type
 `(TT) ~> U` can have a precondition (as indicated by the `requires` clause)
 and can read values in the heap (as indicated by the `reads` clause).
-As described in [Section 11.3.3](#sec-arrow-subset-types),
-the subset type `(TT) --> U` denotes partial (but heap-independent) functions
-and the subset type `(TT) -> U` denotes total functions.
+As described in [Section 5.6.3.3](#sec-arrow-subset-types),
+
+- the subset type `(TT) --> U` denotes partial (but heap-independent) functions
+- and the subset type `(TT) -> U` denotes total functions.
 
 A function declared without a `reads` clause is known by the type
 checker to be a partial function. For example, the type of
@@ -3790,7 +2746,7 @@ function F(x: int, b: bool): real
 ```
 is `(int, bool) -> real`.
 In addition to functions declared by name, Dafny also supports anonymous
-functions by means of _lambda expressions_ (see [Section 21.13](#sec-lambda-expressions)).
+functions by means of _lambda expressions_ (see [Section 9.13](#sec-lambda-expression)).
 
 To simplify the appearance of the basic case where a function's
 domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
@@ -3838,13 +2794,13 @@ whereas it would have been incorrect to have written something like:
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
-The arrow types themselves do not divide its parameters into ghost
+The arrow types themselves do not divide a function's parameters into ghost
 versus non-ghost. Instead, a function used as a first-class value is
 considered to be ghost if either the function or any of its arguments
 is ghost. The following example program illustrates:
 <!-- %check-resolve Types.18.expect -->
 ```dafny
-function method F(x: int, ghost y: int): int
+function F(x: int, ghost y: int): int
 {
   x
 }
@@ -3904,10 +2860,10 @@ then the type of `f.reads` is `T -> set<object?>` and the type
 of `f.requires` is `T -> bool`.
 
 Dafny also supports anonymous functions by means of
-_lambda expressions_. See [Section 21.13](#sec-lambda-expressions).
+_lambda expressions_. See [Section 9.13](#sec-lambda-expression).
 
 <!--PDF NEWPAGE-->
-# 18.  Tuple types {#sec-tuple-types}
+## 5.13.  Tuple types {#sec-tuple-types}
 ````grammar
 TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 ````
@@ -3925,7 +2881,7 @@ and its type arguments are given in
 round parentheses, and as if the constructor name were the empty string.
 Note that
 the destructor names are `0` and `1`, which are legal identifier names
-for members.  For example, showing the use of a tuple destructor, here
+for members.  For an example showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
 <!-- %check-verify -->
 ```dafny
@@ -3946,21 +2902,7 @@ const pair: (int, ghost int) := (1, ghost 2)
 ```
 
 <!--PDF NEWPAGE-->
-# 19. Algebraic Datatypes {#sec-algebraic-datatype}
-
-````grammar
-DatatypeDecl =
-  ( "datatype" | "codatatype" )
-  { Attribute }
-  DatatypeName [ GenericParameters ]
-  "=" [ ellipsis ]
-      [ "|" ] DatatypeMemberDecl
-      { "|" DatatypeMemberDecl }
-      [ TypeMembers ]
-
-DatatypeMemberDecl =
-  { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
-````
+## 5.14. Algebraic Datatypes ([grammar](#g-datatype)) {#sec-datatype}
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively (with `datatype`)  and those defined coinductively (with `codatatype`).
@@ -3969,7 +2911,7 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-## 19.1. Inductive datatypes {#sec-inductive-datatypes}
+### 5.14.1. Inductive datatypes {#sec-inductive-datatypes}
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
@@ -3985,8 +2927,7 @@ datatype D<T> = _Ctors_
 where _Ctors_ is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
 form:
-<!-- %no-check -->
-```dafny
+```text
 C(_params_)
 ```
 where _params_ is a comma-delimited list of types, optionally
@@ -4007,10 +2948,10 @@ constructor `C`, Dafny defines a _destructor_ `p`, which is a member
 that returns the `p` parameter from the `C` call used to construct the
 datatype value; its use requires that `C?` holds.  For example, for
 the standard `List` type
-<!-- %check-resolve -->
+<!-- %check-resolve %save List.tmp -->
 ```dafny
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-``` <!-- %save List.tmp -->
+```
 the following holds:
 <!-- %check-verify %use List.tmp -->
 ```dafny
@@ -4101,7 +3042,7 @@ Note that only `<` is defined; not `<=` or `>` or `>=`.
 Also, `<` is underspecified. With the above code, one can prove neither `z < x` nor `!(z < x)` and neither
 `z < y` nor `!(z < y)`. In each pair, though, one or the other is true, so `(z < x) || !(z < x)` is provable.
 
-## 19.2. Coinductive datatypes {#sec-coinductive-datatypes}
+### 5.14.2. Coinductive datatypes {#sec-coinductive-datatypes}
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
@@ -4126,11 +3067,11 @@ branch goes on forever), respectively.
 The paper [Co-induction Simply](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/coinduction.pdf), by Leino and
 Moskal[@LEINO:Dafny:Coinduction], explains Dafny's implementation and
 verification of coinductive types. We capture the key features from that
-paper in this section but the reader is referred to that paper for more
+paper in the following section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
-## 19.3. Coinduction {#sec-coinduction}
+### 5.14.3. Coinduction {#sec-coinduction}
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
@@ -4235,7 +3176,7 @@ shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
 
-### 19.3.1. Well-Founded Function/Method Definitions
+#### 5.14.3.1. Well-Founded Function/Method Definitions
 The Dafny programming language supports functions and methods. A _function_
 in Dafny is a mathematical function (i.e., it is well-defined,
 deterministic, and pure), whereas a _method_ is a body of statements that
@@ -4276,7 +3217,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 19.3.2. Defining Coinductive Datatypes
+#### 5.14.3.2. Defining Coinductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a coinductive datatype, or co-datatype for short,
@@ -4288,7 +3229,7 @@ of a datatype, giving prominence to the constructors (following Coq). The
 following example defines a co-datatype Stream of possibly
 infinite lists.
 
-<!-- %check-verify -->
+<!-- %check-verify %save Stream.tmp -->
 ```dafny
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 function Up(n: int): Stream<int> { SCons(n, Up(n+1)) }
@@ -4300,7 +3241,7 @@ function FivesUp(n: int): Stream<int>
   else
     FivesUp(n+1)
 }
-``` <!-- %save Stream.tmp -->
+```
 
 `Stream` is a coinductive datatype whose values are possibly infinite
 lists. Function `Up` returns a stream consisting of all integers upwards
@@ -4323,7 +3264,7 @@ to datatype declarations, there is no grounding check for
 co-datatypes—since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
-### 19.3.3. Creating Values of Co-datatypes
+#### 5.14.3.3. Creating Values of Co-datatypes
 To define values of co-datatypes, one could imagine a “co-function”
 language feature: the body of a “co-function” could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
@@ -4350,7 +3291,14 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 19.3.4. Greatest predicates {#sec-copredicates}
+#### 5.14.3.4. Co-Equality {#sec-co-equality}
+Equality between two values of a co-datatype is a built-in co-predicate.
+It has the usual equality syntax `s == t`, and the corresponding prefix
+equality is written `s ==#[k] t`. And similarly for `s != t`
+and `s !=#[k] t`.
+
+#### 5.14.3.5. Greatest predicates {#sec-copredicates}
+
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _greatest predicates_
 which are function declarations that use the `greatest predicate` keyword phrase.
@@ -4366,7 +3314,7 @@ liberty of making up a coordinating syntax for the signature of the
 automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
-<!-- %check-resolve %use Stream.tmp -->
+<!-- %check-resolve %use Stream.tmp %save Pos.tmp -->
 ```dafny
 greatest predicate Pos[nat](s: Stream<int>)
 {
@@ -4374,7 +3322,7 @@ greatest predicate Pos[nat](s: Stream<int>)
   case SNil => true
   case SCons(x, rest) => x > 0 && Pos(rest)
 }
-``` <!-- %save Pos.tmp -->
+```
 The following code is automatically generated by the Dafny compiler:
 <!-- %no-check -->
 ```dafny
@@ -4434,20 +3382,16 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 19.3.4.1. Co-Equality {#sec-co-equality}
-Equality between two values of a co-datatype is a built-in co-predicate.
-It has the usual equality syntax `s == t`, and the corresponding prefix
-equality is written `s ==#[k] t`. And similarly for `s != t`
-and `s !=#[k] t`.
+#### 5.14.3.6. Coinductive Proofs
 
-### 19.3.5. Coinductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-#### 19.3.5.1. Properties About Prefix Predicates
+##### 5.14.3.6.1. Properties of Prefix Predicates
+
 Among other possible strategies for establishing coinductive properties
 we take the time-honored approach of reducing coinduction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -4493,7 +3437,8 @@ the forall statement to show `forall k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the greatest predicate.
 
 
-#### 19.3.5.2. Greatest lemmas {#sec-colemmas}
+##### 5.14.3.6.2. Greatest lemmas {#sec-colemmas}
+
 As we just showed, with help of the `D` axiom we can now prove a
 greatest predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
@@ -4517,7 +3462,8 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-#### 19.3.5.3. Prefix Lemmas {#sec-prefix-lemmas}
+##### 5.14.3.6.3. Prefix Lemmas {#sec-prefix-lemmas}
+
 To understand why the above `UpPosLemma` greatest lemma code is a sound proof,
 let us now describe the details of the desugaring of greatest lemmas. In
 analogy to how a **greatest predicate** declaration defines both a greatest predicate and
@@ -4583,3 +3529,970 @@ coinductive proof in using a greatest lemma with the inductive proof in using
 a lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
+
+# 6. Member declarations
+
+Members are the various kinds of methods, the various kinds of functions, mutable fields,
+and constant fields. These are usually associated with classes, but they also may be
+declared (with limitations) in traits, newtypes and datatypes (but not in subset types or type synonyms).
+
+## 6.1. Field Declarations ([grammar](#g-field-declaration)) {#sec-field-declaration}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+class C {
+  var c: int  // no initialization
+  ghost var 123: bv10  // name may be a sequence of digits
+  var d: nat, e: real  // type is required
+}
+```
+A field declaration is not permitted in a value type nor as a member of a module
+(despite there being an implicit unnamed class).
+
+The field name is either an
+identifier (that is not allowed to start with a leading underscore) or
+some digits. Digits are used if you want to number your fields, e.g. "0",
+"1", etc. The digits do not denote numbers but sequences of digits,
+so 0, 00, 0_0 are all different.
+
+A field x of some type T is declared as:
+<!-- %no-check -->
+```dafny
+var x: T
+```
+
+A field declaration declares one or more fields of the enclosing class.
+Each field is a named part of the state of an object of that class. A
+field declaration is similar to but distinct from a variable declaration
+statement. Unlike for local variables and bound variables, the type is
+required and will not be inferred.
+
+Unlike method and function declarations, a field declaration
+is not permitted as a member of a module, even though there is an implicit class.
+Fields can be declared in either an explicit
+class or a trait. A class that inherits from multiple traits will
+have all the fields declared in any of its parent traits.
+
+Fields that are declared as `ghost` can only be used in specifications,
+not in code that will be compiled into executable code.
+
+Fields may not be declared static.
+
+## 6.2. Constant Field Declarations ([grammar](#g-const-declaration)) {#sec-constant-field-declaration}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+const c: int
+ghost const d := 5
+class A {
+  const e: bool
+  static const f: int
+}
+```
+A `const` declaration declares a name bound to a value,
+which value is fixed after initialization.
+
+The declaration must either have a type or an initializing expression (or both).
+If the type is omitted, it is inferred from the initializing expression.
+
+* A const declaration may include the `ghost`, `static`, and `opaque` modifiers, but no
+others.
+* A const declaration may appear within a module or within any declaration
+that may contain members (class, trait, datatype, newtype).
+* If it is in a module, it is implicitly `static`, and may not also be declared
+`static`.
+* If the declaration has an initializing expression that is a ghost
+expression, then the ghost-ness of the declaration is inferred; the `ghost`
+modifier may be omitted.
+* If the declaration includes the `opaque` modifier, then uses of the declared
+variable know its name and type but not its value. The value can be made known for
+reasoning purposes by using the [reveal statement](#sec-reveal-statement).
+* The initialization expression may refer to other constant fields that are in scope and declared either
+before or after this declaration, but circular references are not allowed.
+
+## 6.3. Method Declarations ([grammar](#g-method-declaration)) {#sec-method-declaration}
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+method m(i: int) requires i > 0 {}
+method p() returns (r: int) { r := 0; }
+method q() returns (r: int, s: int, t: nat) ensures r < s < t { r := 0; s := 1; t := 2; }
+ghost method g() {}
+class A {
+  method f() {}
+  constructor Init() {}
+  static method g<T>(t: T) {}
+}
+lemma L(p: bool) ensures p || !p {}
+twostate lemma TL(p: bool) ensures p || !p {}
+least lemma LL[nat](p: bool) ensures p || !p {}
+greatest lemma GL(p: bool) ensures p || !p {}
+abstract module M { method m(i: int) }
+module N refines M { method m ... {} }
+```
+
+Method declarations include a variety of related types of methods:
+- method
+- constructor
+- lemma
+- twostate lemma
+- least lemma
+- greatest lemma
+
+A method signature specifies the method generic parameters,
+input parameters and return parameters.
+The formal parameters are not allowed to have `ghost` specified
+if `ghost` was already specified for the method.
+Within the body of a method, formal (input) parameters are immutable, that is, 
+they may not be assigned to, though their array elements or fields may be
+assigned, if otherwise permitted.
+The out-parameters are mutable and must be assigned in the body of the method.
+
+An ``ellipsis`` is used when a method or function is being redeclared
+in a module that refines another module. (cf. [Section 10](#sec-module-refinement))
+In that case the signature is
+copied from the module that is being refined. This works because
+Dafny does not support method or function overloading, so the
+name of the class method uniquely identifies it without the
+signature.
+
+See [Section 7.2](#sec-method-specification) for a description of the method specification.
+
+Here is an example of a method declaration.
+
+<!-- %no-check -->
+```dafny
+method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
+                                        returns (x: X, y: Y, z: Z)
+  requires Pre
+  modifies Frame
+  ensures Post
+  decreases Rank
+{
+  Body
+}
+```
+
+where `:att1` and `:att2` are attributes of the method,
+`T1` and `T2` are type parameters of the method (if generic),
+`a, b, c` are the method’s in-parameters, `x, y, z` are the
+method’s out-parameters, `Pre` is a boolean expression denoting the
+method’s precondition, `Frame` denotes a set of objects whose fields may
+be updated by the method, `Post` is a boolean expression denoting the
+method’s postcondition, `Rank` is the method’s variant function, and
+`Body` is a list of statements that implements the method. `Frame` can be a list
+of expressions, each of which is a set of objects or a single object, the
+latter standing for the singleton set consisting of that one object. The
+method’s frame is the union of these sets, plus the set of objects
+allocated by the method body. For example, if `c` and `d` are parameters
+of a class type `C`, then
+
+<!-- %no-check -->
+```dafny
+modifies {c, d}
+modifies {c} + {d}
+modifies c, {d}
+modifies c, d
+```
+
+all mean the same thing.
+
+If the method is an _extreme lemma_ ( a `least` or `greatest` lemma), then the 
+method signature may also state the type of the _k_ parameter as either `nat` or `ORDINAL`.
+These are described
+in [Section 12.5.3](#sec-friendliness) and subsequent sections.
+
+### 6.3.1. Ordinary methods
+
+A method can be declared as ghost by preceding the declaration with the
+keyword `ghost` and as static by preceding the declaration with the keyword `static`.
+The default is non-static (i.e., instance) for methods declared in a type and non-ghost.
+An instance method has an implicit receiver parameter, `this`.
+A static method M in a class C can be invoked by `C.M(…)`.
+
+An ordinary method is declared with the `method` keyword;
+[the section about constructors](#sec-constructor-methods) explains methods that instead use the
+`constructor` keyword; [the section about lemmas](#sec-lemmas) discusses methods that are
+declared with the `lemma` keyword. Methods declared with the
+`least lemma` or `greatest lemma` keyword phrases
+are discussed later in the context of extreme
+predicates (see [the section about greatest lemmas](#sec-colemmas)).
+
+A method without a body is _abstract_. A method is allowed to be
+abstract under the following circumstances:
+
+* It contains an `{:axiom}` attribute
+* It contains an `{:extern}` attribute (in this case, to be runnable, the method must have a body in non-Dafny compiled code in the target language.)
+* It is a declaration in an abstract module.
+Note that when there is no body, Dafny assumes that the *ensures*
+clauses are true without proof.
+
+### 6.3.2. Constructors {#sec-constructor-methods}
+To write structured object-oriented programs, one often relies on
+objects being constructed only in certain ways.  For this purpose, Dafny
+provides _constructor (method)s_.
+A constructor is declared with the keyword
+`constructor` instead of `method`; constructors are permitted only in classes.
+A constructor is allowed to be declared as `ghost`, in which case it
+can only be used in ghost contexts.
+
+A constructor can only be called at the time an object is allocated (see
+object-creation examples below). Moreover, when a class contains a
+constructor, every call to `new` for a class must be accompanied
+by a call to one of its constructors. A class may
+declare no constructors or one or more constructors.
+
+In general, a constructor is responsible for initializating the 
+instance fields of its class. However, any field that is given an
+initializer in its declaration may not be reassigned in the body
+of the constructor.
+
+#### 6.3.2.1. Classes with no explicit constructors
+
+For a class that declares no constructors, an instance of the class is
+created with
+<!-- %no-check -->
+```dafny
+c := new C;
+```
+This allocates an object and initializes its fields to values of their
+respective types (and initializes each `const` field with a RHS to its specified
+value). The RHS of a `const` field may depend on other `const` or `var` fields,
+but circular dependencies are not allowed.
+
+This simple form of `new` is allowed only if the class declares no constructors,
+which is not possible to determine in every scope.
+It is easy to determine whether or not a class declares any constructors if the
+class is declared in the same module that performs the `new`. If the class is
+declared in a different module and that module exports a constructor, then it is
+also clear that the class has a constructor (and thus this simple form of `new`
+cannot be used). (Note that an export set that `reveals` a class `C` also exports
+the anonymous constructor of `C`, if any.)
+But if the module that declares `C` does not export any constructors
+for `C`, then callers outside the module do not know whether or not `C` has a
+constructor. Therefore, this simple form of `new` is allowed only for classes that
+are declared in the same module as the use of `new`.
+
+The simple `new C` is allowed in ghost contexts. Also, unlike the forms of `new`
+that call a constructor or initialization method, it can be used in a simultaneous
+assignment; for example
+<!-- %no-check -->
+```dafny
+c, d, e := new C, new C, 15;
+```
+is legal.
+
+As a shorthand for writing
+<!-- %no-check -->
+```dafny
+c := new C;
+c.Init(args);
+```
+where `Init` is an initialization method (see the top of [the section about class types](#sec-class-types)),
+one can write
+<!-- %no-check -->
+```dafny
+c := new C.Init(args);
+```
+but it is more typical in such a case to declare a constructor for the class.
+
+(The syntactic support for initialization methods is provided for historical
+reasons. It may be deprecated in some future version of Dafny. In most cases,
+a constructor is to be preferred.)
+
+#### 6.3.2.2. Classes with one or more constructors
+
+Like other class members, constructors have names. And like other members,
+their names must be distinct, even if their signatures are different.
+Being able to name constructors promotes names like `InitFromList` or
+`InitFromSet` (or just `FromList` and `FromSet`).
+Unlike other members, one constructor is allowed to be _anonymous_;
+in other words, an _anonymous constructor_ is a constructor whose name is
+essentially the empty string.  For example:
+<!-- %check-resolve -->
+```dafny
+class Item {
+  constructor I(xy: int) // ...
+  constructor (x: int, y: int)
+  // ...
+}
+```
+The named constructor is invoked as
+<!-- %no-check -->
+```dafny
+  i := new Item.I(42);
+```
+The anonymous constructor is invoked as
+<!-- %no-check -->
+```dafny
+  m := new Item(45, 29);
+```
+dropping the "`.`".
+
+#### 6.3.2.3. Two-phase constructors
+
+The body of a constructor contains two sections,
+an initialization phase and a post-initialization phase, separated by a `new;` statement.
+If there is no `new;` statement, the entire body is the initialization phase.
+The initialization phase is intended to initialize field variables
+that were not given values in their declaration; it may not reassign
+to fields that do have initializers in their declarations.
+In this phase, uses of the object reference `this` are restricted;
+a program may use `this`
+
+ - as the receiver on the LHS,
+ - as the entire RHS of an assignment to a field of `this`,
+ - and as a member of a set on the RHS that is being assigned to a field of `this`.
+
+A `const` field with a RHS is not allowed to be assigned anywhere else.
+A `const` field without a RHS may be assigned only in constructors, and more precisely
+only in the initialization phase of constructors. During this phase, a `const` field
+may be assigned more than once; whatever value the `const` field has at the end of the
+initialization phase is the value it will have forever thereafter.
+
+For a constructor declared as `ghost`, the initialization phase is allowed to assign
+both ghost and non-ghost fields. For such an object, values of non-ghost fields at
+the end of the initialization phase are in effect no longer changeable.
+
+There are no restrictions on expressions or statements in the post-initialization phase.
+
+### 6.3.3. Lemmas {#sec-lemmas}
+Sometimes there are steps of logic required to prove a program correct,
+but they are too complex for Dafny to discover and use on its own. When
+this happens, we can often give Dafny assistance by providing a lemma.
+This is done by declaring a method with the `lemma` keyword.
+Lemmas are implicitly ghost methods and the `ghost` keyword cannot
+be applied to them.
+
+Syntactically, lemmas can be placed where ghost methods can be placed, but they serve 
+a significantly different function. First of all, a lemma is forbidden to have 
+`modifies` clause: it may not change anything about even the ghost state; ghost methods
+may have `modifies` clauses and may change ghost (but not non-ghost) state. 
+Furthermore, a lemma is not allowed to allocate any new objects.
+And a lemma may be used in the program text in places where ghost methods may not,
+such as within expressions (cf. [Section 21.1](sec-top-level-expression)).
+
+Lemmas may, but typically do not, have out-parameters.
+
+In summary, a lemma states a logical fact, summarizing an inference that the verifier
+cannot do on its own. Explicitly "calling" a lemma in the program text tells the verifier
+to use that fact at that location with the actual arguments substituted for the 
+formal parameters. The lemma is proved separately for all cases of its formal parameters
+that satisfy the preconditions of the lemma. 
+
+For an example, see the `FibProperty` lemma in
+[Section 12.5.2](#sec-proofs-in-dafny).
+
+See [the Dafny Lemmas tutorial](../OnlineTutorial/Lemmas)
+for more examples and hints for using lemmas.
+
+### 6.3.4. Two-state lemmas and functions {#sec-two-state}
+
+The heap is an implicit parameter to every function, though a function is only allowed
+to read those parts of the mutable heap that it admits to in its `reads` clause.
+Sometimes, it is useful for a function to take two heap parameters, for example, so
+the function can return the difference between the value of a field in the two heaps.
+Such a _two-state function_ is declared by `twostate function` (or `twostate predicate`,
+which is the same as a `twostate function` that returns a `bool`). A two-state function
+is always ghost. It is appropriate to think of these two implicit heap parameters as
+representing a "current" heap and an "old" heap.
+
+For example, the predicate
+<!-- %check-verify %save Increasing.tmp -->
+```dafny
+class Cell { var data: int  constructor(i: int) { data := i; } }
+twostate predicate Increasing(c: Cell)
+  reads c
+{
+  old(c.data) <= c.data
+}
+```
+returns `true` if the value of `c.data` has not been reduced from the old state to the
+current. Dereferences in the current heap are written as usual (e.g., `c.data`) and
+must, as usual, be accounted for in the function's `reads` clause. Dereferences in the
+old heap are enclosed by `old` (e.g., `old(c.data)`), just like when one dereferences
+a  method's initial heap. The function is allowed to read anything in the old heap;
+the `reads` clause only declares dependencies on locations in the current heap.
+Consequently, the frame axiom for a two-state function is sensitive to any change
+in the old-heap parameter; in other words, the frame axiom says nothing about two
+invocations of the two-state function with different old-heap parameters.
+
+At a call site, the two-state function's current-heap parameter is always passed in
+as the caller's current heap. The two-state function's old-heap parameter is by
+default passed in as the caller's old heap (that is, the initial heap if the caller
+is a method and the old heap if the caller is a two-state function). While there is
+never a choice in which heap gets passed as the current heap, the caller can use
+any preceding heap as the argument to the two-state function's old-heap parameter.
+This is done by labeling a state in the caller and passing in the label, just like
+this is done with the built-in `old` function.
+
+For example, the following assertions all hold:
+<!-- %check-verify %use Increasing.tmp -->
+```dafny
+method Caller(c: Cell)
+  modifies c
+{
+  c.data := c.data + 10;
+  label L:
+  assert Increasing(c);
+  c.data := c.data - 2;
+  assert Increasing(c);
+  assert !Increasing@L(c);
+}
+```
+The first call to `Increasing` uses `Caller`'s initial state as the old-heap parameter,
+and so does the second call. The third call instead uses as the old-heap parameter
+the heap at label `L`, which is why the third call returns `false`.
+As shown in the example, an explicitly given old-heap parameter is given after
+an `@`-sign (which follows the name of the function and any explicitly given type
+parameters) and before the open parenthesis (after which the ordinary parameters are
+given).
+
+A two-state function is allowed to be called only from a two-state context, which
+means a method, a two-state lemma (see below), or another two-state function.
+Just like a label used with an `old` expression, any label used in a call to a
+two-state function must denote a program point that _dominates_ the call. This means
+that any control leading to the call must necessarily have passed through the labeled
+program point.
+
+Any parameter (including the receiver parameter, if any) passed to a two-state function
+must have been allocated already in the old state. For example, the second call to
+`Diff` in method `M` is illegal, since `d` was not allocated on entry to `M`:
+<!-- %check-verify Types.11.expect %use Increasing.tmp -->
+```dafny
+twostate function Diff(c: Cell, d: Cell): int
+  reads d
+{
+  d.data - old(c.data)
+}
+
+method M(c: Cell) {
+  var d := new Cell(10);
+  label L:
+  ghost var x := Diff@L(c, d);
+  ghost var y := Diff(c, d); // error: d is not allocated in old state
+}
+```
+
+A two-state function may declare that it only assumes a parameter to be allocated
+in the current heap. This is done by preceding the parameter with the `new` modifier,
+as illustrated in the following example, where the first call to `DiffAgain` is legal:
+<!-- %check-verify Types.12.expect %use Increasing.tmp -->
+```dafny
+twostate function DiffAgain(c: Cell, new d: Cell): int
+  reads d
+{
+  d.data - old(c.data)
+}
+
+method P(c: Cell) {
+  var d := new Cell(10);
+  ghost var x := DiffAgain(c, d);
+  ghost var y := DiffAgain(d, c); // error: d is not allocated in old state
+}
+```
+
+A _two-state lemma_ works in an analogous way. It is a lemma with both a current-heap
+parameter and an old-heap parameter, it can use `old` expressions in its
+specification (including in the precondition) and body, its parameters may
+use the `new` modifier, and the old-heap parameter is by default passed in as
+the caller's old heap, which can be changed by using an `@`-parameter.
+
+Here is an example of something useful that can be done with a two-state lemma:
+<!-- %check-verify %use Increasing.tmp -->
+```dafny
+function SeqSum(s: seq<Cell>): int
+  reads s
+{
+  if s == [] then 0 else s[0].data + SeqSum(s[1..])
+}
+
+twostate lemma IncSumDiff(s: seq<Cell>)
+  requires forall c :: c in s ==> Increasing(c)
+  ensures old(SeqSum(s)) <= SeqSum(s)
+{
+  if s == [] {
+  } else {
+    calc {
+      old(SeqSum(s));
+    ==  // def. SeqSum
+      old(s[0].data + SeqSum(s[1..]));
+    ==  // distribute old
+      old(s[0].data) + old(SeqSum(s[1..]));
+    <=  { assert Increasing(s[0]); }
+      s[0].data + old(SeqSum(s[1..]));
+    <=  { IncSumDiff(s[1..]); }
+      s[0].data + SeqSum(s[1..]);
+    ==  // def. SeqSum
+      SeqSum(s);
+    }
+  }
+}
+```
+
+A two-state function can be used as a first-class function value, where the receiver
+(if any), type parameters (if any), and old-heap parameter are determined at the
+time the first-class value is mentioned. While the receiver and type parameters can
+be explicitly instantiated in such a use (for example, `p.F<int>` for a two-state
+instance function `F` that takes one type parameter), there is currently no syntactic
+support for giving the old-heap parameter explicitly. A caller can work
+around this restriction by using (fancy-word alert!) eta-expansion, meaning
+wrapping a lambda expression around the call, as in `x => p.F<int>@L(x)`.
+The following example illustrates using such an eta-expansion:
+<!-- %check-verify -->
+```dafny
+class P {
+  twostate function F<X>(x: X): X
+}
+
+method EtaExample(p: P) returns (ghost f: int -> int) {
+  label L:
+  f := x => p.F<int>@L(x);
+}
+```
+
+## 6.4. Function Declarations ([grammar](#g-function-declaration)) {#sec-function-declaration}
+
+### 6.4.1. Functions
+
+Examples:
+<!-- %check-resolve -->
+```dafny
+function f(i: int): real { i as real }
+function g(): (int, int) { (2,3) }
+function h(i: int, k: int): int requires i >= 0 { if i == 0 then 0 else 1 }
+```
+
+Functions may be declared as ghost. If so, all the formal parameters and
+return values are ghost; if it is not a ghost function, then 
+individual parameters may be declared ghost as desired.
+
+See [Section 7.3](#sec-function-specification) for a description of the function specification.
+A Dafny function is a pure mathematical function. It is allowed to
+read memory that was specified in its `reads` expression but is not
+allowed to have any side effects.
+
+Here is an example function declaration:
+<!-- %no-check -->
+```dafny
+function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
+  requires Pre
+  reads Frame
+  ensures Post
+  decreases Rank
+{
+  Body
+}
+```
+
+where `:att1` and `:att2` are attributes of the function, if any, `T1`
+and `T2` are type parameters of the function (if generic), `a, b, c` are
+the function’s parameters, `T` is the type of the function’s result,
+`Pre` is a boolean expression denoting the function’s precondition,
+`Frame` denotes a set of objects whose fields the function body may
+depend on, `Post` is a boolean expression denoting the function’s
+postcondition, `Rank` is the function’s variant function, and `Body` is
+an expression that defines the function's return value. The precondition
+allows a function to be partial, that is, the precondition says when the
+function is defined (and Dafny will verify that every use of the function
+meets the precondition).
+
+The postcondition is usually not needed, since
+the body of the function gives the full definition. However, the
+postcondition can be a convenient place to declare properties of the
+function that may require an inductive proof to establish, such as when
+the function is recursive. For example:
+
+<!-- %check-verify -->
+```dafny
+function Factorial(n: int): int
+  requires 0 <= n
+  ensures 1 <= Factorial(n)
+{
+  if n == 0 then 1 else Factorial(n-1) * n
+}
+```
+
+says that the result of Factorial is always positive, which Dafny
+verifies inductively from the function body.
+
+Within a postcondition, the result of the function is designated by
+a call of the function, such as `Factorial(n)` in the example above.
+Alternatively, a name for the function result can be given in the signature,
+as in the following rewrite of the example above.
+
+<!-- %check-verify -->
+```dafny
+function Factorial(n: int): (f: int)
+  requires 0 <= n
+  ensures 1 <= f
+{
+  if n == 0 then 1 else Factorial(n-1) * n
+}
+```
+
+Pre v4.0, a function is `ghost` by default, and cannot be called from non-ghost
+code. To make it non-ghost, replace the keyword `function` with the two
+keywords "`function method`". From v4.0 on, a function is non-ghost by
+default. To make it ghost, replace the keyword `function` with the two keywords "`ghost function`".
+(See the [--function-syntax option](#sec-function-syntax) for a description 
+of the migration path for this change in behavior.}
+
+Functions (including predicates, function-by-methods, two-state functions, and extreme predicates) may be 
+declared `opaque`. In that case, only the signature and specification of the method
+is known at its points of use, not its body. The body can be _revealed_ for reasoning
+purposes using the [reveal statment](#sec-reveal-statement).
+
+Like methods, functions can be either _instance_ (which they are by default when declared within a type) or
+_static_ (when the function declaration contains the keyword `static` or is declared in a module).
+An instance function, but not a static function, has an implicit receiver parameter, `this`.  
+A static function `F` in a class `C` can be invoked
+by `C.F(…)`. This provides a convenient way to declare a number of helper
+functions in a separate class.
+
+As for methods, a ``...`` is used when declaring
+a function in a module refinement (cf. [Section 10](#sec-module-refinement)).
+ For example, if module `M0` declares
+function `F`, a module `M1` can be declared to refine `M0` and
+`M1` can then refine `F`. The refinement function, `M1.F` can have
+a ``...`` which means to copy the signature from
+`M0.F`. A refinement function can furnish a body for a function
+(if `M0.F` does not provide one). It can also add `ensures`
+clauses.
+
+If a function definition does not have a body, the program that contains it may still be verified.
+The function itself has nothing to verify.
+However, any calls of a body-less function are treated as unverified assumptions by the caller,
+asserting the preconditions and assuming the postconditions.
+Because body-less functions are unverified assumptions, Dafny will not compile them and will complain if called by [`dafny translate`, `dafny build` or even `dafny run`](#command-line)
+
+### 6.4.2. Predicates
+A function that returns a `bool` result is called a _predicate_. As an
+alternative syntax, a predicate can be declared by replacing the `function`
+keyword with the `predicate` keyword and possibly omitting a declaration of the
+return type (if it is not named).
+
+### 6.4.3. Function-by-method {#sec-function-by-method}
+
+A function with a `by method` clause declares a _function-by-method_.
+A function-by-method gives a way to implement a
+(deterministic, side-effect free) function by a method (whose body may be
+nondeterministic and may allocate objects that it modifies). This can
+be useful if the best implementation uses nondeterminism (for example,
+because it uses `:|` in a nondeterministic way) in a way that does not
+affect the result, or if the implementation temporarily makes use of some
+mutable data structures, or if the implementation is done with a loop.
+For example, here is the standard definition of the Fibonacci function
+but with an efficient implementation that uses a loop:
+
+<!-- %check-verify -->
+```dafny
+function Fib(n: nat): nat {
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
+} by method {
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == Fib(i) && y == Fib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+```
+
+The `by method` clause is allowed only for non-ghost `function` or `predicate`
+declarations (without `twostate`, `least`, and `greatest`, but
+possibly with `static`); it inherits the in-parameters, attributes, and `requires` and `decreases`
+clauses of the function. The method also gets one out-parameter, corresponding
+to the function's result value (and the name of it, if present). Finally,
+the method gets an empty `modifies` clause and a postcondition
+`ensures r == F(args)`, where `r` is the name of the out-parameter and
+`F(args)` is the function with its arguments. In other words, the method
+body must compute and return exactly what the function says, and must
+do so without modifying any previously existing heap state.
+
+The function body of a function-by-method is allowed to be ghost, but the
+method body must be compilable. In non-ghost contexts, the compiler turns a
+call of the function-by-method into a call that leads to the method body.
+
+Note, the method body of a function-by-method may contain `print` statements.
+This means that the run-time evaluation of an expression may have print effects.
+If `--track-print-effects` is enabled, this use of print in a function context
+will be disallowed.
+
+### 6.4.4. Function Transparency
+A function is said to be _transparent_ in a location if the
+body of the function is visible at that point.
+A function is said to be _opaque_ at a location if it is not
+transparent. However the specification of a function
+is always available.
+
+A function is usually transparent up to some unrolling level (up to
+1, or maybe 2 or 3). If its arguments are all literals it is
+transparent all the way.
+
+But the transparency of a function is affected by
+whether the function was declared with an `opaque` modifier, as explained
+in [Section 11.2.8](#sec-opaque)),
+the reveal statement ([Section 8.20](#sec-reveal-statement)),
+and whether it was `reveal`ed in an export set.
+
+- Inside the module where the function is declared:
+   - if there is no `opaque` modifier, the function is transparent
+   - if there is an `opaque` modifier, then the function is opaque,
+   except if the function is mentioned in a `reveal` statement, then
+   it is transparent between that `reveal` statement and the end of
+   the block containing the `reveal` statement.
+- Outside the module where the function is declared, the function is 
+visible only if it was listed in the export set by which the contents
+of its module was imported. In that case, if the function was exported
+with `reveals`, the rules are the same within the importing module as when the function is used inside
+its declaring module. If the function is exported only with `provides` it is
+always opaque and is not permitted to be used in a reveal statement.
+
+### 6.4.5. Extreme (Least or Greatest) Predicates and Lemmas
+See [Section 12.5.3](#sec-friendliness) for descriptions
+of extreme predicates and lemmas.
+
+### 6.4.6. `older` parameters in predicates {#sec-older-parameters}
+
+A parameter of any predicate (more precisely, of any
+boolean-returning, non-extreme function) can be marked as
+`older`. This specifies that the truth of the predicate implies that
+the allocatedness of the parameter follows from the allocatedness of
+the non-`older` parameters.
+
+To understand what this means and why this attribute is useful,
+consider the following example, which specifies reachability between
+nodes in a directed graph. A `Node` is declared to have any number of
+children:
+
+<!-- %check-verify %save Node.tmp -->
+```dafny
+class Node {
+  var children: seq<Node>
+}
+```
+
+There are several ways one could specify reachability between
+nodes. One way (which is used in `Test/dafny1/SchorrWaite.dfy` in the
+Dafny test suite) is to define a type `Path`, representing lists of
+`Node`s, and to define a predicate that checks if a given list of
+`Node`s is indeed a path between two given nodes:
+
+<!-- %check-verify %use Node.tmp %save ReachableVia.tmp -->
+```dafny
+datatype Path = Empty | Extend(Path, Node)
+
+predicate ReachableVia(source: Node, p: Path, sink: Node, S: set<Node>)
+  reads S
+  decreases p
+{
+  match p
+  case Empty =>
+    source == sink
+  case Extend(prefix, n) =>
+    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+}
+```
+
+In a nutshell, the definition of `ReachableVia` says
+
+* An empty path lets `source` reach `sink` just when
+  `source` and `sink` are the same node.
+* A path `Extend(prefix, n)` lets `source` reach `sink` just when
+  the path `prefix` lets `source` reach `n` and `sink` is one of
+  the children nodes of `n`.
+
+To be admissible by Dafny, the recursive predicate must be shown to
+terminate. Termination is assured by the specification `decreases p`,
+since every such datatype value has a finite structure and every
+recursive call passes in a path that is structurally included in the
+previous. Predicate `ReachableVia` must also declare (an upper bound
+on) which heap objects it depends on. For this purpose, the
+predicate takes an additional parameter `S`, which is used to limit
+the set of intermediate nodes in the path. More precisely, predicate
+`ReachableVia(source, p, sink, S)` returns `true` if and only if `p`
+is a list of nodes in `S` and `source` can reach `sink` via `p`.
+
+Using predicate `ReachableVia`, we can now define reachability in `S`:
+
+<!-- %check-resolve Types.13.expect %use ReachableVia.tmp -->
+```dafny
+predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: ReachableVia(source, p, sink, S)
+}
+```
+
+This looks like a good definition of reachability, but Dafny won't
+admit it. The reason is twofold:
+
+* Quantifiers and comprehensions are allowed to range only over
+  allocated state. Ater all, Dafny is a type-safe language where every
+  object reference is _valid_ (that is, a pointer to allocated storage
+  of the right type)---it should not be possible, not even through a
+  bound variable in a quantifier or comprehension, for a program to
+  obtain an object reference that isn't valid.
+
+* This property is ensured by disallowing _open-ended_ quantifiers.
+  More precisely, the object references that a quantifier may range
+  over must be shown to be confined to object references that were
+  allocated before some of the non-`older` parameters passed to the
+  predicate. Quantifiers that are not open-ended are called
+  _close-ended_. Note that close-ended refers only to the object
+  references that the quantification or comprehension ranges over---it
+  does not say anything about values of other types, like integers.
+
+Often, it is easy to show that a quantifier is close-ended. In fact,
+if the type of a bound variable does not contain any object
+references, then the quantifier is trivially close-ended. For example,
+
+<!-- %no-check -->
+```dafny
+forall x: int :: x <= Square(x)
+```
+
+is trivially close-ended.
+
+Another innocent-looking quantifier occurs in the following example:
+
+<!-- %check-resolve Types.14.expect -->
+```dafny
+predicate IsCommutative<X>(r: (X, X) -> bool)
+{
+  forall x, y :: r(x, y) == r(y, x) // error: open-ended quantifier
+}
+```
+
+Since nothing is known about type `X`, this quantifier might be
+open-ended.  For example, if `X` were passed in as a class type, then
+the quantifier would be open-ended. One way to fix this predicate is
+to restrict it to non-heap based types, which is indicated with the
+`(!new)` type characteristic (see [Section 5.3.1.4](#sec-non-heap-based)):
+
+<!-- %check-verify -->
+```dafny
+ghost predicate IsCommutative<X(!new)>(r: (X, X) -> bool) // X is restricted to non-heap types
+{
+  forall x, y :: r(x, y) == r(y, x) // allowed
+}
+```
+
+Another way to make `IsCommutative` close-ended is to constrain the values
+of the bound variables `x` and `y`. This can be done by adding a parameter
+to the predicate and limiting the quantified values to ones in the given set:
+
+<!-- %check-verify -->
+```dafny
+predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
+{
+  forall x, y :: x in S && y in S ==> r(x, y) == r(y, x) // close-ended
+}
+```
+
+Through a simple syntactic analysis, Dafny detects the antecedents
+`x in S` and `y in S`, and since `S` is a parameter and thus can only be
+passed in as something that the caller has already allocated, the
+quantifier in `IsCommutativeInS` is determined to be close-ended.
+
+Note, the `x in S` trick does not work for the motivating example,
+`Reachable`. If you try to write
+
+<!-- %check-resolve Types.15.expect %use ReachableVia.tmp -->
+```dafny
+predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: p in S && ReachableVia(source, p, sink, S) // type error: p
+}
+```
+
+you will get a type error, because `p in S` does not make sense if `p`
+has type `Path`. We need some other way to justify that the
+quantification in `Reachable` is close-ended.
+
+Dafny offers a way to extend the `x in S` trick to more situations.
+This is where the `older` modifier comes in. Before we apply `older`
+in the `Reachable` example, let's first look at what `older` does in a
+less cluttered example.
+
+Suppose we rewrite `IsCommutativeInS` using a programmer-defined predicate `In`:
+
+<!-- %check-resolve Types.16.expect -->
+```dafny
+predicate In<X>(x: X, S: set<X>) {
+  x in S
+}
+
+predicate IsCommutativeInS<X>(r: (X, X) -> bool, S: set<X>)
+{
+  forall x, y :: In(x, S) && In(y, S) ==> r(x, y) == r(y, x) // error: open-ended?
+}
+```
+
+The simple syntactic analysis that looks for `x in S` finds nothing
+here, because the `in` operator is relegated to the body of predicate
+`In`. To inform the analysis that `In` is a predicate that, in effect,
+is like `in`, you can mark parameter `x` with `older`:
+
+<!-- %check-verify -->
+```dafny
+predicate In<X>(older x: X, S: set<X>) {
+  x in S
+}
+```
+
+This causes the simple syntactic analysis to accept the quantifier in
+`IsCommutativeInS`. Adding `older` also imposes a semantic check on
+the body of predicate `In`, enforced by the verifier. The semantic
+check is that all the object references in the value `x` are older (or
+equally old as) the object references that are part of the other
+parameters, _in the event that the predicate returns true_. That is,
+`older` is designed to help the caller only if the predicate returns
+`true`, and the semantic check amounts to nothing if the predicate
+returns `false`.
+
+Finally, let's get back to the motivating example. To allow the quantifier
+in `Reachable`, mark parameter `p` of `ReachableVia` with `older`:
+
+<!-- %check-verify -->
+```dafny
+class Node {
+  var children: seq<Node>
+}
+
+datatype Path = Empty | Extend(Path, Node)
+
+ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
+  reads S
+{
+  exists p :: ReachableVia(source, p, sink, S) // allowed because of 'older p' on ReachableVia
+}
+
+ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
+  reads S
+  decreases p
+{
+  match p
+  case Empty =>
+    source == sink
+  case Extend(prefix, n) =>
+    n in S && sink in n.children && ReachableVia(source, prefix, n, S)
+}
+```
+
+This example is more involved than the simpler `In` example
+above. Because of the `older` modifier on the parameter, the quantifier in
+`Reachable` is allowed. For intuition, you can think of the effect of
+`older p` as adding an antecedent `p in {source} + {sink} + S`
+(but, as we have seen, this is not type correct). The semantic check
+imposed on the body of `ReachableVia` makes sure that, if the
+predicate returns `true`, then every object reference in `p` is as old
+as some object reference in another parameter to the predicate.
+
+

@@ -1,15 +1,15 @@
-// RUN: ! %baredafny run --target=cs %args "%s" > "%t"
-// RUN: ! %baredafny run --target=go %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=java %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=js %args "%s" >> "%t"
-// RUN: ! %baredafny run --target=py %args "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=cs "%s" > "%t"
+// RUN: ! %baredafny run %args --target=go "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=java "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=js "%s" >> "%t"
+// RUN: ! %baredafny run %args --target=py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype OOAgent = | OO7 {
-  function method Talk(): bool {
+  function Talk(): bool {
     true
   }
-  function method Die(): bool {
+  function Die(): bool {
     false
   }
 }

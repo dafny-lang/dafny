@@ -111,38 +111,38 @@ class CC extends TT {
 // The following module contains various regression tests
 module More {
   trait A0 {
-    predicate P() decreases 5
+    ghost predicate P() decreases 5
   }
   class B0 extends A0 {
-    predicate P()  // error: rank is not lower
+    ghost predicate P()  // error: rank is not lower
   }
 
   trait A1 {
-    predicate P() decreases 5
+    ghost predicate P() decreases 5
   }
   class B1 extends A1 {
-    predicate P() reads this  // error: rank is not lower
+    ghost predicate P() reads this  // error: rank is not lower
   }
 
   trait A2 {
-    predicate P(x: int)
+    ghost predicate P(x: int)
   }
   class B2 extends A2 {
-    predicate P(x: int) reads this  // error: rank is not lower
+    ghost predicate P(x: int) reads this  // error: rank is not lower
   }
 
   trait A3 {
-    predicate P() reads this
+    ghost predicate P() reads this
   }
   class B3 extends A3 {
-    predicate P()  // error: rank is not lower
+    ghost predicate P()  // error: rank is not lower
   }
 
   trait A4 {
-    predicate P(x: int) decreases 5
+    ghost predicate P(x: int) decreases 5
   }
   class B4 extends A4 {
-    predicate P(x: int)  // error: rank is not lower
+    ghost predicate P(x: int)  // error: rank is not lower
   }
 
   trait A5 {

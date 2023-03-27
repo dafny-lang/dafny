@@ -1,18 +1,20 @@
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
-  public class CloseDocumentTest : DafnyLanguageServerTestBase {
+  public class CloseDocumentTest : DafnyLanguageServerTestBase, IAsyncLifetime {
     private ILanguageClient client;
 
-    [TestInitialize]
-    public async Task SetUp() {
+    public async Task InitializeAsync() {
       client = await InitializeClient();
+    }
+
+    public Task DisposeAsync() {
+      return Task.CompletedTask;
     }
 
     private Task CloseDocumentAndWaitAsync(TextDocumentItem documentItem) {
@@ -22,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DocumentIsUnloadedWhenClosed() {
       var source = @"
 function GetConstant(): int {
@@ -31,10 +33,10 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.Null(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DocumentStaysUnloadedWhenClosed() {
       var source = @"
 function GetConstant(): int {
@@ -42,7 +44,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
+      Assert.Null(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
     }
   }
 }

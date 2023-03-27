@@ -778,9 +778,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void BplIfIf(Bpl.IToken tk, bool yes, Bpl.Expr guard, BoogieStmtListBuilder builder, Action<BoogieStmtListBuilder> k) {
+    private void BplIfIf(Bpl.IToken tk, bool yes, Bpl.Expr guard, BoogieStmtListBuilder builder, Action<BoogieStmtListBuilder> k) {
       if (yes) {
-        var newBuilder = new BoogieStmtListBuilder(builder.tran);
+        var newBuilder = new BoogieStmtListBuilder(builder.tran, options);
         k(newBuilder);
         builder.Add(new Bpl.IfCmd(tk, guard, newBuilder.Collect(tk), null, null));
       } else {
@@ -890,6 +890,7 @@ namespace Microsoft.Dafny {
           kind = exprTok.kind,
           LeadingTrivia = "",
           line = exprTok.line,
+          Next = null,
           pos = exprTok.pos,
           TrailingTrivia = "",
           val = exprTok.val

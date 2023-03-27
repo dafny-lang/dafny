@@ -1,0 +1,90 @@
+name: Run XUnit tests
+
+on:
+  workflow_call:
+
+## In the matrix:
+##  os - name of the Github actions runner
+##  suffix - name used in the description of the job
+##  z3 - name of the Z3 asset at the 'z3BaseUri' URL
+##  chmod - whether the Z3 download needs execute permissions added
+
+defaults:
+  run:
+    working-directory: dafny
+
+jobs:
+  build:
+    runs-on: ${{matrix.os}}
+    name: ${{matrix.suffix}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-11
+            suffix: osx
+            chmod: true
+          - os: windows-2019
+            suffix: win
+            chmod: false
+          - os: ubuntu-20.04
+            suffix: ubuntu-20.04
+            chmod: true
+    env:
+      solutionPath: Source/Dafny.sln
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
+      Logging__LogLevel__Microsoft: Debug
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        path: dafny
+        submodules: recursive
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Install dependencies
+      run: |
+        dotnet restore ${{env.solutionPath}}
+        dotnet tool install dotnet-coverage
+    - name: Load Z3
+      shell: pwsh
+      run: |
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3.zip
+        Expand-Archive z3.zip .
+        Remove-Item z3.zip
+    - name: Move Z3
+      run: |
+        mkdir -p Binaries/z3/bin
+        mv z3-* Binaries/z3/bin/
+    - name: Set Z3 Permissions
+      if: ${{matrix.chmod}}
+      run: |
+        chmod +x Binaries/z3/bin/z3*
+    - name: Build
+      run: dotnet build -warnaserror --no-restore ${{env.solutionPath}}
+    - name: Run DafnyLanguageServer Tests
+      run: |
+        ## Run twice to catch unstable code (Issue #2673)
+        dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyLanguageServer.Test
+        ## On the second run, collect test coverage data
+        ##  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
+        dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
+    - name: Run DafnyDriver Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyDriver.Test
+    - name: Run DafnyPipeline Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyPipeline.Test
+    - name: Run DafnyTestGeneration Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyTestGeneration.Test
+    - name: Run AutoExtern Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/AutoExtern.Test
+    - name: Run DafnyRuntime Tests
+      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" Source/DafnyRuntime.Tests
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.os }}
+        path: |
+          dafny/Source/*/TestResults/*.trx
+          dafny/Source/*/TestResults/*/coverage.cobertura.xml
+          dafny/DafnyLanguageServer.Test.coverage

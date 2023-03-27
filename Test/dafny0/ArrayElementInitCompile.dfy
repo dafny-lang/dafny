@@ -1,6 +1,9 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main()
@@ -20,6 +23,8 @@ method Main()
   var t := new TrickyLets(0, null);
   t.RegressionTests();
   t.Do();
+  t.DoDisplay();
+  t.DoDefault();
 
   SubsetType();
 
@@ -32,7 +37,7 @@ method SingleValued(d: int) returns (a: array<int>)
   a := new int[8](_ => d);
 }
 
-function method F(x: int): char
+function F(x: int): char
 {
   if x % 2 == 0 then 'O' else '.'
 }
@@ -124,6 +129,28 @@ class TrickyLets
     (var u := this; u).arr := new char[var n := 20; n](var fn := _ => 'E'; fn);
     assert arr[13] == 'E';
     print arr[13], "\n";
+  }
+  method DoDisplay()
+    modifies this
+  {
+    this.arr := new char[3] ['x', 'y', 'z'];
+    assert arr[1] == 'y';
+    print arr[1], " ";
+    // Now, do the same thing, but with various let expressions
+    (var u := this; u).arr := new char[var n := 3; n] [var x := 'x'; x, var y := 'y'; y, var z := 'z'; z];
+    assert arr[2] == 'z';
+    print arr[2], "\n";
+  }
+  method DoDefault()
+    modifies this
+  {
+    this.arr := new char[4];
+    assert arr.Length == 4;
+    print arr.Length, " ";
+    // Now, do (almost) the same thing, but with various let expressions
+    (var u := this; u).arr := new char[var n := 3; n];
+    assert arr.Length == 3;
+    print arr.Length, "\n";
   }
 }
 

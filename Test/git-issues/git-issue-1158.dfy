@@ -3,7 +3,7 @@
 
 type Id(==)
 
-function F(s: set<Id>): int
+ghost function F(s: set<Id>): int
 
 lemma Test(x: Id)
 {

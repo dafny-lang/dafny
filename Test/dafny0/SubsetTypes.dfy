@@ -24,8 +24,8 @@ module AssignmentToNat {
   }
   method M''(x: nat)
 
-  function method F(q: nat): int
-  function method F'(x: int): nat
+  function F(q: nat): int
+  function F'(x: int): nat
   {
     F      // error (regarding result of F(x))
       (x)  // error (regaring argument to F)
@@ -35,8 +35,8 @@ module AssignmentToNat {
     var u: nat
   }
 
-  function method Pf(n: nat): int
-  function method Pg(x: int): nat
+  function Pf(n: nat): int
+  function Pg(x: int): nat
 
   method P(x: int, f: nat ~> int) returns (g: int ~> nat)
     requires f.requires(x)  // error
@@ -51,7 +51,7 @@ module AssignmentToNat {
     g := id;  // error
   }
 
-  function Id(x: int): nat
+  ghost function Id(x: int): nat
   {
     x  // error
   }
@@ -80,8 +80,8 @@ module AssignmentToSetNat {
   }
   method M''(x: set<nat>)
 
-  function method F(q: set<nat>): set<int>
-  function method F'(x: set<int>): set<nat>
+  function F(q: set<nat>): set<int>
+  function F'(x: set<int>): set<nat>
   {
     F      // error (regarding result of F(x) in the body)
       (x)  // error (regaring argument to F)
@@ -91,8 +91,8 @@ module AssignmentToSetNat {
     var u: set<nat>
   }
 
-  function method Pf(n: set<nat>): set<int>
-  function method Pg(x: set<int>): set<nat>
+  function Pf(n: set<nat>): set<int>
+  function Pg(x: set<int>): set<nat>
 
   method P(x: set<int>, f: set<nat> ~> set<int>) returns (g: set<int> ~> set<nat>)
     requires f.requires(x)  // error
@@ -108,7 +108,7 @@ module AssignmentToSetNat {
     g := id;  // error
   }
 
-  function Id(x: set<int>): set<nat>
+  ghost function Id(x: set<int>): set<nat>
   {
     x  // error
   }

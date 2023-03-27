@@ -62,14 +62,14 @@
 // At the end of this file, Nadia Polikarpova has written two versions of FindWinner that does
 // that, using Dafny's support for calculational proofs.
 
-function method Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
+function Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
   requires 0 <= s <= t <= |a|
 {
   if s == t then 0 else
   Count(a, s, t-1, x) + if a[t-1] == x then 1 else 0
 }
 
-predicate HasMajority<T>(a: seq<T>, s: int, t: int, x: T)
+ghost predicate HasMajority<T>(a: seq<T>, s: int, t: int, x: T)
   requires 0 <= s <= t <= |a|
 {
   2 * Count(a, s, t, x) > t - s
@@ -115,7 +115,7 @@ method FindWinner<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns 
 
 datatype Result<Candidate> = NoWinner | Winner(cand: Candidate)
 
-method DetermineElection<Candidate(==,0)>(a: seq<Candidate>) returns (result: Result<Candidate>)
+method DetermineElection<Candidate(==,0,!new)>(a: seq<Candidate>) returns (result: Result<Candidate>)
   ensures result.Winner? ==> 2 * Count(a, 0, |a|, result.cand) > |a|
   ensures result.NoWinner? ==> forall c :: 2 * Count(a, 0, |a|, c) <= |a|
 {

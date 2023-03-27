@@ -5,10 +5,10 @@ System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
 
 Dafny program verifier finished with 2 verified, 0 errors
 tst(x) {
-      return (x).plus((_dafny.ONE));
+      return (x).plus(_dafny.ONE);
     }
 tst(x) {
-      return (x).plus((_dafny.ONE));
+      return (x).plus(_dafny.ONE);
     }
 
 Dafny program verifier finished with 2 verified, 0 errors
