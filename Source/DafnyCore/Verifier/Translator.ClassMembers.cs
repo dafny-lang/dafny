@@ -1485,7 +1485,7 @@ namespace Microsoft.Dafny {
 
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuel, layer), null, null));
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuelAssert, layerAssert), null, null));
-                AddEnsures(ens, Ensures(m.tok, true, functionReveals[f], null, null));
+                AddEnsures(ens, Ensures(m.tok, true, GetOpaqueSeal(f), null, null));
 
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
               }

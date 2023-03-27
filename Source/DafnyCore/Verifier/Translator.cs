@@ -1066,16 +1066,23 @@ namespace Microsoft.Dafny {
                 }
 
                 if (f.IsOpaque) {
-                  // const reveal_FunctionA : bool
-                  Bpl.Constant revealTrigger = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
-                  sink.AddTopLevelDeclaration(revealTrigger);
-                  Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
-                  this.functionReveals[f] = revealTrigger_expr;
+                  MaybeCreateRevealableConstant(f);
                 }
               }
             }
           }
         }
+      }
+    }
+
+    private void MaybeCreateRevealableConstant(Function f) {
+      if (!this.functionReveals.ContainsKey(f)) {
+        // const reveal_FunctionA : bool
+        Bpl.Constant revealTrigger =
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
+        sink.AddTopLevelDeclaration(revealTrigger);
+        Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
+        this.functionReveals[f] = revealTrigger_expr;
       }
     }
 
@@ -9653,14 +9660,10 @@ namespace Microsoft.Dafny {
         }
         // Wrap with CanRevealFuel if the function is opaque
         if (f.IsOpaque && translator.codeContext != f) {
-          if (translator.functionReveals.TryGetValue(f, out var revealFunction)) {
-            return this.translator.FunctionCall(
+          var revealFunction = translator.GetOpaqueSeal(f);
+          return this.translator.FunctionCall(
               Bpl.Token.NoToken, BuiltinFunction.CanRevealFuel, null,
             finalFuel, revealFunction);
-          } else {
-            Contract.Assert(false); // Should not reach here
-            return null;
-          }
         } else {
           return finalFuel;
         }
@@ -10807,5 +10810,10 @@ namespace Microsoft.Dafny {
     }
 
     static readonly List<Boolean> Bools = new List<Boolean> { false, true };
+
+    public Expr GetOpaqueSeal(Function f) {
+      this.MaybeCreateRevealableConstant(f);
+      return this.functionReveals[f];
+    }
   }
 }
