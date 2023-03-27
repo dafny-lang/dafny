@@ -62,7 +62,11 @@ The `text` format also includes a more detailed breakdown of what assertions app
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
-  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+
+  public static readonly Option<string> SolverLog =
+    new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
+      IsHidden = true
+    };
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
