@@ -1,0 +1,1 @@
+* dafny test accepts a --methods-to-test option whose value is a regular expression selecting which tests to include in the test run
