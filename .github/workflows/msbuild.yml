@@ -53,7 +53,7 @@ jobs:
       run: dotnet build Source/Dafny.sln
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude boogie/ --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
 
