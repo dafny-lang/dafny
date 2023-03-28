@@ -2662,6 +2662,8 @@ public class UserDefinedType : NonProxyType {
 
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => base.Children.Concat(new[] { NamePath });
+
+  public override IEnumerable<Node> PreResolveChildren => new List<Node>() { NamePath };
 }
 
 public abstract class TypeProxy : Type {
