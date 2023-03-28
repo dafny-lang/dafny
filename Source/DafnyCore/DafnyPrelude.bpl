@@ -515,6 +515,11 @@ axiom (forall $ly: LayerType ::
   { CanRevealFuel($LS($ly), true) }
   CanRevealFuel($LS($ly), true) == $LS(CanRevealFuel($ly, true)));
 
+axiom (forall $ly: LayerType, b: bool ::
+  { CanRevealFuel(AsFuelBottom($ly), b) }
+  CanRevealFuel(AsFuelBottom($ly), b)
+  == $LZ);
+  
 // ---------------------------------------------------------------
 // -- Fields -----------------------------------------------------
 // ---------------------------------------------------------------

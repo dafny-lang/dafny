@@ -42,6 +42,7 @@ class BreadthFirstSearch<Vertex(==)>
     // Finally, under the outcome "d < 0", there is no path from "source" to "dest":
     ensures d < 0 ==> !exists p :: IsPath(source, dest, p);
   {
+    path := Nil; // avoid indefinite assignment errors
     var V, C, N := {source}, {source}, {};
     ghost var Processed, paths := {}, map[source := Nil];
     assert paths.Keys == {source};
