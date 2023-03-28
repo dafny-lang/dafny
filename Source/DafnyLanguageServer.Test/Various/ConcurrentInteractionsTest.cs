@@ -17,21 +17,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     // Implementation note: These tests assume that no diagnostics are published
     // when a document (re-load) was canceled.
     private const int MaxTestExecutionTimeMs = 240_000;
-    private const int MaxRequestExecutionTimeMs = 180_000;
-
-    // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
-    // Since these tests are slow, we do not use the timeout here.
-    private CancellationTokenSource cancellationSource;
-
-    private CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
-
-    protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
-      await base.SetUp(modifyOptions);
-
-      // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
-      cancellationSource = new();
-      cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
-    }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task VerificationErrorDetectedAfterCanceledSave() {

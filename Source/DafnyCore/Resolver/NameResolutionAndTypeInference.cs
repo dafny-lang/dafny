@@ -336,7 +336,9 @@ namespace Microsoft.Dafny {
       if (expr is ParensExpression) {
         var e = (ParensExpression)expr;
         ResolveExpression(e.E, resolutionContext);
-        e.ResolvedExpression = e.E;
+        var innerRange = e.E.RangeToken;
+        e.ResolvedExpression = e.E; // Overwrites the range, which is not suitable for ParensExpressions
+        e.E.RangeToken = innerRange;
         e.Type = e.E.Type;
 
       } else if (expr is ChainingExpression) {
