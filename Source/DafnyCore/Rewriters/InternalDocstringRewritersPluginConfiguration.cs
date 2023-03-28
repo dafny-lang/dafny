@@ -1,7 +1,7 @@
 ﻿using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class InternalDocstringRewritersPluginConfiguration : Plugins.PluginConfiguration {
   public static readonly InternalDocstringRewritersPluginConfiguration Singleton = new();
