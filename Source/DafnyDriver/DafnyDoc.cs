@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace Microsoft.Dafny;
 
@@ -40,6 +41,8 @@ namespace Microsoft.Dafny;
 
 class DafnyDoc {
 
+  public static string eol = "\n";
+
   public static DafnyDriver.ExitValue DoDocumenting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
     ErrorReporter reporter, string programName, DafnyOptions options) {
 
@@ -51,7 +54,6 @@ class DafnyDoc {
     var d = Directory.CreateDirectory(outputdir);
 
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
-    String result = "";
     //Contracts.Assert(dafnyFiles.Count > 0 || dafnyFolders.Count > 0);
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
@@ -86,12 +88,16 @@ class DafnyDoc {
   public DafnyOptions Options;
   public string Outputdir;
   public Dictionary<string, string> nameIndex = new Dictionary<string, string>();
+  public StringBuilder Summaries;
+  public StringBuilder Details;
 
   public DafnyDoc(Program dafnyProgram, ErrorReporter reporter, DafnyOptions options, string outputdir) {
     this.DafnyProgram = dafnyProgram;
     this.Reporter = reporter;
     this.Options = options;
     this.Outputdir = outputdir;
+    this.Summaries = new StringBuilder(1000);
+    this.Details = new StringBuilder(1000);
   }
 
   public void GenerateDocs(IList<DafnyFile> dafnyFiles) {
@@ -149,15 +155,17 @@ class DafnyDoc {
       //file.WriteLine($"Last modified: {modifyTime}" + br);
 
       file.WriteLine(Heading2("module summary"));
-      WriteExports(file, moduleDef);
-      WriteImports(file, moduleDef);
-      WriteSubModules(file, moduleDef);
-      WriteTypes(file, moduleDef);
-      WriteConstants(file, moduleDef);
-      WriteFunctions(file, defaultClass);
-      WriteMethods(file, defaultClass);
-      WriteLemmas(file, defaultClass);
-      file.WriteLine(Heading2("module details"));
+      WriteExports(moduleDef);
+      WriteImports(moduleDef);
+      WriteSubModules(moduleDef);
+      WriteTypes(moduleDef);
+      WriteConstants(moduleDef);
+      WriteFunctions(defaultClass);
+      WriteMethods(defaultClass);
+      WriteLemmas(defaultClass);
+      file.WriteLine(Summaries.ToString());
+      file.WriteLine(Heading2("module details\n"));
+      file.WriteLine(Details.ToString());
       file.Write(foot);
       AnnounceFile(filename);
       var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
@@ -195,105 +203,108 @@ class DafnyDoc {
 
       // TODO _ types in a class?
       //WriteConstants(file, decl);
-      WriteMutableFields(file, decl);
-      WriteFunctions(file, decl);
-      WriteMethods(file, decl);
-      WriteLemmas(file, decl);
+      WriteMutableFields(decl);
+      WriteFunctions(decl);
+      WriteMethods(decl);
+      WriteLemmas(decl);
+      file.WriteLine(Summaries.ToString());
       file.Write(foot);
       AnnounceFile(filename);
     }
   }
 
-  public void WriteExports(StreamWriter file, ModuleDefinition module) {
+  public void WriteExports(ModuleDefinition module) {
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
-    file.WriteLine(Heading3("Export sets"));
+    Summaries.Append(Heading3("Export sets")).Append(eol);
     if (exports.Count() == 0) {
-      file.WriteLine("export " + Bold(module.Name + "`" + module.Name) + " : reveals *");
+      var text = $"export {Bold(module.Name + "`" + module.Name)} : reveals *";
+      Summaries.Append(text).Append(eol);
+      Details.Append(text).Append(eol);
     } else {
       foreach (var ex in exports) {
-        file.WriteLine("export " + Bold(module.Name + "`" + ex.Name) + br);
-        file.Write("&nbsp;&nbsp;&nbsp;&nbsp;");
-        foreach (var id in ex.Exports) {
-          file.Write(" " + id.Id);
+        var text = $"export {Bold(module.Name + "`" + ex.Name)}";
+        Summaries.Append(text).Append(br).Append(eol);
+        Details.Append(text).Append(br).Append(eol);
+        Details.Append("&nbsp;&nbsp;&nbsp;&nbsp;");
+        foreach (var id in ex.Exports) { // TODO - make thiese ids into links
+          Details.Append(" ").Append(id.Id);
         }
-        file.WriteLine(br);
+        Details.Append(br).Append(eol);
       }
     }
   }
 
-  public void WriteImports(StreamWriter file, ModuleDefinition module) {
+  public void WriteImports(ModuleDefinition module) {
     var imports = module.TopLevelDecls.Where(d => d is AliasModuleDecl).Select(d => d as AliasModuleDecl).ToList();
     imports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     var absimports = module.TopLevelDecls.Where(d => d is AbstractModuleDecl).Select(d => d as AbstractModuleDecl).ToList();
     absimports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (imports.Count() + absimports.Count() > 0) {
-      file.WriteLine(Heading3("Imports"));
+      Summaries.Append(Heading3("Imports")).Append(eol);
       foreach (var imp in imports) {
         var name = imp.Name;
         var target = imp.Dereference();
-        file.WriteLine($"import {name} = {QualifiedNameWithLinks(target.FullDafnyName)}");
+        Summaries.Append($"import {name} = {QualifiedNameWithLinks(target.FullDafnyName)}").Append(eol);
       }
       foreach (var imp in absimports) {
         var name = imp.Name;
         var target = imp.QId; // TODO - is this fully quallified
-        file.WriteLine($"import {name} : {QualifiedNameWithLinks(target.ToString())}");
+        Summaries.Append($"import {name} : {QualifiedNameWithLinks(target.ToString())}").Append(eol);
       }
     }
   }
 
-  public void WriteSubModules(StreamWriter file, ModuleDefinition module) {
+  public void WriteSubModules(ModuleDefinition module) {
     var submods = module.TopLevelDecls.Where(d => d is LiteralModuleDecl).Select(d => d as LiteralModuleDecl).ToList();
     submods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (submods.Count() > 0) {
-      file.WriteLine(Heading3("Submodules"));
+      Summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
-        file.WriteLine("module " + QualifiedNameWithLinks(submod.FullDafnyName) + br);
+        Summaries.Append("module ").Append(QualifiedNameWithLinks(submod.FullDafnyName)).Append(br).Append(eol);
       }
     }
   }
 
-  public void WriteTypes(StreamWriter file, ModuleDefinition module) {
+  public void WriteTypes(ModuleDefinition module) {
     var types = module.TopLevelDecls.Where(c => c is RevealableTypeDecl).ToList(); // TODO - what kind of types does this leave out?
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 0) {
-      file.WriteLine(Heading3("Types"));
-      file.WriteLine("<table>");
+      Summaries.Append(Heading3("Types")).Append(eol);
+      Summaries.Append("<table>\n");
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) continue;
-        file.WriteLine("<tr>");
-        file.Write("<td>");
-        file.Write(t.WhatKind);
-        file.Write("</td>");
-        file.Write("<td>");
+        Summaries.Append("<tr>\n");
+        Summaries.Append("<td>");
+        Summaries.Append(t.WhatKind);
+        Summaries.Append("</td>");
+        Summaries.Append("<td>");
         if (ShouldMakeSeparatePage(t)) {
-          file.WriteLine(Link(t.FullDafnyName, Bold(t.Name))); // Only link types with members - check this
+          Summaries.Append(Link(t.FullDafnyName, Bold(t.Name))).Append(eol); // Only link types with members - check this
         } else if (t is ClassDecl || t is TraitDecl) {
-          file.WriteLine(Bold(t.Name) + "{}");
+          Summaries.Append(Bold(t.Name) + "{}\n");
         } else {
-          file.WriteLine(Bold(t.Name));
+          Summaries.Append(Bold(t.Name)).Append(eol);
         }
-        file.Write("</td>");
-        file.WriteLine("</tr>");
+        Summaries.Append("</td></tr>\n");
       }
-      file.WriteLine("</table>");
+      Summaries.Append("</table>\n");
     }
-
   }
 
-  public void WriteConstants(StreamWriter file, ModuleDefinition module) {
+  public void WriteConstants(ModuleDefinition module) {
     var constants = ModuleDefinition.AllFields(module.TopLevelDecls).Where(c => c is ConstantField).ToList();
     constants.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (constants.Count() > 0) {
-      file.WriteLine(Heading3("Constants"));
+      Summaries.Append(Heading3("Constants\n"));
       // TODO: opaque, ghost, init, link for type
 
       foreach (var c in constants) {
-        file.Write(Bold(c.Name) + ": " + TypeLink(c.Type));
+        Summaries.Append(Bold(c.Name) + ": " + TypeLink(c.Type));
         //        if (c.Init != null) {
         //         file.Write(" := ");
         //          file.Write(c.Init.ToString());
         //        }
-        file.WriteLine(br);
+        Summaries.Append(br).Append(eol);
       }
     }
   }
@@ -302,67 +313,67 @@ class DafnyDoc {
     return t is TopLevelDeclWithMembers && (t as TopLevelDeclWithMembers).Members.Count() > 0;
   }
 
-  public void WriteMutableFields(StreamWriter file, TopLevelDeclWithMembers decl) {
+  public void WriteMutableFields(TopLevelDeclWithMembers decl) {
     var fields = decl.Members.Where(c => c is Field && c is not ConstantField).Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
-      file.WriteLine(Heading3("Mutable Fields"));
+      Summaries.Append(Heading3("Mutable Fields\n"));
       // TODO: opaque, ghost, link for type
 
-      file.WriteLine(BeginTable());
+      Summaries.Append(BeginTable()).Append(eol);
       bool first = true;
       foreach (var c in fields) {
         if (first) {
           first = false;
         } else {
-          file.WriteLine(Row());
+          Summaries.Append(Row()).Append(eol);
         }
         var modifiers = Modifiers(c);
         var attrs = Attributes(c.Attributes);
         string doc = "Just some information about " + c.Name;
         if (attrs.Length == 0) {
-          file.WriteLine(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "&mdash;", doc));
+          Summaries.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "&mdash;", doc)).Append(eol);
         } else {
-          file.WriteLine(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "", "Attributes: " + attrs));
-          file.WriteLine(Row("", "", "", "", "&mdash;", doc));
+          Summaries.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "", "Attributes: " + attrs)).Append(eol);
+          Summaries.Append(Row("", "", "", "", "&mdash;", doc)).Append(eol);
         }
       }
-      file.WriteLine(EndTable());
-      file.WriteLine(br);
+      Summaries.Append(EndTable()).Append(eol);
+      Summaries.Append(br).Append(eol);
     }
   }
 
-  public void WriteFunctions(StreamWriter file, TopLevelDeclWithMembers decl) {
+  public void WriteFunctions(TopLevelDeclWithMembers decl) {
     var functions = decl.Members.Where(m => m is Function).Select(m => m as Function).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (functions.Count > 0) {
-      file.WriteLine(Heading3("Functions"));
+      Summaries.Append(Heading3("Functions")).Append(eol);
       foreach (var f in functions) {
-        file.WriteLine(f.GetFunctionDeclarationKeywords(Options) + " " + Bold(f.Name) + br);
+        Summaries.Append(f.GetFunctionDeclarationKeywords(Options)).Append(" ").Append(Bold(f.Name)).Append(br).Append(eol);
       }
     }
   }
 
-  public void WriteMethods(StreamWriter file, TopLevelDeclWithMembers decl) {
+  public void WriteMethods(TopLevelDeclWithMembers decl) {
     var methods = decl.Members.Where(m => m is Method && m is not Lemma).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      file.WriteLine(Heading3("Methods"));
+      Summaries.Append(Heading3("Methods")).Append(eol);
       foreach (var m in methods) {
-        file.WriteLine((m.IsGhost ? "ghost " : "") + (m.IsStatic ? "static " : "") + br);
-        file.WriteLine(Bold(m.Name) + br + br);
+        Summaries.Append((m.IsGhost ? "ghost " : "") + (m.IsStatic ? "static " : "")).Append(br).Append(eol);
+        Summaries.Append(Bold(m.Name)).Append(br).Append(br).Append(eol);
         // TODO Needs attributes, needs specs
       }
     }
   }
 
-  public void WriteLemmas(StreamWriter file, TopLevelDeclWithMembers decl) {
+  public void WriteLemmas(TopLevelDeclWithMembers decl) {
     var methods = decl.Members.Where(m => m is Lemma).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      file.WriteLine(Heading3("Lemmas"));
+      Summaries.Append(Heading3("Lemmas")).Append(eol);
       foreach (var m in methods) {
-        file.WriteLine(Bold(m.Name) + br + br);
+        Summaries.Append(Bold(m.Name)).Append(br).Append(br).Append(eol);
         // TODO Needs attributes, needs specs, static?
       }
     }
