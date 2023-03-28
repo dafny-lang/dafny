@@ -209,7 +209,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public DafnyOptions(TextWriter writer, TextReader inputReader)
-      : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
+      : base(writer, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       Writer = writer;
       Input = inputReader;
       ErrorTrace = 0;
