@@ -2,7 +2,7 @@ repos:
 -   repo: local
     hooks:
     -   id: dotnet-format
-        name: dotnet-format
+        name: dotnet format
         language: system
-        entry: dotnet tool run dotnet-format --folder -w --include
+        entry: dotnet format whitespace --folder --include
         types_or: ["c#"]

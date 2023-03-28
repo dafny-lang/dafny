@@ -8,12 +8,6 @@
         "coco"
       ]
     },
-    "dotnet-format": {
-      "version": "5.1.250801",
-      "commands": [
-        "dotnet-format"
-      ]
-    },
     "boogie": {
       "version": "2.16.0",
       "commands": [
