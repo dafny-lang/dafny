@@ -148,7 +148,7 @@ namespace IntegrationTests {
           new ShellLitCommand(dafnyCliPath, AddExtraArgs(defaultVerifyArgs, args), config.PassthroughEnvironmentVariables);
         commands["%build"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, AddExtraArgs(defaultBuildArgs, args), config.PassthroughEnvironmentVariables);
-        commands["%run = (args, config) =>
+        commands["%run"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, AddExtraArgs(defaultRunArgs, args), config.PassthroughEnvironmentVariables);
         commands["%dafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath,
