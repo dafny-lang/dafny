@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny build --use-basename-for-filename --enforce-determinism "%s" > "%t"
+// RUN: %exits-with 3 %baredafny build --use-basename-for-filename --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method NondetIf() returns (x: int) {
