@@ -783,7 +783,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
+    var e = new IdentifierExpr(v.Tok, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
@@ -3508,7 +3508,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -3530,6 +3530,13 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   }
 
   public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
+    foreach (var subType in PreResolveChildren.OfType<Type>()) {
+      formatter.SetTypeIndentation(subType);
+    }
+    return false;
+  }
 }
 
 /// <summary>
