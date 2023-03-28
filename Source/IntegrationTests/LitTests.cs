@@ -142,8 +142,6 @@ namespace IntegrationTests {
         var dafnyCliPath = Path.Join(dafnyReleaseDir, "dafny");
         commands["%baredafny"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, args, config.PassthroughEnvironmentVariables);
-        commands["%translate"] = (args, config) =>
-          new ShellLitCommand(dafnyCliPath, AddExtraArgs(defaultTranslateArgs, args), config.PassthroughEnvironmentVariables);
         commands["%verify"] = (args, config) =>
           new ShellLitCommand(dafnyCliPath, AddExtraArgs(defaultVerifyArgs, args), config.PassthroughEnvironmentVariables);
         commands["%build"] = (args, config) =>
