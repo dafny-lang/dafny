@@ -16,7 +16,7 @@ using Xunit;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsyncLifetime {
   protected ILanguageClient client;
@@ -80,7 +80,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
     cancellationSource = new();
     cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
-    
+
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
