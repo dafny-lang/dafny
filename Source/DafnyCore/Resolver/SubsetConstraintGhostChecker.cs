@@ -84,8 +84,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     if (e is ForallExpr || e is ExistsExpr || e is SetComprehension || e is MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.AsSubsetType is
-        {
+        if (boundVar.Type.AsSubsetType is {
           Constraint: var constraint,
           ConstraintIsCompilable: false and var constraintIsCompilable
         } and var subsetTypeDecl

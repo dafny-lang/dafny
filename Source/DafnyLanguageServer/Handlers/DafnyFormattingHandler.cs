@@ -7,7 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Microsoft.Dafny.LanguageServer.Handlers; 
+namespace Microsoft.Dafny.LanguageServer.Handlers;
 
 public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   private readonly ILogger<DafnyCompletionHandler> logger;
