@@ -63,7 +63,11 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin",
     @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/58ab09236f41894ee9a793d30eb17617b0fce797/Source/Provers/SMTLib/ProverUtil.cs");
-  public static readonly Option<string> SolverLog = new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.");
+
+  public static readonly Option<string> SolverLog =
+    new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
+      IsHidden = true
+    };
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
@@ -155,6 +159,12 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
   };
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
     "Verify code in included files.");
+  public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
+    "When parsing use basename of file for tokens instead of the path supplied on the command line") {
+  };
+  public static readonly Option<bool> SpillTranslation = new("--spill-translation",
+    @"In case the Dafny source code is translated to another language, emit that translation.") {
+  };
   public static readonly Option<bool> WarningAsErrors = new("--warn-as-errors",
     "Treat warnings as errors.");
   public static readonly Option<bool> WarnMissingConstructorParenthesis = new("--warn-missing-constructor-parentheses",
@@ -202,6 +212,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
+    DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
@@ -253,6 +264,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       }
     });
     DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+    DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;

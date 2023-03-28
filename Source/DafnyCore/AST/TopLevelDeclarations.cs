@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
@@ -1104,11 +1105,23 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+  public override IEnumerable<Node> Children => (Attributes != null ?
+      new List<Node> { Attributes } :
+      Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
 
-  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat(
-    PrefixNamedModules.Select(tuple => tuple.Item2));
+  private IEnumerable<Node> preResolveTopLevelDecls;
+  private IEnumerable<Node> preResolvePrefixNamedModules;
+  public override IEnumerable<Node> PreResolveChildren =>
+    Includes.Concat<Node>(Attributes != null ?
+      new List<Node> { Attributes } :
+      Enumerable.Empty<Node>()).Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
+    (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+
+  public void PreResolveSnapshotForFormatter() {
+    preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
+    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
+  }
 }
 
 public class DefaultModuleDefinition : ModuleDefinition {
@@ -1231,6 +1244,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   public readonly List<MemberDecl> Members;
 
+  public readonly ImmutableList<MemberDecl> MembersBeforeResolution;
+
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
   public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
@@ -1300,6 +1315,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
+    MembersBeforeResolution = members.ToImmutableList();
     ParentTraits = traits ?? new List<Type>();
   }
 
@@ -1320,7 +1336,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -1583,6 +1599,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
+
+  public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
 
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
