@@ -6180,7 +6180,7 @@ namespace Microsoft.Dafny {
       nestedMatchExpr.Resolve(this, resolutionContext);
     }
 
-    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext)
+    public void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ResolutionContext resolutionContext)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(sourceType != null);

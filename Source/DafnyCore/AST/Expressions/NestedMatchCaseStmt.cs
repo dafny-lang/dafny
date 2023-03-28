@@ -31,13 +31,13 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
-    var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
-    foreach (var boundVar in boundVars) {
-      var localVariable = new LocalVariable(boundVar.var.RangeToken, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
-      var casePattern = new CasePattern<LocalVariable>(localVariable.RangeToken.EndToken, localVariable);
-      var varDecl = new VarDeclPattern(localVariable.Tok.ToRange(), casePattern, boundVar.usage, false);
-      Body.Insert(0, varDecl);
-    }
+    // var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
+    // foreach (var boundVar in boundVars) {
+    //   var localVariable = new LocalVariable(boundVar.var.RangeToken, boundVar.var.Name, boundVar.var.Type, boundVar.var.IsGhost);
+    //   var casePattern = new CasePattern<LocalVariable>(localVariable.RangeToken.EndToken, localVariable);
+    //   var varDecl = new VarDeclPattern(localVariable.Tok.ToRange(), casePattern, boundVar.usage, false);
+    //   Body.Insert(0, varDecl);
+    // }
 
     Pat.Resolve(resolver, resolutionContext, sourceType, resolutionContext.IsGhost, true, false, false);
     resolver.ResolveAttributes(this, resolutionContext);
