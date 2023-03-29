@@ -482,8 +482,11 @@ namespace Microsoft.Dafny {
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
-      new PreTypeResolver(this).FillInPreTypesInSignatures(
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ArrowTypeDecl || d is not ClassDecl).ToList());
+      if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        PreTypeResolver.ResolveDeclarations(
+          prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ArrowTypeDecl || d is not ClassDecl).ToList(),
+          this, true);
+      }
 
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
@@ -2318,8 +2321,7 @@ namespace Microsoft.Dafny {
 
       if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
         // Resolve all names and infer types.
-        var preTypeResolver = new PreTypeResolver(this);
-        preTypeResolver.ResolveDeclarations(declarations, moduleName);
+        PreTypeResolver.ResolveDeclarations(declarations, this);
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var u = new UnderspecificationDetector(this);
@@ -4876,7 +4878,7 @@ namespace Microsoft.Dafny {
 
     TopLevelDeclWithMembers currentClass;
     public Method currentMethod;
-    internal readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+    internal Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
     Scope<Statement>/*!*/ enclosingStatementLabels;
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;

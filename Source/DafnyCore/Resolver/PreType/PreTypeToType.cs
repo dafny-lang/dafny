@@ -71,8 +71,21 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   private void UpdateIfOmitted(Type type, PreType preType) {
+    var preTypeConverted = PreType2Type(preType);
+    UpdateIfOmitted(type, preTypeConverted);
+  }
+
+  private void UpdateIfOmitted(Type type, Type preTypeConverted) {
     if (type is TypeProxy { T: null } typeProxy) {
-      typeProxy.T = PreType2Type(preType);
+      typeProxy.T = preTypeConverted;
+    } else {
+      type = type.NormalizeExpand();
+      // TODO: "type" should also be moved up to the parent type that corresponds to "preType.Decl"
+      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);
+      Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
+      for (var i = 0; i < type.TypeArgs.Count; i++) {
+        UpdateIfOmitted(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+      }
     }
   }
 
@@ -142,6 +155,15 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       VisitPattern(varDeclPattern.LHS, context);
     } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
       tRhs.Type = PreType2Type(tRhs.PreType);
+      if (tRhs.ArrayDimensions != null) {
+        // In this case, we expect tRhs.PreType to be an array type
+        var arrayPreType = (DPreType)tRhs.PreType.Normalize();
+        Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
+        Contract.Assert(arrayPreType.Arguments.Count == 1);
+        UpdateIfOmitted(tRhs.EType, arrayPreType.Arguments[0]);
+      } else {
+        UpdateIfOmitted(tRhs.EType, tRhs.PreType);
+      }
     } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
       foreach (var lhs in assignSuchThatStmt.Lhss) {
         VisitExpression(lhs, context);

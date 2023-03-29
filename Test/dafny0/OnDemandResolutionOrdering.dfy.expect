@@ -1,0 +1,4 @@
+OnDemandResolutionOrdering.dfy(41,9): Error: value of expression (of type 'array<seq<real>>') is not known to be an instance of type 'array<ParamSub<real>>' (possible cause: it may be null)
+OnDemandResolutionOrdering.dfy(45,9): Error: value of expression (of type 'array<seq<real>>') is not known to be an instance of type 'array<ParamSub<real>>' (possible cause: it may be null)
+
+Dafny program verifier finished with 7 verified, 2 errors

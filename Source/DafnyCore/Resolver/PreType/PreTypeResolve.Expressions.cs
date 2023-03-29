@@ -1518,6 +1518,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(resolutionContext != null && resolutionContext != null);
 
+      ResolvePreTypeSignature(member);
+
       receiverPreTypeBound ??= (DPreType)receiver.PreType.Normalize();
 
       var rr = new MemberSelectExpr(tok, receiver, member.Name);

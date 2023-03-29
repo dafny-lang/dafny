@@ -171,7 +171,11 @@ namespace Microsoft.Dafny {
     }
 
     public override PreType Substitute(Dictionary<TypeParameter, PreType> subst) {
-      return this;
+      if (PT != null) {
+        return PT.Substitute(subst);
+      } else {
+        return this;
+      }
     }
   }
 
