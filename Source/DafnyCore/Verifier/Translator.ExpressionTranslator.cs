@@ -795,8 +795,6 @@ namespace Microsoft.Dafny {
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
               }
-
-              break;
             }
           case ConversionExpr conversionExpr: {
               var e = conversionExpr;
@@ -1211,8 +1209,6 @@ namespace Microsoft.Dafny {
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
               }
-
-              break;
             }
           case LetExpr letExpr: {
               var e = letExpr;
