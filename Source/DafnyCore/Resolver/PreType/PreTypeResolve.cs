@@ -397,9 +397,13 @@ namespace Microsoft.Dafny {
     }
 
     private class PreTypeInferenceModuleState {
-      public readonly ISet<Declaration> DoneWithFirstPhase = new HashSet<Declaration>();
+      public readonly ISet<Declaration> StillNeedsPreTypeSignature;
       public readonly Stack<Declaration> InFirstPhase = new Stack<Declaration>();
       public readonly Dictionary<string, TopLevelDecl> PreTypeBuiltins = new();
+
+      public PreTypeInferenceModuleState(List<Declaration> declarations) {
+        StillNeedsPreTypeSignature = new HashSet<Declaration>(declarations);
+      }
     }
 
     private readonly PreTypeInferenceModuleState preTypeInferenceModuleState;
@@ -513,15 +517,16 @@ namespace Microsoft.Dafny {
       // When the first-phase processing is finished for all the declarations, the second-phase processing is done
       // for each declaration, in the order given.
 
-      var preTypeInferenceModuleState = new PreTypeInferenceModuleState();
-      foreach (var d in AllTopLevelOrMemberDeclarations(declarations)) {
+      var allDeclarations = AllTopLevelOrMemberDeclarations(declarations).ToList();
+      var preTypeInferenceModuleState = new PreTypeInferenceModuleState(allDeclarations);
+      foreach (var d in allDeclarations) {
         Contract.Assert(resolver.VisibleInScope(d));
         ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);
       }
 
       if (!firstPhaseOnly) {
         var basicPreTypeResolver = new PreTypeResolver(resolver, preTypeInferenceModuleState);
-        foreach (var d in AllTopLevelOrMemberDeclarations(declarations)) {
+        foreach (var d in allDeclarations) {
           basicPreTypeResolver.ResolveDeclarationBody(d);
         }
       }
@@ -579,7 +584,7 @@ namespace Microsoft.Dafny {
     public void ResolveDeclarationSignature(Declaration d) {
       Contract.Requires(d is TopLevelDecl or MemberDecl);
 
-      if (preTypeInferenceModuleState.DoneWithFirstPhase.Contains(d)) {
+      if (!preTypeInferenceModuleState.StillNeedsPreTypeSignature.Contains(d)) {
         // already processed
         return;
       }
@@ -594,7 +599,7 @@ namespace Microsoft.Dafny {
         preTypeInferenceModuleState.InFirstPhase.Pop();
       }
 
-      preTypeInferenceModuleState.DoneWithFirstPhase.Add(d);
+      preTypeInferenceModuleState.StillNeedsPreTypeSignature.Remove(d);
     }
 
     public void FillInPreTypesInSignatures(List<TopLevelDecl> declarations) {
