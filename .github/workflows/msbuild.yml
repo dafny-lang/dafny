@@ -56,10 +56,6 @@ jobs:
       run: dotnet tool run dotnet-format -w -s error --check Source/Dafny.sln --exclude DafnyCore/Scanner.cs --exclude DafnyCore/Parser.cs
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
-    - name: ls
-      run: |
-        pwd
-        ls -la dafny/Source/IntegrationTests/bin/Debug/net6.0/z3/bin/
 
   xunit-tests:
     needs: check-deep-tests
