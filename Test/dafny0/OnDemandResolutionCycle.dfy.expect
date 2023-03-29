@@ -1,0 +1,2 @@
+OnDemandResolutionCycle.dfy(4,5): Error: PRE-TYPE: Cyclic dependency among declarations: A -> a -> A
+1 resolution/type errors detected in OnDemandResolutionCycle.dfy

@@ -591,7 +591,7 @@ namespace Microsoft.Dafny {
 
       if (preTypeInferenceModuleState.InFirstPhase.Contains(d)) {
         var cycle = Util.Comma(" -> ", preTypeInferenceModuleState.InFirstPhase, d => d.ToString());
-        ReportError(d, $"Cyclic dependency among declarations: {cycle} -> {d}");
+        ReportError(d, $"Cyclic dependency among declarations: {d} -> {cycle}");
         // to avoid duplicate error message, mark as done below
       } else {
         preTypeInferenceModuleState.InFirstPhase.Push(d);
