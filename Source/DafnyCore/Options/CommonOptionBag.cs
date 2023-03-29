@@ -62,7 +62,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin",
-    @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/58ab09236f41894ee9a793d30eb17617b0fce797/Source/Provers/SMTLib/ProverUtil.cs");
+    @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/v2.16.3/Source/Provers/SMTLib/ProverUtil.cs#L316");
 
   public static readonly Option<string> SolverLog =
     new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
