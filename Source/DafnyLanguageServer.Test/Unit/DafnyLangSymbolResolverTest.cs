@@ -3,7 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class DafnyLangSymbolResolverTest {
   private DafnyLangSymbolResolver dafnyLangSymbolResolver;
