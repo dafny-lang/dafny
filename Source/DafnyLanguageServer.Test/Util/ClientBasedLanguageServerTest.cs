@@ -24,6 +24,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
+  private const int MaxRequestExecutionTimeMs = 180_000;
+
+  // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
+  // Since these tests are slow, we do not use the timeout here.
+  private CancellationTokenSource cancellationSource;
+
+  protected CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
+
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
     while (true) {
@@ -68,6 +76,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
+
+    // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
+    cancellationSource = new();
+    cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
+
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
