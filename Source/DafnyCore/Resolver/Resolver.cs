@@ -282,29 +282,29 @@ namespace Microsoft.Dafny {
       builtIns.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
+
+      void addMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+        var enclosingType = valuetypeDecls[(int)valuetypeVariety];
+        member.EnclosingClass = enclosingType;
+        member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+        enclosingType.Members.Add(member.Name, member);
+      }
+
       var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
-      floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Real].Members.Add(floor.Name, floor);
+      addMember(floor, ValuetypeVariety.Real);
 
-      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false,
-        Type.Bool, null);
-      isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
+      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+      addMember(isLimit, ValuetypeVariety.BigOrdinal);
 
-      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false,
-        Type.Bool, null);
-      isSucc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
+      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+      addMember(isSucc, ValuetypeVariety.BigOrdinal);
 
-      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false,
-        Type.Int, null);
-      limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
+      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+      addMember(limitOffset, ValuetypeVariety.BigOrdinal);
       builtIns.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
-      isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
+      addMember(isNat, ValuetypeVariety.BigOrdinal);
 
       // Add "Keys", "Values", and "Items" to map, imap
       foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -324,9 +324,7 @@ namespace Microsoft.Dafny {
         var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
         foreach (var memb in new[] { keys, values, items }) {
-          memb.EnclosingClass = vtd;
-          memb.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-          vtd.Members.Add(memb.Name, memb);
+          addMember(memb, typeVariety);
         }
       }
 

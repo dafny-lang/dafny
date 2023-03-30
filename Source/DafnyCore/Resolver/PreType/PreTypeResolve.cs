@@ -1181,7 +1181,7 @@ namespace Microsoft.Dafny {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
             var k = com.PrefixLemma.Ins[0];
-            ScopePushExpectSuccess(k, "_k parameter");
+            ScopePushExpectSuccess(k, "_k parameter", false);
           }
 
           dominatingStatementLabels.PushMarker();
