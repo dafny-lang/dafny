@@ -335,8 +335,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         ResolveAlternatives(s.Alternatives, s, resolutionContext);
-        var usesHeapDontCare = false;
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, null, ref usesHeapDontCare);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -464,12 +463,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
-      var fvs = new HashSet<IVariable>();
-      var usesHeap = false;
-
       if (s is WhileStmt whileS && whileS.Guard != null) {
         ResolveExpression(whileS.Guard, resolutionContext);
-        FreeVariablesUtil.ComputeFreeVariables(resolver.Options, whileS.Guard, fvs, ref usesHeap);
         ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
 
       } else if (s is ForLoopStmt forS) {
@@ -477,15 +472,12 @@ namespace Microsoft.Dafny {
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
         AddConfirmation("InIntFamily", loopIndex.PreType, loopIndex.tok, "index variable is expected to be of an integer type (got {0})");
-        fvs.Add(loopIndex);
 
         ResolveExpression(forS.Start, resolutionContext);
-        FreeVariablesUtil.ComputeFreeVariables(resolver.Options, forS.Start, fvs, ref usesHeap);
         AddSubtypeConstraint(loopIndex.PreType, forS.Start.PreType, forS.Start.tok,
           "lower bound (of type {1}) not assignable to index variable (of type {0})");
         if (forS.End != null) {
           ResolveExpression(forS.End, resolutionContext);
-          FreeVariablesUtil.ComputeFreeVariables(resolver.Options, forS.End, fvs, ref usesHeap);
           AddSubtypeConstraint(loopIndex.PreType, forS.End.PreType, forS.End.tok,
             "upper bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.Decreases.Expressions.Count != 0) {
@@ -505,7 +497,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(s, resolutionContext, false);
       }
 
-      ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, fvs, ref usesHeap);
+      ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       if (s.Body != null) {
         loopStack.Add(s); // push
@@ -513,20 +505,6 @@ namespace Microsoft.Dafny {
         ResolveStatement(s.Body, resolutionContext);
         dominatingStatementLabels.PopMarker();
         loopStack.RemoveAt(loopStack.Count - 1); // pop
-      } else {
-        Contract.Assert(s.BodySurrogate == null); // .BodySurrogate is set only once
-        var loopFrame = new List<IVariable>();
-        if (s is ForLoopStmt forLoopStmt) {
-          loopFrame.Add(forLoopStmt.LoopIndex);
-        }
-        loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
-        s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
-        var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
-        if (s.BodySurrogate.UsesHeap) {
-          text += text.Length == 0 ? "$Heap" : ", $Heap";
-        }
-        text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-        ReportWarning(s.Tok, text);
       }
 
       if (s is ForLoopStmt) {
@@ -819,7 +797,7 @@ namespace Microsoft.Dafny {
 
     private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants,
       Specification<Expression> decreases, Specification<FrameExpression> modifies,
-      ResolutionContext resolutionContext, HashSet<IVariable> fvs, ref bool usesHeap) {
+      ResolutionContext resolutionContext) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
@@ -828,9 +806,6 @@ namespace Microsoft.Dafny {
       foreach (AttributedExpression inv in invariants) {
         ResolveAttributes(inv, resolutionContext, false);
         ResolveExpression(inv.E, resolutionContext);
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(resolver.Options, inv.E, fvs, ref usesHeap);
-        }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
 
@@ -840,15 +815,11 @@ namespace Microsoft.Dafny {
         if (e is WildcardExpr && !resolutionContext.CodeContext.AllowsNontermination) {
           ReportError(e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(resolver.Options, e, fvs, ref usesHeap);
-        }
         // any type is fine
       }
 
       ResolveAttributes(modifies, resolutionContext, false);
       if (modifies.Expressions != null) {
-        usesHeap = true;  // bearing a modifies clause counts as using the heap
         foreach (var fe in modifies.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext.CodeContext);
         }

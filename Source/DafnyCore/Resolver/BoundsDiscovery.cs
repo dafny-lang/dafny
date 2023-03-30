@@ -75,6 +75,8 @@ namespace Microsoft.Dafny {
             }
             assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
+        } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
+          oneBodyLoopStmt.ComputeBodySurrogate(reporter);
         }
 
         return base.VisitOneStatement(stmt, context);
