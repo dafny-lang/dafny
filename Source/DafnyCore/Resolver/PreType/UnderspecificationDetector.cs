@@ -385,7 +385,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void VisitOneExpr(Expression expr) {
-      var exprPreType = expr.PreType.Normalize() as DPreType;
       var familyDeclName = PreTypeResolver.AncestorName(expr.PreType);
 
       if (expr is LiteralExpr) {

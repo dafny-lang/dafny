@@ -175,6 +175,12 @@ namespace Microsoft.Dafny {
         var typeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
         var preTypeMap = PreType.PreTypeSubstMap(subsetType.TypeArgs, typeArguments);
         return subsetType.Var.PreType.Substitute(preTypeMap);
+      } else if (type is UserDefinedType { ResolvedClass: NewtypeDecl newtypeDecl }) {
+        ResolvePreTypeSignature(newtypeDecl);
+        Contract.Assert(newtypeDecl.Var.PreType != null);
+        var typeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
+        var preTypeMap = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, typeArguments);
+        return newtypeDecl.Var.PreType.Substitute(preTypeMap);
       }
 
       if (type is TypeProxy) {
@@ -581,6 +587,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Assumes that the type parameters in scope for "d" have been pushed.
+    /// </summary>
+    /// <param name="d"></param>
     public void ResolveDeclarationSignature(Declaration d) {
       Contract.Requires(d is TopLevelDecl or MemberDecl);
 
@@ -602,12 +612,9 @@ namespace Microsoft.Dafny {
       preTypeInferenceModuleState.StillNeedsPreTypeSignature.Remove(d);
     }
 
-    public void FillInPreTypesInSignatures(List<TopLevelDecl> declarations) {
-      foreach (var d in declarations) {
-        FillInPreTypesInSignature(d);
-      }
-    }
-
+    /// <summary>
+    /// Assumes the type parameters in scope for "declaration" have been pushed.
+    /// </summary>
     public void FillInPreTypesInSignature(Declaration declaration) {
       void ComputePreType(Formal formal) {
         Contract.Assume(formal.PreType == null); // precondition
@@ -617,6 +624,16 @@ namespace Microsoft.Dafny {
       void ComputePreTypeField(Field field) {
         Contract.Assume(field.PreType == null); // precondition
         field.PreType = Type2PreType(field.Type);
+        if (field is ConstantField cfield) {
+          var parent = (TopLevelDeclWithMembers)cfield.EnclosingClass;
+          Contract.Assert(currentClass == null);
+          currentClass = parent;
+
+          ResolveConstRHS(cfield, true);
+
+          Contract.Assert(currentClass == parent);
+          currentClass = null;
+        }
       }
 
       void ComputePreTypeFunction(Function function) {
@@ -636,12 +653,12 @@ namespace Microsoft.Dafny {
         std.Var.PreType = Type2PreType(std.Var.Type);
         ResolveConstraintAndWitness(std, true);
       } else if (declaration is NewtypeDecl nd) {
-        // TODO: Resolve constraint
         nd.BasePreType = Type2PreType(nd.BaseType);
         if (nd.Var != null) {
           Contract.Assert(object.ReferenceEquals(nd.BaseType, nd.Var.Type));
           nd.Var.PreType = nd.BasePreType;
         }
+        ResolveConstraintAndWitness(nd, true);
       } else if (declaration is IteratorDecl iter) {
         iter.Ins.ForEach(ComputePreType);
         iter.Outs.ForEach(ComputePreType);
@@ -676,14 +693,14 @@ namespace Microsoft.Dafny {
 
       if (d is TopLevelDecl topLevelDecl) {
         ResolveTypeParameters(topLevelDecl.TypeArgs, false, topLevelDecl);
-        ResolveTopLevelDeclaration(topLevelDecl, false);
+        ResolveTopLevelDeclaration(topLevelDecl);
       } else {
         var member = (MemberDecl)d;
         var parent = (TopLevelDeclWithMembers)member.EnclosingClass;
         ResolveTypeParameters(parent.TypeArgs, false, parent);
         Contract.Assert(currentClass == null);
         currentClass = parent;
-        ResolveMember(member, false);
+        ResolveMember(member);
         Contract.Assert(currentClass == parent);
         currentClass = null;
       }
@@ -692,40 +709,20 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Resolve declaration "d", depending on the value of "initialResolutionPass". The reason for this
-    /// division of labor is that certain declarations support type inference in their signature, so those
-    /// declarations processed before any other parts of the declarations are processed.
-    ///
-    /// If "d" is a newtype or subtype declaration, then
-    ///     if "initialResolutionPass", then resolve the declaration's constraint (if any);
-    ///     ///     but don't solve the constraints;
-    ///     otherwise, resolve everything else about the declaration (including any witness expression and
-    ///     any attributes).
-    /// If "d" is a const declaration, then
-    ///     if "initialResolutionPass", then resolve the declaration's RHS (if any);
-    ///     otherwise, resolve everything else about the declaration (including any attributes).
-    /// For any other kind of declaration, then
-    ///     if "initialResolutionPass", then do nothing;
-    ///     otherwise, resolve everything in the declaration.
-    ///
-    /// If "initialResolutionPass", then type constraints are generated, but not solved; instead, they
-    /// are solved by the caller at the end of the initial resolution pass.
-    /// If "initialResolutionPass" is false, then the type constraints are solved here.
+    /// Resolve declaration "d".
     ///
     /// This method assumes type parameters have been pushed.
     /// </summary>
-    private void ResolveTopLevelDeclaration(TopLevelDecl d, bool initialResolutionPass) {
-      if (!initialResolutionPass && !(d is IteratorDecl)) {
+    private void ResolveTopLevelDeclaration(TopLevelDecl d) {
+      if (d is not IteratorDecl) {
         // Note, attributes of iterators are resolved by ResolveIterator, after registering any names in the iterator signature
         ResolveAttributes(d, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
       }
 
       if (d is NewtypeDecl newtypeDecl) {
-        ResolveConstraintAndWitness(newtypeDecl, initialResolutionPass);
+        ResolveConstraintAndWitness(newtypeDecl, false);
       } else if (d is SubsetTypeDecl subsetTypeDecl) {
-        ResolveConstraintAndWitness(subsetTypeDecl, initialResolutionPass);
-      } else if (initialResolutionPass) {
-        // nothing else to do in this pass
+        ResolveConstraintAndWitness(subsetTypeDecl, false);
       } else if (d is IteratorDecl iter) {
         // Note, attributes of iterators are resolved by ResolveIterator, after registering any names in the iterator signature.
         // The following method generates the iterator's members, which in turn are resolved below.
@@ -810,6 +807,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Assumes the type parameters in scope for "cfield" have been pushed.
+    /// Assumes that "currentClass" has been set to the parent of "cfield".
+    /// </summary>
+    void ResolveConstRHS(ConstantField cfield, bool initialResolutionPass) {
+      if (cfield.Rhs != null && initialResolutionPass == cfield.Type is TypeProxy) {
+        var opts = new ResolutionContext(cfield, false);
+        ResolveExpression(cfield.Rhs, opts);
+        AddSubtypeConstraint(cfield.PreType, cfield.Rhs.PreType, cfield.Tok, "RHS (of type {1}) not assignable to LHS (of type {0})");
+        SolveAllTypeConstraints($"{cfield.WhatKind} '{cfield.Name}' constraint");
+      }
+    }
+
     void ResolveParameterDefaultValues(List<Formal> formals, ICodeContext codeContext) {
       Contract.Requires(formals != null);
       Contract.Requires(codeContext != null);
@@ -845,38 +855,23 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Resolve declaration "member", depending on the value of "initialResolutionPass". The reason for this
-    /// division of labor is that certain declarations support type inference in their signature, so those
-    /// declarations processed before any other parts of the declarations are processed.
+    /// Resolve declaration "member", assuming that the member's pre-type signature has already been resolved.
     ///
-    /// If "member" is a const declaration, then
-    ///     if "initialResolutionPass", then generate the constraints for resolving the declaration's RHS (if any);
-    ///     otherwise, resolve everything else about the declaration (including any attributes).
-    /// For any other kind of declaration,
-    ///     if "initialResolutionPass", then do nothing;
-    ///     otherwise, resolve everything in the declaration.
-    ///
-    /// If "initialResolutionPass", then type constraints are generated, but not solved; instead, they
-    /// are solved by the caller at the end of the initial resolution pass.
-    /// If "initialResolutionPass" is false, then the type constraints are solved here.
+    /// Type constraints are solved here.
     ///
     /// This method assumes type parameters of the enclosing type have been pushed.
+    /// Also assumes that "currentClass" has been set to the parent of "member".
     /// </summary>
-    void ResolveMember(MemberDecl member, bool initialResolutionPass) {
+    void ResolveMember(MemberDecl member) {
       Contract.Requires(member != null);
       Contract.Requires(currentClass != null);
 
-      if (initialResolutionPass) {
-        if (member is ConstantField constantField && constantField.Rhs != null) {
-          var opts = new ResolutionContext(constantField, false);
-          ResolveExpression(constantField.Rhs, opts);
-        }
-        return;
-      }
-      
       ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
 
-      if (member is Field) {
+      if (member is ConstantField cfield) {
+        ResolveConstRHS(cfield, false);
+
+      } else if (member is Field) {
         // nothing else to do
 
       } else if (member is Function f) {
@@ -1007,7 +1002,8 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
-    /// Assumes type parameters have already been pushed
+    /// Assumes type parameters have already been pushed.
+    /// Also assumes that "currentClass" has been set to the parent of "f".
     /// </summary>
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
@@ -1091,7 +1087,8 @@ namespace Microsoft.Dafny {
     }
     
     /// <summary>
-    /// Assumes type parameters have already been pushed
+    /// Assumes type parameters have already been pushed.
+    /// Also assumes that "currentClass" has been set to the parent of "m".
     /// </summary>
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);

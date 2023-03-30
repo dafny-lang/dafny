@@ -114,3 +114,8 @@ type XParamSub<X> = s | s == XGetEmpty<X>()
 function XGetEmpty<Y>(): seq<Y> {
   []
 }
+
+newtype N = x | x == n witness 2
+const n: int := 2
+
+const n' := 2
