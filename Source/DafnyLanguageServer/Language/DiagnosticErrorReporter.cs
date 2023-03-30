@@ -86,6 +86,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IToken token, string message) {
+      if (token is RangeToken { StartToken: NestedToken startNested, EndToken: NestedToken endNested }) {
+        if (startNested.Message == "The refined position") {
+          token = new RangeToken(startNested.Inner, endNested.Inner);
+        } else {
+          token = new NestedToken(
+            new RangeToken(startNested.Outer, endNested.Outer),
+            new RangeToken(startNested.Inner, endNested.Inner));
+        }
+      }
       var (tokenForMessage, inner) = token is NestedToken nestedToken ? (nestedToken.Outer, nestedToken.Inner) : (token, null);
       if (tokenForMessage is BoogieRangeToken range) {
         var rangeLength = range.EndToken.pos + range.EndToken.val.Length - range.StartToken.pos;

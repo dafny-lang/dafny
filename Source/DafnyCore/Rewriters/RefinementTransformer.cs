@@ -602,51 +602,75 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Method CloneMethod(Method previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    Method CloneMethod(Method previousMethod, Method newDeclaration, Specification<Expression> decreases,
+      BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(previousMethod != null);
       Contract.Requires(!(previousMethod is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
+      List<AttributedExpression> moreEnsures = newDeclaration.Ens;
+      RangeToken newMethodRangeToken = new RangeToken(
+        new NestedToken(newDeclaration.RangeToken, previousMethod.RangeToken,
+        "it refines the following abstract declaration"), newDeclaration.EndToken);
+      var result = refinementCloner.WithNewDeclarationTokenWrapping(newDeclaration.tok, () => {
+        var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
+        var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
+        var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
+        var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
 
-      var tps = previousMethod.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var ins = previousMethod.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
-      var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
-      var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
+        var ens = refinementCloner.WithRefinementTokenWrapping(
+          () => previousMethod.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);
 
-      var ens = refinementCloner.WithRefinementTokenWrapping(
-        () => previousMethod.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);
+        if (moreEnsures != null) {
+          ens.AddRange(moreEnsures);
+        }
 
-      if (moreEnsures != null) {
-        ens.AddRange(moreEnsures);
-      }
+        if (previousMethod is Constructor) {
+          var dividedBody = (DividedBlockStmt)newBody ??
+                            refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
+          return new Constructor(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
+            req, mod, ens, decreases, dividedBody,
+            refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+        }
 
-      if (previousMethod is Constructor) {
-        var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
-        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
-          req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
-      }
-      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
-      if (previousMethod is LeastLemma) {
-        return new LeastLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
-      } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
-      } else if (previousMethod is Lemma) {
-        return new Lemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
-      } else if (previousMethod is TwoStateLemma) {
-        var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
-      } else {
-        return new Method(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
-      }
+        var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
+        if (previousMethod is LeastLemma) {
+          return new LeastLemma(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword,
+            ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+            previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+            req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+            null);
+        } else if (previousMethod is GreatestLemma) {
+          return new GreatestLemma(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword,
+            ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+            previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+            req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+            null);
+        } else if (previousMethod is Lemma) {
+          return new Lemma(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+            previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+            req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+            null);
+        } else if (previousMethod is TwoStateLemma) {
+          var two = (TwoStateLemma)previousMethod;
+          return new TwoStateLemma(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, tps, ins,
+            previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+            req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+            null);
+        } else {
+          return new Method(newMethodRangeToken.MakeRefined(moduleUnderConstruction),
+            previousMethod.NameNode.Clone(refinementCloner), previousMethod.HasStaticKeyword, previousMethod.IsGhost,
+            tps, ins,
+            previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+            req, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+            null, previousMethod.IsByMethod);
+        }
+      });
+      return result;
     }
 
     // -------------------------------------------------- Merging ---------------------------------------------------------------
@@ -887,7 +911,7 @@ namespace Microsoft.Dafny {
                   replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
                 }
               }
-              var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
+              var newM = CloneMethod(prevMethod, m, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
               newM.RefinementBase = member;
               nw.Members[index] = newM;
             }
@@ -1662,7 +1686,9 @@ namespace Microsoft.Dafny {
 
   class RefinementCloner : Cloner {
     readonly ModuleDefinition moduleUnderConstruction;
+    private IToken newDeclarationTok;
     private bool wrapWithRefinementToken = true;
+    private bool wrapWithMethodToken = true;
 
     public RefinementCloner(ModuleDefinition m) {
       moduleUnderConstruction = m;
@@ -1684,7 +1710,24 @@ namespace Microsoft.Dafny {
       return result;
     }
 
+
+
+    [Pure]
+    public T WithNewDeclarationTokenWrapping<T>(IToken declarationTok, Func<T> action, bool wrap = true) {
+      var current = wrapWithMethodToken;
+      var currentDeclaration = newDeclarationTok;
+      newDeclarationTok = declarationTok;
+      wrapWithMethodToken = wrap;
+      var result = action();
+      newDeclarationTok = currentDeclaration;
+      wrapWithMethodToken = current;
+      return result;
+    }
+
     public override IToken Tok(IToken tok) {
+      if (wrapWithMethodToken && newDeclarationTok != null) {
+        tok = new NestedToken(newDeclarationTok, tok, "The refined position");
+      }
       if (wrapWithRefinementToken) {
         return new RefinementToken(tok, moduleUnderConstruction);
       }
