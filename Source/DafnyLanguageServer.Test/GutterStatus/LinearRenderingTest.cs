@@ -42,12 +42,17 @@ public class LinearRenderingTest {
             : LineVerificationStatus.VerifiedVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
-      // We don't display inconclusive on the gutter (user should focus on errors),
-      // We display an error range instead
+      // we display inconclusive as an error, because Dafny's goal is to verify
       GutterVerificationStatus.Inconclusive => currentStatus switch {
-        CurrentStatus.Current => LineVerificationStatus.ErrorContext,
-        CurrentStatus.Obsolete => LineVerificationStatus.ErrorContextObsolete,
-        CurrentStatus.Verifying => LineVerificationStatus.ErrorContextVerifying,
+        CurrentStatus.Current => isSingleLine ?
+          LineVerificationStatus.AssertionFailed :
+          LineVerificationStatus.ErrorContext,
+        CurrentStatus.Obsolete => isSingleLine ?
+          LineVerificationStatus.AssertionFailedObsolete :
+          LineVerificationStatus.ErrorContextObsolete,
+        CurrentStatus.Verifying => isSingleLine ?
+          LineVerificationStatus.AssertionFailedVerifying :
+          LineVerificationStatus.ErrorContextVerifying,
         _ => throw new ArgumentOutOfRangeException()
       },
       GutterVerificationStatus.Error => currentStatus switch {
