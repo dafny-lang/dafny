@@ -667,7 +667,7 @@ namespace Microsoft.Dafny {
         foreach (var ctor in dtd.Ctors) {
           ctor.Formals.ForEach(ComputePreType);
         }
-      } else if (declaration is TopLevelDeclWithMembers or ValuetypeDecl or TypeSynonymDecl) {
+      } else if (declaration is TopLevelDeclWithMembers or ValuetypeDecl or TypeSynonymDecl or ModuleDecl) {
         // nothing to do
       } else if (declaration is Field field) {
         ComputePreTypeField(field);
