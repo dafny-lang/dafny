@@ -10,8 +10,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public readonly AttributedToken AssumeToken;
 
   public override IEnumerable<Node> PreResolveChildren =>
-  Lhss.Concat<Node>(new List<Node>() {
-  Expr });
+    Lhss.Concat<Node>(new List<Node>() { Expr });
 
   public override IToken Tok {
     get {
