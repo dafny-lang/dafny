@@ -7,7 +7,7 @@ using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
 
-namespace TestDafny; 
+namespace TestDafny;
 
 [Verb("for-each-compiler", HelpText = "Execute the given test file for every compiler, and assert the output matches the <test file>.expect file.")]
 public class ForEachCompilerOptions {
