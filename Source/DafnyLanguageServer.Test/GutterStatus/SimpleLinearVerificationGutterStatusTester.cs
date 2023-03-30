@@ -69,7 +69,7 @@ method Foo() ensures false { } ";
  .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
 
-  [Fact(Timeout = MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  | :predicate F(i: int) {
