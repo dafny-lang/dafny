@@ -39,7 +39,7 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Fact]
+    //[Fact] // TODO: Make this test robust to re-enable it (https://github.com/dafny-lang/dafny/issues/3828)
     public async Task SeqOfObjects() {
       var source = @"
 module SimpleTest {
@@ -70,7 +70,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.Equal(3, methods.Count); // This fails randomly on Windows
       Assert.True(methods.All(m =>
         m.MethodName ==
         "SimpleTest.compareStringToSeqOfChars"));
