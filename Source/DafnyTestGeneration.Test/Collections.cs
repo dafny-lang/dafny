@@ -40,7 +40,7 @@ module C {
     }
 
     //[Fact] // TODO: Make this test robust to re-enable it (https://github.com/dafny-lang/dafny/issues/3828)
-    public async Task SeqOfObjects() {
+    private async Task SeqOfObjects() {
       var source = @"
 module SimpleTest {
 
