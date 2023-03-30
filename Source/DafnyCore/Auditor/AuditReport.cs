@@ -42,7 +42,7 @@ public class AuditReport {
   }
 
   private string RenderRow(string beg, string sep, string end, IEnumerable<string> cells) {
-    return beg + String.Join(sep, cells) + end;
+    return beg + String.Join(sep, cells) + end + "\n";
   }
 
   private string GetFullName(Declaration decl) {
@@ -70,7 +70,7 @@ public class AuditReport {
   private string RenderAssumptionRows(Assumption a, string beg, string sep, string end, Func<string, string> targetFormatter) {
     var rows = a.assumptions
       .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation, targetFormatter)));
-    return rows.Count() > 0 ? String.Join("\n", rows) : a.ToString();
+    return rows.Count() > 0 ? String.Concat(rows) : a.ToString();
   }
 
   public static string UpdateVerbatim(string text, string beg, string end) {
@@ -92,7 +92,7 @@ public class AuditReport {
       "<tr><th>Name</th><th>Compiled</th><th>Explicit Assumption</th>" +
       "<th>Extern</th><th>Issue</th><th>Mitigation</th></tr>\n";
     var rows = AllAssumptions().Select(RenderAssumptionRowsHTML);
-    return header + String.Join("\n", rows);
+    return header + String.Concat(rows);
   }
 
   public string RenderMarkdownTable() {
@@ -100,7 +100,7 @@ public class AuditReport {
       "|Name|Compiled|Explicit Assumption|Extern|Issue|Mitigation|\n" +
       "|----|--------|-------------------|------|-----|----------|\n";
     var rows = AllAssumptions().Select(RenderAssumptionRowsMarkdown);
-    return header + String.Join("\n", rows);
+    return header + String.Concat(rows);
   }
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
@@ -115,13 +115,21 @@ public class AuditReport {
     StringBuilder text = new StringBuilder();
 
     foreach (var module in modulesWithEntries) {
-      text.AppendLine($"# Module `{module.Name}`");
+      if (module.IsDefaultModule) {
+        text.AppendLine($"# Default module");
+      } else {
+        text.AppendLine($"# Module `{module.Name}`");
+      }
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (!declsWithEntries.Contains(topLevelDecl)) {
           continue;
         }
         text.AppendLine("");
-        text.AppendLine($"## Type `{topLevelDecl.Name}`");
+        if (topLevelDecl is ClassDecl classDecl && classDecl.IsDefaultClass) {
+          text.AppendLine($"## Top level");
+        } else {
+          text.AppendLine($"## Type `{topLevelDecl.Name}`");
+        }
 
         foreach (var desc in topLevelDecl.Assumptions()) {
           AppendMarkdownIETFDescription(desc, text);
@@ -136,7 +144,7 @@ public class AuditReport {
           }
 
           text.AppendLine("");
-          text.AppendLine($"## Member `{decl.Name}`");
+          text.AppendLine($"### Member `{decl.Name}`");
           foreach (var desc in decl.Assumptions()) {
             AppendMarkdownIETFDescription(desc, text);
           }

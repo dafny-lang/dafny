@@ -37,7 +37,7 @@ module ResolutionTests {
     // var r := assert NotAllowedHere: 0 <= m; 10;  // not allowed; won't parse
   }
 
-  function R(u: int): int
+  ghost function R(u: int): int
     // requires i: 0 <= u  // not allowed; won't parse
   {
     // assert NotAllowedHere: 0 <= u;  // not allowed; won't parse

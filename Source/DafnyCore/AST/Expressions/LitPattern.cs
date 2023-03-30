@@ -58,10 +58,11 @@ public class LitPattern : ExtendedPattern {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(OrigLit);
+    return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, OrigLit);
   }
 
-  public override IEnumerable<INode> Children => new[] { OrigLit };
+  public override IEnumerable<Node> Children => new[] { OrigLit };
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public override void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,

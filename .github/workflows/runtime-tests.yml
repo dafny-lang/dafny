@@ -1,0 +1,50 @@
+name: Build and Test Dafny Runtimes
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
+  build:
+    needs: check-deep-tests
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v3
+      - name: Set up JDK 18
+        uses: actions/setup-java@v3
+        with:
+          java-version: 18
+          distribution: corretto
+      - name: Build Dafny
+        run: dotnet build Source/Dafny.sln
+      - name: Get Z3
+        run: make z3-ubuntu
+      - name: Test DafnyRuntimeDafny
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeDafny
+          make test
+          make check-format
+      - name: Test DafnyRuntimeGo
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeGo
+          make test
+      # This isn't strictly necessary since the Java runtime has to be built into a jar,
+      # which also runs the tests.
+      # But I prefer the simplicity of testing every testable runtime in this workflow
+      - name: Test DafnyRuntimeJava
+        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
+      

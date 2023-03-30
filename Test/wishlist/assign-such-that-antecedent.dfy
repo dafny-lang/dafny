@@ -20,12 +20,12 @@ method N(a: int, b: int)
   assert P(a, b, s);
 }
 
-predicate P(a: int, b: int, s: int)
+ghost predicate P(a: int, b: int, s: int)
 {
   b != 0 ==> s == a / b
 }
 
-predicate Q(s: int)
+ghost predicate Q(s: int)
 {
   true
 }

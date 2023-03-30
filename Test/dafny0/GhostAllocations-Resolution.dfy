@@ -154,7 +154,7 @@ module Arrays {
     r := d;
   }
 
-  function Double(i: int): int { 2 * i }
+  ghost function Double(i: int): int { 2 * i }
 }
 
 // ------- ghost constructors
@@ -457,7 +457,7 @@ module GhostMethodVersusLemma {
     var c := new Cell;
   }
 
-  predicate IsBig(x: int) {
+  ghost predicate IsBig(x: int) {
     100 <= x
   }
 

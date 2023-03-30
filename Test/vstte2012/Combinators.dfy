@@ -18,7 +18,7 @@ datatype Term = S | K | Apply(car: Term, cdr: Term)
 //     Value = K | S | (K Value) | (S Value) | ((S Value) Value)
 // The following predicate says whether or not a given term is a value.
 
-function method IsValue(t: Term): bool
+function IsValue(t: Term): bool
   ensures IsValue(t) && t.Apply? ==> IsValue(t.car) && IsValue(t.cdr);
 {
   match t
@@ -46,7 +46,7 @@ datatype Context = Hole | C_term(Context, Term) | value_C(Term/*Value*/, Context
 // a context.  To formalize that notion, we define a predicate that checks this
 // condition.
 
-function IsContext(C: Context): bool
+ghost function IsContext(C: Context): bool
 {
   match C
   case Hole => true                                   // []
@@ -56,7 +56,7 @@ function IsContext(C: Context): bool
 
 // The EvalExpr function replace the hole in a context with a given term.
 
-function EvalExpr(C: Context, t: Term): Term
+ghost function EvalExpr(C: Context, t: Term): Term
   requires IsContext(C);
 {
   match C
@@ -96,7 +96,7 @@ function EvalExpr(C: Context, t: Term): Term
 // ignored, since it is, after all, just a consequence of the body
 // of Step.
 
-function method Step(t: Term): Term
+function Step(t: Term): Term
   ensures !ContainsS(t) ==>
              !ContainsS(Step(t)) &&
              (Step(t) == t || TermSize(Step(t)) < TermSize(t));
@@ -110,12 +110,12 @@ function method Step(t: Term): Term
     case K => t
     case Apply(m, n) =>
       if m == K && IsValue(n) && IsValue(y) then
-        // this is the case t == Apply(Apply(K, n), y)
+        assert {:focus} t == Apply(Apply(K, n), y);
         assert !ContainsS(t) ==> !ContainsS(x);
         assert TermSize(n) < TermSize(Apply(m, n));
         n
       else if m.Apply? && m.car == S && IsValue(m.cdr) && IsValue(n) && IsValue(y) then
-        // t == Apply(Apply(Apply(S, m.cdr), n), y)
+        assert {:focus} t == Apply(Apply(Apply(S, m.cdr), n), y);
         assert ContainsS(m) && ContainsS(t);
         Apply(Apply(m.cdr, y), Apply(n, y))
       else
@@ -142,7 +142,7 @@ function method Step(t: Term): Term
 // Like Step, FindAndStep has a postcondition, and it is also included to
 // support Verification Task 2.
 
-function method FindAndStep(t: Term): Term
+function FindAndStep(t: Term): Term
   ensures !ContainsS(t) ==>
              !ContainsS(FindAndStep(t)) &&
              (FindAndStep(t) == t || TermSize(FindAndStep(t)) < TermSize(t));
@@ -163,7 +163,7 @@ function method FindAndStep(t: Term): Term
 // "reduction" below) is that a term can be terminal, meaning that there is
 // no way to apply Step to any part of it.
 
-function IsTerminal(t: Term): bool
+ghost function IsTerminal(t: Term): bool
 {
   !(exists C,u :: IsContext(C) && t == EvalExpr(C,u) && Step(u) != u)
 }
@@ -272,7 +272,7 @@ lemma Lemma_ContextPossibilities(t: Term)
 
 datatype Trace = EmptyTrace | ReductionStep(Trace, Term)
 
-function IsTrace(trace: Trace, t: Term, r: Term): bool
+ghost function IsTrace(trace: Trace, t: Term, r: Term): bool
 {
   match trace
   case EmptyTrace =>
@@ -330,7 +330,7 @@ method reduction(t: Term) returns (r: Term)
 // do not contain S.  The following function formalizes what it means for a term
 // to contain S:
 
-function method ContainsS(t: Term): bool
+function ContainsS(t: Term): bool
 {
   match t
   case S => true
@@ -389,7 +389,7 @@ method VerificationTask2(t: Term) returns (r: Term)
 
 // The loop variant is simply the count of nodes in the term:
 
-function TermSize(t: Term): nat
+ghost function TermSize(t: Term): nat
 {
   match t
   case S => 1
@@ -412,7 +412,7 @@ function TermSize(t: Term): nat
 // is introduced for the benefit of stating and verifying Verification
 // Task 3.
 
-function TerminatingReduction(t: Term): Term
+ghost function TerminatingReduction(t: Term): Term
   requires !ContainsS(t);  // a sufficient condition for termination
   decreases TermSize(t);
 {
@@ -429,7 +429,7 @@ function TerminatingReduction(t: Term): Term
 // family of terms that contain only Apply and K.  Hence, we can establish, as a
 // postcondition of the function, that ks(n) does not contain S.
 
-function method ks(n: nat): Term
+function ks(n: nat): Term
   ensures !ContainsS(ks(n));
 {
   if n == 0 then K else Apply(ks(n-1), K)

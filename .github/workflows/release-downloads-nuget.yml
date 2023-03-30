@@ -18,7 +18,11 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
+  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-dafny-cli-tool:
@@ -28,20 +32,7 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
-        include:
-        - os:  'ubuntu-latest'
-          osn: 'ubuntu\-20.04'
-          z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
-          z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'macos-latest'
-          osn: 'osx-.*'
-          z3: z3-4.8.5-x64-osx-10.14.2
-        - os:  'windows-2019'
-          osn: 'win'
-          z3: z3-4.8.5-x64-win
+        os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
 
     steps:
     - name: OS
@@ -58,14 +49,20 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
-        Expand-Archive z3.zip .
-        Remove-Item z3.zip
-    - name: Set Z3 permissions
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
+        Expand-Archive z3-4.12.1.zip .
+        Remove-Item z3-4.12.1.zip
+    - name: Set up Z3 (Windows)
+      if: runner.os == 'Windows'
       run: |
         mkdir bin
-        mv ${{matrix.z3}}/bin/z3* bin/
-        chmod +x bin/z3*
+        mv z3-4.12.1.exe bin/z3.exe
+    - name: Set up Z3 (non-Windows)
+      if: runner.os != 'Windows'
+      run: |
+        mkdir bin
+        mv z3-4.12.1 bin/z3
+        chmod +x bin/z3
     - name: Set Path
       if: runner.os != 'Windows'
       run: echo "${PWD}/bin" >> $GITHUB_PATH
@@ -74,13 +71,7 @@ jobs:
       run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
-    ## Create a simple smoke test program
-    - name: Make test program
-      run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
-    ## Check that dafny and z3 run and that a simple program verifies or fails
+    ## Record versions, checking that executables run
     - name: Versions
       run: |
         z3 -version
@@ -94,38 +85,14 @@ jobs:
         excludes: prerelease, draft
     - name: Verify Dafny version
       if: "${{ steps.dafny.outputs.release != '' }}"
-      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -E "Dafny "${version:1}".[0-9]{5}"
+      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
       shell: bash
-    - name: Check
-      run: dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check bad
-      run: dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
-    - name: Check C# compile
-      run: |
-        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-    - name: Check Go compile
-      run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        GO111MODULE=auto GOPATH=$PWD/a-go go run a-go/src/a.go | diff expect.txt -
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        $Env:GO111MODULE="auto"
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go | diff expect.txt -
-    - name: Check Javascript compile
+    - name: run quicktests
       run: |
         npm install bignumber.js
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | diff expect.txt -
-    - name: Check Java compile
-      run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy | diff expect.txt -
+        dafny/quicktest.sh > log.txt
+        diff log.txt dafny/quicktest.out
 
   test-dafny-libraries:
 
@@ -138,24 +105,15 @@ jobs:
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
         os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
-        include:
-        - os:  'ubuntu-latest'
-          osn: 'ubuntu\-20.04'
-          z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'ubuntu-20.04'
-          osn: 'ubuntu\-20.04'
-          z3: z3-4.8.5-x64-ubuntu-16.04
-        - os:  'macos-latest'
-          osn: 'osx-.*'
-          z3: z3-4.8.5-x64-osx-10.14.2
-        - os:  'windows-2019'
-          osn: 'win'
-          z3: z3-4.8.5-x64-win
 
     steps:
-    ## Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
-    ## are also published through NuGet.
-    ## Ideally we would have a test project that actually uses part of the public API of each package.
+    # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
+    # are also published through NuGet.
+    # Ideally we would have a test project that actually uses part of the public API of each package.
+    # The default -DependencyVersion of "Lowest" seems to override the minimum version on transitive dependencies,
+    # which leads to a spurious circular dependency between DafnyServer and DafnyLanguageServer.
+    # We use "Highest" instead just to avoid this and still get some validation that all dependencies
+    # are at least published at all, but it would be great to understand this issue better.
     - name: Check library dependencies
       run: |
-        nuget install -Prerelease ${{ matrix.library-name }}
+        nuget install -Prerelease ${{ matrix.library-name }} -DependencyVersion Highest

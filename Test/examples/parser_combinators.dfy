@@ -33,7 +33,7 @@
 /// called in any context.  To see why, consider the function `Apply` below and
 /// the following two uses of it:
 
-function method Apply(f: () -> int): int { f() }
+function Apply(f: () -> int): int { f() }
 
 function F0(): int { Apply(F0) }
 function F1(): int { Apply(() => F1()) }

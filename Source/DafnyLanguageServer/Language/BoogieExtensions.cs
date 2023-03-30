@@ -16,6 +16,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     private const int ColumnOffset = -1;
 
+    public static Range ToLspRange(this DafnyRange range) {
+      return new Range(
+        range.Start.GetLspPosition(),
+        range.ExclusiveEnd.GetLspPosition());
+    }
+
+    /// <summary>
+    /// Gets the LSP range of the specified token.
+    /// </summary>
+    /// <param name="startToken">The token to get the range of.</param>
+    /// <param name="endToken">An optional other token to get the end of the range of.</param>
+    /// <returns>The LSP range of the token.</returns>
+    public static Range ToLspRange(this RangeToken range) {
+      return range.ToDafnyRange().ToLspRange();
+    }
+
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
@@ -24,11 +40,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The LSP range of the token.</returns>
     public static Range GetLspRange(this Boogie.IToken startToken, Boogie.IToken? endToken = null) {
       endToken ??= startToken;
-      endToken = endToken is RangeToken rangeToken ? rangeToken.EndToken : endToken;
+      endToken = endToken is BoogieRangeToken rangeToken ? rangeToken.EndToken : endToken;
       return new Range(
         GetLspPosition(startToken),
         ToLspPosition(endToken.line, endToken.col + endToken.val.Length)
       );
+    }
+
+    public static Position GetLspPosition(this DafnyPosition position) {
+      return new Position(position.Line, position.Column);
     }
 
     /// <summary>

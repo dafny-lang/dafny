@@ -118,7 +118,7 @@ ghost method ExpressionsInGhostMethod() {
     5;
 }
 
-function method CompiledFunction(): int {
+function CompiledFunction(): int {
   assume false;  // error
   calc {
     100;
@@ -133,7 +133,7 @@ function method CompiledFunction(): int {
   5
 }
 
-function GhostFunction(): int {
+ghost function GhostFunction(): int {
   assume false;  // error
   calc {
     100;
@@ -166,7 +166,7 @@ ghost method SpecificationOfGhostMethod()
 {
 }
 
-function method SpecificationOfCompiledFunction(): int
+function SpecificationOfCompiledFunction(): int
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
@@ -175,7 +175,7 @@ function method SpecificationOfCompiledFunction(): int
   5
 }
 
-function SpecificationOfGhostFunction(): int
+ghost function SpecificationOfGhostFunction(): int
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
@@ -196,13 +196,13 @@ ghost method SpecificationOfGhostMethodWithoutBody()  // error: has no body
   ensures assume false; true  // error
   decreases assume false; 5  // error
 
-function method SpecificationOfCompiledFunctionWithoutBody(): int  // error: has no body
+function SpecificationOfCompiledFunctionWithoutBody(): int  // error: has no body
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
   decreases assume false; 5  // error
 
-function SpecificationOfGhostFunctionWithoutBody(): int  // error: has no body
+ghost function SpecificationOfGhostFunctionWithoutBody(): int  // error: has no body
   requires assume false; true  // error
   reads assume false; {}  // error
   ensures assume false; true  // error
@@ -268,8 +268,8 @@ newtype T = int {
 
 // --------------------------------------------------
 
-function method F(x: int, ghost y: int): int { 5 }
-function G(x: int): int { 5 }
+function F(x: int, ghost y: int): int { 5 }
+ghost function G(x: int): int { 5 }
 method M(x: int, ghost y: int) { }
 lemma N(x: int) { }
 
@@ -292,7 +292,7 @@ ghost method GhostMethodCaller() {
   ghost var e := Dt(assume false; 5, assume false; 6);  // error (x2)
 }
 
-function method CompiledFunctionCaller(): int {
+function CompiledFunctionCaller(): int {
   var a := F(assume false; 5, assume false; 6);  // error (x2)
   ghost var b := G(assume false; 5);  // error
   N(assume false; 5);  // error
@@ -301,7 +301,7 @@ function method CompiledFunctionCaller(): int {
   100
 }
 
-function GhostFunctionCaller(): int {
+ghost function GhostFunctionCaller(): int {
   var a := F(assume false; 5, assume false; 6);  // error (x2)
   ghost var b := G(assume false; 5);  // error
   N(assume false; 5);  // error

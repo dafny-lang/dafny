@@ -34,20 +34,20 @@ method Main() {
   TestModule();
 }
 
-function method Up(m: nat, n: nat): List
+function Up(m: nat, n: nat): List
   requires m <= n
   decreases n - m
 {
   if m == n then Nil else Cons(m, Up(m+1, n))
 }
 
-function method Sum(xs: List): int {
+function Sum(xs: List): int {
   match xs  // top-level match expression
   case Nil => 0
   case Cons(x, tail) => x + Sum(tail)
 }
 
-function method SumAgain(xs: List): int {
+function SumAgain(xs: List): int {
   var r := match xs  // let expression; non-top-level match expression
     case Nil => 0
     case Cons(x, tail) => x + SumAgain(tail);
@@ -63,7 +63,7 @@ method PrintSum(xs: List, prefix: string) {
 }
 
 datatype Berry = Smultron | Jordgubb | Hjortron | Hallon
-predicate method IsRed(b: Berry) {
+predicate IsRed(b: Berry) {
   b != Berry.Hjortron
 }
 

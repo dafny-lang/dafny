@@ -18,15 +18,14 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+      ErrorReporter reporter = new ConsoleErrorReporter(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
 // Comment ∈ before
 module Test // Module docstring
-{}
+{} // Attached to }
 
 /** Trait docstring */
 trait Trait1 { }
@@ -36,6 +35,7 @@ trait Trait2 extends Trait1
 // Trait docstring
 { }
 // This is attached to trait2
+// This is also attached to trait2
 
 // This is attached to n
 type n = x: int | x % 2 == 0
@@ -71,9 +71,9 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
@@ -112,26 +112,23 @@ ensures true
     // Asserts that a token is owned by at most one node
     // and that every token from start to end of every program child
     // is owned by a node.
-    private void TestTokens(INode program) {
+    private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(INode node, int depth = 0) {
-        if (depth == 2) {
-          depth = 2;
-        }
+      void Traverse(Node node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
-        foreach (var child in node.Children) {
-          Traverse(child, depth + 1);
+        foreach (var child in node.PreResolveChildren) {
+          Traverse(child);
         }
       }
 
       Traverse(program);
 
       var count = 0;
-      void AreAllTokensOwned(INode node) {
+      void AreAllTokensOwned(Node node) {
         if (node.StartToken is { filename: { } }) {
           count++;
           var t = node.StartToken;
@@ -140,7 +137,7 @@ ensures true
             t = t.Next;
           }
         } else {
-          foreach (var child in node.Children) {
+          foreach (var child in node.PreResolveChildren) {
             AreAllTokensOwned(child);
           }
         }

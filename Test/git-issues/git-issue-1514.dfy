@@ -1,11 +1,11 @@
 // RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../libraries/src/Wrappers.dfy"
+include "Wrappers.dfy"
 import opened Wrappers
 
 trait Foo<C, D> {
-  function method Bar(a: C): (r: D)
+  function Bar(a: C): (r: D)
 }
 
 type FooWithResult<A, B> = Foo<A, Option<B>>
@@ -21,7 +21,7 @@ method Bar<E, F>(
 
 class ConcreteFoo extends Foo<string, Option<string>> {
   constructor () {}
-  function method Bar(a: string): (r: Option<string>) {
+  function Bar(a: string): (r: Option<string>) {
     Some(a)
   }
 }

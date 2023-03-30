@@ -44,7 +44,7 @@ NewtypesResolution.dfy(317,10): Error: recursive constraint dependency involving
 NewtypesResolution.dfy(332,10): Error: recursive constraint dependency involving a newtype: Y -> P -> M -> X -> Y
 NewtypesResolution.dfy(350,7): Error: recursive constraint dependency involving a subset type: G3 -> G5 -> G6 -> G0 -> G1 -> G2 -> G3
 NewtypesResolution.dfy(360,10): Error: recursive constraint dependency involving a newtype: G4 -> G5 -> G6 -> P -> G0 -> G1 -> G2 -> G3 -> G4
-NewtypesResolution.dfy(371,33): Error: a forall expression involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'r' may contain references (see documentation for 'older' parameters)
+NewtypesResolution.dfy(371,33): Error: a forall expression involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'r' (of type 'G5') may contain references (see documentation for 'older' parameters)
 NewtypesResolution.dfy(381,7): Error: recursive constraint dependency involving a subset type: Y -> M -> X -> Y
 NewtypesResolution.dfy(400,10): Error: recursive constraint dependency involving a newtype: NT0 -> P0 -> NT0
 NewtypesResolution.dfy(414,7): Error: recursive constraint dependency involving a subset type: ST0 -> Q0 -> ST0

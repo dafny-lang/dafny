@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -9,13 +10,13 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public abstract class Expression : INode {
+public abstract class Expression : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
     return Type != null;
   }
@@ -37,6 +38,12 @@ public abstract class Expression : INode {
           return rr is NegationExpression ? rr : null;
         }
       }
+    }
+  }
+
+  public virtual IEnumerable<Expression> TerminalExpressions {
+    get {
+      yield return this;
     }
   }
 
@@ -89,7 +96,7 @@ public abstract class Expression : INode {
 
   public override string ToString() {
     try {
-      return Printer.ExprToString(this);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print expr because: {e.Message}";
     }
@@ -343,7 +350,7 @@ public abstract class Expression : INode {
   /// <summary>
   /// Create a resolved expression of the form "e - n"
   /// </summary>
-  public static Expression CreateDecrement(Expression e, int n) {
+  public static Expression CreateDecrement(Expression e, int n, Type ty = null) {
     Contract.Requires(e != null);
     Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
     Contract.Requires(0 <= n);
@@ -351,22 +358,22 @@ public abstract class Expression : INode {
     if (n == 0) {
       return e;
     }
-    var nn = CreateIntLiteral(e.tok, n);
+    var nn = CreateIntLiteral(e.tok, n, ty);
     return CreateSubtract(e, nn);
   }
 
   /// <summary>
   /// Create a resolved expression of the form "n"
   /// </summary>
-  public static Expression CreateIntLiteral(IToken tok, int n) {
+  public static Expression CreateIntLiteral(IToken tok, int n, Type ty = null) {
     Contract.Requires(tok != null);
     Contract.Requires(n != int.MinValue);
     if (0 <= n) {
       var nn = new LiteralExpr(tok, n);
-      nn.Type = Type.Int;
+      nn.Type = ty ?? Type.Int;
       return nn;
     } else {
-      return CreateDecrement(CreateIntLiteral(tok, 0), -n);
+      return CreateDecrement(CreateIntLiteral(tok, 0, ty), -n, ty);
     }
   }
 
@@ -427,6 +434,22 @@ public abstract class Expression : INode {
     }
   }
 
+  /// <summary>
+  /// Returns "expr", but with all outer layers of parentheses and casts removed.
+  /// This method can be called before resolution.
+  /// </summary>
+  public static Expression StripParensAndCasts(Expression expr) {
+    while (true) {
+      if (expr is ParensExpression parens) {
+        expr = parens.E;
+      } else if (expr is ConversionExpr cast) {
+        expr = cast.E;
+      } else {
+        return expr;
+      }
+    }
+  }
+
   public static ThisExpr AsThis(Expression expr) {
     Contract.Requires(expr != null);
     return StripParens(expr) as ThisExpr;
@@ -445,6 +468,26 @@ public abstract class Expression : INode {
       return true;
     } else {
       value = false;  // to please compiler
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// If "expr" denotes an integer literal "x", then return "true" and set "value" to "x".
+  /// Otherwise, return "false" (and the value of "value" should not be used by the caller).
+  /// This method can be called before resolution.
+  /// </summary>
+  public static bool IsIntLiteral(Expression expr, out BigInteger value) {
+    Contract.Requires(expr != null);
+    var e = StripParens(expr) as LiteralExpr;
+    if (e != null && e.Value is int x) {
+      value = new BigInteger(x);
+      return true;
+    } else if (e != null && e.Value is BigInteger xx) {
+      value = xx;
+      return true;
+    } else {
+      value = BigInteger.Zero; // to please compiler
       return false;
     }
   }
@@ -726,9 +769,9 @@ public abstract class Expression : INode {
 
     QuantifierExpr q;
     if (forall) {
-      q = new ForallExpr(expr.tok, expr.BodyEndTok, newVars, expr.Range, body, expr.Attributes);
+      q = new ForallExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
     } else {
-      q = new ExistsExpr(expr.tok, expr.BodyEndTok, newVars, expr.Range, body, expr.Attributes);
+      q = new ExistsExpr(expr.tok, expr.RangeToken, newVars, expr.Range, body, expr.Attributes);
     }
     q.Type = Type.Bool;
 
@@ -775,7 +818,8 @@ public abstract class Expression : INode {
     return le == null ? null : le.Value as string;
   }
 
-  public override IEnumerable<INode> Children => SubExpressions;
+  public override IEnumerable<Node> Children => SubExpressions;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class LiteralExpr : Expression {
@@ -801,7 +845,7 @@ public class LiteralExpr : Expression {
   /// </summary>
   public readonly object Value;
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);
     return Expression.IsBoolLiteral(e, out var value) && value;
@@ -884,13 +928,13 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
+public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, ICanFormat {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => new INode[] { Bindings };
+  public override IEnumerable<Node> Children => new Node[] { Bindings };
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
@@ -948,6 +992,10 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   }
 
   public IToken NameToken => tok;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    return true;
+  }
 }
 
 public class ThisExpr : Expression {
@@ -1055,12 +1103,19 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     }
   }
 
+  /// <summary>
+  /// Returns whether or not "expr" is an IdentifierExpr for "variable".
+  /// </summary>
+  public static bool Is(Expression expr, IVariable variable) {
+    return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
+  }
+
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Var, 1);
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children { get; } = Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children { get; } = Enumerable.Empty<Node>();
 }
 
 /// <summary>
@@ -1114,7 +1169,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
   }
 
-  public override IEnumerable<INode> Children => TypeArgs.SelectMany(ta => ta.Nodes);
+  public override IEnumerable<Node> Children => TypeArgs.SelectMany(ta => ta.Nodes);
 
   public abstract class ResolverType : Type {
     public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
@@ -1129,8 +1184,8 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Module : ResolverType {
-    [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    [System.Diagnostics.Contracts.Pure]
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
     }
@@ -1139,8 +1194,8 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     }
   }
   public class ResolverType_Type : ResolverType {
-    [Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    [System.Diagnostics.Contracts.Pure]
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
     }
@@ -1184,18 +1239,20 @@ public abstract class DisplayExpression : Expression {
     Elements = elements;
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get { return Elements; }
-  }
+  public override IEnumerable<Expression> SubExpressions => Elements;
 }
 
-public class SetDisplayExpr : DisplayExpression {
+public class SetDisplayExpr : DisplayExpression, ICanFormat {
   public bool Finite;
   public SetDisplayExpr(IToken tok, bool finite, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(elements));
     Finite = finite;
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -1206,7 +1263,7 @@ public class MultiSetDisplayExpr : DisplayExpression {
   }
 }
 
-public class MapDisplayExpr : Expression {
+public class MapDisplayExpr : Expression, ICanFormat {
   public bool Finite;
   public List<ExpressionPair> Elements;
   public MapDisplayExpr(IToken tok, bool finite, List<ExpressionPair> elements)
@@ -1224,12 +1281,20 @@ public class MapDisplayExpr : Expression {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
+  }
 }
-public class SeqDisplayExpr : DisplayExpression {
+public class SeqDisplayExpr : DisplayExpression, ICanFormat {
   public SeqDisplayExpr(IToken tok, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(cce.NonNullElements(elements));
     Contract.Requires(tok != null);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -1573,7 +1638,7 @@ public class MultiSetFormingExpr : Expression {
   }
 }
 
-public abstract class UnaryExpr : Expression {
+public abstract class UnaryExpr : Expression, ICanFormat {
   public readonly Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1587,8 +1652,16 @@ public abstract class UnaryExpr : Expression {
     this.E = e;
   }
 
+  public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -1648,6 +1721,10 @@ public class UnaryOpExpr : UnaryExpr {
     this.Op = op;
   }
 
+  public UnaryOpExpr(Cloner cloner, UnaryOpExpr original) : base(cloner, original) {
+    Op = original.Op;
+  }
+
   public override bool IsImplicit => Op == Opcode.Lit;
 }
 
@@ -1662,13 +1739,14 @@ public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
     this.At = at;
   }
 
-  public FreshExpr Clone(Cloner cloner) {
-    var result = new FreshExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+  public FreshExpr(Cloner cloner, FreshExpr original) : base(cloner, original) {
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
+      AtLabel = original.AtLabel;
     }
-    return result;
   }
+
+  public FreshExpr Clone(Cloner cloner) { return new FreshExpr(cloner, this); }
 }
 
 public abstract class TypeUnaryExpr : UnaryExpr {
@@ -1681,7 +1759,7 @@ public abstract class TypeUnaryExpr : UnaryExpr {
     ToType = toType;
   }
 
-  public override IEnumerable<INode> Children => base.Children.Concat(ToType.Nodes);
+  public override IEnumerable<Node> Children => base.Children.Concat(ToType.Nodes);
 
   public override IEnumerable<Type> ComponentTypes {
     get {
@@ -1710,7 +1788,7 @@ public class TypeTestExpr : TypeUnaryExpr {
   }
 }
 
-public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
+public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   public enum Opcode {
     Iff,
     Imp,
@@ -2030,7 +2108,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
   }
 
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-    : base(tok) {
+    :
+    base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
@@ -2101,6 +2180,111 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr> {
       yield return E1;
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var indent = indentBefore;
+    if (Op is Opcode.And or Opcode.Or) {
+      var ownedTokens = OwnedTokens.ToList();
+      // Alignment required.
+      if (ownedTokens.Count == 2) {
+        var firstToken = ownedTokens[0];
+        var secondToken = ownedTokens[1];
+        indent = formatter.GetNewTokenVisualIndent(firstToken, formatter.GetIndentInlineOrAbove(firstToken));
+        var c = 0;
+        while (c < firstToken.TrailingTrivia.Length && firstToken.TrailingTrivia[c] == ' ') {
+          c++;
+        }
+
+        var conjunctExtraIndent = c + formatter.SpaceTab;
+        formatter.binOpIndent = indent;
+        formatter.binOpArgIndent = indent + conjunctExtraIndent;
+        formatter.SetIndentations(firstToken, formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+        formatter.SetIndentations(secondToken, formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+      } else if (ownedTokens.Count > 0) {
+        if (ownedTokens[0].val == "requires") { // Requirement conjunctions inside lambdas are separated by the keyword "requires"
+          if (this.StartToken.Prev.val == "requires") {
+            formatter.binOpIndent = formatter.GetIndentInlineOrAbove(this.StartToken.Prev);
+          }
+        }
+        if (formatter.binOpIndent > 0) {
+          formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
+        } else {
+          var startToken = this.StartToken;
+          var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentInlineOrAbove(startToken));
+          formatter.SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
+        }
+      }
+
+      if (formatter.binOpIndent > 0 && (this.E0 is not BinaryExpr { Op: var op } || op != this.Op)) {
+        formatter.binOpIndent = -1;
+        formatter.binOpArgIndent = -1;
+      }
+
+      return true; // Default indentation
+    } else if (Op is Opcode.Imp or Opcode.Exp) {
+      foreach (var token in this.OwnedTokens) {
+        switch (token.val) {
+          case "==>": {
+              formatter.SetOpeningIndentedRegion(token, indent);
+              break;
+            }
+          case "<==": {
+              formatter.SetIndentations(token, indent, indent, indent);
+              break;
+            }
+        }
+      }
+      formatter.Visit(this.E0, indent);
+      formatter.Visit(this.E1, this.Op is BinaryExpr.Opcode.Exp ? indent : indent + formatter.SpaceTab);
+      formatter.SetIndentations(this.EndToken, below: indent);
+      return false;
+    } else if (Op is Opcode.Eq or Opcode.Le or Opcode.Lt or Opcode.Ge or Opcode.Gt or Opcode.Iff or Opcode.Neq) {
+      var itemIndent = formatter.GetNewTokenVisualIndent(
+          E0.StartToken, indent);
+      var item2Indent = itemIndent;
+      var startToken = this.E0.StartToken;
+      if (startToken.Prev.line == startToken.line) {
+        // like assert E0
+        //          == E1
+        // Careful: The binaryExpr.op's first column should be greater than the
+        // token's first column before E0.StartToken. 
+        foreach (var token in this.OwnedTokens) {
+          switch (token.val) {
+            case "==":
+            case "<=":
+            case "<":
+            case ">=":
+            case ">":
+            case "<==>":
+            case "!=": {
+                var followedByNewline = TokenNewIndentCollector.IsFollowedByNewline(token);
+                var selfIndent = followedByNewline ? itemIndent : Math.Max(itemIndent - token.val.Length - 1, 0);
+                if (selfIndent <= formatter.GetNewTokenVisualIndent(startToken.Prev, itemIndent)) {
+                  // There could be a visual ambiguity if this token is aligned with the enclosing token.
+                  selfIndent = itemIndent;
+                }
+                formatter.SetIndentations(token, itemIndent, selfIndent);
+                item2Indent = followedByNewline ? itemIndent : formatter.GetNewTokenVisualIndent(this.E1.StartToken, itemIndent);
+                formatter.SetIndentations(token, below: item2Indent);
+                break;
+              }
+          }
+        }
+      }
+      formatter.Visit(E0, itemIndent);
+      formatter.Visit(E1, item2Indent);
+      formatter.SetIndentations(EndToken, below: indent);
+      return false;
+    } else {
+      foreach (var token in OwnedTokens) {
+        formatter.SetIndentations(token, indent, indent, indent);
+      }
+      formatter.Visit(E0, indent);
+      formatter.Visit(E1, indent);
+      formatter.SetIndentations(EndToken, below: indent);
+      return false;
+    }
+  }
 }
 
 public class TernaryExpr : Expression {
@@ -2131,7 +2315,7 @@ public class TernaryExpr : Expression {
   }
 }
 
-public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr> {
+public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>, ICanFormat {
   public readonly CasePattern<BoundVar>/*?*/ Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
   public readonly Expression Rhs;
   public readonly Expression Body;
@@ -2140,6 +2324,13 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     Lhs = lhs;
     Rhs = rhs;
     Body = body;
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Rhs;
+      yield return Body;
+    }
   }
 
   public LetOrFailExpr Clone(Cloner cloner) {
@@ -2152,17 +2343,21 @@ public class LetOrFailExpr : ConcreteSyntaxExpression, ICloneable<LetOrFailExpr>
     Body = cloner.CloneExpr(original.Body);
   }
 
-  public override IEnumerable<INode> Children =>
+  public override IEnumerable<Node> Children =>
     (Lhs != null ?
-    new List<INode> { Lhs } : Enumerable.Empty<INode>()).Concat(base.Children);
+    new List<Node> { Lhs } : Enumerable.Empty<Node>()).Concat(base.Children);
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, Lhs == null, true);
+  }
 }
 
 public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
   public override string WhatKind => "forall expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
-  public ForallExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, endTok, bvars, range, term, attrs) {
+  public ForallExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
@@ -2190,8 +2385,8 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public override string WhatKind => "exists expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.Or; } }
 
-  public ExistsExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(tok, endTok, bvars, range, term, attrs) {
+  public ExistsExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
@@ -2239,8 +2434,8 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
     Finite = original.Finite;
   }
 
-  public SetComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
-    : base(tok, endTok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
+  public SetComprehension(IToken tok, RangeToken rangeToken, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(1 <= bvars.Count);
@@ -2268,8 +2463,8 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
     Finite = original.Finite;
   }
 
-  public MapComprehension(IToken tok, IToken endTok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
-    : base(tok, endTok, bvars, range, termRight, attrs) {
+  public MapComprehension(IToken tok, RangeToken rangeToken, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
+    : base(tok, rangeToken, bvars, range, termRight, attrs) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(bvars));
     Contract.Requires(1 <= bvars.Count);
@@ -2318,15 +2513,15 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
   }
 }
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, ICanFormat {
   public override string WhatKind => "lambda";
 
   public Expression Body => Term;
 
   public readonly List<FrameExpression> Reads;
 
-  public LambdaExpr(IToken tok, IToken endTok, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
-    : base(tok, endTok, bvars, requires, body, null) {
+  public LambdaExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression requires, List<FrameExpression> reads, Expression body)
+    : base(tok, rangeToken, bvars, requires, body, null) {
     Contract.Requires(reads != null);
     Reads = reads;
   }
@@ -2350,6 +2545,55 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
   public LambdaExpr Clone(Cloner cloner) {
     return new LambdaExpr(cloner, this);
   }
+
+  public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var itemIndent = indentBefore + formatter.SpaceTab;
+    var commaIndent = indentBefore;
+    var firstSpec = true;
+    var specIndent = indentBefore + formatter.SpaceTab;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "(": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetIndentations(token, indentBefore, indentBefore, itemIndent);
+            } else {
+              formatter.SetAlign(indentBefore, token, out itemIndent, out commaIndent);
+            }
+
+            break;
+          }
+        case ")": {
+            formatter.SetIndentations(token, itemIndent, indentBefore, indentBefore);
+            break;
+          }
+        case ",": {
+            formatter.SetIndentations(token, itemIndent, commaIndent, itemIndent);
+            break;
+          }
+        case "requires":
+        case "reads": {
+            if (firstSpec) {
+              specIndent = formatter.GetNewTokenVisualIndent(token, indentBefore);
+              firstSpec = false;
+            }
+            formatter.SetIndentations(token, specIndent, specIndent, specIndent + formatter.SpaceTab);
+            break;
+          }
+        case "=>": {
+            formatter.SetIndentations(token, itemIndent, indentBefore, indentBefore + formatter.SpaceTab);
+            break;
+          }
+      }
+    }
+
+    foreach (var bv in BoundVars) {
+      if (bv.SyntacticType != null) {
+        formatter.SetTypeIndentation(bv.SyntacticType);
+      }
+    }
+
+    return true;
+  }
 }
 
 public class WildcardExpr : Expression {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
@@ -2364,7 +2608,7 @@ public class WildcardExpr : Expression {  // a WildcardExpr can occur only in re
 /// The expression S;E evaluates to whatever E evaluates to, but its well-formedness comes down to
 /// executing S (which itself must be well-formed) and then checking the well-formedness of E.
 /// </summary>
-public class StmtExpr : Expression {
+public class StmtExpr : Expression, ICanFormat {
   public readonly Statement S;
   public readonly Expression E;
   [ContractInvariantMethod]
@@ -2389,6 +2633,14 @@ public class StmtExpr : Expression {
     }
   }
 
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in E.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
   /// <summary>
   /// Returns a conclusion that S gives rise to, that is, something that is known after
   /// S is executed.
@@ -2410,13 +2662,28 @@ public class StmtExpr : Expression {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.Visit(S, indentBefore);
+    formatter.SetIndentations(S.EndToken, below: indentBefore);
+    formatter.Visit(E, indentBefore);
+    return false;
+  }
 }
 
-public class ITEExpr : Expression {
+public class ITEExpr : Expression, ICanFormat {
   public readonly bool IsBindingGuard;
   public readonly Expression Test;
   public readonly Expression Thn;
   public readonly Expression Els;
+
+  public enum ITECompilation {
+    CompileBothBranches,
+    CompileJustThenBranch,
+    CompileJustElseBranch
+  };
+  public ITECompilation HowToCompile = ITECompilation.CompileBothBranches; // updated by CheckIsCompilable during resolution
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Test != null);
@@ -2443,6 +2710,71 @@ public class ITEExpr : Expression {
       yield return Els;
     }
   }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in Thn.TerminalExpressions) {
+        yield return e;
+      }
+      foreach (var e in Els.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var lineThen = 0;
+    var colThen = 0;
+    IToken thenToken = null;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "if": {
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              formatter.SetAlignOpen(token, indentBefore);
+            }
+            formatter.Visit(Test, indentBefore);
+            break;
+          }
+        case "then": {
+            lineThen = token.line;
+            colThen = token.col;
+            thenToken = token;
+            if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              var rightIndent = formatter.GetRightAlignIndentAfter(token, indentBefore);
+              formatter.SetIndentations(token, indentBefore, indentBefore, rightIndent);
+            }
+            formatter.Visit(Thn, indentBefore + formatter.SpaceTab);            // Override the last indentation so that comments are on the same column as "else"
+            formatter.SetIndentations(token.Prev, below: indentBefore);
+
+            break;
+          }
+        case "else": {
+            if (token.col == colThen) {
+              // We keep the alignment.
+              var newElseIndent = formatter.GetNewTokenVisualIndent(thenToken, indentBefore);
+              formatter.SetDelimiterIndentedRegions(token, newElseIndent);
+            } else if (token.Next.val == "if" || token.line == lineThen) { // Don't indent the subexpression
+              formatter.SetIndentations(token, above: indentBefore, inline: indentBefore, below: indentBefore);
+            } else if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+              formatter.SetOpeningIndentedRegion(token, indentBefore);
+            } else {
+              formatter.SetAlign(indentBefore, token, out _, out _);
+            }
+
+            formatter.Visit(Els, indentBefore + formatter.SpaceTab);
+            // Override the last indentation so that comments are on the same column as "else"
+            formatter.SetIndentations(token.Prev, below: indentBefore);
+            break;
+          }
+      }
+    }
+
+    return false;
+  }
 }
 
 
@@ -2455,7 +2787,7 @@ public class ITEExpr : Expression {
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : INode
+public class CasePattern<VT> : TokenNode
   where VT : class, IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
@@ -2539,7 +2871,8 @@ public class CasePattern<VT> : INode
     }
   }
 
-  public override IEnumerable<INode> Children => Arguments ?? Enumerable.Empty<INode>();
+  public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
 public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
@@ -2596,7 +2929,7 @@ public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used onl
   }
 }
 
-public class AttributedExpression : INode, IAttributeBearingDeclaration {
+public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
   public readonly Expression E;
   public readonly AssertLabel/*?*/ Label;
 
@@ -2634,7 +2967,7 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     E = e;
     Label = label;
     Attributes = attrs;
-    this.Tok = e.Tok;
+    this.tok = e.Tok;
   }
 
   public void AddCustomizedErrorMessage(IToken tok, string s) {
@@ -2644,11 +2977,22 @@ public class AttributedExpression : INode, IAttributeBearingDeclaration {
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
-  public override IEnumerable<INode> Children => new List<INode>() { E };
+  public override IEnumerable<Node> Children =>
+    (Attributes != null ? new List<Node>() { Attributes } : Enumerable.Empty<Node>()).Concat(
+    new List<Node>() { E });
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
 }
 
-public class FrameExpression : INode, IHasUsages {
-  public readonly Expression E;  // may be a WildcardExpr
+public class FrameExpression : TokenNode, IHasUsages {
+  public readonly Expression OriginalExpression; // may be a WildcardExpr
+  [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
+
+  /// <summary>
+  /// .E starts off as OriginalExpression; destructively updated to its desugared version during resolution
+  /// </summary>
+  public Expression E => DesugaredExpression ?? OriginalExpression;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);
@@ -2667,22 +3011,26 @@ public class FrameExpression : INode, IHasUsages {
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
     this.tok = tok;
-    E = e;
+    OriginalExpression = e;
     FieldName = fieldName;
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
     this.tok = cloner.Tok(original.tok);
-    E = cloner.CloneExpr(original.E);
+    OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 
     if (cloner.CloneResolvedFields) {
       Field = original.Field;
+      if (original.DesugaredExpression != null) {
+        DesugaredExpression = cloner.CloneExpr(original.DesugaredExpression);
+      }
     }
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => new[] { E };
+  public override IEnumerable<Node> Children => new[] { E };
+  public override IEnumerable<Node> PreResolveChildren => Children;
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return new[] { Field }.Where(x => x != null);
   }
@@ -2715,7 +3063,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   public ConcreteSyntaxExpression(IToken tok)
     : base(tok) {
   }
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<INode>() : new[] { ResolvedExpression };
+  public override IEnumerable<Node> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
@@ -2724,10 +3072,21 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in ResolvedExpression.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
 }
 
-public class ParensExpression : ConcreteSyntaxExpression {
+public class ParensExpression : ConcreteSyntaxExpression, ICanFormat {
   public readonly Expression E;
   public ParensExpression(IToken tok, Expression e)
     : base(tok) {
@@ -2746,6 +3105,16 @@ public class ParensExpression : ConcreteSyntaxExpression {
         yield return ResolvedExpression;
       }
     }
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return E;
+    }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }
 
@@ -2787,9 +3156,9 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {
-        yield return Root;
-        foreach (var update in Updates) {
-          yield return update.Item3;
+        foreach (var preResolved in PreResolveSubExpressions) {
+
+          yield return preResolved;
         }
       } else {
         foreach (var e in base.SubExpressions) {
@@ -2804,6 +3173,15 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
   }
 
   public IToken NameToken => tok;
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Root;
+      foreach (var update in Updates) {
+        yield return update.Item3;
+      }
+    }
+  }
 }
 
 /// <summary>
@@ -2859,7 +3237,7 @@ public class AutoGeneratedExpression : ParensExpression, ICloneable<AutoGenerate
 /// writing, a change to a separate type has shown to be more hassle than the need for special
 /// attention to DefaultValueExpression's in some places.
 /// </summary>
-public class DefaultValueExpression : ConcreteSyntaxExpression {
+public class DefaultValueExpression : ConcreteSyntaxExpression, ICloneable<DefaultValueExpression> {
   public readonly Formal Formal;
   public readonly Expression Receiver;
   public readonly Dictionary<IVariable, Expression> SubstMap;
@@ -2879,6 +3257,20 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     TypeMap = typeMap;
     Type = formal.Type.Subst(typeMap);
     RangeToken = new RangeToken(tok, tok);
+  }
+
+  public DefaultValueExpression(Cloner cloner, DefaultValueExpression original) : base(cloner, original) {
+    if (!cloner.CloneResolvedFields) {
+      throw new InvalidOperationException("DefaultValueExpression is created during resolution");
+    }
+    Formal = cloner.CloneFormal(original.Formal, true);
+    Receiver = cloner.CloneExpr(original.Receiver);
+    SubstMap = original.SubstMap;
+    TypeMap = original.TypeMap;
+  }
+
+  public DefaultValueExpression Clone(Cloner cloner) {
+    return new DefaultValueExpression(cloner, this);
   }
 }
 
@@ -2915,9 +3307,15 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
       }
     }
   }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return E;
+    }
+  }
 }
 
-public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression> {
+public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression>, ICanFormat {
   public readonly List<Expression> Operands;
   public readonly List<BinaryExpr.Opcode> Operators;
   public readonly List<IToken> OperatorLocs;
@@ -2994,6 +3392,52 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
 
     return desugaring;
   }
+
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (!WasResolved()) {
+        foreach (var sub in PreResolveSubExpressions) {
+          yield return sub;
+        }
+      } else {
+        yield return Resolved;
+      }
+    }
+  }
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var sub in Operands) {
+        yield return sub;
+      }
+      foreach (var sub in PrefixLimits) {
+        if (sub != null) {
+          yield return sub;
+        }
+      }
+    }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    // Chaining expressions try to align their values if possible
+    var itemIndent = formatter.GetNewTokenVisualIndent(
+      Operands[0].StartToken, indentBefore);
+
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "[":
+          break;
+        case "#":
+          break;
+        case "]":
+          break;
+        default:
+          formatter.SetIndentations(token, itemIndent, Math.Max(itemIndent - token.val.Length - 1, 0), itemIndent);
+          break;
+      }
+    }
+
+    return true;
+  }
 }
 
 /// <summary>
@@ -3042,10 +3486,29 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
     Lhs = lhs;
   }
 
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
+  public override IEnumerable<Node> Children => ResolvedExpression == null ? new[] { Lhs } : base.Children;
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
+
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (!WasResolved()) {
+        foreach (var sub in PreResolveSubExpressions) {
+          yield return sub;
+        }
+      } else if (Resolved != null) {
+        yield return Resolved;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Lhs;
+    }
+  }
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -3065,6 +3528,15 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   public NameSegment Clone(Cloner cloner) {
     return new NameSegment(cloner, this);
   }
+
+  public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
+    foreach (var subType in PreResolveChildren.OfType<Type>()) {
+      formatter.SetTypeIndentation(subType);
+    }
+    return false;
+  }
 }
 
 /// <summary>
@@ -3078,7 +3550,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   /// Because the resolved expression only points to the final resolved declaration,
   /// but not the declaration of the Lhs, we must also include the Lhs.
   /// </summary>
-  public override IEnumerable<INode> Children => new[] { Lhs, ResolvedExpression };
+  public override IEnumerable<Node> Children => new[] { Lhs, ResolvedExpression };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -3107,14 +3579,15 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
 /// <summary>
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
-public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
+public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
 
-  public override IEnumerable<INode> Children => ResolvedExpression == null
-    ? new[] { Lhs }.Concat(Args ?? Enumerable.Empty<INode>()) : new[] { ResolvedExpression };
+  public override IEnumerable<Node> Children => ResolvedExpression == null
+    ? base.Children.Concat(Bindings == null ? new List<Node>() : Args ?? Enumerable.Empty<Node>()) : new[] { ResolvedExpression };
+  public override IEnumerable<Node> PreResolveChildren => new List<Node> { Lhs, Bindings };
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -3146,6 +3619,17 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
     }
   }
 
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      yield return Lhs;
+      if (Bindings.ArgumentBindings != null) {
+        foreach (var binding in Bindings.ArgumentBindings) {
+          yield return binding.Actual;
+        }
+      }
+    }
+  }
+
   /// <summary>
   /// Create an ApplySuffix expression using the most basic pieces: a target name and a list of expressions.
   /// </summary>
@@ -3157,5 +3641,11 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix> {
     var nameExpr = new NameSegment(tok, name, null);
     var argBindings = args.ConvertAll(arg => new ActualBinding(null, arg));
     return new ApplySuffix(tok, null, nameExpr, argBindings, tok);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var reindent = formatter.ReduceBlockiness ? indentBefore
+      : formatter.GetNewTokenVisualIndent(StartToken, indentBefore);
+    return formatter.SetIndentParensExpression(reindent, OwnedTokens);
   }
 }
