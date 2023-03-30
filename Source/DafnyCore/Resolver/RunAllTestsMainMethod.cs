@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using System.Text.RegularExpressions;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class RunAllTestsMainMethod : IRewriter {
 
