@@ -9,6 +9,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 public class IncludeFileTest : ClientBasedLanguageServerTest {
 
+  private static readonly string TestFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "includesBincludesA.dfy");
+  
+  [Fact]
+  public async Task MutuallyRecursiveIncludes() {
+    var documentItem2 = CreateTestDocument(File.ReadAllText(TestFilePath), TestFilePath);
+    client.OpenDocument(documentItem2);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
+    Assert.Empty(verificationDiagnostics);
+  }
+  
   [Fact]
   public async Task MethodWhosePostConditionFailsAndDependsOnIncludedFile() {
     var temp = (Path.GetTempFileName() + ".dfy").Replace("\\", "/");
