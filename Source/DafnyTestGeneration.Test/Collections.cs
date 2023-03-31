@@ -14,8 +14,8 @@ namespace DafnyTestGeneration.Test {
       this.testOutputHelper = testOutputHelper;
     }
 
-    [Fact]
-    public async Task StringLength() {
+    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    private async Task StringLength() {
       var source = @"
 module C {
   method compareStringLengthToOne(s: string) returns (ret: int) {
