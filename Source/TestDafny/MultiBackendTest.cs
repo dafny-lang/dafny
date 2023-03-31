@@ -18,7 +18,8 @@ public class ForEachCompilerOptions {
   [Option("dafny", HelpText = "The dafny CLI to test with. Defaults to the locally built DafnyDriver project.")]
   public string? DafnyCliPath { get; set; } = null;
 
-  [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
+  [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")] 
+  public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -26,33 +27,42 @@ public class FeaturesOptions {
   [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
-public class TestDafny {
-
+public class MultiBackendTest {
   private static readonly Assembly DafnyAssembly = typeof(Dafny.Dafny).Assembly;
+  private readonly TextReader input;
+  private readonly TextWriter output;
+
+  public MultiBackendTest(TextReader input, TextWriter output) {
+    this.input = input;
+    this.output = output;
+  }
 
   public static int Main(string[] args) {
+    return new MultiBackendTest(Console.In, Console.Out).Start(args);
+  }
+
+  public int Start(IEnumerable<string> args)
+  {
     var result = -1;
-    var parser = new CommandLine.Parser(with => {
+    var parser = new CommandLine.Parser(with =>
+    {
       with.EnableDashDash = true;
       with.HelpWriter = Console.Error;
     });
     var parseResult = parser.ParseArguments<ForEachCompilerOptions, FeaturesOptions>(args);
-    parseResult.WithParsed<ForEachCompilerOptions>(options => {
-      result = ForEachCompiler(options);
-    }).WithParsed<FeaturesOptions>(options => {
-      result = GenerateCompilerTargetSupportTable(options);
-    });
+    parseResult.WithParsed<ForEachCompilerOptions>(options => { result = ForEachCompiler(options); })
+      .WithParsed<FeaturesOptions>(options => { result = GenerateCompilerTargetSupportTable(options); });
 
     return result;
   }
 
-  private static DafnyOptions? ParseDafnyOptions(IEnumerable<string> dafnyArgs) {
-    var dafnyOptions = new DafnyOptions(Console.Out, Console.In);
+  private DafnyOptions? ParseDafnyOptions(IEnumerable<string> dafnyArgs) {
+    var dafnyOptions = new DafnyOptions(output, input);
     var success = dafnyOptions.Parse(dafnyArgs.ToArray());
     return success ? dafnyOptions : null;
   }
 
-  private static int ForEachCompiler(ForEachCompilerOptions options) {
+  private int ForEachCompiler(ForEachCompilerOptions options) {
     var dafnyOptions = ParseDafnyOptions(options.OtherArgs);
     if (dafnyOptions == null) {
       return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
@@ -69,14 +79,14 @@ public class TestDafny {
       options.TestFile!
     };
 
-    Console.Out.WriteLine("Verifying...");
+    output.WriteLine("Verifying...");
 
-    var (exitCode, output, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     if (exitCode != 0) {
-      Console.Out.WriteLine("Verification failed. Output:");
-      Console.Out.WriteLine(output);
-      Console.Out.WriteLine("Error:");
-      Console.Out.WriteLine(error);
+      output.WriteLine("Verification failed. Output:");
+      output.WriteLine(outputString);
+      output.WriteLine("Error:");
+      output.WriteLine(error);
       return exitCode;
     }
 
@@ -97,7 +107,7 @@ public class TestDafny {
     }
 
     if (success) {
-      Console.Out.WriteLine(
+      output.WriteLine(
         $"All executions were successful and matched the expected output (or reported errors for known unsupported features)!");
       return 0;
     } else {
@@ -105,8 +115,8 @@ public class TestDafny {
     }
   }
 
-  private static int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
-    Console.Out.WriteLine($"Executing on {backend.TargetLanguage}...");
+  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
+    output.WriteLine($"Executing on {backend.TargetLanguage}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
       options.TestFile!,
       // Here we can pass /noVerify to save time since we already verified the program. 
@@ -118,26 +128,26 @@ public class TestDafny {
     };
 
 
-    var (exitCode, output, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     if (exitCode == 0) {
-      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, output);
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
       if (diffMessage == null) {
         return 0;
       }
 
-      Console.Out.WriteLine(diffMessage);
+      output.WriteLine(diffMessage);
       return 1;
     }
 
     // If we hit errors, check for known unsupported features for this compilation target
-    if (error == "" && OnlyUnsupportedFeaturesErrors(backend, output)) {
+    if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
       return 0;
     }
 
-    Console.Out.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
-    Console.Out.WriteLine(output);
-    Console.Out.WriteLine("Error:");
-    Console.Out.WriteLine(error);
+    output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
+    output.WriteLine(outputString);
+    output.WriteLine("Error:");
+    output.WriteLine(error);
     return exitCode;
   }
 
@@ -204,28 +214,28 @@ public class TestDafny {
       $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 
-  private static int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
+  private int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
     var dafnyOptions = ParseDafnyOptions(featuresOptions.OtherArgs);
     if (dafnyOptions == null) {
       return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
     }
 
     // Header
-    Console.Out.Write("| Feature |");
+    output.Write("| Feature |");
     var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers(dafnyOptions)).ToList();
     foreach (var compiler in allCompilers) {
-      Console.Out.Write($" {compiler.TargetLanguage} |");
+      output.Write($" {compiler.TargetLanguage} |");
     }
 
-    Console.Out.WriteLine();
+    output.WriteLine();
 
     // Horizontal rule ("|----|---|...")
-    Console.Out.Write("|-|");
+    output.Write("|-|");
     foreach (var _ in allCompilers) {
-      Console.Out.Write($"-|");
+      output.Write($"-|");
     }
 
-    Console.Out.WriteLine();
+    output.WriteLine();
 
     var footnotes = new StringBuilder();
     foreach (var feature in Enum.GetValues(typeof(Feature)).Cast<Feature>()) {
@@ -237,18 +247,18 @@ public class TestDafny {
         footnotes.AppendLine();
       }
 
-      Console.Out.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
+      output.Write($"| [{description.Description}](#{description.ReferenceManualSection}){footnoteLink} |");
       foreach (var compiler in allCompilers) {
         var supported = !compiler.UnsupportedFeatures.Contains(feature);
         var cell = supported ? " X " : "";
-        Console.Out.Write($" {cell} |");
+        output.Write($" {cell} |");
       }
 
-      Console.Out.WriteLine();
+      output.WriteLine();
     }
 
-    Console.Out.WriteLine();
-    Console.Out.WriteLine(footnotes);
+    output.WriteLine();
+    output.WriteLine(footnotes);
 
     return 0;
   }
