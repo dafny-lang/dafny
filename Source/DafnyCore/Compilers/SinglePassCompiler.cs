@@ -5328,18 +5328,21 @@ namespace Microsoft.Dafny.Compilers {
       IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false,
       bool isSubfiltering = false) {
       if (!boundVarType.Equals(collectionElementType, true) &&
-          boundVarType.NormalizeExpand(true) is UserDefinedType {
+          boundVarType.NormalizeExpand(true) is UserDefinedType
+          {
             TypeArgs: var typeArgs,
             ResolvedClass:
-            SubsetTypeDecl {
+            SubsetTypeDecl
+            {
               TypeArgs: var typeParametersArgs,
               Var: var variable,
               Constraint: var constraint
             }
           }) {
-        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType {
-          ResolvedClass: SubsetTypeDecl
-        } normalizedVariableType) {
+        if (variable.Type.NormalizeExpandKeepConstraints() is UserDefinedType
+          {
+            ResolvedClass: SubsetTypeDecl
+          } normalizedVariableType) {
           wr = MaybeInjectSubsetConstraint(boundVar, normalizedVariableType, collectionElementType,
               inLetExprBody, tok, wr, isReturning, elseReturnValue, true);
         }
