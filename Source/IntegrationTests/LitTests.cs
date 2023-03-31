@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.IntegrationTest;
+using TestDafny;
 using Xunit;
 using Xunit.Abstractions;
 using XUnitExtensions;
@@ -17,7 +18,7 @@ namespace IntegrationTests {
   public class LitTests {
 
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
-    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
+    private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
     private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
@@ -87,7 +88,8 @@ namespace IntegrationTests {
               config)
         }, {
           "%testDafnyForEachCompiler", (args, config) => // TODO
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
+            new MultiBackendLitCommand(args, config)
+            //MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
         }, {
           "%server", (args, config) => // TODO
             MainMethodLitCommand.Parse(DafnyServerAssembly, args, config)
@@ -182,6 +184,22 @@ namespace IntegrationTests {
       outputWriter ??= TextWriter.Null;
       errorWriter ??= TextWriter.Null;
       var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
+      return (exitCode, "", "");
+    }
+  }
+  
+  class MultiBackendLitCommand : ILitCommand {
+    private readonly string[] arguments;
+
+    public MultiBackendLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
+      this.arguments = arguments.ToArray();
+    }
+
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+      TextWriter? errorWriter) {
+      outputWriter ??= TextWriter.Null;
+      inputReader ??= TextReader.Null;
+      var exitCode = new MultiBackendTest(inputReader, new WriterFromOutputHelper(outputHelper)).Start(arguments.Prepend("for-each-compiler"));
       return (exitCode, "", "");
     }
   }
