@@ -1,11 +1,18 @@
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
   public class Collections {
+    private readonly ITestOutputHelper testOutputHelper;
+
+    public Collections(ITestOutputHelper testOutputHelper) {
+      this.testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public async Task StringLength() {
@@ -39,7 +46,7 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    //[Fact] // TODO: Make this test robust to re-enable it (https://github.com/dafny-lang/dafny/issues/3828)
+    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
     private async Task SeqOfObjects() {
       var source = @"
 module SimpleTest {
@@ -70,7 +77,14 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count); // This fails randomly on Windows
+      if (methods.Count != 3) { // This sometimes occurs on Windows
+        testOutputHelper.WriteLine("methods.Count != 3, printing methods");
+        foreach (var method in methods) {
+          testOutputHelper.WriteLine(method.ToString());
+        }
+      }
+
+      Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName ==
         "SimpleTest.compareStringToSeqOfChars"));
