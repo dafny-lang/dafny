@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -62,28 +63,41 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     TextWriter outputWriter, 
     TextWriter errorWriter,
     string errorMessage = null) {
-    return StartProcess(psi, outputWriter, errorWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorMessage) : -1;
+    return StartProcess(psi, outputWriter) is { } process ?
+      WaitForExit(process, outputWriter, errorWriter, errorMessage) : -1;
   }
 
-  public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
+  public int WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
+
+    var errorProcessing = Task.Run(() => {
+      PassthroughBuffer(process.StandardError, Console.Error);
+    });
+    PassthroughBuffer(process.StandardOutput, outputWriter);
     process.WaitForExit();
     if (process.ExitCode != 0 && errorMessage != null) {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
+
+    errorProcessing.Wait();
     return process.ExitCode;
   }
 
-  public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter, TextWriter errorWriter) {
+
+  // We read character by character because we did not find a way to ensure
+  // final newlines are kept when reading line by line
+  protected static void PassthroughBuffer(TextReader input, TextWriter output) {
+    int current;
+    while ((current = input.Read()) != -1) {
+      output.Write((char)current);
+    }
+  }
+  
+  public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
     string additionalInfo = "";
 
     try {
       psi.RedirectStandardError = true;
       if (Process.Start(psi) is { } process) {
-        var output = process.StandardOutput.ReadToEnd();
-        var error = process.StandardError.ReadToEnd();
-        outputWriter.Write(output);
-        errorWriter.Write(error);
         return process;
       }
     } catch (System.ComponentModel.Win32Exception e) {

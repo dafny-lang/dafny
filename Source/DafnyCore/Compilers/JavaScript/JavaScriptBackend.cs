@@ -89,15 +89,6 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
-  // We read character by character because we did not find a way to ensure
-  // final newlines are kept when reading line by line
-  private static void PassthroughBuffer(TextReader input, TextWriter output) {
-    int current;
-    while ((current = input.Read()) != -1) {
-      output.Write((char)current);
-    }
-  }
-
   public JavaScriptBackend(DafnyOptions options) : base(options) {
   }
 }
