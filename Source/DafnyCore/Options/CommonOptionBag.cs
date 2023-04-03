@@ -149,6 +149,20 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
+  public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
+    @"
+false - Don't print type-inference debug information.
+true - Print type-inference debug information.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> NewTypeInferenceDebug = new("--type-system-debug", () => false,
+    @"
+false - Don't print debug information for the new type system.
+true - Print debug information for the new type system.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
   };

@@ -72,6 +72,12 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
+0 (default) - Don't print type-inference debug information.
+1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.NewTypeInferenceDebug, ParseBoolean, "Language feature selection", "ntitrace", @"
+0 (default) - Don't print debug information for the new type system.
+1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
@@ -247,8 +253,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
-    public bool TypeInferenceDebug = false;
-    public bool NewTypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public List<string> FoldersToFormat { get; } = new();
@@ -532,14 +536,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
             return true;
           }
-
-        case "titrace":
-          TypeInferenceDebug = true;
-          return true;
-
-        case "ntitrace":
-          NewTypeInferenceDebug = true;
-          return true;
 
         case "induction":
           ps.GetIntArgument(ref Induction, 5);
@@ -1231,12 +1227,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /pmtrace
     Print pattern-match compiler debug info.
-
-/titrace
-    Print type-inference debug info.
-
-/ntitrace
-    Print type-inference debug info for the new type inference.
 
 /printTooltips
     Dump additional positional information (displayed as mouse-over
