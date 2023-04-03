@@ -144,7 +144,7 @@ public class CsharpBackend : ExecutableBackend {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) == ".dll") {
-        AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(otherFileName));
+        File.Copy(otherFileName, Path.Combine(Path.GetDirectoryName(crx.CompiledAssembly.Location)!, Path.GetFileName(otherFileName)));
       }
     }
 

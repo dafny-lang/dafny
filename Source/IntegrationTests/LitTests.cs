@@ -186,6 +186,10 @@ namespace IntegrationTests {
       var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
       return (exitCode, "", "");
     }
+
+    public override string ToString() {
+      return $"dafny {string.Join(" ", arguments)}";
+    }
   }
   
   class MultiBackendLitCommand : ILitCommand {
