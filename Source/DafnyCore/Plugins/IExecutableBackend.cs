@@ -151,6 +151,8 @@ public abstract class IExecutableBackend {
   ///
   /// Returns <c>true</c> on success, <c>false</c> on error. Any errors are output to <c>outputWriter</c>.
   /// </summary>
-  public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter);
+  public abstract bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+    string pathsFilename,
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter);
 }

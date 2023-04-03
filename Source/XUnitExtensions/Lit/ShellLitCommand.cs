@@ -18,7 +18,8 @@ namespace XUnitExtensions.Lit {
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+      TextWriter? outputWriter, TextWriter? errorWriter) {
       using var process = new Process();
 
       process.StartInfo.FileName = shellCommand;

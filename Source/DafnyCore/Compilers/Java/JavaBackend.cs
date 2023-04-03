@@ -74,7 +74,7 @@ public class JavaBackend : ExecutableBackend {
     var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-    if (0 != RunProcess(compileProcess, outputWriter, "Error while compiling Java files.")) {
+    if (0 != RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
       return false;
     }
 
@@ -118,18 +118,20 @@ public class JavaBackend : ExecutableBackend {
         : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
-    return 0 == RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);
+    return 0 == RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename,
-   ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+    string targetFilename, /*?*/
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar"); // Must match that in CompileTargetProgram
     var psi = PrepareProcessStartInfo("java",
       new List<string> { "-Dfile.encoding=UTF-8", "-jar", jarPath }
         .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   private string GetClassPath(string targetFilename) {

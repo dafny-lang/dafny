@@ -22,7 +22,8 @@ public class GoBackend : ExecutableBackend {
     return new GoCompiler(Options, Reporter);
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,
+    string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     compilationResult = null;
     if (runAfterCompile) {
@@ -33,18 +34,21 @@ public class GoBackend : ExecutableBackend {
       return true;
     } else {
       // compile now
-      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, callToMain != null, run: false);
+      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, 
+        outputWriter, outputWriter, callToMain != null, run: false);
     }
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
-    return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, hasMain: true, run: true);
+    return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, errorWriter, hasMain: true, run: true);
   }
 
-  private bool SendToNewGoProcess(string dafnyProgramName, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    TextWriter outputWriter, bool hasMain, bool run) {
+  private bool SendToNewGoProcess(string dafnyProgramName, string targetFilename,
+    ReadOnlyCollection<string> otherFileNames,
+    TextWriter outputWriter, TextWriter errorWriter, bool hasMain, bool run) {
     Contract.Requires(targetFilename != null);
 
     foreach (var otherFileName in otherFileNames) {
@@ -110,7 +114,7 @@ public class GoBackend : ExecutableBackend {
     // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
     psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   static string GoPath(string filename) {

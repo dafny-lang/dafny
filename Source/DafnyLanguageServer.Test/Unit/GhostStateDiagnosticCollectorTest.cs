@@ -31,7 +31,7 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
-    var options = new DafnyOptions(new WriterFromOutputHelper(output), TextReader.Null);
+    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,

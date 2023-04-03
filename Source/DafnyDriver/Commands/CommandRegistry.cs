@@ -70,7 +70,7 @@ public static class CommandRegistry {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     var console = new WritersConsole(outputWriter, errorWriter);
     var wasInvoked = false;
-    var dafnyOptions = new DafnyOptions(outputWriter, inputReader);
+    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
     var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
@@ -103,11 +103,11 @@ public static class CommandRegistry {
         Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
         if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !System.IO.File.Exists(first) && first.IndexOf('.') == -1) {
-          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.Writer,
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
         }
-        var oldOptions = new DafnyOptions(outputWriter, inputReader);
+        var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
         }

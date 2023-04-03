@@ -137,8 +137,9 @@ public class CsharpBackend : ExecutableBackend {
     public Assembly CompiledAssembly;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+    string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
     var crx = (CSharpCompilationResult)compilationResult;
 
@@ -152,7 +153,7 @@ public class CsharpBackend : ExecutableBackend {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
-    return RunProcess(psi, outputWriter) == 0;
+    return RunProcess(psi, outputWriter, errorWriter) == 0;
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {

@@ -41,8 +41,9 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
     return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
   }
@@ -76,7 +77,7 @@ public class JavaScriptBackend : ExecutableBackend {
         // TODO fix.
         PassthroughBuffer(nodeProcess.StandardError, Console.Error);
       });
-      PassthroughBuffer(nodeProcess.StandardOutput, Options.Writer);
+      PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
       nodeProcess.WaitForExit();
 #pragma warning disable VSTHRD002
       errorProcessing.Wait();

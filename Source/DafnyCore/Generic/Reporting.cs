@@ -191,7 +191,7 @@ namespace Microsoft.Dafny {
         msg = msg.Replace("\n", "\n ");
 
         ConsoleColor previousColor = Console.ForegroundColor;
-        if (Options.Writer == Console.Out) {
+        if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = ColorForLevel(level);
         }
         var errorLine = ErrorToString(level, tok, msg);
@@ -212,9 +212,9 @@ namespace Microsoft.Dafny {
             errorLine += "\n" + info;
           }
         }
-        Options.Writer.WriteLine(errorLine);
+        Options.OutputWriter.WriteLine(errorLine);
 
-        if (Options.Writer == Console.Out) {
+        if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = previousColor;
         }
         return true;

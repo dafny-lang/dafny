@@ -58,8 +58,11 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return psi;
   }
 
-  public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
-    return StartProcess(psi, outputWriter) is { } process ?
+  public int RunProcess(ProcessStartInfo psi, 
+    TextWriter outputWriter, 
+    TextWriter errorWriter,
+    string errorMessage = null) {
+    return StartProcess(psi, outputWriter, errorWriter) is { } process ?
       WaitForExit(process, outputWriter, errorMessage) : -1;
   }
 
@@ -71,13 +74,16 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return process.ExitCode;
   }
 
-  public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
+  public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter, TextWriter errorWriter) {
     string additionalInfo = "";
 
     try {
+      psi.RedirectStandardError = true;
       if (Process.Start(psi) is { } process) {
         var output = process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd();
         outputWriter.Write(output);
+        errorWriter.Write(error);
         return process;
       }
     } catch (System.ComponentModel.Win32Exception e) {
@@ -103,8 +109,9 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return true;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+    string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);

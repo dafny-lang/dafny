@@ -179,7 +179,8 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+      TextWriter? outputWriter,
       TextWriter? errorWriter) {
       outputWriter ??= TextWriter.Null;
       errorWriter ??= TextWriter.Null;
@@ -199,11 +200,13 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+      TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      outputWriter ??= TextWriter.Null;
+      outputWriter ??= new WriterFromOutputHelper(outputHelper);
+      errorWriter ??= new WriterFromOutputHelper(outputHelper);
       inputReader ??= TextReader.Null;
-      var exitCode = new MultiBackendTest(inputReader, new WriterFromOutputHelper(outputHelper)).Start(arguments.Prepend("for-each-compiler"));
+      var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
       return (exitCode, "", "");
     }
   }

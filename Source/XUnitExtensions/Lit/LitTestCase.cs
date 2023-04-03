@@ -61,7 +61,7 @@ namespace XUnitExtensions.Lit {
       this.expectFailure = expectFailure;
     }
 
-    public void Execute(ITestOutputHelper? outputHelper) {
+    public void Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
@@ -71,7 +71,7 @@ namespace XUnitExtensions.Lit {
         string output;
         string error;
         try {
-          outputHelper?.WriteLine($"Executing command: {command}");
+          outputHelper.WriteLine($"Executing command: {command}");
           (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);

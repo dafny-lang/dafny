@@ -77,12 +77,13 @@ public class PythonBackend : ExecutableBackend {
     return true;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, /*?*/
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {

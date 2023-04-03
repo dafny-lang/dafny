@@ -483,11 +483,11 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        program.Options.Writer.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
         foreach (var callee in vertex.Successors) {
-          program.Options.Writer.Write("{0} ", callee.N.SanitizedName);
+          program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
         }
-        program.Options.Writer.Write("\n");
+        program.Options.OutputWriter.Write("\n");
       }
     }
 
@@ -581,9 +581,9 @@ namespace Microsoft.Dafny {
       }
 
       // Print out the results, with some nice formatting
-      program.Options.Writer.WriteLine("");
-      program.Options.Writer.WriteLine("Statistics");
-      program.Options.Writer.WriteLine("----------");
+      program.Options.OutputWriter.WriteLine("");
+      program.Options.OutputWriter.WriteLine("Statistics");
+      program.Options.OutputWriter.WriteLine("----------");
 
       int max_key_length = 0;
       foreach (var key in stats.Keys) {
@@ -594,7 +594,7 @@ namespace Microsoft.Dafny {
 
       foreach (var keypair in stats) {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
-        program.Options.Writer.WriteLine("{0} {1,4}", keyString, keypair.Value);
+        program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
   }
@@ -628,17 +628,17 @@ namespace Microsoft.Dafny {
     public void PrintMap(DafnyOptions options) {
       SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
-        options.Writer.Write(target);
+        options.OutputWriter.Write(target);
         foreach (string dependency in dependencies[target]) {
-          options.Writer.Write(";" + dependency);
+          options.OutputWriter.Write(";" + dependency);
           if (!dependencies.ContainsKey(dependency)) {
             leaves.Add(dependency);
           }
         }
-        options.Writer.WriteLine();
+        options.OutputWriter.WriteLine();
       }
       foreach (string leaf in leaves) {
-        options.Writer.WriteLine(leaf);
+        options.OutputWriter.WriteLine(leaf);
       }
     }
   }

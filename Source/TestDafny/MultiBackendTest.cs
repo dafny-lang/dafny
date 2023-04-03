@@ -29,14 +29,16 @@ public class MultiBackendTest {
   private static readonly Assembly DafnyAssembly = typeof(Dafny.Dafny).Assembly;
   private readonly TextReader input;
   private readonly TextWriter output;
+  private readonly TextWriter errorWriter;
 
-  public MultiBackendTest(TextReader input, TextWriter output) {
+  public MultiBackendTest(TextReader input, TextWriter output, TextWriter errorWriter) {
     this.input = input;
     this.output = output;
+    this.errorWriter = errorWriter;
   }
 
   public static int Main(string[] args) {
-    return new MultiBackendTest(Console.In, Console.Out).Start(args);
+    return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args);
   }
 
   public int Start(IEnumerable<string> args)
@@ -55,7 +57,7 @@ public class MultiBackendTest {
   }
 
   private DafnyOptions? ParseDafnyOptions(IEnumerable<string> dafnyArgs) {
-    var dafnyOptions = new DafnyOptions(output, input);
+    var dafnyOptions = new DafnyOptions(input, output, errorWriter);
     var success = dafnyOptions.Parse(dafnyArgs.ToArray());
     return success ? dafnyOptions : null;
   }

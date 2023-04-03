@@ -12,7 +12,8 @@ public class ExitCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+  public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    TextWriter? outputWriter, TextWriter? errorWriter) {
     var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
     if (exitCode == expectedExitCode) {
       return (0, output, error);

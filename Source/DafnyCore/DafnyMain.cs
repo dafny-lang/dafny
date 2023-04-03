@@ -166,7 +166,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var tw = filename == "-" ? program.Options.Writer : new StreamWriter(filename);
+      var tw = filename == "-" ? program.Options.OutputWriter : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgram(program, afterResolver);
     }
@@ -199,7 +199,7 @@ namespace Microsoft.Dafny {
           options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (options.Trace) {
-          options.Writer.WriteLine("Parsing " + dafnyFile.FilePath);
+          options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
@@ -349,7 +349,7 @@ to also include a directory containing the `z3` executable.
 
       var proverPath = options.ProverOptions.Find(o => o.StartsWith("PROVER_PATH="));
       if (proverPath is null && options.Verify) {
-        options.Writer.WriteLine(z3NotFoundMessage);
+        options.OutputWriter.WriteLine(z3NotFoundMessage);
         return (PipelineOutcome.FatalError, new PipelineStatistics());
       }
 
@@ -409,10 +409,10 @@ to also include a directory containing the `z3` executable.
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           engine.PrintBplFile(bplFileName, program, false, false, options.PrettyPrint);
-          await options.Writer.WriteLineAsync();
-          await options.Writer.WriteLineAsync(
+          await options.OutputWriter.WriteLineAsync();
+          await options.OutputWriter.WriteLineAsync(
             "*** Encountered internal translation error - re-running Boogie to get better debug information");
-          await options.Writer.WriteLineAsync();
+          await options.OutputWriter.WriteLineAsync();
 
           var /*!*/ fileNames = new List<string /*!*/> { bplFileName };
           var reparsedProgram = engine.ParseBoogieProgram(fileNames, true);

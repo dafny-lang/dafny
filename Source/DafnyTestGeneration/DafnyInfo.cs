@@ -384,7 +384,7 @@ namespace DafnyTestGeneration {
         if (witness != null) {
           info.witnessForType[newTypeName] = witness;
           if (info.Options.TestGenOptions.Verbose) {
-            info.Options.Writer.WriteLine($"// Values of type {newTypeName} will be " +
+            info.Options.OutputWriter.WriteLine($"// Values of type {newTypeName} will be " +
                                    $"assigned the default value of " +
                                    $"{Printer.ExprToString(info.Options, info.witnessForType[newTypeName])}");
           }

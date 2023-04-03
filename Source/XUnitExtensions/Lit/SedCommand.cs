@@ -38,7 +38,8 @@ namespace XUnitExtensions.Lit {
       return new SedCommand(regexp, replaceBy, file);
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+      TextWriter? outputWriter, TextWriter? errorWriter) {
       var fileContent = File.ReadAllText(file);
       try {
         var stdOutput = Regex.Replace(fileContent, "(?m)" + regexp, replaceBy);

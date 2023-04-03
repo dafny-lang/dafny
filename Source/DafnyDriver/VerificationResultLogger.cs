@@ -58,12 +58,12 @@ namespace Microsoft.Dafny {
           var logger = new TrxLogger();
           logger.Initialize(events, parameters);
         } else if (loggerName == "csv") {
-          var csvLogger = new CSVTestLogger(options.Writer);
+          var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger(options.Writer);
+          var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
           return;

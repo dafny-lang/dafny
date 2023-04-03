@@ -130,7 +130,7 @@ public class Auditor : IRewriter {
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
-        Options.Writer.Write(text);
+        Options.OutputWriter.Write(text);
       } else {
         if (compareReport) {
           try {

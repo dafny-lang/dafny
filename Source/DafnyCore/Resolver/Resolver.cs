@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny {
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
-          var wr = Options.Writer;
+          var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);

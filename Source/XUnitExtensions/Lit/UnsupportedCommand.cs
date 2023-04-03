@@ -19,7 +19,8 @@ namespace XUnitExtensions.Lit {
       Features = features;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+      TextWriter? outputWriter, TextWriter? errorWriter) {
       return (0, "", "");
     }
   }

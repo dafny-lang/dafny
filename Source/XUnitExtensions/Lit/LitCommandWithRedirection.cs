@@ -77,10 +77,12 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inReader, TextWriter? outWriter, TextWriter? errWriter) {
+    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inReader, TextWriter? outWriter,
+      TextWriter? errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : errWriter;
+      errorWriter ??= new WriterFromOutputHelper(outputHelper);
       var result = command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       inputReader?.Close();
       outputWriter?.Close();
@@ -114,5 +116,27 @@ namespace XUnitExtensions.Lit {
       }
       return builder.ToString();
     }
+  }
+}
+
+public class WriterFromOutputHelper : TextWriter {
+  private readonly ITestOutputHelper output;
+
+  public WriterFromOutputHelper(ITestOutputHelper output) {
+    this.output = output;
+  }
+
+  public override void Write(char value) {
+
+  }
+
+  public override Encoding Encoding => Encoding.Default;
+
+  public override void WriteLine(string? value) {
+    output.WriteLine(value);
+  }
+
+  public override void WriteLine(string format, params object?[] arg) {
+    output.WriteLine(format, arg);
   }
 }

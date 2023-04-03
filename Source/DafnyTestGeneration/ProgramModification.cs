@@ -70,7 +70,7 @@ namespace DafnyTestGeneration {
     /// options.Parse() on a new DafnyObject.
     /// </summary>
     private static DafnyOptions SetupOptions(DafnyOptions original, string procedure) {
-      var options = DafnyOptions.Create(original.Writer);
+      var options = DafnyOptions.Create(original.OutputWriter);
       options.Parse(new[] { "/proc:" + procedure });
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
@@ -129,7 +129,7 @@ namespace DafnyTestGeneration {
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
         if (Options.TestGenOptions.Verbose) {
-          await options.Writer.WriteLineAsync(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -146,22 +146,22 @@ namespace DafnyTestGeneration {
           coversBlocks.Add(blockId);
           if (Options.TestGenOptions.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
-            await options.Writer.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
+            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
           }
         }
       }
       if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
-          await options.Writer.WriteLineAsync(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because the verifier proved that no inputs could cause this block to be visited.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
-          await options.Writer.WriteLineAsync(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because there is no enhanced error trace. This can be caused " +
             "by a bug in boogie counterexample model parsing.");
         } else {
-          await options.Writer.WriteLineAsync(
+          await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -171,7 +171,7 @@ namespace DafnyTestGeneration {
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.TestGenOptions.Verbose) {
-        await dafnyInfo.Options.Writer.WriteLineAsync(
+        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
       var log = await GetCounterExampleLog(cache);
@@ -189,7 +189,7 @@ namespace DafnyTestGeneration {
         return testMethod;
       }
       if (Options.TestGenOptions.Verbose) {
-        await dafnyInfo.Options.Writer.WriteLineAsync(
+        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}. This happens when test generation tool " +
           $"does not know how to differentiate between counterexamples, " +
