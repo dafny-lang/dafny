@@ -716,7 +716,7 @@ public abstract class Expression : TokenNode {
       TypeApplication_JustFunction = new List<Type>()
     };
 
-    // Wrap the resolved call in the usual unresolved structure, in case the expression in cloned and re-resolved.
+    // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
     var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
