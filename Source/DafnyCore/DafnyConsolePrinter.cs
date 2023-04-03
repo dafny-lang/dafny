@@ -49,7 +49,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
     string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
-    tw.WriteLine($"{lineNumber      } | {line}");
+    tw.WriteLine($"{lineNumber} | {line}");
     tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
     tw.WriteLine("");
   }

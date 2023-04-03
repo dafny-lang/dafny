@@ -1,7 +1,7 @@
 using System.IO;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class ExitCommand : ILitCommand {
   private readonly int expectedExitCode;

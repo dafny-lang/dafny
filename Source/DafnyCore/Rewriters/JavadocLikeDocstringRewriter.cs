@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 // To use it in CLI or Dafny language server, use the option
 // --javadoclike-docstring-plugin
