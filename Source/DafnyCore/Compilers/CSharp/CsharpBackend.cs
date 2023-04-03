@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -150,7 +151,6 @@ public class CsharpBackend : ExecutableBackend {
     if (crx.CompiledAssembly == null) {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
-
     var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
     return RunProcess(psi, outputWriter) == 0;
   }

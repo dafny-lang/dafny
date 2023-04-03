@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.CommandLine.Parsing;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -14,9 +15,6 @@ public class ForEachCompilerOptions {
 
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
   public string? TestFile { get; set; } = null;
-
-  [Option("dafny", HelpText = "The dafny CLI to test with. Defaults to the locally built DafnyDriver project.")]
-  public string? DafnyCliPath { get; set; } = null;
 
   [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")] 
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
@@ -63,10 +61,9 @@ public class MultiBackendTest {
   }
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
-    var dafnyOptions = ParseDafnyOptions(options.OtherArgs);
-    if (dafnyOptions == null) {
-      return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
-    }
+    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null, 
+      new string[] { "verify", options.TestFile!}.Concat(options.OtherArgs).ToArray());
+    var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
@@ -74,14 +71,14 @@ public class MultiBackendTest {
     // but this was never meaningful and only added maintenance burden.
     // Here we only ensure that the exit code is 0.
 
-    var dafnyArgs = new List<string>(options.OtherArgs) {
-      $"/compile:0",
+    var dafnyArgs = new List<string>() {
+      $"verify",
       options.TestFile!
-    };
+    }.Concat(options.OtherArgs).ToArray();
 
     output.WriteLine("Verifying...");
 
-    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(dafnyArgs);
     if (exitCode != 0) {
       output.WriteLine("Verification failed. Output:");
       output.WriteLine(outputString);
@@ -117,18 +114,15 @@ public class MultiBackendTest {
 
   private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
     output.WriteLine($"Executing on {backend.TargetLanguage}...");
-    var dafnyArgs = new List<string>(options.OtherArgs) {
+    var dafnyArgs = new List<string>() {
+      "run",
+      "--no-verify",
+      $"--target:{backend.TargetId}",
       options.TestFile!,
-      // Here we can pass /noVerify to save time since we already verified the program. 
-      "/noVerify",
-      // /noVerify is interpreted pessimistically as "did not get verification success",
-      // so we have to force compiling and running despite this.
-      "/compile:4",
-      $"/compileTarget:{backend.TargetId}"
-    };
+    }.Concat(options.OtherArgs);
 
-
-    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(dafnyArgs);
+    
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
       if (diffMessage == null) {
@@ -151,16 +145,14 @@ public class MultiBackendTest {
     return exitCode;
   }
 
-  private static (int, string, string) RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.DefaultArgumentsForTesting);
-    ILitCommand command;
-    if (dafnyCLIPath != null) {
-      command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
-    } else {
-      var dotnetArguments = new[] { DafnyAssembly.Location }.Concat(argumentsWithDefaults);
-      command = new ShellLitCommand("dotnet", dotnetArguments, DafnyDriver.ReferencedEnvironmentVariables);
-    }
-    return command.Execute(null, null, null, null);
+  private static (int, string, string) RunDafny(IEnumerable<string> arguments) {
+    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
+    var outputWriter = new StringWriter();
+    var errorWriter = new StringWriter();
+    var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var outputString = outputWriter.ToString();
+    var error = errorWriter.ToString();
+    return (exitCode, outputString, error);
   }
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {

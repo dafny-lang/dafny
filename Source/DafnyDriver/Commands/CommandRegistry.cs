@@ -15,13 +15,13 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-internal interface ParseArgumentResult {
+public interface ParseArgumentResult {
 }
 
-record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
+public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
 record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
 
-static class CommandRegistry {
+public static class CommandRegistry {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly HashSet<ICommandSpec> Commands = new();
 

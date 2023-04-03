@@ -112,7 +112,7 @@ public class JavaBackend : ExecutableBackend {
 
 
   public bool CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
-    System.IO.Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
+    Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
     var args = entryPointName == null ? // If null, then no entry point is added
         new List<string> { "cf", jarPath }
         : new List<string> { "cfe", jarPath, entryPointName };
