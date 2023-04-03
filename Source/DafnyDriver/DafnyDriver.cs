@@ -400,7 +400,7 @@ namespace Microsoft.Dafny {
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       string err;
       if (Options.Format) {
-        return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName);
+        return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName, options.ErrorWriter);
       }
 
       err = Dafny.Main.ParseCheck(Options.Input, dafnyFiles, programName, reporter, out Program dafnyProgram);
@@ -441,7 +441,7 @@ namespace Microsoft.Dafny {
     }
 
     private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
-      ErrorReporter reporter, string programName) {
+      ErrorReporter reporter, string programName, TextWriter errorWriter) {
       var exitValue = ExitValue.SUCCESS;
       Contract.Assert(dafnyFiles.Count > 0 || dafnyFolders.Count > 0);
       dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
@@ -459,7 +459,7 @@ namespace Microsoft.Dafny {
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
         if (dafnyFile.UseStdin && !doCheck && !doPrint) {
-          Console.Error.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
+          errorWriter.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
           exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;
         }

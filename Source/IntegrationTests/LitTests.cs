@@ -182,7 +182,7 @@ namespace IntegrationTests {
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      outputWriter ??= TextWriter.Null;
+      outputWriter ??= new WriterFromOutputHelper(outputHelper);
       errorWriter ??= TextWriter.Null;
       var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
       return (exitCode, "", "");
