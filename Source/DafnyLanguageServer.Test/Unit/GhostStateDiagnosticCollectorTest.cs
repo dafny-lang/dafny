@@ -11,7 +11,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;

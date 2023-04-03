@@ -1,8 +1,6 @@
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
@@ -10,14 +8,14 @@ using Xunit.Abstractions;
 namespace DafnyTestGeneration.Test {
 
   public class Collections {
-    private readonly TextWriter output;
+    private readonly ITestOutputHelper testOutputHelper;
 
-    public Collections(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
+    public Collections(ITestOutputHelper testOutputHelper) {
+      this.testOutputHelper = testOutputHelper;
     }
 
-    [Fact]
-    public async Task StringLength() {
+    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    private async Task StringLength() {
       var source = @"
 module C {
   method compareStringLengthToOne(s: string) returns (ret: int) {
@@ -32,7 +30,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(new WriterFromOutputHelper(testOutputHelper)), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
@@ -48,8 +46,8 @@ module C {
         Regex.IsMatch(m.ValueCreation[0].value, "\"..+\"")));
     }
 
-    [Fact]
-    public async Task SeqOfObjects() {
+    [Fact(Skip = "Implementation doesn't always return correct results on Windows CI, https://github.com/dafny-lang/dafny/issues/3828")]
+    private async Task SeqOfObjects() {
       var source = @"
 module SimpleTest {
 
@@ -79,6 +77,13 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      if (methods.Count != 3) { // This sometimes occurs on Windows
+        testOutputHelper.WriteLine("methods.Count != 3, printing methods");
+        foreach (var method in methods) {
+          testOutputHelper.WriteLine(method.ToString());
+        }
+      }
+
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName ==

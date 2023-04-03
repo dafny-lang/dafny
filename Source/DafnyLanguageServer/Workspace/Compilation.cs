@@ -320,6 +320,10 @@ public class Compilation {
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
+      case BatchCompleted batchCompleted:
+        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
+          ? PublishedVerificationStatus.Correct
+          : PublishedVerificationStatus.Error;
       default:
         throw new ArgumentOutOfRangeException();
     }

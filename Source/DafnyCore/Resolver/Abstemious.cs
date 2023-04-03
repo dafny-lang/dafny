@@ -1,7 +1,7 @@
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class Abstemious {
   private readonly ErrorReporter reporter;

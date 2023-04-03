@@ -1,1 +1,1 @@
-Formatter consistent between command-line and VSCode
+The formatter now produces the same output whether invoked on the command-line or from VSCode
