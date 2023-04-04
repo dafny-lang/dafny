@@ -1066,7 +1066,7 @@ namespace Microsoft.Dafny {
                 }
 
                 if (f.IsOpaque) {
-                  MaybeCreateRevealableConstant(f);
+                  CreateRevealableConstant(f);
                 }
               }
             }
@@ -1075,7 +1075,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void MaybeCreateRevealableConstant(Function f) {
+    private void CreateRevealableConstant(Function f) {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
@@ -10812,7 +10812,7 @@ namespace Microsoft.Dafny {
     static readonly List<Boolean> Bools = new List<Boolean> { false, true };
 
     public Expr GetOpaqueSeal(Function f) {
-      this.MaybeCreateRevealableConstant(f);
+      this.CreateRevealableConstant(f);
       return this.functionReveals[f];
     }
   }

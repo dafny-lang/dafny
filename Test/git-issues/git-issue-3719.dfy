@@ -1,11 +1,10 @@
 // RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// Function want to verify something about
-opaque function inc(x:nat) : nat { x + 1 }
+opaque function inc(x: nat): nat { x + 1 }
 
-// Intermediatary to force lambda
-predicate CheckThis(p: ()->bool) { p() }
+// Intermediate to force lambda
+predicate CheckThis(p: () -> bool) { p() }
 
 opaque const one: nat := 1
 

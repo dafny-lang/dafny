@@ -6,6 +6,6 @@ ghost opaque function R(i: int): int {
 }
 
 lemma Test() {
-  assert 1 == R(1) by {reveal R(); }
+  assert 1 == R(1) by { reveal R(); }
   assert 1 == R(1);
 }

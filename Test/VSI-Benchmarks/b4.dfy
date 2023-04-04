@@ -136,7 +136,7 @@ class Map<Key(==),Value> {
   }
 
   // Removes key from the domain of M (and does nothing if key wasn't in M to begin with)
-  method Remove(key: Key)
+  method {:rlimit 3000} {:vcs_split_on_every_assert} Remove(key: Key)
     requires Valid()
     modifies Repr
     ensures Valid() && fresh(Repr - old(Repr))
@@ -182,6 +182,10 @@ class Map<Key(==),Value> {
           }
         }
         SpineValidCombine(Spine, head);
+        assert forall n :: n in Spine ==> n.key in M && n.val == M[n.key];
+        assert forall n,n' | n in Spine && n' in Spine  ::
+            (&& (n != n' ==> n.key != n'.key)
+             && (n.next == n'.next ==> n == n'));
       }
     }
   }
