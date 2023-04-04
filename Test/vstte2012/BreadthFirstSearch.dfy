@@ -90,6 +90,7 @@ class BreadthFirstSearch<Vertex(==)>
         (Processed + {v}) + (N + (set w | w in Succ(v) && w !in V)) == R(source, d+1, AllVertices) by { reveal R(); }
       C, Processed := C - {v}, Processed + {v};
       ghost var pathToV := Find(source, v, paths);
+
       if v == dest {
         forall p | IsPath(source, dest, p)
           ensures length(pathToV) <= length(p);
@@ -104,6 +105,7 @@ class BreadthFirstSearch<Vertex(==)>
         }
         return d, pathToV;
       }
+
       // process newly encountered successors
       var newlyEncountered := set w | w in Succ(v) && w !in V;
       assert if C == {} then
