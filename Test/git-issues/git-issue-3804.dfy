@@ -1,13 +1,12 @@
-// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P(x: int)
 
-function {:rlimit 1000} {:vcs_split_on_every_assert} AssertNotProved(): (i: int)
+function FirstAssertNotProved(): (i: int)
   ensures P(i)
 {
-  assert rule2: forall i | i % 4 == 0 :: P(i) by {
-    //reveal rule;
+  assert rule2: P(12) by {
   }
   assert P(12) by {
     reveal rule2;
@@ -15,24 +14,21 @@ function {:rlimit 1000} {:vcs_split_on_every_assert} AssertNotProved(): (i: int)
   12
 }
 
-function {:rlimit 1000} {:vcs_split_on_every_assert} BothAssertNotProved(): (i: int)
+function BothAssertNotProved(): (i: int)
   ensures P(i)
 {
-  assert rule2: forall i | i % 4 == 0 :: P(i) by {
-    //reveal rule;
+  assert rule2: P(12) by {
   }
-  assert P(12) by {
-    //reveal rule2;
+  assert P(12) by { // Fails
   }
   12
 }
 
-function {:rlimit 1000} {:vcs_split_on_every_assert} FirstAssertNotProvedBecauseRequiresNotRevealed(): (i: int)
-  requires rule: forall i | i % 2 == 0 :: P(i)
+function FirstAssertNotProvedBecauseRequiresNotRevealed(): (i: int)
+  requires rule: P(12)
   ensures P(i)
 {
-  assert rule2: forall i | i % 4 == 0 :: P(i) by { // Fails
-    //reveal rule;
+  assert rule2: P(12) by {
   }
   assert P(12) by {
     reveal rule2;
@@ -40,11 +36,25 @@ function {:rlimit 1000} {:vcs_split_on_every_assert} FirstAssertNotProvedBecause
   12
 }
 
-function {:rlimit 1000} {:vcs_split_on_every_assert} EverythingVerifies(): (i: int)
+
+
+function SecondAssertNotProvedBecauseAssertNotRevealed(): (i: int)
+  requires rule: P(12)
   ensures P(i)
-  requires rule: forall i | i % 2 == 0 :: P(i)
 {
-  assert rule2: forall i | i % 4 == 0 :: P(i) by {
+  assert rule2: P(12) by {
+    reveal rule;
+  }
+  assert P(12) by {
+  }
+  12
+}
+
+function EverythingVerifies(): (i: int)
+  requires rule: P(12)
+  ensures P(i)
+{
+  assert rule2: P(12) by {
     reveal rule;
   }
   assert P(12) by {

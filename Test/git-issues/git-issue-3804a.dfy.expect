@@ -1,2 +1,3 @@
-
-Dafny program verifier finished with TODO verified, TODO errors
+git-issue-3804a.dfy(10,9): Error: assert label shadows a dominating label
+git-issue-3804a.dfy(13,11): Error: assert label shadows a dominating label
+2 resolution/type errors detected in git-issue-3804a.dfy
