@@ -582,6 +582,25 @@ namespace Microsoft.Dafny {
 
             break;
           }
+        case DatatypeValue value: {
+            DatatypeValue dtv = value;
+            for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
+              var formal = dtv.Ctor.Formals[i];
+              var arg = dtv.Arguments[i];
+              if (!(arg is DefaultValueExpression)) {
+                CheckWellformed(arg, wfOptions, locals, builder, etran);
+              }
+              // Cannot use the datatype's formals, so we substitute the inferred type args:
+              var su = new Dictionary<TypeParameter, Type>();
+              foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
+                su[p.Item1] = p.Item2;
+              }
+              Type ty = formal.Type.Subst(su);
+              CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
+            }
+
+            break;
+          }
         case FunctionCallExpr callExpr: {
             FunctionCallExpr e = callExpr;
             Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
