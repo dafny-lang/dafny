@@ -16,8 +16,9 @@ namespace XUnitExtensions.Lit {
       this.arguments = arguments;
     }
 
-    public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config) {
-      return new MainMethodLitCommand(assembly, arguments.ToArray());
+    public static ILitCommand Parse(Assembly assembly, IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
+      var result = new MainMethodLitCommand(assembly, arguments.ToArray());
+      return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,

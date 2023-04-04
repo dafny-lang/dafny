@@ -30,6 +30,7 @@ method m() returns (rr: Result<int>) {
   assert d.v == 42;
   assert dd.v == 100;
   expect d.v == 42 && dd.v == 100;
+  rr := *;
 }
 
 method mm() returns (rr: Result<int>) {
@@ -45,6 +46,7 @@ method mm() returns (rr: Result<int>) {
   print d[0], " ", dd[0], " ", d != dd, "\n"; // 42 100 true
   assert d[0] == 42 && dd[0] == 100;
   expect d[0] == 42 && dd[0] == 100;
+  rr := *;
 }
 
 method mmm() returns (rr: Result<int>) {
@@ -60,6 +62,7 @@ method mmm() returns (rr: Result<int>) {
   print d[0,0], " ", dd[0,0], " ", d != dd, "\n"; // 42 100 true
   assert d[0,0] == 42 && dd[0,0] == 100;
   expect d[0,0] == 42 && dd[0,0] == 100;
+  rr := *;
 }
 
 class C {

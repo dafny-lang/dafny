@@ -92,7 +92,7 @@ namespace IntegrationTests {
             //MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
         }, {
           "%server", (args, config) => // TODO
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config)
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, false)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -143,7 +143,7 @@ namespace IntegrationTests {
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
           MainMethodLitCommand.Parse(TestDafnyAssembly,
-            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config);
+            new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
         commands["%server"] = (args, config) =>
           new ShellLitCommand(Path.Join(dafnyReleaseDir, "DafnyServer"), args, config.PassthroughEnvironmentVariables);
         commands["%boogie"] = (args, config) =>
@@ -164,7 +164,7 @@ namespace IntegrationTests {
 
     [FileTheory]
     [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*",
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "**/libraries/**/*",
                 "examples/induction-principle-code/*"
               })]
     public void LitTest(string path) {
