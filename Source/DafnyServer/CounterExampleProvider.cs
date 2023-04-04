@@ -12,9 +12,13 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 
 namespace DafnyServer {
-  public class CounterExampleProvider {
+  public sealed class CounterExampleProvider {
     private const int maximumCounterexampleDepth = 5;
-    public const string ModelBvd = "./model.bvd";
+    public readonly string ModelBvd;
+
+    public CounterExampleProvider() {
+      ModelBvd = $"./model{GetHashCode()}.bvd";
+    }
 
     public CounterExample LoadCounterModel(DafnyOptions options) {
       try {
@@ -25,7 +29,7 @@ namespace DafnyServer {
       }
     }
 
-    private static List<DafnyModel> LoadModelFromFile(DafnyOptions options) {
+    private List<DafnyModel> LoadModelFromFile(DafnyOptions options) {
       using var wr = new StreamReader(ModelBvd);
       var output = wr.ReadToEnd();
       var models = ExtractModels(output);

@@ -19,16 +19,17 @@ namespace Microsoft.Dafny {
     private readonly ExecutionEngine engine;
     private string[] args;
 
-    private readonly Dafny.ErrorReporter reporter;
+    private readonly ErrorReporter reporter;
     private Dafny.Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
+    private readonly CounterExampleProvider counterExampleProvider = new();
 
     public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
       this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
-      this.reporter = new Dafny.ConsoleErrorReporter(options);
+      reporter = new Dafny.ConsoleErrorReporter(options);
     }
 
     public bool Verify() {
@@ -103,11 +104,10 @@ namespace Microsoft.Dafny {
 
     public void CounterExample() {
       var listArgs = args.ToList();
-      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
+      listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);
       ServerUtils.ApplyArgs(listArgs.ToArray(), Options);
       try {
         if (Parse() && Resolve() && Translate()) {
-          var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
@@ -121,8 +121,8 @@ namespace Microsoft.Dafny {
     }
 
     private void RemoveExistingModel() {
-      if (File.Exists(CounterExampleProvider.ModelBvd)) {
-        File.Delete(CounterExampleProvider.ModelBvd);
+      if (File.Exists(counterExampleProvider.ModelBvd)) {
+        File.Delete(counterExampleProvider.ModelBvd);
       }
     }
 
