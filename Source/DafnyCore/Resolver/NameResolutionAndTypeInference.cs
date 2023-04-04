@@ -3268,8 +3268,10 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(function.TypeArgs, false, function);
+          DominatingStatementLabels.PushMarker();
           function.Resolve(this);
           allTypeParameters.PopMarker();
+          DominatingStatementLabels.PopMarker();
           if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate } && ec == reporter.Count(ErrorLevel.Error)) {
             allTypeParameters.PushMarker();
             ResolveTypeParameters(prefixPredicate.TypeArgs, false, prefixPredicate);

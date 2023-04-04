@@ -3650,7 +3650,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   .)
   "assert"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( [ IF(IsLabel(!inExprContext))
+  ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>

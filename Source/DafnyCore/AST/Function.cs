@@ -375,9 +375,9 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     resolver.ResolveParameterDefaultValues(Formals, ResolutionContext.FromCodeContext(this));
 
-    foreach (AttributedExpression e in Req) {
-      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
-      Expression r = e.E;
+    foreach (var req in Req) {
+      resolver.ResolveAttributes(req, new ResolutionContext(this, this is TwoStateFunction));
+      Expression r = req.E;
       resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
       Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
@@ -407,10 +407,23 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     resolver.SolveAllTypeConstraints(); // solve type constraints in the specification
 
     if (Body != null) {
+
+      resolver.DominatingStatementLabels.PushMarker();
+      foreach (var req in Req) {
+        if (req.Label != null) {
+          if (resolver.DominatingStatementLabels.Find(req.Label.Name) != null) {
+            resolver.reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
+          } else {
+            var rr = resolver.DominatingStatementLabels.Push(req.Label.Name, req.Label);
+            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+          }
+        }
+      }
       resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
       Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
       resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
       resolver.SolveAllTypeConstraints();
+      resolver.DominatingStatementLabels.PopMarker();
     }
 
     resolver.scope.PushMarker();
