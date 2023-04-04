@@ -10,10 +10,10 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
 
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
 
       var tw = filename == "-" ? program.Options.OutputWriter : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
-      pr.PrintProgram(program, afterResolver);
+      pr.PrintProgramLargeStack(program, afterResolver);
     }
 
     /// <summary>
@@ -89,11 +89,18 @@ namespace Microsoft.Dafny {
       return null; // success
     }
 
+    private static readonly TaskScheduler largeThreadScheduler =
+      CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
+    private static readonly TaskScheduler largeThreadScheduler2 =
+      new ThreadTaskScheduler(0x10000000);
+
+    public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler2);
+    
     public static string Resolve(Program program, ErrorReporter reporter) {
       if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
 
       var r = new Resolver(program);
-      r.ResolveProgram(program);
+      LargeStackFactory.StartNew(() => r.ResolveProgram(program)).Wait();
       MaybePrintProgram(program, reporter.Options.DafnyPrintResolvedFile, true);
 
       if (reporter.ErrorCountUntilResolver != 0) {

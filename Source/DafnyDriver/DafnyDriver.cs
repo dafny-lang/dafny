@@ -26,6 +26,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using System.Threading;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -101,14 +102,13 @@ namespace Microsoft.Dafny {
       return MainWithWriter(Console.Out, Console.Error, Console.In, args);
     }
 
+    // TODO inline
     public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
       string[] args) {
-      int ret = 0;
-      var thread = new System.Threading.Thread(() => { ret = ThreadMain(outputWriter, errorWriter, inputReader, args); },
-        0x10000000); // 256MB stack size to prevent stack overflow
-      thread.Start();
-      thread.Join();
-      return ret;
+      // return ThreadMain(outputWriter, errorWriter, inputReader, args);
+#pragma warning disable VSTHRD002
+      return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
+#pragma warning restore VSTHRD002
     }
 
     public static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
@@ -410,13 +410,14 @@ namespace Microsoft.Dafny {
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck
           && options.DafnyVerify) {
 
-        var boogiePrograms = Translate(engine.Options, dafnyProgram).ToList();
+        var boogiePrograms =
+          await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
         bool compiled;
         try {
-          compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+          compiled = await Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
@@ -712,7 +713,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    public static bool Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
+    public static async Task<bool> Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
                                PipelineOutcome oc, IDictionary<string, PipelineStatistics> moduleStats, bool verified) {
       var options = dafnyProgram.Options;
       var resultFileName = options.DafnyPrintCompiledFile ?? fileName;
@@ -721,15 +722,15 @@ namespace Microsoft.Dafny {
         case PipelineOutcome.VerificationCompleted:
           WriteModuleStats(options, options.OutputWriter, moduleStats);
           if ((options.Compile && verified && !options.UserConstrainedProcsToCheck) || options.ForceCompile) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= options.SpillTargetCode && verified && !options.UserConstrainedProcsToCheck) || 3 <= options.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
         case PipelineOutcome.Done:
           WriteModuleStats(options, options.OutputWriter, moduleStats);
           if (options.ForceCompile || 3 <= options.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, options.ForceCompile);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, options.ForceCompile);
           }
           break;
         default:
@@ -831,7 +832,7 @@ namespace Microsoft.Dafny {
     /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
-    public static bool CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+    public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
@@ -854,7 +855,7 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
-        compiler.Compile(dafnyProgram, output);
+        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
@@ -903,8 +904,8 @@ namespace Microsoft.Dafny {
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.CompileVerbose) {
-            outputWriter.WriteLine("Running...");
-            outputWriter.WriteLine();
+            await outputWriter.WriteLineAsync("Running...");
+            await outputWriter.WriteLineAsync();
           }
 
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, 
@@ -912,7 +913,7 @@ namespace Microsoft.Dafny {
         } else {
           // make sure to give some feedback to the user
           if (options.CompileVerbose) {
-            outputWriter.WriteLine("Program compiled successfully");
+            await outputWriter.WriteLineAsync("Program compiled successfully");
           }
         }
       }

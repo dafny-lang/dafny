@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// </summary>
 public class ThreadTaskScheduler : TaskScheduler {
   private readonly int stackSize;
+  
 
   public ThreadTaskScheduler(int stackSize) {
     Contract.Requires(stackSize >= 0);
@@ -28,10 +29,19 @@ public class ThreadTaskScheduler : TaskScheduler {
 
   protected override void QueueTask(Task task) {
     Thread th = new Thread(TaskMain!, stackSize);
+    th.Name = ThreadNames;
     th.Start(task);
   }
 
+  private string ThreadNames => "stackSize" + stackSize;
+
   protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) {
+    if (taskWasPreviouslyQueued) {
+      return false;
+    }
+    if (Thread.CurrentThread.Name == ThreadNames) {
+      return TryExecuteTask(task);
+    }
     return false;
   }
 

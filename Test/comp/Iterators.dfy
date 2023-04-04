@@ -8,6 +8,8 @@ class C {
     print "x is ", x, "\n";
     Client();
     RegressionClient();
+    r := *;
+    s := *;
   }
 }
 

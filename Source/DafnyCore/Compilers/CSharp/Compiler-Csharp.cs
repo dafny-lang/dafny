@@ -110,7 +110,7 @@ namespace Microsoft.Dafny.Compilers {
       stringWriter.NewLine = Environment.NewLine;
       var oldValue = Options.ShowEnv;
       Options.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
-      new Printer(stringWriter, Options, PrintModes.DllEmbed).PrintProgram(program, true);
+      new Printer(stringWriter, Options, PrintModes.DllEmbed).PrintProgramLargeStack(program, true);
       Options.ShowEnv = oldValue;
       var programString = stringWriter.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
