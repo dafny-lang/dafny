@@ -403,7 +403,7 @@ namespace Microsoft.Dafny {
         return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName, options.ErrorWriter);
       }
 
-      err = Dafny.Main.ParseCheck(Options.Input, dafnyFiles, programName, reporter, out Program dafnyProgram);
+      err = Dafny.DafnyMain.ParseCheck(Options.Input, dafnyFiles, programName, reporter, out Program dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
@@ -472,7 +472,7 @@ namespace Microsoft.Dafny {
         }
 
         // Might not be totally optimized but let's do that for now
-        var err = Dafny.Main.Parse(options.Input,
+        var err = Dafny.DafnyMain.Parse(options.Input,
           new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
           File.Exists(dafnyFile.FilePath) ?
@@ -588,7 +588,7 @@ namespace Microsoft.Dafny {
 
         if (options.PrintFile != null) {
 
-          var nm = nmodules > 1 ? Dafny.Main.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
+          var nm = nmodules > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
 
           ExecutionEngine.PrintBplFile(options, nm, prog.Item2, false, false, options.PrettyPrint);
         }
@@ -621,7 +621,7 @@ namespace Microsoft.Dafny {
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t =>
-        Dafny.Main.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
+        Dafny.DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
@@ -638,7 +638,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await Dafny.Main.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 

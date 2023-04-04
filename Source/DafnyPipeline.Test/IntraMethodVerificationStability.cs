@@ -211,7 +211,7 @@ module SomeModule {
       options.ProverLogFilePath = temp1;
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await Main.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }
@@ -244,7 +244,7 @@ module SomeModule {
       var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
       Assert.Equal(0, parseResult);
       var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
-      Main.Resolve(dafnyProgram, errorReporter);
+      DafnyMain.Resolve(dafnyProgram, errorReporter);
       Assert.Equal(0, errorReporter.ErrorCount);
       return Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
     }

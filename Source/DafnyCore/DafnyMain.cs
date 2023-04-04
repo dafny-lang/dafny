@@ -19,7 +19,7 @@ namespace Microsoft.Dafny {
 
   public class IllegalDafnyFile : Exception { }
 
-  public class Main {
+  public class DafnyMain {
 
     public static void MaybePrintProgram(Program program, string filename, bool afterResolver) {
       if (filename == null) {

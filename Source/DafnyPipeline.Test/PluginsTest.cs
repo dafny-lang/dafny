@@ -76,7 +76,7 @@ public class PluginsTest {
     BuiltIns builtIns = new BuiltIns(options);
     Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
     var dafnyProgram = new Program("programName", module, builtIns, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    DafnyMain.Resolve(dafnyProgram, reporter);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
     Assert.Equal("Impossible to continue because whatever", reporter.GetLastErrorMessage());
@@ -92,7 +92,7 @@ public class PluginsTest {
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(options, programString, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    DafnyMain.Resolve(dafnyProgram, reporter);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
   }
@@ -107,7 +107,7 @@ public class PluginsTest {
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = CreateProgram(options, programString, reporter);
-    Main.Resolve(dafnyProgram, reporter);
+    DafnyMain.Resolve(dafnyProgram, reporter);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
   }
