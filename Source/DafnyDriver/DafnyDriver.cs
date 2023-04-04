@@ -341,7 +341,7 @@ namespace Microsoft.Dafny {
       ExitValue exitValue = ExitValue.SUCCESS;
       var options = reporter.Options;
       if (options.TestGenOptions.WarnDeadCode) {
-        await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0])) {
+        await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
           Console.WriteLine(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {
@@ -350,7 +350,7 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0])) {
+        await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
           Console.WriteLine(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {

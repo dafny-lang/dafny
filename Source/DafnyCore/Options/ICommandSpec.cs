@@ -24,7 +24,6 @@ public interface ICommandSpec {
     CommonOptionBag.Check,
     CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
-    DeveloperOptionBag.UseBaseFileName
   }.Concat(ParserOptions);
 
   public static IEnumerable<Option> DocOptions => new Option[] {
@@ -59,12 +58,11 @@ public interface ICommandSpec {
 
   public static IReadOnlyList<Option> ExecutionOptions = new Option[] {
     CommonOptionBag.Target,
-    DeveloperOptionBag.SpillTranslation
+    CommonOptionBag.SpillTranslation
   }.Concat(TranslationOptions).ToList();
 
   public static IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
     DafnyConsolePrinter.ShowSnippets,
-    DeveloperOptionBag.UseBaseFileName,
     DeveloperOptionBag.Print,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
@@ -81,6 +79,7 @@ public interface ICommandSpec {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.UseBaseFileName,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.ErrorLimit,
   });

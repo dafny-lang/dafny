@@ -284,8 +284,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
-        GutterVerificationStatus.Inconclusive =>
-          LineVerificationStatus.ErrorContext,
+        GutterVerificationStatus.Inconclusive => isFinalError
+          ? LineVerificationStatus.AssertionFailed
+          : LineVerificationStatus.ErrorContext,
         GutterVerificationStatus.Error => isFinalError
             ? LineVerificationStatus.AssertionFailed
             : LineVerificationStatus.ErrorContext,

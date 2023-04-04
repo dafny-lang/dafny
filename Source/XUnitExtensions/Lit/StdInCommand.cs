@@ -2,7 +2,7 @@ using System.IO;
 using System.Threading;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class StdInCommand : ILitCommand {
   private readonly string stdin;

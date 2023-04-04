@@ -103,8 +103,6 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
       resolver.scope.PopMarker();
     }
-
-    resolver.SolveAllTypeConstraints();
   }
 
   public void CheckLinearNestedMatchStmt(Type dtd, ResolutionContext resolutionContext, Resolver resolver) {

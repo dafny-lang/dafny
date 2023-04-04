@@ -1621,7 +1621,9 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-        ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        if (name != RunAllTestsMainMethod.SyntheticTestMainName) {
+          ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        }
       }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
