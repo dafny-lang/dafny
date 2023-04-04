@@ -70,7 +70,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
   public int WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
 
     var errorProcessing = Task.Run(() => {
-      PassthroughBuffer(process.StandardError, Console.Error);
+      PassthroughBuffer(process.StandardError, errorWriter);
     });
     PassthroughBuffer(process.StandardOutput, outputWriter);
     process.WaitForExit();

@@ -25,12 +25,17 @@ namespace XUnitExtensions.Lit {
     public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      command = factory();
+      if (command == null) {
+        command = factory();
+      }
       return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
     }
 
     public override string? ToString() {
-      return command?.ToString() ?? base.ToString();
+      if (command == null) {
+        command = factory();
+      }
+      return command!.ToString();
     }
   }
   public interface ILitCommand {

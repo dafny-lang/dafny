@@ -61,6 +61,14 @@ public class PythonBackend : ExecutableBackend {
     return true;
   }
 
+  public override void CleanSourceDirectory(string sourceDirectory) {
+    var cacheDirectory = Path.Combine(sourceDirectory, "__pycache__");
+    try {
+      Directory.Delete(cacheDirectory, true);
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

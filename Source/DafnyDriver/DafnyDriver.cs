@@ -802,11 +802,10 @@ namespace Microsoft.Dafny {
       }
 
       CheckFilenameIsLegal(filename);
-      using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
-        target.Write(text);
-        if (moreText != null) {
-          target.Write(moreText);
-        }
+      using TextWriter target = new StreamWriter(new FileStream(filename, FileMode.Create));
+      target.Write(text);
+      if (moreText != null) {
+        target.Write(moreText);
       }
     }
 
