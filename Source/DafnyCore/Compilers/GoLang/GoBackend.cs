@@ -34,7 +34,7 @@ public class GoBackend : ExecutableBackend {
       return true;
     } else {
       // compile now
-      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, 
+      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames,
         outputWriter, outputWriter, callToMain != null, run: false);
     }
   }

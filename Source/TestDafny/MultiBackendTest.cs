@@ -14,7 +14,7 @@ public class ForEachCompilerOptions {
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
   public string? TestFile { get; set; } = null;
 
-  [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")] 
+  [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
@@ -39,11 +39,9 @@ public class MultiBackendTest {
     return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args);
   }
 
-  public int Start(IEnumerable<string> args)
-  {
+  public int Start(IEnumerable<string> args) {
     var result = -1;
-    var parser = new CommandLine.Parser(with =>
-    {
+    var parser = new CommandLine.Parser(with => {
       with.EnableDashDash = true;
       with.HelpWriter = Console.Error;
     });
@@ -61,8 +59,8 @@ public class MultiBackendTest {
   }
 
   private int ForEachCompiler(ForEachCompilerOptions options) {
-    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null, 
-      new string[] { "verify", options.TestFile!}.Concat(options.OtherArgs).ToArray());
+    var parseResult = CommandRegistry.Create(TextWriter.Null, TextWriter.Null, TextReader.Null,
+      new string[] { "verify", options.TestFile! }.Concat(options.OtherArgs).ToArray());
     var dafnyOptions = ((ParseArgumentSuccess)parseResult).DafnyOptions;
 
     // First verify the file (and assume that verification should be successful).
@@ -122,7 +120,7 @@ public class MultiBackendTest {
     }.Concat(options.OtherArgs);
 
     var (exitCode, outputString, error) = RunDafny(dafnyArgs);
-    
+
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
       if (diffMessage == null) {

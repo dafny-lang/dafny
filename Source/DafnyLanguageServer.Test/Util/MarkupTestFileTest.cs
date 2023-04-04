@@ -3,7 +3,7 @@ using System.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 public class MarkupTestFileTest {
   [Fact]
   public void AnnotatedSpan() {

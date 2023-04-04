@@ -25,7 +25,6 @@ lemma Try(i: int)
 ", null, true);
   }
 
-  public FormatterIssues([NotNull] ITestOutputHelper output) : base(output)
-  {
+  public FormatterIssues([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

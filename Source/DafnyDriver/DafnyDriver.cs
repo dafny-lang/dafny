@@ -907,7 +907,7 @@ namespace Microsoft.Dafny {
             await outputWriter.WriteLineAsync();
           }
 
-          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, 
+          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
             paths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
         } else {
           // make sure to give some feedback to the user

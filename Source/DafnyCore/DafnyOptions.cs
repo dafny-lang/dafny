@@ -208,7 +208,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions(TextReader inputReader, TextWriter outputWriter,TextWriter errorWriter)
+    public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
       : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       Input = inputReader;
       ErrorWriter = errorWriter;

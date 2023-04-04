@@ -59,8 +59,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return psi;
   }
 
-  public int RunProcess(ProcessStartInfo psi, 
-    TextWriter outputWriter, 
+  public int RunProcess(ProcessStartInfo psi,
+    TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
     return StartProcess(psi, outputWriter) is { } process ?
@@ -91,7 +91,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
       output.Write((char)current);
     }
   }
-  
+
   public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
     string additionalInfo = "";
 

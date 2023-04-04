@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// </summary>
 public class ThreadTaskScheduler : TaskScheduler {
   private readonly int stackSize;
-  
+
 
   public ThreadTaskScheduler(int stackSize) {
     Contract.Requires(stackSize >= 0);

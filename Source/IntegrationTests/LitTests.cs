@@ -192,7 +192,7 @@ namespace IntegrationTests {
       return $"dafny {string.Join(" ", arguments)}";
     }
   }
-  
+
   class MultiBackendLitCommand : ILitCommand {
     private readonly string[] arguments;
 

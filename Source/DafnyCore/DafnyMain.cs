@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
       new ThreadTaskScheduler(0x10000000);
 
     public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler2);
-    
+
     public static string Resolve(Program program, ErrorReporter reporter) {
       if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
 
