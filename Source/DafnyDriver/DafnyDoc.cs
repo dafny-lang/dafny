@@ -10,6 +10,12 @@ using System.Text;
 namespace Microsoft.Dafny;
 
 /* Stuff todo:
+- Should functions show body
+- use table in nameindex
+- cross reference
+- name of root module
+- page for root module, only when needed
+
 - Better sizing of text in h1 headings
 - modules: modifiers, fully qualified refinement
 - exports - list provides and reveals
@@ -116,6 +122,7 @@ class DafnyDoc {
     }
   }
 
+  // TODO _ combine with with WriteDecl
   public void WriteModule(LiteralModuleDecl module) {
     var moduleDef = module.ModuleDef;
     var fullName = moduleDef.FullDafnyName;
@@ -137,11 +144,7 @@ class DafnyDoc {
       var docstring = Docstring(module);
       var shortstring = ShortDocstring(module);
       if (!String.IsNullOrEmpty(docstring)) {
-        file.Write(shortstring);
-        if (shortstring != docstring) {
-          file.Write(" <a href=\"#module-detail\">(more...)</a>");
-        }
-        file.Write(br);
+        file.Write(ShortAndMoreForDecl(module));
         file.Write(br);
         file.Write(br);
         file.Write(eol);
@@ -172,7 +175,7 @@ class DafnyDoc {
       WriteLemmas(defaultClass, summaries, details);
       file.WriteLine(summaries.ToString());
       file.WriteLine(Heading2("module details\n"));
-      file.WriteLine("<a id=\"module-detail\"/>");
+      file.WriteLine("<a id=\"decl-detail\"/>");
       file.WriteLine(docstring);
       file.WriteLine(eol + br + br + eol);
       file.WriteLine(details.ToString());
@@ -220,7 +223,28 @@ class DafnyDoc {
       WriteFunctions(decl, summaries, details);
       WriteMethods(decl, summaries, details);
       WriteLemmas(decl, summaries, details);
+
+      file.WriteLine(Heading2(decl.WhatKind + " summary"));
+      var docstring = Docstring(decl as IHasDocstring);
+      var shortstring = Shorten(docstring);
+      if (!String.IsNullOrEmpty(docstring)) {
+        file.Write(ShortAndMoreForDecl(decl));
+        file.Write(br);
+        file.Write(br);
+        file.Write(eol);
+      }
+      //var modifyTime = File.GetLastWriteTime(moduleFilename);
+      //file.WriteLine($"Last modified: {modifyTime}" + br);
+
       file.WriteLine(summaries.ToString());
+      file.WriteLine("<a id=\"decl-detail\"/>");
+      file.WriteLine(Heading2(decl.WhatKind + " details"));
+      file.WriteLine(docstring);
+      var attributes = Attributes(decl.Attributes);
+      if (!String.IsNullOrEmpty(attributes)) {
+        file.WriteLine("Attributes: " + attributes + br);
+      }
+      file.WriteLine(details.ToString());
       file.Write(foot);
       AnnounceFile(filename);
     }
@@ -275,30 +299,47 @@ class DafnyDoc {
     if (submods.Count() > 0) {
       summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
-        summaries.Append("module ").Append(QualifiedNameWithLinks(submod.FullDafnyName)).Append(br).Append(eol);
+        summaries.Append("module ").Append(QualifiedNameWithLinks(submod.FullDafnyName));
+        var docstring = Docstring(submod);
+        if (!String.IsNullOrEmpty(docstring)) {
+          summaries.Append(Mdash);
+          summaries.Append(Shorten(docstring));
+        }
+        summaries.Append(br).Append(eol);
       }
     }
   }
 
+  public bool IsType(TopLevelDecl t) {
+    return t is RevealableTypeDecl || t is SubsetTypeDecl;
+  }
+
   public void WriteTypes(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
-    var types = module.TopLevelDecls.Where(c => c is RevealableTypeDecl).ToList(); // TODO - what kind of types does this leave out?
+    var types = module.TopLevelDecls.Where(c => IsType(c)).ToList(); // TODO - what kind of types does this leave out?
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 0) {
       summaries.Append(Heading3("Types")).Append(eol);
       summaries.Append("<table>\n");
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) continue;
+        var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
+        var attributes = Attributes(t.Attributes);
+        //var modifiers = Modifiers(t);
         summaries.Append("<tr>\n");
         summaries.Append("<td>");
         summaries.Append(t.WhatKind);
         summaries.Append("</td>");
         summaries.Append("<td>");
         if (ShouldMakeSeparatePage(t)) {
-          summaries.Append(Link(t.FullDafnyName, Bold(t.Name))).Append(eol); // Only link types with members - check this
+          summaries.Append(Link(t.FullDafnyName, Bold(t.Name)));
         } else if (t is ClassDecl || t is TraitDecl) {
           summaries.Append(Bold(t.Name) + "{}\n");
         } else {
-          summaries.Append(Bold(t.Name)).Append(eol);
+          summaries.Append(Bold(t.Name));
+        }
+        if (!String.IsNullOrEmpty(docstring)) {
+          summaries.Append(Mdash);
+          summaries.Append(Shorten(docstring));
         }
         summaries.Append("</td></tr>\n");
       }
@@ -316,15 +357,18 @@ class DafnyDoc {
 
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
-        summaries.Append(LinkToAnchor(c.Name, Bold(c.Name))).Append(": ").Append(TypeLink(c.Type));
-        var docstring = ShortDocstring(c);
+        var docstring = Docstring(c);
         var modifiers = Modifiers(c);
         var attributes = Attributes(c.Attributes);
+        summaries.Append(LinkToAnchor(c.Name, Bold(c.Name))).Append(": ").Append(TypeLink(c.Type));
+
         if (!String.IsNullOrEmpty(docstring)) {
-          summaries.Append(" &mdash; ").Append(docstring);
+          summaries.Append(Mdash).Append(ShortAndMore(c, c.Name));
         }
         summaries.Append(br).Append(eol);
+
         details.Append(Anchor(c.Name)).Append(eol);
+        details.Append(RuleWithText(c.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
@@ -336,7 +380,6 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
-        docstring = ShortDocstring(c);
         if (!String.IsNullOrEmpty(docstring)) {
           details.Append(indent).Append(docstring).Append(unindent).Append(eol);
         }
@@ -368,11 +411,12 @@ class DafnyDoc {
         var modifiers = Modifiers(c);
         var attrs = Attributes(c.Attributes);
         string doc = ShortDocstring(c);
-        summaries.Append(Anchor(c.Name)).Append(eol);
-        summaries.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "&mdash;", doc)).Append(eol);
+        details.Append(Anchor(c.Name)).Append(eol);
+        details.Append(RuleWithText(c.Name)).Append(eol);
+        summaries.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), Mdash, doc)).Append(eol);
         doc = Docstring(c);
         details.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "", "Attributes: " + attrs)).Append(eol);
-        details.Append(Row("", "", "", "", "&mdash;", doc)).Append(eol);
+        details.Append(Row("", "", "", "", Mdash, doc)).Append(eol);
       }
       summaries.Append(EndTable()).Append(eol);
       summaries.Append(br).Append(eol);
@@ -382,93 +426,136 @@ class DafnyDoc {
   }
 
   public void WriteFunctions(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
-    var functions = decl.Members.Where(m => m is Function).Select(m => m as Function).ToList();
+    var functions = decl.Members.Where(m => m is Function).Select(m => m as MemberDecl).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (functions.Count > 0) {
       summaries.Append(Heading3("Functions")).Append(eol);
-      foreach (var f in functions) {
-        AddToIndex(f.Name, decl.FullDafnyName, f.WhatKind);
-        var modifiers = Modifiers(f);
-        var attributes = Attributes(f.Attributes);
-        var typeparams = TypeArgs(f.TypeArgs);
-        summaries.Append(f.GetFunctionDeclarationKeywords(Options)).Append(" ");
-        summaries.Append(Bold(f.Name)).Append(typeparams).Append("(").Append(String.Join(", ", f.Formals.Select(a => a.ToString()))).Append(")");
-        summaries.Append(": ").Append(f.ResultType.ToString());
-        summaries.Append(br).Append(eol);
-      }
+      details.Append(Heading3("Functions")).Append(eol);
+      WriteMethodsList(functions, decl, summaries, details);
     }
   }
 
   public void WriteMethods(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
-    var methods = decl.Members.Where(m => m is Method && m is not Lemma).Select(m => m as Method).ToList();
+    var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
       summaries.Append(Heading3("Methods")).Append(eol);
       details.Append(Heading3("Methods")).Append(eol);
-      foreach (var m in methods) {
-        var modifiers = Modifiers(m);
-        AddToIndex(m.Name, decl.FullDafnyName, "method");
-        summaries.Append(modifiers).Append(br).Append(eol);
-        summaries.Append(Bold(m.Name)).Append(br).Append(br).Append(eol);
-        details.Append(modifiers).Append(br).Append(eol);
-        details.Append(Bold(m.Name)).Append(br).Append(br).Append(eol);
-        // TODO Needs attributes, needs specs
-        foreach (var req in m.Req) {
-          details.Append(space4).Append("requires ").Append(req.ToString()).Append(br).Append(eol);
-        }
-        //foreach (var mod in m.Mod) {
-        // TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
-        //}
-        foreach (var en in m.Ens) {
-          details.Append(space4).Append("ensures ").Append(en.ToString()).Append(br).Append(eol);
-        }
-        if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-          var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
-          details.Append(space4).Append("decreases ").Append(dec).Append(br).Append(eol);
-        }
-      }
+      WriteMethodsList(methods, decl, summaries, details);
     }
   }
 
-  string MethodSig(Method m) {
-    var typeparams = TypeArgs(m.TypeArgs);
-    var formals = String.Join(", ", m.Ins.Select(f => f.ToString()));
-    var outformals = String.Join(", ", m.Outs.Select(f => f.ToString()));
-    if (outformals.Length != 0) outformals = " returns (" + outformals + ")";
-    return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
+  string MethodSig(MemberDecl m) {
+    if (m is Method) {
+      var mth = m as Method;
+      var typeparams = TypeArgs(mth.TypeArgs);
+      var formals = String.Join(", ", mth.Ins.Select(f => f.ToString()));
+      var outformals = String.Join(", ", mth.Outs.Select(f => f.ToString()));
+      if (outformals.Length != 0) outformals = " returns (" + outformals + ")";
+      return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
+    } else if (m is Function) {
+      var f = m as Function;
+      var typeparams = TypeArgs(f.TypeArgs);
+      var formals = String.Join(", ", f.Formals.Select(ff => ff.ToString()));
+      return Bold(m.Name) + typeparams + "(" + formals + "): " + f.ResultType;
+    } else {
+      return "";
+    }
+  }
+
+  // For methods, lemmas, functions
+  public void WriteMethodsList(List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
+    foreach (var m in members) {
+      var md = m as IHasDocstring;
+      var ms = MethodSig(m);
+      AddToIndex(m.Name, decl.FullDafnyName, m.WhatKind);
+      var docstring = Docstring(md);
+      var modifiers = Modifiers(m);
+      var attributes = Attributes(m.Attributes);
+
+      String link = $"<a href=\"#{m.Name}\">{m.Name}</a>";
+      String mss = ms.ToString().Replace(m.Name, link);
+
+      summaries.Append(mss);
+      if (!String.IsNullOrEmpty(docstring)) {
+        summaries.Append(space4).Append(Mdash).Append(ShortAndMore(md, m.Name));
+      }
+      summaries.Append(br).Append(eol);
+
+      details.Append(Anchor(m.Name)).Append(eol);
+      details.Append(RuleWithText(m.Name)).Append(eol);
+      if (!String.IsNullOrEmpty(modifiers)) {
+        details.Append(modifiers).Append(br).Append(eol);
+      }
+      details.Append(m.WhatKind).Append(br).Append(eol);
+      mss = ms.ToString().Replace(m.Name, Bold(m.Name));
+      details.Append(mss).Append(br).Append(eol);
+
+      if (!String.IsNullOrEmpty(attributes)) {
+        details.Append(space4).Append(attributes).Append(br).Append(eol);
+      }
+      if (!String.IsNullOrEmpty(docstring)) {
+        details.Append(indent).Append(docstring).Append(unindent).Append(eol);
+      } else {
+        details.Append(br).Append(eol);
+      }
+      AppendSpecs(details, m);
+    }
   }
 
   public void WriteLemmas(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
-    var methods = decl.Members.Where(m => m is Lemma).Select(m => m as Lemma).ToList();
+    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
       summaries.Append(Heading3("Lemmas")).Append(eol);
       details.Append(Heading3("Lemmas")).Append(eol);
-      foreach (var m in methods) {
-        var ms = MethodSig(m);
-        AddToIndex(m.Name, decl.FullDafnyName, m.WhatKind);
-        summaries.Append(ms).Append(br).Append(br).Append(eol);
-        details.Append(ms).Append(br).Append(br).Append(eol);
-        var attr = Attributes(m.Attributes);
-        if (!String.IsNullOrEmpty(attr)) details.Append(space4).Append(Attributes(m.Attributes)).Append(br).Append(eol);
-        var docstring = Docstring(m);
-        if (!String.IsNullOrEmpty(docstring)) details.Append(indent).Append(docstring).Append(unindent).Append(eol);
-        foreach (var req in m.Req) {
-          details.Append(space4).Append("requires ").Append(req.E.ToString()).Append(br).Append(eol);
-        }
-        //foreach (var mod in m.Mod) {
-        // TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
-        //}
-        foreach (var en in m.Ens) {
-          details.Append(space4).Append("ensures ").Append(en.E.ToString()).Append(br).Append(eol);
-        }
-        if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-          var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
-          details.Append(space4).Append("decreases ").Append(dec).Append(br).Append(eol);
-        }
-        // TODO Needs attributes, needs specs, static?
+      WriteMethodsList(methods, decl, summaries, details);
+    }
+  }
+
+  // returns true iff some specs were appended to the StringBuilder
+  public bool AppendSpecs(StringBuilder details, MemberDecl d) {
+    bool some = false;
+    if (d is Method) {
+      var m = d as Method;
+      foreach (var req in m.Req) {
+        details.Append(space4).Append("<b>requires</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+        some = true;
+      }
+      //foreach (var mod in m.Mod) {
+      // TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
+      // some = true;
+      //}
+      foreach (var en in m.Ens) {
+        details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
+        some = true;
+      }
+      if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
+        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
+        details.Append(space4).Append("<b>decreases</b> ").Append(dec).Append(br).Append(eol);
+        some = true;
+      }
+    } else if (d is Function) {
+      var m = d as Function;
+      foreach (var req in m.Reads) {
+        details.Append(space4).Append("<b>reads</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+        some = true;
+      }
+      foreach (var req in m.Req) {
+        details.Append(space4).Append("<b>requires</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+        some = true;
+      }
+      foreach (var en in m.Ens) {
+        details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
+        some = true;
+      }
+      if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
+        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
+        details.Append(space4).Append("<b>decreases</b> ").Append(dec).Append(br).Append(eol);
+        some = true;
       }
     }
+    return some;
   }
 
   public void WriteTOC(List<LiteralModuleDecl> mdecls) {
@@ -499,7 +586,7 @@ class DafnyDoc {
           currentIndent--;
         }
         var ds = ShortDocstring(decl).Trim();
-        if (ds.Length > 0) ds = " &mdash; " + ds;
+        if (ds.Length > 0) ds = Mdash + ds;
         file.WriteLine($"<li>Module <a href=\"{name}.html\">{name}</a>" + ds + "</li>");
       }
       file.WriteLine("</ul>");
@@ -543,6 +630,33 @@ class DafnyDoc {
     var k = docstring.IndexOf('.');
     if (k == -1) return docstring;
     return docstring.Substring(0, k + 1);
+  }
+
+  // Used for declarations that merit their own page (modules, classes, traits, types with members, ...)
+  public String ShortAndMoreForDecl(TopLevelDecl d) {
+    var docstring = Docstring(d as IHasDocstring);
+    var shortstring = Shorten(docstring);
+    String result = "";
+    if (!String.IsNullOrEmpty(docstring)) {
+      result = shortstring;
+      if (shortstring != docstring) {
+        result += (" <a href=\"#decl-detail\">(more...)</a>");
+      }
+    }
+    return result;
+  }
+
+  public String ShortAndMore(IHasDocstring d, String target) {
+    var docstring = Docstring(d);
+    var shortstring = Shorten(docstring);
+    String result = "";
+    if (!String.IsNullOrEmpty(docstring)) {
+      result = shortstring;
+      if (shortstring != docstring) {
+        result += $" <a href=\"#{target}\">(more...)</a>";
+      }
+    }
+    return result;
   }
 
   public static string Heading2(string text) {
@@ -631,6 +745,11 @@ class DafnyDoc {
     return $"<a href=\"#{name}\">{text}</a>";
   }
 
+  public String RuleWithText(String text) {
+    return
+$"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div>";
+  }
+
   public String Mdash = " &mdash; ";
 
   public string Modifiers(MemberDecl d) {
@@ -693,7 +812,7 @@ class DafnyDoc {
       } else {
         file.Write($"<a href=\"{owner}.html\">{keyn}</a>");
       }
-      file.WriteLine(" &mdash; " + value + br);
+      file.WriteLine(Mdash + value + br);
     }
     file.Write(foot);
   }
@@ -744,7 +863,7 @@ h2 {
 h3 {
   color: blue;
   text-align: left;
-  background-color: #fceb6c
+  background-color: #fefdcc
 }
 
 p {
