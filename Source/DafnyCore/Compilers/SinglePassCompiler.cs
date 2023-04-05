@@ -1529,7 +1529,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var rd = new StreamReader(stream);
-      WriteFromStream(rd, wr.Append((new Verbatim())));
+      WriteFromStream(rd, wr.Append(new Verbatim()));
     }
 
     public static void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
@@ -2961,7 +2961,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+    protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 
