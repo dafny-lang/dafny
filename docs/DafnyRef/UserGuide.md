@@ -936,6 +936,8 @@ Labelled assert statements are also available both in expressions and statements
 Assertion labels are not accessible outside of scope of the assert statement.
 If you need to access an assertion label outside of the enclosing expression or statement,
 you need to lift the labelled statement at the right place manually, e.g. rewrite
+
+<!-- %no-check -->
 ```dafny
 ghost predicate P(i: int)
 
