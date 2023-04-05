@@ -12,9 +12,24 @@ module {:options "--function-syntax:4"} TestModule {
     // The internal state.
 
   module MInner /** Hidden stuff */
-  {}
+  {
+    export // something
+      reveals p  provides MII
+    export E1 reveals ic /** one thing */
+    export E2 /** everything */ reveals *
 
-  import opened MInner
+    /** An extending example */
+    export E3 extends E1, MInner reveals f
+
+    const ic := 0
+    predicate p() { true }
+    function f(): int { 42 }
+    module MII { export Nothing }
+  }
+
+  import opened J = MInner
+  import     opened MInner`E1
+  import L = MInner`E2
 
   /** Opaque type */
   type T
@@ -65,7 +80,7 @@ module {:options "--function-syntax:4"} TestModule {
     return 0;
   }
 
-  class A 
+  class A extends T2
    // Holds all the state. Every bit.
   {
     var j: int // level
@@ -77,6 +92,7 @@ module {:options "--function-syntax:4"} TestModule {
       ensures j < 0
     {}
     predicate f<Q>() { true }
+    predicate ftr() /** Implements T3.ftr */ { true }
 
     constructor ()
       // default constructor
@@ -94,4 +110,14 @@ module {:options "--function-syntax:4"} TestModule {
   twostate lemma TS()
     requires true
     ensures true
+
+
+  trait T1 extends T3 {}
+  trait T2 extends T1, T3 {}
+  trait T3 {
+    predicate ftr()
+  }
 }
+
+
+const ctop := 131

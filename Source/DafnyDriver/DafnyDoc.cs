@@ -10,15 +10,28 @@ using System.Text;
 namespace Microsoft.Dafny;
 
 /* Stuff todo:
+
+- fix default constructor (in index)
+- fix root module
+- fix top-level declarations
+- imported names
+- details of all types
+- class and trait and extends type arguments
+
+- import statements with export set designator should link to details of the export set, or to details of the default exprot set
+- import details should distinguish provides and reveals; shoulkd link to details for those names
+
 - Should functions show body
-- use table in nameindex
+- should export sets show an undeclared default export
+- use table in nameindex?
 - cross reference
 - name of root module
 - page for root module, only when needed
 - omit default decreases
 - retain source layout of expressions
-- table for all summary entries?
+- use a table for all summary entries?
 - modifiers (e.g. ghost) in summary entries?
+- interpret markdown
 
 - modules: modifiers, fully qualified refinement
 - exports - list provides and reveals
@@ -26,9 +39,14 @@ namespace Microsoft.Dafny;
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
 - types - modifiers, show content of definition, link to separate page if there are members
-- constructors - modifiers, signature, specifications
 - program name
-- index entries for constructors
+- form of index entries for constructors?
+- show full qualified names for extended traits?
+- type parameters on class and trait pages; in extends list
+
+- label implementing functions and methods
+- show inherited methods, functions in abstract classes
+- show decls from refinement parents
 
 - don't always make the last segment of a qualified name linkable
 - add type arguments everywhere
@@ -108,12 +126,18 @@ class DafnyDoc {
 
   public void GenerateDocs(IList<DafnyFile> dafnyFiles) {
     var modDecls = new List<LiteralModuleDecl>();
+    var decls = (DafnyProgram.DefaultModule as LiteralModuleDecl).ModuleDef.TopLevelDecls.Select(d => !(d is LiteralModuleDecl));
+    //foreach (var d in decls) {
+    //  Console.WriteLine("TOPDECL " + d + " " + d.GetType());
+    //}
+    WriteModule(DafnyProgram.DefaultModule as LiteralModuleDecl);
     CollectDecls(DafnyProgram.DefaultModule as LiteralModuleDecl, modDecls);
     WriteTOC(modDecls);
     foreach (var m in modDecls) {
       WriteModule(m);
     }
     WriteIndex();
+
   }
 
   public void CollectDecls(LiteralModuleDecl mod, List<LiteralModuleDecl> modDecls) {
@@ -127,7 +151,12 @@ class DafnyDoc {
   public void WriteModule(LiteralModuleDecl module) {
     var moduleDef = module.ModuleDef;
     var fullName = moduleDef.FullDafnyName;
-    AddToIndexF(module.Name, fullName, "module");
+    if (fullName.Length == 0) {
+      fullName = "_";
+      AddToIndexF(" (root module)", fullName, "module");
+    } else {
+      AddToIndexF(module.Name, fullName, "module");
+    }
     bool formatIsHtml = true;
     var defaultClass = moduleDef.TopLevelDecls.Where(d => d is ClassDecl && (d as ClassDecl).IsDefaultClass).ToList()[0] as ClassDecl;
     if (formatIsHtml) {
@@ -215,7 +244,7 @@ class DafnyDoc {
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
         extends = Smaller(" extends ..."); // TODO - fill in with links, transitive list?
       }
-      file.WriteLine($"<div>\n<h1>{abs}class {QualifiedNameWithLinks(fullName, false)}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
+      file.WriteLine($"<div>\n<h1>{abs}{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
 
       var docstring = Docstring(decl as IHasDocstring);
@@ -226,6 +255,41 @@ class DafnyDoc {
         file.Write(br);
         file.Write(eol);
       }
+
+      if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
+        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
+        List<Type> todo = new List<Type>();
+        List<Type> traits = new List<Type>();
+        List<string> traitNames = new List<string>();
+        foreach (var t in decl.ParentTraits) {
+          todo.Add(t);
+        }
+        while (todo.Count != 0) {
+          var tt = todo.First();
+          todo.RemoveAt(0);
+          var tr = ((tt as UserDefinedType).ResolvedClass as NonNullTypeDecl).Class;
+          if (!traits.Any(q => q.ToString() == tt.ToString())) {
+            if (tr != null && tr.ParentTraits != null) {
+              foreach (var t in tr.ParentTraits) {
+                todo.Add(t);
+              }
+            }
+            if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
+              traits.Add(tt);
+              traitNames.Add(tt.ToString());
+            }
+          }
+        }
+        file.Write("Extends traits: " + extends);
+        traits.Sort((t, tt) => t.ToString().CompareTo(tt.ToString()));
+        var trans = String.Join(", ", traits.Select(t => TypeLink(t)));
+        if (!String.IsNullOrEmpty(trans)) {
+          file.Write($" [Transitively: {trans}]");
+        }
+        file.Write(br);
+        file.Write(eol);
+      }
+
 
       string declFilename = GetFileReference(decl.Tok.Filename);
       if (declFilename != null) {
@@ -267,24 +331,45 @@ class DafnyDoc {
   public void WriteExports(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
 
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
-    summaries.Append(Heading3("Export sets")).Append(eol);
-    details.Append(Heading3("Export sets")).Append(eol);
-    if (exports.Count() == 0) {
-      var text = $"export {Bold(module.Name + "`" + module.Name)} : reveals *";
-      summaries.Append(text).Append(eol);
-      details.Append(text).Append(eol);
-    } else {
+    if (exports.Count() > 0) {
+      summaries.Append(Heading3("Export sets")).Append(eol);
+      details.Append(Heading3("Export sets")).Append(eol);
       foreach (var ex in exports) {
-        var text = $"export {Bold(module.Name + "`" + ex.Name)}";
-        summaries.Append(text).Append(br).Append(eol);
-        details.Append(text).Append(br).Append(eol);
-        details.Append("&nbsp;&nbsp;&nbsp;&nbsp;");
-        foreach (var id in ex.Exports) { // TODO - make thiese ids into links
-          details.Append(" ").Append(id.Id);
+        var extends = String.Join(", ", ex.Extends.Select(e => LinkToAnchor(ExportSetAnchor(e.val), e.val)).ToList());
+        if (ex.Extends.Count > 0) extends = " extends " + extends;
+        var text = $"export {module.Name}`{LinkToAnchor(ex.Name + "#", Bold(ex.Name))}";
+        summaries.Append(text).Append(DashShortDocstring(ex)).Append(br).Append(eol);
+
+        details.Append(Anchor(ExportSetAnchor(ex.Name))).Append(eol);
+        details.Append(RuleWithText(ex.Name)).Append(eol);
+        details.Append(text).Append(extends).Append(br).Append(eol);
+        var revealed = ex.Exports.Where(e => !e.Opaque).Select(e => e.Id).ToList();
+        revealed.Sort();
+        var provided = ex.Exports.Where(e => e.Opaque).Select(e => e.Id).ToList();
+        provided.Sort();
+        details.Append(space4).Append("provides");
+        foreach (var id in provided) { // TODO - make thiese ids into links
+          details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
+        }
+        details.Append(br).Append(eol);
+        details.Append(space4).Append("reveals");
+        foreach (var id in revealed) { // TODO - fix links to modules, classes, traits, constructors; add in extends; show extends
+          details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
+        }
+        var docstring = Docstring(ex);
+        if (!String.IsNullOrEmpty(docstring)) {
+          details.Append(indent).Append(docstring).Append(unindent);
         }
         details.Append(br).Append(eol);
       }
     }
+  }
+
+  /* Export sets are in a different namespace from other declarations in a module, so they
+     might have the same name as another declaration. So we mangle an export set slightly
+    so that there will be no duplicate anchor names. */
+  public string ExportSetAnchor(string name) {
+    return name + "#";
   }
 
   public void WriteImports(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
@@ -294,10 +379,34 @@ class DafnyDoc {
     absimports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (imports.Count() + absimports.Count() > 0) {
       summaries.Append(Heading3("Imports")).Append(eol);
+      details.Append(Heading3("Imports")).Append(eol);
       foreach (var imp in imports) {
+        //Console.WriteLine("IMP NAME " + imp.GetType() + " " + imp);
         var name = imp.Name;
         var target = imp.Dereference();
-        summaries.Append($"import {name} = {QualifiedNameWithLinks(target.FullDafnyName)}").Append(eol);
+        var exportsets = String.Join(", ", imp.Exports.Select(e => e.val));
+        if (exportsets.Length != 0) {
+          exportsets = "`" + exportsets;
+        }
+        summaries.Append($"import {LinkToAnchor(name, Bold(name))} = {QualifiedNameWithLinks(target.FullDafnyName)}{exportsets}").Append(br).Append(eol);
+
+        details.Append(Anchor(name)).Append(eol);
+        details.Append(RuleWithText(imp.Name)).Append(eol);
+
+        //foreach (var d in imp.GetResolvedDeclarations()) {
+        //  if (d is Declaration) Console.WriteLine("IMPORT " + name + " " + d.GetType() + " " + (d as Declaration).Name);
+        //  else Console.WriteLine("IMPORT " + name + " " + d.GetType());
+        //}
+        //foreach (var d in imp.Dereference().TopLevelDecls) {
+        //  Console.WriteLine("IMPORTD " + name + " " + d.GetType() + " " + d.Name);
+        //}
+        details.Append("import ").Append(Bold(imp.Opened ? "IS " : "IS NOT ")).Append("opened").Append(br).Append(eol);
+        details.Append("Names imported: ");
+        foreach (var d in imp.AccessibleSignature(true).StaticMembers.Values) {
+          details.Append(" ").Append(d.Name);
+          //Console.WriteLine("IMPORTSIG " + name + " " + d.GetType() + " " + d.Name);
+        }
+        details.Append(br).Append(eol);
       }
       foreach (var imp in absimports) {
         var name = imp.Name;
@@ -314,11 +423,7 @@ class DafnyDoc {
       summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
         summaries.Append("module ").Append(QualifiedNameWithLinks(submod.FullDafnyName));
-        var docstring = Docstring(submod);
-        if (!String.IsNullOrEmpty(docstring)) {
-          summaries.Append(Mdash);
-          summaries.Append(Shorten(docstring));
-        }
+        summaries.Append(DashShortDocstring(submod));
         summaries.Append(br).Append(eol);
       }
     }
@@ -347,7 +452,7 @@ class DafnyDoc {
         if (ShouldMakeSeparatePage(t)) {
           summaries.Append(Link(t.FullDafnyName, Bold(t.Name)));
         } else if (t is ClassDecl || t is TraitDecl) {
-          summaries.Append(Bold(t.Name) + "{}\n");
+          summaries.Append(Bold(t.Name) + "{}\n"); // TODO - not used for now
         } else {
           summaries.Append(Bold(t.Name));
         }
@@ -400,7 +505,7 @@ class DafnyDoc {
   }
 
   public bool ShouldMakeSeparatePage(Declaration t) {
-    return t is TopLevelDeclWithMembers && (t as TopLevelDeclWithMembers).Members.Count() > 0;
+    return t is TopLevelDeclWithMembers && (t is ClassDecl || t is TraitDecl || (t as TopLevelDeclWithMembers).Members.Count() > 0);
   }
 
   public void WriteMutableFields(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
@@ -439,7 +544,6 @@ class DafnyDoc {
         details.Append(FullDocString(doc));
       }
       summaries.Append(EndTable()).Append(eol);
-      summaries.Append(br).Append(eol);
     }
   }
 
@@ -454,7 +558,7 @@ class DafnyDoc {
   }
 
   public void WriteMethods(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
-    var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike && !(m is Constructor)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
       summaries.Append(Heading3("Methods")).Append(eol);
@@ -619,7 +723,7 @@ class DafnyDoc {
       int currentIndent = 0;
       foreach (var decl in mdecls) {
         var name = decl.FullDafnyName;
-        if (name.Length == 0) name = "_";
+        if (name.Length == 0) name = " (root module)";
         int level = Regex.Matches(name, "\\.").Count;
         while (level > currentIndent) {
           file.WriteLine("<ul>");
@@ -677,6 +781,14 @@ class DafnyDoc {
   public string ShortDocstring(IHasDocstring d) {
     var ds = Docstring(d);
     return Shorten(ds);
+  }
+
+  public string DashShortDocstring(IHasDocstring d) {
+    var docstring = Docstring(d);
+    if (!String.IsNullOrEmpty(docstring)) {
+      return Mdash + ShortAndMore(d, (d as Declaration).Name);
+    }
+    return "";
   }
 
   public string Shorten(string docstring) {
