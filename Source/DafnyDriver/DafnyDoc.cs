@@ -132,7 +132,6 @@ class DafnyDoc {
     //foreach (var d in decls) {
     //  Console.WriteLine("TOPDECL " + d + " " + d.GetType());
     //}
-    WriteModule(DafnyProgram.DefaultModule as LiteralModuleDecl);
     CollectDecls(DafnyProgram.DefaultModule as LiteralModuleDecl, modDecls);
     WriteTOC(modDecls);
     foreach (var m in modDecls) {
@@ -153,23 +152,27 @@ class DafnyDoc {
   public void WriteModule(LiteralModuleDecl module) {
     var moduleDef = module.ModuleDef;
     var fullName = moduleDef.FullDafnyName;
-    if (fullName.Length == 0) {
-      fullName = "_";
-      AddToIndexF(" (root module)", fullName, "module");
+    var fullNLName = fullName;
+    string filename;
+    if (moduleDef.IsDefaultModule) {
+      nameIndex.Add(rootNLName + " " + nameIndex.Count + " " + rootName, "module " + Link(rootName, rootNLName));
+      fullName = rootName;
+      fullNLName = rootNLName;
+      filename = Outputdir + "/" + rootName + ".html";
     } else {
       AddToIndexF(module.Name, fullName, "module");
+      filename = Outputdir + "/" + fullName + ".html";
     }
     bool formatIsHtml = true;
     var defaultClass = moduleDef.TopLevelDecls.Where(d => d is ClassDecl && (d as ClassDecl).IsDefaultClass).ToList()[0] as ClassDecl;
     if (formatIsHtml) {
-      string filename = Outputdir + "/" + moduleDef.FullDafnyName + ".html";
       using StreamWriter file = new(filename);
       file.Write(head1);
       file.Write($"Module {fullName} in program {DafnyProgram.Name}");
       file.Write(head2);
       file.Write(style);
       var abs = moduleDef.IsAbstract ? "abstract " : "";
-      file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullName, false)}&nbsp;&nbsp;&nbsp;{Smaller(contentslink + indexlink)}</h1>\n</div>");
+      file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
       var docstring = Docstring(module);
       var shortstring = ShortDocstring(module);
@@ -737,6 +740,9 @@ class DafnyDoc {
     return some;
   }
 
+  public static readonly string rootName = "_"; // Name of file for root module
+  public static readonly string rootNLName = " (root module)"; // Name of root module to display
+
   public void WriteTOC(List<LiteralModuleDecl> mdecls) {
     bool formatIsHtml = true;
     mdecls.Sort((k, m) => k.FullDafnyName.CompareTo(m.FullDafnyName));
@@ -748,13 +754,12 @@ class DafnyDoc {
       file.Write(head2);
       file.Write(style);
       var indexlink = "<a href=\"nameindex.html\">[index]</a>";
-      file.Write($"<div>\n<h1>Dafny Program: {DafnyProgram.Name}&nbsp;&nbsp;&nbsp;&nbsp;{Smaller(indexlink)}</h1>\n</div>");
+      file.Write($"<div>\n<h1>Dafny Program: {DafnyProgram.Name}{space4}{Smaller(indexlink)}</h1>\n</div>");
       file.Write(bodystart);
       file.WriteLine("<ul>");
       int currentIndent = 0;
       foreach (var decl in mdecls) {
         var name = decl.FullDafnyName;
-        if (name.Length == 0) name = " (root module)";
         int level = Regex.Matches(name, "\\.").Count;
         while (level > currentIndent) {
           file.WriteLine("<ul>");
@@ -764,9 +769,12 @@ class DafnyDoc {
           file.WriteLine("</ul>");
           currentIndent--;
         }
-        var ds = ShortDocstring(decl).Trim();
-        if (ds.Length > 0) ds = Mdash + ds;
-        file.WriteLine($"<li>Module <a href=\"{name}.html\">{name}</a>" + ds + "</li>");
+        var ds = DashShortDocstring(decl);
+        if (name.Length == 0) {
+          file.WriteLine($"<li>Module <a href=\"{rootName}.html\">{rootNLName}</a>{ds}</li>");
+        } else {
+          file.WriteLine($"<li>Module <a href=\"{name}.html\">{name}</a>{ds}</li>");
+        }
       }
       file.WriteLine("</ul>");
       file.Write(foot);

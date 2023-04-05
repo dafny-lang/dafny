@@ -2,7 +2,7 @@
 module {:options "--function-syntax:4"} TestModule {
 
   const c: int := 7 + 
-                    if true then 8 else 9*1 /** Number of items. ALl of them. */
+                    if true then 8 else 9*1 /** Number of items. All of them. */
 
   const {:myattribute} cc: real
   // The distance.
