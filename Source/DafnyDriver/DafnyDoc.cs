@@ -12,31 +12,39 @@ namespace Microsoft.Dafny;
 /* Stuff todo:
 
 - fix default constructor (in index)
-- fix root module
-- fix top-level declarations
 - imported names
 - details for datatype, codatatype, iterator
 - class and trait and extends type arguments
-- type charactericis and variance
+- type characteristics and variance
+- modifiers for types
 - newtype, opaque type, datatype, codatatype with members
+- exports - indicate when *
 
 - import statements with export set designator should link to details of the export set, or to details of the default exprot set
-- import details should distinguish provides and reveals; shoulkd link to details for those names
+- import details should distinguish provides and reveals; should link to details for those names
+- interpret markdown
+- do not include library files
+- option for file path
 
-- Should functions show body
+Improvements:
+- retain source layout of expressions
+- make a separate css file
+- add Dafny favicon
+
+Questions
+- Should functions show body?
 - should export sets show an undeclared default export
 - use table in nameindex?
-- cross reference
-- name of root module
-- page for root module, only when needed
-- omit default decreases
-- retain source layout of expressions
+- add in a cross reference listing?
+- list known subtypes of traits?
+- omit default decreases?
 - use a table for all summary entries?
 - modifiers (e.g. ghost) in summary entries?
-- interpret markdown
+- overall visual design?
+- separation into summary and details?
 
+Other
 - modules: modifiers, fully qualified refinement
-- exports - list provides and reveals
 - default exports -- list all available names?
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
@@ -50,19 +58,10 @@ namespace Microsoft.Dafny;
 - show inherited methods, functions in abstract classes
 - show decls from refinement parents
 
-- don't always make the last segment of a qualified name linkable
 - add type arguments everywhere
 - add attributes everywhere
 - make ghost italics?
 - make sure we have resolved types
-- do not include library files
-- separate css file; also add the dafny favicon
-
-- known subtypes of traits
-- cross-reference
-
-- overall visual design?
-- separation into summary and details?
 
 */
 
@@ -743,6 +742,11 @@ class DafnyDoc {
   public static readonly string rootName = "_"; // Name of file for root module
   public static readonly string rootNLName = " (root module)"; // Name of root module to display
 
+  public string ProgramHeader() {
+    var programName = DafnyProgram.Options.DocProgramNameOption;
+    return programName == null ? "" : (" for " + programName);
+  }
+
   public void WriteTOC(List<LiteralModuleDecl> mdecls) {
     bool formatIsHtml = true;
     mdecls.Sort((k, m) => k.FullDafnyName.CompareTo(m.FullDafnyName));
@@ -750,11 +754,12 @@ class DafnyDoc {
       string filename = Outputdir + "/index.html";
       using StreamWriter file = new(filename);
       file.Write(head1);
-      file.Write($"Modules in program {DafnyProgram.Name}");
+      file.Write($"Dafny Documentation{ProgramHeader()}");
       file.Write(head2);
       file.Write(style);
       var indexlink = "<a href=\"nameindex.html\">[index]</a>";
-      file.Write($"<div>\n<h1>Dafny Program: {DafnyProgram.Name}{space4}{Smaller(indexlink)}</h1>\n</div>");
+
+      file.Write($"<div>\n<h1>Modules{ProgramHeader()}{space4}{Smaller(indexlink)}</h1>\n</div>");
       file.Write(bodystart);
       file.WriteLine("<ul>");
       int currentIndent = 0;
@@ -1011,7 +1016,7 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
     file.Write($"Index for program {DafnyProgram.Name}");
     file.Write(head2);
     file.Write(style);
-    file.Write($"<div>\n<h1>Index for Dafny Program: {DafnyProgram.Name}{space4}{Smaller(contentslink)}</h1>\n</div>");
+    file.Write($"<div>\n<h1>Index{ProgramHeader()}{space4}{Smaller(contentslink)}</h1>\n</div>");
     file.Write(bodystart);
     foreach (var key in keys) {
       // The 'key' is the element name + space + a uniqueifying integer

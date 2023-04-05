@@ -26,11 +26,6 @@ public interface ICommandSpec {
     CommonOptionBag.FormatPrint,
   }.Concat(ParserOptions);
 
-  public static IEnumerable<Option> DocOptions => new Option[] {
-    CommonOptionBag.Verbose,
-    CommonOptionBag.Output,
-  }.Concat(ResolverOptions);
-
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
