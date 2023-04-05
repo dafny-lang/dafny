@@ -1,7 +1,7 @@
 /** Test module. More about this test module. */
 module {:options "--function-syntax:4"} TestModule {
 
-  const c: int := 7 + 
+  const c := 7 + 
                     if true then 8 else 9*1 /** Number of items. All of them. */
 
   const {:myattribute} cc: real
@@ -35,11 +35,13 @@ module {:options "--function-syntax:4"} TestModule {
   type T  {}
 
   /** Enumeration. Various options. */
-  datatype D = A | B {}
+  datatype D<Q> = A(q: Q) | B {}
 
 
   /** Type synonym. */
-  type Tint = int
+  type Tint = B<int>
+
+  type TTT<Q(0)> = B<Q>
 
   /** Subset type */
   type Small = x: nat | x < 100
@@ -97,12 +99,12 @@ module {:options "--function-syntax:4"} TestModule {
    // Holds all the state. Every bit.
   {
     var j: int // level
-    ghost var k: D // options
+    ghost var k: D<int> // options
     const {:opaque} c: int := 42 // The meaning of life.
     method m(x: int)
       requires x > 0
       modifies this`j
-      ensures j < 0
+      ensures 0 < 1
     {}
     predicate f<Q>() { true }
     predicate ftr() /** Implements T3.ftr */ { true }
@@ -115,6 +117,11 @@ module {:options "--function-syntax:4"} TestModule {
     {}
   }
 
+  class B<Z(0)> extends T2 {
+    var j: Z
+    predicate ftr() /** Implements T3.ftr */ { true }
+  }
+
   lemma {:myattribute} IsX()
     // always true
     requires true
@@ -125,8 +132,8 @@ module {:options "--function-syntax:4"} TestModule {
     ensures true
 
 
-  trait T1 extends T3 {}
-  trait T2 extends T1, T3 {}
+  trait T1<TR> extends T3 {}
+  trait T2 extends T1<A>, T3 {}
   trait T3 {
     predicate ftr()
   }

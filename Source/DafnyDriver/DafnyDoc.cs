@@ -42,6 +42,8 @@ Questions
 - modifiers (e.g. ghost) in summary entries?
 - overall visual design?
 - separation into summary and details?
+- improvement to program name title?
+- make ghost things italics?
 
 Other
 - modules: modifiers, fully qualified refinement
@@ -49,7 +51,6 @@ Other
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
 - types - modifiers, show content of definition, link to separate page if there are members
-- program name
 - form of index entries for constructors?
 - show full qualified names for extended traits?
 - type parameters on class and trait pages; in extends list
@@ -60,7 +61,6 @@ Other
 
 - add type arguments everywhere
 - add attributes everywhere
-- make ghost italics?
 - make sure we have resolved types
 
 */
@@ -248,7 +248,8 @@ class DafnyDoc {
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
         extends = Smaller(" extends ..."); // TODO - fill in with links, transitive list?
       }
-      file.WriteLine($"<div>\n<h1>{abs}{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
+      var typeparams = TypeArgs(decl.TypeArgs);
+      file.WriteLine($"<div>\n<h1>{abs}{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
 
       var docstring = Docstring(decl as IHasDocstring);
@@ -261,7 +262,7 @@ class DafnyDoc {
       }
 
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
-        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
+        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t) + TypeActualParameters(t.TypeArgs)));
         List<Type> todo = new List<Type>();
         List<Type> traits = new List<Type>();
         List<string> traitNames = new List<string>();
@@ -280,13 +281,13 @@ class DafnyDoc {
             }
             if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
               traits.Add(tt);
-              traitNames.Add(tt.ToString());
+              traitNames.Add(tt.ToString() + TypeActualParameters(tt.TypeArgs));
             }
           }
         }
         file.Write("Extends traits: " + extends);
         traits.Sort((t, tt) => t.ToString().CompareTo(tt.ToString()));
-        var trans = String.Join(", ", traits.Select(t => TypeLink(t)));
+        var trans = String.Join(", ", traits.Select(t => TypeLink(t) + TypeActualParameters(t.TypeArgs)));
         if (!String.IsNullOrEmpty(trans)) {
           file.Write($" [Transitively: {trans}]");
         }
@@ -450,20 +451,21 @@ class DafnyDoc {
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
         var attributes = Attributes(t.Attributes);
         var modifiers = ""; // TODO Modifiers(t);
+        var typeparams = TypeArgs(t.TypeArgs);
         var link = "";
         if (ShouldMakeSeparatePage(t)) {
           link = Link(t.FullDafnyName, Bold(t.Name));
         } else {
           link = LinkToAnchor(t.Name, Bold(t.Name));
         }
-        summaries.Append(Row(t.WhatKind, link, DashShortDocstring(t as IHasDocstring))).Append(eol);
+        summaries.Append(Row(t.WhatKind, link + typeparams, DashShortDocstring(t as IHasDocstring))).Append(eol);
 
         details.Append(Anchor(t.Name)).Append(eol);
         details.Append(RuleWithText(t.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
-        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name));
+        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeArgs(t.TypeArgs));
         if (t is ClassDecl) { // Class, Trait
           details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
         } else if (t is SubsetTypeDecl) {
@@ -472,13 +474,14 @@ class DafnyDoc {
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
         } else if (t is TypeSynonymDecl) {
           var ts = t as TypeSynonymDecl;
-          details.Append(" = ").Append(ts.Rhs.ToString());
+          Console.WriteLine("TSD " + ts.Rhs + " " + GetHeadType(ts.Rhs) + " " + ts.Rhs.ToString() + " " + TypeActualParameters(ts.Rhs.TypeArgs));
+          details.Append(" = ").Append(TypeLink(ts.Rhs));
         } else if (t is NewtypeDecl ts) {
           if (ts.Var != null) {
             // TODO witness
-            details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
+            details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(TypeActualParameters(ts.Var.Type.TypeArgs)).Append(" | ").Append(ts.Constraint.ToString());
           } else {
-            details.Append(" = ").Append(TypeLink(ts.BaseType));
+            details.Append(" = ").Append(TypeLink(ts.BaseType)).Append(TypeActualParameters(ts.BaseType.TypeArgs));
           }
         } else if (t is OpaqueTypeDecl) {
           // do nothing
@@ -497,6 +500,17 @@ class DafnyDoc {
       }
       summaries.Append(EndTable());
     }
+  }
+
+  public Type GetHeadType(Type t) {
+    if (t is UserDefinedType udt) {
+      return udt.NamePath.Type;
+      //var d = udt.ResolvedClass;
+      //if (d is ClassDecl cd) {
+      //  return cd.Type;
+      //}
+    }
+    return t;
   }
 
   public void WriteConstants(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
@@ -559,9 +573,9 @@ class DafnyDoc {
           summaries.Append(Row()).Append(eol);
         }
         var modifiers = Modifiers(c);
-        var doc = ShortDocstring(c);
+        var doc = DashShortDocstring(c);
 
-        summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), Mdash, doc)).Append(eol);
+        summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), doc)).Append(eol);
 
         var attrs = Attributes(c.Attributes);
         doc = Docstring(c);
@@ -787,19 +801,19 @@ class DafnyDoc {
     }
   }
 
-  public static string TypeLink(Type t) {
+  public string TypeLink(Type t) {
     if (t is BasicType) {
       return t.ToString();
-    } else if (t is CollectionType) {
-      var ct = t as CollectionType;
+    } else if (t is CollectionType ct) {
       return ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs);
-    } else if (t is UserDefinedType) {
-      var tt = (t as UserDefinedType).ResolvedClass;
+    } else if (t is UserDefinedType udt) {
+      var tt = udt.ResolvedClass;
       if (tt is ClassDecl) {
-        return Link(tt.FullDafnyName, t.ToString()); // TODO - need to do links for type args also
+        return Link(tt.FullDafnyName, t.ToString()) + TypeArgs(tt.TypeArgs);
       } else if (tt is NonNullTypeDecl) {
-        return Link(tt.FullDafnyName, t.ToString()); // TODO - need to do links for type args also
+        return Link(tt.FullDafnyName, t.ToString()) + TypeArgs(tt.TypeArgs);
       } else {
+        Console.WriteLine("TYPELINK " + t + " " + t.GetType() + " " + tt + " " + tt.GetType());
         return tt.ToString(); // TODO - needs links for every other kind of type
       }
     } else {
@@ -995,7 +1009,7 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
     return "&lt;" + String.Join(",", args.Select(a => a.ToString())) + "&gt;";
   }
 
-  public static string TypeActualParameters(List<Type> args) {
+  public string TypeActualParameters(List<Type> args) {
     if (args.Count == 0) return "";
     return "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
   }
