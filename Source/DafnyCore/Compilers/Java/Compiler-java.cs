@@ -220,8 +220,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       wr.Write("(");
       var lhs = (SeqSelectExpr)s0.Lhs;
-      ConcreteSyntaxTree wColl, wIndex, wValue;
-      EmitIndexCollectionUpdate(lhs.Seq.Type, out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: NativeObjectType, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       wCoerce.Write($"({TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok)})");
       EmitTupleSelect(tup, 0, wCoerce);
@@ -789,8 +788,8 @@ namespace Microsoft.Dafny.Compilers {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
-      string qualification;
-      if (member != null && member.IsExtern(Options, out qualification, out _) && qualification != null) {
+
+      if (member != null && member.IsExtern(Options, out var qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
@@ -1460,8 +1459,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<ConcreteSyntaxTree> wIndices;
-      var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
+      var w = EmitArraySelect(indices.Count, out var wIndices, elmtType, wr);
       for (int i = 0; i < indices.Count; i++) {
         if (!int.TryParse(indices[i], out _)) {
           wIndices[i].Write($"{DafnyHelpersClass}.toInt({indices[i]})");
@@ -1475,8 +1473,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<ConcreteSyntaxTree> wIndices;
-      var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
+      var w = EmitArraySelect(indices.Count, out var wIndices, elmtType, wr);
 
       for (int i = 0; i < indices.Count; i++) {
         TrParenExprAsInt(indices[i], wIndices[i], inLetExprBody, wStmts);

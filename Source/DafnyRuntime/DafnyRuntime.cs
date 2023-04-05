@@ -407,8 +407,7 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
-          if (!d.TryGetValue(t, out i)) {
+          if (!d.TryGetValue(t, out var i)) {
             i = BigInteger.Zero;
           }
           d[t] = i + 1;
@@ -424,9 +423,8 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
           if (!d.TryGetValue(t,
-            out i)) {
+                out var i)) {
             i = BigInteger.Zero;
           }
 
@@ -445,9 +443,8 @@ namespace Dafny {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          BigInteger i;
           if (!d.TryGetValue(t,
-            out i)) {
+                out var i)) {
             i = BigInteger.Zero;
           }
 
@@ -577,8 +574,8 @@ namespace Dafny {
       if (t == null) {
         return occurrencesOfNull;
       }
-      BigInteger m;
-      if (t is T && dict.TryGetValue((T)(object)t, out m)) {
+
+      if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
         return m;
       } else {
         return BigInteger.Zero;
@@ -606,15 +603,13 @@ namespace Dafny {
       var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       foreach (T t in a.dict.Keys) {
-        BigInteger i;
-        if (!r.TryGetValue(t, out i)) {
+        if (!r.TryGetValue(t, out var i)) {
           i = BigInteger.Zero;
         }
         r[t] = i + a.dict[t];
       }
       foreach (T t in b.dict.Keys) {
-        BigInteger i;
-        if (!r.TryGetValue(t, out i)) {
+        if (!r.TryGetValue(t, out var i)) {
           i = BigInteger.Zero;
         }
         r[t] = i + b.dict[t];
@@ -1690,10 +1685,9 @@ namespace Dafny {
     public readonly BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
 
     public override string ToString() {
-      int log10;
       if (num.IsZero || den.IsOne) {
         return string.Format("{0}.0", num);
-      } else if (IsPowerOf10(den, out log10)) {
+      } else if (IsPowerOf10(den, out var log10)) {
         string sign;
         string digits;
         if (num.Sign < 0) {
@@ -1840,8 +1834,8 @@ namespace Dafny {
       } else if (bsign <= 0 && 0 < asign) {
         return 1;
       }
-      BigInteger aa, bb, dd;
-      Normalize(this, that, out aa, out bb, out dd);
+
+      Normalize(this, that, out var aa, out var bb, out var dd);
       return aa.CompareTo(bb);
     }
     public int Sign {
@@ -1878,13 +1872,11 @@ namespace Dafny {
       return a.CompareTo(b) <= 0;
     }
     public static BigRational operator +(BigRational a, BigRational b) {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
+      Normalize(a, b, out var aa, out var bb, out var dd);
       return new BigRational(aa + bb, dd);
     }
     public static BigRational operator -(BigRational a, BigRational b) {
-      BigInteger aa, bb, dd;
-      Normalize(a, b, out aa, out bb, out dd);
+      Normalize(a, b, out var aa, out var bb, out var dd);
       return new BigRational(aa - bb, dd);
     }
     public static BigRational operator -(BigRational a) {

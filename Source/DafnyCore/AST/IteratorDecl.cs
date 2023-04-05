@@ -453,8 +453,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
     Member_Init = init;
     Member_Valid = valid;
     Member_MoveNext = moveNext;
-    MemberDecl member;
-    if (members.TryGetValue(init.Name, out member)) {
+    if (members.TryGetValue(init.Name, out var member)) {
       resolver.reporter.Error(MessageSource.Resolver, member.tok,
         "member name '{0}' is already predefined for this iterator", init.Name);
     } else {

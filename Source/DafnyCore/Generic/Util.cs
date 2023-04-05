@@ -514,8 +514,7 @@ namespace Microsoft.Dafny {
     /// Generic statistic counter
     /// </summary>
     static void IncrementStat(IDictionary<string, ulong> stats, string stat) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         stats[stat] += 1;
       } else {
         stats.Add(stat, 1);
@@ -526,8 +525,7 @@ namespace Microsoft.Dafny {
     /// Track the maximum value of some statistic
     /// </summary>
     static void UpdateMax(IDictionary<string, ulong> stats, string stat, ulong val) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         if (val > currentValue) {
           stats[stat] = val;
         }

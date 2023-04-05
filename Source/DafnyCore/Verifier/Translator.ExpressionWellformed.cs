@@ -678,9 +678,8 @@ namespace Microsoft.Dafny {
               // check that the preconditions for the call hold
               foreach (AttributedExpression p in e.Function.Req) {
                 Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                bool splitHappened;  // we don't actually care
                 string errorMessage = CustomErrorMessage(p.Attributes);
-                foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
+                foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                   if (ss.IsChecked) {
                     var tok = new NestedToken(GetToken(expr), ss.Tok);
                     var desc = new PODesc.PreconditionSatisfied(errorMessage);

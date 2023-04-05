@@ -688,8 +688,7 @@ public class ModuleSignature {
 
   // Qualified accesses follow module imports
   public bool FindImport(string name, out ModuleDecl decl) {
-    TopLevelDecl top;
-    if (TopLevels.TryGetValue(name, out top) && top is ModuleDecl) {
+    if (TopLevels.TryGetValue(name, out var top) && top is ModuleDecl) {
       decl = (ModuleDecl)top;
       return true;
     } else {

@@ -388,13 +388,12 @@ namespace Microsoft.Dafny {
       }
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
-      Program dafnyProgram;
       string err;
       if (Options.Format) {
         return DoFormatting(dafnyFiles, Options.FoldersToFormat, reporter, programName);
       }
 
-      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
+      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out var dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(Console.Out, err);

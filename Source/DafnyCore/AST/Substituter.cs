@@ -66,8 +66,7 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is IdentifierExpr) {
         IdentifierExpr e = (IdentifierExpr)expr;
-        Expression substExpr;
-        if (substMap.TryGetValue(e.Var, out substExpr)) {
+        if (substMap.TryGetValue(e.Var, out var substExpr)) {
           var substIdExpr = substExpr as IdentifierExpr;
           Expression substExprFinal;
           if (substIdExpr != null) {
@@ -764,8 +763,7 @@ namespace Microsoft.Dafny {
           rr = new BreakStmt(s.RangeToken, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
-        List<BreakStmt> breaks;
-        if (!BreaksToBeResolved.TryGetValue(s, out breaks)) {
+        if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
           breaks = new List<BreakStmt>();
           BreaksToBeResolved.Add(s, breaks);
         }
@@ -871,8 +869,7 @@ namespace Microsoft.Dafny {
       r.Attributes = SubstAttributes(stmt.Attributes);
       r.IsGhost = stmt.IsGhost;
       if (stmt.Labels != null || stmt is WhileStmt) {
-        List<BreakStmt> breaks;
-        if (BreaksToBeResolved.TryGetValue(stmt, out breaks)) {
+        if (BreaksToBeResolved.TryGetValue(stmt, out var breaks)) {
           foreach (var b in breaks) {
             b.TargetStmt = r;
           }

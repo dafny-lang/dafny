@@ -47,8 +47,7 @@ namespace Microsoft.Dafny.Triggers {
       } else if (enclosingOldContext != null) { // FIXME be more restrctive on the type of stuff that we annotate
         // Add the association (expr, oldContext) to exprsInOldContext. However, due to chaining expressions,
         // expr may already be a key in exprsInOldContext.
-        HashSet<OldExpr> prevValue;
-        if (exprsInOldContext.TryGetValue(expr, out prevValue)) {
+        if (exprsInOldContext.TryGetValue(expr, out var prevValue)) {
           prevValue.Add(enclosingOldContext);
         } else {
           var single = new HashSet<OldExpr>() { enclosingOldContext };

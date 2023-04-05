@@ -605,9 +605,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       if (nt.NativeType != null) {
         if (nt.NativeType.Name != nt.Name) {
-          string nt_name_def, literalSuffice_def;
-          bool needsCastAfterArithmetic_def;
-          GetNativeInfo(nt.NativeType.Sel, out nt_name_def, out literalSuffice_def, out needsCastAfterArithmetic_def);
+          GetNativeInfo(nt.NativeType.Sel, out var nt_name_def, out var literalSuffice_def, out var needsCastAfterArithmetic_def);
           wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
       } else {
@@ -628,9 +626,7 @@ namespace Microsoft.Dafny.Compilers {
         DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
       }
 
-      string nt_name, literalSuffice;
-      bool needsCastAfterArithmetic;
-      GetNativeInfo(nt.NativeType.Sel, out nt_name, out literalSuffice, out needsCastAfterArithmetic);
+      GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
       var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
       var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
@@ -1420,8 +1416,7 @@ namespace Microsoft.Dafny.Compilers {
         var tas = TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs);
         var sep = "";
         EmitTypeDescriptorsActuals(tas, tok, wr, ref sep);
-        string q, n;
-        if (ctor != null && ctor.IsExtern(Options, out q, out n)) {
+        if (ctor != null && ctor.IsExtern(Options, out var q, out var n)) {
           // the arguments of any external constructor are placed here
           for (int i = 0; i < ctor.Ins.Count; i++) {
             Formal p = ctor.Ins[i];
@@ -1782,8 +1777,7 @@ namespace Microsoft.Dafny.Compilers {
         // Ugly hack of a check to figure out if this is a datatype query: f.Constructor?
         return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(sf2.EnclosingClass.GetCompileName(Options)), fieldName.Substring(3));
       } else if (member is SpecialField sf) {
-        string compiledName, preStr, postStr;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out var preStr, out var postStr);
         if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {

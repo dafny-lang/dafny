@@ -131,8 +131,7 @@ namespace Microsoft.Dafny {
     public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl> // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
-        ISet<TopLevelDecl> s;
-        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out s);
+        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out var s);
         return t ?? new AmbiguousTopLevelDecl(m, AmbiguousThingHelper<TopLevelDecl>.Name(s, tld => tld.Name), s);
       }
 
@@ -3018,10 +3017,8 @@ namespace Microsoft.Dafny {
               }
             }
 
-            Expression recursiveCallReceiver;
-            List<Expression> recursiveCallArgs;
             Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
-              substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
             methodSel.TypeApplication_AtEnclosingClass =
