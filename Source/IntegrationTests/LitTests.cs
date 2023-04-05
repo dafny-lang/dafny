@@ -182,9 +182,9 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter,
-      TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter,
+      TextWriter errorWriter) {
       var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
       return (exitCode, "", "");
     }
@@ -201,9 +201,9 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter,
-      TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter,
+      TextWriter errorWriter) {
       var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
       return (exitCode, "", "");
     }

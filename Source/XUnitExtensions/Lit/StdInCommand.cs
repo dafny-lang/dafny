@@ -13,8 +13,8 @@ public class StdInCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(TextReader? inputReader,
-    TextWriter? outputWriter, TextWriter? errorWriter) {
+  public (int, string, string) Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
     inputReader = new StringReader(stdin);
     return operand.Execute(inputReader, outputWriter, errorWriter);
   }

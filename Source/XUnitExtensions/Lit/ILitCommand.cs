@@ -22,9 +22,9 @@ namespace XUnitExtensions.Lit {
       this.factory = factory;
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter,
-      TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter,
+      TextWriter errorWriter) {
       if (command == null) {
         command = factory();
       }
@@ -89,6 +89,6 @@ namespace XUnitExtensions.Lit {
       return result.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
   }
 }

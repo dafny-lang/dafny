@@ -11,8 +11,8 @@ namespace XUnitExtensions.Lit {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
       var (leftExitCode, leftOutput, leftError) = lhs.Execute(inputReader, outputWriter, errorWriter);
       if (leftExitCode == 0) {
         return (leftExitCode, leftOutput, leftError);

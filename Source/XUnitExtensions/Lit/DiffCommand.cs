@@ -28,8 +28,8 @@ namespace XUnitExtensions.Lit {
       return new DiffCommand(expectedPath, actualPath);
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
       var expected = File.ReadAllText(expectedPath);
       var actual = File.ReadAllText(actualPath);
       var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);

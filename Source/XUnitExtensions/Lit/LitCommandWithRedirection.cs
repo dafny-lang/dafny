@@ -77,8 +77,8 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(TextReader? inReader, TextWriter? outWriter,
-      TextWriter? errWriter) {
+    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter,
+      TextWriter errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
       var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : errWriter;

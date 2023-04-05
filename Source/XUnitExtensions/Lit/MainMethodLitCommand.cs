@@ -21,8 +21,8 @@ namespace XUnitExtensions.Lit {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(TextReader? inputReader,
-      TextWriter? outputWriter, TextWriter? errorWriter) {
+    public (int, string, string) Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
       // TODO remove this class since this static method of Console settings is not thread safe.
       if (inputReader != null) {
         Console.SetIn(inputReader);
