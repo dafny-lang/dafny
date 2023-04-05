@@ -3128,7 +3128,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           ConcreteSyntaxTree guardWriter;
           var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
-          var thenWriter = EmitIf(out guardWriter, (s.Els != null && !s.IsGhost) || coverageForElse, wr);
+          var thenWriter = EmitIf(out guardWriter, s.Els != null || coverageForElse, wr);
           guardWriter.Append(Expr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, false, wStmts));
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
