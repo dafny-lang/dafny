@@ -1,2 +1,5 @@
-
-Dafny program verifier finished with TODO verified, TODO errors
+git-issue-3804d.dfy(13,37): Error: Cannot reveal 'q' because no constant, assert label or requires label in the current scope is named 'q'
+git-issue-3804d.dfy(17,34): Error: Cannot reveal 'p' because no constant, assert label or requires label in the current scope is named 'p'
+git-issue-3804d.dfy(19,9): Error: Cannot reveal 'q' because no constant, assert label or requires label in the current scope is named 'q'
+git-issue-3804d.dfy(19,12): Error: Cannot reveal 'p' because no constant, assert label or requires label in the current scope is named 'p'
+4 resolution/type errors detected in git-issue-3804d.dfy

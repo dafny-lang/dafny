@@ -307,7 +307,6 @@ namespace Microsoft.Dafny {
     /// "IsTwoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
     public void ResolveExpression(Expression expr, ResolutionContext resolutionContext) {
-
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
       ResolveExpressionX(expr, resolutionContext);
       // For testing purposes, change the type of "expr" to a type synonym (mwo-ha-ha-ha!)
@@ -327,6 +326,7 @@ namespace Microsoft.Dafny {
         // expression has already been resolved
         return;
       }
+      DominatingStatementLabels.PushMarker();
 
       // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
@@ -1094,6 +1094,8 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+
+      DominatingStatementLabels.PopMarker();
     }
 
     void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
@@ -5994,7 +5996,11 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          if (resolutionContext.InReveal) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "Cannot reveal '{0}' because no constant, assert label or requires label in the current scope is named '{0}'", expr.Name);
+          } else {
+            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          }
         } else {
           expr.ResolvedExpression = null;
           return null;
