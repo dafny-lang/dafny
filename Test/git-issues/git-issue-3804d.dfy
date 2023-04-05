@@ -3,8 +3,7 @@
 
 predicate P(i: int)
 
-// labelled assertions within expressions can be revealed later
-method {:rlimit 1000} MethodTestNoLeak(x: bool)
+method MethodTestNoLeak(x: bool)
   requires r: (x <==> P(12)) && P(12) != P(13)
 {
   var result :=

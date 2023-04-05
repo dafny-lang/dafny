@@ -307,6 +307,7 @@ namespace Microsoft.Dafny {
     /// "IsTwoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
     public void ResolveExpression(Expression expr, ResolutionContext resolutionContext) {
+
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
       ResolveExpressionX(expr, resolutionContext);
       // For testing purposes, change the type of "expr" to a type synonym (mwo-ha-ha-ha!)
