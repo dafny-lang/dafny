@@ -36,6 +36,28 @@ namespace DafnyPipeline.Test {
     private Newlines currentNewlines;
 
     [Fact]
+    void DocstringWorksForPredicates() {
+      DocstringWorksFor(@"
+predicate p1()
+  // Always true. Every time.
+  ensures p1() == true
+{ true }
+
+predicate p2(): (y: bool)
+  // Always true.
+  ensures y == true
+{ true }
+
+predicate p3(): (y: bool)
+  // Always true every time.
+  ensures y == true
+", new List<(string nodeTokenValue, string? expectedDocstring)>(){
+          ("p1", "Always true. Every time."),
+          ("p2", "Always true."),
+          ("p3", "Always true every time."),
+      });
+    }
+    [Fact]
     public void DocstringWorksForFunctions() {
       DocstringWorksFor(@"
 function Test1(i: int): int
