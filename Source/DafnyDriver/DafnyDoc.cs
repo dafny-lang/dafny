@@ -14,7 +14,6 @@ namespace Microsoft.Dafny;
 - fix default constructor (in index)
 - imported names
 - details for datatype, codatatype, iterator
-- class and trait and extends type arguments
 - type characteristics and variance
 - modifiers for types
 - newtype, opaque type, datatype, codatatype with members
@@ -44,6 +43,7 @@ Questions
 - separation into summary and details?
 - improvement to program name title?
 - make ghost things italics?
+- show full qualified names for extended traits? for RHS of type definitions? for types in signatures?
 
 Other
 - modules: modifiers, fully qualified refinement
@@ -52,14 +52,12 @@ Other
 - in each section , list inherited names, import-opened names
 - types - modifiers, show content of definition, link to separate page if there are members
 - form of index entries for constructors?
-- show full qualified names for extended traits?
 - type parameters on class and trait pages; in extends list
 
 - label implementing functions and methods
 - show inherited methods, functions in abstract classes
 - show decls from refinement parents
 
-- add type arguments everywhere
 - add attributes everywhere
 - make sure we have resolved types
 
@@ -468,20 +466,17 @@ class DafnyDoc {
         details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeArgs(t.TypeArgs));
         if (t is ClassDecl) { // Class, Trait
           details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
-        } else if (t is SubsetTypeDecl) {
-          var ts = t as SubsetTypeDecl;
+        } else if (t is SubsetTypeDecl ts) {
           // TODO witness
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
-        } else if (t is TypeSynonymDecl) {
-          var ts = t as TypeSynonymDecl;
-          Console.WriteLine("TSD " + ts.Rhs + " " + GetHeadType(ts.Rhs) + " " + ts.Rhs.ToString() + " " + TypeActualParameters(ts.Rhs.TypeArgs));
-          details.Append(" = ").Append(TypeLink(ts.Rhs));
-        } else if (t is NewtypeDecl ts) {
-          if (ts.Var != null) {
+        } else if (t is TypeSynonymDecl tsy) {
+          details.Append(" = ").Append(TypeLink(tsy.Rhs));
+        } else if (t is NewtypeDecl tnt) {
+          if (tnt.Var != null) {
             // TODO witness
-            details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(TypeActualParameters(ts.Var.Type.TypeArgs)).Append(" | ").Append(ts.Constraint.ToString());
+            details.Append(" = ").Append(tnt.Var.Name).Append(": ").Append(TypeLink(tnt.Var.Type)).Append(" | ").Append(tnt.Constraint.ToString());
           } else {
-            details.Append(" = ").Append(TypeLink(ts.BaseType)).Append(TypeActualParameters(ts.BaseType.TypeArgs));
+            details.Append(" = ").Append(TypeLink(tnt.BaseType));
           }
         } else if (t is OpaqueTypeDecl) {
           // do nothing
@@ -809,11 +804,19 @@ class DafnyDoc {
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
       if (tt is ClassDecl) {
-        return Link(tt.FullDafnyName, t.ToString()) + TypeArgs(tt.TypeArgs);
+        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NonNullTypeDecl) {
-        return Link(tt.FullDafnyName, t.ToString()) + TypeArgs(tt.TypeArgs);
+        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else if (tt is SubsetTypeDecl) {
+        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else if (tt is NewtypeDecl) {
+        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else if (tt is DatatypeDecl) {
+        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else if (tt is TypeParameter) {
+        return tt.Name;
       } else {
-        Console.WriteLine("TYPELINK " + t + " " + t.GetType() + " " + tt + " " + tt.GetType());
+        Console.WriteLine("  TYPELINK-B " + t + " " + t.GetType() + " " + tt + " " + tt.GetType());
         return tt.ToString(); // TODO - needs links for every other kind of type
       }
     } else {

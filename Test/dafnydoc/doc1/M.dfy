@@ -33,6 +33,7 @@ module {:options "--function-syntax:4"} TestModule {
 
   /** Opaque type */
   type T  {}
+  type TQ<Y>
 
   /** Enumeration. Various options. */
   datatype D<Q> = A(q: Q) | B {}
