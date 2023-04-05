@@ -62,8 +62,7 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, true)
-          // new DafnyDriverLitCommand(args, config)
+            new DafnyDriverLitCommand(args, config)
         }, {
           "%resolve", (args, config) =>
             new DafnyDriverLitCommand(AddExtraArgs(defaultResolveArgs, args), config)
@@ -85,15 +84,17 @@ namespace IntegrationTests {
               config)
         }, {
           "%dafny", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, true)
-            //new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config)
+            new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config)
         }, {
           "%testDafnyForEachCompiler", (args, config) => // TODO
             new MultiBackendLitCommand(args, config)
             //MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
         }, {
           "%server", (args, config) => // TODO
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, false)
+          {
+            var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
+            return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+          }
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -143,6 +144,7 @@ namespace IntegrationTests {
           new ShellLitCommand(dafnyCliPath,
             AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config.PassthroughEnvironmentVariables);
         commands["%testDafnyForEachCompiler"] = (args, config) =>
+          // TODO change.
           MainMethodLitCommand.Parse(TestDafnyAssembly,
             new[] { "for-each-compiler", "--dafny", dafnyCliPath }.Concat(args), config, false);
         commands["%server"] = (args, config) =>
@@ -202,9 +204,6 @@ namespace IntegrationTests {
     public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      outputWriter ??= new WriterFromOutputHelper(outputHelper);
-      errorWriter ??= new WriterFromOutputHelper(outputHelper);
-      inputReader ??= TextReader.Null;
       var exitCode = new MultiBackendTest(inputReader, outputWriter, errorWriter).Start(arguments.Prepend("for-each-compiler"));
       return (exitCode, "", "");
     }

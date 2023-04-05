@@ -74,7 +74,7 @@ namespace XUnitExtensions.Lit {
         var errorWriter = new StringWriter();
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(null, outputWriter, errorWriter);
+          (exitCode, output, error) = command.Execute(TextReader.Null, outputWriter, errorWriter);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
