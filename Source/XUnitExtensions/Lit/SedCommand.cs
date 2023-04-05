@@ -38,7 +38,7 @@ namespace XUnitExtensions.Lit {
       return new SedCommand(regexp, replaceBy, file);
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter, TextWriter? errorWriter) {
       var fileContent = File.ReadAllText(file);
       try {

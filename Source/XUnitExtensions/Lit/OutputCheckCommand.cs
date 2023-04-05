@@ -185,7 +185,7 @@ namespace XUnitExtensions.Lit {
       return result!;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter, TextWriter? errorWriter) {
       if (options.FileToCheck == null) {
         return (0, "", "");

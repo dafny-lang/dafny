@@ -85,8 +85,8 @@ namespace IntegrationTests {
               config)
         }, {
           "%dafny", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args),
-              config)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, true)
+            //new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config)
         }, {
           "%testDafnyForEachCompiler", (args, config) => // TODO
             new MultiBackendLitCommand(args, config)
@@ -180,11 +180,9 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
-      outputWriter ??= new WriterFromOutputHelper(outputHelper);
-      errorWriter ??= TextWriter.Null;
       var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
       return (exitCode, "", "");
     }
@@ -201,7 +199,7 @@ namespace IntegrationTests {
       this.arguments = arguments.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
       outputWriter ??= new WriterFromOutputHelper(outputHelper);

@@ -14,7 +14,7 @@ namespace XUnitExtensions.Lit {
       throw new ArgumentException($"Unrecognized arguments to XFAIL: {line}");
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter, TextWriter? errorWriter) {
       return (0, "", "");
     }

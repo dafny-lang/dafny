@@ -13,10 +13,10 @@ public class StdInCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+  public (int, string, string) Execute(TextReader? inputReader,
     TextWriter? outputWriter, TextWriter? errorWriter) {
     inputReader = new StringReader(stdin);
-    return operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+    return operand.Execute(inputReader, outputWriter, errorWriter);
   }
 
   public override string ToString() {

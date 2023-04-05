@@ -139,7 +139,7 @@ method m5() { assert false; } //Remove4:
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
           $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       } catch (OperationCanceledException) {
-        Console.WriteLine($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
+        await output.WriteLineAsync($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
         throw;
       }
 

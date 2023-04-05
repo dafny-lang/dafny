@@ -22,13 +22,13 @@ namespace XUnitExtensions.Lit {
       this.factory = factory;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
+    public (int, string, string) Execute(TextReader? inputReader,
       TextWriter? outputWriter,
       TextWriter? errorWriter) {
       if (command == null) {
         command = factory();
       }
-      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+      return command.Execute(inputReader, outputWriter, errorWriter);
     }
 
     public override string? ToString() {
@@ -89,7 +89,6 @@ namespace XUnitExtensions.Lit {
       return result.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader,
-      TextWriter? outputWriter, TextWriter? errorWriter);
+    public (int, string, string) Execute(TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
   }
 }

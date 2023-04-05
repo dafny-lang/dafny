@@ -70,9 +70,11 @@ namespace XUnitExtensions.Lit {
         int exitCode;
         string output;
         string error;
+        var outputWriter = new StringWriter();
+        var errorWriter = new StringWriter();
         try {
           outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
+          (exitCode, output, error) = command.Execute(null, outputWriter, errorWriter);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
@@ -80,7 +82,7 @@ namespace XUnitExtensions.Lit {
         if (expectFailure) {
           if (exitCode != 0) {
             throw new SkipException(
-              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
           }
         }
 
@@ -92,7 +94,7 @@ namespace XUnitExtensions.Lit {
           }
 
           throw new Exception(
-            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
+            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
         }
 
         results.Add((output, error));

@@ -49,7 +49,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;
-    private readonly TextWriter output;
+    protected readonly TextWriter output;
 
     public ILanguageServer Server { get; private set; }
 
