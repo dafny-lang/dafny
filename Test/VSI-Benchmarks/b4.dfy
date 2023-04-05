@@ -8,6 +8,8 @@
 // that the specification can use mathematical sequences while the
 // implementation uses a linked list.
 
+THIS IS A TEMPORARY TEST TO SEE IF CI IS RUNNING THE LATEST VERSION. THIS LINE SHOULD OBVIOUSLY CAUSE A PARSING FAILURE.
+
 class Map<Key(==),Value> {
   ghost var M: map<Key,Value>
   ghost var Repr: set<object>
