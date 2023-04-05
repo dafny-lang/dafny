@@ -15,8 +15,10 @@ namespace Microsoft.Dafny;
 - fix root module
 - fix top-level declarations
 - imported names
-- details of all types
+- details for datatype, codatatype, iterator
 - class and trait and extends type arguments
+- type charactericis and variance
+- newtype, opaque type, datatype, codatatype with members
 
 - import statements with export set designator should link to details of the export set, or to details of the default exprot set
 - import details should distinguish provides and reveals; shoulkd link to details for those names
@@ -438,31 +440,60 @@ class DafnyDoc {
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 0) {
       summaries.Append(Heading3("Types")).Append(eol);
-      summaries.Append("<table>\n");
+      details.Append(Heading3("Types")).Append(eol);
+      summaries.Append(BeginTable());
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) continue;
+        AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
         var attributes = Attributes(t.Attributes);
-        //var modifiers = Modifiers(t);
-        summaries.Append("<tr>\n");
-        summaries.Append("<td>");
-        summaries.Append(t.WhatKind);
-        summaries.Append("</td>");
-        summaries.Append("<td>");
+        var modifiers = ""; // TODO Modifiers(t);
+        var link = "";
         if (ShouldMakeSeparatePage(t)) {
-          summaries.Append(Link(t.FullDafnyName, Bold(t.Name)));
-        } else if (t is ClassDecl || t is TraitDecl) {
-          summaries.Append(Bold(t.Name) + "{}\n"); // TODO - not used for now
+          link = Link(t.FullDafnyName, Bold(t.Name));
         } else {
-          summaries.Append(Bold(t.Name));
+          link = LinkToAnchor(t.Name, Bold(t.Name));
+        }
+        summaries.Append(Row(t.WhatKind, link, DashShortDocstring(t as IHasDocstring))).Append(eol);
+
+        details.Append(Anchor(t.Name)).Append(eol);
+        details.Append(RuleWithText(t.Name)).Append(eol);
+        if (!String.IsNullOrEmpty(modifiers)) {
+          details.Append(modifiers).Append(br).Append(eol);
+        }
+        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name));
+        if (t is ClassDecl) { // Class, Trait
+          details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
+        } else if (t is SubsetTypeDecl) {
+          var ts = t as SubsetTypeDecl;
+          // TODO witness
+          details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
+        } else if (t is TypeSynonymDecl) {
+          var ts = t as TypeSynonymDecl;
+          details.Append(" = ").Append(ts.Rhs.ToString());
+        } else if (t is NewtypeDecl ts) {
+          if (ts.Var != null) {
+            // TODO witness
+            details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
+          } else {
+            details.Append(" = ").Append(TypeLink(ts.BaseType));
+          }
+        } else if (t is OpaqueTypeDecl) {
+          // do nothing
+        } else if (t is DatatypeDecl) {
+          // TODO
+        } else {
+          // TODO - Unknown type
+        }
+        details.Append(br).Append(eol);
+        if (!String.IsNullOrEmpty(attributes)) {
+          details.Append(space4).Append(attributes);
         }
         if (!String.IsNullOrEmpty(docstring)) {
-          summaries.Append(Mdash);
-          summaries.Append(Shorten(docstring));
+          details.Append(indent).Append(docstring).Append(unindent);
         }
-        summaries.Append("</td></tr>\n");
       }
-      summaries.Append("</table>\n");
+      summaries.Append(EndTable());
     }
   }
 
@@ -773,8 +804,13 @@ class DafnyDoc {
   }
 
   public string Docstring(IHasDocstring d) {
+    if (d == null) {
+      return null;
+    }
     var ds = d.GetDocstring(DafnyProgram.Options);
-    if (ds == null) return String.Empty;
+    if (ds == null) {
+      return String.Empty;
+    }
     return ds.Trim();
   }
 

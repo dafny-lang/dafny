@@ -32,11 +32,24 @@ module {:options "--function-syntax:4"} TestModule {
   import L = MInner`E2
 
   /** Opaque type */
-  type T
+  type T  {}
 
   /** Enumeration. Various options. */
-  datatype D = A | B
+  datatype D = A | B {}
 
+
+  /** Type synonym. */
+  type Tint = int
+
+  /** Subset type */
+  type Small = x: nat | x < 100
+
+  /** New type */
+  newtype {:native "uint8"} Smaller = x: nat | x < 10
+
+  newtype Dup = int {}
+
+  newtype Size = x | 0 <= x < 1000
 
   /** Returns a constant. A special constant. */
   function f(r: real, ghost x: int): int 
