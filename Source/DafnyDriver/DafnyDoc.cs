@@ -15,23 +15,20 @@ namespace Microsoft.Dafny;
 - cross reference
 - name of root module
 - page for root module, only when needed
+- omit default decreases
+- retain source layout of expressions
+- table for all summary entries?
+- modifiers (e.g. ghost) in summary entries?
 
-- Better sizing of text in h1 headings
 - modules: modifiers, fully qualified refinement
 - exports - list provides and reveals
 - default exports -- list all available names?
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
-- all types everywhere - link to relevant target
 - types - modifiers, show content of definition, link to separate page if there are members
-- constants - modifies and initalizer
-- fields - modifiers 
-- methods - modifiers, signature, specifications
 - constructors - modifiers, signature, specifications
-- functions - modifiers, signature, specifications
-- lemmas  - modifiers, signature, specifications
-
---- Docstrings????
+- program name
+- index entries for constructors
 
 - don't always make the last segment of a qualified name linkable
 - add type arguments everywhere
@@ -42,6 +39,10 @@ namespace Microsoft.Dafny;
 - separate css file; also add the dafny favicon
 
 - known subtypes of traits
+- cross-reference
+
+- overall visual design?
+- separation into summary and details?
 
 */
 
@@ -130,8 +131,6 @@ class DafnyDoc {
     bool formatIsHtml = true;
     var defaultClass = moduleDef.TopLevelDecls.Where(d => d is ClassDecl && (d as ClassDecl).IsDefaultClass).ToList()[0] as ClassDecl;
     if (formatIsHtml) {
-      var contentslink = "<a href=\"index.html\">[table of contents]</a>";
-      var indexlink = "<a href=\"nameindex.html\">[index]</a>";
       string filename = Outputdir + "/" + moduleDef.FullDafnyName + ".html";
       using StreamWriter file = new(filename);
       file.Write(head1);
@@ -157,8 +156,10 @@ class DafnyDoc {
         file.WriteLine("Attributes: " + attributes + br);
       }
 
-      string moduleFilename = module.Tok.Filename;
-      file.WriteLine($"From file: {moduleFilename}" + br);
+      string moduleFilename = GetFileReference(module.Tok.Filename);
+      if (moduleFilename != null) {
+        file.WriteLine($"From file: {moduleFilename}" + br);
+      }
       //var modifyTime = File.GetLastWriteTime(moduleFilename);
       //file.WriteLine($"Last modified: {modifyTime}" + br);
 
@@ -191,6 +192,13 @@ class DafnyDoc {
     }
   }
 
+  public string GetFileReference(string absoluteFile) {
+    // absolute: return absoluteFile;
+    // name: return GetFileName(absoluteFile);
+    // none: return null;
+    return Path.GetFileName(absoluteFile);
+  }
+
   public void WriteDecl(TopLevelDeclWithMembers decl) {
     var fullName = decl.FullDafnyName;
     AddToIndexF(decl.Name, fullName, decl.WhatKind);
@@ -207,24 +215,9 @@ class DafnyDoc {
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
         extends = Smaller(" extends ..."); // TODO - fill in with links, transitive list?
       }
-      var indexlink = "<a href=\"nameindex.html\">[index]</a>";
-      file.WriteLine($"<div>\n<h1>{abs}class {QualifiedNameWithLinks(fullName, false)}{extends}{space4}{Smaller(indexlink)}</h1>\n</div>");
+      file.WriteLine($"<div>\n<h1>{abs}class {QualifiedNameWithLinks(fullName, false)}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
-      string declFilename = decl.Tok.Filename;
-      file.WriteLine($"From file: {declFilename}" + br);
-      //var modifyTime = File.GetLastWriteTime(moduleFilename);
-      //file.WriteLine($"Last modified: {modifyTime}" + br);
 
-      // TODO _ types in a class?
-      StringBuilder summaries = new StringBuilder(1000);
-      StringBuilder details = new StringBuilder(1000);
-      WriteConstants(decl, summaries, details);
-      WriteMutableFields(decl, summaries, details);
-      WriteFunctions(decl, summaries, details);
-      WriteMethods(decl, summaries, details);
-      WriteLemmas(decl, summaries, details);
-
-      file.WriteLine(Heading2(decl.WhatKind + " summary"));
       var docstring = Docstring(decl as IHasDocstring);
       var shortstring = Shorten(docstring);
       if (!String.IsNullOrEmpty(docstring)) {
@@ -233,6 +226,27 @@ class DafnyDoc {
         file.Write(br);
         file.Write(eol);
       }
+
+      string declFilename = GetFileReference(decl.Tok.Filename);
+      if (declFilename != null) {
+        file.WriteLine($"From file: {declFilename}" + br);
+        //var modifyTime = File.GetLastWriteTime(moduleFilename);
+        //file.WriteLine($"Last modified: {modifyTime}" + br);
+      }
+
+      // TODO _ types in a class?
+      StringBuilder summaries = new StringBuilder(1000);
+      StringBuilder details = new StringBuilder(1000);
+      if (decl is ClassDecl) {
+        WriteConstructors(decl, summaries, details);
+      }
+      WriteConstants(decl, summaries, details);
+      WriteMutableFields(decl, summaries, details);
+      WriteFunctions(decl, summaries, details);
+      WriteMethods(decl, summaries, details);
+      WriteLemmas(decl, summaries, details);
+
+      file.WriteLine(Heading2(decl.WhatKind + " summary"));
       //var modifyTime = File.GetLastWriteTime(moduleFilename);
       //file.WriteLine($"Last modified: {modifyTime}" + br);
 
@@ -380,9 +394,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
-        if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(indent).Append(docstring).Append(unindent).Append(eol);
-        }
+        details.Append(FullDocString(docstring));
       }
     }
   }
@@ -409,19 +421,25 @@ class DafnyDoc {
           summaries.Append(Row()).Append(eol);
         }
         var modifiers = Modifiers(c);
+        var doc = ShortDocstring(c);
+
+        summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), Mdash, doc)).Append(eol);
+
         var attrs = Attributes(c.Attributes);
-        string doc = ShortDocstring(c);
+        doc = Docstring(c);
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
-        summaries.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), Mdash, doc)).Append(eol);
-        doc = Docstring(c);
-        details.Append(Row(modifiers, Bold(c.Name), ":", TypeLink(c.Type), "", "Attributes: " + attrs)).Append(eol);
-        details.Append(Row("", "", "", "", Mdash, doc)).Append(eol);
+        if (!String.IsNullOrEmpty(modifiers)) {
+          details.Append(modifiers).Append(br).Append(eol);
+        }
+        details.Append(Bold(c.Name)).Append(": ").Append(TypeLink(c.Type)).Append(br).Append(eol);
+        if (!String.IsNullOrEmpty(attrs)) {
+          details.Append(space4).Append(attrs).Append(br).Append(eol);
+        }
+        details.Append(FullDocString(doc));
       }
       summaries.Append(EndTable()).Append(eol);
       summaries.Append(br).Append(eol);
-      details.Append(EndTable()).Append(eol);
-      details.Append(br).Append(eol);
     }
   }
 
@@ -445,22 +463,36 @@ class DafnyDoc {
     }
   }
 
+  public void WriteConstructors(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
+    var methods = decl.Members.Where(m => m is Constructor).Select(m => m as MemberDecl).ToList();
+    methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
+    if (methods.Count() > 0) {
+      summaries.Append(Heading3("Constructors")).Append(eol);
+      details.Append(Heading3("Constructors")).Append(eol);
+      WriteMethodsList(methods, decl, summaries, details);
+    }
+  }
+
   string MethodSig(MemberDecl m) {
     if (m is Method) {
       var mth = m as Method;
       var typeparams = TypeArgs(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => f.ToString()));
-      var outformals = String.Join(", ", mth.Outs.Select(f => f.ToString()));
+      var formals = String.Join(", ", mth.Ins.Select(f => TypeString(f)));
+      var outformals = String.Join(", ", mth.Outs.Select(f => TypeString(f)));
       if (outformals.Length != 0) outformals = " returns (" + outformals + ")";
       return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeArgs(f.TypeArgs);
-      var formals = String.Join(", ", f.Formals.Select(ff => ff.ToString()));
-      return Bold(m.Name) + typeparams + "(" + formals + "): " + f.ResultType;
+      var formals = String.Join(", ", f.Formals.Select(ff => TypeString(ff)));
+      return Bold(m.Name) + typeparams + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
     }
+  }
+
+  string TypeString(Formal ff) { // TODO - need modifiers
+    return ff.Name + ": " + TypeLink(ff.Type);
   }
 
   // For methods, lemmas, functions
@@ -472,33 +504,37 @@ class DafnyDoc {
       var docstring = Docstring(md);
       var modifiers = Modifiers(m);
       var attributes = Attributes(m.Attributes);
+      var name = m.Name;
+      if (m is Constructor) {
+        if (name == "_ctor") {
+          name = decl.Name;
+        } else {
+          name = decl.Name + "." + m.Name;
+        }
+      }
 
-      String link = $"<a href=\"#{m.Name}\">{m.Name}</a>";
-      String mss = ms.ToString().Replace(m.Name, link);
+      String link = $"<a href=\"#{name}\">{name}</a>";
+      String mss = ms.ToString().ReplaceFirst(m.Name, link);
 
       summaries.Append(mss);
       if (!String.IsNullOrEmpty(docstring)) {
-        summaries.Append(space4).Append(Mdash).Append(ShortAndMore(md, m.Name));
+        summaries.Append(space4).Append(Mdash).Append(ShortAndMore(md, name));
       }
       summaries.Append(br).Append(eol);
 
-      details.Append(Anchor(m.Name)).Append(eol);
-      details.Append(RuleWithText(m.Name)).Append(eol);
+      details.Append(Anchor(name)).Append(eol);
+      details.Append(RuleWithText(name)).Append(eol);
       if (!String.IsNullOrEmpty(modifiers)) {
         details.Append(modifiers).Append(br).Append(eol);
       }
       details.Append(m.WhatKind).Append(br).Append(eol);
-      mss = ms.ToString().Replace(m.Name, Bold(m.Name));
+      mss = ms.ToString().ReplaceFirst(m.Name, Bold(name));
       details.Append(mss).Append(br).Append(eol);
 
       if (!String.IsNullOrEmpty(attributes)) {
         details.Append(space4).Append(attributes).Append(br).Append(eol);
       }
-      if (!String.IsNullOrEmpty(docstring)) {
-        details.Append(indent).Append(docstring).Append(unindent).Append(eol);
-      } else {
-        details.Append(br).Append(eol);
-      }
+      details.Append(FullDocString(docstring));
       AppendSpecs(details, m);
     }
   }
@@ -510,6 +546,14 @@ class DafnyDoc {
       summaries.Append(Heading3("Lemmas")).Append(eol);
       details.Append(Heading3("Lemmas")).Append(eol);
       WriteMethodsList(methods, decl, summaries, details);
+    }
+  }
+
+  public string FullDocString(string docstring) {
+    if (!String.IsNullOrEmpty(docstring)) {
+      return indent + docstring + unindent + eol;
+    } else {
+      return br + eol;
     }
   }
 
@@ -596,12 +640,22 @@ class DafnyDoc {
   }
 
   public static string TypeLink(Type t) {
-    if (t is BasicType || t is CollectionType) {
+    if (t is BasicType) {
       return t.ToString();
-    } else if (t is UserDefinedType && (t as UserDefinedType).ResolvedClass is ClassDecl) {
-      return Link((t as UserDefinedType).ResolvedClass.FullDafnyName, "" + t); // TODO - need to do links for type args also
+    } else if (t is CollectionType) {
+      var ct = t as CollectionType;
+      return ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs);
+    } else if (t is UserDefinedType) {
+      var tt = (t as UserDefinedType).ResolvedClass;
+      if (tt is ClassDecl) {
+        return Link(tt.FullDafnyName, t.ToString()); // TODO - need to do links for type args also
+      } else if (tt is NonNullTypeDecl) {
+        return Link(tt.FullDafnyName, t.ToString()); // TODO - need to do links for type args also
+      } else {
+        return tt.ToString(); // TODO - needs links for every other kind of type
+      }
     } else {
-      return t.ToString();
+      return t.ToString(); // TODO - needs links for every other kind of type
     }
   }
 
@@ -747,7 +801,7 @@ class DafnyDoc {
 
   public String RuleWithText(String text) {
     return
-$"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div>";
+$"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
   public String Mdash = " &mdash; ";
@@ -780,6 +834,11 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
     return "&lt;" + String.Join(",", args.Select(a => a.ToString())) + "&gt;";
   }
 
+  public static string TypeActualParameters(List<Type> args) {
+    if (args.Count == 0) return "";
+    return "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
+  }
+
   public void AnnounceFile(string filename) {
     if (Options.CompileVerbose) {
       Console.WriteLine("Writing " + filename);
@@ -796,7 +855,7 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
     file.Write($"Index for program {DafnyProgram.Name}");
     file.Write(head2);
     file.Write(style);
-    file.Write($"<div>\n<h1>Index for Dafny Program: {DafnyProgram.Name}</h1>\n</div>");
+    file.Write($"<div>\n<h1>Index for Dafny Program: {DafnyProgram.Name}{space4}{Smaller(contentslink)}</h1>\n</div>");
     file.Write(bodystart);
     foreach (var key in keys) {
       // The 'key' is the element name + space + a uniqueifying integer
@@ -818,6 +877,10 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
   }
 
   static string br = "<br>";
+
+  static string contentslink = "<a href=\"index.html\">[table of contents]</a>";
+  static string indexlink = "<a href=\"nameindex.html\">[index]</a>";
+
 
   static string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
 
@@ -887,5 +950,43 @@ p {
 </html>
 ";
 
+}
+
+public static partial class Extensions {
+  /// <summary>
+  ///     A string extension method that replace first occurence.
+  /// </summary>
+  /// <param name="this">The @this to act on.</param>
+  /// <param name="oldValue">The old value.</param>
+  /// <param name="newValue">The new value.</param>
+  /// <returns>The string with the first occurence of old value replace by new value.</returns>
+  public static string ReplaceFirst(this string @this, string oldValue, string newValue) {
+    int startindex = @this.IndexOf(oldValue);
+
+    if (startindex == -1) {
+      return @this;
+    }
+
+    return @this.Remove(startindex, oldValue.Length).Insert(startindex, newValue);
+  }
+
+  /// <summary>
+  ///     A string extension method that replace first number of occurences.
+  /// </summary>
+  /// <param name="this">The @this to act on.</param>
+  /// <param name="number">Number of.</param>
+  /// <param name="oldValue">The old value.</param>
+  /// <param name="newValue">The new value.</param>
+  /// <returns>The string with the numbers of occurences of old value replace by new value.</returns>
+  public static string ReplaceFirst(this string @this, int number, string oldValue, string newValue) {
+    List<string> list = @this.Split(oldValue).ToList();
+    int old = number + 1;
+    IEnumerable<string> listStart = list.Take(old);
+    IEnumerable<string> listEnd = list.Skip(old);
+
+    return string.Join(newValue, listStart) +
+           (listEnd.Any() ? oldValue : "") +
+           string.Join(oldValue, listEnd);
+  }
 }
 

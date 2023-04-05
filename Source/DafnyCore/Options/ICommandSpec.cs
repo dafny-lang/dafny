@@ -29,7 +29,6 @@ public interface ICommandSpec {
   public static IEnumerable<Option> DocOptions => new Option[] {
     CommonOptionBag.Verbose,
     CommonOptionBag.Output,
-    DeveloperOptionBag.UseBaseFileName
   }.Concat(ResolverOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {

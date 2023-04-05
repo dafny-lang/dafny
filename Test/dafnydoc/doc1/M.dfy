@@ -24,11 +24,13 @@ module {:options "--function-syntax:4"} TestModule {
 
 
   /** Returns a constant. A special constant. */
-  function f(): int { 42 }
-
-  function fif(): int 
-    // return a constant. A special constant.
+  function f(r: real, ghost x: int): int 
+    ensures f(r,x) == 42
   { 42 }
+
+  function fif(nameonly z: A): A? 
+    // return a constant. A special constant.
+  { null }
 
   twostate function tf(): int 
     /** A two-state function */
@@ -41,10 +43,10 @@ module {:options "--function-syntax:4"} TestModule {
 
   predicate pp() 
     /** Always true. Every time. */
-    ensures p() == true
+    ensures pp() == true
   { true }
 
-  predicate ppp() 
+  predicate ppp(s: seq<int>, ss: set<A?>, mm: map<set<A>,seq<set<A?>>>) 
     // Always true. Every time.
   { true }
 
@@ -67,14 +69,21 @@ module {:options "--function-syntax:4"} TestModule {
    // Holds all the state. Every bit.
   {
     var j: int // level
-    var k: D // options
-    const c: int := 42
+    ghost var k: D // options
+    const {:opaque} c: int := 42 // The meaning of life.
     method m(x: int)
       requires x > 0
       modifies this`j
       ensures j < 0
     {}
     predicate f<Q>() { true }
+
+    constructor ()
+      // default constructor
+    {}
+    constructor A(i: int)
+      // Non-default constructor
+    {}
   }
 
   lemma {:myattribute} IsX()
