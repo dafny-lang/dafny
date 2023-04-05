@@ -87,7 +87,7 @@ namespace DafnyTestGeneration {
             i.VerboseName.Split(" ")[0]
             == options.TestGenOptions.TargetMethod));
         if (!targetFound) {
-          options.Printer.ErrorWriteLine(Console.Error,
+          options.Printer.ErrorWriteLine(options.ErrorWriter,
             "Error: Cannot find method " +
             options.TestGenOptions.TargetMethod +
             " (is this name fully-qualified?)");
@@ -172,7 +172,7 @@ namespace DafnyTestGeneration {
       yield return "}";
 
       if (methodsGenerated == 0) {
-        options.Printer.ErrorWriteLine(Console.Error,
+        options.Printer.ErrorWriteLine(options.ErrorWriter,
           "Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         setNonZeroExitCode = true;

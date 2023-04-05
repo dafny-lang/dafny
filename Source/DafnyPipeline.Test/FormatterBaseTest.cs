@@ -90,7 +90,7 @@ namespace DafnyPipeline.Test {
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
-          Console.Error.WriteLine("Formatting after resolution generates an error:");
+          options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
         var initErrorCount = reporter.ErrorCount;

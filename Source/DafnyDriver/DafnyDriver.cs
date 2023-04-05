@@ -225,7 +225,7 @@ namespace Microsoft.Dafny {
       if (compiler == null) {
         if (nonOutOptions.CompilerName != null) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
-          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for language \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a language name, not a -t or --target option)" : "")}; expecting one of {known}");
+          options.Printer.ErrorWriteLine(options.ErrorWriter, $"No compiler found for language \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a language name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
@@ -242,13 +242,13 @@ namespace Microsoft.Dafny {
       if (options.UseStdin) {
         dafnyFiles.Add(new DafnyFile("<stdin>", true));
       } else if (options.Files.Count == 0 && !options.Format) {
-        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
         string errMsg = options.XmlSink.Open();
         if (errMsg != null) {
-          options.Printer.ErrorWriteLine(Console.Error, "*** Error: " + errMsg);
+          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
@@ -480,7 +480,7 @@ namespace Microsoft.Dafny {
           File.ReadAllText(dafnyFile.FilePath) : null;
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
-          Console.Error.WriteLine(err);
+          errorWriter.WriteLine(err);
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
           var firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -507,7 +507,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             if (options.CompileVerbose) {
-              Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+              options.ErrorWriter.WriteLine(dafnyFile.BaseName + " was empty.");
             }
 
             emptyFiles.Add((options.UseBaseNameForFileName

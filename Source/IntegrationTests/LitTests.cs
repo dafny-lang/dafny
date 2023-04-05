@@ -62,7 +62,8 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            new DafnyDriverLitCommand(args, config)
+            MainMethodLitCommand.Parse(DafnyDriverAssembly, args, config, true)
+          // new DafnyDriverLitCommand(args, config)
         }, {
           "%resolve", (args, config) =>
             new DafnyDriverLitCommand(AddExtraArgs(defaultResolveArgs, args), config)

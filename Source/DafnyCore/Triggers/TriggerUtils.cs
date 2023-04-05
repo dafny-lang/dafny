@@ -188,8 +188,8 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     [Conditional("DEBUG_AUTO_TRIGGERS")]
-    internal static void DebugTriggers(string format, params object[] more) {
-      Console.Error.WriteLine(format, more);
+    internal static void DebugTriggers(DafnyOptions options, string format, params object[] more) {
+      options.ErrorWriter.WriteLine(format, more);
     }
 
     internal static bool AllowsMatchingLoops(ComprehensionExpr quantifier) {

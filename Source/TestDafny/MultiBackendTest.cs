@@ -43,7 +43,7 @@ public class MultiBackendTest {
     var result = -1;
     var parser = new CommandLine.Parser(with => {
       with.EnableDashDash = true;
-      with.HelpWriter = Console.Error;
+      with.HelpWriter = errorWriter;
     });
     var parseResult = parser.ParseArguments<ForEachCompilerOptions, FeaturesOptions>(args);
     parseResult.WithParsed<ForEachCompilerOptions>(options => { result = ForEachCompiler(options); })

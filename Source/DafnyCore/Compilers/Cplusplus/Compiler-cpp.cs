@@ -905,7 +905,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void Warn(string msg, IToken tok) {
       // TODO, fix.
-      Console.Error.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filename, tok.line, tok.col, msg);
+      Options.ErrorWriter.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filename, tok.line, tok.col, msg);
     }
 
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs

@@ -75,7 +75,7 @@ public class JavaScriptBackend : ExecutableBackend {
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       var errorProcessing = Task.Run(() => {
         // TODO fix.
-        PassthroughBuffer(nodeProcess.StandardError, Console.Error);
+        PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
       });
       PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
       nodeProcess.WaitForExit();
