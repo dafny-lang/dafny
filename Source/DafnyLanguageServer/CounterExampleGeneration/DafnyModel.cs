@@ -93,7 +93,7 @@ namespace DafnyServer.CounterexampleGeneration {
       fU2Int = model.MkFunc("U_2_int", 1);
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
-      InitArraysAndDataTypes();
+      InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
       RegisterReservedBools();
@@ -122,9 +122,14 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Collect the array dimensions from the various array.Length functions,
     /// and collect all known datatype values
     /// </summary>
-    private void InitArraysAndDataTypes() {
+    private void InitDataTypes() {
+      const string datatypeConstructorPrefix = "#";
+      const string reservedVariablePrefix = "##";
+      const string accessorString = ".";
       foreach (var fn in Model.Functions) {
-        if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
+        if (fn.Name.StartsWith(datatypeConstructorPrefix) &&
+            !fn.Name.StartsWith(reservedVariablePrefix) &&
+            fn.Name.Contains(accessorString)) {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
             datatypeValues[elt] = tpl;
@@ -862,14 +867,15 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Return all functions that map an object to a destructor value.
     /// </summary>
     private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
-      var types = GetIsResults(datatypeElement).Select(isResult =>
-        new DafnyModelTypeUtils.DatatypeType(ReconstructType(isResult) as UserDefinedType ?? UnknownType).Name);
-      types = types.Select(type => type.Length > 0 && type.Last() == '?' ? type[..^1] : type);
+      var possiblyNullableTypes = GetIsResults(datatypeElement)
+        .Select(isResult => ReconstructType(isResult) as UserDefinedType)
+        .Where(type => type != null && type.Name != UnknownType.Name);
+      var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
       foreach (var app in datatypeElement.References) {
         if (app.Func.Arity != 1 || app.Args[0] != datatypeElement ||
-            !types.Any(type => app.Func.Name.StartsWith(type + ".")) ||
+            !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
             builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
           continue;
         }
