@@ -452,20 +452,16 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   }
 
   protected override string GetTriviaContainingDocstring() {
-    if (Body == null) {
-      if (EndToken.TrailingTrivia.Trim() != "") {
-        return EndToken.TrailingTrivia;
-      }
 
-      if (StartToken.LeadingTrivia.Trim() != "") {
-        return StartToken.LeadingTrivia;
-      }
-    } else if (Body.StartToken.Prev.Prev is var tokenWhereTrailingIsDocstring &&
-              tokenWhereTrailingIsDocstring.TrailingTrivia.Trim() != "") {
-      return tokenWhereTrailingIsDocstring.TrailingTrivia;
-    } else if (StartToken is var tokenWhereLeadingIsDocstring &&
-        tokenWhereLeadingIsDocstring.LeadingTrivia.Trim() != "") {
-      return tokenWhereLeadingIsDocstring.LeadingTrivia;
+    var endTokenDefinition =
+      OwnedTokens.LastOrDefault(token => token.val == ")" || token.pos == ResultType.EndToken.pos)
+      ?? EndToken;
+    if (endTokenDefinition.TrailingTrivia.Trim() != "") {
+      return endTokenDefinition.TrailingTrivia;
+    }
+
+    if (StartToken.LeadingTrivia.Trim() != "") {
+      return StartToken.LeadingTrivia;
     }
     return null;
   }
