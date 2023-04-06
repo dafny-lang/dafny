@@ -327,6 +327,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> VerificationLoggerConfigs = new();
 
     public string DocProgramNameOption = null;
+    public string DocFilenameFormat = null;
 
     public bool AuditProgram = false;
 
