@@ -1,4 +1,4 @@
-includes = ["src/**/*.dfy"]
+includes = ["**/*.dfy"]
 
 [options]
-warn-shadowing = true
+warn-shadowing = false

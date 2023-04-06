@@ -178,7 +178,6 @@ static class CommandRegistry {
       if (projectFile == null) {
         return false;
       }
-      // TODO check for existing
       dafnyOptions.ProjectFile = projectFile;
       projectFile.ApplyToOptions(dafnyOptions);
     } else {
