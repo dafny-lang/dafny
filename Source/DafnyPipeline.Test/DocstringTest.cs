@@ -426,7 +426,7 @@ iterator Iter2(x: int) yields (y: int)
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+        LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);

@@ -50,7 +50,7 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+        LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);

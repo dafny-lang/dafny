@@ -20,7 +20,7 @@ namespace DafnyPipeline.Test {
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+      LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       Microsoft.Dafny.Type.ResetScopes();
       BuiltIns builtIns = new BuiltIns(options);
       Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);

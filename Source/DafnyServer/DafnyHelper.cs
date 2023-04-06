@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     private DafnyOptions Options => reporter.Options;
 
     private bool Parse() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDefinition(), null);
+      Dafny.LiteralModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDefinition(), null);
       Dafny.BuiltIns builtIns = new Dafny.BuiltIns(Options);
       var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
                      Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);

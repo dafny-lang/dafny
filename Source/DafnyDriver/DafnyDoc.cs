@@ -23,7 +23,6 @@ namespace Microsoft.Dafny;
 - import details should distinguish provides and reveals; should link to details for those names
 - interpret markdown
 - do not include library files
-- option for file path
 
 Improvements:
 - retain source layout of expressions
@@ -35,7 +34,6 @@ Refactoring
 
 Questions
 - Should functions show body?
-- should export sets show an undeclared default export
 - use table in nameindex?
 - add in a cross reference listing?
 - list known subtypes of traits?
@@ -43,7 +41,7 @@ Questions
 - use a table for all summary entries?
 - modifiers (e.g. ghost) in summary entries?
 - overall visual design?
-- separation into summary and details?
+- keep the separation into summary and details?
 - improvement to program name title?
 - make ghost things italics?
 - show full qualified names for extended traits? for RHS of type definitions? for types in signatures?
@@ -56,7 +54,6 @@ Other
 - in each section , list inherited names, import-opened names
 - types - modifiers, show content of definition, link to separate page if there are members
 - form of index entries for constructors?
-- type parameters on class and trait pages; in extends list
 
 - label implementing functions and methods
 - show inherited methods, functions in abstract classes
@@ -101,11 +98,13 @@ class DafnyDoc {
     } else {
       Contract.Assert(dafnyProgram != null);
 
-      // Clear and recreate the output folder
-      if (Directory.Exists(outputdir)) {
-        Directory.Delete(outputdir, true);
+      // create the output folder if needed
+      //if (Directory.Exists(outputdir)) {
+      //Directory.Delete(outputdir, true);
+      //}
+      if (!Directory.Exists(outputdir)) {
+        Directory.CreateDirectory(outputdir);
       }
-      Directory.CreateDirectory(outputdir);
 
       // Generate all the documentation
       exitValue = new DafnyDoc(dafnyProgram, reporter, options, outputdir).GenerateDocs(dafnyFiles);
@@ -130,7 +129,7 @@ class DafnyDoc {
   public DafnyDriver.ExitValue GenerateDocs(IList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
-      var rootModule = DafnyProgram.DefaultModule as LiteralModuleDecl;
+      var rootModule = DafnyProgram.DefaultModule;
       var decls = rootModule.ModuleDef.TopLevelDecls.Select(d => !(d is LiteralModuleDecl));
       CollectDecls(rootModule, modDecls);
       WriteTOC(modDecls);
@@ -1116,12 +1115,9 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
 
   static string head2 =
   @"</title>
+  <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
   <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
   <meta name=""author"" content=""dafnydoc"">
-
-  <link rel=""icon"" href=""dafny-favicon.ico"">
-  <link rel=""icon"" href=""dafny-favicon.svg"" type=""image/svg+xml"">
-
 </head>
 ";
 

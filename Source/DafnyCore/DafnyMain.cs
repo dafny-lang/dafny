@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+      LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns(reporter.Options);
 
       foreach (DafnyFile dafnyFile in files) {
@@ -217,7 +217,7 @@ namespace Microsoft.Dafny {
 
       if (reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
-        dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
+        dmap.AddIncludes(module.ModuleDef.Includes);
         dmap.PrintMap();
       }
 

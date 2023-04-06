@@ -71,7 +71,7 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+        LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
