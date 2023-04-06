@@ -176,11 +176,9 @@ namespace Microsoft.Dafny {
         var preTypeMap = PreType.PreTypeSubstMap(subsetType.TypeArgs, typeArguments);
         return subsetType.Var.PreType.Substitute(preTypeMap);
       } else if (type is UserDefinedType { ResolvedClass: NewtypeDecl newtypeDecl }) {
+        // Make sure the newtype declaration itself has been pre-type resolved
         ResolvePreTypeSignature(newtypeDecl);
         Contract.Assert(newtypeDecl.Var.PreType != null);
-        var typeArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
-        var preTypeMap = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, typeArguments);
-        return newtypeDecl.Var.PreType.Substitute(preTypeMap);
       }
 
       if (type is TypeProxy) {
