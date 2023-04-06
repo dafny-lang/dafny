@@ -12,7 +12,6 @@ using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
@@ -114,7 +113,7 @@ static class CommandRegistry {
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
-        if (!ProcessFile(command, dafnyOptions, singleFile)) {
+        if (!ProcessFile(dafnyOptions, singleFile)) {
           failedToProcessFile = true;
           return;
         }
@@ -122,7 +121,7 @@ static class CommandRegistry {
       var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
-          if (!ProcessFile(command, dafnyOptions, file)) {
+          if (!ProcessFile(dafnyOptions, file)) {
             failedToProcessFile = true;
             return;
           }
@@ -169,8 +168,12 @@ static class CommandRegistry {
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
   }
 
-  private static bool ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile) {
+  private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
+      if (dafnyOptions.ProjectFile != null) {
+        Console.Error.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
+        return false;
+      }
       var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
       if (projectFile == null) {
         return false;
