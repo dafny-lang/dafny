@@ -199,7 +199,7 @@ In Dafny programs.
   syntax in the doc-string.
 
 Here are examples:
-<!-- %resolve -->
+<!-- %check-resolve -->
 ```dafny
 const c0 := 8
 /** docstring about c0 */
@@ -226,8 +226,8 @@ const c5 := 8
 ```
 
 Datatype constructors may also have comments:
-<!-- %resolve -->
-```dafany
+<!-- %check-resolve -->
+```dafny
 datatype T =  // Docstring for T
   | A(x: int,
       y: int) // Docstring for A
@@ -246,8 +246,14 @@ datatype T0 =
 ```
 
 As can `export` declarations:
-<!-- %resolve -->
+<!-- %check-resolve -->
 ```dafny
+module M {
+const A: int
+const B: int
+const C: int
+const D: int
+
 export
   // This is the eponymous export set intended for most clients
   provides A, B, C
@@ -258,6 +264,7 @@ export Friends extends M
   // details of the module's definitions.
   reveals A
   provides D
+}
 ```
 
 
