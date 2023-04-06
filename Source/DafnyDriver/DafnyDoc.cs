@@ -13,8 +13,10 @@ namespace Microsoft.Dafny;
 
 - fix default constructor (in index)
 - duplicate index entries for traits and classes
-- root module does not have a filename
+- root module does not have filename information
+- improve the computation of relative paths
 - imported names
+- import summary should include the opened keyword
 - details for datatype, codatatype, iterator
 - type characteristics and variance
 - modifiers for types
@@ -29,6 +31,8 @@ namespace Microsoft.Dafny;
 
 - useFullDocstring everywhere
 
+- Dafny.Multiply - empty Types section
+
 Improvements:
 - retain source layout of expressions
 - make a separate css file
@@ -40,6 +44,8 @@ Refactoring
 - replicated code for computing indexlink and contentlink
 
 Questions
+- option to maintain source ordering?
+- have some options available as module scoped options?
 - Should functions show body?
 - use table in nameindex?
 - add in a cross reference listing?
