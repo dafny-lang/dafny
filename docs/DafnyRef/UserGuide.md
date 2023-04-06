@@ -556,7 +556,7 @@ where the argument to `--plugin` gives the path to the compiled assembly of the 
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 13.5.1.15. Legacy operation
+#### 13.5.1.16. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
