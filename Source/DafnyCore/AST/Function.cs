@@ -363,6 +363,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (Attributes.ContainsBool(Attributes, "warnShadowing", ref warnShadowing)) {
       resolver.Options.WarnShadowing = warnShadowing;  // set the value according to the attribute
     }
+    resolver.DominatingStatementLabels.PushMarker();
 
     resolver.scope.PushMarker();
     if (IsStatic) {
@@ -449,6 +450,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
+    resolver.DominatingStatementLabels.PopMarker();
   }
 
   protected override string GetTriviaContainingDocstring() {
