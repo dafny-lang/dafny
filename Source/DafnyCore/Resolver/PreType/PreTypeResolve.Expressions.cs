@@ -568,6 +568,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(lhs.Var != null);  // the parser already checked that every LHS is a BoundVar, not a general pattern
             var v = lhs.Var;
             resolver.ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            v.PreType = Type2PreType(v.Type);
             ScopePushAndReport(v, "let-variable", false);
             lhs.AssembleExprPreType(null);
 #if SOON
@@ -2028,7 +2029,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case "array":
             case "seq":
-              ConstrainToIntFamily(index.PreType, index.tok, "index expression must have an integer type (got {0})");
+              AddConfirmation("IntLikeOrBitvector", index.PreType, index.tok, "index expression must have an integer type (got {0})");
               AddSubtypeConstraint(resultPreType, sourcePreType.Arguments[0], tok, "type does not agree with element type {1} (got {0})");
               break;
             case "multiset":
@@ -2055,10 +2056,12 @@ namespace Microsoft.Dafny {
       var resultElementPreType = CreatePreTypeProxy("multi-index selection");
       var resultPreType = new DPreType(BuiltInTypeDecl("seq"), new List<PreType>() { resultElementPreType });
       if (e0 != null) {
-        ConstrainToIntFamily(e0.PreType, e0.tok, "multi-element selection position expression must have an integer type (got {0})");
+        AddConfirmation("IntLikeOrBitvector", e0.PreType, e0.tok,
+          "multi-element selection position expression must have an integer type (got {0})");
       }
       if (e1 != null) {
-        ConstrainToIntFamily(e1.PreType, e1.tok, "multi-element selection position expression must have an integer type (got {0})");
+        AddConfirmation("IntLikeOrBitvector", e1.PreType, e1.tok,
+          "multi-element selection position expression must have an integer type (got {0})");
       }
       AddGuardedConstraint(() => {
         var sourcePreType = collectionPreType.Normalize() as DPreType;
