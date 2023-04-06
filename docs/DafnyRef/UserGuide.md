@@ -495,7 +495,36 @@ Hi!
 PASSED
 ```
 
-#### 13.5.1.11. `dafny generate-tests` {#sec-dafny-generate-tests}
+#### 13.5.1.11. `dafny doc` {#sec-dafny-doc}
+
+The `dafny doc` command generates html documentation pages describing the contents of each
+module in a set of files, using the documentation comments in the source files.
+
+* The format of the documentation comments is described [here](TODO).
+* The `dafny doc` command accepts either files or folders as command-line arguments. A folder
+represents all the `.dfy` files contained recursively in that folder.
+* The command first parses and resolves the given files; it only proceeds to produce documentation
+if type resolution is successful (on all files). All the command-line options relevant to 
+`dafny resolve` are available for `dafny doc`.
+* The value of the `--output` option is a folder in which all the generated files will be placed.
+The default location is `./docs`. The folder is created if it does not already exist.
+Any existing content of the folder is overwritten.
+* If `--verbose` is enabled, a list of the generated files is emitted to stdout.
+* The output files contain information stating the source .dfy file in which the module is
+declared. The `--doc-file-name` option controls the form of the filename in that information:
+   * --doc-file-name:none -- no source file information is emitted
+   * --doc-file-name:name -- (default) just the file name is emitted (e.g., `Test.dfy`)
+   * --doc-file-name:absolute -- an absolute full path is emitted
+   * --doc-file-name:relative=<prefix> -- a file name relative to the given prefix is emitted
+* If `--doc-modify-time` is enabled, then the generated files contain information stating the
+last modified time of the source of the module being documented.
+
+The output files are HTML files, all contained in the given folder, one per module plus an 
+`index.html` file giving an overall table of contents and a `nameindex.html` file containing
+an alphabetical by name list of all the declarations in all the modules.
+The documentation for the root module is in `_.html`.
+
+#### 13.5.1.12. `dafny generate-tests` {#sec-dafny-generate-tests}
 
 This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
@@ -504,20 +533,20 @@ Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.12. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 13.5.1.13. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
 This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.13. `dafny measure-complexity` {#sec-dafny-measure-complexity}
+#### 13.5.1.14. `dafny measure-complexity` {#sec-dafny-measure-complexity}
 
 This _experimental_ command reports complexity metrics of a program.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.14. Plugins
+#### 13.5.1.15. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 Plugins may be either standalone tools or be additions to existing commands.
