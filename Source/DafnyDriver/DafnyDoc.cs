@@ -16,6 +16,7 @@ namespace Microsoft.Dafny;
 - details for datatype, codatatype, iterator
 - type characteristics and variance
 - modifiers for types
+- modifiers for classes and traits on their pages
 - newtype, opaque type, datatype, codatatype with members
 - exports - indicate when *
 
@@ -70,7 +71,9 @@ class DafnyDoc {
     ErrorReporter reporter, string programName, DafnyOptions options) {
 
     string outputdir = options.DafnyPrintCompiledFile;
-    if (outputdir == null) outputdir = DefaultOutputDir;
+    if (outputdir == null) {
+      outputdir = DefaultOutputDir;
+    }
 
     // Collect all the dafny files
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
@@ -79,7 +82,9 @@ class DafnyDoc {
           .Select(name => new DafnyFile(name)).ToList();
     })).ToList();
     Console.Out.Write($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
-    if (dafnyFiles.Count == 0) return exitValue;
+    if (dafnyFiles.Count == 0) {
+      return exitValue;
+    }
 
     // Do parsing and resolution, obtaining a dafnyProgram
     string err = null;
@@ -179,8 +184,8 @@ class DafnyDoc {
       var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
       file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
+
       var docstring = Docstring(module);
-      var shortstring = Shorten(docstring);
       if (!String.IsNullOrEmpty(docstring)) {
         file.Write(ShortAndMoreForDecl(module));
         file.Write(br);
@@ -189,7 +194,7 @@ class DafnyDoc {
       if (moduleDef.RefinementQId != null) {
         file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
       }
-      var attributes = Attributes(moduleDef.Attributes);
+      var attributes = Attributes(module.Attributes);
       if (!String.IsNullOrEmpty(attributes)) {
         file.WriteLine("Attributes: " + attributes + br);
       }
@@ -210,9 +215,14 @@ class DafnyDoc {
       file.WriteLine(Heading2("module summary"));
       file.WriteLine(summaries.ToString());
       file.WriteLine(Anchor("decl-detail"));
-      file.WriteLine(Heading2("module details\n"));
-      file.WriteLine(docstring);
-      file.WriteLine(br);
+      file.WriteLine(Heading2("module details"));
+      if (!String.IsNullOrEmpty(docstring)) {
+        file.WriteLine(docstring);
+        file.WriteLine(br);
+      }
+      if (!String.IsNullOrEmpty(attributes)) {
+        file.WriteLine("Attributes: " + attributes + br);
+      }
       file.WriteLine(details.ToString());
       file.Write(foot);
       AnnounceFile(filename);
@@ -225,6 +235,7 @@ class DafnyDoc {
     }
   }
 
+  /** Writes files for classes and traits */
   public void WriteDecl(TopLevelDeclWithMembers decl) {
     var fullName = decl.FullDafnyName;
     AddToIndexF(decl.Name, fullName, decl.WhatKind);
@@ -239,14 +250,13 @@ class DafnyDoc {
       var abs = "";//decl.IsAbstract ? Smaller("abstract ") : ""; // TODO - smaller is too much smaller for h1
       var extends = "";
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
-        extends = Smaller(" extends ..."); // TODO - fill in with links, transitive list?
+        extends = Smaller(" extends ...");
       }
-      var typeparams = TypeArgs(decl.TypeArgs);
+      var typeparams = TypeFormals(decl.TypeArgs);
       file.WriteLine($"<div>\n<h1>{abs}{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
 
       var docstring = Docstring(decl as IHasDocstring);
-      var shortstring = Shorten(docstring);
       if (!String.IsNullOrEmpty(docstring)) {
         file.Write(ShortAndMoreForDecl(decl));
         file.Write(br);
@@ -254,11 +264,11 @@ class DafnyDoc {
         file.Write(eol);
       }
 
+      // Find all traits, transitively
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
-        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t) + TypeActualParameters(t.TypeArgs)));
+        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
         List<Type> todo = new List<Type>();
         List<Type> traits = new List<Type>();
-        List<string> traitNames = new List<string>();
         foreach (var t in decl.ParentTraits) {
           todo.Add(t);
         }
@@ -274,20 +284,22 @@ class DafnyDoc {
             }
             if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
               traits.Add(tt);
-              traitNames.Add(tt.ToString() + TypeActualParameters(tt.TypeArgs));
             }
           }
         }
         file.Write("Extends traits: " + extends);
         traits.Sort((t, tt) => t.ToString().CompareTo(tt.ToString()));
-        var trans = String.Join(", ", traits.Select(t => TypeLink(t) + TypeActualParameters(t.TypeArgs)));
+        var trans = String.Join(", ", traits.Select(t => TypeLink(t)));
         if (!String.IsNullOrEmpty(trans)) {
           file.Write($" [Transitively: {trans}]");
         }
         file.Write(br);
         file.Write(eol);
       }
-
+      var attributes = Attributes(decl.Attributes);
+      if (!String.IsNullOrEmpty(attributes)) {
+        file.WriteLine("Attributes: " + attributes + br);
+      }
       file.Write(FileInfo(decl.Tok));
 
       StringBuilder summaries = new StringBuilder(1000);
@@ -302,14 +314,14 @@ class DafnyDoc {
       WriteLemmas(decl, summaries, details);
 
       file.WriteLine(Heading2(decl.WhatKind + " summary"));
-      //var modifyTime = File.GetLastWriteTime(moduleFilename);
-      //file.WriteLine($"Last modified: {modifyTime}" + br);
 
       file.WriteLine(summaries.ToString());
-      file.WriteLine("<a id=\"decl-detail\"/>");
+      file.WriteLine(Anchor("decl-detail"));
       file.WriteLine(Heading2(decl.WhatKind + " details"));
-      file.WriteLine(docstring);
-      var attributes = Attributes(decl.Attributes);
+      if (!String.IsNullOrEmpty(docstring)) {
+        file.WriteLine(docstring);
+        file.WriteLine(br);
+      }
       if (!String.IsNullOrEmpty(attributes)) {
         file.WriteLine("Attributes: " + attributes + br);
       }
@@ -319,6 +331,7 @@ class DafnyDoc {
     }
   }
 
+  /** Returns printable info about the file containing the given token and the last modification time of the file */
   public string FileInfo(IToken tok) {
     if (tok != null) {
       string declFilename = GetFileReference(tok.Filename);
@@ -330,6 +343,7 @@ class DafnyDoc {
     return "";
   }
 
+  /** Massages a filename into the form requested by the --doc-file-name option */
   public string GetFileReference(string absoluteFile) {
     var r = Options.DocFilenameFormat;
     if (r == null || r == "name") {
@@ -351,8 +365,7 @@ class DafnyDoc {
     }
   }
 
-
-
+  /** Append the summary and detail information about exports to the string builders */
   public void WriteExports(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
 
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
@@ -360,25 +373,27 @@ class DafnyDoc {
       summaries.Append(Heading3("Export sets")).Append(eol);
       details.Append(Heading3("Export sets")).Append(eol);
       foreach (var ex in exports) {
-        var extends = String.Join(", ", ex.Extends.Select(e => LinkToAnchor(ExportSetAnchor(e.val), e.val)).ToList());
-        if (ex.Extends.Count > 0) extends = " extends " + extends;
         var text = $"export {module.Name}`{LinkToAnchor(ex.Name + "#", Bold(ex.Name))}";
         summaries.Append(text).Append(DashShortDocstring(ex)).Append(br).Append(eol);
 
         details.Append(Anchor(ExportSetAnchor(ex.Name))).Append(eol);
         details.Append(RuleWithText(ex.Name)).Append(eol);
+        var extends = String.Join(", ", ex.Extends.Select(e => LinkToAnchor(ExportSetAnchor(e.val), e.val)).ToList());
+        if (ex.Extends.Count > 0) {
+          extends = " extends " + extends;
+        }
         details.Append(text).Append(extends).Append(br).Append(eol);
         var revealed = ex.Exports.Where(e => !e.Opaque).Select(e => e.Id).ToList();
         revealed.Sort();
         var provided = ex.Exports.Where(e => e.Opaque).Select(e => e.Id).ToList();
         provided.Sort();
         details.Append(space4).Append("provides");
-        foreach (var id in provided) { // TODO - make thiese ids into links
+        foreach (var id in provided) { // TODO - does not work for links that go out of the file, e.g. classes, modules
           details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
         }
         details.Append(br).Append(eol);
         details.Append(space4).Append("reveals");
-        foreach (var id in revealed) { // TODO - fix links to modules, classes, traits, constructors; add in extends; show extends
+        foreach (var id in revealed) { // TODO - ditto
           details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
         }
         var docstring = Docstring(ex);
@@ -397,6 +412,7 @@ class DafnyDoc {
     return name + "#";
   }
 
+  /** Append the summary and detail information about imports to the string builders */
   public void WriteImports(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
     var imports = module.TopLevelDecls.Where(d => d is AliasModuleDecl).Select(d => d as AliasModuleDecl).ToList();
     imports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
@@ -467,12 +483,14 @@ class DafnyDoc {
       details.Append(Heading3("Types")).Append(eol);
       summaries.Append(BeginTable());
       foreach (var t in types) {
-        if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) continue;
+        if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
+          continue;
+        }
         AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
         var attributes = Attributes(t.Attributes);
         var modifiers = ""; // TODO Modifiers(t);
-        var typeparams = TypeArgs(t.TypeArgs);
+        var typeparams = TypeFormals(t.TypeArgs);
         var link = "";
         if (ShouldMakeSeparatePage(t)) {
           link = Link(t.FullDafnyName, Bold(t.Name));
@@ -486,7 +504,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
-        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeArgs(t.TypeArgs));
+        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeFormals(t.TypeArgs));
         if (t is ClassDecl) { // Class, Trait
           details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
         } else if (t is SubsetTypeDecl ts) {
@@ -645,14 +663,14 @@ class DafnyDoc {
   string MethodSig(MemberDecl m) {
     if (m is Method) {
       var mth = m as Method;
-      var typeparams = TypeArgs(mth.TypeArgs);
+      var typeparams = TypeFormals(mth.TypeArgs);
       var formals = String.Join(", ", mth.Ins.Select(f => TypeString(f)));
-      var outformals = String.Join(", ", mth.Outs.Select(f => TypeString(f)));
-      if (outformals.Length != 0) outformals = " returns (" + outformals + ")";
+      var outformals = mth.Outs.Count == 0 ? "" :
+        " returns (" + String.Join(", ", mth.Outs.Select(f => TypeString(f))) + ")";
       return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
-      var typeparams = TypeArgs(f.TypeArgs);
+      var typeparams = TypeFormals(f.TypeArgs);
       var formals = String.Join(", ", f.Formals.Select(ff => TypeString(ff)));
       return Bold(m.Name) + typeparams + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
@@ -889,10 +907,15 @@ class DafnyDoc {
   }
 
   public string Shorten(string docstring) {
-    if (docstring == null) return String.Empty;
-    var k = docstring.IndexOf('.');
-    if (k == -1) return docstring;
-    return docstring.Substring(0, k + 1);
+    if (docstring != null) {
+      var k = docstring.IndexOf('.');
+      if (k == -1) {
+        return docstring;
+      } else {
+        return docstring.Substring(0, k + 1);
+      }
+    }
+    return String.Empty;
   }
 
   // Used for declarations that merit their own page (modules, classes, traits, types with members, ...)
@@ -903,7 +926,7 @@ class DafnyDoc {
     if (!String.IsNullOrEmpty(docstring)) {
       result = shortstring;
       if (shortstring != docstring) {
-        result += (" <a href=\"#decl-detail\">(more...)</a>");
+        result += " " + LinkToAnchor("decl-detail", "(more...)");
       }
     }
     return result;
@@ -1021,10 +1044,16 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
 
   public string Modifiers(MemberDecl d) {
     string result = "";
-    if (d.IsGhost) result += "ghost ";
-    //if (d.IsAbstract) result += "abstract ";
-    if (d.IsStatic) result += "static ";
-    if (d.IsOpaque) result += "opaque ";
+    if (d.IsGhost) {
+      result += "ghost ";
+    }
+    //if (d.IsAbstract) result += "abstract "; // TODO
+    if (d.IsStatic) {
+      result += "static ";
+    }
+    if (d.IsOpaque) {
+      result += "opaque ";
+    }
     return result;
   }
 
@@ -1042,14 +1071,14 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
     }
   }
 
-  public string TypeArgs(List<TypeParameter> args) {
-    if (args.Count == 0) return "";
-    return "&lt;" + String.Join(",", args.Select(a => a.ToString())) + "&gt;";
+  public string TypeFormals(List<TypeParameter> args) {
+    return (args.Count == 0) ? "" :
+      "&lt;" + String.Join(",", args.Select(a => a.ToString())) + "&gt;";
   }
 
   public string TypeActualParameters(List<Type> args) {
-    if (args.Count == 0) return "";
-    return "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
+    return (args.Count == 0) ? "" :
+      "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
   }
 
   public void AnnounceFile(string filename) {
