@@ -1,4 +1,5 @@
 // RUN: %baredafny resolve "%S/dafny.toml" > "%t"
+// RUN: %baredafny resolve "%S/dafny.toml" --warn-shadowing=false >> "%t"
 // RUN: ! %baredafny resolve "%S/dafny.toml" "%S/broken/dafny.toml" 2>> "%t"
 // RUN: ! %baredafny resolve "%S/broken/dafny.toml" 2>> "%t"
 // RUN: ! %baredafny resolve "%S/doesNotExist/dafny.toml" 2>> "%t"

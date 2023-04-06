@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest; 
 
-public class ProjectFiles : ClientBasedLanguageServerTest {
+public class ProjectFilesTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileIsFound() {
     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "ProjectFiles/TestFiles/src/foo.dfy");
