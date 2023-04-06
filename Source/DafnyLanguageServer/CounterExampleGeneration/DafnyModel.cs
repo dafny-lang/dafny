@@ -864,7 +864,7 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     /// <summary>
-    /// Return all functions that map an object to a destructor value.
+    /// Return all functions mapping an object to a destructor value.
     /// </summary>
     private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
       var possiblyNullableTypes = GetIsResults(datatypeElement)
