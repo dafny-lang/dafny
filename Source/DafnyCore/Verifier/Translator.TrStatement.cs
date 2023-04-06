@@ -156,7 +156,7 @@ namespace Microsoft.Dafny {
             var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
             typeAntecedent = BplAnd(typeAntecedent, wh);
           } else {
-            havocLHSs.Add(lhs.Resolved);
+            havocLHSs.Add(lvalue);
             havocRHSs.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
           }
         }
