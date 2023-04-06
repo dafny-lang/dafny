@@ -44,7 +44,7 @@ static class CommandRegistry {
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
 
-    FileArgument = new Argument<FileInfo>("file", "input file");
+    FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
   }
 
   public static Argument<FileInfo> FileArgument { get; }

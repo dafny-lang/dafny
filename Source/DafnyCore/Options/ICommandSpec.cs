@@ -15,7 +15,7 @@ public interface ICommandSpec {
   static ICommandSpec() {
     FilesArgument = new("file", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
-    }, true, "input files");
+    }, true, "Dafny input files and/or a Dafny project file");
   }
 
   public static Argument<List<FileInfo>> FilesArgument { get; }

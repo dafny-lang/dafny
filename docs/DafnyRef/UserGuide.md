@@ -571,6 +571,21 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 - Dafny `expect` statements (when they fail) send a message to **standard-out**.
 - Dafny I/O libraries send output explicitly to either **standard-out or standard-error**
 
+### 13.5.5. Project files
+
+Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file, ending in the extension `.toml`. Here's an example of a Dafny project file:
+
+```toml
+includes = ["src/**/*.dfy"]
+excludes = ["**/ignore.dfy"]
+
+[options]
+  enforce-determinism = true
+  warn-shadowing = true
+```
+
+Options are applied to a command if they can be. Invalid options are ignored.
+
 ## 13.6. Verification {#sec-verification}
 
 In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
