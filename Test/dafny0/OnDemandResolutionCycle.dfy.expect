@@ -4,4 +4,5 @@ OnDemandResolutionCycle.dfy(14,8): Error: PRE-TYPE: Cyclic dependency among decl
 OnDemandResolutionCycle.dfy(17,8): Error: PRE-TYPE: Cyclic dependency among declarations: E -> FE -> E
 OnDemandResolutionCycle.dfy(21,8): Error: PRE-TYPE: Cyclic dependency among declarations: F -> f -> F
 OnDemandResolutionCycle.dfy(11,6): Error: PRE-TYPE: Cyclic dependency among declarations: c0 -> c1 -> c0
-6 resolution/type errors detected in OnDemandResolutionCycle.dfy
+OnDemandResolutionCycle.dfy(15,14): Error: PRE-TYPE: integer literal used as if it had type D
+7 resolution/type errors detected in OnDemandResolutionCycle.dfy

@@ -262,7 +262,14 @@ namespace Microsoft.Dafny {
     /// </summary>
     public DPreType NewTypeAncestor(DPreType preType) {
       Contract.Requires(preType != null);
+      ISet<NewtypeDecl> visited = null;
       while (preType.Decl is NewtypeDecl newtypeDecl) {
+        visited ??= new HashSet<NewtypeDecl>();
+        if (visited.Contains(newtypeDecl)) {
+          // The parents of the originally given "preType" are in a cycle; the error has been reported elsewhere, but here we just want to get out
+          break;
+        }
+        visited.Add(newtypeDecl);
         var parent = newtypeDecl.BasePreType.Normalize() as DPreType;
         if (parent == null) {
           // The parent type of this newtype apparently hasn't been inferred yet, so stop traversal here
