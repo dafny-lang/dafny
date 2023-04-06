@@ -89,6 +89,7 @@ namespace Microsoft.Dafny {
         AddRotateMember(bvDecl, "RotateRight", width);
         return bvDecl;
       } else {
+        decl = null;
         foreach (var valueTypeDecl in resolver.valuetypeDecls) {
           if (valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
@@ -103,6 +104,8 @@ namespace Microsoft.Dafny {
           } else if (name == "iset") {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
             decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+          } else if (name == "object?") {
+            decl = resolver.builtIns.ObjectDecl;
           } else {
             decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, _ => false, null);
           }
