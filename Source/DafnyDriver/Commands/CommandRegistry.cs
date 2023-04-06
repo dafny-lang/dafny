@@ -106,6 +106,7 @@ static class CommandRegistry {
       rootCommand.AddCommand(command);
     }
 
+    var failedToProcessFile = false;
     void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
@@ -113,12 +114,18 @@ static class CommandRegistry {
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
-        ProcessFile(command, dafnyOptions, singleFile);
+        if (!ProcessFile(command, dafnyOptions, singleFile)) {
+          failedToProcessFile = true;
+          return;
+        }
       }
       var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
-          ProcessFile(command, dafnyOptions, file);
+          if (!ProcessFile(command, dafnyOptions, file)) {
+            failedToProcessFile = true;
+            return;
+          }
         }
       }
 
@@ -143,6 +150,11 @@ static class CommandRegistry {
 #pragma warning disable VSTHRD002
     var exitCode = builder.Build().InvokeAsync(arguments).Result;
 #pragma warning restore VSTHRD002
+
+    if (failedToProcessFile) {
+      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+    }
+    
     if (!wasInvoked) {
       if (exitCode == 0) {
         return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
@@ -157,16 +169,20 @@ static class CommandRegistry {
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
   }
 
-  private static void ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile)
+  private static bool ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile)
   {
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
-      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName));
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
+      if (projectFile == null) {
+        return false;
+      }
       // TODO check for existing
       dafnyOptions.ProjectFile = projectFile;
       projectFile.ApplyToOptions(command, dafnyOptions);
     } else {
       dafnyOptions.AddFile(singleFile.FullName);
     }
+    return true;
   }
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {

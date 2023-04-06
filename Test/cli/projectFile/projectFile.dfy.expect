@@ -1,3 +1,7 @@
 /Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/src/input.dfy(6,8): Warning: Shadowed local-variable name: x
 
 Dafny program verifier did not attempt verification
+The Dafny project file /Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/brokenDafny.toml contains the following errors:
+(1,1) : error : The property `includdddes` does not exist
+
+Could not find file '/Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/doesNotExist.toml'.
