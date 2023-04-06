@@ -1,0 +1,3 @@
+/Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/src/input.dfy(6,8): Warning: Shadowed local-variable name: x
+
+Dafny program verifier did not attempt verification

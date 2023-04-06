@@ -1,0 +1,4 @@
+includes = ["src/**/*"]
+
+[options]
+warn-shadowing = true

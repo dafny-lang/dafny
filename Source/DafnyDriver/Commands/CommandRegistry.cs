@@ -12,6 +12,7 @@ using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
@@ -112,17 +113,22 @@ static class CommandRegistry {
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
-        dafnyOptions.AddFile(singleFile.FullName);
+        ProcessFile(command, dafnyOptions, singleFile);
       }
       var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
-          dafnyOptions.AddFile(file.FullName);
+          ProcessFile(command, dafnyOptions, file);
         }
       }
 
       foreach (var option in command.Options) {
-        var value = context.ParseResult.GetValueForOption(option);
+        var result = context.ParseResult.FindResultFor(option);
+        object projectFileValue = null;
+        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, out projectFileValue) ?? false;
+        var value = result == null && hasProjectFileValue
+          ? projectFileValue
+          : context.ParseResult.GetValueForOption(option);
         options.OptionArguments[option] = value;
         dafnyOptions.ApplyBinding(option);
       }
@@ -149,6 +155,18 @@ static class CommandRegistry {
     }
 
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+  }
+
+  private static void ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile)
+  {
+    if (Path.GetExtension(singleFile.FullName) == ".toml") {
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName));
+      // TODO check for existing
+      dafnyOptions.ProjectFile = projectFile;
+      projectFile.ApplyToOptions(command, dafnyOptions);
+    } else {
+      dafnyOptions.AddFile(singleFile.FullName);
+    }
   }
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {
