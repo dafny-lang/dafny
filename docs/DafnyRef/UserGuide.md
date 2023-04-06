@@ -586,6 +586,8 @@ excludes = ["**/ignore.dfy"]
 
 Options are applied to a command if they can be. Invalid options are ignored.
 
+When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree, and options from the first found project file will override options passed to `dafny server`.
+
 ## 13.6. Verification {#sec-verification}
 
 In this section, we suggest a methodology to figure out [why a single assertion might not hold](#sec-verification-debugging), we propose techniques to deal with [assertions that slow a proof down](#sec-verification-debugging-slow), we explain how to [verify assertions in parallel or in a focused way](#sec-assertion-batches), and we also give some more examples of [useful options and attributes to control verification](#sec-command-line-options-and-attributes-for-verification).
