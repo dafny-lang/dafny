@@ -29,7 +29,7 @@ public class ProjectFile {
       model.Uri = uri;
       return model;
 
-    } catch (FileNotFoundException e) {
+    } catch (IOException e) {
       errorWriter.WriteLine(e.Message);
       return null;
     } catch (TomlException tomlException) {
