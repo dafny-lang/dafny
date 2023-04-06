@@ -26,11 +26,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Loads the specified document item of the language server and applies the necessary steps
     /// to generate a dafny document instance.
     /// </summary>
+    /// <param name="options"></param>
     /// <param name="textDocument">The text document to load.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
     /// <returns>The loaded dafny document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken);
+    Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
+      CancellationToken cancellationToken);
   }
 }

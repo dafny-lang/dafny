@@ -44,7 +44,7 @@ public class ProjectFile {
     }
   }
 
-  public void ApplyToOptions(Command command, DafnyOptions options) {
+  public void ApplyToOptions(DafnyOptions options) {
     var matcher = new Matcher();
     foreach (var includeGlob in Includes)
     {

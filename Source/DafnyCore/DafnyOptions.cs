@@ -35,6 +35,7 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+    public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
     public bool AlwaysUseHeap => Allocated == 2;

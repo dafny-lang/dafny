@@ -38,7 +38,7 @@ static class CommandRegistry {
     AddCommand(new TranslateCommand());
     AddCommand(new FormatCommand());
     AddCommand(new MeasureComplexityCommand());
-    AddCommand(new ServerCommand());
+    AddCommand(ServerCommand.Instance);
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
@@ -178,7 +178,7 @@ static class CommandRegistry {
       }
       // TODO check for existing
       dafnyOptions.ProjectFile = projectFile;
-      projectFile.ApplyToOptions(command, dafnyOptions);
+      projectFile.ApplyToOptions(dafnyOptions);
     } else {
       dafnyOptions.AddFile(singleFile.FullName);
     }

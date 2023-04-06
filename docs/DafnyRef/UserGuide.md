@@ -573,7 +573,7 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 
 ### 13.5.5. Project files
 
-Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file, ending in the extension `.toml`. Here's an example of a Dafny project file:
+Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dafny.toml`. Here's an example of a Dafny project file:
 
 ```toml
 includes = ["src/**/*.dfy"]

@@ -16,6 +16,6 @@ public class ProjectFiles : ClientBasedLanguageServerTest {
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     
     Assert.Single(diagnostics);
-    Assert.Contains("shadows", diagnostics[0].Message);
+    Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
   }
 }
