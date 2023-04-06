@@ -154,7 +154,7 @@ public class DocumentManager {
 
       foreach (var option in ServerCommand.Instance.Options) {
         object? projectFileValue = null;
-        var hasProjectFileValue = projectFile?.TryGetValue(option, out projectFileValue) ?? false;
+        var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
         if (hasProjectFileValue) {
           result.Options.OptionArguments[option] = projectFileValue;
           result.ApplyBinding(option);

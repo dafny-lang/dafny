@@ -12,4 +12,8 @@
 
 // Project files must be files on disk.
 // RUN: ! %baredafny resolve --use-basename-for-filename "%S/doesNotExist/dafny.toml" 2>> "%t"
+
+// Project file options must have the right type
+// RUN: ! %baredafny resolve --use-basename-for-filename "%S/badTypes/dafny.toml" 2>> "%t"
+
 // RUN: %diff "%s.expect" "%t"

@@ -131,7 +131,7 @@ static class CommandRegistry {
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, out projectFileValue) ?? false;
+        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, Console.Error, out projectFileValue) ?? false;
         var value = result == null && hasProjectFileValue
           ? projectFileValue
           : context.ParseResult.GetValueForOption(option);

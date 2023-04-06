@@ -46,10 +46,10 @@ public class ProjectFile {
 
   public void ApplyToOptions(DafnyOptions options) {
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes) {
+    foreach (var includeGlob in Includes ?? Enumerable.Empty<string>()) {
       matcher.AddInclude(includeGlob);
     }
-    foreach (var includeGlob in Excludes) {
+    foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {
       matcher.AddExclude(includeGlob);
     }
 
@@ -61,9 +61,17 @@ public class ProjectFile {
     }
   }
 
-  public bool TryGetValue(Option option, out object value) {
+  public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
     var name = option.Name.StartsWith("--") ? option.Name.Substring(2) : option.Name;
 
-    return Options.TryGetValue(name, out value);
+    if (Options.TryGetValue(name, out value)) {
+      if (value.GetType() != option.ValueType) {
+        errorWriter.WriteLine($"Error: property '{name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
+        return false;
+      }
+      return true;
+    }
+
+    return false;
   }
 }
