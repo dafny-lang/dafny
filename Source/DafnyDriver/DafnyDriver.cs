@@ -392,7 +392,7 @@ namespace Microsoft.Dafny {
       if (Options.Format) {
         return DoFormatting(dafnyFiles, Options.SourceFolders, reporter, programName);
       }
-      if (Options.Command.Name == "doc") {
+      if (Options.Command?.Name == "doc") {
         // dafny doc accepts folders as well as files, so it handles 'dafnyFiles' a bit differently than ParseCheck below
         return DafnyDoc.DoDocumenting(dafnyFiles, Options.SourceFolders, reporter, programName, reporter.Options);
       }
