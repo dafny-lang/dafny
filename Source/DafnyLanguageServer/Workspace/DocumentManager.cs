@@ -137,7 +137,7 @@ public class DocumentManager {
     ProjectFile? projectFile = null;
 
     var folder = Path.GetDirectoryName(uri.Path);
-    while (folder != null) {
+    while (!string.IsNullOrEmpty(folder)) {
       var children = Directory.GetFiles(folder, "dafny.toml");
       if (children.Length > 0) {
         var errorWriter = TextWriter.Null;
