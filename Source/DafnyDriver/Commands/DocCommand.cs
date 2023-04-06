@@ -12,7 +12,11 @@ class DocCommand : ICommandSpec {
   );
 
   public static readonly Option<string> DocFilenameFormat = new("--doc-file-name",
-    "Form of file references in documentation: none, absolute, name, relative=<prefix>"
+    "Form of file references in documentation: none, absolute, name (the default), relative=<prefix>"
+  );
+
+  public static readonly Option<bool> DocShowModifyTime = new("--doc-modify-time",
+    "If enabled, includes the lasst modified time of source files in the output"
   );
 
 
@@ -26,6 +30,7 @@ class DocCommand : ICommandSpec {
   static DocCommand() {
     DafnyOptions.RegisterLegacyBinding(DocProgramNameOption, (options, value) => { options.DocProgramNameOption = value; });
     DafnyOptions.RegisterLegacyBinding(DocFilenameFormat, (options, value) => { options.DocFilenameFormat = value; });
+    DafnyOptions.RegisterLegacyBinding(DocShowModifyTime, (options, value) => { options.DocShowModifyTime = value; });
   }
 
   public IEnumerable<Option> Options => DocOptions;

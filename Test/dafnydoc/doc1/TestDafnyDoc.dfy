@@ -1,3 +1,5 @@
+// RUN: %baredafny doc --use-basename-for-filename "%s" > "%t"
+
 /** Test module. More about this test module. */
 module {:options "--function-syntax:4"} TestModule {
 

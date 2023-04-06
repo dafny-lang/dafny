@@ -328,6 +328,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public string DocProgramNameOption = null;
     public string DocFilenameFormat = null;
+    public bool DocShowModifyTime = false;
 
     public bool AuditProgram = false;
 
