@@ -49,10 +49,8 @@ namespace DafnyTestGeneration {
       if (options.TestGenOptions.TargetMethod != null) {
         ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
           i.Name.StartsWith("Impl$$")
-          && i.VerboseName.StartsWith(
-            options.TestGenOptions.TargetMethod));
-      } else {
-        ImplementationToTarget = null;
+          && i.VerboseName.Split(" ")[0]
+          == options.TestGenOptions.TargetMethod);
       }
       var callGraphVisitor = new CallGraph();
       callGraphVisitor.VisitProgram(program);
@@ -148,13 +146,17 @@ namespace DafnyTestGeneration {
     protected static LocalVariable GetNewLocalVariable(
       Implementation impl,
       Type type,
-      string baseName = "tmp#") {
-      int id = 0;
-      while (impl.LocVars.Exists(v => v.Name == baseName + id)) {
-        id++;
+      string baseName = "tmp") {
+      string name = baseName;
+      if (impl.LocVars.Exists(v => v.Name == name)) {
+        int id = 0;
+        while (impl.LocVars.Exists(v => v.Name == baseName + id)) {
+          id++;
+        }
+        name = baseName + id;
       }
       var newLocalVar = new LocalVariable(new Token(),
-        new TypedIdent(new Token(), baseName + id, type));
+        new TypedIdent(new Token(), name, type));
       impl.LocVars.Add(newLocalVar);
       return newLocalVar;
     }

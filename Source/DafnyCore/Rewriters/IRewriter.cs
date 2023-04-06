@@ -5,11 +5,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
   /// <summary>
-  /// A class that plugins should extend, in order to provide an extra Rewriter to the pipeline.
-  ///
-  /// If the plugin defines no PluginConfiguration, then Dafny will instantiate every sub-class
-  /// of Rewriter from the plugin, providing them with an ErrorReporter in the constructor
-  /// as the first and only argument.
+  /// Internal rewriters used in the resolution pipeline
   /// </summary>
   public abstract class IRewriter {
     /// <summary>
@@ -17,20 +13,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected ErrorReporter Reporter;
 
-    /// <summary>
-    /// Constructor that accepts an ErrorReporter
-    /// You can obtain an ErrorReporter two following ways:
-    /// * Extend a PluginConfiguration class, and override the method GetRewriters(), whose first argument is an ErrorReporter
-    /// * Have no PluginConfiguration  class, and an ErrorReporter will be provided to your class's constructor.
-    /// 
-    /// Then you can use the protected field "reporter" like the following:
-    /// 
-    ///     reporter.Error(MessageSource.Compiler, token, "[Your plugin] Your error message here");
-    ///
-    /// The token is usually obtained on expressions and statements in the field `tok`
-    /// If you do not have access to them, use moduleDefinition.GetFirstTopLevelToken()
-    /// </summary>
-    /// <param name="reporter">The error reporter. Usually outputs automatically to IDE or command-line</param>
     protected internal IRewriter(ErrorReporter reporter) {
       Contract.Requires(reporter != null);
       this.Reporter = reporter;

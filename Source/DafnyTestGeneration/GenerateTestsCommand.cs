@@ -4,7 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
@@ -42,6 +42,7 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
     dafnyOptions.CompileVerbose = false;
+    dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
 

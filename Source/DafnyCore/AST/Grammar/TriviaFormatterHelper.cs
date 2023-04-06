@@ -12,11 +12,11 @@ public static class TriviaFormatterHelper {
     return EndsWithNewlineRegex.IsMatch(s);
   }
 
-  private static readonly string AnyNewline = @"\r?\n|\r(?!\n)";
+  public static readonly string AnyNewline = @"\r?\n|\r(?!\n)";
 
   private static readonly string NoCommentDelimiter = @"(?:(?!/\*|\*/)[\s\S])*";
 
-  private static readonly string MultilineCommentContent =
+  public static readonly string MultilineCommentContent =
     $@"(?:{NoCommentDelimiter}(?:(?'Open'/\*)|(?'-Open'\*/)))*{NoCommentDelimiter}";
 
   public static readonly Regex NewlineRegex =

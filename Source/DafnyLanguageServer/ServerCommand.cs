@@ -48,6 +48,7 @@ Send notifications about the verification status of each line in the program.
     LineVerificationStatus,
     VerifySnapshots,
     CommonOptionBag.EnforceDeterminism,
+    CommonOptionBag.UseJavadocLikeDocstringRewriterOption
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ResolverOptions);
 
