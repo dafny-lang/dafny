@@ -14,7 +14,7 @@ public class ProjectFiles : ClientBasedLanguageServerTest {
     var documentItem = CreateTestDocument(source, filePath);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-    
+
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
   }

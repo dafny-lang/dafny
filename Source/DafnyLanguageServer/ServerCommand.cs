@@ -10,8 +10,7 @@ namespace Microsoft.Dafny.LanguageServer;
 public class ServerCommand : ICommandSpec {
   public static readonly ServerCommand Instance = new();
 
-  private ServerCommand()
-  {
+  private ServerCommand() {
   }
 
   static ServerCommand() {

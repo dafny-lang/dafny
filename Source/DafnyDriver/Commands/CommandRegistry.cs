@@ -154,7 +154,7 @@ static class CommandRegistry {
     if (failedToProcessFile) {
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
-    
+
     if (!wasInvoked) {
       if (exitCode == 0) {
         return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
@@ -169,8 +169,7 @@ static class CommandRegistry {
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
   }
 
-  private static bool ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile)
-  {
+  private static bool ProcessFile(Command command, DafnyOptions dafnyOptions, FileInfo singleFile) {
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
       if (projectFile == null) {

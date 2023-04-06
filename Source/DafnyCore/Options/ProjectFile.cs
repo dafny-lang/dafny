@@ -18,10 +18,10 @@ namespace Microsoft.Dafny;
 public class ProjectFile {
   [IgnoreDataMember]
   public Uri Uri { get; set; }
-  public string[] Includes { get; set;  }
-  public string[] Excludes { get; set;  }
-  public Dictionary<string, object> Options { get; set;  }
-  
+  public string[] Includes { get; set; }
+  public string[] Excludes { get; set; }
+  public Dictionary<string, object> Options { get; set; }
+
   public static ProjectFile Open(Uri uri, TextWriter errorWriter) {
     try {
       var file = File.Open(uri.LocalPath, FileMode.Open);
@@ -46,8 +46,7 @@ public class ProjectFile {
 
   public void ApplyToOptions(DafnyOptions options) {
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes)
-    {
+    foreach (var includeGlob in Includes) {
       matcher.AddInclude(includeGlob);
     }
     foreach (var includeGlob in Excludes) {
@@ -57,8 +56,7 @@ public class ProjectFile {
     var root = Path.GetDirectoryName(Uri.LocalPath);
     var result = matcher.Execute(new DirectoryInfoWrapper(new DirectoryInfo(root!)));
     var files = result.Files.Select(f => Path.Combine(root, f.Path));
-    foreach (var file in files)
-    {
+    foreach (var file in files) {
       options.AddFile(file);
     }
   }

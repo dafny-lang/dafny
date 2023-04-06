@@ -55,7 +55,7 @@ public class DocumentManager {
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
     Compilation = new Compilation(
-      services,      
+      services,
       DetermineDocumentOptions(options, document.Uri),
       document,
       null);
@@ -135,7 +135,7 @@ public class DocumentManager {
 
   private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
     ProjectFile? projectFile = null;
-    
+
     var folder = Path.GetDirectoryName(uri.Path);
     while (folder != null) {
       var children = Directory.GetFiles(folder, "dafny.toml");
@@ -151,7 +151,7 @@ public class DocumentManager {
 
     if (projectFile != null) {
       var result = new DafnyOptions(serverOptions);
-      
+
       foreach (var option in ServerCommand.Instance.Options) {
         object? projectFileValue = null;
         var hasProjectFileValue = projectFile?.TryGetValue(option, out projectFileValue) ?? false;
