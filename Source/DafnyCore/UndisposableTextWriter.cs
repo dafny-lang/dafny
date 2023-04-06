@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
-class UndisposableTextWriter : TextWriter {
+public class UndisposableTextWriter : TextWriter {
   public UndisposableTextWriter(TextWriter textWriterImplementation) {
     this.textWriterImplementation = textWriterImplementation;
   }

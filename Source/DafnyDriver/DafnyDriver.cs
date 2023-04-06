@@ -105,6 +105,12 @@ namespace Microsoft.Dafny {
     // TODO inline
     public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
       string[] args) {
+      
+      outputWriter = new UndisposableTextWriter(outputWriter);
+      errorWriter = new UndisposableTextWriter(errorWriter);
+      outputWriter = TextWriter.Synchronized(outputWriter);
+      errorWriter = TextWriter.Synchronized(errorWriter);
+      
       // return ThreadMain(outputWriter, errorWriter, inputReader, args);
 #pragma warning disable VSTHRD002
       return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;

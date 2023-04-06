@@ -188,7 +188,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
       input ??= TextReader.Null;
-      outputWriter = new UndisposableTextWriter(outputWriter);
       var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
       return result;
