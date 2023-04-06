@@ -68,6 +68,12 @@
     <None Update="Various\TestFiles\includesAincludesB.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="ProjectFiles\TestFiles\src\foo.dfy">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\dafny.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
