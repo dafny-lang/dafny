@@ -188,6 +188,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
       input ??= TextReader.Null;
+      outputWriter = new UndisposableTextWriter(outputWriter);
       var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
       return result;
@@ -1594,7 +1595,6 @@ Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
   }
-
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
