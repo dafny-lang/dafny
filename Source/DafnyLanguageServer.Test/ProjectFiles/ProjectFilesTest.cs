@@ -18,7 +18,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
   }
-  
+
   [Fact]
   public async Task ProjectFileOverridesOptions() {
     await SetUp(options => options.WarnShadowing = true);
