@@ -887,7 +887,7 @@ namespace Microsoft.Dafny {
             // if s == c<a> or s == c<a, b> where c is a collection type, then a :> x, else error.
             var a0 = e0.PreType.Normalize();
             var a1 = e1.PreType.Normalize();
-            var coll = a1.UrAncestor(this).AsCollectionType();
+            var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
               DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
               AddSubtypeConstraint(coll.Arguments[0], a0, tok, "expecting element type to be assignable to {0} (got {1})");

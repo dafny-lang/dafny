@@ -66,7 +66,7 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintTypeInferenceState(string/*?*/ header = null) {
-      if (!resolver.Options.NewTypeInferenceDebug) {
+      if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       Console.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
     }
 
     void PrintList<T>(string rubric, List<T> list, Func<T, string> formatter) {
-      if (!resolver.Options.NewTypeInferenceDebug) {
+      if (!resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       Console.WriteLine($"    {rubric}:");
@@ -122,7 +122,7 @@ namespace Microsoft.Dafny {
     }
 
     void DebugPrint(string format, params object[] args) {
-      if (resolver.Options.NewTypeInferenceDebug) {
+      if (resolver.Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         Console.WriteLine(format, args);
       }
     }
