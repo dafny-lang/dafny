@@ -88,9 +88,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /pmtrace
       Print pattern-match compiler debug info.
   
-  /titrace
-      Print type-inference debug info.
-  
   /printTooltips
       Dump additional positional information (displayed as mouse-over
       tooltips by the VS Code plugin) to stdout as 'Info' messages.
@@ -102,6 +99,14 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /ntitrace:<value>
+      0 (default) - Don't print debug information for the new type system.
+      1 - Print debug information for the new type system.
+
+  /titrace:<value>
+      0 (default) - Don't print type-inference debug information.
+      1 - Print type-inference debug information.
+
   /typeSystemRefresh:<value>
       0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
       1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.

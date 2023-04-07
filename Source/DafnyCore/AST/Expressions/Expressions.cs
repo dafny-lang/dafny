@@ -701,6 +701,47 @@ public abstract class Expression : TokenNode {
   }
 
   /// <summary>
+  /// Create a resolved function-call expression. The returned expression will have syntactic scaffolding, which
+  /// enables resolving a syntactic clone of this resolved expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// Expects that "function" has no type parameters, but it's okay for the enclosing type to have type parameters.
+  /// </summary>
+  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, BuiltIns builtIns) {
+    Contract.Requires(function.TypeArgs.Count == 0);
+
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
+      Function = function,
+      Type = Type.Bool,
+      TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
+      TypeApplication_JustFunction = new List<Type>()
+    };
+
+    // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
+    var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
+    var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
+    subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    var exprDotName = new ExprDotName(tok, receiver, function.Name, null) {
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(function, subst, builtIns)
+    };
+    return new ApplySuffix(tok, null, exprDotName, new List<ActualBinding>(), tok) {
+      ResolvedExpression = call,
+      Type = function.ResultType
+    };
+  }
+
+  /// <summary>
+  /// Create a resolved field-selection expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// </summary>
+  public static Expression CreateFieldSelect(IToken tok, Expression receiver, Field field) {
+    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
+    return new ExprDotName(tok, receiver, field.Name, null) {
+      ResolvedExpression = memberSelectExpr,
+      Type = memberSelectExpr.Type
+    };
+  }
+
+  /// <summary>
   /// Create a resolved case expression for a match expression
   /// </summary>
   public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {
