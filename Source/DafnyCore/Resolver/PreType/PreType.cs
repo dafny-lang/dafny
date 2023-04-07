@@ -12,6 +12,7 @@ using System.Linq;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+  
   public abstract class PreType {
     public PreType Normalize() {
       var t = this;
