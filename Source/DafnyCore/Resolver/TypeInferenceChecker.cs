@@ -112,7 +112,6 @@ partial class Resolver {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          var what = lhs is IdentifierExpr ? $"variable '{((IdentifierExpr)lhs).Name}'" : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
         }
       }
@@ -127,7 +126,7 @@ partial class Resolver {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+          if (e.Type.IsBitVectorType && MaxBV(e.Type.AsBitVectorType.Width) < absN) {
             resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal

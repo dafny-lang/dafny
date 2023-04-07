@@ -580,9 +580,10 @@ namespace Microsoft.Dafny {
               Contract.Assert(receiverSubst == null);  // we expect at most one
               var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
               bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
-              var ie = new IdentifierExpr(m.tok, bv.Name);
-              ie.Var = bv;  // resolve here
-              ie.Type = bv.Type;  // resolve here
+              var ie = new IdentifierExpr(m.tok, bv.Name) {
+                Var = bv,
+                Type = bv.Type
+              };
               receiverSubst = ie;
             } else {
               IdentifierExpr ie;
@@ -595,16 +596,19 @@ namespace Microsoft.Dafny {
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
           RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
-          var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
-          methodSel.Member = m;  // resolve here
-          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          methodSel.Type = new InferredTypeProxy();
-          var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs);
-          recursiveCall.IsGhost = m.IsGhost;  // resolve here
+          var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name) {
+            Member = m,
+            TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
+            TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
+            Type = new InferredTypeProxy()
+          };
+          var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs) {
+            IsGhost = m.IsGhost
+          };
 
-          Expression parRange = new LiteralExpr(m.tok, true);
-          parRange.Type = Type.Bool;  // resolve here
+          Expression parRange = new LiteralExpr(m.tok, true) {
+            Type = Type.Bool
+          };
           foreach (var pre in m.Req) {
             parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
           }
