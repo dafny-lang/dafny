@@ -3,10 +3,6 @@ input.dfy(6,8): Warning: Shadowed local-variable name: x
 Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification
-The Dafny project file /Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/broken/dafny.toml contains the following errors:
-(1,1): the property includdddes does not exist.
-
-Could not find a part of the path '/Users/rwillems/SourceCode/dafny2/Test/cli/projectFile/doesNotExist/dafny.toml'.
 Error: property 'warn-shadowing' is of type 'Int64' but should be of type 'Boolean'
 input.dfy(6,8): Warning: Shadowed local-variable name: x
 moreInput.dfy(6,8): Warning: Shadowed local-variable name: x
