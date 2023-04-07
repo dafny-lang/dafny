@@ -6523,7 +6523,7 @@ namespace Microsoft.Dafny {
         // Here are some built-in functions defined in "predef" (so there's no need to cache them in "fieldFunctions")
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") {
           return predef.ArrayLength;
-        } else if (f.EnclosingClass == null && f.Name == "Floor") {
+        } else if (f.EnclosingClass is ValuetypeDecl { Name: "real" } && f.Name == "Floor") {
           return predef.RealFloor;
         } else if (f is SpecialField && !(f is DatatypeDestructor)) {
           if (f.Name is "Keys" or "Values" or "Items") {

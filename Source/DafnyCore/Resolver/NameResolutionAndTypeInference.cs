@@ -4425,8 +4425,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
-        } else {
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 

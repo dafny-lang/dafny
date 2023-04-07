@@ -66,6 +66,9 @@ namespace Microsoft.Dafny {
       protected override bool VisitOneStatement(Statement stmt, BoundsDiscoveryContext context) {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
+          if (forallStmt.Body == null) {
+            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+          }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
             var varLhss = new List<IVariable>();
