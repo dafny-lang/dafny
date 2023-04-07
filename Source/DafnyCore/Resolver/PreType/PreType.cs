@@ -14,6 +14,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   
   public abstract class PreType {
+
     public PreType Normalize() {
       var t = this;
       while (t is PreTypeProxy proxy && proxy.PT != null) {
