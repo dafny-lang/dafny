@@ -17,6 +17,11 @@ using XUnitExtensions.Lit;
 namespace IntegrationTests {
   public class LitTests {
 
+    // Change this to true in order to debug the execution of commands like %dafny.
+    // This is false by default because the main dafny CLI implementation currently has shared static state, which
+    // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
+    private const bool InvokeMainMethodsDirectly = false;
+    
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
@@ -62,33 +67,28 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            new DafnyDriverLitCommand(args, config)
+            DafnyCommand(args, config, InvokeMainMethodsDirectly)
         }, {
           "%resolve", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(defaultResolveArgs, args), config)
+            DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%translate", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(new[]{"translate"}, args),
-              config)
+            DafnyCommand(AddExtraArgs(new[]{"translate"}, args), config, InvokeMainMethodsDirectly)
         }, {
           "%verify", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(defaultVerifyArgs, args),
-              config)
+            DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%build", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(defaultBuildArgs, args),
-              config)
+            DafnyCommand(AddExtraArgs(defaultBuildArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%run", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(defaultRunArgs, args),
-              config)
+            DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
-            new DafnyDriverLitCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config)
+            DafnyCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%testDafnyForEachCompiler", (args, config) => // TODO
-            new MultiBackendLitCommand(args, config)
-            //MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config)
+          "%testDafnyForEachCompiler", (args, config) =>
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config, InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) => // TODO
           {
@@ -105,8 +105,7 @@ namespace IntegrationTests {
         }, {
           "%sed", (args, config) => SedCommand.Parse(args.ToArray())
         }, {
-          "%OutputCheck", (args, config) =>
-            OutputCheckCommand.Parse(args, config)
+          "%OutputCheck", OutputCheckCommand.Parse
         }
       };
 
@@ -158,7 +157,13 @@ namespace IntegrationTests {
 
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);
     }
-
+    
+    public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
+      return invokeDirectly 
+        ? new DafnyDriverLitCommand(arguments, config) 
+        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments), config.PassthroughEnvironmentVariables);
+    }
+    
     private readonly ITestOutputHelper output;
 
     public LitTests(ITestOutputHelper output) {
