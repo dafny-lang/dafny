@@ -171,7 +171,7 @@ namespace Microsoft.Dafny {
 
       DPreType printablePreType = null;
       if (option != Type2PreTypeOption.GoodForInference) {
-        var printableDecl = Type2PreTypeDecl(type);
+        var printableDecl = Type2Decl(type);
         var printableArguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForPrinting));
         printablePreType = new DPreType(printableDecl, printableArguments, null);
         if (option == Type2PreTypeOption.GoodForPrinting) {
@@ -180,12 +180,12 @@ namespace Microsoft.Dafny {
       }
 
       type = expandedType;
-      var decl = Type2PreTypeDecl(type);
+      var decl = Type2Decl(type);
       var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
       return new DPreType(decl, arguments, printablePreType);
     }
 
-    TopLevelDecl Type2PreTypeDecl(Type type) {
+    TopLevelDecl Type2Decl(Type type) {
       Contract.Requires(type != null);
       Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;

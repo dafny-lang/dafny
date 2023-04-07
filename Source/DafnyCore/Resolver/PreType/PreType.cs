@@ -12,9 +12,28 @@ using System.Linq;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  
+
+  /// <summary>
+  /// A PreType is a Type, but ignoring type synonyms and subset types. That is, to obtain the
+  /// pre-type corresponding to a type, expand any type synonym to its RHS and expand any
+  /// subset type with its base type.
+  ///
+  /// A pre-type captures the part of a type that is mutually dependent on name resolution.
+  /// That is, name resolution needs to know the pre-type of expressions and pre-type inference
+  /// needs to know what names refer to. By separating out the pre-type part of types, the
+  /// process of name resolution is simplified.
+  ///
+  /// See also the description of https://github.com/dafny-lang/dafny/pull/3795.
+  /// </summary>
   public abstract class PreType {
 
+    /// <summary>
+    /// Normalize() follows the pre-type to which a pre-type proxy has been resolved, if any.
+    ///
+    /// This method is analogous to Type.Normalize(). Since pre-types don't keep track of
+    /// type synonyms or subset types, there is no need for PreType methods that are analogous
+    /// to Type.NormalizeExpandKeepConstraints() and Type.NormalizeExpand().
+    /// </summary>
     public PreType Normalize() {
       var t = this;
       while (t is PreTypeProxy proxy && proxy.PT != null) {
@@ -28,16 +47,21 @@ namespace Microsoft.Dafny {
       b = b.Normalize();
       if (a is DPreType ap && b is DPreType bp && ap.Decl == bp.Decl) {
         Contract.Assert(ap.Arguments.Count == bp.Arguments.Count);
-        for (var i = 0; i < ap.Arguments.Count; i++) {
-          if (!Same(ap.Arguments[i], bp.Arguments[i])) {
-            return false;
-          }
-        }
-        return true;
+        return ap.Arguments.Zip(bp.Arguments).All(x => Same(x.First, x.Second));
       }
       return a == b;
     }
 
+    /// <summary>
+    /// The "ur-ancestor" of a newtype is the ur-ancestor of its base type.
+    /// The ur-ancestor of a non-newtype is the pre-type itself.
+    ///
+    /// Note, if "this" or any newtype base type encountered in this computation is an unresolved
+    /// pre-type proxy, then that pre-type proxy is what is returned. In other words, the search
+    /// for the ur-ancestor can only go as far as what proxy information allows.
+    ///
+    /// It is assumed that this computation does not encounter any cycles.
+    /// </summary>
     public PreType UrAncestor(PreTypeResolver ptResolver) {
       Contract.Requires(ptResolver != null);
       var pt = this;
@@ -55,7 +79,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public DPreType AsCollectionType() {
+    public DPreType AsCollectionPreType() {
       if (Normalize() is DPreType dp) {
         switch (dp.Decl.Name) {
           case "set":
