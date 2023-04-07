@@ -1284,7 +1284,7 @@ public abstract class Type : TokenNode {
     Contract.Requires(b != null);
     Contract.Requires(builtIns != null);
     var j = JoinX(a, b, builtIns);
-    if (builtIns.Options.TypeInferenceDebug) {
+    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
       builtIns.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
@@ -1505,7 +1505,7 @@ public abstract class Type : TokenNode {
         j = null;
       }
     }
-    if (builtIns.Options.TypeInferenceDebug) {
+    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
       builtIns.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
@@ -2789,7 +2789,7 @@ public abstract class TypeProxy : Type {
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
-    if (options.TypeInferenceDebug) {
+    if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
       return T == null ? "?" + id : T.TypeName(options, context);
     }
 #endif
