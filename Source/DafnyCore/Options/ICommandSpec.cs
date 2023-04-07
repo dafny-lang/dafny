@@ -75,6 +75,8 @@ public interface ICommandSpec {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.TypeSystemRefresh,
+    CommonOptionBag.TypeInferenceDebug,
+    CommonOptionBag.NewTypeInferenceDebug,
     CommonOptionBag.ErrorLimit,
   });
 

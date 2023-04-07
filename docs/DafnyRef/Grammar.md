@@ -173,11 +173,106 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.5. Tokens ([grammar](#sec-g-tokens)) {#sec-tokens}
+## 2.5. Documentation comments
+
+Like many other languages, Dafny permits _documentation comments_ in a program file.
+Such comments contain natural language descriptions of program elements and may be used
+by IDEs and documentation generation tools to present information to users.
+
+In Dafny programs.
+* Documentation comments (a) either begin with `/**` or (b) begin with `//` or /*` in specific locations
+* Doc-comments may be associated with any declaration, including type definitions, export declarations, and datatype constructors.
+* They may be placed before or after the declaration. 
+   * If before, it must be a `/**` comment and may not have any blank or white-space lines between the comment
+     and the declaration.
+   * If after, any comments are placed after the signature (with no intervening lines), but before any
+     specifications or left-brace that starts a body, and may be `//` or `/**` or `/*` comments.
+   * If doc-comments are in both places, only the comments after the declaration are used.
+* Doc-comments after the declaration are preferred.
+* If the first of a series of single-line or multi-line comments is interpreted as a doc-string, then any subsequent comments
+  are appended to it, so long as there are no intervening lines, whether blank, all white-space or containing program text.
+* The extraction of the doc-string from a multiline comment follow these rules 
+  * On the first line, an optional `*` right after `/*` and an optional space are removed, if present
+  * On other lines, the indentation space (with possibly one star in it) is removed, as if the content was supposed to align with A if the comment started with `/** A` for example.
+* The documentation string is interpreted as plain text, but it is possible to provide a user-written
+  plugin that provides other interpretations. VSCode as used by Dafny interprets any markdown
+  syntax in the doc-string.
+
+Here are examples:
+<!-- %check-resolve -->
+```dafny
+const c0 := 8
+/** docstring about c0 */
+
+/** docstring about c1 */
+const c1 := 8
+
+/** first line of docstring */
+const c2 := 8
+/** second line of docstring */
+
+const c3 := 8
+// docstring about c3
+// on two lines
+
+const c4 := 8
+
+// just a comment
+
+
+// just a comment
+const c5 := 8
+
+```
+
+Datatype constructors may also have comments:
+<!-- %check-resolve -->
+```dafny
+datatype T =  // Docstring for T
+  | A(x: int,
+      y: int) // Docstring for A
+  | B()       /* Docstring for B */ |
+    C()       // Docstring for C
+
+/** Docstring for T0*/
+datatype T0 =
+  | /** Docstring for A */
+    A(x: int,
+      y: int)
+  | /** Docstring for B */
+    B()
+  | /** Docstring for C */
+    C()
+```
+
+As can `export` declarations:
+<!-- %check-resolve -->
+```dafny
+module M {
+const A: int
+const B: int
+const C: int
+const D: int
+
+export
+  // This is the eponymous export set intended for most clients
+  provides A, B, C
+
+
+export Friends extends M
+  // This export set is for clients who need to know more of the
+  // details of the module's definitions.
+  reveals A
+  provides D
+}
+```
+
+
+## 2.6. Tokens ([grammar](#sec-g-tokens)) {#sec-tokens}
 
 The Dafny tokens are defined in this section.
 
-### 2.5.1. Reserved Words {#sec-reserved-words}
+### 2.6.1. Reserved Words {#sec-reserved-words}
 
 Dafny has a set of reserved words that may not
 be used as identifiers of user-defined entities.
@@ -195,7 +290,7 @@ bitvectors of given length.
 The sequence of digits after 'array' or 'bv' may not have leading zeros: 
 for example, `bv02` is an ordinary identifier.
 
-### 2.5.2. Identifiers {#sec-identifiers}
+### 2.6.2. Identifiers {#sec-identifiers}
 
 In general, an `ident` token (an identifier) is a sequence of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
@@ -203,7 +298,7 @@ are not identifiers if they look like a character literal
 or a reserved word (including array or bit-vector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### 2.5.3. Digits {#sec-digits}
+### 2.6.3. Digits {#sec-digits}
 
 A `digits` token is a sequence of decimal digits (`digit`), possibly interspersed with 
 underscores for readability (but not beginning or ending with an underscore).
@@ -218,7 +313,7 @@ A `decimaldigits` token is a decimal fraction constant, possibly interspersed wi
 It has digits both before and after a single period (`.`) character. There is no syntax for floating point numbers with exponents.
 Example: `123_456.789_123`.
 
-### 2.5.4. Escaped Character {#sec-escaped-characters}
+### 2.6.4. Escaped Character {#sec-escaped-characters}
 
 The `escapedChar` token is a multi-character sequence that denotes a non-printable or non-ASCII character.
 Such tokens begin with a backslash characcter (`\`) and denote
@@ -242,12 +337,12 @@ Note that although Unicode
 letters are not allowed in Dafny identifiers, Dafny does support [Unicode
 in its character, string, and verbatim strings constants and in its comments](#sec-unicode).
 
-### 2.5.5. Character Constant Token {#sec-character-constant-token}
+### 2.6.5. Character Constant Token {#sec-character-constant-token}
 
 The `charToken` token denotes a character constant.
 It is either a `charChar` or an `escapedChar` enclosed in single quotes.
 
-### 2.5.6. String Constant Token {#sec-string-constant-token}
+### 2.6.6. String Constant Token {#sec-string-constant-token}
 
 A `stringToken` denotes a string constant.
 It consists of a sequence of `stringChar` and `escapedChar` characters enclosed in 
@@ -262,16 +357,16 @@ which is the only character needing escaping in a verbatim string.
 Within a verbatim string constant, a backslash character represents itself 
 and is not the first character of an `escapedChar`.
 
-### 2.5.7. Ellipsis {#sec-ellipsis}
+### 2.6.7. Ellipsis {#sec-ellipsis}
 
 The `ellipsisToken` is the character sequence `...` and is typically used to designate something missing that will
 later be inserted through refinement or is already present in a parent declaration.
 
-## 2.6. Low Level Grammar Productions {#sec-grammar}
+## 2.7. Low Level Grammar Productions {#sec-grammar}
 
-### 2.6.1. Identifier Variations {#sec-identifier-variations}
+### 2.7.1. Identifier Variations {#sec-identifier-variations}
 
-#### 2.6.1.1. Identifier
+#### 2.7.1.1. Identifier
 
 A basic ordinary identifier is just an `ident` token.
 
@@ -293,7 +388,7 @@ Note that
 * `m.requires` is used to denote the [precondition](#sec-requires-clause) for method `m`.
 * `m.reads` is used to denote the things that method `m` may [read](#sec-reads-clause).
 
-#### 2.6.1.2. No-underscore-identifier
+#### 2.7.1.2. No-underscore-identifier
 
 A `NoUSIdent` is an identifier except that identifiers with a **leading**
 underscore are not allowed. The names of user-defined entities are
@@ -324,7 +419,7 @@ All _user-declared_ names do not start with underscores, but there are
 internally generated names that a user program might _use_ that begin
 with an underscore or are just an underscore.
 
-#### 2.6.1.3. Wild identifier {#sec-wild-identifier}
+#### 2.7.1.3. Wild identifier {#sec-wild-identifier}
 
 A wild identifier is a no-underscore-identifier except that the singleton
 `_` is allowed. The `_` is replaced conceptually by a unique
@@ -343,7 +438,7 @@ Wild identifiers may be used in these contexts:
 - for loop parameter
 - LHS of update statements 
 
-### 2.6.2. Qualified Names
+### 2.7.2. Qualified Names
 
 A qualified name starts with the name of a top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
@@ -356,7 +451,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 The identifiers and dots are separate tokens and so may optionally be
 separated by whitespace.
 
-### 2.6.3. Identifier-Type Combinations
+### 2.7.3. Identifier-Type Combinations
 
 Identifiers are typically declared in combination with a type, as in
 <!-- %no-check -->
@@ -374,7 +469,7 @@ This is allowed in defining algebraic datatypes.
 
 In some other situations a wild identifier can be used, as described [above](#sec-wild-identifier).
 
-### 2.6.4. Quantifier Domains ([grammar](#g-quantifier-domain)) {#sec-quantifier-domains}
+### 2.7.4. Quantifier Domains ([grammar](#g-quantifier-domain)) {#sec-quantifier-domains}
 
 Several Dafny constructs bind one or more variables to a range of possible values.
 For example, the quantifier `forall x: nat | x <= 5 :: x * x <= 25` has the meaning
@@ -420,7 +515,7 @@ because the range attached to `i` ensures `i` is a valid index in the sequence `
 Allowing per-variable ranges is not fully backwards compatible, and so it is not yet allowed by default;
 the `--quantifier-syntax:4` option needs to be provided to enable this feature (See [Section 13.8.5](#sec-controlling-language)).
 
-### 2.6.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
+### 2.7.5. Numeric Literals ([grammar](#g-literal-expression)) {#sec-numeric-literals}
 
 Integer and bitvector literals may be expressed in either decimal or hexadecimal (`digits` or `hexdigits`).
 

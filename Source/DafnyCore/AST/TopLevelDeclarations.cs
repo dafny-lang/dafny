@@ -1815,20 +1815,36 @@ public class CoDatatypeDecl : DatatypeDecl {
 /// Its primary function is to hold the formal type parameters and built-in members of these types.
 /// </summary>
 public class ValuetypeDecl : TopLevelDecl {
-  public override string WhatKind { get { return Name; } }
+  public override string WhatKind { get { return "type"; } }
   public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
   readonly Func<Type, bool> typeTester;
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
-  public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
+  public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
     : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
-    Contract.Requires(0 <= typeParameterCount);
+    Contract.Requires(typeTester != null);
+    this.typeTester = typeTester;
+    this.typeCreator = typeCreator;
+  }
+
+  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
+    Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    Contract.Requires(name != null);
+    Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
     // fill in the type parameters
-    for (int i = 0; i < typeParameterCount; i++) {
-      TypeArgs.Add(new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), i, this));
+    if (typeParameterVariance != null) {
+      for (int i = 0; i < typeParameterVariance.Count; i++) {
+        var variance = typeParameterVariance[i];
+        var tp = new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), variance) {
+          Parent = this,
+          PositionalIndex = i
+        };
+        TypeArgs.Add(tp);
+      }
     }
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
