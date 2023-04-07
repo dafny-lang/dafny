@@ -394,6 +394,9 @@ namespace Microsoft.Dafny {
       Type.ResetScopes();
 
       Type.EnableScopes();
+      // For the formatter, we ensure we take snapshots of the PrefixNamedModules
+      // and topleveldecls
+      prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
@@ -2323,6 +2326,10 @@ namespace Microsoft.Dafny {
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var u = new UnderspecificationDetector(this);
           u.Check(declarations);
+        }
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {

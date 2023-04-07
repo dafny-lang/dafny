@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using static Microsoft.Dafny.ErrorRegistry;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// Removes nesting from matching patterns, such as case Cons(head1, Cons(head2, tail))

@@ -12,6 +12,12 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 
+/// <summary>
+/// The purpose of the PreTypeToTypeVisitor is to convert the final pre-types of the name-resolution/pre-type-inference
+/// into types. The core method for doing the conversion is "PreType2Type". The rest of the class is concerned with
+/// where name-resolution/pre-type-inference has come up with pre-types and where these are supposed to be written back
+/// into the AST as types.
+/// </summary>
 class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
     return astVisitorContext;

@@ -5,7 +5,6 @@
 //
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
@@ -194,7 +193,7 @@ namespace Microsoft.Dafny {
 #else
       if (option == Type2PreTypeOption.GoodForPrinting) {
 #endif
-        var printableDecl = Type2PreTypeDecl(originalType);
+        var printableDecl = Type2Decl(originalType);
         var printableArguments = originalType.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForPrinting));
         printablePreType = new DPreType(printableDecl, printableArguments, null);
         if (option == Type2PreTypeOption.GoodForPrinting) {
@@ -202,12 +201,12 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var decl = Type2PreTypeDecl(type);
+      var decl = Type2Decl(type);
       var arguments = type.TypeArgs.ConvertAll(ty => Type2PreType(ty, null, Type2PreTypeOption.GoodForInference));
       return new DPreType(decl, arguments, printablePreType);
     }
 
-    TopLevelDecl Type2PreTypeDecl(Type type) {
+    TopLevelDecl Type2Decl(Type type) {
       Contract.Requires(type != null);
       Contract.Requires(type is NonProxyType and not SelfType);
       TopLevelDecl decl;

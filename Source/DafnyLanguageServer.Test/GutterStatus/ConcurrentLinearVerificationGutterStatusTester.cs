@@ -50,7 +50,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, verificationStatusGutterReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, true, verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {

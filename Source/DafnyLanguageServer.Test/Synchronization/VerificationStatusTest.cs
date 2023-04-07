@@ -303,7 +303,7 @@ method Bar() { assert false; }";
     var documentItem = CreateTestDocument(source);
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
     Assert.Empty(resolutionDiagnostics);
     var barRange = new Range(new Position(1, 7), new Position(1, 10));
 

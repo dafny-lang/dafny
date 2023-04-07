@@ -3,7 +3,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class DeadCodeCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
