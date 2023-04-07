@@ -1,4 +1,4 @@
-includes = ["../src/**/*"]
+includes = ["**/*"]
 
 [options]
 warn-shadowing = 3

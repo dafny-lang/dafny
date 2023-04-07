@@ -46,7 +46,7 @@ public class ProjectFile {
 
   public void ApplyToOptions(DafnyOptions options) {
     var matcher = new Matcher();
-    foreach (var includeGlob in Includes ?? Enumerable.Empty<string>()) {
+    foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
       matcher.AddInclude(includeGlob);
     }
     foreach (var includeGlob in Excludes ?? Enumerable.Empty<string>()) {

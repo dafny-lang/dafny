@@ -16,4 +16,7 @@
 // Project file options must have the right type
 // RUN: ! %baredafny resolve --use-basename-for-filename "%S/badTypes/dafny.toml" 2>> "%t"
 
+// A project file without includes will take all .dfy files as input
+// RUN: %baredafny resolve --use-basename-for-filename "%S/noIncludes/dafny.toml" >> "%t"
+
 // RUN: %diff "%s.expect" "%t"
