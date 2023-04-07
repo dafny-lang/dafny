@@ -43,14 +43,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);
       // if the tok is IncludeToken, we need to indicate to the including file
       // that there are errors in the included file.
-      if (tok is IncludeToken) {
-        IncludeToken includeToken = (IncludeToken)tok;
-        Include include = includeToken.Include;
-        if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, null, include.tok, "the included file " + tok.Filename + " contains error(s)");
-          include.ErrorReported = true;
-        }
-      }
+      // if (tok is IncludeToken) {
+      //   IncludeToken includeToken = (IncludeToken)tok;
+      //   Include include = includeToken.Include;
+      //   if (!include.ErrorReported) {
+      //     Message(source, ErrorLevel.Error, null, include.tok, "the included file " + tok.Filename + " contains error(s)");
+      //     include.ErrorReported = true;
+      //   }
+      // }
       Message(source, ErrorLevel.Error, errorId, tok, msg);
     }
 

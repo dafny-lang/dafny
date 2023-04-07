@@ -62,9 +62,11 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
     public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
-      if (token is IncludeToken includeToken) {
-        return DocumentUri.FromFileSystemPath(includeToken.Include.CanonicalPath);
-      }
+      // TODO have do we determine the effect of commenting this out? What test was covering it?
+      // HoverGetsForeignContentAsWell hits it, but there this code doesn't change anything.
+      // if (token is IncludeToken includeToken) {
+      //   return DocumentUri.FromFileSystemPath(includeToken.Include.CanonicalPath);
+      // }
 
       while (token is RefinementToken refinementToken) {
         token = refinementToken.WrappedToken;

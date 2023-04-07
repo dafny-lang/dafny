@@ -31,7 +31,7 @@ namespace DafnyServer {
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (
           var clbl in
-          ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken))) {
+          ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && e.Tok.Filename == module.Tok.Filename)) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -88,7 +88,7 @@ namespace DafnyServer {
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (
-          var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken))) {
+          var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && e.Tok.Filename == module.Tok.Filename)) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
@@ -108,7 +108,7 @@ namespace DafnyServer {
     }
 
     private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => !(cl.tok is IncludeToken))) {
+      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => cl.Tok.Filename == module.Tok.Filename)) {
         if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
@@ -254,7 +254,7 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filename == module.Tok.Filename)) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -272,7 +272,7 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filename == module.Tok.Filename)) {
           if (!(clbl is Method)) {
             continue;
           }

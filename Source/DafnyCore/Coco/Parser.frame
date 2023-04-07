@@ -88,7 +88,6 @@ public class Parser {
     for (; ; ) {
       var tmp = la;
       la = scanner.Scan();
-      la = theVerifyThisFile ? la : new IncludeToken(theInclude, la);
       tmp.Next = la;
       la.Prev = tmp;
       t = tmp;

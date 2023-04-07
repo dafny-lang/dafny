@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (d.tok is IncludeToken && !options.VerifyAllModules) {
+      if (!options.VerifyAllModules && !options.Files.Contains(d.tok.Filename)) { // TODO speedup to constant time?
         return false;
       }
 

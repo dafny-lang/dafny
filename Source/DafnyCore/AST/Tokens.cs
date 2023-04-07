@@ -293,54 +293,6 @@ public class NestedToken : TokenWrapper {
 }
 
 /// <summary>
-/// An IncludeToken is a wrapper that indicates that the function/method was
-/// declared in a file that was included. Any proof obligations from such an
-/// included file are to be ignored.
-/// </summary>
-public class IncludeToken : TokenWrapper {
-  public Include Include;
-  public IncludeToken(Include include, IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    this.Include = include;
-  }
-
-  public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
-  }
-
-  public override int pos {
-    get { return WrappedToken.pos; }
-    set { WrappedToken.pos = value; }
-  }
-
-  public override int line {
-    get { return WrappedToken.line; }
-    set { WrappedToken.line = value; }
-  }
-
-  public override int col {
-    get { return WrappedToken.col; }
-    set { WrappedToken.col = value; }
-  }
-
-  public override IToken Prev {
-    get { return WrappedToken.Prev; }
-    set { WrappedToken.Prev = value; }
-  }
-
-  public override IToken Next {
-    get { return WrappedToken.Next; }
-    set { WrappedToken.Next = value; }
-  }
-
-  public override IToken WithVal(string newVal) {
-    return new IncludeToken(Include, WrappedToken.WithVal(newVal));
-  }
-}
-
-/// <summary>
 /// A token wrapper used to produce better type checking errors
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
 /// </summary>
