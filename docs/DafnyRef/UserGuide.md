@@ -580,8 +580,8 @@ includes = ["src/**/*.dfy"]
 excludes = ["**/ignore.dfy"]
 
 [options]
-  enforce-determinism = true
-  warn-shadowing = true
+enforce-determinism = true
+warn-shadowing = true
 ```
 
 Options are applied to a command if they can be. Invalid options are ignored.
