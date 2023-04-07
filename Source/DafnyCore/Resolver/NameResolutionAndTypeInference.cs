@@ -221,7 +221,7 @@ namespace Microsoft.Dafny {
 
     [System.Diagnostics.Conditional("TI_DEBUG_PRINT")]
     void PrintTypeConstraintState(int lbl) {
-      if (!Options.TypeInferenceDebug) {
+      if (!Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         return;
       }
       Console.WriteLine("DEBUG: ---------- type constraints ---------- {0} {1}", lbl, lbl == 0 && currentMethod != null ? currentMethod.Name : "");
@@ -508,10 +508,7 @@ namespace Microsoft.Dafny {
             e.TypeApplication_JustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
-          e.Type = SelectAppropriateArrowType(fn.tok,
-            fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
-            fn.ResultType.Subst(subst),
-            fn.Reads.Count != 0, fn.Req.Count != 0);
+          e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
@@ -1050,7 +1047,7 @@ namespace Microsoft.Dafny {
         ResolveExpression(e.Term, resolutionContext);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
-        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
+        expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null, builtIns);
       } else if (expr is WildcardExpr) {
         expr.Type = new SetType(true, builtIns.ObjectQ());
       } else if (expr is StmtExpr) {
@@ -1228,14 +1225,14 @@ namespace Microsoft.Dafny {
 
       var proxy = a.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(b, proxy, 1, new HashSet<TypeProxy>())) {
-        if (Options.TypeInferenceDebug) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
         }
         proxy.T = b;
       }
       proxy = b.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(a, proxy, 1, new HashSet<TypeProxy>())) {
-        if (Options.TypeInferenceDebug) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
         }
         proxy.T = a;
@@ -1454,7 +1451,7 @@ namespace Microsoft.Dafny {
             // unless...
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
-              if (Options.TypeInferenceDebug) {
+              if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                 Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
@@ -1462,7 +1459,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
             }
             t = Type.Int;
@@ -1475,7 +1472,7 @@ namespace Microsoft.Dafny {
             // unless...
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
-              if (Options.TypeInferenceDebug) {
+              if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                 Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
@@ -1483,7 +1480,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular real variety now
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
             }
             t = Type.Real;
@@ -1493,7 +1490,7 @@ namespace Microsoft.Dafny {
         }
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
-      if (Options.TypeInferenceDebug) {
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
@@ -2274,11 +2271,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(t != null);
         Contract.Requires(visited != null);
         t = t.NormalizeExpand();
-        if (options.TypeInferenceDebug) {
+        if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
         }
         if (t is CollectionType) {
-          if (options.TypeInferenceDebug) {
+          if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Console.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
           }
           return ((CollectionType)t).Arg;
@@ -2537,7 +2534,7 @@ namespace Microsoft.Dafny {
                   continue;
                 } else if (super is TypeProxy && sub is TypeProxy) {
                   var proxy = (TypeProxy)super;
-                  if (Options.TypeInferenceDebug) {
+                  if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                     Console.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
                   }
                   proxy.T = sub;
@@ -2734,7 +2731,7 @@ namespace Microsoft.Dafny {
     private bool ProcessAssignable(TypeProxy lhs, List<Type> rhss) {
       Contract.Requires(lhs != null && lhs.T == null);
       Contract.Requires(rhss != null);
-      if (Options.TypeInferenceDebug) {
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.Write("DEBUG: ProcessAssignable: {0} with rhss:", lhs);
         foreach (var rhs in rhss) {
           Console.Write(" {0}", rhs);
@@ -2760,7 +2757,7 @@ namespace Microsoft.Dafny {
         // would cause a cycle, so don't do it
         return false;
       } else {
-        if (Options.TypeInferenceDebug) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
         }
         lhs.T = join;
@@ -3040,7 +3037,7 @@ namespace Microsoft.Dafny {
           } else {
             CloseOverAssignableRhss(proxySubs);
             if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
-              if (Options.TypeInferenceDebug) {
+              if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                 Console.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
               }
               AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
@@ -3967,7 +3964,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
+    internal Resolver_IdentifierExpr CreateResolver_IdentifierExpr(IToken tok, string name, List<Type> optTypeArguments, TopLevelDecl decl) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
@@ -5054,7 +5051,7 @@ namespace Microsoft.Dafny {
               var prevErrorCount = reporter.Count(ErrorLevel.Error);
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
-              // type, create an dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
+              // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
@@ -5191,14 +5188,14 @@ namespace Microsoft.Dafny {
             // One more try
             var r = GetBaseTypeFromProxy((TypeProxy)t, new Dictionary<TypeProxy, Type>());
             if (r != null) {
-              if (Options.TypeInferenceDebug) {
+              if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                 Console.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
               }
               return r;
             }
           }
 
-          if (Options.TypeInferenceDebug) {
+          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
           return t;
@@ -5211,7 +5208,7 @@ namespace Microsoft.Dafny {
       if (proxy == null) {
         return t;  // simplification did the trick
       }
-      if (Options.TypeInferenceDebug) {
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
@@ -5223,14 +5220,14 @@ namespace Microsoft.Dafny {
       if (JoinOfAllSubtypes(proxy, ref joinType, new HashSet<TypeProxy>()) && joinType != null) {
         DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
-          if (Options.TypeInferenceDebug) {
+          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Console.WriteLine("  ----> join is a datatype: {0}", joinType);
           }
           ConstrainSubtypeRelation(t, joinType, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, joinType);
           return joinType;
         } else if (headIsRoot) {
           // we're good to go -- by picking "join" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
-          if (Options.TypeInferenceDebug) {
+          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Console.WriteLine("  ----> improved to {0} through join", joinType);
           }
           AssignProxyAndHandleItsConstraints(proxy, joinType, true);
@@ -5239,7 +5236,7 @@ namespace Microsoft.Dafny {
           var generalArrowType = joinType.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
           if (generalArrowType != null) {
             // pick the supertype "generalArrowType" of "join"
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Console.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
             }
             ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
@@ -5258,7 +5255,7 @@ namespace Microsoft.Dafny {
                 if (plausibleMembers.Count == 1) {
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
-                    if (Options.TypeInferenceDebug) {
+                    if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                       Console.WriteLine("  ----> improved to {0} through member-selection join", joinType);
                     }
                     var joinRoot = joinType.NormalizeExpand();  // blow passed any constraints
@@ -5281,7 +5278,7 @@ namespace Microsoft.Dafny {
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.Subst(joinMapping));
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
-                    if (Options.TypeInferenceDebug) {
+                    if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                       Console.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
                     }
                     ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
@@ -5292,7 +5289,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        if (Options.TypeInferenceDebug) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("  ----> found no improvement, because join does not determine type enough");
         }
       }
@@ -5307,12 +5304,12 @@ namespace Microsoft.Dafny {
         if (meet is TypeProxy) {
           if (proxy == meet.Normalize()) {
             // can this really ever happen?
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Console.WriteLine("  ----> found no improvement (other than the proxy itself)");
             }
             return t;
           } else {
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
             Contract.Assert(proxy != meet);
@@ -5322,7 +5319,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (!(meet is ArtificialType)) {
-          if (Options.TypeInferenceDebug) {
+          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Console.WriteLine("  ----> improved to {0} through meet", meet);
           }
           if (memberName != null) {
@@ -5337,14 +5334,14 @@ namespace Microsoft.Dafny {
       // as a last resort, act on any artificial type nearby the proxy
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
       if (artificialSuper != null) {
-        if (Options.TypeInferenceDebug) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
         }
         return artificialSuper;
       }
 
       // we weren't able to do it
-      if (Options.TypeInferenceDebug) {
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
       }
       return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
@@ -5440,7 +5437,7 @@ namespace Microsoft.Dafny {
       if (proxy == null || proxies.Contains(proxy)) {
         return;
       }
-      if (Options.TypeInferenceDebug) {
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
       }
       proxies.Add(proxy);
@@ -6433,10 +6430,7 @@ namespace Microsoft.Dafny {
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.Type = SelectAppropriateArrowType(fn.tok,
-          fn.Formals.ConvertAll(f => f.Type.Subst(subst)),
-          fn.ResultType.Subst(subst),
-          fn.Reads.Count != 0, fn.Req.Count != 0);
+        rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, builtIns);
       } else {
         // the member is a method
         var m = (Method)member;
