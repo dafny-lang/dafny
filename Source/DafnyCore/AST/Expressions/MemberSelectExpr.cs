@@ -12,13 +12,13 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   [FilledInDuringResolution] public bool InCompiledContext;
 
   /// <summary>
-  /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
+  /// PreTypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
   /// declares Member (which is some supertype of the receiver type).
   /// </summary>
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
 
   /// <summary>
-  ///  TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
+  ///  PreTypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
   /// of Member.
   /// </summary>
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustMember;
