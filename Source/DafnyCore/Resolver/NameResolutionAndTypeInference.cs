@@ -2269,11 +2269,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(visited != null);
         t = t.NormalizeExpand();
         if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
+          options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
         }
         if (t is CollectionType) {
           if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
+            options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
           }
           return ((CollectionType)t).Arg;
         }
@@ -5300,12 +5300,12 @@ namespace Microsoft.Dafny {
         if (meet is TypeProxy) {
           if (proxy == meet.Normalize()) {
             // can this really ever happen?
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Options.OutputWriter.WriteLine("  ----> found no improvement (other than the proxy itself)");
             }
             return t;
           } else {
-            if (Options.TypeInferenceDebug) {
+            if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Options.OutputWriter.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
             Contract.Assert(proxy != meet);
