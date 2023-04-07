@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
       do {
         anythingChanged = false;
         anythingChanged |= ApplySubtypeConstraints();
+        anythingChanged |= ApplyEqualityConstraints();
         anythingChanged |= ApplyGuardedConstraints();
         if (makeDecisions) {
           if (DecideHeadsFromBounds(true)) {
@@ -71,6 +72,9 @@ namespace Microsoft.Dafny {
       Console.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
       PrintList("Subtype constraints", unnormalizedSubtypeConstraints, stc => {
         return $"{stc.Super} :> {stc.Sub}";
+      });
+      PrintList("Equality constraints", equalityConstraints, eqc => {
+        return $"{eqc.A} == {eqc.B}";
       });
 #if IS_THERE_A_GOOD_WAY_TO_PRINT_GUARDED_CONSTRAINTS
       PrintList("Guarded constraints", guardedConstraints, gc => {
@@ -125,7 +129,45 @@ namespace Microsoft.Dafny {
 
     // ---------------------------------------- Equality constraints ----------------------------------------
 
+    private class EqualityConstraint : PreTypeStateWithErrorMessage {
+      public PreType A;
+      public PreType B;
+
+      public EqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat)
+        : base(tok, msgFormat) {
+        A = a;
+        B = b;
+      }
+
+      public override string ErrorMessage() {
+        return string.Format(ErrorFormatString, A, B);
+      }
+    }
+
+    private List<EqualityConstraint> equalityConstraints = new();
+
     void AddEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
+      equalityConstraints.Add(new EqualityConstraint(a, b, tok, msgFormat));
+    }
+
+    private bool ApplyEqualityConstraints() {
+      if (equalityConstraints.Count == 0) {
+        return false;
+      }
+      var constraints = equalityConstraints;
+      equalityConstraints = new();
+      foreach (var constraint in constraints) {
+        ApplyEqualityConstraint(constraint.A, constraint.B, constraint.tok, constraint.ErrorFormatString);
+      }
+      return true;
+    }
+
+    /// <summary>
+    /// Constrain "a" to be the same type as "b".
+    /// This method can only be called when "unnormalizedSubtypeConstraints" is in a stable state. That means,
+    /// in particular, that this method cannot be called in middle of ApplySubtypeConstraints.
+    /// </summary>
+    private void ApplyEqualityConstraint(PreType a, PreType b, IToken tok, string msgFormat) {
       a = a.Normalize();
       b = b.Normalize();
       if (a == b) {
@@ -152,11 +194,43 @@ namespace Microsoft.Dafny {
     private bool Occurs(PreTypeProxy proxy, PreType t) {
       Contract.Requires(t != null);
       Contract.Requires(proxy != null);
+      return Reaches(t, proxy, 1, new HashSet<PreTypeProxy>());
+    }
+
+    int _reaches_recursion;
+    private bool Reaches(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited) {
+      if (_reaches_recursion == 20) {
+        Contract.Assume(false);  // possible infinite recursion
+      }
+      _reaches_recursion++;
+      var b = Reaches_aux(t, proxy, direction, visited);
+      _reaches_recursion--;
+      return b;
+    }
+    private bool Reaches_aux(PreType t, PreTypeProxy proxy, int direction, HashSet<PreTypeProxy> visited) {
+      Contract.Requires(t != null);
+      Contract.Requires(proxy != null);
+      Contract.Requires(visited != null);
       t = t.Normalize();
-      if (t is DPreType pt) {
-        return pt.Arguments.Any(arg => Occurs(proxy, arg));
+      var tproxy = t as PreTypeProxy;
+      if (tproxy == null) {
+        var dp = (DPreType)t;
+        var polarities = dp.Decl.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
+        Contract.Assert(polarities != null);
+        Contract.Assert(polarities.Count <= dp.Arguments.Count);
+        for (int i = 0; i < polarities.Count; i++) {
+          if (Reaches(dp.Arguments[i], proxy, direction * polarities[i], visited)) {
+            return true;
+          }
+        }
+        return false;
+      } else if (tproxy == proxy) {
+        return true;
+      } else if (visited.Contains(tproxy)) {
+        return false;
       } else {
-        return proxy == t;
+        visited.Add(tproxy);
+        return DirectionalBounds(tproxy, direction).Any(su => Reaches(su, proxy, direction, visited));
       }
     }
 
@@ -423,9 +497,9 @@ namespace Microsoft.Dafny {
           var proxy = CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            AddSubtypeConstraint(proxy, arguments[i], tok, "bad");
+            AddSubtypeConstraint(proxy, arguments[i], tok, "bad"); // TODO: improve error message
           } else {
-            AddSubtypeConstraint(arguments[i], proxy, tok, "bad");
+            AddSubtypeConstraint(arguments[i], proxy, tok, "bad"); // TODO: improve error message
           }
         }
       }
@@ -507,7 +581,7 @@ namespace Microsoft.Dafny {
         if (highestAncestors.Count == 1) {
           return highestAncestors.ElementAt(0);
         }
-        ancestors.RemoveAll(ancestor => Height(ancestor) < maxAmongAncestors);
+        ancestors.RemoveAll(ancestor => Height(ancestor) == maxAmongAncestors);
       }
       return null;
     }
@@ -563,6 +637,18 @@ namespace Microsoft.Dafny {
               yield return (DPreType)super;
             }
           }
+        }
+      }
+    }
+
+
+    IEnumerable<PreType> DirectionalBounds(PreTypeProxy tproxy, int direction) {
+      foreach (var constraint in unnormalizedSubtypeConstraints) {
+        if (0 <= direction && constraint.Super.Normalize() == tproxy) {
+          yield return constraint.Sub;
+        }
+        if (direction <= 0 && constraint.Sub.Normalize() == tproxy) {
+          yield return constraint.Super;
         }
       }
     }
