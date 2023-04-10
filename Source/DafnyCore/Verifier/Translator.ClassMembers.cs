@@ -900,7 +900,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
-        req, mod, ens, etran.TrAttributes(f.Attributes, null));
+        false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
@@ -1498,7 +1498,7 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(m, kind);
-      var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseName(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
