@@ -26,7 +26,7 @@ class BreadthFirstSearch<Vertex(==)>
   // this method returns, as a ghost out-parameter, that existential
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
-  method {:rlimit 8000} {:vcs_split_on_every_assert} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
+  method {:rlimit 8000} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
     requires source in AllVertices && dest in AllVertices;
@@ -57,6 +57,7 @@ class BreadthFirstSearch<Vertex(==)>
     assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
     assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
     assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
+    assert {:split_here} true;
     while C != {}
       // V, Processed, C, N are all subsets of AllVertices:
       invariant V <= AllVertices && Processed <= AllVertices && C <= AllVertices && N <= AllVertices;
@@ -105,6 +106,7 @@ class BreadthFirstSearch<Vertex(==)>
         }
         return d, pathToV;
       }
+      assert {:split_here} true;
       assert C != {} ==> Processed + C == R(source, d, AllVertices) by { reveal R(); }
 
       // process newly encountered successors
@@ -121,7 +123,9 @@ class BreadthFirstSearch<Vertex(==)>
 
       assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
       assert d != 0 ==> dest !in R(source, d-1, AllVertices);
+      assert {:split_here} true;
     }
+    assert {:split_here} true;
 
     // show that "dest" in not in any reachability set, no matter
     // how many successors one follows
