@@ -241,7 +241,7 @@ public class UndisposableTextWriter : TextWriter {
 
   private TextWriter textWriterImplementation;
   public override Encoding Encoding => textWriterImplementation.Encoding;
-      
-      
-      
+
+
+
 }
