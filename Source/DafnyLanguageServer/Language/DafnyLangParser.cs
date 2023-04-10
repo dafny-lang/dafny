@@ -143,7 +143,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         int errorCount = Parser.Parse(
           useStdin: false,
           dafnyFile.SourceFileName,
-          include,
           module,
           builtIns,
           errors,

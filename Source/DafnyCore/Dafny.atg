@@ -26,7 +26,6 @@ readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
-readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
@@ -142,18 +141,18 @@ bool IsAssumeTypeKeyword(IToken la) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (bool useStdin, string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (bool useStdin, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
   if (useStdin) {
     s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
-    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+    return Parse(s, filename, filename, module, builtIns, errors, verifyThisFile, compileThisFile);
   } else {
     var newline = SourcePreprocessor.GetNewlineStyle(filename);
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
-      return Parse(s, filename, builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+      return Parse(s, filename, builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
 }
@@ -163,15 +162,15 @@ public static int Parse (bool useStdin, string/*!*/ filename, Include include, M
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true, bool compileThisFile=true) {
+public static int Parse(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true, bool compileThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile, compileThisFile);
+  return Parse(s, fullFilename, filename, module, builtIns, errors, verifyThisFile, compileThisFile);
 }
 
-public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
                                  BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
@@ -188,12 +187,12 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
     firstToken = new Token(); // It's an included file
   }
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: firstToken);
-  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
+  return new Parser(scanner, errors, module, builtIns, verifyThisFile, compileThisFile);
 }
 
-public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
                                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+  Parser parser = SetupParser(s, fullFilename, filename, module, builtIns, errors, verifyThisFile, compileThisFile);
   parser.la = new Token();
   parser.la.val = "";
   parser.Get();
@@ -246,14 +245,14 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module,
                          BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+  Parser parser = SetupParser(s, fullFilename, filename, module, builtIns, errors, verifyThisFile, compileThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
 
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -263,7 +262,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
   var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
-  theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
