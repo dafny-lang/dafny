@@ -1,6 +1,3 @@
 [submodule "Test/libraries"]
 	path = Test/libraries
 	url = https://github.com/dafny-lang/libraries.git
-[submodule "boogie"]
-	path = boogie
-	url = https://github.com/keyboardDrummer/boogie
