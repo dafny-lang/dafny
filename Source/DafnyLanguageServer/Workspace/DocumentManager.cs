@@ -136,7 +136,7 @@ public class DocumentManager {
   private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
     ProjectFile? projectFile = null;
 
-    var folder = Path.GetDirectoryName(uri.Path);
+    var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
     while (!string.IsNullOrEmpty(folder)) {
       var children = Directory.GetFiles(folder, "dafny.toml");
       if (children.Length > 0) {
