@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           case DatatypeDecl dataTypeDeclaration:
             return ProcessDataType(moduleSymbol, dataTypeDeclaration);
           default:
-            logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
+            logger.LogTrace("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return null;
         }
       }
