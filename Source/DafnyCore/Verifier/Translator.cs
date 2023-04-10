@@ -2106,6 +2106,14 @@ namespace Microsoft.Dafny {
         layer = null;
       }
 
+      Bpl.BoundVariable reveal;
+      if (f.IsOpaque) {
+        reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(reveal);
+      } else {
+        reveal = null;
+      }
+
       Bpl.Expr ante = Bpl.Expr.True;
       Bpl.Expr anteIsAlloc = Bpl.Expr.True;
       if (f is TwoStateFunction) {
@@ -2180,6 +2188,10 @@ namespace Microsoft.Dafny {
          */
         if (layer != null) {
           funcArgs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+        }
+
+        if (reveal != null) {
+          funcArgs.Add(new Bpl.IdentifierExpr(f.tok, reveal));
         }
 
         funcArgs.AddRange(args);
@@ -2401,6 +2413,7 @@ namespace Microsoft.Dafny {
       var reqFuncArguments = new List<Bpl.Expr>(tyargs);
 
       Bpl.BoundVariable layer;
+      Bpl.BoundVariable reveal;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         forallFormals.Add(layer);
@@ -2409,6 +2422,15 @@ namespace Microsoft.Dafny {
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
       } else {
         layer = null;
+      }
+
+      if (f.IsOpaque) {
+        reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        //funcFormals.Add(reveal);
+        //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, reveal));
+        // Note, "reveal" is not added to "args" here; rather, that's done below, as needed
+      } else {
+        reveal = null;
       }
 
       Bpl.Expr ante = Bpl.Expr.True;
@@ -2574,6 +2596,10 @@ namespace Microsoft.Dafny {
           //} else {
           //  funcArgs.Add(ly);
           //}
+        }
+
+        if (reveal != null) {
+          funcArgs.Add(new Bpl.LiteralExpr(f.tok, true));
         }
 
         funcArgs.AddRange(args);
@@ -2851,6 +2877,13 @@ namespace Microsoft.Dafny {
       var s = new Bpl.IdentifierExpr(f.tok, bv);
       args1.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
+      if (f.IsOpaque) {
+        var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
@@ -2915,6 +2948,14 @@ namespace Microsoft.Dafny {
       args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType)); // $LZ
+      if (f.IsOpaque) {
+        var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
+        args2.Add(sReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
@@ -4307,6 +4348,10 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
         }
+
+        if (f.IsOpaque) {
+          args.Add(GetRevealConstant(f));
+        }
         if (f is TwoStateFunction) {
           args.Add(etran.Old.HeapExpr);
         }
@@ -4345,6 +4390,10 @@ namespace Microsoft.Dafny {
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        if (f.IsOpaque) {
+          args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
           args.Add(etran.Old.HeapExpr);
@@ -4838,7 +4887,7 @@ namespace Microsoft.Dafny {
         if (!(e.Function is SpecialFunction)) {
           // get to assume canCall
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null, null);
           Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
           r = BplAnd(r, canCallFuncAppl);
         }
@@ -6645,6 +6694,10 @@ namespace Microsoft.Dafny {
         formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
         if (f.IsFuelAware()) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
+        }
+
+        if (f.IsOpaque) {
+          formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool), true));
         }
         if (f is TwoStateFunction) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType), true));
@@ -9658,15 +9711,7 @@ namespace Microsoft.Dafny {
             finalFuel = null;
           }
         }
-        // Wrap with CanRevealFuel if the function is opaque
-        if (f.IsOpaque && translator.codeContext != f) {
-          var revealFunction = translator.GetOpaqueSeal(f);
-          return this.translator.FunctionCall(
-              Bpl.Token.NoToken, BuiltinFunction.CanRevealFuel, null,
-            finalFuel, revealFunction);
-        } else {
-          return finalFuel;
-        }
+        return finalFuel;
       }
 
       private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
@@ -10390,7 +10435,7 @@ namespace Microsoft.Dafny {
 
           // F#canCall(args)
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
           Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
 
           Bpl.Expr fargs;
@@ -10811,7 +10856,7 @@ namespace Microsoft.Dafny {
 
     static readonly List<Boolean> Bools = new List<Boolean> { false, true };
 
-    public Expr GetOpaqueSeal(Function f) {
+    public Expr GetRevealConstant(Function f) {
       this.CreateRevealableConstant(f);
       return this.functionReveals[f];
     }

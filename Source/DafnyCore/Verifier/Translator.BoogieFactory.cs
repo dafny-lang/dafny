@@ -147,8 +147,7 @@ namespace Microsoft.Dafny {
 
       GenericAlloc,
 
-      AtLayer,
-      CanRevealFuel
+      AtLayer
     }
 
     Bpl.Expr Lit(Bpl.Expr expr, Bpl.Type typ) {
@@ -594,10 +593,6 @@ namespace Microsoft.Dafny {
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "AtLayer", typeInstantiation, args);
-
-        case BuiltinFunction.CanRevealFuel:
-          Contract.Assert(args.Length == 2);
-          return FunctionCall(tok, "CanRevealFuel", typeInstantiation, args);
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
