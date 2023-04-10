@@ -1,5 +1,5 @@
-git-issue-3804d.dfy(12,37): Error: cannot reveal 'q' because no constant, assert label or requires label in the current scope is named 'q'
-git-issue-3804d.dfy(16,34): Error: cannot reveal 'p' because no constant, assert label or requires label in the current scope is named 'p'
-git-issue-3804d.dfy(18,9): Error: cannot reveal 'q' because no constant, assert label or requires label in the current scope is named 'q'
-git-issue-3804d.dfy(18,12): Error: cannot reveal 'p' because no constant, assert label or requires label in the current scope is named 'p'
+git-issue-3804d.dfy(12,37): Error: cannot reveal 'q' because no constant, assert label, or requires label in the current scope is named 'q'
+git-issue-3804d.dfy(16,34): Error: cannot reveal 'p' because no constant, assert label, or requires label in the current scope is named 'p'
+git-issue-3804d.dfy(18,9): Error: cannot reveal 'q' because no constant, assert label, or requires label in the current scope is named 'q'
+git-issue-3804d.dfy(18,12): Error: cannot reveal 'p' because no constant, assert label, or requires label in the current scope is named 'p'
 4 resolution/type errors detected in git-issue-3804d.dfy

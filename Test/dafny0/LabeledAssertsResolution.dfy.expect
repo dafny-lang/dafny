@@ -7,9 +7,9 @@ LabeledAssertsResolution.dfy(26,26): Error: assert label shadows a dominating la
 LabeledAssertsResolution.dfy(28,13): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(34,24): Error: assert label shadows a dominating label
 LabeledAssertsResolution.dfy(73,12): Error: break label is undefined or not in scope: ABC
-LabeledAssertsResolution.dfy(81,17): Error: cannot reveal 'C' because no constant, assert label or requires label in the current scope is named 'C'
+LabeledAssertsResolution.dfy(81,17): Error: cannot reveal 'C' because no constant, assert label, or requires label in the current scope is named 'C'
 LabeledAssertsResolution.dfy(94,17): Error: no label 'XYZ' in scope at this time
-LabeledAssertsResolution.dfy(115,14): Error: cannot reveal 'X' because no constant, assert label or requires label in the current scope is named 'X'
+LabeledAssertsResolution.dfy(115,14): Error: cannot reveal 'X' because no constant, assert label, or requires label in the current scope is named 'X'
 LabeledAssertsResolution.dfy(246,10): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(251,6): Error: yield statement is not allowed in this context (because it is guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(125,6): Error: an assert-by body is not allowed to update a variable it doesn't declare

@@ -12,9 +12,9 @@ function FunctionAndMethodVerify(i: int): (r: int)
   r := i;
 }
 
-function FunctionNotButMethodVerifies(i: int): (r: int)
+function FunctionNotButMethodVerifies(i: int): (r: int) // Error: Could not verify
   requires p: i >= 0
-  ensures r >= 0
+  ensures r >= 0 // Related condition
 {
   i
 } by method {
@@ -28,15 +28,15 @@ function FunctionVerifiesButNotMethod(i: int): (r: int)
 {
   reveal p;
   i
-} by method {
+} by method { // Error: Could not verify + related
   r := i;
 }
 
-function NeitherVerify(i: int): (r: int)
+function NeitherVerify(i: int): (r: int) // Error: Could not verify
   requires p: i >= 0
-  ensures r >= 0
+  ensures r >= 0  // Error: related
 {
   i
-} by method {
+} by method { // Error: Could not verify + related
   r := i;
 }

@@ -5994,7 +5994,7 @@ namespace Microsoft.Dafny {
         // ----- None of the above
         if (complain) {
           if (resolutionContext.InReveal) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label or requires label in the current scope is named '{0}'", expr.Name);
+            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label, or requires label in the current scope is named '{0}'", expr.Name);
           } else {
             reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
           }

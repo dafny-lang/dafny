@@ -959,9 +959,10 @@ ghost predicate P(i: int)
 method TestMethod(x: bool)
   requires r: x <==> P(1)
 {
-  assert a: x ==> P(1) by { reveal r; } // Lifted assertion
-  if x {
-    assert a': P(1) by { reveal a; } // Proved without revealing the precondition
+  assert a: x ==> P(1) by {
+    if x {
+      assert P(1) by { reveal r; } // Proved without revealing the precondition
+    }
   }
   assert x ==> P(1) by { reveal a; } // Now a is accessible
 }
