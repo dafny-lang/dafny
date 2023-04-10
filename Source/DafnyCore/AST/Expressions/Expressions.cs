@@ -714,7 +714,7 @@ public abstract class Expression : TokenNode {
 
     var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
       Function = function,
-      Type = Type.Bool,
+      Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
       TypeApplication_JustFunction = new List<Type>()
     };
