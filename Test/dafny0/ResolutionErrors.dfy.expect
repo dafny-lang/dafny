@@ -118,7 +118,6 @@ ResolutionErrors.dfy(942,5): Error: cannot assign to a range of array elements (
 ResolutionErrors.dfy(943,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors.dfy(932,4): Error: LHS of array assignment must denote an array element (found seq<int>)
 ResolutionErrors.dfy(933,4): Error: LHS of array assignment must denote an array element (found seq<int>)
-ResolutionErrors.dfy(954,4): Warning: note, this forall statement has no body
 ResolutionErrors.dfy(955,11): Error: unresolved identifier: s
 ResolutionErrors.dfy(974,18): Error: member '3' does not exist in datatype '_tuple#3'
 ResolutionErrors.dfy(974,28): Error: member 'x' does not exist in datatype '_tuple#2'
