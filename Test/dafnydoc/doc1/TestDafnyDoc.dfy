@@ -33,8 +33,8 @@ module {:options "--function-syntax:4"} TestModule {
   import     opened MInner`E1
   import L = MInner`E2
 
-  /** Opaque type */
-  type T  {}
+  /** A very opaque type. 100% dark. */
+  type T  { method m() /* Special method. */ {} }
   type TQ<Y>
 
   /** Enumeration. Various options. */
@@ -101,6 +101,17 @@ module {:options "--function-syntax:4"} TestModule {
   {
     return 0;
   }
+
+iterator Gen(start: int) yields (x: int)
+  yield ensures |xs| <= 10 && x == start + |xs| - 1
+{
+  var i := 0;
+  while i < 10 invariant |xs| == i {
+    x := start + i;
+    yield;
+    i := i + 1;
+  }
+}
 
   class A extends T2
    // Holds all the state. Every bit.

@@ -53,15 +53,13 @@ Questions
 - improvement to program name title?
 - make ghost things italics?
 - show full qualified names for extended traits? for RHS of type definitions? for types in signatures?
-- option to control writing modification time?
 
 Other
-- modules: modifiers, fully qualified refinement
+- modules: fully qualified refinement
 - default exports -- list all available names?
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
-- types - modifiers, show content of definition, link to separate page if there are members
-- form of index entries for constructors?
+- types - show content of definition, link to separate page if there are members
 
 - label implementing functions and methods
 - show inherited methods, functions in abstract classes
@@ -515,7 +513,7 @@ class DafnyDoc {
   public void WriteTypes(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
     var types = module.TopLevelDecls.Where(c => IsType(c)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    if (types.Count() > 0) {
+    if (types.Count() > 1 || types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass) {
       summaries.Append(Heading3("Types")).Append(eol);
       details.Append(Heading3("Types")).Append(eol);
       summaries.Append(BeginTable());
@@ -523,18 +521,19 @@ class DafnyDoc {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
           continue;
         }
+        var link = "";
+        if (HasOwnPage(t)) {
+          WriteDecl(t as TopLevelDeclWithMembers);
+          link = Link(t.FullDafnyName, Bold(t.Name));
+        } else {
+          link = LinkToAnchor(t.Name, Bold(t.Name));
+        }
         AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
         var attributes = Attributes(t.Attributes);
         // Note: Types do not have modifiers (at least at present)
         var modifiers = "";
         var typeparams = TypeFormals(t.TypeArgs);
-        var link = "";
-        if (HasOwnPage(t)) {
-          link = Link(t.FullDafnyName, Bold(t.Name));
-        } else {
-          link = LinkToAnchor(t.Name, Bold(t.Name));
-        }
         summaries.Append(Row(t.WhatKind, link + typeparams, DashShortDocstring(t as IHasDocstring))).Append(eol);
 
         details.Append(Anchor(t.Name)).Append(eol);
@@ -544,7 +543,7 @@ class DafnyDoc {
         }
         details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeFormals(t.TypeArgs));
         if (t is ClassDecl) { // Class, Trait
-          details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
+          // nothing more here
         } else if (t is SubsetTypeDecl ts) {
           // TODO witness
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
@@ -557,11 +556,21 @@ class DafnyDoc {
           } else {
             details.Append(" = ").Append(TypeLink(tnt.BaseType));
           }
+          if (HasOwnPage(tnt)) {
+            details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
+          }
         } else if (t is OpaqueTypeDecl) {
-          // do nothing
+          // do nothing here
         } else if (t is DatatypeDecl) {
+          // datatype constructors are written out several lines down
+        } else {
+          Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
+        }
+        if (HasOwnPage(t)) {
+          details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
+        }
+        if (t is DatatypeDecl dt) {
           details.Append(br).Append(eol);
-          var dt = t as DatatypeDecl;
           details.Append(BeginTable());
           foreach (var ctor in dt.Ctors) {
             string sig = ctor.Name;
@@ -580,8 +589,6 @@ class DafnyDoc {
             details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : Mdash, info));
           }
           details.Append(EndTable());
-        } else {
-          Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
         }
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(br).Append(eol);
@@ -602,7 +609,7 @@ class DafnyDoc {
     if (constants.Count() > 0) {
       summaries.Append(Heading3("Constants\n"));
       details.Append(Heading3("Constants\n"));
-      // TODO: opaque, ghost,  
+      // TODO: opaque, ghost, static? 
 
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
