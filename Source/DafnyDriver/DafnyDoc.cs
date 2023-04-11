@@ -366,7 +366,7 @@ class DafnyDoc {
     if (declFilename != null) {
       var modifyTime = File.GetLastWriteTime(filename);
       var result = $"From file: {declFilename}{br}\n";
-      if (Options.DocShowModifyTime) {
+      if (Options.Get(DocCommand.DocShowModifyTime)) {
         result += $"Last modified: {modifyTime}{br}\n";
       }
       return result;
@@ -376,7 +376,7 @@ class DafnyDoc {
 
   /** Massages a filename into the form requested by the --doc-file-name option */
   public string GetFileReference(string absoluteFile) {
-    var r = Options.DocFilenameFormat;
+    var r = Options.Get(DocCommand.DocFilenameFormat);
     if (r == null || r == "name") {
       return Path.GetFileName(absoluteFile);
     } else if (r == "none") {
@@ -739,7 +739,7 @@ class DafnyDoc {
       }
 
       String link = $"<a href=\"#{name}\">{name}</a>"; // TODO - use some Link method
-      String mss = ms.ReplaceFirst(m.Name, link); // TODO - don't use extension
+      String mss = ReplaceFirst(ms, m.Name, link); // TODO - don't use extension
 
       summaries.Append(mss);
       if (!String.IsNullOrEmpty(docstring)) {
@@ -753,7 +753,7 @@ class DafnyDoc {
         details.Append(modifiers).Append(br).Append(eol);
       }
       details.Append(m.WhatKind).Append(br).Append(eol);
-      mss = ms.ReplaceFirst(m.Name, Bold(name));
+      mss = ReplaceFirst(ms, m.Name, Bold(name));
       details.Append(mss).Append(br).Append(eol);
 
       if (!String.IsNullOrEmpty(attributes)) {
@@ -876,7 +876,7 @@ class DafnyDoc {
   public static readonly string rootNLName = " (root module)"; // Name of root module to display
 
   public string ProgramHeader() {
-    var programName = DafnyProgram.Options.DocProgramNameOption;
+    var programName = Options.Get(DocCommand.DocProgramNameOption);
     return programName == null ? "" : (" for " + programName);
   }
 
@@ -918,7 +918,7 @@ class DafnyDoc {
     if (d == null) {
       return null;
     }
-    var ds = d.GetDocstring(DafnyProgram.Options);
+    var ds = d.GetDocstring(Options);
     if (ds == null) {
       return String.Empty;
     }
@@ -988,6 +988,12 @@ class DafnyDoc {
       }
     }
     return result;
+  }
+
+  public String ReplaceFirst(string text, string old, string replacement) {
+    var k = text.IndexOf(old);
+    if (k == -1) return text;
+    return text.Substring(0, k) + replacement + text.Substring(k + old.Length);
   }
 
   public static string Heading2(string text) {
@@ -1252,43 +1258,5 @@ p {
 </html>
 ";
 
-}
-
-public static partial class Extensions {
-  /// <summary>
-  ///     A string extension method that replace first occurence.
-  /// </summary>
-  /// <param name="this">The @this to act on.</param>
-  /// <param name="oldValue">The old value.</param>
-  /// <param name="newValue">The new value.</param>
-  /// <returns>The string with the first occurence of old value replace by new value.</returns>
-  public static string ReplaceFirst(this string @this, string oldValue, string newValue) {
-    int startindex = @this.IndexOf(oldValue);
-
-    if (startindex == -1) {
-      return @this;
-    }
-
-    return @this.Remove(startindex, oldValue.Length).Insert(startindex, newValue);
-  }
-
-  /// <summary>
-  ///     A string extension method that replace first number of occurences.
-  /// </summary>
-  /// <param name="this">The @this to act on.</param>
-  /// <param name="number">Number of.</param>
-  /// <param name="oldValue">The old value.</param>
-  /// <param name="newValue">The new value.</param>
-  /// <returns>The string with the numbers of occurences of old value replace by new value.</returns>
-  public static string ReplaceFirst(this string @this, int number, string oldValue, string newValue) {
-    List<string> list = @this.Split(oldValue).ToList();
-    int old = number + 1;
-    IEnumerable<string> listStart = list.Take(old);
-    IEnumerable<string> listEnd = list.Skip(old);
-
-    return string.Join(newValue, listStart) +
-           (listEnd.Any() ? oldValue : "") +
-           string.Join(oldValue, listEnd);
-  }
 }
 

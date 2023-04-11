@@ -331,10 +331,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ExtractCounterexample = false;
     public List<string> VerificationLoggerConfigs = new();
 
-    public string DocProgramNameOption = null;
-    public string DocFilenameFormat = null;
-    public bool DocShowModifyTime = false;
-
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";

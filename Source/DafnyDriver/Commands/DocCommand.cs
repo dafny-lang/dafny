@@ -29,9 +29,6 @@ class DocCommand : ICommandSpec {
   }.Concat(ICommandSpec.ResolverOptions);
 
   static DocCommand() {
-    DafnyOptions.RegisterLegacyBinding(DocProgramNameOption, (options, value) => { options.DocProgramNameOption = value; });
-    DafnyOptions.RegisterLegacyBinding(DocFilenameFormat, (options, value) => { options.DocFilenameFormat = value; });
-    DafnyOptions.RegisterLegacyBinding(DocShowModifyTime, (options, value) => { options.DocShowModifyTime = value; });
   }
 
   public IEnumerable<Option> Options => DocOptions;
