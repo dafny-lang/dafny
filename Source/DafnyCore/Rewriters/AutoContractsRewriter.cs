@@ -479,7 +479,7 @@ public class AutoContractsRewriter : IRewriter {
     Contract.Requires(receiver.Type.NormalizeExpand().TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
 
     callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
-    return Expression.CreateResolvedCall(tok, receiver, Valid, builtIns);
+    return Expression.CreateResolvedCall(tok, receiver, Valid, new List<Expression>(), new List<Type>(), builtIns);
   }
 
   public static Expression CreateResolvedFieldSelect(IToken tok, Expression receiver, Field field) {

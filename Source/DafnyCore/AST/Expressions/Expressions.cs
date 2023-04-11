@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
 using System.Security.AccessControl;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -706,29 +707,39 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved function-call expression. The returned expression will have syntactic scaffolding, which
   /// enables resolving a syntactic clone of this resolved expression.
-  /// Expects "receiver" to be a resolved expression.
-  /// Expects that "function" has no type parameters, but it's okay for the enclosing type to have type parameters.
+  /// Expects "receiver" and each of the "arguments" to be a resolved expression.
   /// </summary>
-  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, BuiltIns builtIns) {
-    Contract.Requires(function.TypeArgs.Count == 0);
+  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, List<Expression> arguments,
+    List<Type> typeArguments, BuiltIns builtIns) {
+    Contract.Requires(function.Formals.Count == arguments.Count);
+    Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
-    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {
       Function = function,
       Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
-      TypeApplication_JustFunction = new List<Type>()
+      TypeApplication_JustFunction = typeArguments
     };
 
+    return WrapResolvedCall(call, builtIns);
+  }
+
+  /// <summary>
+  /// Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
+  /// </summary>
+  public static Expression WrapResolvedCall(FunctionCallExpr call, BuiltIns builtIns) {
     // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
-    var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
+    var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
-    var exprDotName = new ExprDotName(tok, receiver, function.Name, null) {
-      Type = Resolver.SelectAppropriateArrowTypeForFunction(function, subst, builtIns)
+    var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, null) {
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
     };
-    return new ApplySuffix(tok, null, exprDotName, new List<ActualBinding>(), tok) {
+
+    subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
+    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.tok) {
       ResolvedExpression = call,
-      Type = function.ResultType
+      Type = call.Function.ResultType.Subst(subst)
     };
   }
 
