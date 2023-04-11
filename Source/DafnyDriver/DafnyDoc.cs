@@ -11,7 +11,6 @@ namespace Microsoft.Dafny;
 
 /* Stuff todo:
 
-- fix default constructor (in index)
 - duplicate index entries for traits and classes
 - root module does not have filename information
 - improve the computation of relative paths
@@ -160,7 +159,7 @@ class DafnyDoc {
       CollectDecls(rootModule, modDecls);
       WriteTOC(modDecls);
       foreach (var m in modDecls) {
-        WriteModule(m);
+        WriteModule(m, dafnyFiles);
       }
       WriteIndex();
       return DafnyDriver.ExitValue.SUCCESS;
@@ -182,7 +181,7 @@ class DafnyDoc {
   }
 
   /** Writes a doc page for the given module */
-  public void WriteModule(LiteralModuleDecl module) {
+  public void WriteModule(LiteralModuleDecl module, IList<DafnyFile> dafnyFiles) {
     var moduleDef = module.ModuleDef;
     var fullName = moduleDef.FullDafnyName;
     var fullNLName = fullName;
@@ -219,7 +218,15 @@ class DafnyDoc {
         file.WriteLine("Attributes: " + attributes + br);
       }
 
-      file.Write(FileInfo(module.Tok));
+      if (moduleDef.IsDefaultModule) {
+        if (dafnyFiles.Count != 1) {
+          file.WriteLine("From multiple files<br>\n");
+        } else {
+          file.WriteLine(FileInfo(dafnyFiles[0].CanonicalPath));
+        }
+      } else {
+        file.Write(FileInfo(module.Tok));
+      }
 
       StringBuilder summaries = new StringBuilder(1000);
       StringBuilder details = new StringBuilder(1000);
@@ -353,15 +360,20 @@ class DafnyDoc {
   /** Returns printable info about the file containing the given token and the last modification time of the file */
   public string FileInfo(IToken tok) {
     if (tok != null) {
-      string declFilename = GetFileReference(tok.Filename);
-      if (declFilename != null) {
-        var modifyTime = File.GetLastWriteTime(tok.Filename);
-        var result = $"From file: {declFilename}{br}\n";
-        if (Options.DocShowModifyTime) {
-          result += $"Last modified: {modifyTime}{br}\n";
-        }
-        return result;
+      return FileInfo(tok.Filename);
+    }
+    return "";
+  }
+
+  public string FileInfo(string filename) {
+    string declFilename = GetFileReference(filename);
+    if (declFilename != null) {
+      var modifyTime = File.GetLastWriteTime(filename);
+      var result = $"From file: {declFilename}{br}\n";
+      if (Options.DocShowModifyTime) {
+        result += $"Last modified: {modifyTime}{br}\n";
       }
+      return result;
     }
     return "";
   }
@@ -1041,8 +1053,7 @@ class DafnyDoc {
   }
 
   public String RuleWithText(String text) {
-    return
-$"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
+    return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
   public string Modifiers(MemberDecl d) {

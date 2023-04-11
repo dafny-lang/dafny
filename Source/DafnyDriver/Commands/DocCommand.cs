@@ -16,7 +16,7 @@ class DocCommand : ICommandSpec {
   );
 
   public static readonly Option<bool> DocShowModifyTime = new("--doc-modify-time",
-    "If enabled, includes the lasst modified time of source files in the output"
+    "If enabled, includes the last modified time of source files in the output"
   );
 
 
@@ -24,7 +24,8 @@ class DocCommand : ICommandSpec {
     CommonOptionBag.Verbose,
     CommonOptionBag.Output,
     DocProgramNameOption,
-    DocFilenameFormat
+    DocFilenameFormat,
+    DocShowModifyTime,
   }.Concat(ICommandSpec.ResolverOptions);
 
   static DocCommand() {
