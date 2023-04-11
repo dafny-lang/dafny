@@ -1,4 +1,3 @@
-// RUN: %baredafny run %args --target=py %s > %t
 // RUN: %testDafnyForEachCompiler "%s"
 
 method Main() {
