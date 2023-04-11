@@ -3417,6 +3417,22 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
+      if (method.Ens.Count == 1 && method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
+        // fnCall == (m.Ens[0].E as BinaryExpr).E1;
+        // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+        Bpl.IdentifierExpr canCallFuncID =
+          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, predef, method.tok);
+        List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
+        Bpl.Expr boogieAssumeCanCall =
+          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), args);
+        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
+      } else {
+        Contract.Assert(false, "Error in shape of by-method");
+      }
+    }
+
     void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(p != null && !p.InParam);

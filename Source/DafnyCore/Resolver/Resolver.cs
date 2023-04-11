@@ -1997,6 +1997,7 @@ namespace Microsoft.Dafny {
         f.ByMethodBody, f.Attributes, null, true);
       Contract.Assert(f.ByMethodDecl == null);
       method.InheritVisibility(f);
+      method.FunctionFromWhichThisIsByMethodDecl = f;
       f.ByMethodDecl = method;
     }
 
