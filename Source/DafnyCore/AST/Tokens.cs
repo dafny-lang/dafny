@@ -73,7 +73,7 @@ public class Token : IToken {
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
   public string ActualFilename => Filename;
-  public string Filename => Uri.LocalPath;
+  public string Filename => Uri?.LocalPath;
   public Uri Uri { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
