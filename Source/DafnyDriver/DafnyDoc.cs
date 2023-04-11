@@ -12,10 +12,9 @@ namespace Microsoft.Dafny;
 /* Stuff todo:
 
 - duplicate index entries for traits and classes
-- details for iterator
+
 - type characteristics and variance
 
-- newtype, opaque type, datatype, codatatype with members
 
 - import details should distinguish provides and reveals
 - not sure import is listing all names
@@ -56,10 +55,9 @@ Questions
 
 Other
 - modules: fully qualified refinement
-- default exports -- list all available names?
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
-- types - show content of definition, link to separate page if there are members
+- types - show content of definition
 
 - label implementing functions and methods
 - show inherited methods, functions in abstract classes
@@ -556,9 +554,6 @@ class DafnyDoc {
           } else {
             details.Append(" = ").Append(TypeLink(tnt.BaseType));
           }
-          if (HasOwnPage(tnt)) {
-            details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
-          }
         } else if (t is OpaqueTypeDecl) {
           // do nothing here
         } else if (t is DatatypeDecl) {
@@ -575,7 +570,7 @@ class DafnyDoc {
           foreach (var ctor in dt.Ctors) {
             string sig = ctor.Name;
             if (ctor.Formals.Count > 0) {
-              sig += "(" + String.Join(", ", ctor.Formals.Select(ff => TypeString(ff))) + ")";
+              sig += "(" + String.Join(", ", ctor.Formals.Select(ff => FormalAsString(ff, false))) + ")";
             }
             var ds = Docstring(ctor);
             string info;
@@ -706,22 +701,37 @@ class DafnyDoc {
     if (m is Method) {
       var mth = m as Method;
       var typeparams = TypeFormals(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => TypeString(f)));
+      var formals = String.Join(", ", mth.Ins.Select(f => FormalAsString(f, false)));
       var outformals = mth.Outs.Count == 0 ? "" :
-        " returns (" + String.Join(", ", mth.Outs.Select(f => TypeString(f))) + ")";
+        " returns (" + String.Join(", ", mth.Outs.Select(f => FormalAsString(f, false))) + ")";
       return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
-      var formals = String.Join(", ", f.Formals.Select(ff => TypeString(ff)));
+      var allowNew = m is TwoStateFunction;
+      var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
       return Bold(m.Name) + typeparams + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
     }
   }
 
-  string TypeString(Formal ff) { // TODO - need modifiers
-    return ff.Name + ": " + TypeLink(ff.Type);
+  string FormalAsString(Formal ff, bool allowNew) {
+    string ss = "";
+    if (ff.IsGhost) {
+      ss += "ghost ";
+    }
+    if (ff.IsOlder) {
+      ss += "older ";
+    }
+    if (!ff.IsOld && allowNew) {
+      ss += "new ";
+    }
+    if (ff.IsNameOnly) {
+      ss += "nameonly ";
+    }
+    string def = ff.DefaultValue == null ? "" : " := " + ff.DefaultValue.ToString();
+    return ss + ff.Name + ": " + TypeLink(ff.Type) + def;
   }
 
   // For methods, lemmas, functions

@@ -56,20 +56,22 @@ module {:options "--function-syntax:4"} TestModule {
   /** New type */
   newtype {:native "uint8"} Smaller = x: nat | x < 10
 
-  newtype Dup = int {}
+  newtype Dup = int { predicate IsEven() { true } }
 
   newtype Size = x | 0 <= x < 1000
 
   /** Returns a constant. A special constant. */
-  function f(r: real, ghost x: int): int 
+  function f(r: real, x: int := 0): int 
     ensures f(r,x) == 42
   { 42 }
+
+  predicate pp(older a: A?, ghost nameonly x: int ) { true }
 
   function fif(nameonly z: A): A? 
     // return a constant. A special constant.
   { null }
 
-  twostate function tf(): int 
+  twostate function tf(a: A, new b: A): int 
     /** A two-state function */
   { 42 }
 
@@ -78,9 +80,9 @@ module {:options "--function-syntax:4"} TestModule {
     ensures p() == true
   { true }
 
-  predicate pp() 
+  predicate pf() 
     /** Always true. Every time. */
-    ensures pp() == true
+    ensures pp(null, x := 1) == true
   { true }
 
   predicate ppp(s: seq<int>, ss: set<A?>, mm: map<set<A>,seq<set<A?>>>) 
@@ -150,7 +152,7 @@ iterator Gen(start: int) yields (x: int)
     ensures true
 
 
-  trait T1<TR> extends T3 {}
+  trait T1<TR> extends T3 /** A special trait */ {}
   trait T2 extends T1<A>, T3 {}
   trait T3 {
     predicate ftr()
