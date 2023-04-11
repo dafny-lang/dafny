@@ -904,7 +904,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected void Warn(string msg, IToken tok) {
-      // TODO, fix.
       Options.ErrorWriter.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filename, tok.line, tok.col, msg);
     }
 

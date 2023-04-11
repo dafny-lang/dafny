@@ -21,7 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
-    private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
     private readonly DafnyOptions options;
     private readonly IDafnyParser parser;
@@ -78,10 +77,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
-      return await await Task.Factory.StartNew(
-        async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+      return await await DafnyMain.LargeStackFactory.StartNew(
+        async () => LoadInternal(textDocument, cancellationToken), cancellationToken
 #pragma warning restore CS1998
-        TaskCreationOptions.None, ResolverScheduler);
+        );
     }
 
     private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
