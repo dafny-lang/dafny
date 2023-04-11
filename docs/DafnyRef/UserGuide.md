@@ -584,9 +584,11 @@ enforce-determinism = true
 warn-shadowing = true
 ```
 
-Options are applied to a command if they can be. Invalid options are ignored.
+Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored.
 
 When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree, and options from the first found project file will override options passed to `dafny server`.
+
+It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
 ## 13.6. Verification {#sec-verification}
 
