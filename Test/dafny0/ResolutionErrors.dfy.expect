@@ -266,8 +266,10 @@ ResolutionErrors.dfy(1848,11): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1848,15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1849,16): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1850,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1853,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1854,19): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1855,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors.dfy(1857,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1858,13): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1859,13): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
 ResolutionErrors.dfy(1860,14): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
@@ -625,4 +627,4 @@ ResolutionErrors.dfy(3885,23): Error: 'this' is not allowed in a 'static' contex
 ResolutionErrors.dfy(3885,28): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(3904,21): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(3904,26): Error: type of the receiver is not fully determined at this program point
-623 resolution/type errors detected in ResolutionErrors.dfy
+625 resolution/type errors detected in ResolutionErrors.dfy

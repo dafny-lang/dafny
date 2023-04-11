@@ -405,11 +405,7 @@ namespace Microsoft.Dafny {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          if (stexpr.ObjectToDiscard != null) {
-            Visit(stexpr.ObjectToDiscard);
-          } else {
-            CheckPreTypeIsDetermined(stexpr.tok, stexpr.PreType, "static receiver");
-          }
+          CheckPreTypeIsDetermined(stexpr.tok, stexpr.PreType, "static receiver");
         }
 
       } else if (expr is ComprehensionExpr) {
