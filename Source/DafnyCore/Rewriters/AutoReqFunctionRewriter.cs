@@ -11,10 +11,12 @@ namespace Microsoft.Dafny;
 public class AutoReqFunctionRewriter : IRewriter {
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
+  private BuiltIns builtIns;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter)
+  public AutoReqFunctionRewriter(ErrorReporter reporter, BuiltIns builtIns)
     : base(reporter) {
     Contract.Requires(reporter != null);
+    this.builtIns = builtIns;
   }
 
   internal override void PostResolveIntermediate(ModuleDefinition m) {
@@ -143,7 +145,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
 
       foreach (var req in f.Req) {
-        Substituter sub = new Substituter(f_this, substMap, typeMap);
+        Substituter sub = new Substituter(f_this, substMap, typeMap, null, builtIns);
         translated_f_reqs.Add(sub.Substitute(req.E));
       }
     }

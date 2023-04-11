@@ -444,7 +444,7 @@ namespace Microsoft.Dafny {
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));
-      rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
+      rewriters.Add(new AutoReqFunctionRewriter(this.reporter, this.builtIns));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
