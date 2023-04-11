@@ -433,7 +433,7 @@ class DafnyDoc {
      might have the same name as another declaration. So we mangle an export set slightly
     so that there will be no duplicate anchor names. */
   public string ExportSetAnchor(string name) {
-    return name + "#";
+    return name + "+";
   }
 
   /** Append the summary and detail information about imports to the string builders */
@@ -489,7 +489,7 @@ class DafnyDoc {
   }
 
   public bool IsType(TopLevelDecl t) {
-    return t is RevealableTypeDecl || t is SubsetTypeDecl;
+    return (t is RevealableTypeDecl || t is SubsetTypeDecl);
   }
 
   /** Append the summary and detail information about type declarations to the string builders */
@@ -683,7 +683,6 @@ class DafnyDoc {
     foreach (var m in members) {
       var md = m as IHasDocstring;
       var ms = MethodSig(m);
-      AddToIndex(m.Name, decl.FullDafnyName, m.WhatKind);
       var docstring = Docstring(md);
       var modifiers = Modifiers(m);
       var attributes = Attributes(m.Attributes);
@@ -691,9 +690,13 @@ class DafnyDoc {
       if (m is Constructor) {
         if (name == "_ctor") {
           name = decl.Name;
+          AddToIndexC(name, "_", decl.FullDafnyName, m.WhatKind);
         } else {
           name = decl.Name + "." + m.Name;
+          AddToIndexC(name, m.Name, decl.FullDafnyName, m.WhatKind);
         }
+      } else {
+        AddToIndex(name, decl.FullDafnyName, m.WhatKind);
       }
 
       String link = $"<a href=\"#{name}\">{name}</a>"; // TODO - use some Link method
@@ -963,9 +966,13 @@ class DafnyDoc {
     int hash = fullName.IndexOf('#');
     string tail = null;
     if (hash > 0) {
-      tail = fullName.Substring(hash + 1);
       fullName = fullName.Substring(0, hash);
+      tail = fullName.Substring(hash + 1);
     }
+    return QualifiedNameWithLinks(fullName, tail, tail, alsoLast);
+  }
+
+  public static string QualifiedNameWithLinks(string fullName, string inpage, string text, bool alsoLast = true) {
     var names = fullName.Split('.');
     string nameSoFar = "";
     string output = "";
@@ -979,8 +986,8 @@ class DafnyDoc {
       nameSoFar += name;
       output += (k == 0 && !alsoLast ? name : Link(nameSoFar, name));
     }
-    if (hash > 0) {
-      output += $".<a href=\"{fullName}.html#{tail}\">{tail}</a>";
+    if (inpage != null) {
+      output += $".<a href=\"{fullName}.html#{inpage}\">{text}</a>";
     }
     return output;
   }
@@ -1085,13 +1092,16 @@ $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-a
 
   /** Adds (a request for) an index entry, with a link to a file */
   public void AddToIndexF(string name, string target, string kind) {
-    nameIndex.Add(name + " " + nameIndex.Count + " " + target, kind + " " + QualifiedNameWithLinks(target));
+    nameIndex.Add(name + " " + nameIndex.Count + " " + target, kind + " " + QualifiedNameWithLinks(target, null, name));
   }
 
   /** Adds (a request for) an index entry, with a link to a location in a file */
-  public void AddToIndex(string name, string owner, string kind) {
-    var target = owner + "#" + name;
-    nameIndex.Add(name + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(target));
+  public void AddToIndex(string inpageID, string owner, string kind) {
+    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, inpageID, inpageID));
+  }
+
+  public void AddToIndexC(string inpageID, string text, string owner, string kind) {
+    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, inpageID, text));
   }
 
   public void WriteIndex() {
