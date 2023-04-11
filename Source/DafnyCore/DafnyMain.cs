@@ -13,7 +13,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
 

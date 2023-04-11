@@ -102,24 +102,24 @@ namespace Microsoft.Dafny {
       return MainWithWriter(Console.Out, Console.Error, Console.In, args);
     }
 
-    // TODO inline
     public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
       string[] args) {
 
-      outputWriter = new UndisposableTextWriter(outputWriter);
-      errorWriter = new UndisposableTextWriter(errorWriter);
-      outputWriter = TextWriter.Synchronized(outputWriter);
-      errorWriter = TextWriter.Synchronized(errorWriter);
-
-      // return ThreadMain(outputWriter, errorWriter, inputReader, args);
+      // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
+      // outputWriter = new UndisposableTextWriter(outputWriter);
+      // errorWriter = new UndisposableTextWriter(errorWriter);
+      // outputWriter = TextWriter.Synchronized(outputWriter);
+      // errorWriter = TextWriter.Synchronized(errorWriter);
+      
 #pragma warning disable VSTHRD002
       return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
 #pragma warning restore VSTHRD002
     }
 
-    public static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
+    private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
+      
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
