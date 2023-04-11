@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -419,18 +420,15 @@ iterator Iter2(x: int) yields (y: int)
 
     protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
       var options = DafnyOptions.Create();
-      BatchErrorReporter reporter = new BatchErrorReporter(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        
+        var dafnyProgram = Utils.Parse(options, programString, false);
+        BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

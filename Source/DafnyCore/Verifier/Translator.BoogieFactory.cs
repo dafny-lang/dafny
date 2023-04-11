@@ -886,7 +886,7 @@ namespace Microsoft.Dafny {
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
-          Filename = exprTok.filename,
+          Uri = new Uri(exprTok.filename),
           kind = exprTok.kind,
           LeadingTrivia = "",
           line = exprTok.line,

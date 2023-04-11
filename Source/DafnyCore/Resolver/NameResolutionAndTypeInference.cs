@@ -5800,7 +5800,7 @@ namespace Microsoft.Dafny {
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.line, tok.col) {
-            Filename = tok.Filename,
+            Uri = tok.Uri,
             val = f.Name
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));

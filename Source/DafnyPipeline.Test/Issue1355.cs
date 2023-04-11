@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
+using Main = Microsoft.Dafny.Main;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -16,16 +18,11 @@ namespace DafnyPipeline.Test {
     [Fact]
     public void Test() {
       var options = DafnyOptions.Create();
-      ErrorReporter reporter = new ConsoleErrorReporter(options);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      Microsoft.Dafny.Type.ResetScopes();
-      BuiltIns builtIns = new BuiltIns(options);
-      Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-      var dafnyProgram = new Program("programName", module, builtIns, reporter);
-      Main.Resolve(dafnyProgram, reporter);
+      var dafnyProgram = Utils.Parse(options, programString, false);
+      Main.Resolve(dafnyProgram, dafnyProgram.Reporter);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
         var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);

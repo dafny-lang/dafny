@@ -1,4 +1,5 @@
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -55,20 +56,27 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(DafnyOptions options, string source, string fileName = "") {
+    public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
+      uri ??= new Uri(Path.GetTempPath());
+      options.AddFile(uri.LocalPath);
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       var builtIns = new BuiltIns(options);
-      var reporter = new ConsoleErrorReporter(options);
-      var success = Parser.Parse(source, fileName, fileName, module, builtIns,
+      var reporter = new BatchErrorReporter(options);
+      var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = new Program(fileName, module, builtIns, reporter);
+        program = new Program(uri.LocalPath, module, builtIns, reporter);
       }
       if (program == null) {
         return null;
       }
+
+      if (!resolve) {
+        return program;
+      }
+      
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
       program.Reporter = new ErrorReporterSink(options);

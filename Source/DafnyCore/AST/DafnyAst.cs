@@ -117,13 +117,13 @@ namespace Microsoft.Dafny {
   }
 
   public class Include : TokenNode, IComparable {
-    public string IncluderFilename { get; }
+    public Uri IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;

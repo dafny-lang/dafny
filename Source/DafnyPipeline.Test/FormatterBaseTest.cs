@@ -6,11 +6,13 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
+using DafnyTestGeneration;
 using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
+using Main = Microsoft.Dafny.Main;
 
 namespace DafnyPipeline.Test {
 
@@ -40,7 +42,6 @@ namespace DafnyPipeline.Test {
       var options = DafnyOptions.Create();
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
-        BatchErrorReporter reporter = new BatchErrorReporter(options);
         currentNewlines = newLinesType;
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
@@ -50,11 +51,9 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        
+        var dafnyProgram = Utils.Parse(options, programNotIndented, false);
+        BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
@@ -88,11 +87,8 @@ namespace DafnyPipeline.Test {
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns(options);
-        Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        dafnyProgram = Utils.Parse(options, reprinted, false);
+        reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         Assert.Equal(initErrorCount, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0

@@ -21,11 +21,12 @@ namespace Microsoft.Dafny {
 
   public class DafnyFile {
     public bool UseStdin { get; private set; }
-    public string FilePath { get; private set; }
+    public string FilePath => Uri.LocalPath;
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
     public bool IsPrecompiled { get; set; }
     public string SourceFileName { get; private set; }
+    public Uri Uri { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
     // for all paths to a given file and different otherwise. The best we can do is to
@@ -64,7 +65,7 @@ namespace Microsoft.Dafny {
     }
     public DafnyFile(string filePath, bool useStdin = false) {
       UseStdin = useStdin;
-      FilePath = filePath;
+      Uri = new Uri(filePath);
       BaseName = Path.GetFileName(filePath);
 
       var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
@@ -318,7 +319,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.Uri, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

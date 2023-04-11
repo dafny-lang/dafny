@@ -17,12 +17,14 @@ public interface IToken : Microsoft.Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
   string Boogie.IToken.filename {
-    get => Filename;
-    set => Filename = value;
+    get => Uri?.LocalPath;
+    set => Uri = new Uri(value);
   }
 
-  public string ActualFilename { get; }
-  string Filename { get; set; }
+  public string ActualFilename => Uri.LocalPath;
+  string Filename => Uri.LocalPath;
+  
+  Uri Uri { get; set; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,
@@ -71,7 +73,8 @@ public class Token : IToken {
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
   public string ActualFilename => Filename;
-  public string Filename { get; set; }
+  public string Filename => Uri.LocalPath;
+  public Uri Uri { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
@@ -104,7 +107,7 @@ public class Token : IToken {
       line = line,
       Prev = Prev,
       Next = Next,
-      Filename = Filename,
+      Uri = Uri,
       kind = kind,
       val = newVal
     };
@@ -139,6 +142,11 @@ public abstract class TokenWrapper : IToken {
   public virtual string Filename {
     get { return WrappedToken.Filename; }
     set { WrappedToken.filename = value; }
+  }
+
+  public Uri Uri {
+    get => WrappedToken.Uri;
+    set => WrappedToken.Uri = value;
   }
 
   public bool IsValid {

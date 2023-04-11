@@ -267,8 +267,7 @@ public class Scanner {
     Contract.Invariant(tokens != null);
     Contract.Invariant(pt != null);
     Contract.Invariant(tval != null);
-    Contract.Invariant(Filename != null);
-    Contract.Invariant(FullFilename != null);
+    Contract.Invariant(Uri != null);
     Contract.Invariant(errorHandler != null);
   }
 
@@ -308,10 +307,9 @@ public class Scanner {
   int triviaNewlines = 0;        // How many newlines in the trivia so far
   bool lastWasCr = false;        // if the last newline character was \r
       
-  private string/*!*/ Filename;
   private Errors/*!*/ errorHandler;
 
-  internal string/*!*/ FullFilename { get; private set; }
+  internal Uri/*!*/ Uri { get; private set; }
 
   static Scanner() {
     start = new Hashtable(128);
@@ -319,40 +317,38 @@ public class Scanner {
   }
 
 //  [NotDelayed]
-  public Scanner (string/*!*/ fullFilename, string/*!*/ fileName, Errors/*!*/ errorHandler, bool useBaseName = false, Token firstToken = null) : base() {
-    Contract.Requires(fileName != null);
+  public Scanner (Uri/*!*/ uri, Errors/*!*/ errorHandler, bool useBaseName = false, Token firstToken = null) : base() {
+    Contract.Requires(uri != null);
     Contract.Requires(errorHandler != null);
     this.errorHandler = errorHandler;
-    if(firstToken.Filename == null || firstToken.Filename == "") {
-      firstToken.Filename = fullFilename;
+    if(firstToken.Uri == null) {
+      firstToken.Uri = uri;
     }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
-      Stream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+      Stream stream = new FileStream(uri.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
       this._buffer = new Buffer(stream, false);
-      this.FullFilename = fullFilename;
-      Filename = useBaseName? GetBaseName(fileName): fileName;
+      this.Uri = uri;
       Init(1);
     } catch (IOException) {
-      throw new FatalError("Cannot open file " + fileName);
+      throw new FatalError("Cannot open file " + uri);
     }
   }
 
 //  [NotDelayed]
-  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, string/*!*/ fullFilename, string/*!*/ fileName, int lineNumber = 1, bool useBaseName = false, Token firstToken = null) : base() {
+  public Scanner (Stream/*!*/ s, Errors/*!*/ errorHandler, Uri/*!*/ uri, int lineNumber = 1, bool useBaseName = false, Token firstToken = null) : base() {
     Contract.Requires(s != null);
     Contract.Requires(errorHandler != null);
-    Contract.Requires(fileName != null);
-    if(firstToken.Filename == null || firstToken.Filename == "") {
-      firstToken.Filename = fullFilename;
+    Contract.Requires(uri != null);
+    if(firstToken.Uri == null) {
+      firstToken.Uri = uri;
     }
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);
     this.errorHandler = errorHandler;
-    this.FullFilename = fullFilename;
-    this.Filename = useBaseName? GetBaseName(fileName) : fileName;
+    this.Uri = uri;
     Init(lineNumber);
   }
 
@@ -419,44 +415,44 @@ public class Scanner {
           // This block of code implements the scanner recognizing line pragmas (#line) that reset the line number and filename.
           // The pragma syntax can interfere with otherwise legal Dafny programs, so it is being disabled.
           // Turn it back on by removing the 'false' in the condition, or perhaps by introducing a test of an option.
-          int prLine = line;
-          int prColumn = 0;
-
-          string/*!*/ hashLine = ReadToEOL();
-          Contract.Assert(hashLine!=null);
-          col = 0;
-          line++;
-
-          hashLine = hashLine.TrimEnd(null);
-          if (hashLine.StartsWith("line ") || hashLine == "line") {
-          // parse #line pragma:  #line num [filename]
-          string h = hashLine.Substring(4).TrimStart(null);
-          int x = h.IndexOf(' ');
-          if (x == -1) {
-            x = h.Length;  // this will be convenient below when we look for a filename
-          }
-          try {
-            int li = int.Parse(h.Substring(0, x));
-
-            h = h.Substring(x).Trim();
-
-            // act on #line
-            line = li;
-            if (h.Length != 0) {
-            // a filename was specified
-            Filename = h;
-            }
-            continue;  // successfully parsed and acted on the #line pragma
-
-          } catch (FormatException) {
-            // just fall down through to produce an error message
-          }
-          this.errorHandler.SemErr(ParseErrors.ErrorId.sc_malformed_pragma, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
-          continue;
-          }
-
-          this.errorHandler.SemErr(ParseErrors.ErrorId.sc_unknown_pragma, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
-          continue;
+            // int prLine = line;
+            // int prColumn = 0;
+    
+            // string/*!*/ hashLine = ReadToEOL();
+            // Contract.Assert(hashLine!=null);
+            // col = 0;
+            // line++;
+    
+            // hashLine = hashLine.TrimEnd(null);
+            // if (hashLine.StartsWith("line ") || hashLine == "line") {
+            // // parse #line pragma:  #line num [filename]
+            // string h = hashLine.Substring(4).TrimStart(null);
+            // int x = h.IndexOf(' ');
+            // if (x == -1) {
+            //   x = h.Length;  // this will be convenient below when we look for a filename
+            // }
+            // try {
+            //   int li = int.Parse(h.Substring(0, x));
+    
+            //   h = h.Substring(x).Trim();
+    
+            //   // act on #line
+            //   line = li;
+            //   if (h.Length != 0) {
+            //   // a filename was specified
+            //   Filename = h;
+            //   }
+            //   continue;  // successfully parsed and acted on the #line pragma
+    
+            // } catch (FormatException) {
+            //   // just fall down through to produce an error message
+            // }
+            // this.errorHandler.SemErr(ParseErrors.ErrorId.sc_malformed_pragma, Filename, prLine, prColumn, "Malformed (#line num [filename]) pragma: #" + hashLine);
+            // continue;
+            // }
+    
+            // this.errorHandler.SemErr(ParseErrors.ErrorId.sc_unknown_pragma, Filename, prLine, prColumn, "Unrecognized pragma: #" + hashLine);
+            // continue;
         }
         return;
         }
@@ -540,7 +536,7 @@ public class Scanner {
     t.LeadingTrivia = buffer.GetString(posTrailingEndLeadingStart, pos);
     
     t.pos = pos; t.col = col; t.line = line;
-    t.Filename = this.Filename;
+    t.Uri = this.Uri;
     int state;
     if (start.ContainsKey(ch)) {
       Contract.Assert(start[ch] != null);

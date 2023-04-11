@@ -58,9 +58,9 @@ namespace Microsoft.Dafny {
     public abstract int CountExceptVerifierAndCompiler(ErrorLevel level);
 
     // This method required by the Parser
-    internal void Error(MessageSource source, string errorId, string filename, int line, int col, string msg) {
+    internal void Error(MessageSource source, string errorId, Uri uri, int line, int col, string msg) {
       var tok = new Token(line, col);
-      tok.Filename = filename;
+      tok.Uri = uri;
       Error(source, errorId, tok, msg);
     }
 

@@ -62,7 +62,7 @@ public class Parser {
   }
 
   void SynErr (int n) {
-    if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
+    if (errDist >= minErrDist) errors.SynErr(la.Uri, la.line, la.col, n);
     errDist = 0;
   }
 
@@ -153,14 +153,14 @@ public class Errors {
     this.Reporting = Reporting;
   }
 
-  public void SynErr(string filename, int line, int col, int n) {
-    SynErr(filename, line, col, GetSyntaxErrorString(n));
+  public void SynErr(Uri uri, int line, int col, int n) {
+    SynErr(uri, line, col, GetSyntaxErrorString(n));
   }
 
-  public void SynErr(string filename, int line, int col, string msg) {
+  public void SynErr(Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, null, filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, null, uri, line, col, msg);
   }
 
   string GetSyntaxErrorString(int n) {
@@ -186,10 +186,10 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
-  public void SemErr(object errorId, string filename, int line, int col, string msg) {
+  public void SemErr(object errorId, Uri uri, int line, int col, string msg) {
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, errorId.ToString(), filename, line, col, msg);
+    Reporting.Error(MessageSource.Parser, errorId.ToString(), uri, line, col, msg);
   }
 
   public void Deprecated(object errorId, IToken tok, string msg) {
