@@ -12,8 +12,6 @@ namespace Microsoft.Dafny;
 /* Stuff todo:
 
 - duplicate index entries for traits and classes
-- root module does not have filename information
-- improve the computation of relative paths
 - imported names
 - import summary should include the opened keyword
 - details for datatype, codatatype, iterator
@@ -27,6 +25,7 @@ namespace Microsoft.Dafny;
 - import details should distinguish provides and reveals; should link to details for those names
 - interpret markdown
 - do not include library files
+- ability to link to declarations in other documentation sets
 
 - useFullDocstring everywhere
 
@@ -387,13 +386,9 @@ class DafnyDoc {
       return null;
     } else if (r == "absolute") {
       return absoluteFile;
-    } else if (r.StartsWith("relative=")) {
-      var prefix = r.Substring("relative=".Length);
-      if (absoluteFile != null && absoluteFile.StartsWith(prefix)) {
-        return absoluteFile.Substring(prefix.Length);
-      } else {
-        return absoluteFile;
-      }
+    } else if (r.StartsWith("relative")) { // Allow either relative: or relative=
+      var prefix = r.Substring("relative".Length + 1);
+      return Path.GetRelativePath(prefix, absoluteFile);
     } else {
       // Default or unrecognized value
       return Path.GetFileName(absoluteFile);
@@ -409,7 +404,7 @@ class DafnyDoc {
       details.Append(Heading3("Export sets")).Append(eol);
       foreach (var ex in exports) {
         AddToIndex(ex.Name, module.FullDafnyName, "export set");
-        var text = $"export {module.Name}`{LinkToAnchor(ex.Name + "#", Bold(ex.Name))}";
+        var text = $"export {module.Name}`{LinkToAnchor(ExportSetAnchor(ex.Name), Bold(ex.Name))}";
         summaries.Append(text).Append(DashShortDocstring(ex)).Append(br).Append(eol);
 
         details.Append(Anchor(ExportSetAnchor(ex.Name))).Append(eol);
@@ -424,11 +419,13 @@ class DafnyDoc {
         var provided = ex.Exports.Where(e => e.Opaque).Select(e => e.Id).ToList();
         provided.Sort();
         details.Append(space4).Append("provides");
+        if (ex.ProvideAll) details.Append(" * :");
         foreach (var id in provided) { // TODO - does not work for links that go out of the file, e.g. classes, modules
           details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
         }
         details.Append(br).Append(eol);
         details.Append(space4).Append("reveals");
+        if (ex.RevealAll) details.Append(" * :");
         foreach (var id in revealed) { // TODO - ditto
           details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
         }
