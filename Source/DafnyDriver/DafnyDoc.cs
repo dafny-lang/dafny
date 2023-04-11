@@ -11,11 +11,8 @@ namespace Microsoft.Dafny;
 
 /* Stuff todo:
 
-- duplicate index entries for traits and classes
-
+- duplicate index entries for declarations with their own pages
 - type characteristics and variance
-
-
 - import details should distinguish provides and reveals
 - not sure import is listing all names
 
@@ -24,8 +21,6 @@ namespace Microsoft.Dafny;
 - ability to link to declarations in other documentation sets
 
 - useFullDocstring everywhere
-
-- Dafny.Multiply - empty Types section
 
 Improvements:
 - retain source layout of expressions
@@ -41,7 +36,7 @@ Questions
 - option to maintain source ordering?
 - have some options available as module scoped options?
 - Should functions show body?
-- use table in nameindex?
+- use table for nameindex?
 - add in a cross reference listing?
 - list known subtypes of traits?
 - omit default decreases?
@@ -57,7 +52,6 @@ Other
 - modules: fully qualified refinement
 - abstract imports - needs fully qualified target
 - in each section , list inherited names, import-opened names
-- types - show content of definition
 
 - label implementing functions and methods
 - show inherited methods, functions in abstract classes
@@ -134,7 +128,6 @@ class DafnyDoc {
   public DafnyOptions Options;
   public string Outputdir;
   public Dictionary<string, string> nameIndex = new Dictionary<string, string>();
-  public bool formatIsHtml = true;
 
   public DafnyDoc(Program dafnyProgram, ErrorReporter reporter, DafnyOptions options, string outputdir) {
     this.DafnyProgram = dafnyProgram;
@@ -185,168 +178,168 @@ class DafnyDoc {
       AddToIndexF(module.Name, fullName, "module");
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
-    if (formatIsHtml) {
-      string filename = Outputdir + "/" + fullName + ".html";
-      using StreamWriter file = new(filename);
-      file.Write(head1);
-      file.Write($"Module {fullName} in program {DafnyProgram.Name}");
-      file.Write(head2);
-      file.Write(style);
-      var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
-      file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
-      file.Write(bodystart);
 
-      var docstring = Docstring(module);
-      if (!String.IsNullOrEmpty(docstring)) {
-        file.Write(ShortAndMoreForDecl(module));
-        file.Write(br);
-        file.WriteLine(br);
-      }
-      if (moduleDef.RefinementQId != null) {
-        file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
-      }
-      var attributes = Attributes(module.Attributes);
-      if (!String.IsNullOrEmpty(attributes)) {
-        file.WriteLine("Attributes: " + attributes + br);
-      }
+    string filename = Outputdir + "/" + fullName + ".html";
+    using StreamWriter file = new(filename);
+    file.Write(head1);
+    file.Write($"Module {fullName} in program {DafnyProgram.Name}");
+    file.Write(head2);
+    file.Write(style);
+    var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
+    file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
+    file.Write(bodystart);
 
-      if (moduleDef.IsDefaultModule) {
-        if (dafnyFiles.Count != 1) {
-          file.WriteLine("From multiple files<br>\n");
-        } else {
-          file.WriteLine(FileInfo(dafnyFiles[0].CanonicalPath));
-        }
+    var docstring = Docstring(module);
+    if (!String.IsNullOrEmpty(docstring)) {
+      file.Write(ShortAndMoreForDecl(module));
+      file.Write(br);
+      file.WriteLine(br);
+    }
+    if (moduleDef.RefinementQId != null) {
+      file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
+    }
+    var attributes = Attributes(module.Attributes);
+    if (!String.IsNullOrEmpty(attributes)) {
+      file.WriteLine("Attributes: " + attributes + br);
+    }
+
+    if (moduleDef.IsDefaultModule) {
+      if (dafnyFiles.Count != 1) {
+        file.WriteLine("From multiple files<br>\n");
       } else {
-        file.Write(FileInfo(module.Tok));
+        file.WriteLine(FileInfo(dafnyFiles[0].CanonicalPath));
       }
+    } else {
+      file.Write(FileInfo(module.Tok));
+    }
 
-      StringBuilder summaries = new StringBuilder(1000);
-      StringBuilder details = new StringBuilder(1000);
-      WriteExports(moduleDef, summaries, details);
-      WriteImports(moduleDef, summaries, details);
-      WriteSubModules(moduleDef, summaries, details);
-      WriteTypes(moduleDef, summaries, details);
-      WriteConstants(defaultClass, summaries, details);
-      WriteFunctions(defaultClass, summaries, details);
-      WriteMethods(defaultClass, summaries, details);
-      WriteLemmas(defaultClass, summaries, details);
+    StringBuilder summaries = new StringBuilder(1000);
+    StringBuilder details = new StringBuilder(1000);
+    WriteExports(moduleDef, summaries, details);
+    WriteImports(moduleDef, summaries, details);
+    WriteSubModules(moduleDef, summaries, details);
+    WriteTypes(moduleDef, summaries, details);
+    WriteConstants(defaultClass, summaries, details);
+    WriteFunctions(defaultClass, summaries, details);
+    WriteMethods(defaultClass, summaries, details);
+    WriteLemmas(defaultClass, summaries, details);
 
-      file.WriteLine(Heading2("module summary"));
-      file.WriteLine(summaries.ToString());
-      file.WriteLine(Anchor("decl-detail"));
-      file.WriteLine(Heading2("module details"));
-      if (!String.IsNullOrEmpty(docstring)) {
-        file.WriteLine(docstring);
-        file.WriteLine(br);
-      }
-      if (!String.IsNullOrEmpty(attributes)) {
-        file.WriteLine("Attributes: " + attributes + br);
-      }
-      file.WriteLine(details.ToString());
-      file.Write(foot);
-      AnnounceFile(filename);
-      var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
-      foreach (var c in declsWithMembers) {
-        if (c is ClassDecl cl && !cl.IsDefaultClass) {
-          WriteDecl(c);
-        }
+    file.WriteLine(Heading2("module summary"));
+    file.WriteLine(summaries.ToString());
+    file.WriteLine(Anchor("decl-detail"));
+    file.WriteLine(Heading2("module details"));
+    if (!String.IsNullOrEmpty(docstring)) {
+      file.WriteLine(docstring);
+      file.WriteLine(br);
+    }
+    if (!String.IsNullOrEmpty(attributes)) {
+      file.WriteLine("Attributes: " + attributes + br);
+    }
+    file.WriteLine(details.ToString());
+    file.Write(foot);
+    AnnounceFile(filename);
+    var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
+    foreach (var c in declsWithMembers) {
+      if (c is ClassDecl cl && !cl.IsDefaultClass) {
+        WriteDecl(c);
       }
     }
+
   }
 
   /** Writes files for classes and traits */
   public void WriteDecl(TopLevelDeclWithMembers decl) {
     var fullName = decl.FullDafnyName;
     AddToIndexF(decl.Name, fullName, decl.WhatKind);
-    if (formatIsHtml) {
-      string filename = Outputdir + "/" + fullName + ".html";
-      using StreamWriter file = new(filename);
-      file.Write(head1);
-      file.Write($"{decl.WhatKind} {fullName}");
-      file.Write(head2);
-      file.Write(style);
-      var extends = "";
-      if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
-        extends = Smaller(" extends ...");
-      }
-      var typeparams = TypeFormals(decl.TypeArgs);
-      file.WriteLine($"<div>\n<h1>{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
-      file.Write(bodystart);
 
-      var docstring = Docstring(decl as IHasDocstring);
-      if (!String.IsNullOrEmpty(docstring)) {
-        file.Write(ShortAndMoreForDecl(decl));
-        file.Write(br);
-        file.Write(br);
-        file.Write(eol);
-      }
+    string filename = Outputdir + "/" + fullName + ".html";
+    using StreamWriter file = new(filename);
+    file.Write(head1);
+    file.Write($"{decl.WhatKind} {fullName}");
+    file.Write(head2);
+    file.Write(style);
+    var extends = "";
+    if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
+      extends = Smaller(" extends ...");
+    }
+    var typeparams = TypeFormals(decl.TypeArgs);
+    file.WriteLine($"<div>\n<h1>{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
+    file.Write(bodystart);
 
-      // Find all traits, transitively
-      if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
-        extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
-        List<Type> todo = new List<Type>();
-        List<Type> traits = new List<Type>();
-        foreach (var t in decl.ParentTraits) {
-          todo.Add(t);
-        }
-        while (todo.Count != 0) {
-          var tt = todo.First();
-          todo.RemoveAt(0);
-          var tr = ((tt as UserDefinedType).ResolvedClass as NonNullTypeDecl).Class;
-          if (!traits.Any(q => q.ToString() == tt.ToString())) {
-            if (tr != null && tr.ParentTraits != null) {
-              foreach (var t in tr.ParentTraits) {
-                todo.Add(t);
-              }
-            }
-            if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
-              traits.Add(tt);
+    var docstring = Docstring(decl as IHasDocstring);
+    if (!String.IsNullOrEmpty(docstring)) {
+      file.Write(ShortAndMoreForDecl(decl));
+      file.Write(br);
+      file.Write(br);
+      file.Write(eol);
+    }
+
+    // Find all traits, transitively
+    if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
+      extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
+      List<Type> todo = new List<Type>();
+      List<Type> traits = new List<Type>();
+      foreach (var t in decl.ParentTraits) {
+        todo.Add(t);
+      }
+      while (todo.Count != 0) {
+        var tt = todo.First();
+        todo.RemoveAt(0);
+        var tr = ((tt as UserDefinedType).ResolvedClass as NonNullTypeDecl).Class;
+        if (!traits.Any(q => q.ToString() == tt.ToString())) {
+          if (tr != null && tr.ParentTraits != null) {
+            foreach (var t in tr.ParentTraits) {
+              todo.Add(t);
             }
           }
+          if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
+            traits.Add(tt);
+          }
         }
-        file.Write("Extends traits: " + extends);
-        traits.Sort((t, tt) => t.ToString().CompareTo(tt.ToString()));
-        var trans = String.Join(", ", traits.Select(t => TypeLink(t)));
-        if (!String.IsNullOrEmpty(trans)) {
-          file.Write($" [Transitively: {trans}]");
-        }
-        file.Write(br);
-        file.Write(eol);
       }
-      // Note: classes and traits do not have modifiers
-      var attributes = Attributes(decl.Attributes);
-      if (!String.IsNullOrEmpty(attributes)) {
-        file.WriteLine("Attributes: " + attributes + br);
+      file.Write("Extends traits: " + extends);
+      traits.Sort((t, tt) => t.ToString().CompareTo(tt.ToString()));
+      var trans = String.Join(", ", traits.Select(t => TypeLink(t)));
+      if (!String.IsNullOrEmpty(trans)) {
+        file.Write($" [Transitively: {trans}]");
       }
-      file.Write(FileInfo(decl.Tok));
-
-      StringBuilder summaries = new StringBuilder(1000);
-      StringBuilder details = new StringBuilder(1000);
-      if (decl is ClassDecl) {
-        WriteConstructors(decl, summaries, details);
-      }
-      WriteConstants(decl, summaries, details);
-      WriteMutableFields(decl, summaries, details);
-      WriteFunctions(decl, summaries, details);
-      WriteMethods(decl, summaries, details);
-      WriteLemmas(decl, summaries, details);
-
-      file.WriteLine(Heading2(decl.WhatKind + " summary"));
-
-      file.WriteLine(summaries.ToString());
-      file.WriteLine(Anchor("decl-detail"));
-      file.WriteLine(Heading2(decl.WhatKind + " details"));
-      if (!String.IsNullOrEmpty(docstring)) {
-        file.WriteLine(docstring);
-        file.WriteLine(br);
-      }
-      if (!String.IsNullOrEmpty(attributes)) {
-        file.WriteLine("Attributes: " + attributes + br);
-      }
-      file.WriteLine(details.ToString());
-      file.Write(foot);
-      AnnounceFile(filename);
+      file.Write(br);
+      file.Write(eol);
     }
+    // Note: classes and traits do not have modifiers
+    var attributes = Attributes(decl.Attributes);
+    if (!String.IsNullOrEmpty(attributes)) {
+      file.WriteLine("Attributes: " + attributes + br);
+    }
+    file.Write(FileInfo(decl.Tok));
+
+    StringBuilder summaries = new StringBuilder(1000);
+    StringBuilder details = new StringBuilder(1000);
+    if (decl is ClassDecl) {
+      WriteConstructors(decl, summaries, details);
+    }
+    WriteConstants(decl, summaries, details);
+    WriteMutableFields(decl, summaries, details);
+    WriteFunctions(decl, summaries, details);
+    WriteMethods(decl, summaries, details);
+    WriteLemmas(decl, summaries, details);
+
+    file.WriteLine(Heading2(decl.WhatKind + " summary"));
+
+    file.WriteLine(summaries.ToString());
+    file.WriteLine(Anchor("decl-detail"));
+    file.WriteLine(Heading2(decl.WhatKind + " details"));
+    if (!String.IsNullOrEmpty(docstring)) {
+      file.WriteLine(docstring);
+      file.WriteLine(br);
+    }
+    if (!String.IsNullOrEmpty(attributes)) {
+      file.WriteLine("Attributes: " + attributes + br);
+    }
+    file.WriteLine(details.ToString());
+    file.Write(foot);
+    AnnounceFile(filename);
+
   }
 
   /** Returns printable info about the file containing the given token and the last modification time of the file */
@@ -852,41 +845,41 @@ class DafnyDoc {
 
   public void WriteTOC(List<LiteralModuleDecl> modules) {
     modules.Sort((k, m) => k.FullDafnyName.CompareTo(m.FullDafnyName));
-    if (formatIsHtml) {
-      string filename = Outputdir + "/index.html";
-      using StreamWriter file = new(filename);
-      file.Write(head1);
-      file.Write($"Dafny Documentation{ProgramHeader()}");
-      file.Write(head2);
-      file.Write(style);
-      var indexlink = Link("nameindex", "[index]");
 
-      file.Write($"<div>\n<h1>Modules{ProgramHeader()}{space4}{Smaller(indexlink)}</h1>\n</div>");
-      file.Write(bodystart);
-      file.WriteLine("<ul>");
-      int currentIndent = 0;
-      foreach (var module in modules) {
-        var fullname = module.FullDafnyName;
-        int level = Regex.Matches(fullname, "\\.").Count;
-        while (level > currentIndent) {
-          file.WriteLine("<ul>");
-          currentIndent++;
-        }
-        while (level < currentIndent) {
-          file.WriteLine("</ul>");
-          currentIndent--;
-        }
-        var ds = DashShortDocstringNoMore(module);
-        if (module.ModuleDef.IsDefaultModule) {
-          file.WriteLine($"<li>Module <a href=\"{rootName}.html\">{rootNLName}</a>{ds}</li>");
-        } else {
-          file.WriteLine($"<li>Module <a href=\"{fullname}.html\">{fullname}</a>{ds}</li>");
-        }
+    string filename = Outputdir + "/index.html";
+    using StreamWriter file = new(filename);
+    file.Write(head1);
+    file.Write($"Dafny Documentation{ProgramHeader()}");
+    file.Write(head2);
+    file.Write(style);
+    var indexlink = Link("nameindex", "[index]");
+
+    file.Write($"<div>\n<h1>Modules{ProgramHeader()}{space4}{Smaller(indexlink)}</h1>\n</div>");
+    file.Write(bodystart);
+    file.WriteLine("<ul>");
+    int currentIndent = 0;
+    foreach (var module in modules) {
+      var fullname = module.FullDafnyName;
+      int level = Regex.Matches(fullname, "\\.").Count;
+      while (level > currentIndent) {
+        file.WriteLine("<ul>");
+        currentIndent++;
       }
-      file.WriteLine("</ul>");
-      file.Write(foot);
-      AnnounceFile(filename);
+      while (level < currentIndent) {
+        file.WriteLine("</ul>");
+        currentIndent--;
+      }
+      var ds = DashShortDocstringNoMore(module);
+      if (module.ModuleDef.IsDefaultModule) {
+        file.WriteLine($"<li>Module <a href=\"{rootName}.html\">{rootNLName}</a>{ds}</li>");
+      } else {
+        file.WriteLine($"<li>Module <a href=\"{fullname}.html\">{fullname}</a>{ds}</li>");
+      }
     }
+    file.WriteLine("</ul>");
+    file.Write(foot);
+    AnnounceFile(filename);
+
   }
 
   public static readonly string rootName = "_"; // Name of file for root module
@@ -917,7 +910,6 @@ class DafnyDoc {
       } else if (tt is TypeParameter) {
         return tt.Name;
       } else {
-        Console.WriteLine("  TYPELINK-B " + t + " " + t.GetType() + " " + tt + " " + tt.GetType());
         return tt.ToString(); // TODO - needs links for every other kind of type
       }
     } else {
@@ -970,11 +962,11 @@ class DafnyDoc {
   // Stop at end of sentence (.) but not at periods in numbers or qualified names
   public string Shorten(string docstring) {
     if (docstring != null) {
-      var k = docstring.IndexOf(". ");
-      if (k == -1) {
+      var match = Regex.Match(docstring, "\\.[ \r\n]");
+      if (!match.Success) {
         return docstring;
       } else {
-        return docstring.Substring(0, k + 1);
+        return docstring.Substring(0, match.Index + 1);
       }
     }
     return String.Empty;
