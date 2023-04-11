@@ -40,6 +40,10 @@ module {:options "--function-syntax:4"} TestModule {
   /** Enumeration. Various options. */
   datatype D<Q> = A(q: Q) | B {}
 
+  codatatype CD<Q> = 
+    | Y // A Y
+    | Z /* A Z */
+    | ghost G // A ghost constructor. Very cool.
 
   /** Type synonym. */
   type Tint = B<int>

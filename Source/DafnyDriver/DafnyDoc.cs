@@ -12,17 +12,14 @@ namespace Microsoft.Dafny;
 /* Stuff todo:
 
 - duplicate index entries for traits and classes
-- imported names
-- import summary should include the opened keyword
-- details for datatype, codatatype, iterator
+- details for iterator
 - type characteristics and variance
-- modifiers for types
-- modifiers for classes and traits on their pages
-- newtype, opaque type, datatype, codatatype with members
-- exports - indicate when *
 
-- import statements with export set designator should link to details of the export set, or to details of the default exprot set
-- import details should distinguish provides and reveals; should link to details for those names
+- newtype, opaque type, datatype, codatatype with members
+
+- import details should distinguish provides and reveals
+- not sure import is listing all names
+
 - interpret markdown
 - do not include library files
 - ability to link to declarations in other documentation sets
@@ -272,13 +269,12 @@ class DafnyDoc {
       file.Write($"{decl.WhatKind} {fullName}");
       file.Write(head2);
       file.Write(style);
-      var abs = "";//decl.IsAbstract ? Smaller("abstract ") : ""; // TODO - smaller is too much smaller for h1
       var extends = "";
       if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
         extends = Smaller(" extends ...");
       }
       var typeparams = TypeFormals(decl.TypeArgs);
-      file.WriteLine($"<div>\n<h1>{abs}{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
+      file.WriteLine($"<div>\n<h1>{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
       file.Write(bodystart);
 
       var docstring = Docstring(decl as IHasDocstring);
@@ -321,6 +317,7 @@ class DafnyDoc {
         file.Write(br);
         file.Write(eol);
       }
+      // Note: classes and traits do not have modifiers
       var attributes = Attributes(decl.Attributes);
       if (!String.IsNullOrEmpty(attributes)) {
         file.WriteLine("Attributes: " + attributes + br);
@@ -431,7 +428,7 @@ class DafnyDoc {
         }
         var docstring = Docstring(ex);
         if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(indent).Append(docstring).Append(unindent);
+          details.Append(Indented(docstring));
         }
         details.Append(br).Append(eol);
       }
@@ -470,7 +467,20 @@ class DafnyDoc {
         var list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
         list.Sort((a, b) => a.Name.CompareTo(b.Name));
         foreach (var d in list) {
-          details.Append(" ").Append(d.Name);
+          string link;
+          if (HasOwnPage(d)) {
+            link = Link(d.FullDafnyName, d.Name, d.Name);
+          } else {
+            string fullname = d.FullDafnyName;
+            var k = fullname.LastIndexOf('.');
+            if (k < 0) {
+              // If there is no parent segment, this should be its own page
+              link = Link(d.FullDafnyName, d.Name, d.Name);
+            } else {
+              link = Link(fullname.Substring(0, k), d.Name, d.Name);
+            }
+          }
+          details.Append(" ").Append(link);
         }
         details.Append(br).Append(eol);
       }
@@ -516,10 +526,11 @@ class DafnyDoc {
         AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
         var attributes = Attributes(t.Attributes);
-        var modifiers = ""; // TODO Modifiers(t);
+        // Note: Types do not have modifiers (at least at present)
+        var modifiers = "";
         var typeparams = TypeFormals(t.TypeArgs);
         var link = "";
-        if (ShouldMakeSeparatePage(t)) {
+        if (HasOwnPage(t)) {
           link = Link(t.FullDafnyName, Bold(t.Name));
         } else {
           link = LinkToAnchor(t.Name, Bold(t.Name));
@@ -549,16 +560,35 @@ class DafnyDoc {
         } else if (t is OpaqueTypeDecl) {
           // do nothing
         } else if (t is DatatypeDecl) {
-          // TODO
+          details.Append(br).Append(eol);
+          var dt = t as DatatypeDecl;
+          details.Append(BeginTable());
+          foreach (var ctor in dt.Ctors) {
+            string sig = ctor.Name;
+            if (ctor.Formals.Count > 0) {
+              sig += "(" + String.Join(", ", ctor.Formals.Select(ff => TypeString(ff))) + ")";
+            }
+            var ds = Docstring(ctor);
+            string info;
+            if (String.IsNullOrEmpty(ds)) {
+              info = "";
+            } else if (ds == Shorten(ds)) {
+              info = ShortDocstring(ctor);
+            } else {
+              info = Indented(ds, true);
+            }
+            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : Mdash, info));
+          }
+          details.Append(EndTable());
         } else {
-          // TODO - Unknown type
+          Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
         }
-        details.Append(br).Append(eol);
         if (!String.IsNullOrEmpty(attributes)) {
+          details.Append(br).Append(eol);
           details.Append(space4).Append(attributes);
         }
         if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(indent).Append(docstring).Append(unindent);
+          details.Append(Indented(docstring));
         }
       }
       summaries.Append(EndTable());
@@ -599,7 +629,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
-        details.Append(IndentedDocstring(docstring));
+        details.Append(Indented(docstring));
       }
     }
   }
@@ -629,7 +659,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attrs)) {
           details.Append(space4).Append(attrs).Append(br).Append(eol);
         }
-        details.Append(IndentedDocstring(Docstring(c)));
+        details.Append(Indented(Docstring(c)));
       }
       summaries.Append(EndTable()).Append(eol);
     }
@@ -729,7 +759,7 @@ class DafnyDoc {
       if (!String.IsNullOrEmpty(attributes)) {
         details.Append(space4).Append(attributes).Append(br).Append(eol);
       }
-      details.Append(IndentedDocstring(docstring));
+      details.Append(Indented(docstring));
       AppendSpecs(details, m);
     }
   }
@@ -744,11 +774,17 @@ class DafnyDoc {
     }
   }
 
-  public string IndentedDocstring(string docstring) {
+  public string Indented(string docstring) {
+    return Indented(docstring, false);
+  }
+
+  public string Indented(string docstring, bool nothingIfNull) {
     if (!String.IsNullOrEmpty(docstring)) {
       return indent + docstring + unindent + eol;
-    } else {
+    } else if (!nothingIfNull) {
       return br + eol;
+    } else {
+      return "";
     }
   }
 
@@ -873,7 +909,7 @@ class DafnyDoc {
   }
 
   /** True for declarations that have their own page */
-  public bool ShouldMakeSeparatePage(Declaration t) {
+  public bool HasOwnPage(Declaration t) {
     return t is TopLevelDeclWithMembers && (t is ClassDecl || t is TraitDecl || (t as TopLevelDeclWithMembers).Members.Count() > 0);
   }
 
