@@ -1,0 +1,321 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Module TestModule in program TestDafnyDoc.dfy</title>
+  <link rel="icon" type="image/png" href="dafny-favicon.png">
+  <meta name="description" content="Documentation for Dafny code produced by dafnydoc">
+  <meta name="author" content="dafnydoc">
+</head>
+<style>
+body {
+  background-color: white;
+}
+
+h1 {
+  color: blue;
+  text-align: center;
+  background-color: #fceb6c
+}
+h2 {
+  color: blue;
+  text-align: left;
+  background-color: #fceb6c
+}
+h3 {
+  color: blue;
+  text-align: left;
+  background-color: #fefdcc
+}
+
+p {
+  font-size: 16px
+}
+</style>
+<div>
+<h1>module TestModule&nbsp;&nbsp;&nbsp;&nbsp;<font size="-1"><a href="index.html">[table of contents]</a><a href="nameindex.html">[index]</a></font></h1>
+</div>
+<body>
+<i>Test module.</i> <a href="#decl-detail">(more...)</a><br><br>
+From file: TestDafnyDoc.dfy<br>
+<div>
+<h2>module summary</h2>
+</div>
+<div>
+<h3>Imports</h3>
+</div>
+import <a href="#J"><b>J</b></a> = <a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a>`<a href="TestModule.MInner.html#MInner+">MInner</a><br>
+import <a href="#L"><b>L</b></a> = <a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a>`<a href="TestModule.MInner.html#E2+">E2</a><br>
+import <a href="#MInner"><b>MInner</b></a> = <a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a>`<a href="TestModule.MInner.html#E1+">E1</a><br>
+<div>
+<h3>Submodules</h3>
+</div>
+module <a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a> &mdash; <i>Hidden stuff</i><br>
+module <a href="TestModule.html">TestModule</a>.<a href="TestModule.P.html">P</a><br>
+module <a href="TestModule.html">TestModule</a>.<a href="TestModule.Q.html">Q</a><br>
+module <a href="TestModule.html">TestModule</a>.<a href="TestModule.S.html">S</a><br>
+<div>
+<h3>Types</h3>
+</div>
+<table><tr><td>class</td><td><a href="TestModule.A.html"><b>A</b></a></td><td> &mdash; <i>Holds all the state.</i> <a href="#A">(more...)</a></td></tr>
+<tr><td>class</td><td><a href="TestModule.B.html"><b>B</b></a>&lt;Z(0)&gt;</td><td></td></tr>
+<tr><td>datatype</td><td><a href="#BB"><b>BB</b></a>&lt;*Q&gt;</td><td></td></tr>
+<tr><td>codatatype</td><td><a href="#CD"><b>CD</b></a>&lt;Q&gt;</td><td></td></tr>
+<tr><td>datatype</td><td><a href="#D"><b>D</b></a>&lt;Q&gt;</td><td> &mdash; <i>Enumeration.</i> <a href="#D">(more...)</a></td></tr>
+<tr><td>newtype</td><td><a href="TestModule.Dup.html"><b>Dup</b></a></td><td></td></tr>
+<tr><td>iterator</td><td><a href="TestModule.Gen.html"><b>Gen</b></a></td><td></td></tr>
+<tr><td>newtype</td><td><a href="#Size"><b>Size</b></a></td><td></td></tr>
+<tr><td>subset type</td><td><a href="#Small"><b>Small</b></a></td><td> &mdash; <i>Subset type</i></td></tr>
+<tr><td>newtype</td><td><a href="#Smaller"><b>Smaller</b></a></td><td> &mdash; <i>New type</i></td></tr>
+<tr><td>subset type</td><td><a href="#SmallS"><b>SmallS</b></a></td><td></td></tr>
+<tr><td>subset type</td><td><a href="#SmallW"><b>SmallW</b></a></td><td></td></tr>
+<tr><td>opaque type</td><td><a href="TestModule.T.html"><b>T</b></a></td><td> &mdash; <i>A very opaque type.</i> <a href="#T">(more...)</a></td></tr>
+<tr><td>trait</td><td><a href="TestModule.T1.html"><b>T1</b></a>&lt;TR&gt;</td><td> &mdash; <i>A special trait</i></td></tr>
+<tr><td>trait</td><td><a href="TestModule.T2.html"><b>T2</b></a></td><td></td></tr>
+<tr><td>trait</td><td><a href="TestModule.T3.html"><b>T3</b></a></td><td></td></tr>
+<tr><td>type synonym</td><td><a href="#Tint"><b>Tint</b></a></td><td> &mdash; <i>Type synonym.</i></td></tr>
+<tr><td>opaque type</td><td><a href="#TQ"><b>TQ</b></a>&lt;Y&gt;</td><td></td></tr>
+<tr><td>type synonym</td><td><a href="#TTT"><b>TTT</b></a>&lt;!Q(0)&gt;</td><td></td></tr>
+<tr><td>opaque type</td><td><a href="#WW"><b>WW</b></a></td><td></td></tr>
+</table><div>
+<h3>Constants
+</h3>
+</div><a href="#c"><b>c</b></a>: int &mdash; <i>Number of items.</i> <a href="#c">(more...)</a><br>
+<a href="#cc"><b>cc</b></a>: real &mdash; <i>The distance.</i><br>
+<a href="#ccc"><b>ccc</b></a>: bool &mdash; <i>Valid or not.</i><br>
+<a href="#cccc"><b>cccc</b></a>: <a href="TestModule.A.html">A</a> &mdash; <i>The internal state.</i><br>
+<div>
+<h3>Functions</h3>
+</div>
+<b><a href="#f">f</a></b>(r: real, x: int := 0): int&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Returns a constant.</i> <a href="#f">(more...)</a><br>
+<b><a href="#fif">fif</a></b>(nameonly z: <a href="TestModule.A.html">A</a>): <a href="TestModule.A.html">A</a><br>
+<b><a href="#lp">lp</a></b>(): bool&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>A copredicate</i><br>
+<b><a href="#p">p</a></b>(): bool&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Always true.</i> <a href="#p">(more...)</a><br>
+<b><a href="#pf">pf</a></b>(): bool&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Always true.</i> <a href="#pf">(more...)</a><br>
+<b><a href="#pp">pp</a></b>(older a: <a href="TestModule.A.html">A</a>, ghost nameonly x: int): bool<br>
+<b><a href="#ppp">ppp</a></b>(s: seq&lt;int&gt;, ss: set&lt;<a href="TestModule.A.html">A</a>&gt;, mm: map&lt;set&lt;<a href="TestModule.A.html">A</a>&gt;,seq&lt;set&lt;<a href="TestModule.A.html">A</a>&gt;&gt;&gt;): bool&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Always true.</i> <a href="#ppp">(more...)</a><br>
+<b><a href="#tf">tf</a></b>(a: <a href="TestModule.A.html">A</a>, new b: <a href="TestModule.A.html">A</a>): int&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>A two-state function</i><br>
+<div>
+<h3>Methods</h3>
+</div>
+<b><a href="#bump">bump</a></b>(i: int) returns (j: int)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>increments input</i><br>
+<b><a href="#ModifyA">ModifyA</a></b>(a: <a href="TestModule.A.html">A</a>)<br>
+<b><a href="#zero">zero</a></b>() returns (z: int)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Sets to zero.</i> <a href="#zero">(more...)</a><br>
+<div>
+<h3>Lemmas</h3>
+</div>
+<b><a href="#IsX">IsX</a></b>()&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>always true</i><br>
+<b><a href="#TS">TS</a></b>()<br>
+
+<a id="decl-detail"/>
+<div>
+<h2>module details</h2>
+</div>
+<i>Test module. More about this test module.</i>
+<br>
+<div>
+<h3>Imports</h3>
+</div>
+<a id="J"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">J</span></div><br>
+import <b>IS </b>opened<br>
+Names imported: <a href="TestModule.MInner.html#p">p</a> <a href="TestModule.MInner.MII.html#MII">MII</a><br>
+<a id="L"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">L</span></div><br>
+import <b>IS NOT </b>opened<br>
+Names imported: <a href="TestModule.MInner.html#f">f</a> <a href="TestModule.MInner.html#ic">ic</a> <a href="TestModule.MInner.html#p">p</a> <a href="TestModule.MInner.MII.html#MII">MII</a><br>
+<a id="MInner"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">MInner</span></div><br>
+import <b>IS </b>opened<br>
+Names imported: <a href="TestModule.MInner.html#ic">ic</a><br>
+<div>
+<h3>Types</h3>
+</div>
+<a id="A"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">A</span></div><br>
+class <b>A</b> &mdash; see <a href="TestModule.A.html">separate page here</a><p style="margin-left: 25px;"><i>Holds all the state. Every bit.</i></p>
+<a id="B"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">B</span></div><br>
+class <b>B</b>&lt;Z(0)&gt; &mdash; see <a href="TestModule.B.html">separate page here</a><a id="BB"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">BB</span></div><br>
+datatype <b>BB</b>&lt;*Q&gt;<br>
+<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>R(q: Q)</td><td></td><td></td></tr></table><a id="CD"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">CD</span></div><br>
+codatatype <b>CD</b>&lt;Q&gt;<br>
+<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>Y</td><td> &mdash; </td><td><i>A Y</i></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>Z</td><td> &mdash; </td><td><i>A Z</i></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td>[ghost]</td><td>G</td><td> &mdash; </td><td><p style="margin-left: 25px;"><i>A ghost constructor. Very cool.</i></p>
+</td></tr></table><a id="D"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">D</span></div><br>
+datatype <b>D</b>&lt;Q&gt;<br>
+<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>A(q: Q)</td><td></td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>B</td><td></td><td></td></tr></table><p style="margin-left: 25px;"><i>Enumeration. Various options.</i></p>
+<a id="Dup"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Dup</span></div><br>
+newtype <b>Dup</b> = int &mdash; see <a href="TestModule.Dup.html">separate page here</a><a id="Gen"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Gen</span></div><br>
+iterator <b>Gen</b> &mdash; see <a href="TestModule.Gen.html">separate page here</a><a id="Size"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Size</span></div><br>
+newtype <b>Size</b> = x: int | 0 <= x < 1000<a id="Small"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Small</span></div><br>
+subset type <b>Small</b> = x: <a href="nat.html">nat</a> | x < 100<p style="margin-left: 25px;"><i>Subset type</i></p>
+<a id="Smaller"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Smaller</span></div><br>
+newtype <b>Smaller</b> = x: <a href="nat.html">nat</a> | x < 10 witness 9<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:native "uint8"}<p style="margin-left: 25px;"><i>New type</i></p>
+<a id="SmallS"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">SmallS</span></div><br>
+subset type <b>SmallS</b> = x: <a href="nat.html">nat</a> | x < 100 witness *<a id="SmallW"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">SmallW</span></div><br>
+subset type <b>SmallW</b>(==) = x: <a href="nat.html">nat</a> | x < 100 witness 99<a id="T"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T</span></div><br>
+opaque type <b>T</b> &mdash; see <a href="TestModule.T.html">separate page here</a><p style="margin-left: 25px;"><i>A very opaque type. 100% dark.</i></p>
+<a id="T1"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T1</span></div><br>
+trait <b>T1</b>&lt;TR&gt; &mdash; see <a href="TestModule.T1.html">separate page here</a><p style="margin-left: 25px;"><i>A special trait</i></p>
+<a id="T2"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T2</span></div><br>
+trait <b>T2</b> &mdash; see <a href="TestModule.T2.html">separate page here</a><a id="T3"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T3</span></div><br>
+trait <b>T3</b> &mdash; see <a href="TestModule.T3.html">separate page here</a><a id="Tint"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Tint</span></div><br>
+type synonym <b>Tint</b>(==) = <a href="TestModule.B.html">B</a>&lt;int&gt;<p style="margin-left: 25px;"><i>Type synonym.</i></p>
+<a id="TQ"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TQ</span></div><br>
+opaque type <b>TQ</b>&lt;Y&gt;<a id="TTT"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TTT</span></div><br>
+type synonym <b>TTT</b>&lt;!Q(0)&gt; = <a href="TestModule.B.html">B</a>&lt;Q&gt;<a id="WW"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">WW</span></div><br>
+opaque type <b>WW</b>(==,0,!new)<div>
+<h3>Constants
+</h3>
+</div><a id="c"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">c</span></div><br>
+static <br>
+<b>c</b>: int := 7 + if true then 8 else 9 * 1<br>
+<p style="margin-left: 25px;"><i>Number of items. All of them.</i></p>
+<a id="cc"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">cc</span></div><br>
+static <br>
+<b>cc</b>: real<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:myattribute}<br>
+<p style="margin-left: 25px;"><i>The distance.</i></p>
+<a id="ccc"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ccc</span></div><br>
+static <br>
+<b>ccc</b>: bool<br>
+<p style="margin-left: 25px;"><i>Valid or not.</i></p>
+<a id="cccc"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">cccc</span></div><br>
+static <br>
+<b>cccc</b>: <a href="TestModule.A.html">A</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:myattribute}{:otherattribute 5, 6}<br>
+<p style="margin-left: 25px;"><i>The internal state.</i></p>
+<div>
+<h3>Functions</h3>
+</div>
+<a id="f"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f</span></div><br>
+static <br>
+function<br>
+<b><b>f</b></b>(r: real, x: int := 0): int<br>
+<p style="margin-left: 25px;"><i>Returns a constant. A special constant.</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> f(r, x) == 42<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> r, x<br>
+<a id="fif"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">fif</span></div><br>
+static <br>
+function<br>
+<b><b>fif</b></b>(nameonly z: <a href="TestModule.A.html">A</a>): <a href="TestModule.A.html">A</a><br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> z<br>
+<a id="lp"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">lp</span></div><br>
+ghost static <br>
+least predicate<br>
+<b><b>lp</b></b>(): bool<br>
+<p style="margin-left: 25px;"><i>A copredicate</i></p>
+<a id="p"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">p</span></div><br>
+static <br>
+predicate<br>
+<b><b>p</b></b>(): bool<br>
+<p style="margin-left: 25px;"><i>Always true. Every time.</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> p() == true<br>
+<a id="pf"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">pf</span></div><br>
+static <br>
+predicate<br>
+<b><b>pf</b></b>(): bool<br>
+<p style="margin-left: 25px;"><i>Always true. Every time.</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> pp(null, x := 1) == true<br>
+<a id="pp"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">pp</span></div><br>
+static <br>
+predicate<br>
+<b><b>pp</b></b>(older a: <a href="TestModule.A.html">A</a>, ghost nameonly x: int): bool<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> a, x<br>
+<a id="ppp"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ppp</span></div><br>
+static <br>
+predicate<br>
+<b><b>ppp</b></b>(s: seq&lt;int&gt;, ss: set&lt;<a href="TestModule.A.html">A</a>&gt;, mm: map&lt;set&lt;<a href="TestModule.A.html">A</a>&gt;,seq&lt;set&lt;<a href="TestModule.A.html">A</a>&gt;&gt;&gt;): bool<br>
+<p style="margin-left: 25px;"><i>Always true. Every time.</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> s, ss, mm<br>
+<a id="tf"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tf</span></div><br>
+ghost static <br>
+twostate function<br>
+<b><b>tf</b></b>(a: <a href="TestModule.A.html">A</a>, new b: <a href="TestModule.A.html">A</a>): int<br>
+<p style="margin-left: 25px;"><i>A two-state function</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> a, b<br>
+<div>
+<h3>Methods</h3>
+</div>
+<a id="bump"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">bump</span></div><br>
+static <br>
+method<br>
+<b><b>bump</b></b>(i: int) returns (j: int)<br>
+<p style="margin-left: 25px;"><i>increments input</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> i<br>
+<a id="ModifyA"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ModifyA</span></div><br>
+static <br>
+method<br>
+<b><b>ModifyA</b></b>(a: <a href="TestModule.A.html">A</a>)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>modifies</b> a, a`j<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> a<br>
+<a id="zero"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">zero</span></div><br>
+ghost static <br>
+method<br>
+<b><b>zero</b></b>() returns (z: int)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:iszero}<br>
+<p style="margin-left: 25px;"><i>Sets to zero. Absolute zero.</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> z == 0<br>
+<div>
+<h3>Lemmas</h3>
+</div>
+<a id="IsX"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">IsX</span></div><br>
+ghost static <br>
+lemma<br>
+<b><b>IsX</b></b>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:myattribute}<br>
+<p style="margin-left: 25px;"><i>always true</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> true<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> true<br>
+<a id="TS"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TS</span></div><br>
+ghost static <br>
+twostate lemma<br>
+<b><b>TS</b></b>()<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> true<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> true<br>
+
+</body>
+</html>

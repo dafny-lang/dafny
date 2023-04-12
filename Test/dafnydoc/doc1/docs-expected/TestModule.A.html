@@ -1,0 +1,159 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>class TestModule.A</title>
+  <link rel="icon" type="image/png" href="dafny-favicon.png">
+  <meta name="description" content="Documentation for Dafny code produced by dafnydoc">
+  <meta name="author" content="dafnydoc">
+</head>
+<style>
+body {
+  background-color: white;
+}
+
+h1 {
+  color: blue;
+  text-align: center;
+  background-color: #fceb6c
+}
+h2 {
+  color: blue;
+  text-align: left;
+  background-color: #fceb6c
+}
+h3 {
+  color: blue;
+  text-align: left;
+  background-color: #fefdcc
+}
+
+p {
+  font-size: 16px
+}
+</style>
+<div>
+<h1>class <a href="TestModule.html">TestModule</a>.A<font size="-1"> extends ...</font>&nbsp;&nbsp;&nbsp;&nbsp;<font size="-1"><a href="index.html">[table of contents]</a><a href="nameindex.html">[index]</a></font></h1>
+</div>
+<body>
+<i>Holds all the state.</i> <a href="#decl-detail">(more...)</a><br><br>
+Extends traits: <a href="TestModule.T2.html">T2</a> [Transitively: <a href="TestModule.T1.html">T1</a>&lt;<a href="TestModule.A.html">A</a>&gt;, <a href="TestModule.T3.html">T3</a>]<br>
+From file: TestDafnyDoc.dfy<br>
+<div>
+<h2>class summary</h2>
+</div>
+<div>
+<h3>Constructors</h3>
+</div>
+<b><a href="#A">A</a></b>()&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>default constructor</i><br>
+<b><a href="#A.A">A.A</a></b>(i: int)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Non-default constructor</i><br>
+<div>
+<h3>Constants
+</h3>
+</div><a href="#c"><b>c</b></a>: int &mdash; <i>The meaning of life.</i><br>
+<div>
+<h3>Mutable Fields
+</h3>
+</div><table>
+<tr><td><a href="#j"><b>j</b></a></td><td>:</td><td>int</td><td> &mdash; <i>level</i></td></tr>
+<tr><td><a href="#k"><b>k</b></a></td><td>:</td><td><a href="TestModule.D.html">D</a>&lt;int&gt;</td><td> &mdash; <i>options</i></td></tr>
+</table>
+<div>
+<h3>Functions</h3>
+</div>
+<b><a href="#f">f</a></b>&lt;Q&gt;(): bool<br>
+<b><a href="#ftr">ftr</a></b>(): bool&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <i>Implements T3.ftr</i><br>
+<div>
+<h3>Methods</h3>
+</div>
+<b><a href="#m">m</a></b>(x: int)<br>
+<div>
+<h3>Lemmas</h3>
+</div>
+<b><a href="#reveal_c">reveal_c</a></b>()<br>
+<div>
+<h3>Inherited Members</h3>
+</div>
+<table><tr><td>const field</td><td><a href="TestModule.html">TestModule</a>.<a href="TestModule.T1.html">T1</a>.<a href="TestModule.T1.html#one"><b>one</b></a></td></tr><tr><td>field</td><td><a href="TestModule.html">TestModule</a>.<a href="TestModule.T1.html">T1</a>.<a href="TestModule.T1.html#count"><b>count</b></a></td></tr><tr><td>predicate</td><td><a href="TestModule.html">TestModule</a>.<a href="TestModule.T3.html">T3</a>.<a href="TestModule.T3.html#ftz"><b>ftz</b></a></td></tr><tr><td>method</td><td><a href="TestModule.html">TestModule</a>.<a href="TestModule.T3.html">T3</a>.<a href="TestModule.T3.html#mmm"><b>mmm</b></a></td></tr></table>
+<a id="decl-detail"/>
+<div>
+<h2>class details</h2>
+</div>
+<i>Holds all the state. Every bit.</i>
+<br>
+<div>
+<h3>Constructors</h3>
+</div>
+<a id="A"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">A</span></div><br>
+constructor<br>
+<b><b>A</b></b>()<br>
+<p style="margin-left: 25px;"><i>default constructor</i></p>
+<a id="A.A"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">A.A</span></div><br>
+constructor<br>
+<b><b>A.A</b></b>(i: int)<br>
+<p style="margin-left: 25px;"><i>Non-default constructor</i></p>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> i<br>
+<div>
+<h3>Constants
+</h3>
+</div><a id="c"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">c</span></div><br>
+<b>c</b>: int := 42<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:opaque}<br>
+<p style="margin-left: 25px;"><i>The meaning of life.</i></p>
+<div>
+<h3>Mutable Fields
+</h3>
+</div><a id="j"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">j</span></div><br>
+<b>j</b>: int<br>
+<p style="margin-left: 25px;"><i>level</i></p>
+<a id="k"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">k</span></div><br>
+ghost <br>
+<b>k</b>: <a href="TestModule.D.html">D</a>&lt;int&gt;<br>
+<p style="margin-left: 25px;"><i>options</i></p>
+<div>
+<h3>Functions</h3>
+</div>
+<a id="f"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f</span></div><br>
+predicate<br>
+<b><b>f</b></b>&lt;Q&gt;(): bool<br>
+<br>
+<a id="ftr"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ftr</span></div><br>
+predicate<br>
+<b><b>ftr</b></b>(): bool<br>
+<p style="margin-left: 25px;"><i>Implements T3.ftr</i></p>
+<div>
+<h3>Methods</h3>
+</div>
+<a id="m"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">m</span></div><br>
+method<br>
+<b><b>m</b></b>(x: int)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> x > 0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>modifies</b> this, this`j<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> 0 < 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> x<br>
+<div>
+<h3>Lemmas</h3>
+</div>
+<a id="reveal_c"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">reveal_c</span></div><br>
+ghost <br>
+lemma<br>
+<b><b>reveal_c</b></b>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{:auto_generated}{:opaque_reveal}{:verify false}<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> c == 42<br>
+
+</body>
+</html>

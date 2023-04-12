@@ -1,0 +1,125 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Module TestModule.MInner in program TestDafnyDoc.dfy</title>
+  <link rel="icon" type="image/png" href="dafny-favicon.png">
+  <meta name="description" content="Documentation for Dafny code produced by dafnydoc">
+  <meta name="author" content="dafnydoc">
+</head>
+<style>
+body {
+  background-color: white;
+}
+
+h1 {
+  color: blue;
+  text-align: center;
+  background-color: #fceb6c
+}
+h2 {
+  color: blue;
+  text-align: left;
+  background-color: #fceb6c
+}
+h3 {
+  color: blue;
+  text-align: left;
+  background-color: #fefdcc
+}
+
+p {
+  font-size: 16px
+}
+</style>
+<div>
+<h1>module <a href="TestModule.html">TestModule</a>.MInner&nbsp;&nbsp;&nbsp;&nbsp;<font size="-1"><a href="index.html">[table of contents]</a><a href="nameindex.html">[index]</a></font></h1>
+</div>
+<body>
+<i>Hidden stuff</i><br><br>
+From file: TestDafnyDoc.dfy<br>
+<div>
+<h2>module summary</h2>
+</div>
+<div>
+<h3>Export sets</h3>
+</div>
+export MInner`<a href="#MInner+"><b>MInner</b></a> &mdash; <i>something</i><br>
+export MInner`<a href="#E1+"><b>E1</b></a><br>
+export MInner`<a href="#E2+"><b>E2</b></a> &mdash; <i>everything</i><br>
+export MInner`<a href="#E3+"><b>E3</b></a> &mdash; <i>An extending example</i><br>
+<div>
+<h3>Submodules</h3>
+</div>
+module <a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a>.<a href="TestModule.MInner.MII.html">MII</a><br>
+<div>
+<h3>Constants
+</h3>
+</div><a href="#ic"><b>ic</b></a>: int<br>
+<div>
+<h3>Functions</h3>
+</div>
+<b><a href="#f">f</a></b>(): int<br>
+<b><a href="#p">p</a></b>(): bool<br>
+
+<a id="decl-detail"/>
+<div>
+<h2>module details</h2>
+</div>
+<i>Hidden stuff</i>
+<br>
+<div>
+<h3>Export sets</h3>
+</div>
+<a id="MInner+"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">MInner</span></div><br>
+export MInner`<a href="#MInner+"><b>MInner</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;provides <a href="TestModule.MInner.MII.html#"><b>MII</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;reveals <a href="#p"><b>p</b></a><p style="margin-left: 25px;"><i>something</i></p>
+<br>
+<a id="E1+"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">E1</span></div><br>
+export MInner`<a href="#E1+"><b>E1</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;provides<br>
+&nbsp;&nbsp;&nbsp;&nbsp;reveals <a href="#ic"><b>ic</b></a><br>
+<a id="E2+"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">E2</span></div><br>
+export MInner`<a href="#E2+"><b>E2</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;provides <a href="TestModule.MInner.MII.html#"><b>MII</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;reveals * : <a href="#f"><b>f</b></a> <a href="#ic"><b>ic</b></a> <a href="#p"><b>p</b></a><p style="margin-left: 25px;"><i>everything</i></p>
+<br>
+<a id="E3+"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">E3</span></div><br>
+export MInner`<a href="#E3+"><b>E3</b></a> extends <a href="#E1+">E1</a>, <a href="#MInner+">MInner</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;provides <a href="TestModule.MInner.MII.html#"><b>MII</b></a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;reveals <a href="#f"><b>f</b></a> <a href="#ic"><b>ic</b></a> <a href="#p"><b>p</b></a><p style="margin-left: 25px;"><i>An extending example</i></p>
+<br>
+<div>
+<h3>Constants
+</h3>
+</div><a id="ic"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ic</span></div><br>
+static <br>
+<b>ic</b>: int := 0<br>
+<br>
+<div>
+<h3>Functions</h3>
+</div>
+<a id="f"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f</span></div><br>
+static <br>
+function<br>
+<b><b>f</b></b>(): int<br>
+<br>
+<a id="p"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">p</span></div><br>
+static <br>
+predicate<br>
+<b><b>p</b></b>(): bool<br>
+<br>
+
+</body>
+</html>

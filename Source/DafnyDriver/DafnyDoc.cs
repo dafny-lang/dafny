@@ -9,25 +9,20 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-/* Stuff todo:
+/* 
+TODO:
 
-- duplicate index entries for declarations with their own pages
-- import details should distinguish provides and reveals
-- not sure import is listing all names
-- details of an abstract import
+- translate markdown to html
+
+Future Improvements:
 - identify members from refinement parent; link to them
-
-- interpret markdown
-
-Improvements:
+- add details of abstract import
+- import details should distinguish provides and reveals
 - retain source layout of expressions
 - make a separate css file
 - add Dafny favicon
 - ability to link to declarations in other documentation sets
-
-Refactoring
-- possibly combine WriteModule and WriteDecl
-- replicated code for computing indexlink and contentlink
+- possibly refactor to combine WriteModule and WriteDecl
 
 Questions
 - option to maintain source ordering?
@@ -44,11 +39,9 @@ Questions
 - improvement to program name title?
 - make ghost things italics?
 - mark members that override declarations in traits?
-- should documentation show declared or inferred/resolved variance and type characterisstics
-
-
-
-
+- should documentation show declared or inferred/resolved variance and type characterisstics?
+- ok to have duplicate index entries for declarations with their own pages?
+- should export set names be listed with imported names?
 */
 
 class DafnyDoc {
@@ -469,26 +462,14 @@ class DafnyDoc {
         details.Append(Anchor(name)).Append(eol);
         details.Append(RuleWithText(imp.Name)).Append(eol);
         details.Append("import ").Append(Bold(imp.Opened ? "IS " : "IS NOT ")).Append("opened").Append(br).Append(eol);
-        details.Append("Names imported: ");
+        details.Append("Names imported:");
         var list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
         list.Sort((a, b) => a.Name.CompareTo(b.Name));
-        foreach (var d in list) {
-          string link;
-          if (HasOwnPage(d)) {
-            link = Link(d.FullDafnyName, d.Name, d.Name);
-          } else {
-            string fullname = d.FullDafnyName;
-            var k = fullname.LastIndexOf('.');
-            if (k < 0) {
-              // If there is no parent segment, this should be its own page
-              link = Link(d.FullDafnyName, d.Name, d.Name);
-            } else {
-              link = Link(fullname.Substring(0, k), d.Name, d.Name);
-            }
-          }
-          details.Append(" ").Append(link);
-        }
-        details.Append(br).Append(eol);
+        var list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is ClassDecl && (d as ClassDecl).IsDefaultClass)).ToList();
+        list.Sort((a, b) => a.Name.CompareTo(b.Name));
+        string result = String.Join("", list.Select(d => " " + ImportLink(d)));
+        result += String.Join("", list2.Select(d => " " + ImportLink(d)));
+        details.Append(result).Append(br).Append(eol);
       }
       foreach (var imp in absimports) {
         var name = imp.Name;
@@ -496,6 +477,39 @@ class DafnyDoc {
         summaries.Append($"import {name} : {QualifiedNameWithLinks(target)}").Append(eol);
       }
     }
+  }
+
+  public string ImportLink(MemberDecl d) {
+    string link;
+    if (HasOwnPage(d)) {
+      link = Link(d.FullDafnyName, d.Name, d.Name);
+    } else {
+      string fullname = d.FullDafnyName;
+      var k = fullname.LastIndexOf('.');
+      if (k < 0) {
+        // If there is no parent segment, this should be its own page
+        link = Link(d.FullDafnyName, d.Name, d.Name);
+      } else {
+        link = Link(fullname.Substring(0, k), d.Name, d.Name);
+      }
+    }
+    return link;
+  }
+  public string ImportLink(TopLevelDecl d) {
+    string link;
+    if (HasOwnPage(d)) {
+      link = Link(d.FullDafnyName, d.Name, d.Name);
+    } else {
+      string fullname = d.FullDafnyName;
+      var k = fullname.LastIndexOf('.');
+      if (k < 0) {
+        // If there is no parent segment, this should be its own page
+        link = Link(d.FullDafnyName, d.Name, d.Name);
+      } else {
+        link = Link(fullname.Substring(0, k), d.Name, d.Name);
+      }
+    }
+    return link;
   }
 
   /** Append the summary information about nested module declarations to the string builders;
@@ -903,7 +917,6 @@ class DafnyDoc {
     file.Write($"Dafny Documentation{ProgramHeader()}");
     file.Write(head2);
     file.Write(style);
-    var indexlink = Link("nameindex", "[index]");
 
     file.Write($"<div>\n<h1>Modules{ProgramHeader()}{space4}{Smaller(indexlink)}</h1>\n</div>");
     file.Write(bodystart);
@@ -1274,8 +1287,8 @@ class DafnyDoc {
 
   public static string Mdash = " &mdash; ";
 
-  static string contentslink = "<a href=\"index.html\">[table of contents]</a>";
-  static string indexlink = "<a href=\"nameindex.html\">[index]</a>";
+  static string contentslink = Link("index", "[table of contents]");
+  static string indexlink = Link("nameindex", "[index]");
 
 
   static string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
