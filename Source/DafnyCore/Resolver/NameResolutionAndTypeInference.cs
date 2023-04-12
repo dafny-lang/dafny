@@ -4674,8 +4674,8 @@ namespace Microsoft.Dafny {
       Contract.Assume(AllTypeConstraints.Count == 0);
 
       // Formal parameters have three ways to indicate how they are to be passed in:
-      //   * nameonly: the only way to give a specific value is to name the parameter
-      //   * positional only: these are nameless arguments (which are allowed only for datatype constructor parameters)
+      //   * nameonly: the only way to give a specific argument value is to name the parameter
+      //   * positional only: these are nameless parameters (which are allowed only for datatype constructor parameters)
       //   * either positional or by name: this is the most common parameter
       // A parameter is either required or optional:
       //   * required: a caller has to supply an argument
