@@ -60,7 +60,7 @@ static class CommandRegistry {
     dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
 
-    foreach (var option in Commands.SelectMany(c => c.Options)) {
+    foreach (var option in AllOptions) {
       if (!allowHidden) {
         option.IsHidden = false;
       }
@@ -178,12 +178,18 @@ static class CommandRegistry {
       if (projectFile == null) {
         return false;
       }
+      projectFile.Validate(AllOptions);
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
       dafnyOptions.AddFile(singleFile.FullName);
     }
     return true;
+  }
+
+  private static IEnumerable<Option> AllOptions
+  {
+    get { return Commands.SelectMany(c => c.Options); }
   }
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {

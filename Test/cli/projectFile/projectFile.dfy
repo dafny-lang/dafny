@@ -10,6 +10,9 @@
 // Project files may not contain unknown properties
 // RUN: ! %baredafny resolve --use-basename-for-filename "%S/broken/dafny.toml"
 
+// Warn if file contains options that don't exist
+// RUN: %baredafny resolve --use-basename-for-filename "%S/broken/invalidOption.toml" >> "%t"
+
 // Project files must be files on disk.
 // RUN: ! %baredafny resolve --use-basename-for-filename "%S/doesNotExist/dafny.toml"
 

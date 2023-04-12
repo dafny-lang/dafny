@@ -61,6 +61,13 @@ public class ProjectFile {
     }
   }
 
+  public void Validate(IEnumerable<Option> possibleOptions) {
+    var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
+    foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
+      Console.WriteLine($"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
+    }
+  }
+
   public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
     if (!Options.TryGetValue(option.Name, out value)) {
       return false;
