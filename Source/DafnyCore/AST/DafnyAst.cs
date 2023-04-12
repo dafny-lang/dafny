@@ -195,6 +195,16 @@ namespace Microsoft.Dafny {
       return attrs.AsEnumerable().Any(aa => aa.Name == nm);
     }
 
+    public override string ToString() {
+      string result = Prev?.ToString() + "{:" + Name;
+      if (Args == null || Args.Count() == 0) {
+        return result + "}";
+      } else {
+        var exprs = String.Join(", ", Args.Select(e => e.ToString()));
+        return result + " " + exprs + "}";
+      }
+    }
+
     /// <summary>
     /// Returns first occurrence of an attribute named <c>nm</c>, or <c>null</c> if there is no such
     /// attribute.

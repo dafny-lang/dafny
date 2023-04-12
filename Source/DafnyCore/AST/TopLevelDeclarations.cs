@@ -201,6 +201,16 @@ public class TypeParameter : TopLevelDecl {
   /// Contravariant            -      - contra-variant
   /// </summary>
   public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
+  public static string VarianceString(TPVarianceSyntax varianceSyntax) {
+    switch (varianceSyntax) {
+      case TPVarianceSyntax.NonVariant_Strict: return "";
+      case TPVarianceSyntax.NonVariant_Permissive: return "!";
+      case TPVarianceSyntax.Covariant_Strict: return "+";
+      case TPVarianceSyntax.Covariant_Permissive: return "*";
+      case TPVarianceSyntax.Contravariance: return "-";
+    }
+    return ""; // Should not happen, but compiler complains
+  }
   public enum TPVariance { Co, Non, Contra }
   public static TPVariance Negate(TPVariance v) {
     switch (v) {
@@ -275,6 +285,26 @@ public class TypeParameter : TopLevelDecl {
       AutoInit = autoInit;
       ContainsNoReferenceTypes = containsNoReferenceTypes;
     }
+    public override string ToString() {
+      string result = "";
+      if (EqualitySupport == EqualitySupportValue.Required) {
+        result += ",==";
+      }
+      if (HasCompiledValue) {
+        result += ",0";
+      }
+      if (AutoInit == Type.AutoInitInfo.Nonempty) {
+        result += ",00";
+      }
+      if (ContainsNoReferenceTypes) {
+        result += ",!new";
+      }
+      if (result.Length != 0) {
+        result = "(" + result.Substring(1) + ")";
+      }
+      return result;
+    }
+
   }
   public TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {

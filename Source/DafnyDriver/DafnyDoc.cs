@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Text;
 
+using static Microsoft.Dafny.DafnyDocHtml;
+
 namespace Microsoft.Dafny;
 
 /* 
@@ -163,13 +165,11 @@ class DafnyDoc {
 
     string filename = Outputdir + "/" + fullName + ".html";
     using StreamWriter file = new(filename);
-    file.Write(head1);
-    file.Write($"Module {fullName} in program {DafnyProgram.Name}");
-    file.Write(head2);
+    file.Write(HtmlStart($"Module {fullName} in program {DafnyProgram.Name}"));
     file.Write(style);
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
-    file.WriteLine($"<div>\n<h1>{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
-    file.Write(bodystart);
+    file.WriteLine(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}"));
+    file.Write(BodyStart());
 
     var docstring = Docstring(module);
     if (!String.IsNullOrEmpty(docstring)) {
@@ -180,7 +180,7 @@ class DafnyDoc {
     if (moduleDef.RefinementQId != null) {
       file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName) + br);
     }
-    var attributes = Attributes(module.Attributes);
+    var attributes = module.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
       file.WriteLine("Attributes: " + attributes + br);
     }
@@ -218,7 +218,7 @@ class DafnyDoc {
       file.WriteLine("Attributes: " + attributes + br);
     }
     file.WriteLine(details.ToString());
-    file.Write(foot);
+    file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
     var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
     foreach (var c in declsWithMembers) {
@@ -235,17 +235,15 @@ class DafnyDoc {
 
     string filename = Outputdir + "/" + fullName + ".html";
     using StreamWriter file = new(filename);
-    file.Write(head1);
-    file.Write($"{decl.WhatKind} {fullName}");
-    file.Write(head2);
+    file.Write(HtmlStart($"{decl.WhatKind} {fullName}"));
     file.Write(style);
     var extends = "";
     if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
       extends = Smaller(" extends ...");
     }
     var typeparams = TypeFormals(decl.TypeArgs);
-    file.WriteLine($"<div>\n<h1>{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}</h1>\n</div>");
-    file.Write(bodystart);
+    file.WriteLine(Heading1($"{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}"));
+    file.Write(BodyStart());
 
     var docstring = Docstring(decl as IHasDocstring);
     if (!String.IsNullOrEmpty(docstring)) {
@@ -288,7 +286,7 @@ class DafnyDoc {
       file.Write(eol);
     }
     // Note: classes and traits do not have modifiers
-    var attributes = Attributes(decl.Attributes);
+    var attributes = decl.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
       file.WriteLine("Attributes: " + attributes + br);
     }
@@ -316,7 +314,7 @@ class DafnyDoc {
       var ss = sb.ToString();
       if (ss != "") {
         summaries.Append(Heading3("Inherited Members")).Append(eol);
-        summaries.Append(BeginTable()).Append(ss).Append(EndTable());
+        summaries.Append(TableStart()).Append(ss).Append(TableEnd());
       }
     }
 
@@ -333,7 +331,7 @@ class DafnyDoc {
       file.WriteLine("Attributes: " + attributes + br);
     }
     file.WriteLine(details.ToString());
-    file.Write(foot);
+    file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
 
   }
@@ -542,7 +540,7 @@ class DafnyDoc {
     if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass)) {
       summaries.Append(Heading3("Types")).Append(eol);
       details.Append(Heading3("Types")).Append(eol);
-      summaries.Append(BeginTable());
+      summaries.Append(TableStart());
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
           continue;
@@ -556,7 +554,6 @@ class DafnyDoc {
         }
         AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
-        var attributes = Attributes(t.Attributes);
         // Note: Types do not have modifiers (at least at present)
         var modifiers = "";
         var typeparams = TypeFormals(t.TypeArgs);
@@ -571,8 +568,7 @@ class DafnyDoc {
         if (t is ClassDecl) { // Class, Trait
           // nothing more here
         } else if (t is SubsetTypeDecl ts) {
-          var chars = ts.Characteristics;
-          details.Append(TPChars(chars));
+          details.Append(ts.Characteristics.ToString());
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
           if (ts.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
             details.Append(" witness *");
@@ -580,8 +576,7 @@ class DafnyDoc {
             details.Append(" witness ").Append(ts.Witness.ToString());
           }
         } else if (t is TypeSynonymDecl tsy) {
-          var chars = tsy.Characteristics;
-          details.Append(TPChars(chars));
+          details.Append(tsy.Characteristics.ToString());
           details.Append(" = ").Append(TypeLink(tsy.Rhs));
         } else if (t is NewtypeDecl tnt) {
           if (tnt.Var != null) {
@@ -595,19 +590,18 @@ class DafnyDoc {
             details.Append(" witness ").Append(tnt.Witness.ToString());
           }
         } else if (t is OpaqueTypeDecl otd) {
-          var chars = otd.Characteristics;
-          details.Append(TPChars(chars));
+          details.Append(otd.Characteristics.ToString());
         } else if (t is DatatypeDecl) {
           // datatype constructors are written out several lines down
         } else {
           Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
         }
         if (HasOwnPage(t)) {
-          details.Append(Mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
+          details.Append(mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
         }
         if (t is DatatypeDecl dt) {
           details.Append(br).Append(eol);
-          details.Append(BeginTable());
+          details.Append(TableStart());
           foreach (var ctor in dt.Ctors) {
             string sig = ctor.Name;
             if (ctor.Formals.Count > 0) {
@@ -622,10 +616,11 @@ class DafnyDoc {
             } else {
               info = IndentedHtml(ds, true);
             }
-            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : Mdash, info));
+            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : mdash, info));
           }
-          details.Append(EndTable());
+          details.Append(TableEnd());
         }
+        var attributes = t.Attributes?.ToString();
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(br).Append(eol);
           details.Append(space4).Append(attributes);
@@ -634,7 +629,7 @@ class DafnyDoc {
           details.Append(IndentedHtml(docstring));
         }
       }
-      summaries.Append(EndTable());
+      summaries.Append(TableEnd());
     }
   }
 
@@ -650,7 +645,6 @@ class DafnyDoc {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
         var docstring = Docstring(c);
         var modifiers = Modifiers(c);
-        var attributes = Attributes(c.Attributes);
         summaries.Append(LinkToAnchor(c.Name, Bold(c.Name))).Append(": ").Append(TypeLink(c.Type));
 
         if (!String.IsNullOrEmpty(docstring)) {
@@ -668,32 +662,13 @@ class DafnyDoc {
           details.Append(" := ").Append(c.Rhs.ToString());
         }
         details.Append(br).Append(eol);
+        var attributes = c.Attributes?.ToString();
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
         details.Append(IndentedHtml(docstring));
       }
     }
-  }
-
-  public string TPChars(TypeParameter.TypeParameterCharacteristics tpchars) {
-    string result = "";
-    if (tpchars.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
-      result += ",==";
-    }
-    if (tpchars.HasCompiledValue) {
-      result += ",0";
-    }
-    if (tpchars.AutoInit == Type.AutoInitInfo.Nonempty) {
-      result += ",00";
-    }
-    if (tpchars.ContainsNoReferenceTypes) {
-      result += ",!new";
-    }
-    if (result.Length != 0) {
-      result = "(" + result.Substring(1) + ")";
-    }
-    return result;
   }
 
   /** Append the summary and detail information about field declarations to the string builders */
@@ -704,26 +679,26 @@ class DafnyDoc {
       summaries.Append(Heading3("Mutable Fields\n"));
       details.Append(Heading3("Mutable Fields\n"));
 
-      summaries.Append(BeginTable()).Append(eol);
+      summaries.Append(TableStart()).Append(eol);
       foreach (var c in fields) {
         AddToIndex(c.Name, decl.FullDafnyName, "var");
 
         summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), DashShortDocstring(c))).Append(eol);
 
         var modifiers = Modifiers(c);
-        var attrs = Attributes(c.Attributes);
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
         details.Append(Bold(c.Name)).Append(": ").Append(TypeLink(c.Type)).Append(br).Append(eol);
-        if (!String.IsNullOrEmpty(attrs)) {
-          details.Append(space4).Append(attrs).Append(br).Append(eol);
+        var attributes = c.Attributes?.ToString();
+        if (!String.IsNullOrEmpty(attributes)) {
+          details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
         details.Append(IndentedHtml(Docstring(c)));
       }
-      summaries.Append(EndTable()).Append(eol);
+      summaries.Append(TableEnd()).Append(eol);
     }
   }
 
@@ -801,7 +776,6 @@ class DafnyDoc {
       var ms = MethodSig(m);
       var docstring = Docstring(md);
       var modifiers = Modifiers(m);
-      var attributes = Attributes(m.Attributes);
       var name = m.Name;
       if (m is Constructor) {
         if (name == "_ctor") {
@@ -833,6 +807,7 @@ class DafnyDoc {
       mss = ReplaceFirst(ms, m.Name, Bold(name));
       details.Append(mss).Append(br).Append(eol);
 
+      var attributes = m.Attributes?.ToString();
       if (!String.IsNullOrEmpty(attributes)) {
         details.Append(space4).Append(attributes).Append(br).Append(eol);
       }
@@ -858,7 +833,7 @@ class DafnyDoc {
 
   public string IndentedHtml(string docstring, bool nothingIfNull) {
     if (!String.IsNullOrEmpty(docstring)) {
-      return indent + ToHtml(docstring) + unindent + eol;
+      return Indent(ToHtml(docstring)) + eol;
     } else if (!nothingIfNull) {
       return br + eol;
     } else {
@@ -914,16 +889,13 @@ class DafnyDoc {
 
   public void WriteTOC(List<LiteralModuleDecl> modules) {
     modules.Sort((k, m) => k.FullDafnyName.CompareTo(m.FullDafnyName));
-
     string filename = Outputdir + "/index.html";
     using StreamWriter file = new(filename);
-    file.Write(head1);
-    file.Write($"Dafny Documentation{ProgramHeader()}");
-    file.Write(head2);
+    file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
     file.Write(style);
 
-    file.Write($"<div>\n<h1>Modules{ProgramHeader()}{space4}{Smaller(indexlink)}</h1>\n</div>");
-    file.Write(bodystart);
+    file.Write(Heading1($"Modules{ProgramHeader()}{space4}{Smaller(indexlink)}"));
+    file.Write(BodyStart());
     file.WriteLine("<ul>");
     int currentIndent = 0;
     foreach (var module in modules) {
@@ -945,13 +917,9 @@ class DafnyDoc {
       }
     }
     file.WriteLine("</ul>");
-    file.Write(foot);
+    file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
-
   }
-
-  public static readonly string rootName = "_"; // Name of file for root module
-  public static readonly string rootNLName = " (root module)"; // Name of root module to display
 
   public string ProgramHeader() {
     var programName = Options.Get(DocCommand.DocProgramNameOption);
@@ -1019,7 +987,7 @@ class DafnyDoc {
   public string DashShortDocstring(IHasDocstring d) {
     var docstring = Docstring(d);
     if (!String.IsNullOrEmpty(docstring)) {
-      return Mdash + ShortAndMore(d, (d as Declaration).Name);
+      return mdash + ShortAndMore(d, (d as Declaration).Name);
     }
     return "";
   }
@@ -1028,7 +996,7 @@ class DafnyDoc {
   public string DashShortDocstringNoMore(IHasDocstring d) {
     var docstring = ShortDocstring(d);
     if (!String.IsNullOrEmpty(docstring)) {
-      return Mdash + ToHtml(docstring);
+      return mdash + ToHtml(docstring);
     }
     return "";
   }
@@ -1082,23 +1050,6 @@ class DafnyDoc {
     return text.Substring(0, k) + replacement + text.Substring(k + old.Length);
   }
 
-  public static string Heading2(string text) {
-    return "<div>\n<h2>" + text + "</h2>\n</div>";
-  }
-
-  public static string Heading3(string text) {
-    return "<div>\n<h3>" + text + "</h3>\n</div>";
-  }
-
-  // Used in an h1 heading, but is a lot smaller
-  public static string Smaller(string text) {
-    return $"<font size=\"-1\">{text}</font>";
-  }
-
-  public static string Bold(string text) {
-    return $"<b>{text}</b>";
-  }
-
   public static string QualifiedNameWithLinks(string fullName, bool alsoLast = true) {
     int hash = fullName.IndexOf('#');
     string tail = null;
@@ -1129,62 +1080,6 @@ class DafnyDoc {
     return output;
   }
 
-  public static string Link(string fullName, string text) {
-    return $"<a href=\"{fullName}.html\">{text}</a>";
-  }
-
-  public static string Link(string fullName, string inpage, string text) {
-    if (fullName == null) {
-      return $"<a href=\"#{inpage}\">{text}</a>";
-    } else {
-      return $"<a href=\"{fullName}.html#{inpage}\">{text}</a>";
-    }
-  }
-
-  public string BeginTable() {
-    return "<table>";
-  }
-
-  public string Row() {
-    return $"<tr></tr>";
-  }
-
-  public string Row(string s1, string s2) {
-    return $"<tr><td>{s1}</td><td>{s2}</td></tr>";
-  }
-
-  public string Row(string s1, string s2, string s3) {
-    return $"<tr><td>{s1}</td><td>{s2}</td><td>{s3}</td></tr>";
-  }
-
-  public string Row(string s1, string s2, string s3, string s4) {
-    return $"<tr><td>{s1}</td><td>{s2}</td><td>{s3}</td><td>{s4}</td></tr>";
-  }
-
-  public string Row(string s1, string s2, string s3, string s4, string s5) {
-    return $"<tr><td>{s1}</td><td>{s2}</td><td>{s3}</td><td>{s4}</td><td>{s5}</td></tr>";
-  }
-
-  public string Row(string s1, string s2, string s3, string s4, string s5, string s6) {
-    return $"<tr><td>{s1}</td><td>{s2}</td><td>{s3}</td><td>{s4}</td><td>{s5}</td><td>{s6}</td></tr>";
-  }
-
-  public String EndTable() {
-    return "</table>";
-  }
-
-  public String Anchor(string name) {
-    return $"<a id=\"{name}\"/>";
-  }
-
-  public String LinkToAnchor(string name, string text) {
-    return $"<a href=\"#{name}\">{text}</a>";
-  }
-
-  public String RuleWithText(String text) {
-    return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
-  }
-
   public string Modifiers(MemberDecl d) {
     string result = "";
     if (d.IsGhost) {
@@ -1199,34 +1094,9 @@ class DafnyDoc {
     return result;
   }
 
-  public string Attributes(Attributes attribute) {
-    if (attribute == null) {
-      return "";
-    } else {
-      string result = Attributes(attribute.Prev) + "{:" + attribute.Name;
-      if (attribute.Args == null || attribute.Args.Count() == 0) {
-        return result + "}";
-      } else {
-        var exprs = String.Join(", ", attribute.Args.Select(e => e.ToString()));
-        return result + " " + exprs + "}";
-      }
-    }
-  }
-
   public string TypeFormals(List<TypeParameter> args) {
     return (args.Count == 0) ? "" :
-      "&lt;" + String.Join(",", args.Select(a => TPVariance(a) + a.ToString() + TPChars(a.Characteristics))) + "&gt;";
-  }
-
-  public string TPVariance(TypeParameter t) {
-    switch (t.VarianceSyntax) {
-      case TypeParameter.TPVarianceSyntax.NonVariant_Strict: return "";
-      case TypeParameter.TPVarianceSyntax.NonVariant_Permissive: return "!";
-      case TypeParameter.TPVarianceSyntax.Covariant_Strict: return "+";
-      case TypeParameter.TPVarianceSyntax.Covariant_Permissive: return "*";
-      case TypeParameter.TPVarianceSyntax.Contravariance: return "-";
-    }
-    return ""; // Should not happen, but compiler complains
+      "&lt;" + String.Join(",", args.Select(a => TypeParameter.VarianceString(a.VarianceSyntax) + a + a.Characteristics)) + "&gt;";
   }
 
   public string TypeActualParameters(List<Type> args) {
@@ -1260,12 +1130,10 @@ class DafnyDoc {
 
     string filename = Outputdir + "/nameindex.html";
     using StreamWriter file = new(filename);
-    file.Write(head1);
-    file.Write($"Index for program {DafnyProgram.Name}");
-    file.Write(head2);
+    file.Write(HtmlStart($"Index for program {DafnyProgram.Name}"));
     file.Write(style);
-    file.Write($"<div>\n<h1>Index{ProgramHeader()}{space4}{Smaller(contentslink)}</h1>\n</div>");
-    file.Write(bodystart);
+    file.Write(Heading1($"Index{ProgramHeader()}{space4}{Smaller(contentslink)}"));
+    file.Write(BodyStart());
     foreach (var key in keys) {
       var k = key.IndexOf(' ');
       var value = nameIndex[key]; // Already rewritten as a bunch of links
@@ -1281,82 +1149,16 @@ class DafnyDoc {
         var link = value.Substring(0, hash);
         file.Write($"<a href=\"{owner}.html#{keyn}\">{keyn}</a>");
       }
-      file.WriteLine(Mdash + value + br);
+      file.WriteLine(mdash + value + br);
     }
-    file.Write(foot);
+    file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }
 
   public static string DefaultOutputDir = "./docs";
-
-  static string eol = "\n";
-
-  static string br = "<br>";
-
-  public static string Mdash = " &mdash; ";
+  public static readonly string rootName = "_"; // Name of file for root module
+  public static readonly string rootNLName = " (root module)"; // Name of root module to display
 
   static string contentslink = Link("index", "[table of contents]");
   static string indexlink = Link("nameindex", "[index]");
-
-
-  static string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
-
-  static string indent = "<p style=\"margin-left: 25px;\">";
-  static string unindent = "</p>";
-  static string head1 =
-  @"<!doctype html>
-
-<html lang=""en"">
-<head>
-  <meta charset=""utf-8"">
-  <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-
-  <title>";
-
-  static string head2 =
-  @"</title>
-  <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
-  <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
-  <meta name=""author"" content=""dafnydoc"">
-</head>
-";
-
-  static string style =
-  @"<style>
-body {
-  background-color: white;
 }
-
-h1 {
-  color: blue;
-  text-align: center;
-  background-color: #fceb6c
-}
-h2 {
-  color: blue;
-  text-align: left;
-  background-color: #fceb6c
-}
-h3 {
-  color: blue;
-  text-align: left;
-  background-color: #fefdcc
-}
-
-p {
-  font-size: 16px
-}
-</style>
-";
-
-  static string bodystart =
-  @"<body>
-";
-
-  public static string foot =
-  @"</body>
-</html>
-";
-
-}
-
