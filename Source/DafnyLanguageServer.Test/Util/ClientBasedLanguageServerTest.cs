@@ -16,13 +16,21 @@ using Xunit;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsyncLifetime {
   protected ILanguageClient client;
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   protected DiagnosticsReceiver diagnosticsReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
+
+  private const int MaxRequestExecutionTimeMs = 180_000;
+
+  // We do not use the LanguageServerTestBase.cancellationToken here because it has a timeout.
+  // Since these tests are slow, we do not use the timeout here.
+  private CancellationTokenSource cancellationSource;
+
+  protected CancellationToken CancellationTokenWithHighTimeout => cancellationSource.Token;
 
   public async Task<NamedVerifiableStatus> WaitForStatus(Range nameRange, PublishedVerificationStatus statusToFind,
     CancellationToken cancellationToken) {
@@ -68,6 +76,11 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected virtual async Task SetUp(Action<DafnyOptions> modifyOptions) {
+
+    // We use a custom cancellation token with a higher timeout to clearly identify where the request got stuck.
+    cancellationSource = new();
+    cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
+
     diagnosticsReceiver = new();
     verificationStatusReceiver = new();
     ghostnessReceiver = new();
@@ -161,8 +174,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
-    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics;
-    Assert.Equal(0, resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error));
+    var resolutionDiagnostics = (await Documents.GetResolvedDocumentAsync(documentItem))!.Diagnostics.ToList();
+    var resolutionErrors = resolutionDiagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
+    if (0 != resolutionErrors) {
+      await Console.Out.WriteAsync(string.Join("\n", resolutionDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(d => d.ToString())));
+      Assert.Equal(0, resolutionErrors);
+    }
   }
 
   public async Task<PublishedVerificationStatus> PopNextStatus() {

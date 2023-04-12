@@ -101,6 +101,9 @@ public class Compilation {
 
   private async Task<DocumentAfterTranslation> TranslateAsync() {
     var parsedCompilation = await ResolvedDocument;
+    if (!options.Verify) {
+      throw new OperationCanceledException();
+    }
     if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
       throw new OperationCanceledException();
     }
@@ -164,12 +167,6 @@ public class Compilation {
     }
     translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
       verificationTasks.Select(t => t.Implementation).ToArray());
-
-    var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
-
-    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
-      implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
-    cancellationToken.Register(() => subscription.Dispose());
     return translated;
   }
 
@@ -197,6 +194,7 @@ public class Compilation {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
+          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
@@ -260,6 +258,11 @@ public class Compilation {
       document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
     }
 
+    if (boogieStatus is BatchCompleted batchCompleted) {
+      document.GutterProgressReporter.ReportAssertionBatchResult(
+        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
+    }
+
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
@@ -315,6 +318,10 @@ public class Compilation {
         return PublishedVerificationStatus.Running;
       case Completed completed:
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
+          ? PublishedVerificationStatus.Correct
+          : PublishedVerificationStatus.Error;
+      case BatchCompleted batchCompleted:
+        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
       default:

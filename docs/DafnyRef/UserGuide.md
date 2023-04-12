@@ -128,6 +128,7 @@ the command-name must be the first command-line argument.
 The command-line `dafny --help` or `dafny -h` lists all the available commands.
 
 The command-line `dafny <command> --help` (or `-h` or `-?`) gives help information for that particular \<command\>, including the list of options.
+Some options for a particular command are intended only for internal tool development; those are shown using the `--help-internal` option instead of `--help`.
 
 Also, the command-style command-line has modernized the syntax of options; they are now POSIX-compliant.
 Like many other tools, options now typically begin with a double hyphen, 
@@ -370,6 +371,49 @@ The command emits exit codes of
 
 It also takes the `--verbose` option, which then gives information about the files being formatted.
 
+The `dafny audit` command currently reports the following:
+
+* Any declaration marked with the `{:axiom}` attribute.
+This is typically used to mark that a lemma with no body (and is therefore assumed to always be true) is intended as an axiom.
+The key purpose of the `audit` command is to ensure that all assumptions are intentional and acknowledged.
+To improve assurance, however, try to provide a proof.
+
+* Any declaration marked with the `{:verify false}` attribute, which tells the verifier to skip verifying this declaration.
+Removing the attribute and providing a proof will improve assurance.
+
+* Any declaration marked with the `{:extern}` attribute that has at least one `requires` or `ensures` clause.
+If code implemented externally, and called from Dafny, has an `ensures` clause, Dafny assumes that it satisfies that clause.
+Since Dafny cannot prove properties about code written in other languages,
+adding tests to provide evidence that any `ensures` clauses do hold can improve assurance.
+The same considerations apply to `requires` clauses on Dafny code intended to be called from external code.
+
+* Any declaration marked with the `{:concurrent}` attribute.
+This is intended to indicate that the code is safe for use in a concurrent setting, but Dafny currently cannot prove that form of safety.
+The [addition of `reads` clauses to methods](https://github.com/dafny-lang/rfcs/pull/6) will be a step toward being able to prove safety in this case,
+but until it exists, careful inspection and testing are appropriate.
+
+* Any definition with an `assume` statement in its body.
+To improve assurance, attempt to convert it to an `assert` statement and prove that it holds.
+Such a definition will not be compilable unless the statement is also marked with `{:axiom}`.
+Alternatively, converting it to an `expect` statement will cause it to be checked at runtime.
+
+* Any method marked with `decreases *`.
+Such a method may not terminate.
+Although this cannot cause an unsound proof, in the logic of Dafny,
+it's generally important that any non-termination be intentional.
+
+* Any `forall` statement without a body.
+This is equivalent to an assumption of its conclusion.
+To improve assurance, provide a body that proves the conclusion.
+
+* Any loop without a body.
+This is equivalent to an assumption of any loop invariants in the code after the loop.
+To improve assurance, provide a body that establishes any stated invariants.
+
+* Any declaration with no body and at least one `ensures` clause.
+Any code that calls this declaration will assume that all `ensures` clauses are true after it returns.
+To improve assurance, provide a body that proves that any `ensures` clauses hold.
+
 #### 13.5.1.9. `dafny format` {#sec-dafny-format}
 
 Dafny supports a formatter, which for now only changes the indentation of lines in a Dafny file, so that it conforms
@@ -390,11 +434,16 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This _experimental_ command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
-There are currently no other options specific to the `dafny test` command.
+`dafny test` also accepts these options:
+
+- `-spill-translation` - (default disabled) when enabled the compilation artifacts are retained
+- `--output` - gives the folder and filename root for compilation artifacts
+- `--methods-to-test` - the value is a (.NET) regular expression that is matched against the fully
+  qualified name of the method; only those methods that match are tested
 
 The order in which the tests are run is not specified.
 
@@ -430,6 +479,17 @@ M.q: 42
 PASSED
 A.t: T
 PASSED
+m: mm
+Hi!
+PASSED
+```
+
+and this command-line
+```bash
+dafny test --no-verify --methods-to-test='m' t.dfy
+```
+produces this output text:
+```text
 m: mm
 Hi!
 PASSED

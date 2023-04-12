@@ -16,29 +16,29 @@ Refinement.dfy(264,7): Warning: the ... refinement feature in statements is depr
 Refinement.dfy(269,7): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(276,7): Warning: the ... refinement feature in statements is deprecated
 Refinement.dfy(233,4): Warning: note, this loop has no body (loop frame: i)
-Refinement.dfy(15,4): Error: A postcondition might not hold on this return path.
-Refinement.dfy(14,16): Related location: This is the postcondition that might not hold.
-Refinement.dfy[B](15,4): Error: A postcondition might not hold on this return path.
-Refinement.dfy(33,19): Related location: This is the postcondition that might not hold.
+Refinement.dfy(15,4): Error: a postcondition could not be proved on this return path
+Refinement.dfy(14,16): Related location: this is the postcondition that could not be proved
+Refinement.dfy[B](15,4): Error: a postcondition could not be proved on this return path
+Refinement.dfy(33,19): Related location: this is the postcondition that could not be proved
 Refinement.dfy(69,15): Error: assertion might not hold
 Refinement.dfy(80,16): Error: assertion might not hold
-Refinement.dfy(99,17): Error: A postcondition might not hold on this return path.
-Refinement.dfy(78,14): Related location: This is the postcondition that might not hold.
-Refinement.dfy(102,2): Error: A postcondition might not hold on this return path.
-Refinement.dfy(83,14): Related location: This is the postcondition that might not hold.
+Refinement.dfy(99,17): Error: a postcondition could not be proved on this return path
+Refinement.dfy(78,14): Related location: this is the postcondition that could not be proved
+Refinement.dfy(102,2): Error: a postcondition could not be proved on this return path
+Refinement.dfy(83,14): Related location: this is the postcondition that could not be proved
 Refinement.dfy(198,6): Error: assertion might not hold
 Refinement.dfy[IncorrectConcrete](122,18): Related location
 Refinement.dfy(204,6): Error: assertion might not hold
 Refinement.dfy[IncorrectConcrete](131,18): Related location
 Refinement.dfy(209,6): Error: assertion might not hold
 Refinement.dfy[IncorrectConcrete](137,23): Related location
-Refinement.dfy(253,6): Error: A postcondition might not hold on this return path.
-Refinement.dfy[Modify1](223,19): Related location: This is the postcondition that might not hold.
-Refinement.dfy(261,6): Error: A postcondition might not hold on this return path.
-Refinement.dfy[Modify1](230,14): Related location: This is the postcondition that might not hold.
-Refinement.dfy(268,4): Error: A postcondition might not hold on this return path.
-Refinement.dfy[Modify1](238,14): Related location: This is the postcondition that might not hold.
-Refinement.dfy(274,6): Error: A postcondition might not hold on this return path.
-Refinement.dfy[Modify1](244,14): Related location: This is the postcondition that might not hold.
+Refinement.dfy(253,6): Error: a postcondition could not be proved on this return path
+Refinement.dfy[Modify1](223,19): Related location: this is the postcondition that could not be proved
+Refinement.dfy(261,6): Error: a postcondition could not be proved on this return path
+Refinement.dfy[Modify1](230,14): Related location: this is the postcondition that could not be proved
+Refinement.dfy(268,4): Error: a postcondition could not be proved on this return path
+Refinement.dfy[Modify1](238,14): Related location: this is the postcondition that could not be proved
+Refinement.dfy(274,6): Error: a postcondition could not be proved on this return path
+Refinement.dfy[Modify1](244,14): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 28 verified, 13 errors

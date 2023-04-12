@@ -1,3 +1,4 @@
+Using: ../../Scripts/dafny
 Should succeed
 
 Dafny program verifier finished with 1 verified, 0 errors
@@ -5,23 +6,44 @@ Should fail
 b.dfy(1,24): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
-Compiling on C#
+Running with C#
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Javascript
+Running with Javascript
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Java
+Running with Java
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Go
+Running with Go
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
-Compiling to Python
+Running with Python
+
+Dafny program verifier finished with 0 verified, 0 errors
+(42, 131)
+Building with C#
+
+Dafny program verifier finished with 0 verified, 0 errors
+(42, 131)
+Building with Javascript
+
+Dafny program verifier finished with 0 verified, 0 errors
+(42, 131)
+Building with Java
+
+Dafny program verifier finished with 0 verified, 0 errors
+(42, 131)
+Building with Go
+
+Dafny program verifier finished with 0 verified, 0 errors
+(42, 131)
+(42, 131)
+Building with Python
 
 Dafny program verifier finished with 0 verified, 0 errors
 (42, 131)
