@@ -8,3 +8,10 @@ input.dfy(6,8): Warning: Shadowed local-variable name: x
 moreInput.dfy(6,8): Warning: Shadowed local-variable name: x
 
 Dafny program verifier did not attempt verification
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+
+Dafny program verifier did not attempt verification
+excluded.dfy(3,7): Error: Duplicate member name: Foo
+input.dfy(6,8): Warning: Shadowed local-variable name: x
+excluded.dfy(6,8): Warning: Shadowed local-variable name: z
+1 resolution/type errors detected in the_program

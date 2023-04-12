@@ -19,4 +19,10 @@
 // A project file without includes will take all .dfy files as input
 // RUN: %baredafny resolve --use-basename-for-filename "%S/noIncludes/dafny.toml" >> "%t"
 
+// Files included by the project file and on the CLI, duplicate is ignored.
+// RUN: %baredafny resolve --use-basename-for-filename "%S/dafny.toml" "%S/src/input.dfy" >> "%t"
+
+// Files excluded by the project file and included on the CLI, are included
+// RUN: ! %baredafny resolve --use-basename-for-filename "%S/dafny.toml" "%S/src/excluded.dfy" >> "%t"
+
 // RUN: %diff "%s.expect" "%t"

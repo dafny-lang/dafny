@@ -62,19 +62,13 @@ public class ProjectFile {
   }
 
   public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
-    if (!option.Name.StartsWith("--")) {
-      value = null;
-      return false;
-    }
-
-    var name = option.Name.Substring(2);
-    if (!Options.TryGetValue(name, out value)) {
+    if (!Options.TryGetValue(option.Name, out value)) {
       return false;
     }
 
     if (value.GetType() != option.ValueType) {
       errorWriter.WriteLine(
-        $"Error: property '{name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
+        $"Error: property '{option.Name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
       return false;
     }
 
