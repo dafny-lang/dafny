@@ -179,7 +179,7 @@ static class CommandRegistry {
         return false;
       }
       dafnyOptions.ProjectFile = projectFile;
-      projectFile.ApplyToOptions(dafnyOptions);
+      projectFile.AddFilesToOptions(dafnyOptions);
     } else {
       dafnyOptions.AddFile(singleFile.FullName);
     }

@@ -44,7 +44,7 @@ public class ProjectFile {
     }
   }
 
-  public void ApplyToOptions(DafnyOptions options) {
+  public void AddFilesToOptions(DafnyOptions options) {
     var matcher = new Matcher();
     foreach (var includeGlob in Includes ?? new[] { "**/*.dfy" }) {
       matcher.AddInclude(includeGlob);
@@ -62,16 +62,23 @@ public class ProjectFile {
   }
 
   public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
-    var name = option.Name.StartsWith("--") ? option.Name.Substring(2) : option.Name;
-
-    if (Options.TryGetValue(name, out value)) {
-      if (value.GetType() != option.ValueType) {
-        errorWriter.WriteLine($"Error: property '{name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
-        return false;
-      }
-      return true;
+    if (!option.Name.StartsWith("--")) {
+      value = null;
+      return false;
     }
 
-    return false;
+    var name = option.Name.Substring(2);
+    if (!Options.TryGetValue(name, out value)) {
+      return false;
+    }
+
+    if (value.GetType() != option.ValueType) {
+      errorWriter.WriteLine(
+        $"Error: property '{name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
+      return false;
+    }
+
+    return true;
+
   }
 }
