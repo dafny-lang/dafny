@@ -142,9 +142,17 @@ namespace DafnyTestGeneration {
           if (!Options.TestGenOptions.TestInline) {
             Options.Printer.ErrorWriteLine(Console.Error,
               $"*** Error: Callable {callable.FullName} is annotated with " +
-              $"{TestGenerationOptions.TestInlineAttribute} but test " +
+              $":{TestGenerationOptions.TestInlineAttribute} but test " +
               $"generation is called without the --inline command line option");
             SetNonZeroExitCode = true;
+          }
+          if (attributes.Args.Count != 1) {
+            Options.Printer.ErrorWriteLine(Console.Error,
+              $"*** Error: :{TestGenerationOptions.TestInlineAttribute} " +
+              $"attribute must be followed by a positive integer to specify " +
+              $"the recursion unrolling limit (1 means no unrolling)");
+            SetNonZeroExitCode = true;
+            return 1;
           }
           if (uint.TryParse(attributes.Args.First().ToString(), out uint result) && result > 0) {
             return result;
