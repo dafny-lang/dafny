@@ -158,7 +158,8 @@ namespace DafnyTestGeneration {
             return result;
           }
           Options.Printer.ErrorWriteLine(Console.Error,
-            $"*** Error: {TestGenerationOptions.TestInlineAttribute} value for callable {callable.FullName} must be a positive integer");
+            $"*** Error: {TestGenerationOptions.TestInlineAttribute} value " +
+            $"for callable {callable.FullName} must be a positive integer");
           SetNonZeroExitCode = true;
           return 0;
         }
