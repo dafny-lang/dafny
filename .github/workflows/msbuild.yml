@@ -122,8 +122,7 @@ jobs:
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura \
-            -classfilters:-Microsoft.Dafny.DPreType \
-            "-filefilters:-**/PreType/*.cs"
+            -classfilters:-Microsoft.Dafny.DPreType
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \
