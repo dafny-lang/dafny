@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private bool IsPartOfEntryDocument(Boogie.IToken token) {
       // Tokens with line=0 usually represent a default/implicit class/module/etc. We do not want
       // to show these in the symbol listing.
-      return token.line != 0 && signatureAndCompletionTable.CompilationUnit.Program.IsPartOfEntryDocument(token);
+      return token.line != 0 && signatureAndCompletionTable.CompilationUnit.IsPartOfEntryDocument(token);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ISymbol symbol) {

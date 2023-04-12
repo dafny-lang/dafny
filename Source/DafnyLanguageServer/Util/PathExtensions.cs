@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
@@ -33,17 +34,6 @@ namespace Microsoft.Dafny.LanguageServer.Util {
       // GetFileSystemPath() is used since Path resolves to a non-Windows path format on Windows, e.g.:
       // /d:/data/file.dfy
       return uri.GetFileSystemPath();
-    }
-
-    /// <summary>
-    /// Checks if the given token is part of the entrypoint document.
-    /// </summary>
-    /// <param name="program">The dafny program to check the token against.</param>
-    /// <param name="token">The token to check.</param>
-    /// <returns><c>true</c> if the given token is part of the entrypoint document of the given program.</returns>
-    public static bool IsPartOfEntryDocument(this Dafny.Program program, Boogie.IToken token) {
-      // The token filename happens to be null if it's representing a default module or class.
-      return token.filename == null || token.filename == program.FullName;
     }
 
     /// <summary>

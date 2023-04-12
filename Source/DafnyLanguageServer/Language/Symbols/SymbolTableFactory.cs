@@ -23,9 +23,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
 
-    public SignatureAndCompletionTable CreateFrom(Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+    public SignatureAndCompletionTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+      var program = compilationUnit.Program;
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
-      var designatorVisitor = new DesignatorVisitor(logger, program, declarations, compilationUnit, cancellationToken);
+      var designatorVisitor = new DesignatorVisitor(logger, compilationUnit, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
       var symbolsResolved = !program.Reporter.HasErrorsUntilResolver;
       if (symbolsResolved) {
@@ -48,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved
       );
     }
-
+    
     public SymbolTable CreateFrom(Dafny.Program program, Document document, CancellationToken cancellationToken) {
       var visited = ((Node)program).Visit(a => true, b => { });
 
@@ -74,21 +75,20 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private class DesignatorVisitor : SyntaxTreeVisitor {
       private readonly ILogger logger;
-      private readonly Dafny.Program program;
       private readonly IDictionary<AstElement, ILocalizableSymbol> declarations;
       private readonly DafnyLangTypeResolver typeResolver;
       private readonly IDictionary<AstElement, ISymbol> designators = new Dictionary<AstElement, ISymbol>();
       private readonly CancellationToken cancellationToken;
+      private readonly CompilationUnit compilationUnit;
 
       private ISymbol currentScope;
 
       public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>();
 
       public DesignatorVisitor(
-          ILogger logger, Dafny.Program program, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
-      ) {
+          ILogger logger, CompilationUnit compilationUnit, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken) {
         this.logger = logger;
-        this.program = program;
+        this.compilationUnit = compilationUnit;
         this.declarations = declarations;
         typeResolver = new DafnyLangTypeResolver(declarations);
         currentScope = rootScope;
@@ -254,9 +254,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
             identifier, token.GetDocumentFileName(), token.line, token.col);
         }
       }
-
+      
       private void ProcessNestedScope(AstElement node, Boogie.IToken token, System.Action visit) {
-        if (!program.IsPartOfEntryDocument(token)) {
+        if (!this.compilationUnit.IsPartOfEntryDocument(token)) {
           return;
         }
         var oldScope = currentScope;

@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
+    public override async Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);

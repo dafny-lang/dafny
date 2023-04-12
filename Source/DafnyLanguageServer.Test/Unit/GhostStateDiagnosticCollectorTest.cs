@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
@@ -61,7 +62,8 @@ public class GhostStateDiagnosticCollectorTest {
     var reporter = new CollectingErrorReporter(options);
     var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new SignatureAndCompletionTable(null!, new CompilationUnit(new Uri(Directory.GetCurrentDirectory()), program),
+        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);
     Assert.Empty(ghostDiagnostics);
   }

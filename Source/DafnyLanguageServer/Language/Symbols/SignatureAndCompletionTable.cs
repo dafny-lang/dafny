@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(new Dafny.Program(
+        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
           textDocument.Uri.ToString(),
           new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
