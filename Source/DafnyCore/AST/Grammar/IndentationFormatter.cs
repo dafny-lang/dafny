@@ -24,7 +24,7 @@ public class IndentationFormatter : IIndentationFormatter {
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
   public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var tokenNewIndentCollector = new TokenNewIndentCollector(new Uri(program.Tok.Filename)) {
+    var tokenNewIndentCollector = new TokenNewIndentCollector(program) {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {

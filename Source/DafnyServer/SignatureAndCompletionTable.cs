@@ -29,9 +29,8 @@ namespace DafnyServer {
     }
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var clbl in
-          ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && e.Tok.Filename == module.Tok.Filename)) {
+      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                 Where(e => e != null && e.Tok.IsIncludeToken(_dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -87,8 +86,8 @@ namespace DafnyServer {
     }
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && e.Tok.Filename == module.Tok.Filename)) {
+      foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
+                 Where(e => e != null && e.Tok.IsIncludeToken(_dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,

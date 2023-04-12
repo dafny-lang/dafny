@@ -12,9 +12,14 @@ namespace Microsoft.Dafny.Auditor;
 /// of a set of assumptions that can be rendered in several formats.
 /// </summary>
 public class AuditReport {
+  private DafnyOptions options;
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
   private Dictionary<Declaration, IEnumerable<AssumptionDescription>> assumptionsByDecl = new();
+
+  public AuditReport(DafnyOptions options) {
+    this.options = options;
+  }
 
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);
@@ -161,7 +166,7 @@ public class AuditReport {
     foreach (var assumption in AllAssumptions()) {
       foreach (var warning in assumption.Warnings()) {
         var decl = assumption.decl;
-        text.AppendLine($"{ErrorReporter.TokenToString(decl.tok)}:{warning}");
+        text.AppendLine($"{decl.tok.TokenToString(options)}:{warning}");
       }
     }
 
@@ -169,7 +174,7 @@ public class AuditReport {
   }
 
   public static AuditReport BuildReport(Program program) {
-    AuditReport report = new();
+    AuditReport report = new(program.Options);
 
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {

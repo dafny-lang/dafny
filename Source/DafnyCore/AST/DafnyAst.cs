@@ -38,6 +38,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    public List<Include> Includes => DefaultModuleDef.Includes;
+
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for

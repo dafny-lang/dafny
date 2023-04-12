@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Text;
 
 namespace Microsoft.Dafny;
@@ -188,6 +189,13 @@ public abstract class TokenWrapper : IToken {
 }
 
 public static class TokenExtensions {
+  
+    
+  public static string TokenToString(this IToken tok, DafnyOptions options) {
+    var filename = options.UseBaseNameForFileName ? Path.GetFileName(tok.Filename) : tok.Filename;
+    return $"{filename}({tok.line},{tok.col - 1})";
+  }
+  
   public static RangeToken ToRange(this IToken token) {
     if (token is BoogieRangeToken boogieRangeToken) {
       return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);

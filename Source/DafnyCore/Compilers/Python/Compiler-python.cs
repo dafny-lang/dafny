@@ -870,7 +870,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
-      wr.Write($"\"{ErrorReporter.TokenToString(tok)}: \" + ");
+      wr.Write($"\"{tok.TokenToString(Options)}: \" + ");
       EmitToString(wr, messageExpr, wStmts);
       wr.WriteLine(")");
     }

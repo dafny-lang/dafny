@@ -443,7 +443,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       if (!Options.VerifyAllModules) {
-        rewriters.Add(new IncludedLemmaBodyRemover(reporter));
+        rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));

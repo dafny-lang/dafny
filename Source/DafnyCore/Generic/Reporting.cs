@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 
 namespace Microsoft.Dafny {
   public enum ErrorLevel {
@@ -162,12 +163,8 @@ namespace Microsoft.Dafny {
       Info(source, tok, String.Format(msg, args));
     }
 
-    public static string ErrorToString(ErrorLevel header, IToken tok, string msg) {
-      return String.Format("{0}: {1}{2}", TokenToString(tok), header.ToString(), ": " + msg);
-    }
-
-    public static string TokenToString(IToken tok) {
-      return String.Format("{0}({1},{2})", tok.Filename, tok.line, tok.col - 1);
+    public string ErrorToString(ErrorLevel header, IToken tok, string msg) {
+      return $"{tok.TokenToString(Options)}: {header.ToString()}{": " + msg}";
     }
   }
 
@@ -201,7 +198,7 @@ namespace Microsoft.Dafny {
             continue;
           }
           msg = nestedToken.Message ?? "[Related location]";
-          errorLine += $" {msg} {TokenToString(tok)}";
+          errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
         if (Options.CompileVerbose && false) { // Need to control tests better before we enable this
