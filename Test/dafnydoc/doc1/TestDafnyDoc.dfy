@@ -99,6 +99,10 @@ module {:options "--function-syntax:4"} TestModule {
     return i + 1;
   }
 
+  method ModifyA(a: A) 
+    modifies a, a`j
+  {}
+
   /** Sets to zero. Absolute zero. */
   ghost method {:iszero} zero() returns (z: int) 
     ensures z == 0
@@ -125,7 +129,7 @@ iterator Gen(start: int) yields (x: int)
     const {:opaque} c: int := 42 // The meaning of life.
     method m(x: int)
       requires x > 0
-      modifies this`j
+      modifies this, this`j
       ensures 0 < 1
     {}
     predicate f<Q>() { true }

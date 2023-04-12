@@ -818,10 +818,11 @@ class DafnyDoc {
         details.Append(space4).Append("<b>requires</b> ").Append(req.E.ToString()).Append(br).Append(eol);
         some = true;
       }
-      //foreach (var mod in m.Mod) {
-      //  TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
-      //  some = true;
-      //}
+      if (m.Mod != null && m.Mod.Expressions.Count > 0) {
+        var list = String.Join(", ", m.Mod.Expressions.Select(e => e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : "")));
+        details.Append(space4).Append(Bold("modifies")).Append(" ").Append(list).Append(br).Append(eol);
+        some = true;
+      }
       foreach (var en in m.Ens) {
         details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
         some = true;
@@ -901,7 +902,8 @@ class DafnyDoc {
     return programName == null ? "" : (" for " + programName);
   }
 
-  public string TypeLink(Type t) {
+  public string TypeLink(Type tin) {
+    Type t = tin is TypeProxy ? (tin as TypeProxy).T : tin;
     if (t is BasicType) {
       return t.ToString();
     } else if (t is CollectionType ct) {
@@ -920,12 +922,10 @@ class DafnyDoc {
         return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is TypeParameter) {
         return tt.Name;
-      } else {
-        return tt.ToString(); // TODO - needs links for every other kind of type
       }
-    } else {
-      return t.ToString(); // TODO - needs links for every other kind of type
     }
+    Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    return t.ToString();
   }
 
   public string ToHtml(string text) {
@@ -1206,7 +1206,7 @@ class DafnyDoc {
       } else if (value.StartsWith("export")) {
         file.Write($"<a href=\"{owner}.html#{ExportSetAnchor(keyn)}\">{keyn}</a>");
       } else {
-        var link = value.Substring(0, hash);  // TODO - what is link for // TODO _ do export sets work
+        var link = value.Substring(0, hash);
         file.Write($"<a href=\"{owner}.html#{keyn}\">{keyn}</a>");
       }
       file.WriteLine(Mdash + value + br);
