@@ -12,19 +12,18 @@ namespace Microsoft.Dafny;
 /* Stuff todo:
 
 - duplicate index entries for declarations with their own pages
-- type characteristics and variance
 - import details should distinguish provides and reveals
 - not sure import is listing all names
 - details of an abstract import
 - identify members from refinement parent; link to them
 
 - interpret markdown
-- ability to link to declarations in other documentation sets
 
 Improvements:
 - retain source layout of expressions
 - make a separate css file
 - add Dafny favicon
+- ability to link to declarations in other documentation sets
 
 Refactoring
 - possibly combine WriteModule and WriteDecl
@@ -45,6 +44,7 @@ Questions
 - improvement to program name title?
 - make ghost things italics?
 - mark members that override declarations in traits?
+- should documentation show declared or inferred/resolved variance and type characterisstics
 
 
 
@@ -553,6 +553,8 @@ class DafnyDoc {
         if (t is ClassDecl) { // Class, Trait
           // nothing more here
         } else if (t is SubsetTypeDecl ts) {
+          var chars = ts.Characteristics;
+          details.Append(TPChars(chars));
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
           if (ts.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
             details.Append(" witness *");
@@ -560,6 +562,8 @@ class DafnyDoc {
             details.Append(" witness ").Append(ts.Witness.ToString());
           }
         } else if (t is TypeSynonymDecl tsy) {
+          var chars = tsy.Characteristics;
+          details.Append(TPChars(chars));
           details.Append(" = ").Append(TypeLink(tsy.Rhs));
         } else if (t is NewtypeDecl tnt) {
           if (tnt.Var != null) {
@@ -572,8 +576,9 @@ class DafnyDoc {
           } else if (tnt.Witness != null) {
             details.Append(" witness ").Append(tnt.Witness.ToString());
           }
-        } else if (t is OpaqueTypeDecl) {
-          // do nothing here
+        } else if (t is OpaqueTypeDecl otd) {
+          var chars = otd.Characteristics;
+          details.Append(TPChars(chars));
         } else if (t is DatatypeDecl) {
           // datatype constructors are written out several lines down
         } else {
@@ -651,6 +656,26 @@ class DafnyDoc {
         details.Append(IndentedHtml(docstring));
       }
     }
+  }
+
+  public string TPChars(TypeParameter.TypeParameterCharacteristics tpchars) {
+    string result = "";
+    if (tpchars.EqualitySupport == TypeParameter.EqualitySupportValue.Required) {
+      result += ",==";
+    }
+    if (tpchars.HasCompiledValue) {
+      result += ",0";
+    }
+    if (tpchars.AutoInit == Type.AutoInitInfo.Nonempty) {
+      result += ",00";
+    }
+    if (tpchars.ContainsNoReferenceTypes) {
+      result += ",!new";
+    }
+    if (result.Length != 0) {
+      result = "(" + result.Substring(1) + ")";
+    }
+    return result;
   }
 
   /** Append the summary and detail information about field declarations to the string builders */
@@ -1169,7 +1194,18 @@ class DafnyDoc {
 
   public string TypeFormals(List<TypeParameter> args) {
     return (args.Count == 0) ? "" :
-      "&lt;" + String.Join(",", args.Select(a => a.ToString())) + "&gt;";
+      "&lt;" + String.Join(",", args.Select(a => TPVariance(a) + a.ToString() + TPChars(a.Characteristics))) + "&gt;";
+  }
+
+  public string TPVariance(TypeParameter t) {
+    switch (t.VarianceSyntax) {
+      case TypeParameter.TPVarianceSyntax.NonVariant_Strict: return "";
+      case TypeParameter.TPVarianceSyntax.NonVariant_Permissive: return "!";
+      case TypeParameter.TPVarianceSyntax.Covariant_Strict: return "+";
+      case TypeParameter.TPVarianceSyntax.Covariant_Permissive: return "*";
+      case TypeParameter.TPVarianceSyntax.Contravariance: return "-";
+    }
+    return ""; // Should not happen, but compiler complains
   }
 
   public string TypeActualParameters(List<Type> args) {

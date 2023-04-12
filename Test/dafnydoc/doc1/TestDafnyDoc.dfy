@@ -46,13 +46,15 @@ module {:options "--function-syntax:4"} TestModule {
     | ghost G // A ghost constructor. Very cool.
 
   /** Type synonym. */
-  type Tint = B<int>
+  type Tint(==) = B<int>
 
-  type TTT<Q(0)> = B<Q>
+  type TTT<!Q(0)> = B<Q>
+
+  type WW(==,0,!new,00)
 
   /** Subset type */
   type Small = x: nat | x < 100
-  type SmallW = x: nat | x < 100 witness 99
+  type SmallW(==) = x: nat | x < 100 witness 99
   type SmallS = x: nat | x < 100 witness *
 
   /** New type */
@@ -147,6 +149,8 @@ iterator Gen(start: int) yields (x: int)
     var j: Z
     predicate ftr() /** Implements T3.ftr */ { true }
   }
+
+  datatype BB<*Q> = R(q: Q)
 
   lemma {:myattribute} IsX()
     // always true
