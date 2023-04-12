@@ -150,7 +150,7 @@ class DafnyDoc {
     var fullName = moduleDef.FullDafnyName;
     var fullNLName = fullName;
     if (moduleDef.IsDefaultModule) {
-      nameIndex.Add(rootNLName + " " + nameIndex.Count + " " + RootName, "module " + Link(RootName, RootNLName));
+      nameIndex.Add(RootNLName + " " + nameIndex.Count + " " + RootName, "module " + Link(RootName, RootNLName));
       fullName = RootName;
       fullNLName = RootNLName;
     } else {
