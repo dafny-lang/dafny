@@ -4673,26 +4673,53 @@ namespace Microsoft.Dafny {
 
       Contract.Assume(AllTypeConstraints.Count == 0);
 
+      // Formal parameters have three ways to indicate how they are to be passed in:
+      //   * nameonly: the only way to give a specific value is to name the parameter
+      //   * positional only: these are nameless arguments (which are allowed only for datatype constructor parameters)
+      //   * either positional or by name: this is the most common parameter
+      // A parameter is either required or optional:
+      //   * required: a caller has to supply an argument
+      //   * optional: the parameter has a default value that is used if a caller omits passing a specific argument
+      //
+      // The syntax for giving a positional-only (i.e., nameless) parameter does not a default-value expression, so
+      // a positional-only parameter is always required.
+      //
+      // At a call site, positional arguments are not allowed to follow named arguments. Therefore, if "x" is
+      // a nameonly parameter, then there is no way to supply the parameters after "x" by position. Thus, any
+      // parameter that follows "x" must either by passed by name or have a default value. That is, if a later
+      // parameter does not have a default value, it is _effectively_ nameonly. We impose the rule that
+      //   * an effectively nameonly parameter must be declared as nameonly
+      //
+      // For a positional-only parameter "x", every parameter preceding "x" is _effectively_ required. We impose
+      // the rule that
+      //   * an effectively required parameter must not have a default-value expression
       var dependencies = new Graph<IVariable>();
-      var allowMoreRequiredParameters = true;
-      var allowNamelessParameters = true;
+      string nameOfMostRecentNameonlyParameter = null;
+      var previousParametersWithDefaultValue = new HashSet<Formal>();
       foreach (var formal in formals) {
+        if (!formal.HasName) {
+          foreach (var previousFormal in previousParametersWithDefaultValue) {
+            reporter.Error(MessageSource.Resolver, previousFormal.DefaultValue.tok,
+              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+          }
+          previousParametersWithDefaultValue.Clear();
+        }
         var d = formal.DefaultValue;
         if (d != null) {
-          allowMoreRequiredParameters = false;
           ResolveExpression(d, resolutionContext);
           AddAssignableConstraint(d.tok, formal.Type, d.Type, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
-        } else if (!allowMoreRequiredParameters) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a required parameter must precede all optional parameters");
-        }
-        if (!allowNamelessParameters && !formal.HasName) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a nameless parameter must precede all nameonly parameters");
+          previousParametersWithDefaultValue.Add(formal);
+        } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
+          // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
+          reporter.Error(MessageSource.Resolver, formal.tok,
+            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            "declare it as nameonly or give it an default-value expression");
         }
         if (formal.IsNameOnly) {
-          allowNamelessParameters = false;
+          nameOfMostRecentNameonlyParameter = formal.Name;
         }
       }
       SolveAllTypeConstraints();
