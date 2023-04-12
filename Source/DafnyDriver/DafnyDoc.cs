@@ -539,16 +539,24 @@ class DafnyDoc {
         if (t is ClassDecl) { // Class, Trait
           // nothing more here
         } else if (t is SubsetTypeDecl ts) {
-          // TODO witness
           details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
+          if (ts.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
+            details.Append(" witness *");
+          } else if (ts.Witness != null) {
+            details.Append(" witness ").Append(ts.Witness.ToString());
+          }
         } else if (t is TypeSynonymDecl tsy) {
           details.Append(" = ").Append(TypeLink(tsy.Rhs));
         } else if (t is NewtypeDecl tnt) {
           if (tnt.Var != null) {
-            // TODO witness
             details.Append(" = ").Append(tnt.Var.Name).Append(": ").Append(TypeLink(tnt.Var.Type)).Append(" | ").Append(tnt.Constraint.ToString());
           } else {
             details.Append(" = ").Append(TypeLink(tnt.BaseType));
+          }
+          if (tnt.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
+            details.Append(" witness *");
+          } else if (tnt.Witness != null) {
+            details.Append(" witness ").Append(tnt.Witness.ToString());
           }
         } else if (t is OpaqueTypeDecl) {
           // do nothing here
@@ -600,7 +608,6 @@ class DafnyDoc {
     if (constants.Count() > 0) {
       summaries.Append(Heading3("Constants\n"));
       details.Append(Heading3("Constants\n"));
-      // TODO: opaque, ghost, static? 
 
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
@@ -621,7 +628,7 @@ class DafnyDoc {
         }
         details.Append(Bold(c.Name)).Append(": ").Append(TypeLink(c.Type));
         if (c.Rhs != null) {
-          details.Append(" := ").Append(c.Rhs.ToString()); // TODO - other kinds of initialization?
+          details.Append(" := ").Append(c.Rhs.ToString());
         }
         details.Append(br).Append(eol);
         if (!String.IsNullOrEmpty(attributes)) {

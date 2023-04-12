@@ -52,9 +52,11 @@ module {:options "--function-syntax:4"} TestModule {
 
   /** Subset type */
   type Small = x: nat | x < 100
+  type SmallW = x: nat | x < 100 witness 99
+  type SmallS = x: nat | x < 100 witness *
 
   /** New type */
-  newtype {:native "uint8"} Smaller = x: nat | x < 10
+  newtype {:native "uint8"} Smaller = x: nat | x < 10 witness 9
 
   newtype Dup = int { predicate IsEven() { true } }
 
