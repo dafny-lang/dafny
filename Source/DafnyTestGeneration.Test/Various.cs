@@ -130,19 +130,19 @@ module M {
       var source = @"
 module M {
   class Inlining {
-    function {:testInline 2} div3 (n:int):int 
+    function {:testInline 2} mod3 (n:int):int 
       requires n >= 0
       decreases n
     {
       if n == 0 then 0 else
       if n == 1 then 1 else
       if n == 2 then 2 else
-      div3(n-3)
+      mod3(n-3)
     }
     method test(n:int) returns (r:int) 
       requires n >= 3
     {
-      r := div3(n);
+      r := mod3(n);
     }
   }
 }
@@ -160,19 +160,19 @@ module M {
       var source = @"
 module M {
   class Inlining {
-    function {:testInline 1} div3 (n:int):int 
+    function {:testInline 1} mod3 (n:int):int 
       requires n >= 0
       decreases n
     {
       if n == 0 then 0 else
       if n == 1 then 1 else
       if n == 2 then 2 else
-      div3(n-3)
+      mod3(n-3)
     }
     method test(n:int) returns (r:int) 
       requires n >= 3
     {
-      r := div3(n);
+      r := mod3(n);
     }
   }
 }
