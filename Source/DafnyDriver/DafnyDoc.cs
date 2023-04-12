@@ -403,20 +403,34 @@ class DafnyDoc {
           extends = " extends " + extends;
         }
         details.Append(text).Append(extends).Append(br).Append(eol);
-        var revealed = ex.Exports.Where(e => !e.Opaque).Select(e => e.Id).ToList();
-        revealed.Sort();
-        var provided = ex.Exports.Where(e => e.Opaque).Select(e => e.Id).ToList();
-        provided.Sort();
+        var revealed = ex.Exports.Where(e => !e.Opaque).ToList();
+        revealed.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
+        var provided = ex.Exports.Where(e => e.Opaque).ToList();
+        provided.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
         details.Append(space4).Append("provides");
         if (ex.ProvideAll) details.Append(" * :");
-        foreach (var id in provided) { // TODO - does not work for links that go out of the file, e.g. classes, modules
-          details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
+        foreach (var e in provided) {
+          string link;
+          if (HasOwnPage(e.Decl)) {
+            var fn = (e.Decl as TopLevelDecl).FullDafnyName;
+            link = Link(fn, null, Bold(e.Id));
+          } else {
+            link = Link(null, e.Id, Bold(e.Id));
+          }
+          details.Append(" ").Append(link);
         }
         details.Append(br).Append(eol);
         details.Append(space4).Append("reveals");
         if (ex.RevealAll) details.Append(" * :");
-        foreach (var id in revealed) { // TODO - ditto
-          details.Append(" ").Append(LinkToAnchor(id, Bold(id)));
+        foreach (var e in revealed) {
+          string link;
+          if (HasOwnPage(e.Decl)) {
+            var fn = (e.Decl as TopLevelDecl).FullDafnyName;
+            link = Link(fn, null, Bold(e.Id));
+          } else {
+            link = Link(null, e.Id, Bold(e.Id));
+          }
+          details.Append(" ").Append(link);
         }
         var docstring = Docstring(ex);
         if (!String.IsNullOrEmpty(docstring)) {
@@ -935,6 +949,7 @@ class DafnyDoc {
 
   /** True for declarations that have their own page */
   public bool HasOwnPage(Declaration t) {
+    if (t is LiteralModuleDecl) return true;
     return t is TopLevelDeclWithMembers && (t is ClassDecl || t is TraitDecl || (t as TopLevelDeclWithMembers).Members.Count() > 0);
   }
 
