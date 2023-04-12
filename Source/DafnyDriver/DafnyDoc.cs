@@ -15,12 +15,11 @@ namespace Microsoft.Dafny;
 - type characteristics and variance
 - import details should distinguish provides and reveals
 - not sure import is listing all names
+- details of an abstract import
+- identify members from refinement parent; link to them
 
 - interpret markdown
-- do not include library files
 - ability to link to declarations in other documentation sets
-
-- useFullDocstring everywhere
 
 Improvements:
 - retain source layout of expressions
@@ -29,7 +28,6 @@ Improvements:
 
 Refactoring
 - possibly combine WriteModule and WriteDecl
-- formatIsHtml is not used everywhere - either do so or get rid of it
 - replicated code for computing indexlink and contentlink
 
 Questions
@@ -46,19 +44,10 @@ Questions
 - keep the separation into summary and details?
 - improvement to program name title?
 - make ghost things italics?
-- show full qualified names for extended traits? for RHS of type definitions? for types in signatures?
+- mark members that override declarations in traits?
 
-Other
-- modules: fully qualified refinement
-- abstract imports - needs fully qualified target
-- in each section , list inherited names, import-opened names
 
-- label implementing functions and methods
-- show inherited methods, functions in abstract classes
-- show decls from refinement parents
 
-- add attributes everywhere
-- make sure we have resolved types
 
 */
 
@@ -196,7 +185,7 @@ class DafnyDoc {
       file.WriteLine(br);
     }
     if (moduleDef.RefinementQId != null) {
-      file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.ToString()) + br); // TODO - RefinementQID is not fully qualified
+      file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName) + br);
     }
     var attributes = Attributes(module.Attributes);
     if (!String.IsNullOrEmpty(attributes)) {
@@ -229,7 +218,7 @@ class DafnyDoc {
     file.WriteLine(Anchor("decl-detail"));
     file.WriteLine(Heading2("module details"));
     if (!String.IsNullOrEmpty(docstring)) {
-      file.WriteLine(docstring);
+      file.WriteLine(ToHtml(docstring));
       file.WriteLine(br);
     }
     if (!String.IsNullOrEmpty(attributes)) {
@@ -244,7 +233,6 @@ class DafnyDoc {
         WriteDecl(c);
       }
     }
-
   }
 
   /** Writes files for classes and traits */
@@ -324,13 +312,28 @@ class DafnyDoc {
     WriteMethods(decl, summaries, details);
     WriteLemmas(decl, summaries, details);
 
-    file.WriteLine(Heading2(decl.WhatKind + " summary"));
+    if (decl is ClassDecl cd && cd.InheritedMembers.Count > 0) {
+      var sb = new StringBuilder();
+      foreach (var member in cd.InheritedMembers) {
+        //if (member is Function f && f.Body == null) continue;
+        //if (member is Method m && m.Body == null) continue;
+        var link = QualifiedNameWithLinks(member.EnclosingClass.FullDafnyName, member.Name, Bold(member.Name));
+        sb.Append(Row(member.WhatKind, link));
+      }
+      var ss = sb.ToString();
+      if (ss != "") {
+        summaries.Append(Heading3("Inherited Members")).Append(eol);
+        summaries.Append(BeginTable()).Append(ss).Append(EndTable());
+      }
+    }
 
+    file.WriteLine(Heading2(decl.WhatKind + " summary"));
     file.WriteLine(summaries.ToString());
+
     file.WriteLine(Anchor("decl-detail"));
     file.WriteLine(Heading2(decl.WhatKind + " details"));
     if (!String.IsNullOrEmpty(docstring)) {
-      file.WriteLine(docstring);
+      file.WriteLine(ToHtml(docstring));
       file.WriteLine(br);
     }
     if (!String.IsNullOrEmpty(attributes)) {
@@ -417,7 +420,7 @@ class DafnyDoc {
         }
         var docstring = Docstring(ex);
         if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(Indented(docstring));
+          details.Append(IndentedHtml(docstring));
         }
         details.Append(br).Append(eol);
       }
@@ -475,8 +478,8 @@ class DafnyDoc {
       }
       foreach (var imp in absimports) {
         var name = imp.Name;
-        var target = imp.QId; // TODO - is this fully quallified
-        summaries.Append($"import {name} : {QualifiedNameWithLinks(target.ToString())}").Append(eol);
+        var target = imp.OriginalSignature.ModuleDef.FullDafnyName;
+        summaries.Append($"import {name} : {QualifiedNameWithLinks(target)}").Append(eol);
       }
     }
   }
@@ -570,9 +573,9 @@ class DafnyDoc {
             if (String.IsNullOrEmpty(ds)) {
               info = "";
             } else if (ds == Shorten(ds)) {
-              info = ShortDocstring(ctor);
+              info = ToHtml(ShortDocstring(ctor));
             } else {
-              info = Indented(ds, true);
+              info = IndentedHtml(ds, true);
             }
             details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : Mdash, info));
           }
@@ -583,7 +586,7 @@ class DafnyDoc {
           details.Append(space4).Append(attributes);
         }
         if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(Indented(docstring));
+          details.Append(IndentedHtml(docstring));
         }
       }
       summaries.Append(EndTable());
@@ -624,7 +627,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attributes)) {
           details.Append(space4).Append(attributes).Append(br).Append(eol);
         }
-        details.Append(Indented(docstring));
+        details.Append(IndentedHtml(docstring));
       }
     }
   }
@@ -654,7 +657,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(attrs)) {
           details.Append(space4).Append(attrs).Append(br).Append(eol);
         }
-        details.Append(Indented(Docstring(c)));
+        details.Append(IndentedHtml(Docstring(c)));
       }
       summaries.Append(EndTable()).Append(eol);
     }
@@ -748,8 +751,8 @@ class DafnyDoc {
         AddToIndex(name, decl.FullDafnyName, m.WhatKind);
       }
 
-      String link = $"<a href=\"#{name}\">{name}</a>"; // TODO - use some Link method
-      String mss = ReplaceFirst(ms, m.Name, link); // TODO - don't use extension
+      String link = Link(null, name, name);
+      String mss = ReplaceFirst(ms, m.Name, link);
 
       summaries.Append(mss);
       if (!String.IsNullOrEmpty(docstring)) {
@@ -769,8 +772,9 @@ class DafnyDoc {
       if (!String.IsNullOrEmpty(attributes)) {
         details.Append(space4).Append(attributes).Append(br).Append(eol);
       }
-      details.Append(Indented(docstring));
+      details.Append(IndentedHtml(docstring));
       AppendSpecs(details, m);
+
     }
   }
 
@@ -784,13 +788,13 @@ class DafnyDoc {
     }
   }
 
-  public string Indented(string docstring) {
-    return Indented(docstring, false);
+  public string IndentedHtml(string docstring) {
+    return IndentedHtml(docstring, false);
   }
 
-  public string Indented(string docstring, bool nothingIfNull) {
+  public string IndentedHtml(string docstring, bool nothingIfNull) {
     if (!String.IsNullOrEmpty(docstring)) {
-      return indent + docstring + unindent + eol;
+      return indent + ToHtml(docstring) + unindent + eol;
     } else if (!nothingIfNull) {
       return br + eol;
     } else {
@@ -808,8 +812,8 @@ class DafnyDoc {
         some = true;
       }
       //foreach (var mod in m.Mod) {
-      // TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
-      // some = true;
+      //  TODO details.Append(space4).Append("modifies ").Append(mod.ToString()).Append(br).Append(eol);
+      //  some = true;
       //}
       foreach (var en in m.Ens) {
         details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
@@ -917,6 +921,11 @@ class DafnyDoc {
     }
   }
 
+  public string ToHtml(string text) {
+    // TODO: Needs full translation to HTML (escaping special characters, tranlating javadoc and markdown)
+    return "<i>" + text + "</i>";
+  }
+
   /** True for declarations that have their own page */
   public bool HasOwnPage(Declaration t) {
     return t is TopLevelDeclWithMembers && (t is ClassDecl || t is TraitDecl || (t as TopLevelDeclWithMembers).Members.Count() > 0);
@@ -953,7 +962,7 @@ class DafnyDoc {
   public string DashShortDocstringNoMore(IHasDocstring d) {
     var docstring = ShortDocstring(d);
     if (!String.IsNullOrEmpty(docstring)) {
-      return Mdash + docstring;
+      return Mdash + ToHtml(docstring);
     }
     return "";
   }
@@ -978,7 +987,7 @@ class DafnyDoc {
     var shortstring = Shorten(docstring);
     String result = "";
     if (!String.IsNullOrEmpty(docstring)) {
-      result = shortstring;
+      result = ToHtml(shortstring);
       if (shortstring != docstring) {
         result += " " + LinkToAnchor("decl-detail", "(more...)");
       }
@@ -991,7 +1000,7 @@ class DafnyDoc {
     var shortstring = Shorten(docstring);
     String result = "";
     if (!String.IsNullOrEmpty(docstring)) {
-      result = shortstring;
+      result = ToHtml(shortstring);
       if (shortstring != docstring) {
         result += $" <a href=\"#{target}\">(more...)</a>";
       }
@@ -1057,7 +1066,11 @@ class DafnyDoc {
   }
 
   public static string Link(string fullName, string inpage, string text) {
-    return $"<a href=\"{fullName}.html#{inpage}\">{text}</a>";
+    if (fullName == null) {
+      return $"<a href=\"#{inpage}\">{text}</a>";
+    } else {
+      return $"<a href=\"{fullName}.html#{inpage}\">{text}</a>";
+    }
   }
 
   public string BeginTable() {
@@ -1109,7 +1122,6 @@ class DafnyDoc {
     if (d.IsGhost) {
       result += "ghost ";
     }
-    //if (d.IsAbstract) result += "abstract "; // TODO
     if (d.IsStatic) {
       result += "static ";
     }

@@ -152,12 +152,30 @@ iterator Gen(start: int) yields (x: int)
     ensures true
 
 
-  trait T1<TR> extends T3 /** A special trait */ {}
+  trait T1<TR> extends T3 /** A special trait */ {
+    const one := 1
+    var count: int
+  }
   trait T2 extends T1<A>, T3 {}
   trait T3 {
     predicate ftr()
+    predicate ftz() { true }
+    method mmm() {}
+  }
+
+  abstract module P {
+    method P1() {}
+    method P2()
+  }
+  module Q refines P {
+    method Q1() {}
+  }
+  abstract module S {
+    import Z: P
+    method ss() {}
   }
 }
+
 
 
 const ctop := 131
