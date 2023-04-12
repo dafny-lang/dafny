@@ -150,7 +150,7 @@ namespace DafnyTestGeneration {
             Options.Printer.ErrorWriteLine(Console.Error,
               $"*** Error: :{TestGenerationOptions.TestInlineAttribute} " +
               $"attribute must be followed by a positive integer to specify " +
-              $"the recursion unrolling limit (1 means no unrolling)");
+              $"the recursion unrolling limit (one means no unrolling)");
             SetNonZeroExitCode = true;
             return 1;
           }
