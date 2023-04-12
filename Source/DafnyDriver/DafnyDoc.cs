@@ -401,7 +401,9 @@ class DafnyDoc {
         var provided = ex.Exports.Where(e => e.Opaque).ToList();
         provided.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
         details.Append(space4).Append("provides");
-        if (ex.ProvideAll) details.Append(" * :");
+        if (ex.ProvideAll) {
+          details.Append(" * :");
+        }
         foreach (var e in provided) {
           string link;
           if (HasOwnPage(e.Decl)) {
@@ -414,7 +416,9 @@ class DafnyDoc {
         }
         details.Append(br).Append(eol);
         details.Append(space4).Append("reveals");
-        if (ex.RevealAll) details.Append(" * :");
+        if (ex.RevealAll) {
+          details.Append(" * :");
+        }
         foreach (var e in revealed) {
           string link;
           if (HasOwnPage(e.Decl)) {
@@ -535,7 +539,7 @@ class DafnyDoc {
   public void WriteTypes(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
     var types = module.TopLevelDecls.Where(c => IsType(c)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    if (types.Count() > 1 || types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass) {
+    if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass)) {
       summaries.Append(Heading3("Types")).Append(eol);
       details.Append(Heading3("Types")).Append(eol);
       summaries.Append(BeginTable());
@@ -987,7 +991,9 @@ class DafnyDoc {
 
   /** True for declarations that have their own page */
   public bool HasOwnPage(Declaration t) {
-    if (t is LiteralModuleDecl) return true;
+    if (t is LiteralModuleDecl) {
+      return true;
+    }
     return t is TopLevelDeclWithMembers && (t is ClassDecl || t is TraitDecl || (t as TopLevelDeclWithMembers).Members.Count() > 0);
   }
 
@@ -1070,7 +1076,9 @@ class DafnyDoc {
 
   public String ReplaceFirst(string text, string old, string replacement) {
     var k = text.IndexOf(old);
-    if (k == -1) return text;
+    if (k == -1) {
+      return text;
+    }
     return text.Substring(0, k) + replacement + text.Substring(k + old.Length);
   }
 
