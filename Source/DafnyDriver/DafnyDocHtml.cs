@@ -116,6 +116,18 @@ class DafnyDocHtml {
     return "</table>";
   }
 
+  public static String ListStart() {
+    return "<ul>";
+  }
+
+  public static String ListItem(String text) {
+    return "<li>" + text + "</li>";
+  }
+
+  public static String ListEnd() {
+    return "</ul>";
+  }
+
   public static String Anchor(string name) {
     return $"<a id=\"{name}\"/>";
   }
@@ -128,7 +140,7 @@ class DafnyDocHtml {
     return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
-  public static string style =
+  public static readonly string style =
   @"<style>
 body {
   background-color: white;

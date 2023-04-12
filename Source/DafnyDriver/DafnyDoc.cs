@@ -85,12 +85,10 @@ class DafnyDoc {
       Contract.Assert(dafnyProgram != null);
 
       // create the output folder if needed
-      //if (Directory.Exists(outputdir)) {
-      //Directory.Delete(outputdir, true);
-      //}
       if (!Directory.Exists(outputdir)) {
         Directory.CreateDirectory(outputdir);
       }
+
       // Check writable
       try {
         File.Create(outputdir + "/index.html").Dispose();
@@ -98,11 +96,8 @@ class DafnyDoc {
         reporter.Error(MessageSource.Documentation, Token.NoToken, "Insufficient permission to create output files in " + outputdir);
         return DafnyDriver.ExitValue.DAFNY_ERROR;
       }
-
-
       // Generate all the documentation
       exitValue = new DafnyDoc(dafnyProgram, reporter, options, outputdir).GenerateDocs(dafnyFiles);
-
     }
     return exitValue;
   }
@@ -155,9 +150,9 @@ class DafnyDoc {
     var fullName = moduleDef.FullDafnyName;
     var fullNLName = fullName;
     if (moduleDef.IsDefaultModule) {
-      nameIndex.Add(rootNLName + " " + nameIndex.Count + " " + rootName, "module " + Link(rootName, rootNLName));
-      fullName = rootName;
-      fullNLName = rootNLName;
+      nameIndex.Add(rootNLName + " " + nameIndex.Count + " " + RootName, "module " + Link(RootName, RootNLName));
+      fullName = RootName;
+      fullNLName = RootNLName;
     } else {
       AddToIndexF(module.Name, fullName, "module");
     }
@@ -306,8 +301,6 @@ class DafnyDoc {
     if (decl is ClassDecl cd && cd.InheritedMembers.Count > 0) {
       var sb = new StringBuilder();
       foreach (var member in cd.InheritedMembers) {
-        //if (member is Function f && f.Body == null) continue;
-        //if (member is Method m && m.Body == null) continue;
         var link = QualifiedNameWithLinks(member.EnclosingClass.FullDafnyName, member.Name, Bold(member.Name));
         sb.Append(Row(member.WhatKind, link));
       }
@@ -333,7 +326,6 @@ class DafnyDoc {
     file.WriteLine(details.ToString());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
-
   }
 
   /** Returns printable info about the file containing the given token and the last modification time of the file */
@@ -644,7 +636,7 @@ class DafnyDoc {
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
         var docstring = Docstring(c);
-        var modifiers = Modifiers(c);
+        var modifiers = c.ModifiersAsString();
         summaries.Append(LinkToAnchor(c.Name, Bold(c.Name))).Append(": ").Append(TypeLink(c.Type));
 
         if (!String.IsNullOrEmpty(docstring)) {
@@ -685,7 +677,7 @@ class DafnyDoc {
 
         summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), DashShortDocstring(c))).Append(eol);
 
-        var modifiers = Modifiers(c);
+        var modifiers = c.ModifiersAsString();
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
@@ -751,6 +743,7 @@ class DafnyDoc {
     }
   }
 
+  // A string representation of a formal parameter, but with the type having links to type declarations
   string FormalAsString(Formal ff, bool allowNew) {
     string ss = "";
     if (ff.IsGhost) {
@@ -775,7 +768,7 @@ class DafnyDoc {
       var md = m as IHasDocstring;
       var ms = MethodSig(m);
       var docstring = Docstring(md);
-      var modifiers = Modifiers(m);
+      var modifiers = m.ModifiersAsString();
       var name = m.Name;
       if (m is Constructor) {
         if (name == "_ctor") {
@@ -813,7 +806,6 @@ class DafnyDoc {
       }
       details.Append(IndentedHtml(docstring));
       AppendSpecs(details, m);
-
     }
   }
 
@@ -896,27 +888,27 @@ class DafnyDoc {
 
     file.Write(Heading1($"Modules{ProgramHeader()}{space4}{Smaller(indexlink)}"));
     file.Write(BodyStart());
-    file.WriteLine("<ul>");
+    file.WriteLine(ListStart());
     int currentIndent = 0;
     foreach (var module in modules) {
       var fullname = module.FullDafnyName;
       int level = Regex.Matches(fullname, "\\.").Count;
       while (level > currentIndent) {
-        file.WriteLine("<ul>");
+        file.WriteLine(ListStart());
         currentIndent++;
       }
       while (level < currentIndent) {
-        file.WriteLine("</ul>");
+        file.WriteLine(ListEnd());
         currentIndent--;
       }
       var ds = DashShortDocstringNoMore(module);
       if (module.ModuleDef.IsDefaultModule) {
-        file.WriteLine($"<li>Module <a href=\"{rootName}.html\">{rootNLName}</a>{ds}</li>");
+        file.WriteLine(ListItem("Module " + Link(RootName, RootNLName) + ds));
       } else {
-        file.WriteLine($"<li>Module <a href=\"{fullname}.html\">{fullname}</a>{ds}</li>");
+        file.WriteLine(ListItem("Module " + Link(fullname, fullname) + ds));
       }
     }
-    file.WriteLine("</ul>");
+    file.WriteLine(ListEnd());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }
@@ -1080,20 +1072,6 @@ class DafnyDoc {
     return output;
   }
 
-  public string Modifiers(MemberDecl d) {
-    string result = "";
-    if (d.IsGhost) {
-      result += "ghost ";
-    }
-    if (d.IsStatic) {
-      result += "static ";
-    }
-    if (d.IsOpaque) {
-      result += "opaque ";
-    }
-    return result;
-  }
-
   public string TypeFormals(List<TypeParameter> args) {
     return (args.Count == 0) ? "" :
       "&lt;" + String.Join(",", args.Select(a => TypeParameter.VarianceString(a.VarianceSyntax) + a + a.Characteristics)) + "&gt;";
@@ -1156,8 +1134,8 @@ class DafnyDoc {
   }
 
   public static string DefaultOutputDir = "./docs";
-  public static readonly string rootName = "_"; // Name of file for root module
-  public static readonly string rootNLName = " (root module)"; // Name of root module to display
+  public static readonly string RootName = "_"; // Name of file for root module
+  public static readonly string RootNLName = " (root module)"; // Name of root module to display
 
   static string contentslink = Link("index", "[table of contents]");
   static string indexlink = Link("nameindex", "[index]");
