@@ -3,7 +3,8 @@ input.dfy(6,8): Warning: Shadowed local-variable name: x
 Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification
-Warning: project file option does-not-exist is not a valid Dafny option.
+Warning: only Dafny project files named dafny.toml are recognised by the Dafny IDE.
+Warning: option 'does-not-exist' that was specified in the project file, is not a valid Dafny option.
 
 Dafny program verifier did not attempt verification
 Error: property 'warn-shadowing' is of type 'Int64' but should be of type 'Boolean'

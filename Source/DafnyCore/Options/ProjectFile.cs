@@ -16,6 +16,8 @@ using Tomlyn;
 namespace Microsoft.Dafny; 
 
 public class ProjectFile {
+  public const string FileName = "dafny.toml";
+  
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
@@ -23,6 +25,9 @@ public class ProjectFile {
   public Dictionary<string, object> Options { get; set; }
 
   public static ProjectFile Open(Uri uri, TextWriter errorWriter) {
+    if (Path.GetFileName(uri.LocalPath) != FileName) {
+      Console.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+    }
     try {
       var file = File.Open(uri.LocalPath, FileMode.Open);
       var model = Toml.ToModel<ProjectFile>(new StreamReader(file).ReadToEnd(), null, new TomlModelOptions());
