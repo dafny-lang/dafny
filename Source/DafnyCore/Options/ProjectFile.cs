@@ -17,7 +17,7 @@ namespace Microsoft.Dafny;
 
 public class ProjectFile {
   public const string FileName = "dafny.toml";
-  
+
   [IgnoreDataMember]
   public Uri Uri { get; set; }
   public string[] Includes { get; set; }
