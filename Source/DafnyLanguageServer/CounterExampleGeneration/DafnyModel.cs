@@ -866,15 +866,19 @@ namespace DafnyServer.CounterexampleGeneration {
     /// <summary>
     /// Return all functions mapping an object to a destructor value.
     /// </summary>
-    private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
-      var possiblyNullableTypes = GetIsResults(datatypeElement)
+    private List<Model.Func> GetDestructorFunctions(Model.Element element) {
+      var possibleTypeIdentifiers = GetIsResults(element);
+      if (fDtype.OptEval(element) != null) {
+        possibleTypeIdentifiers.Add(fDtype.OptEval(element));
+      }
+      var possiblyNullableTypes = possibleTypeIdentifiers
         .Select(isResult => ReconstructType(isResult) as UserDefinedType)
         .Where(type => type != null && type.Name != UnknownType.Name);
       var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
-      foreach (var app in datatypeElement.References) {
-        if (app.Func.Arity != 1 || app.Args[0] != datatypeElement ||
+      foreach (var app in element.References) {
+        if (app.Func.Arity != 1 || app.Args[0] != element ||
             !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
             builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
           continue;
