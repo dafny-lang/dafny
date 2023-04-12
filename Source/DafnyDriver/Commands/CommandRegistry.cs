@@ -187,8 +187,7 @@ static class CommandRegistry {
     return true;
   }
 
-  private static IEnumerable<Option> AllOptions
-  {
+  private static IEnumerable<Option> AllOptions {
     get { return Commands.SelectMany(c => c.Options); }
   }
 
