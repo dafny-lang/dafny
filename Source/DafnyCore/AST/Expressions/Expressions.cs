@@ -732,7 +732,7 @@ public abstract class Expression : TokenNode {
     var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
-    var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, null) {
+    var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, call.TypeApplication_JustFunction) {
       Type = Resolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
     };
 
