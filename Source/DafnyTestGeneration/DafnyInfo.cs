@@ -15,6 +15,7 @@ namespace DafnyTestGeneration {
 
   /// <summary> Extract essential info from a parsed Dafny program </summary>
   public class DafnyInfo {
+
     public DafnyOptions Options { get; }
     private readonly Dictionary<string, Method> methods = new();
     private readonly Dictionary<string, Function> functions = new();
@@ -132,6 +133,46 @@ namespace DafnyTestGeneration {
         return functions[callable].IsGhost;
       }
       return true;
+    }
+
+    private uint GetTestInlineAttributeValue(MemberDecl callable) {
+      Attributes attributes = callable.Attributes;
+      while (attributes != null) {
+        if (attributes.Name == TestGenerationOptions.TestInlineAttribute) {
+          if (!Options.TestGenOptions.TestInline) {
+            Options.Printer.ErrorWriteLine(Console.Error,
+              $"*** Error: Callable {callable.FullName} is annotated with " +
+              $"{TestGenerationOptions.TestInlineAttribute} but test " +
+              $"generation is called without the --inline command line option");
+            SetNonZeroExitCode = true;
+          }
+          if (uint.TryParse(attributes.Args.First().ToString(), out uint result) && result > 0) {
+            return result;
+          }
+          Options.Printer.ErrorWriteLine(Console.Error,
+            $"*** Error: {TestGenerationOptions.TestInlineAttribute} value for callable {callable.FullName} must be a positive integer");
+          SetNonZeroExitCode = true;
+          return 0;
+        }
+        attributes = attributes.Prev;
+      }
+      return 0;
+    }
+
+    /// <summary>
+    /// Return the number of times a given Dafny method should be inlined for
+    /// test generation purposes.
+    /// </summary>
+    /// <param name="callable"></param>
+    /// <returns></returns>
+    public uint TimesToInline(string callable) {
+      if (methods.ContainsKey(callable)) {
+        return GetTestInlineAttributeValue(methods[callable]);
+      }
+      if (functions.ContainsKey(callable)) {
+        return GetTestInlineAttributeValue(functions[callable]);
+      }
+      return 0;
     }
 
     public bool IsAccessible(string callable) {

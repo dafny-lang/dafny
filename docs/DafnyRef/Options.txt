@@ -384,10 +384,8 @@ Usage: dafny [ option ... ] [ filename ... ]
       than <n>. 0 (default) indicates no limit.
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
-  /generateTestInlineDepth:<n>
-      0 is the default. When used in conjunction with /testTargetMethod,
-      this argument specifies the depth up to which all non-tested methods
-      should be inlined.
+  /generateTestInline
+      Inline all methods and functions annotated with the :testInline.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestVerbose

@@ -1,4 +1,5 @@
 ﻿#nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,7 +30,7 @@ namespace DafnyTestGeneration {
     // The implementation to test.
     protected Implementation/*?*/ ImplementationToTarget;
     // Boogie names of implementations to be tested or inlined
-    private HashSet<string> toModify = new();
+    private Dictionary<string, uint> timesToInline = new();
     protected DafnyInfo DafnyInfo;
 
     /// <summary>
@@ -52,14 +53,8 @@ namespace DafnyTestGeneration {
           && i.VerboseName.Split(" ")[0]
           == options.TestGenOptions.TargetMethod);
       }
-      var callGraphVisitor = new CallGraph();
-      callGraphVisitor.VisitProgram(program);
-      // options.TestGenOptions.TestInlineDepth is multiplied by two
-      // because inlining a method call in Dafny is equivalent to inlining
-      // two procedures in Boogie (Call$$- and Impl$$-prefixed procedures)
-      toModify = callGraphVisitor.GetCallees(
-        ImplementationToTarget?.Name,
-        options.TestGenOptions.TestInlineDepth * 2);
+      var callGraphVisitor = new CallGraph(dafnyInfo, program);
+      timesToInline = callGraphVisitor.GetCallees(ImplementationToTarget?.Name);
       var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
       AddAxioms(options, program);
@@ -73,7 +68,7 @@ namespace DafnyTestGeneration {
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
-      (ImplementationToTarget == null || toModify.Contains(impl.Name)) &&
+      (ImplementationToTarget == null || timesToInline.GetValueOrDefault<string, uint>(impl.Name, 0) > 0) &&
       impl.Name.StartsWith("Impl$$") && !impl.Name.EndsWith("__ctor") &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 
@@ -183,9 +178,9 @@ namespace DafnyTestGeneration {
         }
 
         var callerName = node.Name;
-        var calleName = $"Impl$${node.Name.Split("$").Last()}";
+        var calleeName = $"Impl$${node.Name.Split("$").Last()}";
         var calleeProc = program?.Procedures
-          .Where(f => f.Name == calleName)
+          .Where(f => f.Name == calleeName)
           .FirstOrDefault((Procedure)null);
         if (calleeProc == null) {
           return node; // Can happen if included modules are not verified
@@ -207,7 +202,7 @@ namespace DafnyTestGeneration {
             new TypedIdent(new Token(), v.Name, v.TypedIdent.Type), false)).ToList();
         var returnVars = outParams.Concat(vars);
         // construct the call to the "Impl$$" implementation:
-        var cmd = new CallCmd(new Token(), calleName,
+        var cmd = new CallCmd(new Token(), calleeName,
           inParams
             .ConvertAll(v => (Expr)new IdentifierExpr(new Token(), v))
             .ToList(),
@@ -219,9 +214,11 @@ namespace DafnyTestGeneration {
         var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
           new ReturnCmd(new Token()));
         // construct the new implementation:
+        var verboseNameAttr = new QKeyValue(new Token(), "verboseName",
+          new List<object> { node.VerboseName }, null);
         var callerImpl = new Implementation(new Token(), callerName,
           node.TypeParameters, inParams, outParams, vars,
-          new List<Block> { block });
+          new List<Block> { block }, verboseNameAttr);
         callerImpl.Proc = node;
         implsToAdd.Add(callerImpl);
         return node;
@@ -242,12 +239,20 @@ namespace DafnyTestGeneration {
     private class CallGraph : ReadOnlyVisitor {
 
       // maps name of an implementation to those implementations that it calls
-      private readonly Dictionary<string, List<string>> calls = new();
+      private readonly Dictionary<string, HashSet<string>> calls = new();
       private string/*?*/ implementation; // implementation currently traversed
+      private readonly DafnyInfo info;
+      private readonly Dictionary<string, uint> timesToInline = new();
+
+      public CallGraph(DafnyInfo info, Program program) {
+        this.info = info;
+        VisitProgram(program);
+      }
 
       public override Implementation VisitImplementation(Implementation node) {
         implementation = node.Name;
-        calls[implementation] = new List<string>();
+        calls[implementation] = new();
+        timesToInline[node.Name] = info.TimesToInline(node.VerboseName.Split(" ").First());
         node.Blocks.ForEach(block => VisitBlock(block));
         return node;
       }
@@ -259,34 +264,42 @@ namespace DafnyTestGeneration {
         return base.VisitCallCmd(node);
       }
 
-      public override Program VisitProgram(Program node) {
+      public sealed override Program VisitProgram(Program node) {
         node = base.VisitProgram(node);
         return node;
       }
 
       /// <summary>
-      /// Return the set of implementations that might be called as a result
-      /// of calling the given implementation
+      /// For each callee implementation, return the number of times it has
+      /// to be inlined 
       /// </summary>
-      public HashSet<string> GetCallees(string/*?*/ caller, uint depth) {
-        var result = new HashSet<string>();
+      public Dictionary<string, uint> GetCallees(string/*?*/ caller) {
+        var result = new Dictionary<string, uint>();
         if (caller == null) {
           return result;
         }
-        GetCalleesRecursively(caller, result, depth);
+        GetCalleesRecursively(caller, result);
+        if (result.GetValueOrDefault<string, uint>(caller, 0) == 0) {
+          result[caller] = 1; // "inline" the method actually being tested
+        }
         return result;
       }
 
-      private void GetCalleesRecursively(string caller, ISet<string> recorded, uint depth) {
-        recorded.Add(caller);
-        if (depth == 0) {
-          return;
-        }
+      private void GetCalleesRecursively(string caller, Dictionary<string, uint> recorded) {
         foreach (var callee in calls.GetValueOrDefault(caller,
-          new List<string>())) {
-          if (!recorded.Contains(callee)) {
-            GetCalleesRecursively(callee, recorded, depth - 1);
+                   new HashSet<string>())) {
+          if (recorded.ContainsKey(callee)) {
+            continue;
           }
+          uint toInline = timesToInline.GetValueOrDefault<string, uint>(callee, 0);
+          if (toInline == 0) {
+            continue;
+          }
+          recorded[callee] = toInline;
+          if (info.Options.TestGenOptions.Verbose) {
+            Console.Out.WriteLine($"// Will inline calls to {callee} with recursion unrolling depth set to {toInline}.");
+          }
+          GetCalleesRecursively(callee, recorded);
         }
       }
     }
@@ -336,11 +349,11 @@ namespace DafnyTestGeneration {
         } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if ((options.TestGenOptions.TestInlineDepth > 0) &&
-                   modifier.toModify.Contains(node.Name)) {
+        } else if (options.TestGenOptions.TestInline &&
+                   modifier.timesToInline.ContainsKey(node.Name)) {
           // This method is inlined (and hence tested)
           var depthExpression =
-            new LiteralExpr(new Token(), BigNum.FromUInt(options.TestGenOptions.TestInlineDepth));
+            new LiteralExpr(new Token(), BigNum.FromUInt(modifier.timesToInline[node.Name]));
           var attribute = new QKeyValue(new Token(), "inline",
             new List<object>() { depthExpression }, null);
           attribute.Next = node.Attributes;
@@ -459,11 +472,8 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        Function/*?*/ findFunction =
-          functionMap.GetValueOrDefault(node.Name[6..], null);
-        if (!node.Name.StartsWith("Impl$$") ||
-            findFunction == null) {
-          return node; // this implementation is potentially side-effecting
+        if (!node.Name.StartsWith("Impl$$")) {
+          return node;
         }
         currImpl = node;
         return base.VisitImplementation(node);

@@ -6,12 +6,13 @@ namespace Microsoft.Dafny {
 
   public class TestGenerationOptions {
 
+    public static readonly string TestInlineAttribute = "testInline";
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
-    public uint TestInlineDepth = 0;
+    public bool TestInline = false;
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
@@ -52,11 +53,8 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestInlineDepth":
-          var depth = 0;
-          if (ps.GetIntArgument(ref depth)) {
-            TestInlineDepth = (uint)depth;
-          }
+        case "generateTestInline":
+          TestInline = true;
           return true;
 
         case "generateTestPrintBpl":
@@ -92,10 +90,8 @@ namespace Microsoft.Dafny {
     than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
-/generateTestInlineDepth:<n>
-    0 is the default. When used in conjunction with /testTargetMethod,
-    this argument specifies the depth up to which all non-tested methods
-    should be inlined.
+/generateTestInline
+    Inline all methods and functions annotated with the :testInline.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestVerbose
