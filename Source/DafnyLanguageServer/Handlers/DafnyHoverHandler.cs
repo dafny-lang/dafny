@@ -123,8 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line &&
-            node.Filename == state.Uri.ToString()) {
+        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }
@@ -147,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchesToReport.Count == 0 && node.Finished) {
         information += "No assertions.";
       } else if (assertionBatchesToReport.Count >= 1) {
-        information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
+        information += $"- Total resource usage: {FormatResourceCount(node.ResourceCount)}";
         if (node.ResourceCount > RuLimitToBeOverCostly) {
           information += OverCostlyMessage;
         }
@@ -170,7 +169,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
               costlierAssertionBatch.Children.Count + "",
               costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-              formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
+              FormatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
           }
 
           var maxIndexLength = result.Select(item => item.index.Length).Max();
@@ -292,10 +291,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchCount > 1) {
         information += AddAssertionBatchDocumentation("Batch") +
                        $" #{assertionBatch.RelativeNumber} resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       } else {
         information += "Resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       }
 
       // Not the main error displayed in diagnostics
@@ -314,7 +313,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string formatResourceCount(int nodeResourceCount) {
+    private string FormatResourceCount(int nodeResourceCount) {
       var suffix = 0;
       while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
         nodeResourceCount /= 1000;
