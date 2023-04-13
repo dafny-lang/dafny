@@ -174,6 +174,11 @@ static class CommandRegistry {
         Console.Error.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
         return false;
       }
+
+      if (!File.Exists(singleFile.FullName)) {
+        Console.Error.WriteLine($"Error: file {singleFile.FullName} not found");
+        return false;
+      }
       var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
       if (projectFile == null) {
         return false;

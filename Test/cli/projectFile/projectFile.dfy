@@ -1,6 +1,9 @@
 // A project file can specify input files and configure options
 // RUN: %baredafny resolve --use-basename-for-filename "%S/dafny.toml" > "%t"
 
+// Test using a URL instead of a local file as a project file
+// RUN: ! %baredafny resolve --use-basename-for-filename "https://github.com/dafny-lang/dafny/blob/master/dafny.toml"
+
 // Test option override behavior
 // RUN: %baredafny resolve --use-basename-for-filename "%S/dafny.toml" --warn-shadowing=false >> "%t"
 
