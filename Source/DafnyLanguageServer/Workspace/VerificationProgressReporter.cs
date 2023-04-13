@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -60,7 +61,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
       }
     }
 
-    var documentFilePath = parsedDocument.Uri.ToString();
+    var documentFilePath = parsedDocument.Uri.ToUri();
     foreach (var module in parsedDocument.Program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
@@ -75,6 +76,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 ctor.Name,
                 ctor.GetCompileName(options),
                 ctor.tok.Filename,
+                parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 ctor.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -84,7 +86,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
 
         if (topLevelDecl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           foreach (var member in topLevelDeclWithMembers.Members) {
-            var memberWasNotIncluded = member.tok.Filename != documentFilePath;
+            var memberWasNotIncluded = member.tok.Uri != documentFilePath;
             if (memberWasNotIncluded) {
               continue;
             }
@@ -101,6 +103,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.Name,
                 member.GetCompileName(options),
                 member.tok.Filename,
+                parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -111,6 +114,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 member.Name,
                 member.GetCompileName(options),
                 member.tok.Filename,
+                parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
               AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -121,6 +125,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
                   member.tok.Filename,
+                  parsedDocument.Uri.ToUri(),
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition());
                 AddAndPossiblyMigrateVerificationTree(verificationTreeByMethod);
@@ -130,7 +135,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         }
 
         if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
-          if (subsetTypeDecl.tok.Filename != documentFilePath) {
+          if (subsetTypeDecl.tok.Uri != documentFilePath) {
             continue;
           }
 
@@ -140,6 +145,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
             subsetTypeDecl.tok.Filename,
+            parsedDocument.Uri.ToUri(),
             verificationTreeRange,
             subsetTypeDecl.tok.GetLspPosition());
           AddAndPossiblyMigrateVerificationTree(verificationTree);
@@ -179,6 +185,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         newDisplayName,
         implementation.Name,
         targetMethodNode.Filename,
+        targetMethodNode.Uri,
         targetMethodNode.Range,
         targetMethodNode.Position
       ).WithImplementation(implementation);
@@ -329,6 +336,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
             $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
             token.Filename,
+            token.Uri,
             secondaryOutcomePosition,
             outcomeRange
           ) {
@@ -389,7 +397,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <returns>The top-level verification tree</returns>
   private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
     var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
-      node => node?.Position == implementation.tok.GetLspPosition() && node?.Filename == implementation.tok.filename
+      node => node?.Position == implementation.tok.GetLspPosition() && node?.Uri.AbsoluteUri == implementation.tok.filename
       , null);
     if (nameBased) {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
