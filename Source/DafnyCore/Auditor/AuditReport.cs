@@ -177,8 +177,12 @@ public class AuditReport {
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
-
         foreach (var decl in topLevelDeclWithMembers.Members) {
+          if (decl.tok is IncludeToken) {
+            // Don't audit included code
+            continue;
+          }
+
           report.AddAssumptions(decl, decl.Assumptions());
         }
       }

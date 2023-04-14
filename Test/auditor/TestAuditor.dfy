@@ -8,6 +8,8 @@
 // RUN: %diff "%t.html" "%s.html.expect"
 // RUN: %diff "%t.expect" "%s.expect"
 
+include "IgnoredAssumptions.dfy"
+
 // Method or lemma with a failed proof (top priority, but shown only in reports from later versions of the tool)
 method BadMethod(i: nat) returns (res: nat)
   requires i < 64
