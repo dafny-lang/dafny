@@ -76,7 +76,7 @@ namespace DafnyTestGeneration {
       if (!resolve) {
         return program;
       }
-      
+
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
       program.Reporter = new ErrorReporterSink(options);

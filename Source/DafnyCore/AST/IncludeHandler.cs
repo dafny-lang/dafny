@@ -7,7 +7,7 @@ public static class IncludeHandler {
     if (token == Token.NoToken) {
       return false;
     }
-    
+
     if (program.Options.Files.Contains(token.ActualFilename)) { // TODO, use Uris?
       return false;
     }

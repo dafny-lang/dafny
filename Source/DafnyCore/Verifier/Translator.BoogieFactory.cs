@@ -888,7 +888,7 @@ namespace Microsoft.Dafny {
         try {
           uri = new Uri(exprTok.filename);
         } catch (UriFormatException e) {
-          
+
         }
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case

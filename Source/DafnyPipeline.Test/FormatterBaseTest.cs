@@ -51,7 +51,7 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        
+
         var dafnyProgram = Utils.Parse(options, programNotIndented, false);
         BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {

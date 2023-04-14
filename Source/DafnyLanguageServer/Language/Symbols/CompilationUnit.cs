@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       // The token filename happens to be null if it's representing a default module or class.
       return token.filename == null || token.filename == EntryDocument.AbsoluteUri;
     }
-    
+
     public ISet<ModuleSymbol> Modules { get; } = new HashSet<ModuleSymbol>();
 
     public override IEnumerable<ISymbol> Children => Modules;

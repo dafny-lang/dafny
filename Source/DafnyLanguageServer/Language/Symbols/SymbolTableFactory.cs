@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         symbolsResolved
       );
     }
-    
+
     public SymbolTable CreateFrom(Dafny.Program program, Document document, CancellationToken cancellationToken) {
       var visited = ((Node)program).Visit(a => true, b => { });
 
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
             identifier, token.GetDocumentFileName(), token.line, token.col);
         }
       }
-      
+
       private void ProcessNestedScope(AstElement node, Boogie.IToken token, System.Action visit) {
         if (!this.compilationUnit.IsPartOfEntryDocument(token)) {
           return;

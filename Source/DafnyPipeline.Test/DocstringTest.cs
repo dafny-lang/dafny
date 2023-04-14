@@ -426,7 +426,7 @@ iterator Iter2(x: int) yields (y: int)
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
-        
+
         var dafnyProgram = Utils.Parse(options, programString, false);
         BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {
