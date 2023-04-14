@@ -16,7 +16,7 @@ using Tomlyn;
 namespace Microsoft.Dafny; 
 
 public class ProjectFile {
-  public const string FileName = "dafny.toml";
+  public const string FileName = "dfyconfig.toml";
 
   [IgnoreDataMember]
   public Uri Uri { get; set; }

@@ -138,7 +138,7 @@ public class DocumentManager {
 
     var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
     while (!string.IsNullOrEmpty(folder)) {
-      var children = Directory.GetFiles(folder, "dafny.toml");
+      var children = Directory.GetFiles(folder, "dfyconfig.toml");
       if (children.Length > 0) {
         var errorWriter = TextWriter.Null;
         projectFile = ProjectFile.Open(new Uri(children[0]), errorWriter);

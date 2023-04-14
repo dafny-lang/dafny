@@ -71,10 +71,10 @@
     <None Update="ProjectFiles\TestFiles\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="ProjectFiles\TestFiles\Nesting\dafny.toml">
+    <None Update="ProjectFiles\TestFiles\Nesting\dfyconfig.toml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="ProjectFiles\TestFiles\dafny.toml">
+    <None Update="ProjectFiles\TestFiles\dfyconfig.toml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="ProjectFiles\TestFiles\noWarnShadowing.dfy">

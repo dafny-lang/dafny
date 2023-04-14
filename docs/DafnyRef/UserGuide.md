@@ -573,7 +573,7 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 
 ### 13.5.5. Project files
 
-Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dafny.toml`. Here's an example of a Dafny project file:
+Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. Here's an example of a Dafny project file:
 
 ```toml
 includes = ["src/**/*.dfy"]
@@ -586,7 +586,7 @@ warn-shadowing = true
 
 Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored.
 
-When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree, and options from the first found project file will override options passed to `dafny server`.
+When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file it can find. Options from the project file will override options passed to `dafny server`.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
