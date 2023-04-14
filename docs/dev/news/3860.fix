@@ -1,0 +1,1 @@
+Prevent a compiler crash that could occur when a datatype constructor was defined that has multiple parameters with the same name.
