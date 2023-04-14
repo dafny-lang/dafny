@@ -148,5 +148,8 @@ public class Auditor : IRewriter {
         }
       }
     }
+
+    var findingCount = report.AllAssumptions().SelectMany(a => a.Warnings()).Count();
+    Console.WriteLine($"Dafny auditor completed with {findingCount} findings");
   }
 }
