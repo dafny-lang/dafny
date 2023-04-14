@@ -105,10 +105,9 @@ public class AuditReport {
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
     var issue = UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = UpdateVerbatim(desc.mitigation, "`", "`");
-    var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
+    var mitigation = UpdateVerbatim(desc.mitigationIETF, "`", "`");
     text.AppendLine("");
-    text.AppendLine($"* {issue} MUST {mustMitigation}");
+    text.AppendLine($"* {issue} {mitigation}");
   }
 
   public string RenderMarkdownIETF() {
@@ -145,8 +144,13 @@ public class AuditReport {
 
           text.AppendLine("");
           text.AppendLine($"### Member `{decl.Name}`");
-          foreach (var desc in decl.Assumptions()) {
-            AppendMarkdownIETFDescription(desc, text);
+          if (decl.HasAxiomAttribute) {
+            // Don't include other assumptions in axioms
+            AppendMarkdownIETFDescription(AssumptionDescription.HasAxiomAttribute, text);
+          } else {
+            foreach (var desc in decl.Assumptions()) {
+              AppendMarkdownIETFDescription(desc, text);
+            }
           }
         }
       }

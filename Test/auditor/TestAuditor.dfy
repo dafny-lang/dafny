@@ -114,3 +114,17 @@ opaque function f(): int {
 method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
   return x;
 }
+
+method {:axiom} AxiomWithStuffInIt(x: int) returns (r: int) {
+  assume x > 0;
+  assume {:axiom} x > 10;
+
+  forall y : int
+    ensures y != y
+
+  var i := 0;
+  while i < x
+    decreases x - i
+
+  return x;
+}

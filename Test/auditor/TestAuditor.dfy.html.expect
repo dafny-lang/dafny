@@ -42,12 +42,13 @@
 <tr><td>GenerateBytes</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test external caller (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a ensures clause.</td><td>Test external callee (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test external caller (maybe with <code>/testContracts</code>).</td></tr>
-<tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove or add <code>{:axiom}</code>.</td></tr>
+<tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove.</td></tr>
 <tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test external caller (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>DoesNotTerminate</td><td>True</td><td>False</td><td>False</td><td>Method may not terminate (uses <code>decreases *</code>).</td><td>Provide a valid <code>decreases</code> clause.</td></tr>
 <tr><td>ForallWithoutBody</td><td>False</td><td>False</td><td>False</td><td>Definition contains <code>forall</code> statement with no body.</td><td>Provide a body.</td></tr>
 <tr><td>LoopWithoutBody</td><td>True</td><td>False</td><td>False</td><td>Definition contains loop with no body.</td><td>Provide a body.</td></tr>
 <tr><td>ConcurrentMethod</td><td>True</td><td>False</td><td>False</td><td>Declaration has <code>{:concurrent}</code> attribute.</td><td>Manually review and test in a concurrent setting.</td></tr>
+<tr><td>AxiomWithStuffInIt</td><td>True</td><td>True</td><td>False</td><td>Declaration has explicit <code>{:axiom}</code> attribute.</td><td>Provide a proof or test.</td></tr>
 </table>
 <script>$( "table" ).last().addClass( "sortable" );</script>
 </body>

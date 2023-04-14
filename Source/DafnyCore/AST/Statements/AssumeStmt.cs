@@ -25,7 +25,8 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   }
 
   public override IEnumerable<AssumptionDescription> Assumptions() {
-    yield return AssumptionDescription.AssumeStatement;
+    yield return AssumptionDescription.AssumeStatement(
+      Attributes.Contains(Attributes, Attributes.AxiomAttributeName));
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
