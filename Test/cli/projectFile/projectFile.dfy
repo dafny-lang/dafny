@@ -5,7 +5,7 @@
 // RUN: ! %baredafny resolve --use-basename-for-filename "https://github.com/dafny-lang/dafny/blob/master/dfyconfig.toml"
 
 // Test option override behavior
-// RUN: %baredafny resolve --use-basename-for-filename "%S/dafny.toml" --warn-shadowing=false >> "%t"
+// RUN: %baredafny resolve --use-basename-for-filename "%S/dfyconfig.toml" --warn-shadowing=false >> "%t"
 
 // Multiple project files are not allowed
 // RUN: ! %baredafny resolve --use-basename-for-filename "%S/dfyconfig.toml" "%S/broken/dfyconfig.toml"
