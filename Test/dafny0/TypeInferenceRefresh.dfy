@@ -958,3 +958,14 @@ method m (x: List<int>)  {
     case Cons(None, t) => {assert 4 > 3;}
 }
 ****************************************************************************************/
+
+/* The following test case may work with the new type inference, but did not with the old one.
+
+method LitTest() {
+  var c; // inferred to be bool
+  match c
+  case false =>
+  case true =>
+}
+
+*/
