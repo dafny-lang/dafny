@@ -53,7 +53,7 @@ public class Compilation {
 
   public Compilation(IServiceProvider services,
     DafnyOptions options,
-    DocumentTextBuffer textBuffer,
+    DocumentTextBuffer textBuffer, // TODO remove this guy
     VerificationTree? migratedVerificationTree) {
     this.options = options;
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
