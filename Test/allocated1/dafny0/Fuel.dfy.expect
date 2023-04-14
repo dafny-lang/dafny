@@ -1,5 +1,4 @@
 The /allocated:<n> option is deprecated
-Fuel.dfy(3,8): Error: the included file Fuel.dfy contains error(s)
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(17,22): Error: assertion might not hold
@@ -65,4 +64,4 @@ Fuel.dfy(435,22): Error: assertion might not hold
 Fuel.dfy(436,22): Error: assertion might not hold
 Fuel.dfy(437,23): Error: assertion might not hold
 
-Dafny program verifier finished with 30 verified, 38 errors
+Dafny program verifier finished with 30 verified, 37 errors
