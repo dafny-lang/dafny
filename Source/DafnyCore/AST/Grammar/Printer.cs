@@ -2916,6 +2916,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
               sep = ", ";
             }
             wr.Write(")");
+          } else if (ShowType(idPat.Type)) {
+            wr.Write(": ");
+            PrintType(idPat.Type);
           }
           break;
         case DisjunctivePattern dPat:
