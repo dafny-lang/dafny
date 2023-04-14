@@ -83,3 +83,16 @@ module Underspecification3 {
     var e: SubsetType := [100, 101]; // error: type underspecified
   }
 }
+
+/*
+ * The following example causes Dafny 4.0 to crash (after reporting the expected error).
+
+datatype R = R(int, int)
+
+method M() {
+  var pair: (int, int) := (20, 30);
+  match pair
+  case R(x, y) => // bogus: should not be allowed to match a pair against an R constructor
+    print x + y, "\n";
+}
+ */
