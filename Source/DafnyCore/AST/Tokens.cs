@@ -146,7 +146,7 @@ public abstract class TokenWrapper : IToken {
 
   public virtual string Filename {
     get { return WrappedToken.Filename; }
-    set { WrappedToken.filename = value; }
+    set { WrappedToken.filename = value; } // TODO fix?
   }
 
   public Uri Uri {

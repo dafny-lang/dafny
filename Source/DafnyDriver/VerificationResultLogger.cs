@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
 
       foreach (var (implementation, result) in verificationResults) {
         var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        var currentFile = implementation.tok.filename;
+        var currentFile = new Uri(implementation.tok.filename);
         foreach (var vcResult in vcResults) {
           var verbName = implementation.VerboseName;
           var name = vcResults.Count() > 1
@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
           var testCase = new TestCase {
             FullyQualifiedName = name,
             ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = currentFile
+            Source = currentFile.LocalPath
           };
           var testResult = new TestResult(testCase) {
             StartTime = vcResult.startTime,

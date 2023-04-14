@@ -158,7 +158,7 @@ public abstract class Node : INode {
         while (tmpToken != null && tmpToken != EndToken.Next) {
           if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
-          } else if (tmpToken.filename != null) {
+          } else if (tmpToken.Uri != null) {
             result.Add(tmpToken);
           }
 
