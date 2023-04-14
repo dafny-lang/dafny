@@ -1,0 +1,22 @@
+TestAuditor.dfy(89,4): Warning: note, this forall statement has no body
+TestAuditor.dfy(96,4): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(87,10): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(89,4): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(83,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.
+TestAuditor.dfy(20,6): Warning: MinusBv8NoBody: Ghost declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
+TestAuditor.dfy(25,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
+TestAuditor.dfy(32,6): Warning: MinusBv8Assume: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
+TestAuditor.dfy(43,17): Warning: GenerateBytes: Compiled declaration has no body and has an ensures clause. Possible mitigation: Provide a body or add `{:axiom}`.
+TestAuditor.dfy(43,17): Warning: GenerateBytes: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
+TestAuditor.dfy(43,17): Warning: GenerateBytes: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(48,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
+TestAuditor.dfy(48,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(56,7): Warning: GenerateBytesWrapper: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
+TestAuditor.dfy(66,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(77,7): Warning: DoesNotTerminate: Method may not terminate (uses `decreases *`). Possible mitigation: Provide a valid `decreases` clause.
+TestAuditor.dfy(86,6): Warning: ForallWithoutBody: Definition contains `forall` statement with no body. Possible mitigation: Provide a body.
+TestAuditor.dfy(93,7): Warning: LoopWithoutBody: Definition contains loop with no body. Possible mitigation: Provide a body.
+TestAuditor.dfy(112,21): Warning: ConcurrentMethod: Declaration has `{:concurrent}` attribute. Possible mitigation: Manually review and test in a concurrent setting.
+Dafny auditor completed with 15 findings
+
+Dafny program verifier did not attempt verification
