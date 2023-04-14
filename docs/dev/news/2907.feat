@@ -1,0 +1,3 @@
+Added support for `.toml` based Dafny project files. For now the project file only allows specifying which Dafny files to include and exclude, and what options to use.
+The CLI commands that take Dafny files as input, such as build, run, translate, will now also accept Dafny project files.
+When using an IDE based on `dafny server`, such as the Dafny VSCode extension, the IDE will look for a Dafny project file by traversing up the file tree from the currently opened file, until it finds it `dfyconfig.toml`. The project file will override options specified in the IDE. 
