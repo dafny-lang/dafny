@@ -69,7 +69,7 @@ public class JavaBackend : ExecutableBackend {
     foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
       files.Add(Path.GetFullPath(file));
     }
-
+    
     // Compile the generated source to .class files, adding the output directory to the classpath
     var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
@@ -116,6 +116,7 @@ public class JavaBackend : ExecutableBackend {
     var args = entryPointName == null ? // If null, then no entry point is added
         new List<string> { "cf", jarPath }
         : new List<string> { "cfe", jarPath, entryPointName };
+    args.Add("META-INF/Program.doo");
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
     return 0 == RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);

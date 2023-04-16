@@ -2901,6 +2901,15 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var i in arrays) {
         CreateDafnyArrays(i, wr);
       }
+      
+      // Emit doo file
+      var tw = new StringWriter();
+      var pr = new Printer(tw, program.Options, program.Options.PrintMode);
+      // TODO: afterResolver = true is probably better but more likely
+      // to not be a valid parseable program
+      pr.PrintProgram(program, false);
+      var dooWr = wr.NewFile($"META-INF/Program.doo");
+      dooWr.Write(tw.ToString());
     }
 
     private void CreateTuple(int i, ConcreteSyntaxTree outputWr) {
