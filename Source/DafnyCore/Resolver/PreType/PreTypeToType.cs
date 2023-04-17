@@ -199,4 +199,26 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       }
     }
   }
+
+  protected override void VisitExtendedPattern(ExtendedPattern pattern, IASTVisitorContext context) {
+    switch (pattern) {
+      case DisjunctivePattern disjunctivePattern:
+        break;
+      case LitPattern litPattern:
+        PostVisitOneExpression(litPattern.OrigLit, context);
+        break;
+      case IdPattern idPattern:
+        if (idPattern.BoundVar != null) {
+          UpdateIfOmitted(idPattern.BoundVar.Type, idPattern.BoundVar.PreType);
+        }
+        if (idPattern.ResolvedLit != null) {
+          PostVisitOneExpression(idPattern.ResolvedLit, context);
+        }
+        break;
+      default:
+        Contract.Assert(false); // unexpected case
+        break;
+    }
+    base.VisitExtendedPattern(pattern, context);
+  }
 }

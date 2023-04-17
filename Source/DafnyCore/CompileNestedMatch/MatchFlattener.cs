@@ -755,10 +755,11 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  // If cp is not a wildcard, replace path.Body with let cp = expr in path.Body
+  // If cp is not a literal or wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
   private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
-    if (!var.IsWildcardPattern) {
+    Contract.Assert(var.Ctor == null);
+    if (var.ResolvedLit == null && !var.IsWildcardPattern) {
       return LetBind(var, expr, bodyPath);
     }
 

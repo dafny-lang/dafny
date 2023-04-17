@@ -713,13 +713,8 @@ namespace Microsoft.Dafny {
 #endif
 
       } else if (expr is NestedMatchExpr) {
-#if SOON
         var e = (NestedMatchExpr)expr;
         ResolveNestedMatchExpr(e, resolutionContext);
-        if (e.ResolvedExpression != null) {
-          expr.PreType = e.ResolvedExpression.PreType;
-        }
-#endif
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
