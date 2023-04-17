@@ -254,9 +254,8 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (expr is NestedMatchExpr nestedMatchExpr) {
-          foreach (IdPattern mc in nestedMatchExpr.Cases.SelectMany(c => c.Pat.DescendantsAndSelf).OfType<IdPattern>()
-                     .Where(id => id.BoundVar != null)) {
-            VisitUserProvidedType(mc.BoundVar.Type, context);
+          foreach (var mc in nestedMatchExpr.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
         }
 
@@ -269,6 +268,27 @@ namespace Microsoft.Dafny {
         expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
 
         PostVisitOneExpression(expr, context);
+      }
+    }
+
+    protected virtual void VisitExtendedPattern(ExtendedPattern pattern, VisitorContext context) {
+      switch (pattern) {
+        case DisjunctivePattern disjunctivePattern:
+          disjunctivePattern.Alternatives.ForEach(alternative => VisitExtendedPattern(alternative, context));
+          break;
+        case LitPattern litPattern:
+          break;
+        case IdPattern idPattern:
+          if (idPattern.BoundVar != null) {
+            VisitUserProvidedType(idPattern.BoundVar.Type, context);
+          }
+          if (idPattern.Arguments != null) {
+            idPattern.Arguments.ForEach(argument => VisitExtendedPattern(argument, context));
+          }
+          break;
+        default:
+          Contract.Assert(false); // unexpected case
+          break;
       }
     }
 
@@ -324,6 +344,11 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForallStmt forallStmt) {
           foreach (BoundVar v in forallStmt.BoundVars) {
             VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+          foreach (var mc in nestedMatchStmt.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
 
         } else if (stmt is MatchStmt matchStmt) {
