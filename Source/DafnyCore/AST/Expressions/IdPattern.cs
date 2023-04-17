@@ -11,7 +11,6 @@ namespace Microsoft.Dafny;
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
-  public PreType PreType;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
