@@ -261,869 +261,932 @@ namespace Microsoft.Dafny {
         wfOptions = new WFOptions(false, wfOptions);
       }
 
-      if (expr is StaticReceiverExpr stexpr) {
-        if (stexpr.ObjectToDiscard != null) {
-          CheckWellformedWithResult(stexpr.ObjectToDiscard, wfOptions, null, null, locals, builder, etran);
-        }
-      } else if (expr is LiteralExpr) {
-        CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
-      } else if (expr is ThisExpr || expr is WildcardExpr || expr is BoogieWrapper) {
-        // always allowed
-      } else if (expr is IdentifierExpr) {
-        var e = (IdentifierExpr)expr;
-        if (!origOptions.LValueContext) {
-          CheckDefiniteAssignment(e, builder);
-        }
-      } else if (expr is DisplayExpression) {
-        DisplayExpression e = (DisplayExpression)expr;
-        Contract.Assert(e.Type is CollectionType);
-        var elementType = ((CollectionType)e.Type).Arg;
-        foreach (Expression el in e.Elements) {
-          CheckWellformed(el, wfOptions, locals, builder, etran);
-          CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
-        }
-      } else if (expr is MapDisplayExpr) {
-        MapDisplayExpr e = (MapDisplayExpr)expr;
-        Contract.Assert(e.Type is MapType);
-        var keyType = ((MapType)e.Type).Domain;
-        var valType = ((MapType)e.Type).Range;
-        foreach (ExpressionPair p in e.Elements) {
-          CheckWellformed(p.A, wfOptions, locals, builder, etran);
-          CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
-          CheckWellformed(p.B, wfOptions, locals, builder, etran);
-          CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
-        }
-      } else if (expr is MemberSelectExpr) {
-        MemberSelectExpr e = (MemberSelectExpr)expr;
-        CheckFunctionSelectWF("naked function", builder, etran, e, " Possible solution: eta expansion.");
-        CheckWellformed(e.Obj, wfOptions, locals, builder, etran);
-        if (e.Obj.Type.IsRefType) {
-          if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
-            // this uses the surrogate local
+      switch (expr) {
+        case StaticReceiverExpr stexpr: {
+            if (stexpr.ObjectToDiscard != null) {
+              CheckWellformedWithResult(stexpr.ObjectToDiscard, wfOptions, null, null, locals, builder, etran);
+            }
+
+            break;
+          }
+        case LiteralExpr:
+          CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
+          break;
+        case ThisExpr:
+        case WildcardExpr:
+        case BoogieWrapper:
+          // always allowed
+          break;
+        case IdentifierExpr identifierExpr: {
+            var e = identifierExpr;
             if (!origOptions.LValueContext) {
-              CheckDefiniteAssignmentSurrogate(expr.tok, (Field)e.Member, false, builder);
+              CheckDefiniteAssignment(e, builder);
             }
-          } else {
-            CheckNonNull(expr.tok, e.Obj, builder, etran, wfOptions.AssertKv);
-            // Check that the receiver is available in the state in which the dereference occurs
-          }
-        } else if (e.Member is DatatypeDestructor dtor) {
-          var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
-            ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
-          if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
-            // Every constructor has this destructor; might as well assume that here.
-            builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
-          } else {
-            builder.Add(Assert(GetToken(expr), correctConstructor,
-              new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
-          }
-          CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
-        } else if (e.Member is DatatypeDiscriminator discriminator) {
-          CheckNotGhostVariant(e, "discriminator", ((DatatypeDecl)discriminator.EnclosingClass).Ctors, builder, etran);
-        }
-        if (!e.Member.IsStatic) {
-          if (e.Member is TwoStateFunction) {
-            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
-            if (wh != null) {
-              var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
-              builder.Add(Assert(GetToken(expr), wh, desc));
-            }
-          } else if (etran.UsesOldHeap) {
-            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
-            if (wh != null) {
-              var desc = new PODesc.IsAllocated("receiver",
-                $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed");
-              builder.Add(Assert(GetToken(expr), wh, desc));
-            }
-          }
-        }
-        if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-          wfOptions.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)),
-            new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
-        }
-      } else if (expr is SeqSelectExpr) {
-        SeqSelectExpr e = (SeqSelectExpr)expr;
-        var eSeqType = e.Seq.Type.NormalizeExpand();
-        bool isSequence = eSeqType is SeqType;
-        CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        if (eSeqType.IsArrayType) {
-          builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array")));
-          if (!options.CommonHeapUse || etran.UsesOldHeap) {
-            builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
-          }
-        }
-        Bpl.Expr e0 = null;
-        if (eSeqType is MapType) {
-          bool finite = ((MapType)eSeqType).Finite;
-          e0 = etran.TrExpr(e.E0);
-          CheckWellformed(e.E0, wfOptions, locals, builder, etran);
-          var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-          Bpl.Expr inDomain = FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
-          inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
-          builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(), wfOptions.AssertKv));
-        } else if (eSeqType is MultiSetType) {
-          // cool
 
-        } else {
-          if (e.E0 != null) {
-            e0 = etran.TrExpr(e.E0);
-            CheckWellformed(e.E0, wfOptions, locals, builder, etran);
-            var desc = new PODesc.InRange(e.SelectOne ? "index" : "lower bound");
-            builder.Add(Assert(GetToken(expr), InSeqRange(expr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), desc, wfOptions.AssertKv));
+            break;
           }
-          if (e.E1 != null) {
-            CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-            Bpl.Expr lowerBound;
-            if (e0 != null && e.E0.Type.IsBitVectorType) {
-              lowerBound = ConvertExpression(e.E0.tok, e0, e.E0.Type, Type.Int);
+        case DisplayExpression expression: {
+            DisplayExpression e = expression;
+            Contract.Assert(e.Type is CollectionType);
+            var elementType = ((CollectionType)e.Type).Arg;
+            foreach (Expression el in e.Elements) {
+              CheckWellformed(el, wfOptions, locals, builder, etran);
+              CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
+            }
+
+            break;
+          }
+        case MapDisplayExpr displayExpr: {
+            MapDisplayExpr e = displayExpr;
+            Contract.Assert(e.Type is MapType);
+            var keyType = ((MapType)e.Type).Domain;
+            var valType = ((MapType)e.Type).Range;
+            foreach (ExpressionPair p in e.Elements) {
+              CheckWellformed(p.A, wfOptions, locals, builder, etran);
+              CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
+              CheckWellformed(p.B, wfOptions, locals, builder, etran);
+              CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
+            }
+
+            break;
+          }
+        case MemberSelectExpr selectExpr: {
+            MemberSelectExpr e = selectExpr;
+            CheckFunctionSelectWF("naked function", builder, etran, e, " Possible solution: eta expansion.");
+            CheckWellformed(e.Obj, wfOptions, locals, builder, etran);
+            if (e.Obj.Type.IsRefType) {
+              if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
+                // this uses the surrogate local
+                if (!origOptions.LValueContext) {
+                  CheckDefiniteAssignmentSurrogate(selectExpr.tok, (Field)e.Member, false, builder);
+                }
+              } else {
+                CheckNonNull(selectExpr.tok, e.Obj, builder, etran, wfOptions.AssertKv);
+                // Check that the receiver is available in the state in which the dereference occurs
+              }
+            } else if (e.Member is DatatypeDestructor dtor) {
+              var correctConstructor = BplOr(dtor.EnclosingCtors.ConvertAll(
+                ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Obj))));
+              if (dtor.EnclosingCtors.Count == dtor.EnclosingCtors[0].EnclosingDatatype.Ctors.Count) {
+                // Every constructor has this destructor; might as well assume that here.
+                builder.Add(TrAssumeCmd(selectExpr.tok, correctConstructor));
+              } else {
+                builder.Add(Assert(GetToken(expr), correctConstructor,
+                  new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
+              }
+              CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
+            } else if (e.Member is DatatypeDiscriminator discriminator) {
+              CheckNotGhostVariant(e, "discriminator", ((DatatypeDecl)discriminator.EnclosingClass).Ctors, builder, etran);
+            }
+            if (!e.Member.IsStatic) {
+              if (e.Member is TwoStateFunction) {
+                Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                if (wh != null) {
+                  var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
+                  builder.Add(Assert(GetToken(expr), wh, desc));
+                }
+              } else if (etran.UsesOldHeap) {
+                Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
+                if (wh != null) {
+                  var desc = new PODesc.IsAllocated("receiver",
+                    $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed");
+                  builder.Add(Assert(GetToken(expr), wh, desc));
+                }
+              }
+            }
+            if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
+                new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
+            }
+
+            break;
+          }
+        case SeqSelectExpr selectExpr: {
+            SeqSelectExpr e = selectExpr;
+            var eSeqType = e.Seq.Type.NormalizeExpand();
+            bool isSequence = eSeqType is SeqType;
+            CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
+            Bpl.Expr seq = etran.TrExpr(e.Seq);
+            if (eSeqType.IsArrayType) {
+              builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array")));
+              if (!options.CommonHeapUse || etran.UsesOldHeap) {
+                builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+              }
+            }
+            Bpl.Expr e0 = null;
+            if (eSeqType is MapType) {
+              bool finite = ((MapType)eSeqType).Finite;
+              e0 = etran.TrExpr(e.E0);
+              CheckWellformed(e.E0, wfOptions, locals, builder, etran);
+              var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+              Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
+              inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
+              builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(), wfOptions.AssertKv));
+            } else if (eSeqType is MultiSetType) {
+              // cool
+
             } else {
-              lowerBound = e0;
+              if (e.E0 != null) {
+                e0 = etran.TrExpr(e.E0);
+                CheckWellformed(e.E0, wfOptions, locals, builder, etran);
+                var desc = new PODesc.InRange(e.SelectOne ? "index" : "lower bound");
+                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), desc, wfOptions.AssertKv));
+              }
+              if (e.E1 != null) {
+                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                Bpl.Expr lowerBound;
+                if (e0 != null && e.E0.Type.IsBitVectorType) {
+                  lowerBound = ConvertExpression(e.E0.tok, e0, e.E0.Type, Type.Int);
+                } else {
+                  lowerBound = e0;
+                }
+                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), new PODesc.SequenceSelectRangeValid(isSequence ? "sequence" : "array"), wfOptions.AssertKv));
+              }
             }
-            builder.Add(Assert(GetToken(expr), InSeqRange(expr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), new PODesc.SequenceSelectRangeValid(isSequence ? "sequence" : "array"), wfOptions.AssertKv));
-          }
-        }
-        if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
-          if (e.SelectOne) {
-            Contract.Assert(e.E0 != null);
-            var i = etran.TrExpr(e.E0);
-            i = ConvertExpression(expr.tok, i, e.E0.Type, Type.Int);
-            Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, i);
-            wfOptions.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName),
-              new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
-          } else {
-            Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
-            Contract.Assert(eSeqType.AsArrayType.Dims == 1);
-            Bpl.Expr upperBound = e.E1 == null ? ArrayLength(e.tok, seq, 1, 0) : etran.TrExpr(e.E1);
-            // check that, for all i in lowerBound..upperBound, a[i] is in the frame
-            Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, "$i", Bpl.Type.Int));
-            Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
-            var range = BplAnd(Bpl.Expr.Le(lowerBound, i), Bpl.Expr.Lt(i, upperBound));
-            var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
-            var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
-            var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
-            var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
-            wfOptions.AssertSink(this, builder)(expr.tok, qq,
-              new PODesc.FrameSubset("read the indicated range of array elements", false),
-              wfOptions.AssertKv);
-          }
-        }
-      } else if (expr is MultiSelectExpr) {
-        MultiSelectExpr e = (MultiSelectExpr)expr;
-        CheckWellformed(e.Array, wfOptions, locals, builder, etran);
-        Bpl.Expr array = etran.TrExpr(e.Array);
-        builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array")));
-        if (!options.CommonHeapUse || etran.UsesOldHeap) {
-          builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
-        }
-        for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
-          var idx = e.Indices[idxId];
-          CheckWellformed(idx, wfOptions, locals, builder, etran);
-
-          var index = etran.TrExpr(idx);
-          index = ConvertExpression(idx.tok, index, idx.Type, Type.Int);
-          var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
-          var length = ArrayLength(idx.tok, array, e.Indices.Count, idxId);
-          var upper = Bpl.Expr.Lt(index, length);
-          var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
-
-          var desc = new PODesc.InRange($"index {idxId}");
-          builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
-        }
-        if (wfOptions.DoReadsChecks) {
-          Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-          wfOptions.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName),
-            new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
-        }
-      } else if (expr is SeqUpdateExpr) {
-        var e = (SeqUpdateExpr)expr;
-        CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
-        Bpl.Expr seq = etran.TrExpr(e.Seq);
-        Bpl.Expr index = etran.TrExpr(e.Index);
-        Bpl.Expr value = etran.TrExpr(e.Value);
-        var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
-        // validate index
-        CheckWellformed(e.Index, wfOptions, locals, builder, etran);
-        if (collectionType is SeqType) {
-          var desc = new PODesc.InRange("index");
-          builder.Add(Assert(GetToken(e.Index), InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), desc, wfOptions.AssertKv));
-        } else {
-          CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
-        }
-        // validate value
-        CheckWellformed(e.Value, wfOptions, locals, builder, etran);
-        if (collectionType is SeqType) {
-          CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
-        } else if (collectionType is MapType mapType) {
-          CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
-        } else if (collectionType is MultiSetType) {
-          var desc = new PODesc.NonNegative("new number of occurrences");
-          builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, wfOptions.AssertKv));
-        } else {
-          Contract.Assert(false);
-        }
-      } else if (expr is ApplyExpr) {
-        var e = (ApplyExpr)expr;
-        int arity = e.Args.Count;
-        var tt = e.Function.Type.AsArrowType;
-        Contract.Assert(tt != null);
-        Contract.Assert(tt.Arity == arity);
-
-        // check WF of receiver and arguments
-        CheckWellformed(e.Function, wfOptions, locals, builder, etran);
-        foreach (Expression arg in e.Args) {
-          CheckWellformed(arg, wfOptions, locals, builder, etran);
-        }
-
-        // check subranges of arguments
-        for (int i = 0; i < arity; ++i) {
-          CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder);
-        }
-
-        // check parameter availability
-        if (etran.UsesOldHeap) {
-          Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
-          if (wh != null) {
-            var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked");
-            builder.Add(Assert(GetToken(e.Function), wh, desc));
-          }
-          for (int i = 0; i < e.Args.Count; i++) {
-            Expression ee = e.Args[i];
-            wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
-            if (wh != null) {
-              var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
-              builder.Add(Assert(GetToken(ee), wh, desc));
+            if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
+              if (e.SelectOne) {
+                Contract.Assert(e.E0 != null);
+                var i = etran.TrExpr(e.E0);
+                i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
+                Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
+                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), seq, fieldName),
+                  new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
+              } else {
+                Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
+                Contract.Assert(eSeqType.AsArrayType.Dims == 1);
+                Bpl.Expr upperBound = e.E1 == null ? ArrayLength(e.tok, seq, 1, 0) : etran.TrExpr(e.E1);
+                // check that, for all i in lowerBound..upperBound, a[i] is in the frame
+                Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, "$i", Bpl.Type.Int));
+                Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
+                var range = BplAnd(Bpl.Expr.Le(lowerBound, i), Bpl.Expr.Lt(i, upperBound));
+                var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
+                var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
+                var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
+                var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
+                wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
+                  new PODesc.FrameSubset("read the indicated range of array elements", false),
+                  wfOptions.AssertKv);
+              }
             }
+
+            break;
           }
-        }
+        case MultiSelectExpr selectExpr: {
+            MultiSelectExpr e = selectExpr;
+            CheckWellformed(e.Array, wfOptions, locals, builder, etran);
+            Bpl.Expr array = etran.TrExpr(e.Array);
+            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array")));
+            if (!options.CommonHeapUse || etran.UsesOldHeap) {
+              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+            }
+            for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
+              var idx = e.Indices[idxId];
+              CheckWellformed(idx, wfOptions, locals, builder, etran);
 
-        // translate arguments to requires and reads
-        Func<Expression, Bpl.Expr> TrArg = arg => {
-          Bpl.Expr inner = etran.TrExpr(arg);
-          if (ModeledAsBoxType(arg.Type)) {
-            return inner;
-          } else {
-            return FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+              var index = etran.TrExpr(idx);
+              index = ConvertExpression(idx.tok, index, idx.Type, Type.Int);
+              var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
+              var length = ArrayLength(idx.tok, array, e.Indices.Count, idxId);
+              var upper = Bpl.Expr.Lt(index, length);
+              var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
+
+              var desc = new PODesc.InRange($"index {idxId}");
+              builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
+            }
+            if (wfOptions.DoReadsChecks) {
+              Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
+              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), array, fieldName),
+                new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
+            }
+
+            break;
           }
-        };
+        case SeqUpdateExpr updateExpr: {
+            var e = updateExpr;
+            CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
+            Bpl.Expr seq = etran.TrExpr(e.Seq);
+            Bpl.Expr index = etran.TrExpr(e.Index);
+            Bpl.Expr value = etran.TrExpr(e.Value);
+            var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+            // validate index
+            CheckWellformed(e.Index, wfOptions, locals, builder, etran);
+            if (collectionType is SeqType) {
+              var desc = new PODesc.InRange("index");
+              builder.Add(Assert(GetToken(e.Index), InSeqRange(updateExpr.tok, index, e.Index.Type, seq, true, null, false), desc, wfOptions.AssertKv));
+            } else {
+              CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+            }
+            // validate value
+            CheckWellformed(e.Value, wfOptions, locals, builder, etran);
+            if (collectionType is SeqType) {
+              CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+            } else if (collectionType is MapType mapType) {
+              CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+            } else if (collectionType is MultiSetType) {
+              var desc = new PODesc.NonNegative("new number of occurrences");
+              builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, wfOptions.AssertKv));
+            } else {
+              Contract.Assert(false);
+            }
 
-        var args = Concat(
-          Map(tt.TypeArgs, TypeToTy),
-          Cons(etran.HeapExpr,
-          Cons(etran.TrExpr(e.Function),
-          e.Args.ConvertAll(arg => TrArg(arg)))));
-
-        // Because type inference often gravitates towards inferring non-constrained types, we'll
-        // do some digging on our own to see if we can discover a more precise type.
-        var fnCore = e.Function;
-        while (true) {
-          var prevCore = fnCore;
-          fnCore = Expression.StripParens(fnCore.Resolved);
-          if (object.ReferenceEquals(fnCore, prevCore)) {
-            break;  // we've done what we can do
+            break;
           }
-        }
-        Type fnCoreType;
-        if (fnCore is IdentifierExpr) {
-          var v = (IdentifierExpr)fnCore;
-          fnCoreType = v.Var.Type;
-        } else if (fnCore is MemberSelectExpr) {
-          var m = (MemberSelectExpr)fnCore;
-          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).GetMemberType((ArrowTypeDecl)tt.ResolvedClass);
-        } else {
-          fnCoreType = fnCore.Type;
-        }
+        case ApplyExpr applyExpr: {
+            var e = applyExpr;
+            int arity = e.Args.Count;
+            var tt = e.Function.Type.AsArrowType;
+            Contract.Assert(tt != null);
+            Contract.Assert(tt.Arity == arity);
 
-        if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
-          // check precond
-          var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-          builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)));
-        }
-
-        if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
-          // check read effects
-          Type objset = new SetType(true, program.BuiltIns.ObjectQ());
-          Expression wrap = new BoogieWrapper(
-            FunctionCall(e.tok, Reads(arity), TrType(objset), args),
-            objset);
-          var reads = new FrameExpression(e.tok, wrap, null);
-          CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-            etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
-        }
-
-      } else if (expr is FunctionCallExpr) {
-        FunctionCallExpr e = (FunctionCallExpr)expr;
-        Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
-        if (e.Function is SpecialFunction) {
-          CheckWellformedSpecialFunction(e, wfOptions, null, null, locals, builder, etran);
-        } else {
-          // check well-formedness of receiver
-          CheckWellformed(e.Receiver, wfOptions, locals, builder, etran);
-          if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
-            CheckNonNull(expr.tok, e.Receiver, builder, etran, wfOptions.AssertKv);
-          } else if (e.Receiver.Type.IsArrowType) {
-            CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
-          }
-          if (!e.Function.IsStatic && options.CommonHeapUse && !etran.UsesOldHeap) {
-            // the argument can't be assumed to be allocated for the old heap
-            Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
-            builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
-            builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
-          }
-          // check well-formedness of the other parameters
-          foreach (Expression arg in e.Args) {
-            if (!(arg is DefaultValueExpression)) {
+            // check WF of receiver and arguments
+            CheckWellformed(e.Function, wfOptions, locals, builder, etran);
+            foreach (Expression arg in e.Args) {
               CheckWellformed(arg, wfOptions, locals, builder, etran);
             }
-          }
-          // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
-          Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-          for (int i = 0; i < e.Function.Formals.Count; i++) {
-            Formal p = e.Function.Formals[i];
-            // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
-            // to BVD what this variable stands for and display it as such to the user.
-            Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
-            LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
-            local.type = local.OptionalType;  // resolve local here
-            IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
-            ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
-            substMap.Add(p, ie);
-            locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
-            Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
-            Expression ee = e.Args[i];
-            CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
-            Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
-            builder.Add(cmd);
-            if (options.CommonHeapUse && !etran.UsesOldHeap) {
-              // the argument can't be assumed to be allocated for the old heap
-              builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
-              builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
-            }
-          }
 
-          // Check that every parameter is available in the state in which the function is invoked; this means checking that it has
-          // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
-          // access to expressions of the appropriate type and that are allocated in the current state.  However, if the function is
-          // invoked in the 'old' state or if the function invoked is a two-state function with a non-new parameter, then we need to
-          // check that its arguments were all available at that time as well.
-          if (etran.UsesOldHeap) {
-            if (!e.Function.IsStatic) {
-              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
-              if (wh != null) {
-                var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked");
-                builder.Add(Assert(GetToken(e.Receiver), wh, desc));
-              }
+            // check subranges of arguments
+            for (int i = 0; i < arity; ++i) {
+              CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder);
             }
-            for (int i = 0; i < e.Args.Count; i++) {
-              Expression ee = e.Args[i];
-              Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+
+            // check parameter availability
+            if (etran.UsesOldHeap) {
+              Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
               if (wh != null) {
-                var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
-                builder.Add(Assert(GetToken(ee), wh, desc));
+                var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked");
+                builder.Add(Assert(GetToken(e.Function), wh, desc));
               }
-            }
-          } else if (e.Function is TwoStateFunction) {
-            if (!e.Function.IsStatic) {
-              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
-              if (wh != null) {
-                var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
-                builder.Add(Assert(GetToken(e.Receiver), wh, desc));
-              }
-            }
-            Contract.Assert(e.Function.Formals.Count == e.Args.Count);
-            for (int i = 0; i < e.Args.Count; i++) {
-              var formal = e.Function.Formals[i];
-              if (formal.IsOld) {
+              for (int i = 0; i < e.Args.Count; i++) {
                 Expression ee = e.Args[i];
-                Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
                 if (wh != null) {
-                  var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                  var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
+                  var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
                   builder.Add(Assert(GetToken(ee), wh, desc));
                 }
               }
             }
-          }
-          // check that the preconditions for the call hold
-          foreach (AttributedExpression p in e.Function.Req) {
-            Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-            bool splitHappened;  // we don't actually care
-            string errorMessage = CustomErrorMessage(p.Attributes);
-            foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
-              if (ss.IsChecked) {
-                var tok = new NestedToken(GetToken(expr), ss.Tok);
-                var desc = new PODesc.PreconditionSatisfied(errorMessage);
-                if (wfOptions.AssertKv != null) {
-                  // use the given assert attribute only
-                  builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv));
-                } else {
-                  builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
-                }
+
+            // translate arguments to requires and reads
+            Func<Expression, Bpl.Expr> TrArg = arg => {
+              Bpl.Expr inner = etran.TrExpr(arg);
+              if (ModeledAsBoxType(arg.Type)) {
+                return inner;
+              } else {
+                return FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+              }
+            };
+
+            var args = Concat(
+              Map(tt.TypeArgs, TypeToTy),
+              Cons(etran.HeapExpr,
+                Cons(etran.TrExpr(e.Function),
+                  e.Args.ConvertAll(arg => TrArg(arg)))));
+
+            // Because type inference often gravitates towards inferring non-constrained types, we'll
+            // do some digging on our own to see if we can discover a more precise type.
+            var fnCore = e.Function;
+            while (true) {
+              var prevCore = fnCore;
+              fnCore = Expression.StripParens(fnCore.Resolved);
+              if (object.ReferenceEquals(fnCore, prevCore)) {
+                break;  // we've done what we can do
               }
             }
-            if (wfOptions.AssertKv == null) {
-              // assume only if no given assert attribute is given
-              builder.Add(TrAssumeCmd(expr.tok, etran.TrExpr(precond)));
+            Type fnCoreType;
+            if (fnCore is IdentifierExpr) {
+              var v = (IdentifierExpr)fnCore;
+              fnCoreType = v.Var.Type;
+            } else if (fnCore is MemberSelectExpr) {
+              var m = (MemberSelectExpr)fnCore;
+              fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).GetMemberType((ArrowTypeDecl)tt.ResolvedClass);
+            } else {
+              fnCoreType = fnCore.Type;
             }
-          }
-          if (wfOptions.DoReadsChecks) {
-            // check that the callee reads only what the caller is already allowed to read
-            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
-            CheckFrameSubset(expr.tok,
-              e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-              e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
-          }
 
-          Bpl.Expr allowance = null;
-          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
-            // check that the decreases measure goes down
-            var calleeSCCLookup = e.IsByMethodCall ? (ICallable)e.Function.ByMethodDecl : e.Function;
-            Contract.Assert(calleeSCCLookup != null);
-            if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
-              if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new PODesc.IsNonRecursive()));
-              } else {
-                List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-                List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-                if (e.Function == wfOptions.SelfCallsAllowance) {
-                  allowance = Bpl.Expr.True;
-                  if (!e.Function.IsStatic) {
-                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+            if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
+              // check precond
+              var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
+              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)));
+            }
+
+            if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
+              // check read effects
+              Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+              Expression wrap = new BoogieWrapper(
+                FunctionCall(e.tok, Reads(arity), TrType(objset), args),
+                objset);
+              var reads = new FrameExpression(e.tok, wrap, null);
+              CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
+                etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+            }
+
+            break;
+          }
+        case DatatypeValue value: {
+            DatatypeValue dtv = value;
+            for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
+              var formal = dtv.Ctor.Formals[i];
+              var arg = dtv.Arguments[i];
+              if (!(arg is DefaultValueExpression)) {
+                CheckWellformed(arg, wfOptions, locals, builder, etran);
+              }
+              // Cannot use the datatype's formals, so we substitute the inferred type args:
+              var su = new Dictionary<TypeParameter, Type>();
+              foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
+                su[p.Item1] = p.Item2;
+              }
+              Type ty = formal.Type.Subst(su);
+              CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
+            }
+
+            break;
+          }
+        case FunctionCallExpr callExpr: {
+            FunctionCallExpr e = callExpr;
+            Contract.Assert(e.Function != null);  // follows from the fact that expr has been successfully resolved
+            if (e.Function is SpecialFunction) {
+              CheckWellformedSpecialFunction(e, wfOptions, null, null, locals, builder, etran);
+            } else {
+              // check well-formedness of receiver
+              CheckWellformed(e.Receiver, wfOptions, locals, builder, etran);
+              if (!e.Function.IsStatic && !(e.Receiver is ThisExpr) && !e.Receiver.Type.IsArrowType) {
+                CheckNonNull(callExpr.tok, e.Receiver, builder, etran, wfOptions.AssertKv);
+              } else if (e.Receiver.Type.IsArrowType) {
+                CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
+              }
+              if (!e.Function.IsStatic && options.CommonHeapUse && !etran.UsesOldHeap) {
+                // the argument can't be assumed to be allocated for the old heap
+                Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
+                builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
+                builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
+              }
+              // check well-formedness of the other parameters
+              foreach (Expression arg in e.Args) {
+                if (!(arg is DefaultValueExpression)) {
+                  CheckWellformed(arg, wfOptions, locals, builder, etran);
+                }
+              }
+              // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
+              Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+              for (int i = 0; i < e.Function.Formals.Count; i++) {
+                Formal p = e.Function.Formals[i];
+                // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
+                // to BVD what this variable stands for and display it as such to the user.
+                Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
+                LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
+                local.type = local.OptionalType;  // resolve local here
+                IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+                ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+                substMap.Add(p, ie);
+                locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+                Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
+                Expression ee = e.Args[i];
+                CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+                builder.Add(cmd);
+                if (options.CommonHeapUse && !etran.UsesOldHeap) {
+                  // the argument can't be assumed to be allocated for the old heap
+                  builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
+                  builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
+                }
+              }
+
+              // Check that every parameter is available in the state in which the function is invoked; this means checking that it has
+              // the right type and is allocated.  These checks usually hold trivially, on account of that the Dafny language only gives
+              // access to expressions of the appropriate type and that are allocated in the current state.  However, if the function is
+              // invoked in the 'old' state or if the function invoked is a two-state function with a non-new parameter, then we need to
+              // check that its arguments were all available at that time as well.
+              if (etran.UsesOldHeap) {
+                if (!e.Function.IsStatic) {
+                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
+                  if (wh != null) {
+                    var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked");
+                    builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
-                  for (int i = 0; i < e.Args.Count; i++) {
+                }
+                for (int i = 0; i < e.Args.Count; i++) {
+                  Expression ee = e.Args[i];
+                  Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
+                  if (wh != null) {
+                    var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
+                    builder.Add(Assert(GetToken(ee), wh, desc));
+                  }
+                }
+              } else if (e.Function is TwoStateFunction) {
+                if (!e.Function.IsStatic) {
+                  Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                  if (wh != null) {
+                    var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
+                    builder.Add(Assert(GetToken(e.Receiver), wh, desc));
+                  }
+                }
+                Contract.Assert(e.Function.Formals.Count == e.Args.Count);
+                for (int i = 0; i < e.Args.Count; i++) {
+                  var formal = e.Function.Formals[i];
+                  if (formal.IsOld) {
                     Expression ee = e.Args[i];
-                    Formal ff = e.Function.Formals[i];
-                    allowance = BplAnd(allowance,
-                      Bpl.Expr.Eq(etran.TrExpr(ee),
-                        new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                    Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+                    if (wh != null) {
+                      var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
+                      var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
+                      builder.Add(Assert(GetToken(ee), wh, desc));
+                    }
                   }
                 }
-                string hint;
-                switch (e.CoCall) {
-                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                    hint = "note that only functions without side effects can be called co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                    hint = "note that only functions without any ensures clause can be called co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                    hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                    hint = "note that calls cannot be co-recursive in this context";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                    break;
-                  case FunctionCallExpr.CoCallResolution.No:
-                    hint = null;
-                    break;
-                  default:
-                    Contract.Assert(false); // unexpected CoCallResolution
-                    goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
+              }
+              // check that the preconditions for the call hold
+              foreach (AttributedExpression p in e.Function.Req) {
+                Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
+                bool splitHappened;  // we don't actually care
+                string errorMessage = CustomErrorMessage(p.Attributes);
+                foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
+                  if (ss.IsChecked) {
+                    var tok = new NestedToken(GetToken(expr), ss.Tok);
+                    var desc = new PODesc.PreconditionSatisfied(errorMessage);
+                    if (wfOptions.AssertKv != null) {
+                      // use the given assert attribute only
+                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv));
+                    } else {
+                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
+                    }
+                  }
                 }
-                if (e.CoCallHint != null) {
-                  hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+                if (wfOptions.AssertKv == null) {
+                  // assume only if no given assert attribute is given
+                  builder.Add(TrAssumeCmd(callExpr.tok, etran.TrExpr(precond)));
                 }
-                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
-                  etran, etran, builder, codeContext.InferredDecreases, hint);
               }
-            }
-          }
-          // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
-          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
-          Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
-          builder.Add(TrAssumeCmd(expr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
-
-          var returnType = e.Type.AsDatatype;
-          if (returnType != null && returnType.Ctors.Count == 1) {
-            var correctConstructor = FunctionCall(e.tok, returnType.Ctors[0].QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e));
-            // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
-            builder.Add(TrAssumeCmd(expr.tok, correctConstructor));
-          }
-        }
-      } else if (expr is DatatypeValue) {
-        DatatypeValue dtv = (DatatypeValue)expr;
-        for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
-          var formal = dtv.Ctor.Formals[i];
-          var arg = dtv.Arguments[i];
-          if (!(arg is DefaultValueExpression)) {
-            CheckWellformed(arg, wfOptions, locals, builder, etran);
-          }
-          // Cannot use the datatype's formals, so we substitute the inferred type args:
-          var su = new Dictionary<TypeParameter, Type>();
-          foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
-            su[p.Item1] = p.Item2;
-          }
-          Type ty = formal.Type.Subst(su);
-          CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
-        }
-      } else if (expr is SeqConstructionExpr) {
-        var e = (SeqConstructionExpr)expr;
-        CheckWellformed(e.N, wfOptions, locals, builder, etran);
-        var desc = new PODesc.NonNegative("sequence size");
-        builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
-
-        CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
-        var eType = e.Type.AsSeqType.Arg;
-        CheckElementInit(e.tok, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
-      } else if (expr is MultiSetFormingExpr) {
-        MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
-        CheckWellformed(e.E, wfOptions, locals, builder, etran);
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
-        // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
-        // we turn off any reads checks for "e.E".
-        CheckWellformed(e.E, new WFOptions(wfOptions), locals, builder, etran.OldAt(e.AtLabel));
-      } else if (expr is UnchangedExpr) {
-        var e = (UnchangedExpr)expr;
-        foreach (var fe in e.Frame) {
-          CheckWellformed(fe.E, wfOptions, locals, builder, etran);
-
-          EachReferenceInFrameExpression(fe.E, locals, builder, etran, out var description, out var ty, out var r, out var ante);
-          Bpl.Expr nonNull;
-          if (ty.IsNonNullRefType) {
-            nonNull = Bpl.Expr.True;
-          } else {
-            Contract.Assert(ty.IsRefType);
-            nonNull = Bpl.Expr.Neq(r, predef.Null);
-            builder.Add(Assert(GetToken(fe.E), BplImp(ante, nonNull), new PODesc.NonNull(description, description != "object")));
-          }
-          // check that "r" was allocated in the "e.AtLabel" state
-          Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
-          if (wh != null) {
-            var desc = new PODesc.IsAllocated(description, "in the old-state of the 'unchanged' predicate",
-              description != "object");
-            builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
-          }
-          // check that the 'unchanged' argument reads only what the context is allowed to read
-          if (wfOptions.DoReadsChecks) {
-            CheckFrameSubset(fe.E.tok,
-              new List<FrameExpression>() { fe },
-              null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder),
-              new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
-          }
-        }
-      } else if (expr is UnaryExpr) {
-        UnaryExpr e = (UnaryExpr)expr;
-        CheckWellformed(e.E, wfOptions, locals, builder, etran);
-        if (e is ConversionExpr) {
-          var ee = (ConversionExpr)e;
-          CheckResultToBeInType(expr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
-        }
-      } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
-        CheckWellformed(e.E0, wfOptions, locals, builder, etran);
-        switch (e.ResolvedOp) {
-          case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Imp: {
-              BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
-              CheckWellformed(e.E1, wfOptions, locals, b, etran);
-              builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.E0), b.Collect(expr.tok), null, null));
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Or: {
-              BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
-              CheckWellformed(e.E1, wfOptions, locals, b, etran);
-              builder.Add(new Bpl.IfCmd(expr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(expr.tok), null, null));
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.Add:
-          case BinaryExpr.ResolvedOpcode.Sub:
-          case BinaryExpr.ResolvedOpcode.Mul:
-            CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-            if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
-              var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
-              builder.Add(Assert(GetToken(expr), rhsIsNat, new PODesc.OrdinalSubtractionIsNatural()));
-              var offset0 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
-              var offset1 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
-              builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(offset1, offset0), new PODesc.OrdinalSubtractionUnderflow()));
-            } else if (e.Type.IsCharType) {
-              var e0 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
-              var e1 = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
-              if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
-                builder.Add(Assert(GetToken(expr),
-                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
-                    Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
-              } else {
-                Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
-                builder.Add(Assert(GetToken(expr),
-                  FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
-                    Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
+              if (wfOptions.DoReadsChecks) {
+                // check that the callee reads only what the caller is already allowed to read
+                var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
+                CheckFrameSubset(callExpr.tok,
+                  e.Function.Reads.ConvertAll(s.SubstFrameExpr),
+                  e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
               }
-            }
-            CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
-            break;
-          case BinaryExpr.ResolvedOpcode.Div:
-          case BinaryExpr.ResolvedOpcode.Mod: {
-              Bpl.Expr zero;
-              if (e.E1.Type.IsBitVectorType) {
-                zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
-              } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-                zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
-              } else {
-                zero = Bpl.Expr.Literal(0);
-              }
-              CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-              builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(), wfOptions.AssertKv));
-              CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.LeftShift:
-          case BinaryExpr.ResolvedOpcode.RightShift: {
-              CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-              var w = e.Type.AsBitVectorType.Width;
-              var upperDesc = new PODesc.ShiftUpperBound(w);
-              if (e.E1.Type.IsBitVectorType) {
-                // Known to be non-negative, so we don't need to check lower bound.
-                // Check upper bound, that is, check "E1 <= w"
-                var e1Width = e.E1.Type.AsBitVectorType.Width;
-                if (w < (BigInteger.One << e1Width)) {
-                  // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
-                  var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);
-                  var cmp = etran.TrToFunctionCall(expr.tok, "le_bv" + e1Width, Bpl.Type.Bool, etran.TrExpr(e.E1), bound, false);
-                  builder.Add(Assert(GetToken(expr), cmp, upperDesc, wfOptions.AssertKv));
-                } else {
-                  // In the previous branch, we had:
-                  //     w < 2^e1Width               (*)
-                  // From the type of E1, we have:
-                  //     E1 < 2^e1Width
-                  // In this branch, (*) does not hold, so we therefore have the following:
-                  //     E1 < 2^e1Width <= w
-                  // In other words, the condition
-                  //     E1 <= w
-                  // already holds, so there is no reason to check it.
+
+              Bpl.Expr allowance = null;
+              if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
+                // check that the decreases measure goes down
+                var calleeSCCLookup = e.IsByMethodCall ? (ICallable)e.Function.ByMethodDecl : e.Function;
+                Contract.Assert(calleeSCCLookup != null);
+                if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
+                  if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new PODesc.IsNonRecursive()));
+                  } else {
+                    List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+                    List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+                    if (e.Function == wfOptions.SelfCallsAllowance) {
+                      allowance = Bpl.Expr.True;
+                      if (!e.Function.IsStatic) {
+                        allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+                      }
+                      for (int i = 0; i < e.Args.Count; i++) {
+                        Expression ee = e.Args[i];
+                        Formal ff = e.Function.Formals[i];
+                        allowance = BplAnd(allowance,
+                          Bpl.Expr.Eq(etran.TrExpr(ee),
+                            new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                      }
+                    }
+                    string hint;
+                    switch (e.CoCall) {
+                      case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                        hint = "note that only functions without side effects can be called co-recursively";
+                        break;
+                      case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                        hint = "note that only functions without any ensures clause can be called co-recursively";
+                        break;
+                      case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                        hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                        break;
+                      case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                        hint = "note that calls cannot be co-recursive in this context";
+                        break;
+                      case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                        hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                        break;
+                      case FunctionCallExpr.CoCallResolution.No:
+                        hint = null;
+                        break;
+                      default:
+                        Contract.Assert(false); // unexpected CoCallResolution
+                        goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
+                    }
+                    if (e.CoCallHint != null) {
+                      hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+                    }
+                    CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                      etran, etran, builder, codeContext.InferredDecreases, hint);
+                  }
                 }
-              } else {
-                var positiveDesc = new PODesc.ShiftLowerBound();
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, wfOptions.AssertKv));
-                builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, wfOptions.AssertKv));
+              }
+              // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
+              Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(callExpr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+              List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+              Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
+              builder.Add(TrAssumeCmd(callExpr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
+
+              var returnType = e.Type.AsDatatype;
+              if (returnType != null && returnType.Ctors.Count == 1) {
+                var correctConstructor = FunctionCall(e.tok, returnType.Ctors[0].QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e));
+                // There is only one constructor, so the value must be been constructed by it; might as well assume that here.
+                builder.Add(TrAssumeCmd(callExpr.tok, correctConstructor));
               }
             }
+
             break;
-          case BinaryExpr.ResolvedOpcode.EqCommon:
-          case BinaryExpr.ResolvedOpcode.NeqCommon:
-            CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-            if (e.InCompiledContext) {
-              if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
-                // everything's fine
-              } else {
-                Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
-                Contract.Assert(!e.E1.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
-                Contract.Assert(e.E0.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
-                Contract.Assert(e.E1.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
-                var dt = e.E0.Type.AsIndDatatype;
-                Contract.Assert(dt != null); // only inductive datatypes support equality partially
-
-                // to compare the datatype values for equality, there must not be any possibility that either of the datatype
-                // variants is a ghost constructor
-                var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
-                Contract.Assert(ghostConstructors.Count != 0);
-
-                void CheckOperand(Expression operand) {
-                  var value = etran.TrExpr(operand);
-                  var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
-                    ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
-                  builder.Add(Assert(GetToken(expr), notGhostCtor,
-                    new PODesc.NotGhostVariant("equality", ghostConstructors)));
-                }
-
-                CheckOperand(e.E0);
-                CheckOperand(e.E1);
-              }
-
-
-            }
-            break;
-          default:
-            CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-            break;
-        }
-
-      } else if (expr is TernaryExpr) {
-        var e = (TernaryExpr)expr;
-        foreach (var ee in e.SubExpressions) {
-          CheckWellformed(ee, wfOptions, locals, builder, etran);
-        }
-        switch (e.Op) {
-          case TernaryExpr.Opcode.PrefixEqOp:
-          case TernaryExpr.Opcode.PrefixNeqOp:
-            if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-              builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), new PODesc.PrefixEqualityLimit(), wfOptions.AssertKv));
-            }
-            break;
-          default:
-            Contract.Assert(false);  // unexpected ternary expression
-            break;
-        }
-
-      } else if (expr is LetExpr) {
-        CheckWellformedLetExprWithResult((LetExpr)expr, wfOptions, result, resultType, locals, builder, etran, true);
-        result = null;
-
-      } else if (expr is ComprehensionExpr) {
-        var e = (ComprehensionExpr)expr;
-        var q = e as QuantifierExpr;
-        var lam = e as LambdaExpr;
-        var mc = e as MapComprehension;
-        if (mc != null && !mc.IsGeneralMapComprehension) {
-          mc = null;  // mc will be non-null when "e" is a general map comprehension
-        }
-
-        // This is a WF check, so we look at the original quantifier, not the split one.
-        // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-
-        builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
-        BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
-          var comprehensionEtran = etran;
-          if (lam != null) {
-            // Havoc heap
-            locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
-            comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
-            nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
-            nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
-            nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
           }
+        case SeqConstructionExpr constructionExpr: {
+            var e = constructionExpr;
+            CheckWellformed(e.N, wfOptions, locals, builder, etran);
+            var desc = new PODesc.NonNegative("sequence size");
+            builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
 
-          var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran);
-          BplIfIf(e.tok, true, typeAntecedents, nextBuilder, newBuilder => {
-            var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-            var body = Substitute(e.Term, null, substMap);
-            var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap) : null;
-            var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, comprehensionEtran, "#prime") : null;
-            var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime) : null;
-            var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime) : null;
-            List<FrameExpression> reads = null;
+            CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
+            var eType = e.Type.AsSeqType.Arg;
+            CheckElementInit(e.tok, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
+            break;
+          }
+        case MultiSetFormingExpr formingExpr: {
+            MultiSetFormingExpr e = formingExpr;
+            CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            break;
+          }
+        case OldExpr oldExpr: {
+            var e = oldExpr;
+            // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
+            // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
+            // we turn off any reads checks for "e.E".
+            CheckWellformed(e.E, new WFOptions(wfOptions), locals, builder, etran.OldAt(e.AtLabel));
+            break;
+          }
+        case UnchangedExpr unchangedExpr: {
+            var e = unchangedExpr;
+            foreach (var fe in e.Frame) {
+              CheckWellformed(fe.E, wfOptions, locals, builder, etran);
 
-            var newOptions = wfOptions;
-            if (lam != null) {
-              // Set up a new frame
-              var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
-              reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-              DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
-              comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
-
-              // Check frame WF and that it read covers itself
-              newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-              CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
-              // new options now contains the delayed reads checks
-              newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
-
-              // continue doing reads checks, but don't delay them
-              newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
+              EachReferenceInFrameExpression(fe.E, locals, builder, etran, out var description, out var ty, out var r, out var ante);
+              Bpl.Expr nonNull;
+              if (ty.IsNonNullRefType) {
+                nonNull = Bpl.Expr.True;
+              } else {
+                Contract.Assert(ty.IsRefType);
+                nonNull = Bpl.Expr.Neq(r, predef.Null);
+                builder.Add(Assert(GetToken(fe.E), BplImp(ante, nonNull), new PODesc.NonNull(description, description != "object")));
+              }
+              // check that "r" was allocated in the "e.AtLabel" state
+              Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
+              if (wh != null) {
+                var desc = new PODesc.IsAllocated(description, "in the old-state of the 'unchanged' predicate",
+                  description != "object");
+                builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
+              }
+              // check that the 'unchanged' argument reads only what the context is allowed to read
+              if (wfOptions.DoReadsChecks) {
+                CheckFrameSubset(fe.E.tok,
+                  new List<FrameExpression>() { fe },
+                  null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder),
+                  new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
+              }
             }
 
-            // check requires/range
-            Bpl.Expr guard = null;
-            if (e.Range != null) {
-              var range = Substitute(e.Range, null, substMap);
-              CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
-              guard = comprehensionEtran.TrExpr(range);
+            break;
+          }
+        case UnaryExpr unaryExpr: {
+            UnaryExpr e = unaryExpr;
+            CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            if (e is ConversionExpr) {
+              var ee = (ConversionExpr)e;
+              CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
 
-            if (mc != null) {
-              Contract.Assert(bodyLeft != null);
-              BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
+            break;
+          }
+        case BinaryExpr binaryExpr: {
+            BinaryExpr e = binaryExpr;
+            CheckWellformed(e.E0, wfOptions, locals, builder, etran);
+            switch (e.ResolvedOp) {
+              case BinaryExpr.ResolvedOpcode.And:
+              case BinaryExpr.ResolvedOpcode.Imp: {
+                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
+                  CheckWellformed(e.E1, wfOptions, locals, b, etran);
+                  builder.Add(new Bpl.IfCmd(binaryExpr.tok, etran.TrExpr(e.E0), b.Collect(binaryExpr.tok), null, null));
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Or: {
+                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
+                  CheckWellformed(e.E1, wfOptions, locals, b, etran);
+                  builder.Add(new Bpl.IfCmd(binaryExpr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(binaryExpr.tok), null, null));
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Add:
+              case BinaryExpr.ResolvedOpcode.Sub:
+              case BinaryExpr.ResolvedOpcode.Mul:
+                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
+                  var rhsIsNat = FunctionCall(binaryExpr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
+                  builder.Add(Assert(GetToken(expr), rhsIsNat, new PODesc.OrdinalSubtractionIsNatural()));
+                  var offset0 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
+                  var offset1 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(offset1, offset0), new PODesc.OrdinalSubtractionUnderflow()));
+                } else if (e.Type.IsCharType) {
+                  var e0 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
+                  var e1 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
+                  if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+                    builder.Add(Assert(GetToken(expr),
+                      FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                        Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
+                  } else {
+                    Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
+                    builder.Add(Assert(GetToken(expr),
+                      FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
+                        Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
+                  }
+                }
+                CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
+                break;
+              case BinaryExpr.ResolvedOpcode.Div:
+              case BinaryExpr.ResolvedOpcode.Mod: {
+                  Bpl.Expr zero;
+                  if (e.E1.Type.IsBitVectorType) {
+                    zero = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
+                  } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+                    zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
+                  } else {
+                    zero = Bpl.Expr.Literal(0);
+                  }
+                  CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(), wfOptions.AssertKv));
+                  CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.LeftShift:
+              case BinaryExpr.ResolvedOpcode.RightShift: {
+                  CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                  var w = e.Type.AsBitVectorType.Width;
+                  var upperDesc = new PODesc.ShiftUpperBound(w);
+                  if (e.E1.Type.IsBitVectorType) {
+                    // Known to be non-negative, so we don't need to check lower bound.
+                    // Check upper bound, that is, check "E1 <= w"
+                    var e1Width = e.E1.Type.AsBitVectorType.Width;
+                    if (w < (BigInteger.One << e1Width)) {
+                      // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
+                      var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);
+                      var cmp = etran.TrToFunctionCall(binaryExpr.tok, "le_bv" + e1Width, Bpl.Type.Bool, etran.TrExpr(e.E1), bound, false);
+                      builder.Add(Assert(GetToken(expr), cmp, upperDesc, wfOptions.AssertKv));
+                    } else {
+                      // In the previous branch, we had:
+                      //     w < 2^e1Width               (*)
+                      // From the type of E1, we have:
+                      //     E1 < 2^e1Width
+                      // In this branch, (*) does not hold, so we therefore have the following:
+                      //     E1 < 2^e1Width <= w
+                      // In other words, the condition
+                      //     E1 <= w
+                      // already holds, so there is no reason to check it.
+                    }
+                  } else {
+                    var positiveDesc = new PODesc.ShiftLowerBound();
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, wfOptions.AssertKv));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, wfOptions.AssertKv));
+                  }
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.EqCommon:
+              case BinaryExpr.ResolvedOpcode.NeqCommon:
+                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                if (e.InCompiledContext) {
+                  if (Resolver.CanCompareWith(e.E0) || Resolver.CanCompareWith(e.E1)) {
+                    // everything's fine
+                  } else {
+                    Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
+                    Contract.Assert(!e.E1.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
+                    Contract.Assert(e.E0.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
+                    Contract.Assert(e.E1.Type.PartiallySupportsEquality); // otherwise, the code wouldn't have got passed the resolver
+                    var dt = e.E0.Type.AsIndDatatype;
+                    Contract.Assert(dt != null); // only inductive datatypes support equality partially
+
+                    // to compare the datatype values for equality, there must not be any possibility that either of the datatype
+                    // variants is a ghost constructor
+                    var ghostConstructors = dt.Ctors.Where(ctor => ctor.IsGhost).ToList();
+                    Contract.Assert(ghostConstructors.Count != 0);
+
+                    void CheckOperand(Expression operand) {
+                      var value = etran.TrExpr(operand);
+                      var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
+                        ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
+                      builder.Add(Assert(GetToken(expr), notGhostCtor,
+                        new PODesc.NotGhostVariant("equality", ghostConstructors)));
+                    }
+
+                    CheckOperand(e.E0);
+                    CheckOperand(e.E1);
+                  }
+
+
+                }
+                break;
+              default:
+                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                break;
             }
-            BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
-              Bpl.Expr resultIe = null;
-              Type rangeType = null;
+
+            break;
+          }
+        case TernaryExpr ternaryExpr: {
+            var e = ternaryExpr;
+            foreach (var ee in e.SubExpressions) {
+              CheckWellformed(ee, wfOptions, locals, builder, etran);
+            }
+            switch (e.Op) {
+              case TernaryExpr.Opcode.PrefixEqOp:
+              case TernaryExpr.Opcode.PrefixNeqOp:
+                if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), new PODesc.PrefixEqualityLimit(), wfOptions.AssertKv));
+                }
+                break;
+              default:
+                Contract.Assert(false);  // unexpected ternary expression
+                break;
+            }
+
+            break;
+          }
+        case LetExpr letExpr:
+          CheckWellformedLetExprWithResult(letExpr, wfOptions, result, resultType, locals, builder, etran, true);
+          result = null;
+          break;
+        case ComprehensionExpr comprehensionExpr: {
+            var e = comprehensionExpr;
+            var q = e as QuantifierExpr;
+            var lam = e as LambdaExpr;
+            var mc = e as MapComprehension;
+            if (mc != null && !mc.IsGeneralMapComprehension) {
+              mc = null;  // mc will be non-null when "e" is a general map comprehension
+            }
+
+            // This is a WF check, so we look at the original quantifier, not the split one.
+            // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
+
+            builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
+            BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
+              var comprehensionEtran = etran;
               if (lam != null) {
-                var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
-                var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
-                locals.Add(resultVar);
-                resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
-                rangeType = lam.Type.AsArrowType.Result;
+                // Havoc heap
+                locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+                nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
+                nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
+                nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
               }
-              CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran);
-            });
 
-            if (mc != null) {
-              Contract.Assert(substMapPrime != null);
-              Contract.Assert(bodyLeftPrime != null);
-              Contract.Assert(bodyPrime != null);
-              Bpl.Expr guardPrime = null;
-              if (guard != null) {
-                Contract.Assert(e.Range != null);
-                var rangePrime = Substitute(e.Range, null, substMapPrime);
-                guardPrime = comprehensionEtran.TrExpr(rangePrime);
-              }
-              BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
-                var different = BplOr(
-                  Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
-                  Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias()));
+              var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran);
+              BplIfIf(e.tok, true, typeAntecedents, nextBuilder, newBuilder => {
+                var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+                var body = Substitute(e.Term, null, substMap);
+                var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap) : null;
+                var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, comprehensionEtran, "#prime") : null;
+                var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime) : null;
+                var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime) : null;
+                List<FrameExpression> reads = null;
+
+                var newOptions = wfOptions;
+                if (lam != null) {
+                  // Set up a new frame
+                  var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
+                  reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
+                  DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
+                  comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
+
+                  // Check frame WF and that it read covers itself
+                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
+                  CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
+                  // new options now contains the delayed reads checks
+                  newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
+
+                  // continue doing reads checks, but don't delay them
+                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
+                }
+
+                // check requires/range
+                Bpl.Expr guard = null;
+                if (e.Range != null) {
+                  var range = Substitute(e.Range, null, substMap);
+                  CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
+                  guard = comprehensionEtran.TrExpr(range);
+                }
+
+                if (mc != null) {
+                  Contract.Assert(bodyLeft != null);
+                  BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
+                }
+                BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
+                  Bpl.Expr resultIe = null;
+                  Type rangeType = null;
+                  if (lam != null) {
+                    var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
+                    var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
+                    locals.Add(resultVar);
+                    resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
+                    rangeType = lam.Type.AsArrowType.Result;
+                  }
+                  CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran);
+                });
+
+                if (mc != null) {
+                  Contract.Assert(substMapPrime != null);
+                  Contract.Assert(bodyLeftPrime != null);
+                  Contract.Assert(bodyPrime != null);
+                  Bpl.Expr guardPrime = null;
+                  if (guard != null) {
+                    Contract.Assert(e.Range != null);
+                    var rangePrime = Substitute(e.Range, null, substMapPrime);
+                    guardPrime = comprehensionEtran.TrExpr(rangePrime);
+                  }
+                  BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
+                    var different = BplOr(
+                      Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
+                      Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
+                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias()));
+                  });
+                }
               });
-            }
-          });
 
-          if (lam != null) {
-            // assume false (heap was havoced inside an if)
-            Contract.Assert(nextBuilder != builder);
-            nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
+              if (lam != null) {
+                // assume false (heap was havoced inside an if)
+                Contract.Assert(nextBuilder != builder);
+                nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
+              }
+            });
+            builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
+            break;
           }
-        });
-        builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
+        case StmtExpr stmtExpr:
+          CheckWellformedStmtExpr(stmtExpr, wfOptions, result, resultType, locals, builder, etran);
+          result = null;
+          break;
+        case ITEExpr iteExpr: {
+            ITEExpr e = iteExpr;
+            CheckWellformed(e.Test, wfOptions, locals, builder, etran);
+            var bThen = new BoogieStmtListBuilder(this, options);
+            var bElse = new BoogieStmtListBuilder(this, options);
+            if (e.IsBindingGuard) {
+              // if it is BindingGuard, e.Thn is a let-such-that created from the BindingGuard.
+              // We don't need to do well-formedness check on the Rhs of the LetExpr since it
+              // has already been checked in e.Test
+              var letExpr = (LetExpr)e.Thn;
+              Contract.Assert(letExpr != null);
+              CheckWellformedLetExprWithResult(letExpr, wfOptions, result, resultType, locals, bThen, etran, false);
+            } else {
+              CheckWellformedWithResult(e.Thn, wfOptions, result, resultType, locals, bThen, etran);
+            }
+            CheckWellformedWithResult(e.Els, wfOptions, result, resultType, locals, bElse, etran);
+            builder.Add(new Bpl.IfCmd(iteExpr.tok, etran.TrExpr(e.Test), bThen.Collect(iteExpr.tok), null, bElse.Collect(iteExpr.tok)));
+            result = null;
+            break;
+          }
+        case MatchExpr matchExpr:
+          result = TrMatchExpr(matchExpr, wfOptions, result, resultType, locals, builder, etran);
+          break;
+        case DatatypeUpdateExpr updateExpr: {
+            var e = updateExpr;
+            // check that source expression is created from one of the legal source constructors, then proceed according to the .ResolvedExpression
+            var correctConstructor = BplOr(e.LegalSourceConstructors.ConvertAll(
+              ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Root))));
+            if (e.LegalSourceConstructors.Count == e.Type.AsDatatype.Ctors.Count) {
+              // Every constructor has this destructor; no need to check anything
+            } else {
+              builder.Add(Assert(GetToken(expr), correctConstructor,
+                new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
+            }
 
-      } else if (expr is StmtExpr stmtExpr) {
-        CheckWellformedStmtExpr(stmtExpr, wfOptions, result, resultType, locals, builder, etran);
-        result = null;
+            CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
+              e.LegalSourceConstructors, builder, etran);
 
-      } else if (expr is ITEExpr) {
-        ITEExpr e = (ITEExpr)expr;
-        CheckWellformed(e.Test, wfOptions, locals, builder, etran);
-        var bThen = new BoogieStmtListBuilder(this, options);
-        var bElse = new BoogieStmtListBuilder(this, options);
-        if (e.IsBindingGuard) {
-          // if it is BindingGuard, e.Thn is a let-such-that created from the BindingGuard.
-          // We don't need to do well-formedness check on the Rhs of the LetExpr since it
-          // has already been checked in e.Test
-          var letExpr = (LetExpr)e.Thn;
-          Contract.Assert(letExpr != null);
-          CheckWellformedLetExprWithResult(letExpr, wfOptions, result, resultType, locals, bThen, etran, false);
-        } else {
-          CheckWellformedWithResult(e.Thn, wfOptions, result, resultType, locals, bThen, etran);
-        }
-        CheckWellformedWithResult(e.Els, wfOptions, result, resultType, locals, bElse, etran);
-        builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
-        result = null;
-      } else if (expr is MatchExpr matchExpr) {
-        result = TrMatchExpr(matchExpr, wfOptions, result, resultType, locals, builder, etran);
-      } else if (expr is DatatypeUpdateExpr) {
-        var e = (DatatypeUpdateExpr)expr;
-        // check that source expression is created from one of the legal source constructors, then proceed according to the .ResolvedExpression
-        var correctConstructor = BplOr(e.LegalSourceConstructors.ConvertAll(
-          ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Root))));
-        if (e.LegalSourceConstructors.Count == e.Type.AsDatatype.Ctors.Count) {
-          // Every constructor has this destructor; no need to check anything
-        } else {
-          builder.Add(Assert(GetToken(expr), correctConstructor,
-            new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
-        }
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
+            result = null;
+            break;
+          }
+        case ConcreteSyntaxExpression expression: {
+            var e = expression;
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
+            result = null;
+            break;
+          }
+        case NestedMatchExpr nestedMatchExpr:
+          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran);
+          result = null;
+          break;
+        case BoogieFunctionCall call: {
+            var e = call;
+            foreach (var arg in e.Args) {
+              CheckWellformed(arg, wfOptions, locals, builder, etran);
+            }
 
-        CheckNotGhostVariant(e.InCompiledContext, expr, e.Root, "update of", e.Members,
-          e.LegalSourceConstructors, builder, etran);
-
-        CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
-        result = null;
-
-      } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran);
-        result = null;
-      } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran);
-        result = null;
-      } else if (expr is BoogieFunctionCall) {
-        var e = (BoogieFunctionCall)expr;
-        foreach (var arg in e.Args) {
-          CheckWellformed(arg, wfOptions, locals, builder, etran);
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+            break;
+          }
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
       if (result != null) {

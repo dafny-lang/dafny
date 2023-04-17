@@ -1529,7 +1529,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var rd = new StreamReader(stream);
-      WriteFromStream(rd, wr.Append((new Verbatim())));
+      WriteFromStream(rd, wr.Append(new Verbatim()));
     }
 
     public static void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
@@ -1621,7 +1621,9 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
         }
-        ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        if (name != RunAllTestsMainMethod.SyntheticTestMainName) {
+          ReportError(program.Reporter, program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+        }
       }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
@@ -2959,7 +2961,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected internal void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+    protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 

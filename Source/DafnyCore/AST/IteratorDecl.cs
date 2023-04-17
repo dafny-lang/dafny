@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext {
+public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -479,5 +479,21 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext {
       members.Add(moveNext.Name, moveNext);
       Members.Add(moveNext);
     }
+  }
+
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken lastClosingParenthesis = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == ")") {
+        lastClosingParenthesis = token;
+      }
+    }
+
+    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
+      return lastClosingParenthesis.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }

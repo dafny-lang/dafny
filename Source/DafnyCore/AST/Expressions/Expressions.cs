@@ -18,7 +18,7 @@ public abstract class Expression : TokenNode {
 
   [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
-    return Type != null;
+    return PreType != null || Type != null;
   }
 
   public Expression Resolved {
@@ -40,6 +40,9 @@ public abstract class Expression : TokenNode {
       }
     }
   }
+
+
+  public PreType PreType;
 
   public virtual IEnumerable<Expression> TerminalExpressions {
     get {
@@ -701,6 +704,47 @@ public abstract class Expression : TokenNode {
   }
 
   /// <summary>
+  /// Create a resolved function-call expression. The returned expression will have syntactic scaffolding, which
+  /// enables resolving a syntactic clone of this resolved expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// Expects that "function" has no type parameters, but it's okay for the enclosing type to have type parameters.
+  /// </summary>
+  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, BuiltIns builtIns) {
+    Contract.Requires(function.TypeArgs.Count == 0);
+
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
+      Function = function,
+      Type = Type.Bool,
+      TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
+      TypeApplication_JustFunction = new List<Type>()
+    };
+
+    // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
+    var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
+    var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
+    subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    var exprDotName = new ExprDotName(tok, receiver, function.Name, null) {
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(function, subst, builtIns)
+    };
+    return new ApplySuffix(tok, null, exprDotName, new List<ActualBinding>(), tok) {
+      ResolvedExpression = call,
+      Type = function.ResultType
+    };
+  }
+
+  /// <summary>
+  /// Create a resolved field-selection expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// </summary>
+  public static Expression CreateFieldSelect(IToken tok, Expression receiver, Field field) {
+    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
+    return new ExprDotName(tok, receiver, field.Name, null) {
+      ResolvedExpression = memberSelectExpr,
+      Type = memberSelectExpr.Type
+    };
+  }
+
+  /// <summary>
   /// Create a resolved case expression for a match expression
   /// </summary>
   public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {
@@ -783,7 +827,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
+    var e = new IdentifierExpr(v.Tok, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
@@ -938,6 +982,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, 
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
   [FilledInDuringResolution] public bool IsCoCall;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1212,6 +1257,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Decl = decl;
     TypeArgs = typeArgs;
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
   public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
     : this(tok, tp, new List<Type>()) {
@@ -1447,6 +1493,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
   [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<Type> TypeApplication_JustFunction;
   [FilledInDuringResolution] public bool IsByMethodCall;
@@ -3508,7 +3556,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -3530,6 +3578,13 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   }
 
   public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
+    foreach (var subType in PreResolveChildren.OfType<Type>()) {
+      formatter.SetTypeIndentation(subType);
+    }
+    return false;
+  }
 }
 
 /// <summary>

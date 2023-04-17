@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class InferDecreasesClause {
   private readonly Resolver resolver;

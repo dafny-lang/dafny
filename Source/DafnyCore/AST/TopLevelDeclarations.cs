@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
@@ -345,7 +346,7 @@ public class TypeParameter : TopLevelDecl {
 }
 
 // Represents a submodule declaration at module level scope
-public abstract class ModuleDecl : TopLevelDecl {
+public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   public override string WhatKind { get { return "module"; } }
   [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
@@ -374,6 +375,27 @@ public abstract class ModuleDecl : TopLevelDecl {
   public override bool IsEssentiallyEmpty() {
     // A module or import is considered "essentially empty" to its parents, but the module is going to be resolved by itself.
     return true;
+  }
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken candidate = null;
+    var tokens = OwnedTokens.Any() ?
+      OwnedTokens :
+      PreResolveChildren.Any() ? PreResolveChildren.First().OwnedTokens : Enumerable.Empty<IToken>();
+    foreach (var token in tokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return candidate.TrailingTrivia;
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 // Represents module X { ... }
@@ -586,6 +608,14 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     return true;
+  }
+
+  protected override string GetTriviaContainingDocstring() {
+    if (Tok.TrailingTrivia.Trim() != "") {
+      return Tok.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -1075,11 +1105,23 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public IToken NameToken => tok;
-  public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
+  public override IEnumerable<Node> Children => (Attributes != null ?
+      new List<Node> { Attributes } :
+      Enumerable.Empty<Node>()).Concat<Node>(TopLevelDecls).
     Concat(RefinementQId == null ? Enumerable.Empty<Node>() : new Node[] { RefinementQId });
 
-  public override IEnumerable<Node> PreResolveChildren => Includes.Concat<Node>(TopLevelDecls).Concat(
-    PrefixNamedModules.Select(tuple => tuple.Item2));
+  private IEnumerable<Node> preResolveTopLevelDecls;
+  private IEnumerable<Node> preResolvePrefixNamedModules;
+  public override IEnumerable<Node> PreResolveChildren =>
+    Includes.Concat<Node>(Attributes != null ?
+      new List<Node> { Attributes } :
+      Enumerable.Empty<Node>()).Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
+    (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+
+  public void PreResolveSnapshotForFormatter() {
+    preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
+    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
+  }
 }
 
 public class DefaultModuleDefinition : ModuleDefinition {
@@ -1202,6 +1244,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   public readonly List<MemberDecl> Members;
 
+  public readonly ImmutableList<MemberDecl> MembersBeforeResolution;
+
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
   public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
@@ -1271,6 +1315,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
+    MembersBeforeResolution = members.ToImmutableList();
     ParentTraits = traits ?? new List<Type>();
   }
 
@@ -1291,7 +1336,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
 
   public override IEnumerable<Node> Children => ParentTraits.Concat<Node>(Members);
 
-  public override IEnumerable<Node> PreResolveChildren => Children;
+  public override IEnumerable<Node> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -1349,7 +1394,7 @@ public class TraitDecl : ClassDecl {
   }
 }
 
-public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
+public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "class"; } }
   public override bool CanBeRevealed() { return true; }
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
@@ -1472,6 +1517,24 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
 
     return true;
   }
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken candidate = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return candidate.TrailingTrivia;
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
 }
 
 public class DefaultClassDecl : ClassDecl {
@@ -1524,7 +1587,7 @@ public class ArrowTypeDecl : ClassDecl {
   }
 }
 
-public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat {
+public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring {
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -1536,6 +1599,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override IEnumerable<Node> Children => Ctors.Concat<Node>(base.Children);
+
+  public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
 
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
@@ -1682,6 +1747,16 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
     return true;
   }
+
+  protected override string GetTriviaContainingDocstring() {
+    foreach (var token in OwnedTokens) {
+      if (token.val == "=" && token.TrailingTrivia.Trim() != "") {
+        return token.TrailingTrivia;
+      }
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
 }
 
 public class IndDatatypeDecl : DatatypeDecl {
@@ -1740,20 +1815,36 @@ public class CoDatatypeDecl : DatatypeDecl {
 /// Its primary function is to hold the formal type parameters and built-in members of these types.
 /// </summary>
 public class ValuetypeDecl : TopLevelDecl {
-  public override string WhatKind { get { return Name; } }
+  public override string WhatKind { get { return "type"; } }
   public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
   readonly Func<Type, bool> typeTester;
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
-  public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
+  public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
     : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
-    Contract.Requires(0 <= typeParameterCount);
+    Contract.Requires(typeTester != null);
+    this.typeTester = typeTester;
+    this.typeCreator = typeCreator;
+  }
+
+  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
+    Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    Contract.Requires(name != null);
+    Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
     // fill in the type parameters
-    for (int i = 0; i < typeParameterCount; i++) {
-      TypeArgs.Add(new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), i, this));
+    if (typeParameterVariance != null) {
+      for (int i = 0; i < typeParameterVariance.Count; i++) {
+        var variance = typeParameterVariance[i];
+        var tp = new TypeParameter(RangeToken.NoToken, new Name(((char)('T' + i)).ToString()), variance) {
+          Parent = this,
+          PositionalIndex = i
+        };
+        TypeArgs.Add(tp);
+      }
     }
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
@@ -1772,7 +1863,7 @@ public class ValuetypeDecl : TopLevelDecl {
   }
 }
 
-public class DatatypeCtor : Declaration, TypeParameter.ParentType {
+public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring {
   public readonly bool IsGhost;
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
@@ -1807,6 +1898,14 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType {
 
       return "#" + EnclosingDatatype.FullName + "." + Name;
     }
+  }
+
+  protected override string GetTriviaContainingDocstring() {
+    if (EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 
@@ -1880,6 +1979,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   protected ICallable cwInner => (ICallable)inner;
   public IToken Tok => cwInner.Tok;
+
   public string WhatKind => cwInner.WhatKind;
   public string NameRelativeToModule => cwInner.NameRelativeToModule;
   public Specification<Expression> Decreases => cwInner.Decreases;
@@ -1903,6 +2003,10 @@ public class DontUseICallable : ICallable {
   public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
   public IToken Tok { get { throw new cce.UnreachableException(); } }
+  public string GetDocstring(DafnyOptions options) {
+    throw new cce.UnreachableException();
+  }
+
   public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
   public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
   public bool InferredDecreases {
@@ -1939,7 +2043,7 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat {
+public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "opaque type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
@@ -2020,6 +2124,25 @@ public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType,
 
     return true;
   }
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken openingBlock = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        openingBlock = token;
+      }
+    }
+
+    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
+      return openingBlock.Prev.TrailingTrivia;
+    }
+
+    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
 }
 
 public interface RedirectingTypeDecl : ICallable {
@@ -2091,9 +2214,10 @@ public interface RevealableTypeDecl {
   TypeDeclSynonymInfo SynonymInfo { get; set; }
 }
 
-public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl {
+public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl, IHasDocstring {
   public override string WhatKind { get { return "newtype"; } }
   public override bool CanBeRevealed() { return true; }
+  public PreType BasePreType;
   public Type BaseType { get; set; } // null when refining
   public BoundVar Var { get; set; }  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
   public Expression Constraint { get; set; }  // is null iff Var is
@@ -2177,9 +2301,27 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     // A "newtype" is not considered "essentially empty", because it always has a parent type to be resolved.
     return false;
   }
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken candidate = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        candidate = token.Prev;
+        if (candidate.TrailingTrivia.Trim() != "") {
+          return candidate.TrailingTrivia;
+        }
+      }
+    }
+
+    if (candidate == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
+  }
 }
 
-public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
+public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, IHasDocstring {
   public override string WhatKind { get { return "type synonym"; } }
   public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
   public bool SupportsEquality {
@@ -2272,6 +2414,27 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl {
   public override bool IsEssentiallyEmpty() {
     // A synonym/subset type is not considered "essentially empty", because it always has a parent type to be resolved.
     return false;
+  }
+
+
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken openingBlock = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == "{") {
+        openingBlock = token;
+      }
+    }
+
+    if (openingBlock != null && openingBlock.Prev.TrailingTrivia.Trim() != "") {
+      return openingBlock.Prev.TrailingTrivia;
+    }
+
+    if (openingBlock == null && EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 

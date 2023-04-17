@@ -93,10 +93,11 @@ public abstract class MemberDecl : Declaration {
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 }
 
-public class Field : MemberDecl, ICanFormat {
+public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
+  public PreType PreType;
   public readonly Type Type;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -172,6 +173,14 @@ public class Field : MemberDecl, ICanFormat {
     }
 
     return true;
+  }
+
+  protected override string GetTriviaContainingDocstring() {
+    if (EndToken.TrailingTrivia.Trim() != "") {
+      return EndToken.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }
 

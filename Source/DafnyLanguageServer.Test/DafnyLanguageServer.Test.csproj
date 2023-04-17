@@ -62,6 +62,27 @@
     <None Update="Various\TestFiles\3048.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Various\TestFiles\includesBincludesA.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Various\TestFiles\includesAincludesB.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\src\foo.dfy">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\Nesting\dfyconfig.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\dfyconfig.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\noWarnShadowing.dfy">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="ProjectFiles\TestFiles\Nesting\src\foo.dfy">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
