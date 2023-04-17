@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
         m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
-        if (m is { FunctionFromWhichThisIsByMethodDecl: { } fun }) {
+        if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
           AssumeCanCallForByMethodDecl(m, builder);
         }
         stmts = builder.Collect(m.Body.RangeToken.StartToken); // TODO should this be EndToken?  the parameter name suggests it should be the closing curly

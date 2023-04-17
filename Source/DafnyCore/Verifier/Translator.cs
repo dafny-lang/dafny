@@ -3418,7 +3418,9 @@ namespace Microsoft.Dafny {
     }
 
     void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
-      if (method.Ens.Count == 1 && method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
+      if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
+          method.Ens.Count == 1 &&
+          method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
         // fnCall == (m.Ens[0].E as BinaryExpr).E1;
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
         Bpl.IdentifierExpr canCallFuncID =
