@@ -4,7 +4,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ValueTypeSymbol : Symbol, ILocalizableSymbol {
     public ValuetypeDecl Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = valueTypeDeclaration;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return Declaration.Name;
     }
 

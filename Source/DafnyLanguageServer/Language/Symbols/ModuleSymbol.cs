@@ -4,7 +4,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ModuleSymbol : Symbol, ILocalizableSymbol {
     public ModuleDefinition Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public ISet<ISymbol> Declarations { get; } = new HashSet<ISymbol>();
 
@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = moduleDefinition;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"module {Declaration.Name}";
     }
 

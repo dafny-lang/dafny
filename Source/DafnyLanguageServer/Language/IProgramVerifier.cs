@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>
-  public interface IProgramVerifier {
+  public interface IProgramVerifier : IDisposable {
     /// <summary>
     /// Applies the program verification to the specified dafny program.
     /// </summary>
@@ -27,6 +27,5 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
       CancellationToken cancellationToken);
-    public IObservable<AssertionBatchResult> BatchCompletions { get; }
   }
 }

@@ -50,7 +50,7 @@ namespace DafnyServer.CounterexampleGeneration {
     /// </summary>
     public static Type ReplaceType(Type type, Func<UserDefinedType, Boolean> condition,
       Func<UserDefinedType, Type> replacement) {
-      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
+      if ((type is not UserDefinedType userType) || (type is ArrowType) || (type.AsArrowType != null)) {
         return TransformType(type, t => ReplaceType(t, condition, replacement));
       }
       var newType = condition(userType) ? replacement(userType) : type;
@@ -59,8 +59,6 @@ namespace DafnyServer.CounterexampleGeneration {
       if (newType is not UserDefinedType newUserType) {
         return newType;
       }
-      // The copying above is required to update the NamePath so it takes into
-      // account the changes to TypeArgs made above
       newUserType = new UserDefinedType(newUserType.tok, newUserType.Name,
         newUserType.TypeArgs);
       if (newType is DatatypeType) {
@@ -70,7 +68,7 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     public static Type GetInDafnyFormat(Type type) {
-      if ((type is not UserDefinedType userType) || (type is ArrowType)) {
+      if ((type is not UserDefinedType userType) || (type is ArrowType) || (type.AsArrowType != null)) {
         return TransformType(type, GetInDafnyFormat);
       }
       // The line below converts "_m" used in boogie to separate modules to ".":
@@ -91,6 +89,12 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Recursively transform all UserDefinedType objects within a given type
     /// </summary>
     public static Type TransformType(Type type, Func<UserDefinedType, Type> transform) {
+      if (type is ArrowType || type.AsArrowType != null) {
+        var arrowType = type.AsArrowType;
+        return new ArrowType(new Token(),
+          arrowType.Args.Select(t => TransformType(t, transform)).ToList(),
+          TransformType(arrowType.Result, transform));
+      }
       switch (type) {
         case Microsoft.Dafny.BasicType:
           return type;
@@ -104,12 +108,12 @@ namespace DafnyServer.CounterexampleGeneration {
           return new SetType(setType.Finite, TransformType(setType.Arg, transform));
         case MultiSetType multiSetType:
           return new MultiSetType(TransformType(multiSetType, transform));
-        case ArrowType arrowType:
-          return new ArrowType(new Token(),
-            arrowType.Args.Select(t => TransformType(t, transform)).ToList(),
-            TransformType(arrowType.Result, transform));
         case UserDefinedType userDefinedType:
           return transform(userDefinedType);
+        case InferredTypeProxy inferredTypeProxy:
+          var tmp = new InferredTypeProxy();
+          tmp.T = TransformType(inferredTypeProxy.T, transform);
+          return tmp;
       }
       return type;
     }

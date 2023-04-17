@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier {
+  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
     private readonly VerificationResultCache cache = new();
     private readonly ExecutionEngine engine;
 
@@ -31,15 +31,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
       options.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, true);
 
-      options.Printer = BatchObserver;
+      options.Printer = new OutputLogger(logger);
       engine = new ExecutionEngine(options, cache);
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
     static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
-    public AssertionBatchCompletedObserver BatchObserver { get; }
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
       CancellationToken cancellationToken) {
@@ -48,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
         InsertChecksums = true,
         ReportRanges = true
       }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
@@ -62,6 +60,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }).ToList();
     }
 
-    public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 }

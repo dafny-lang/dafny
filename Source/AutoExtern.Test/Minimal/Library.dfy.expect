@@ -8,3 +8,12 @@
     var Prop: System.String // property
   }
 
+  trait {:compile false} {:extern} ICanClone<T> {
+  }
+
+  trait {:compile false} {:extern} Base {
+  }
+
+  trait {:compile false} {:extern} Derived {
+  }
+

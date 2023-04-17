@@ -104,7 +104,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  private static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (RangeToken? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
@@ -114,7 +114,7 @@ public static class DafnyCodeActionHelpers {
     }
 
     var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
-    var beforeClosingBrace = endToken.GetLspRange().GetStartRange();
+    var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
 
@@ -162,7 +162,7 @@ public static class DafnyCodeActionHelpers {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
     if (stmt is BlockStmt blockStmt && blockStmt.Tok.line == line && blockStmt.Tok.col == col) {
-      return blockStmt.EndTok;
+      return blockStmt.RangeToken.EndToken;
     }
 
     foreach (var subStmt in stmt.SubStatements) {

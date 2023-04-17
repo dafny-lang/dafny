@@ -12,13 +12,13 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
         <PackageReference Include="OmniSharp.Extensions.JsonRpc" Version="0.19.5" />
         <PackageReference Include="OmniSharp.Extensions.LanguageProtocol" Version="0.19.5" />
-        <PackageReference Include="xunit" Version="2.4.1" />
-        <PackageReference Include="xunit.extensibility.core" Version="2.4.1" />
+        <PackageReference Include="xunit" Version="2.4.2" />
+        <PackageReference Include="xunit.extensibility.core" Version="2.4.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.collector" Version="3.1.2">
+        <PackageReference Include="coverlet.collector" Version="3.2.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
@@ -26,6 +26,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\..\Binaries\z3\**\*.*" LinkBase="z3">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

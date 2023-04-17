@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -18,12 +16,10 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using MediatR;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
-using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
@@ -70,7 +66,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
       var dafnyOptions = DafnyOptions.Create();
-      DafnyOptions.Install(dafnyOptions);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
@@ -89,12 +84,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in new ServerCommand().Options) {
+      foreach (var serverOption in ServerCommand.Instance.Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in new ServerCommand().Options) {
+      foreach (var option in ServerCommand.Instance.Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
 
@@ -152,6 +147,9 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 #pragma warning disable VSTHRD110 // Observe result of async calls
       Server.Initialize(CancellationToken);
 #pragma warning restore VSTHRD110 // Observe result of async calls
+
+      Disposable.Add(Server);
+      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
@@ -195,13 +193,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
-    }
-
-    protected async Task WithNoopSolver(Func<Task> action) {
-      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
-      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
-      await action();
-      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
     }
   }
 }

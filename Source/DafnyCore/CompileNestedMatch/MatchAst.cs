@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
-public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
@@ -48,7 +48,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
 
   public List<MatchCaseExpr> Cases => cases;
 
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -59,7 +59,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
     this.cases = cases;
   }
 
-  public override IEnumerable<INode> Children => new[] { source }.Concat<INode>(cases);
+  public override IEnumerable<Node> Children => new[] { source }.Concat<Node>(cases);
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -81,7 +81,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
   }
 }
 
-public abstract class MatchCase : INode, IHasUsages {
+public abstract class MatchCase : TokenNode, IHasUsages {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -107,14 +107,13 @@ public abstract class MatchCase : INode, IHasUsages {
   }
 }
 
-interface Match {
+interface IMatch {
   IEnumerable<MatchCase> Cases { get; }
   Expression Source { get; }
-
   List<DatatypeCtor> MissingCases { get; }
 }
 
-public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
+public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -143,11 +142,10 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    : base(rangeToken) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -156,11 +154,10 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
     this.Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(RangeToken rangeToken, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    : base(rangeToken, attrs) {
+    Contract.Requires(rangeToken != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
@@ -172,9 +169,9 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   public Expression Source => source;
 
   public List<MatchCaseStmt> Cases => cases;
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -232,10 +229,12 @@ public class MatchCaseStmt : MatchCase {
     Contract.Invariant(cce.NonNullElements(Body));
   }
 
-  public override IEnumerable<INode> Children => body;
+  public override IEnumerable<Node> Children => body;
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
+  public MatchCaseStmt(RangeToken rangeToken, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeToken.StartToken, ctor, arguments) {
+    RangeToken = rangeToken;
     Contract.Requires(tok != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
@@ -264,7 +263,8 @@ public class MatchCaseExpr : MatchCase {
     Contract.Invariant(body != null);
   }
 
-  public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] { body });
+  public override IEnumerable<Node> Children => Arguments.Concat<Node>(new[] { body });
+  public override IEnumerable<Node> PreResolveChildren => Children;
 
   public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
     : base(tok, ctor, arguments) {
@@ -324,7 +324,7 @@ public class LitCtx : MatchingContext {
   }
 
   public override string ToString() {
-    return Printer.ExprToString(Lit);
+    return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Lit);
   }
 }
 

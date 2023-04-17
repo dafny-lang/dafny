@@ -40,11 +40,10 @@ jobs:
     - name: Print version
       run: echo ${{ inputs.name }}
     - name: Checkout Dafny
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: dafny
         ref: ${{ inputs.sha }}
-    - uses: actions/setup-python@v1
     - name: Ensure tag exists
       if: ${{ inputs.prerelease }}
       run: |
@@ -52,7 +51,7 @@ jobs:
         git push origin ${{ inputs.tag_name }} -f
       working-directory: dafny
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v1.9.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 20.04
@@ -63,14 +62,17 @@ jobs:
       if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
-    - uses: actions/setup-python@v1
-    - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
+    - name: Set up JDK 18
+      uses: actions/setup-java@v3
       with:
-        java-version: 1.8
-    - uses: actions/setup-node@v1
+        java-version: 18
+        distribution: corretto
+    - uses: actions/setup-node@v3
     - run: npm install bignumber.js
-
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with: 
+       python-version: '3.11'
     - name: Build Dafny
       run: |
         dotnet build dafny/Source/Dafny.sln
@@ -84,7 +86,7 @@ jobs:
       run: dotnet pack --version-suffix ${{ inputs.name }} --no-build dafny/Source/Dafny.sln
 
     - name: Make NuGet package available as an artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: nuget-packages
         path: dafny/Binaries/*.nupkg
@@ -98,8 +100,9 @@ jobs:
 
     - name: Install latex pandoc
       run: |
+        brew update-reset && brew update
         brew install pandoc
-        brew install --cask basictex
+        brew install --cask mactex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math

@@ -5,7 +5,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FunctionSymbol : MemberSymbol, ILocalizableSymbol {
     public Function Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
 
@@ -31,8 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       Declaration = function;
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText()}";
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
+      return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText(options)}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

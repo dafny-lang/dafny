@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:0
 
 method Char(a: char, s: string, i: int) returns (b: char)
 {
@@ -151,4 +151,20 @@ method AllCharsTest() {
   expect |allChars| == |allUTF16CodeUnits|;
 }
 
-function method Identity<T>(x: T): T { x }
+function Identity<T>(x: T): T { x }
+
+method CharsAndArrows() {
+  var lambda := (c: char) requires c <= 'Z' => c + 1 as char;
+  var fromLambda := lambda('C');
+  print fromLambda, "\n";
+
+  var funcRef := IncrementChar;
+  var fromFuncRef := funcRef('C');
+  print fromFuncRef, "\n";
+}
+
+function IncrementChar(c: char): char 
+  requires c <= 'Z'
+{
+  c + 1 as char
+}

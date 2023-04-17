@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg">
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg;$(ProjectDir)/CoCo/Parser.frame;$(ProjectDir)/CoCo/Scanner.frame">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --info" />
     <Exec Command="dotnet tool run coco &quot;$(ProjectDir)Dafny.atg&quot; -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
@@ -27,14 +27,21 @@
   <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+      <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="5.0.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.0" />
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.4" />
+      <PackageReference Include="Tomlyn" Version="0.16.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="assets\audit_template.html">
+      <LogicalName>audit_template.html</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

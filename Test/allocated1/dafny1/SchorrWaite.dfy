@@ -153,13 +153,13 @@ class Main {
 
   // ---------------------------------------------------------------------------------
 
-  predicate Reachable(from: Node, to: Node, S: set<Node>)
+  ghost predicate Reachable(from: Node, to: Node, S: set<Node>)
     reads S
   {
     exists via :: ReachableVia(from, via, to, S)
   }
 
-  predicate ReachableVia(from: Node, via: Path, to: Node, S: set<Node>)
+  ghost predicate ReachableVia(from: Node, via: Path, to: Node, S: set<Node>)
     reads S
     decreases via
   {

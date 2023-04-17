@@ -17,6 +17,7 @@ public class Numbers {
   public static Pattern ref = Pattern.compile("\\{#([\\w-]+)\\}");
   public static Pattern cite = Pattern.compile("\\(#([\\w-]+)\\)");
   public static Pattern seccite = Pattern.compile("(\\[Section [\\d\\.]+\\])\\(#([\\w-]+)\\)");
+  public static Pattern id = Pattern.compile("id=\"([a-zA-Z-]*)\"");
 
   public static Set<String> cites = new HashSet<>();
   public static Map<String,String> labels = new HashMap<>();
@@ -61,6 +62,11 @@ public static void process(String file, boolean replace) {
     String line;
     while ((line = r.readLine()) != null) {
       String out = line;
+      Matcher mid = id.matcher(line);
+      if (mid.find()) {
+          String label = mid.group(1);
+          labels.put(label,"0");
+      }
       Matcher m = inc.matcher(line);
       if (m.find()) {
         if (replace) w.println(line);

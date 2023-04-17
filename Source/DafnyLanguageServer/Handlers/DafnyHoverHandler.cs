@@ -13,20 +13,23 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandlerBase {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
+    private DafnyOptions options;
 
     private const int RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;
+      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -69,6 +72,21 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
+      foreach (var diagnostic in state.Diagnostics) {
+        if (diagnostic.Range.Contains(position)) {
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
+          if (detail is not null) {
+            return detail;
+          }
+        }
+      }
+
+      if (state.Diagnostics.Any(diagnostic =>
+            diagnostic.Severity == DiagnosticSeverity.Error && (
+            diagnostic.Source == MessageSource.Parser.ToString() ||
+            diagnostic.Source == MessageSource.Resolver.ToString()))) {
+        return null;
+      }
       foreach (var node in state.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>()) {
         if (!node.Range.Contains(position)) {
           continue;
@@ -94,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               if (information != "") {
                 information += "\n\n";
               }
-              information += GetAssertionInformation(position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
+              information += GetAssertionInformation(state, position, assertionNode, assertionBatch, assertionIndex, assertionBatchCount, node);
             }
 
             assertionIndex++;
@@ -176,7 +194,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string GetAssertionInformation(Position position, AssertionVerificationTree assertionNode,
+    private string GetAssertionInformation(IdeState ideState, Position position, AssertionVerificationTree assertionNode,
       AssertionBatchVerificationTree assertionBatch, int assertionIndex, int assertionBatchCount,
       TopLevelDeclMemberVerificationTree node) {
       var assertCmd = assertionNode.GetAssertion();
@@ -218,12 +236,48 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string information = "";
 
+      string CouldProveOrNotPrefix = (assertionNode?.StatusVerification) switch {
+        GutterVerificationStatus.Verified => "Did prove: ",
+        GutterVerificationStatus.Error => "Could not prove: ",
+        GutterVerificationStatus.Inconclusive => "Not able to prove: ",
+        _ => "Unknown: "
+      };
+
+      string MoreInformation(Boogie.IToken? token, bool hoveringPostcondition) {
+        string deltaInformation = "";
+        while (token != null) {
+          var errorToken = token;
+          if (token is NestedToken nestedToken) {
+            errorToken = nestedToken.Outer;
+            token = nestedToken.Inner;
+          } else {
+            token = null;
+          }
+
+          // It's not necessary to restate the postcondition itself if the user is already hovering it
+          // however, nested postconditions should be displayed
+          if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
+            var originalText = rangeToken.PrintOriginal();
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
+          }
+
+          hoveringPostcondition = false;
+        }
+
+        return deltaInformation;
+      }
+
       if (counterexample is ReturnCounterexample returnCounterexample) {
         information += GetDescription(returnCounterexample.FailingReturn.Description);
+        information += MoreInformation(returnCounterexample.FailingAssert.tok, currentlyHoveringPostcondition);
       } else if (counterexample is CallCounterexample callCounterexample) {
         information += GetDescription(callCounterexample.FailingCall.Description);
+        information += MoreInformation(callCounterexample.FailingRequires.tok, false);
       } else {
         information += GetDescription(assertCmd?.Description);
+        if (assertCmd?.tok is NestedToken) {
+          information += MoreInformation(assertCmd.tok, true);
+        }
       }
 
       information += "  \n";
@@ -246,12 +300,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       // Not the main error displayed in diagnostics
       if (currentlyHoveringPostcondition) {
-        information += "  \n" + (assertionNode.SecondaryPosition != null
+        information += "  \n" + (assertionNode?.SecondaryPosition != null
           ? $"Return path: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
       }
 
-      if (assertionNode.GetCounterExample() is CallCounterexample) {
+      if (assertionNode?.GetCounterExample() is CallCounterexample) {
         information += "  \n" + (assertionNode.SecondaryPosition != null
           ? $"Failing precondition: {Path.GetFileName(assertionNode.Filename)}({assertionNode.SecondaryPosition.Line + 1}, {assertionNode.SecondaryPosition.Character + 1})"
           : "");
@@ -291,8 +345,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
+    private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
+      var docString = symbol.Node is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
+      return (docString + $"\n```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
     }
   }
 }

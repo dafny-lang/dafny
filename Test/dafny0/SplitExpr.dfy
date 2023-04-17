@@ -6,7 +6,7 @@ class UnboundedStack<T> {
   ghost var footprint: set<object>
   ghost var content: seq<T>
 
-  predicate IsUnboundedStack()
+  ghost predicate IsUnboundedStack()
     reads {this} + footprint
   {
     this in footprint &&
@@ -15,7 +15,7 @@ class UnboundedStack<T> {
                        top.prev == null && content == top.content && top.Valid())
   }
 
-  predicate IsEmpty()
+  ghost predicate IsEmpty()
     reads {this};
   { content == [] }
 
@@ -48,7 +48,7 @@ class Node<T> {
     val := v;
   }
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint &&
@@ -66,7 +66,7 @@ class Node<T> {
 // The following examples requires that quantifiers are boosted (that is, #2) when checked
 // versus not boosted (#1) when assumed.
 
-function F(x: nat): int
+ghost function F(x: nat): int
 {
   if x == 0 then 0 else 1 + F(x-1)
 }
@@ -87,7 +87,7 @@ method M(N: nat)
 // no backedges (that is, loops where Boogie's simple dead-code analysis figures prunes
 // away the backedges.
 
-predicate AnyPredicate(a: int, b: int) { a <= b }
+ghost predicate AnyPredicate(a: int, b: int) { a <= b }
 
 method NoLoop(N: nat)
 {

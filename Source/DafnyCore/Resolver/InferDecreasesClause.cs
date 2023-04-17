@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class InferDecreasesClause {
   private readonly Resolver resolver;
@@ -42,7 +42,7 @@ public class InferDecreasesClause {
           }
 
           if (showIt) {
-            s += "decreases " + Util.Comma(m.Decreases.Expressions, Printer.ExprToString);
+            s += "decreases " + Util.Comma(m.Decreases.Expressions, expr => Printer.ExprToString(prog.Options, expr));
             // Note, in the following line, we use the location information for "clbl", not "m".  These
             // are the same, except in the case where "clbl" is a GreatestLemma and "m" is a prefix lemma.
             resolver.reporter.Info(MessageSource.Resolver, clbl.Tok, s);
@@ -138,12 +138,6 @@ public class InferDecreasesClause {
     return anyChangeToDecreases;
   }
 
-  public Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    return ArrowType.FrameArrowToObjectSet(e, idGen, resolver.builtIns);
-  }
-
   public Expression FrameToObjectSet(List<FrameExpression> fexprs) {
     Contract.Requires(fexprs != null);
     Contract.Ensures(Contract.Result<Expression>() != null);
@@ -156,7 +150,7 @@ public class InferDecreasesClause {
       if (fe.E is WildcardExpr) {
         // drop wildcards altogether
       } else {
-        Expression e = FrameArrowToObjectSet(fe.E, idGen); // keep only fe.E, drop any fe.Field designation
+        Expression e = fe.E; // keep only fe.E, drop any fe.Field designation
         Contract.Assert(e.Type != null); // should have been resolved already
         var eType = e.Type.NormalizeExpand();
         if (eType.IsRefType) {
@@ -168,21 +162,24 @@ public class InferDecreasesClause {
           singletons.Add(e);
         } else if (eType is SeqType || eType is MultiSetType) {
           // e represents a sequence or multiset
-          // Add:  set x :: x in e
-          var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((CollectionType)eType).Arg);
-          var bvIE = new IdentifierExpr(e.tok, bv.Name);
-          bvIE.Var = bv; // resolve here
-          bvIE.Type = bv.Type; // resolve here
-          var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
-          if (eType is SeqType) {
-            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq; // resolve here
-          } else {
-            sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet; // resolve here
-          }
+          var collectionType = (CollectionType)eType;
+          var resolvedOpcode = collectionType.ResolvedOpcodeForIn;
+          var boundedPool = collectionType.GetBoundedPool(e);
 
-          sInE.Type = Type.Bool; // resolve here
-          var s = new SetComprehension(e.tok, e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
-          s.Type = new SetType(true, resolver.builtIns.ObjectQ()); // resolve here
+          // Add:  set x :: x in e
+          var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg);
+          var bvIE = new IdentifierExpr(e.tok, bv.Name) {
+            Var = bv,
+            Type = bv.Type
+          };
+          var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e) {
+            ResolvedOp = resolvedOpcode,
+            Type = Type.Bool
+          };
+          var s = new SetComprehension(e.tok, e.RangeToken, true, new List<BoundVar>() { bv }, sInE, bvIE, null) {
+            Type = new SetType(true, resolver.builtIns.ObjectQ()),
+            Bounds = new List<ComprehensionExpr.BoundedPool>() { boundedPool }
+          };
           sets.Add(s);
         } else {
           // e is already a set

@@ -24,7 +24,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Can I access the members of an outer module from its inner module?"](FAQNestedModule)
 - ["What is `-` on bitvectors?"](FAQBVNegation)
 - ["Is there a simple way to prove the termination of a recursive function?"](FAQRecursiveTermination)
-
 - ["Is there a way to use methods within expressions?"](FAQMethodSequence)
 - ["If I have an assertion about an object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?"](FAQLoopModifies)
 - ["I can assert a condition right before a return, so why does the postcondition fail to verify?](FAQFailingPost)
@@ -34,7 +33,6 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Why do nested modules not see the imports of their enclosing modules?"](FAQModuleImport)
 - ["Is there a way to test that two types are the same?"](FAQTypeCompare)
 - ["When a lemma has multiple ensures clauses, I’m finding that they interact, when I expected them to be independent.  For example, commenting out one of them can make another one not verify.  How should I think about this?"](FAQMultClauses)
-
 - ["What is the difference between a lemma and a ghost method?"](FAQGhostMethod)
 - ["In an invariant, I want to say that once a boolean variable that starts false is set to true, it remains true forever.  Can I use old for this?"](FAQOld)
 - ["When proving an iff (<==>), is there a nice way to prove this by proving each side of the implication separately without making 2 different lemmas?"](FAQIff)
@@ -81,6 +79,12 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How can ghost code call methods with side effects?"](FAQGhostSideEffects)
 - ["How do I create and use an iterator?](FAQIterator)
 - ["Can classes appear in specs?"](FAQClassInSpec)
+- ["How do I write specifications for a lambda expression in a sequence constructor?"](FAQLambdaSpecifications)
+- ["I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?"](FAQMapExtensionality)
+- ["Why can't I write `forall t: Test :: t.i == 1` for an object t?"](FAQForallTricks)
+- ["How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'."](FAQThisFrameField)
+- ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
+- ["How do I tell Dafny that a class field may be updated?"](FAQUpdateArrayField)
 
 ## Dafny tools
 
@@ -98,6 +102,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["What compiler target languages are in development?"](FAQCompileTargets)
 
 # Errors
+Also see [the error catalog](./Errors) for a complete, searchable list of error messages with explanations.
 
 - ["'z3' cannot be opened because the developer cannot be verified."](ERROR_Z3)
 - ["rbrace expected"](ERROR_Rbrace)
@@ -117,4 +122,5 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Warning: File contains no code: ..."](ERROR_NoCode)
 - ["Duplicate name of import: ..."](ERROR_DuplicateImportName)
 - ["Warning: /!\ No terms found to trigger on."](ERROR_NoTriggers)
-- ["Error: value does not satisfy the subset constraints of '(seq<uint8>, Materials.EncryptedDataKey) -> seq<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
+- ["Error: value does not satisfy the subset constraints of '(seq\<uint8>, Materials.EncryptedDataKey) -> seq\<uint8>' (possible cause: it may be partial or have read effects)"](ERROR_SubsetConstraints)
+

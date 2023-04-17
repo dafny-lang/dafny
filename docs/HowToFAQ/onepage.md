@@ -148,7 +148,7 @@ A refining module import (`import D : C`) may only occur in an abstract module i
 Generally speaking, suppose you have an underspecified module that is imported using ':', as in
 ```
 abstract module Interface {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 abstract module Mod {
@@ -165,7 +165,7 @@ Here `A` is abstract because it stands for any concrete module that adheres to t
 Now we can implement a concrete version of `Interface`:
 ```
 module Implementation {
-  function method addSome(n: nat): nat
+  function addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -182,6 +182,7 @@ module Mod2 refines Mod {
 ```
 Here the module `Mod.A`, which is an unspecified refinement of `Interface` inside of `Mod`, is refined to be the concrete module
 `Implementation` inside of `Mod2`, which is a refinement of `Mod`.
+
 # Why does Dafny need an obvious assert?
 
 
@@ -366,6 +367,132 @@ and then formulate your expression.
 
 If the methods in question do not have side-effects, they can be rewritten as functions or 'function by method'
 and then the syntax decribed above is fine.
+
+# If I have an assertion about an object (of class type) and a loop that doesn't mention (read, modify) the object, why does dafny fail to establish the assertion after the loop?
+
+
+## Question
+
+If I have an assertion about an object and a loop that doesn't mention (read, modify) the class, 
+why does dafny fail to establish the assertion after the loop?
+
+## Answer
+
+The short answer is that you need an appropriate combination of modifies clauses and 
+loop invariants to prove assertions about the end result of a loop.
+
+In Dafny's way of reasoning about a loop (which is typical of verifier systems), 
+the loop invariant is the only thing you can assume at the top of every iteration. 
+In other words, at the top of each loop iteration, it is as if all variables have 
+arbitrary values, with the condition that the loop invariant is satisfied. 
+Sometimes, the word _havoc_ is used to describe this: the verifier havocs all variables, 
+that is, gives all variables arbitrary values, and then assumes the loop invariant.
+
+If that’s all the verifier did, life would be a pain, because you’d have to write a
+loop invariant about all variables in your program, even those that have nothing to do with the loop.
+The verifier actually does better. Instead of havocing all variables, it suffices to havoc 
+the assignment targets within the body of the loop, including anything that might be modified by methods called in the loop body. 
+That is, the verifier uses a simple syntactic scan of the loop body to see which 
+variables may possibly be assigned, and then it havocs only those variables. 
+This saves users from having to write loop invariants about all other variables.
+Only invariants about variables that are modified are needed.
+
+What about the heap? For this purpose, the heap is considered to be one variable. 
+So, the heap is either an assignment target of the loop or it isn’t. 
+This means that if your loop body assigns to anything in the heap, the heap becomes an assignment target. 
+Also, if the loop body allocates another object, that too is a change of the heap, 
+so the heap becomes an assignment target. 
+Furthermore, Dafny’s rule about a method is that a method is allowed to change the 
+state of any object in the method’s modifies clause, 
+and it is also allowed to allocate new objects and to modify their state. 
+Therefore, if your loop body calls a method, then the heap may well become an assignment target.
+
+So, then, does this mean your loop invariant needs to speak about everything in the heap whenever the heap is an assignment target of the loop?
+
+Again, no. Loops in Dafny have `modifies` clauses, just like methods do (and just like for methods, 
+newly allocated objects are implicitly included in those `modifies` clauses). 
+It would be a pain to even have to write `modifies` clauses for every loop, 
+so if a loop does not have an explicit `modifies` clause, Dafny implicitly attaches 
+the `modifies` clause of the enclosing method (or of the enclosing loop, in the case of nested loops). 
+This default behavior turns out to be right in almost all cases in practice, 
+which is why you normally don’t have to think about this issue.
+
+But when it is not, you need to be explicit about the `modifies` clause and the loop invariants. 
+In particular
+- write a `modifies` clause for the loop that includes all objects whose fields might be 
+assigned in the loop body (or listed in the modifies clauses of anything the loop body calls)
+- then write a loop invariant that includes assertions about any variable that is listed in the modifies clause
+or is an assignment target in the loop body. 
+Very typically, the invariant will give a value for each havoced variable showing its relationship to the loop index.
+
+For example, a loop that sets the elements of an array to some initial value might look like this:
+```dafny
+method init(a: array<int>) 
+  modifies a
+  ensures forall j | 0 <= j < a.Length :: a[j] == j
+{
+  var i := 0;
+
+  while i < a.Length
+    modifies a
+    invariant 0 <= i <= a.Length && forall j | 0 <= j < i :: a[j] == j
+  {
+    a[i] := i;
+    i := i + 1;
+  }
+}
+```
+
+Note the following points:
+- The method specifies that it might modify the elements of the array `a`.
+- The loop says that it modifies the same array. 
+In fact that modifies clause could be omitted
+because it would be inherited from the enclosing context.
+- The loop also modifies `i`, but as `i` is a local variable, it need not be listed in the modifies clause.
+- The loop also has an invariant, which has two conjuncts:
+   - One conjunct talks about the local variable `i`. Even though `i` is not in the modifies clause 
+    it is an assignment target, so we need to say what is known about it (prior to the loop test).
+   - The other conjunct talks about the elements of `a`, which depend on `i`, 
+    that is, on how many iterations of the loop have been executed.
+- After the loop, Dafny uses the loop invariant and the negation of the loop guard to conclude `i == a.Length`, and from that and the invariant, Dafny can prove the method's postcondition.
+
+Even when Dafny can infer an appropriate modifies clause, it does not infer loop invariants, so the user always needs to supply those. 
+
+Here is another example:
+```dafny
+class Counter {
+  var n: nat
+}
+
+// print "hello" c.n times and then increment c.n
+method PrintAndIncrement(c: Counter)
+  modifies c
+  ensures c.n == old(c.n) + 1
+{
+  for _ := 0 to c.n
+    // To verify this method, the loop needs one of the following two lines:
+    invariant c.n == old(c.n)
+    modifies {} // empty modifies clause
+  {
+    PrintHello();
+  }
+  c.n := c.n + 1;
+}
+
+method PrintHello() {
+  print "hello\n";
+}
+```
+The for-loop can be specified and the whole method verified in two different ways.
+
+First, suppose we do not include a modifies clause in the loop specifications of the loop.
+Then dafny will use the enclosing modifies clause, which allows changing the
+state of `c`. In order for the method body to know that the loop has not 
+changed `c.n`, the loop needs the invariant `c.n == old(c.n)`.
+
+Alternatively, the loop can specify its own modifies clause,
+`modifies {}`, saying it modifies nothing. Then it follows directly that
+`c.n` does not change in the loop, so no invariant is needed to carry out the proof.
 
 # I can assert a condition right before a return, so why does the postcondition fail to verify?
 
@@ -682,12 +809,12 @@ Note the slight difference in syntax between the `forall` expression and `forall
 Although Dafny tries to make the syntax of these sorts of things as similar as possible between expressions and statements, there are some differences. 
 The following Dafny Power User note may be helpful in understanding the syntax: [Dafny Power User: Statement vs. Expression Syntax](http://leino.science/papers/krml266.html).
 
-# Is there any difference between a method without a modifies clause and a function method with a reads this clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?
+# Is there any difference between a method without a modifies clause and a function with a reads this clause?  I know that the latter you can use in expressions, but otherwise, is there anything the former can do that the latter can’t, for example?
 
 
 ## Question
 
-Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressions, but otherwise.  Is there anything the former can do that the latter can’t, for example?
+Is there any difference between a method without a `modifies` clause and a function method with a `reads this` clause?  I know that the latter you can use in expressions.  Is there anything the former can do that the latter can’t, for example?
 
 ## Answer
 
@@ -909,15 +1036,15 @@ datatype Outcome<T> =
             | Success(value: T)
             | Failure(error: string)
 {
-  predicate method IsFailure() {
+  predicate IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure<U>(): Outcome<U>
+  function PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
   }
-  function method Extract(): T
+  function Extract(): T
     requires !IsFailure()
   {
     this.value
@@ -992,7 +1119,7 @@ The names of these alternatives will be changing between Dafny 3 and Dafny 4:
 
 - `function` (`function method` in Dafny 3) -- is a non-ghost function
 - `ghost function` (`function` in Dafny 3) -- is a ghost function
-- _function by method_ can be either ghost or non-ghost and is a way of giving a method-like implementation for a function (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declarations))
+- _function by method_ is a ghost function with an alternate compilable (non-ghost) method body (cf. [the reference manual section on function declarations](../DafnyRef/DafnyRef#sec-function-declarations))
 - `method` declares a non-ghost method
 - `ghost method` declares a ghost method, though this is almost always done using a `lemma` instead
 
@@ -1306,7 +1433,7 @@ You can manually initialize like this:
 ```dafny
 type {:extern} TT {
 }
-function method {:extern} init(): TT
+function {:extern} init(): TT
 
 method mmm() {
   var x: TT := init();
@@ -1525,7 +1652,7 @@ Another solution, which is a pattern applicable in other circumstances as well, 
 ```dafny
 datatype T = Y | N | B(T,T)
 
-function method f(x : T) : bool
+function f(x : T) : bool
   decreases x, 1
 {
   match x {
@@ -1535,7 +1662,7 @@ function method f(x : T) : bool
   }
 }
 
-function method g(ghost parent: T, x : T, y : T) : bool
+function g(ghost parent: T, x : T, y : T) : bool
   decreases parent, 0
   requires x < parent && y < parent
 {
@@ -1587,7 +1714,7 @@ You could use a function-by-method to encapsulate the above in a function.
 Here is an extended example taken from  [Dafny Power User: Iterating over a Collection](http://leino.science/papers/krml275.html).
 
 ```dafny
-function method SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
+function SetToSequence<A(!new)>(s: set<A>, R: (A, A) -> bool): seq<A>
   requires IsTotalOrder(R)
   ensures var q := SetToSequence(s, R);
     forall i :: 0 <= i < |q| ==> q[i] in s
@@ -1796,6 +1923,353 @@ Within the specs, you can call functions (ghost or not) of those classes.
 However, there are some limitations:
 - Primarily, the `new` operator may not be used in a specification, so new class objects cannot be allocated in the spec
 - Note also that class objects are on the heap; as heap objects they will need to be mentioned in reads clauses.
+
+# "How do I write specifications for a lambda expression in a sequence constructor?"
+
+
+## Question
+
+How do I write specifications for a lambda expression in a sequence constructor?
+
+## Answer
+
+Consider the code
+```dafny
+class C {
+  var p: (int, int);
+}
+
+function Firsts0(cs: seq<C>): seq<int> {
+  seq(|cs|, i => cs[i].p.0) // Two errors: `[i]` and `.p`
+}
+```
+
+Dafny complains about the array index and an insufficient reads clause in the lambda function.
+Both of these need specifications, but where are they to be written.
+
+The specifications in a lamda function expression are written after the formal aarguments
+but before the `=>`.
+
+The array index problem is solved by a `requires` clause that limits the range of the index::
+```dafny
+class C {
+  var p: (int, int);
+}
+
+function Firsts0(cs: seq<C>): seq<int> {
+  seq(|cs|, i requires 0 <= i < |cs| => cs[i].p.0) // Two errors: `[i]` and `.p`
+}
+```
+
+and the reads complaint by a `reads` clause that states which objects will be read.
+In this case, it is the objects `cs[i]` that have their `p` field read.
+If the element type of `cs` were a value type instead of a reference type, this
+`reads` clause would be unnecessary.
+
+```dafny
+class C {
+  var p: (int, int);
+}
+
+function Firsts2(cs: seq<C>): seq<int>
+  reads set i | 0 <= i < |cs| :: cs[i]
+{
+  seq(|cs|, i
+    requires 0 <= i < |cs|
+    reads set i | 0 <= i < |cs| :: cs[i] => cs[i].p.0)
+}
+```
+
+# I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+
+
+## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+
+I have this lemma
+```dafny
+    lemma MapKeepsCount<X,Y,Z>(m : map<X,Y>, f : (X) -> Z)
+      requires forall a : X, b : X :: a != b ==> f(a) != f(b)
+      ensures |m| == |map k <- m.Keys :: f(k) := m[k]|
+```
+and later on this code
+```dafny
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+```
+
+The final assert fails, even though it exactly matches the ensures of the lemma.
+What am I missing? 
+
+If the lemma is an axiom, one can try to assume the post condition right before the assertion. 
+But that failed in this case
+
+```dafny
+MapKeepsCount(schema, k => Canonicalize(tableName, k));
+assume |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys | true :: Canonicalize(tableName, k) := schema[k]|;
+```
+
+Which makes no sense.
+I even put the function into a variable, and this still fails
+```dafny
+assume |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
+assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
+```
+
+## Answer:
+
+The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
+
+To prove that the `|map …|` expression in the specification has the same value as the `|map …|` expression in the code, 
+the verifier would either have to compute the cardinality of each map (which it can’t do, because `m.Keys` is symbolic and could stand for any size set) 
+or reason that the one `map …` is the very same map as the other `map …` (in which case it would follow that the cardinality of the two maps are also the same).
+The way to prove that two maps are equal is to show that they have the same keys and the same mappings. 
+The idea of proving two things equal by looking at the “elements” of each of the two things is called extensionality. 
+Dafny never tries to prove extensionality, but it’s happy to do it if you ask it to. 
+For example, if `G` is a function that you know nothing about and you ask to prove
+```dafny
+assert G(s + {x}) == G({x} + s + {x});
+```
+then Dafny will complain. You have to first establish that the arguments to these two invocations of `G` are the same, which you can do with an assert:
+```dafny
+assert s + {x} == {x} + s + {x};
+assert G(s + {x}) == G({x} + s + {x});
+```
+
+Here, Dafny will prove the first assertion (which it actually does by proving that the sets are elementwise equal) and will then use the first assertion to prove the second.
+Going back to your example, Dafny needs to know that the two `map`s are equal. To help it along, perhaps you could mention the two in an assertion, like
+
+`assert map … == map …;`
+
+But you can’t do that here, because the two map expressions are in different scopes and use different variables.
+To establish that the two maps are equal, we thus need to do something else. 
+If the two of them looked the same, then Dafny would know that the are the same. 
+But the form is slightly different, because you are (probably without thinking about it) instantiating a lambda expression. 
+To make them the same, you could rewrite the code to:
+```dafny
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |map k <- schema.Keys | true :: F(k) := schema[k]|;
+```
+
+Now, this `map …` syntactically looks just like the one in the lemma postcondition, but with `schema` instead of `m` and with `F` instead of `f`. 
+When two map comprehensions (or set comprehensions, or lambda expressions) are syntactically the same like this, then Dafny knows to treat them the same.
+Almost. 
+Alas, there’s something about this example that makes what I said not quite true (and I didn’t dive into those details just now). 
+There is a workaround, and this workaround is often useful in places like this, so I’ll mention it here. 
+The workaround is to give the comprehension a name. Then, if you use the same name in both the caller and callee, 
+Dafny will know that they are the same way of constructing the map. 
+The following code shows how to do it: 
+```dafny
+lemma MapKeepsCount<X, Y, Z>(m: map<X, Y>, f: X -> Z)
+  requires forall a: X, b: X :: a != b ==> f(a) != f(b)
+  ensures |m| == |MyMap(f, m)|
+
+ghost function MyMap<X, Y, Z>(f: X -> Y, m: map<X, Z>): map<Y, Z>
+  requires forall a <- m.Keys, b <- m.Keys :: a != b ==> f(a) != f(b)
+{
+  map k <- m.Keys :: f(k) := m[k]
+}
+
+method Use<X,Y,Z>(schema: map<X,Y>, tableName: TableName)
+  requires forall a : X, b : X :: a != b ==> Canonicalize(tableName, a) != Canonicalize(tableName, b)
+{
+  var F := k => Canonicalize(tableName, k);
+  MapKeepsCount(schema, F);
+  assert |schema| == |MyMap(F, schema)|;
+}
+
+
+type TableName
+
+function SimpleCanon<K>(t: TableName, k: K): int
+
+```
+
+It manually introduces a function `MyMap`, and by using it in both caller and callee, the code verifies.
+
+# Why can't I write 'forall t: Test :: t.i == 1' for an object t?
+
+
+## Question:
+
+Why can't I write `forall t: Test :: t.i == 1` for an object t?
+
+## Answer:
+
+This code
+
+```dafny
+trait Test {
+ var i: int
+}
+class A {
+  predicate testHelper() {
+    forall t: Test :: t.i == 1
+    // a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references,
+  }
+}
+```
+
+can be better written as
+
+```dafny
+trait Test {
+ var i: int
+}
+class A {
+  ghost const allTests: set<Test>
+  predicate testHelper() reads allTests {
+    forall t: Test <- allTests :: t.i == 1
+  }
+}
+```
+
+That way, if you want to assume anything about the Test classes that you are modeling extern, 
+you only need to specify an axiom that says that whatever Test you have was in allTests, 
+which could have been a pool of Test objects created from the start anyway, and then you can use your axiom. 
+# How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
+
+
+## Question: 
+
+How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
+
+## Answer:
+
+Here is some sample code that show a workaround.
+
+```dafny
+trait Test {
+  var y: int
+  var z: int
+  function {:opaque} MyFunc(x: bool): int
+    reads (if x then {this} else {})`y, (if x then {} else {this})`z {
+    if x then y else z
+  }
+}
+
+```
+# How do I model extern methods that return objects?
+
+
+## Question: 
+
+How do I model extern methods that return objects?
+
+
+## Answer:
+
+When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
+It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.
+
+For example:
+
+```dafny
+trait {:extern} {:compile false} Test {
+  var i: int
+  var y: int
+}
+trait {:extern} {:compile false} Importer {
+  function Import(i: int): (r: Test)
+    ensures r.i == i
+
+  method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
+    ensures r == Import(i)
+
+  predicate Conditions(i: int) {
+     && var r := Import(i);
+     && r.y == 2
+  }
+}
+```
+
+In this case, it's better to write a predicate, and use existential quantifiers along with the `:|` operator, 
+and there is no need to prove uniqueness because we are in ghost code!
+
+```dafny
+trait {:extern} {:compile false} Test {
+  var i: int
+}
+trait {:extern} {:compile false} Importer {
+  predicate IsImported(i: int, r: Test) {
+    r.i == i
+  }
+  method {:extern} {:compile false} DoImport(i: int) returns (r: Test)
+    ensures IsImported(i, r)
+
+  predicate Conditions(i: int) {
+     && (exists r: Test :: IsImported(i, r))
+     && var r :| IsImported(i, r);   // Note the assignment has changed.
+     && r.y == 2
+  }
+}
+```
+
+# How do I tell Dafny that a class field may be updated?
+
+
+## Question
+
+I get a "call might violate context's modifies clause" in the following context.
+I have a field in a class that is is an array whose elements are being modified by a call, but the field does not exist when the enclosing method
+is called. So how do I tell Dafny that it can be modified?
+
+Here is an example situation:
+```dafny
+class WrapArray {
+  var intarray: array<int>; 
+  constructor (i:int) 
+    requires i > 0
+  {
+    this.intarray := new int[i];
+  }
+  method init(i: int)
+    modifies intarray
+  {
+    var index: int := 0;
+    while (index < intarray.Length){
+      intarray[index] := i;
+      index := index+1;
+    }
+  }
+}
+
+method Main()
+{
+  var sh:= new WrapArray(5);
+  sh.init(4);
+}
+```
+
+## Answer
+
+When dafny is asked to verify this, it complains about the call `sh.init` that it modifies objects that
+Main does not allow. Indeed `sh.init` does modify the elements of `sh.intarray` and says so in its `modifies` clause,
+but that array does not even exist, nor is `sh` in scope, in the pre-state of `Main`. 
+So where should it be indicated that `sh.intarray` may be modified?
+
+The key is in the fact that neither `sh` nor `sh.intarray` is allocated in `Main`'s pre-state. `Main` should be allowed 
+to modify objects that are allocated after the pre-state. Indeed `Main` knows that `sh` is newly allocated, so its fields
+may be changed. That is, we are allowed to assign to `sh.intarray`. But here we want to change the state of `sh.intarray`,
+not `sh`. The array is newly allocated, but `Main` does not know this.
+After all, it is possible that the constructor initialized `sh.intarray` with some existing array and changing that array's elements
+would change the state of some other object. We need to tell `Main` that the constructor of `WrapArray` allocates a new 
+array of ints. The syntax to do that is to add a postcondition to the constructor that says `fresh(intarray)`.
+
+Writing the constructor like this
+
+```dafny
+  constructor (i:int)
+    requires i>0
+    ensures fresh(intarray)
+  {
+      this.intarray := new int[i];
+  }
+  
+```
+
+solves the problem.
 
 # Is there a Dafny style? and a Dafny linter (style checker and bad smell warnings)?
 
@@ -2154,16 +2628,16 @@ if it is meant to be transparent, then you must reveal it.
 
 Here is code that provoked this error (though the error message as been made more specific in later releases):
 ```dafny
-function Eval(): string -> bool {
+ghost function Eval(): string -> bool {
    EvalOperator(Dummy)
 }
 
-function EvalOperator(op: string -> bool): string -> bool 
+ghost function EvalOperator(op: string -> bool): string -> bool 
 {
   (v: string) => op(v)
 }
 
-function method Dummy(str: string): bool
+function Dummy(str: string): bool
   requires str == []
 ```
 
@@ -2407,23 +2881,23 @@ One more remark: The “no trigger” warning should be taken seriously, because
 
 Here is an example of submitted code that produced this error:
 ```dafny
-function method EncryptedDataKeys(edks: Msg.EncryptedDataKeys):  (ret: seq<uint8>)
-    requires edks.Valid()
-  {
-      UInt16ToSeq(|edks.entries| as uint16) + FoldLeft(FoldEncryptedDataKey, [], edks.entries)
-  }
+function EncryptedDataKeys(edks: Msg.EncryptedDataKeys):  (ret: seq<uint8>)
+  requires edks.Valid()
+{
+    UInt16ToSeq(|edks.entries| as uint16) + FoldLeft(FoldEncryptedDataKey, [], edks.entries)
+}
 
-  function method FoldEncryptedDataKey(acc: seq<uint8>, edk: Materials.EncryptedDataKey): (ret: seq<uint8>)
-    requires edk.Valid()
-  {
-      acc + edk.providerID + edk.providerInfo + edk.ciphertext
-  }
+function FoldEncryptedDataKey(acc: seq<uint8>, edk: Materials.EncryptedDataKey): (ret: seq<uint8>)
+  requires edk.Valid()
+{
+    acc + edk.providerID + edk.providerInfo + edk.ciphertext
+}
 ```
 
 The general cause of this error is supplying some value to a situation where (a) the type of the target (declared variable, formal argument) is a subset type and (b) Dafny cannot prove that the value falls within the predicate for the subset type. In this example code, `uint8` is likely a subset type and could be at fault here.
 But more likely and less obvious is supplying `FoldEncryptedDataKey` as the actual argument to `FoldLeft`.
 
-The signature of `FoldLeft` is `function method {:opaque} FoldLeft<A,T>(f: (A, T) -> A, init: A, s: seq<T>): A`.
+The signature of `FoldLeft` is `function {:opaque} FoldLeft<A,T>(f: (A, T) -> A, init: A, s: seq<T>): A`.
 Note that the type of the function uses a `->` arrow, namely a total, heap-independent function (no requires or reads clause).
 But `FoldEncryptedDataKey` does have a requires clause. Since `->` functions are a subset type of partial, heap-dependent `~>` functions,
 the error message complains about the subset type constraints not being satisfied.

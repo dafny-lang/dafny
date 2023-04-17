@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 DirtyLoops.dfy(26,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy(35,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy(46,2): Warning: note, this loop has no body (loop frame: i)
@@ -82,7 +83,7 @@ DirtyLoops.dfy(321,13): Error: assertion might not hold
 DirtyLoops.dfy(356,13): Error: assertion might not hold
 DirtyLoops.dfy(369,13): Error: assertion might not hold
 DirtyLoops.dfy(380,9): Error: assertion might not hold
-DirtyLoops.dfy(401,18): Error: This loop invariant might not hold on entry.
+DirtyLoops.dfy(401,18): Error: this loop invariant could not be proved on entry
 DirtyLoops.dfy(401,18): Related message: loop invariant violation
 DirtyLoops.dfy(414,16): Error: target object might be null
 DirtyLoops.dfy(506,22): Error: assertion might not hold
@@ -92,6 +93,7 @@ DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modif
 DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
 
 Dafny program verifier finished with 22 verified, 46 errors
+The /allocated:<n> option is deprecated
 DirtyLoops.dfy.tmp.dprint.dfy(446,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(455,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(471,6): Warning: note, this loop has no body (loop frame: i, $Heap)

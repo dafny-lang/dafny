@@ -5,6 +5,8 @@
     <AssemblyName>DafnyTestGeneration</AssemblyName>
     <IsPackable>false</IsPackable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <IsPackable>true</IsPackable>
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
