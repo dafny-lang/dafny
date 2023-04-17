@@ -58,7 +58,7 @@ module {:extern "Microsoft"} {:options "-functionSyntax:4"}  Microsoft {
           }
           IsAllocated(allTokens[0..i]);
 
-          
+
           var newLeadingTrivia := reindent.GetNewLeadingTrivia(token);
           var newTrailingTrivia := reindent.GetNewTrailingTrivia(token);
           sb.Append(newLeadingTrivia);

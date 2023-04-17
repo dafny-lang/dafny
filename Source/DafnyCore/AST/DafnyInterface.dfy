@@ -1,4 +1,5 @@
 include "System.dfy"
+
 // Interface with existing Dafny code (IToken)
 module {:extern "Microsoft.Dafny"} {:compile false} {:options "-functionSyntax:4"} MicrosoftDafny {
   import opened System
