@@ -41,7 +41,7 @@ function EnsureRevealPreconditionForComparisonWithFunction(i: int): (r: int)
   assert cando: i >= 0 by {
     reveal p;
   }
-  if(i < -2) {
+  if i < -2 {
     return -1; // A return reveals the requires for comparison with function so Dafny is OK.
   }
 
@@ -49,7 +49,7 @@ function EnsureRevealPreconditionForComparisonWithFunction(i: int): (r: int)
   assert cando2: i >= 0 by {
     reveal p;
   }
-  if(i < 0) {
+  if i < 0 {
     return -1; // A return reveals the requires for comparison with function so Dafny is OK.
   }
   // Here Dafny knows that i >= 0;
