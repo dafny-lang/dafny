@@ -3434,8 +3434,7 @@ namespace Microsoft.Dafny {
         }
 
         if (!method.IsStatic) {
-          Bpl.Expr th;
-          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out th);
+          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
           tyargs.Add(th);
         }
         Bpl.Expr boogieAssumeCanCall =
