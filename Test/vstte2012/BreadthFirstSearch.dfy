@@ -108,6 +108,7 @@ class BreadthFirstSearch<Vertex(==)>
       }
       assert {:split_here} true;
       assert C != {} ==> Processed + C == R(source, d, AllVertices) by { reveal R(); }
+      assert {:split_here} true;
 
       // process newly encountered successors
       var newlyEncountered := set w | w in Succ(v) && w !in V;
