@@ -1832,6 +1832,7 @@ namespace Microsoft.Dafny {
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
             var formalsUsedInThisCtor = new HashSet<string>();
+            var duplicates = new HashSet<Formal>();
             foreach (var formal in ctor.Formals) {
               MemberDecl previousMember = null;
               var localDuplicate = false;
@@ -1841,6 +1842,7 @@ namespace Microsoft.Dafny {
                   if (localDuplicate) {
                     reporter.Error(MessageSource.Resolver, ctor,
                       "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                    duplicates.Add(formal);
                   } else if (previousMember is DatatypeDestructor) {
                     // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
                   } else {
@@ -1870,6 +1872,10 @@ namespace Microsoft.Dafny {
               }
 
               ctor.Destructors.Add(dtor);
+            }
+
+            foreach (var duplicate in duplicates) {
+              ctor.Formals.Remove(duplicate);
             }
           }
 
@@ -2001,6 +2007,7 @@ namespace Microsoft.Dafny {
         f.ByMethodBody, f.Attributes, null, true);
       Contract.Assert(f.ByMethodDecl == null);
       method.InheritVisibility(f);
+      method.FunctionFromWhichThisIsByMethodDecl = f;
       f.ByMethodDecl = method;
     }
 
@@ -2326,6 +2333,10 @@ namespace Microsoft.Dafny {
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var u = new UnderspecificationDetector(this);
           u.Check(declarations);
+        }
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {

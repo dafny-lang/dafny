@@ -3417,6 +3417,35 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
+      if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
+          method.Ens.Count == 1 &&
+          method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
+        // fnCall == (m.Ens[0].E as BinaryExpr).E1;
+        // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+        Bpl.IdentifierExpr canCallFuncID =
+          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, predef, method.tok);
+        List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
+        var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
+        if (options.AlwaysUseHeap || method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
+          Contract.Assert(etran.HeapExpr != null);
+          tyargs.Add(etran.HeapExpr);
+        }
+
+        if (!method.IsStatic) {
+          Bpl.Expr th;
+          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out th);
+          tyargs.Add(th);
+        }
+        Bpl.Expr boogieAssumeCanCall =
+          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
+      } else {
+        Contract.Assert(false, "Error in shape of by-method");
+      }
+    }
+
     void CheckDefiniteAssignmentReturn(IToken tok, Formal p, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(p != null && !p.InParam);
@@ -4256,7 +4285,12 @@ namespace Microsoft.Dafny {
       // of them), do the postponed reads checks.
       wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (AttributedExpression p in f.Req) {
-        CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+        if (p.Label != null) {
+          p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
+          CheckWellformed(p.E, wfo, locals, builder, etran);
+        } else {
+          CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+        }
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 

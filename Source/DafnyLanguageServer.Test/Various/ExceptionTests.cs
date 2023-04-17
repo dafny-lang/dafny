@@ -123,11 +123,12 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
+      CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(textDocument, cancellationToken);
+      return loader.LoadAsync(options, textDocument, cancellationToken);
     }
   }
 }
