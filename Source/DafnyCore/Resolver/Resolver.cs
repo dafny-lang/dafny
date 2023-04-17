@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
       None
     } // note, these are ordered, so they can be used as indices into valuetypeDecls
 
-    readonly ValuetypeDecl[] valuetypeDecls;
+    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
@@ -1828,6 +1828,7 @@ namespace Microsoft.Dafny {
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
             var formalsUsedInThisCtor = new HashSet<string>();
+            var duplicates = new HashSet<Formal>();
             foreach (var formal in ctor.Formals) {
               MemberDecl previousMember = null;
               var localDuplicate = false;
@@ -1837,6 +1838,7 @@ namespace Microsoft.Dafny {
                   if (localDuplicate) {
                     reporter.Error(MessageSource.Resolver, ctor,
                       "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                    duplicates.Add(formal);
                   } else if (previousMember is DatatypeDestructor) {
                     // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
                   } else {
@@ -1866,6 +1868,10 @@ namespace Microsoft.Dafny {
               }
 
               ctor.Destructors.Add(dtor);
+            }
+
+            foreach (var duplicate in duplicates) {
+              ctor.Formals.Remove(duplicate);
             }
           }
 
@@ -2319,6 +2325,10 @@ namespace Microsoft.Dafny {
         // Resolve all names and infer types.
         var preTypeResolver = new PreTypeResolver(this);
         preTypeResolver.ResolveDeclarations(declarations, moduleName);
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
+        }
 
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information

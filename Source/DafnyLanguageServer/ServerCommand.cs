@@ -8,6 +8,10 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 namespace Microsoft.Dafny.LanguageServer;
 
 public class ServerCommand : ICommandSpec {
+  public static readonly ServerCommand Instance = new();
+
+  private ServerCommand() {
+  }
 
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
@@ -53,8 +57,7 @@ Send notifications about the verification status of each line in the program.
     Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
-    var command = new Command("server", "Start the Dafny language server");
-    return command;
+    return new Command("server", "Start the Dafny language server");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {

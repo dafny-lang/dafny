@@ -25,6 +25,7 @@ namespace Microsoft.Dafny {
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
     public IEnumerable<ICanRender> Nodes => _nodes;
+    public IEnumerable<ICanRender> Descendants => Nodes.Concat(Nodes.OfType<ConcreteSyntaxTree>().SelectMany(n => n.Descendants));
 
     public ConcreteSyntaxTree Fork(int relativeIndent = 0) {
       var result = new ConcreteSyntaxTree(relativeIndent);

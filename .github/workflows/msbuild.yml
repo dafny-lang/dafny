@@ -121,7 +121,8 @@ jobs:
           # LSP results
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml" \
-            -reporttypes:Cobertura -targetdir:coverage-cobertura
+            -reporttypes:Cobertura -targetdir:coverage-cobertura \
+            -classfilters:-Microsoft.Dafny.*PreType*
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \

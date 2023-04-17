@@ -37,13 +37,13 @@ static class CommandRegistry {
     AddCommand(new TranslateCommand());
     AddCommand(new FormatCommand());
     AddCommand(new MeasureComplexityCommand());
-    AddCommand(new ServerCommand());
+    AddCommand(ServerCommand.Instance);
     AddCommand(new TestCommand());
     AddCommand(new GenerateTestsCommand());
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
 
-    FileArgument = new Argument<FileInfo>("file", "input file");
+    FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
   }
 
   public static Argument<FileInfo> FileArgument { get; }
@@ -60,7 +60,7 @@ static class CommandRegistry {
     dafnyOptions.Environment = "Command-line arguments: " + string.Join(" ", arguments);
     dafnyOptions.Options = options;
 
-    foreach (var option in Commands.SelectMany(c => c.Options)) {
+    foreach (var option in AllOptions) {
       if (!allowHidden) {
         option.IsHidden = false;
       }
@@ -105,6 +105,7 @@ static class CommandRegistry {
       rootCommand.AddCommand(command);
     }
 
+    var failedToProcessFile = false;
     void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
@@ -112,17 +113,28 @@ static class CommandRegistry {
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
-        dafnyOptions.AddFile(singleFile.FullName);
+        if (!ProcessFile(dafnyOptions, singleFile)) {
+          failedToProcessFile = true;
+          return;
+        }
       }
       var files = context.ParseResult.GetValueForArgument(ICommandSpec.FilesArgument);
       if (files != null) {
         foreach (var file in files) {
-          dafnyOptions.AddFile(file.FullName);
+          if (!ProcessFile(dafnyOptions, file)) {
+            failedToProcessFile = true;
+            return;
+          }
         }
       }
 
       foreach (var option in command.Options) {
-        var value = context.ParseResult.GetValueForOption(option);
+        var result = context.ParseResult.FindResultFor(option);
+        object projectFileValue = null;
+        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, Console.Error, out projectFileValue) ?? false;
+        var value = result == null && hasProjectFileValue
+          ? projectFileValue
+          : context.ParseResult.GetValueForOption(option);
         options.OptionArguments[option] = value;
         dafnyOptions.ApplyBinding(option);
       }
@@ -137,6 +149,11 @@ static class CommandRegistry {
 #pragma warning disable VSTHRD002
     var exitCode = builder.Build().InvokeAsync(arguments).Result;
 #pragma warning restore VSTHRD002
+
+    if (failedToProcessFile) {
+      return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+    }
+
     if (!wasInvoked) {
       if (exitCode == 0) {
         return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.OK_EXIT_EARLY);
@@ -149,6 +166,34 @@ static class CommandRegistry {
     }
 
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+  }
+
+  private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
+    if (Path.GetExtension(singleFile.FullName) == ".toml") {
+      if (dafnyOptions.ProjectFile != null) {
+        Console.Error.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
+        return false;
+      }
+
+      if (!File.Exists(singleFile.FullName)) {
+        Console.Error.WriteLine($"Error: file {singleFile.FullName} not found");
+        return false;
+      }
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
+      if (projectFile == null) {
+        return false;
+      }
+      projectFile.Validate(AllOptions);
+      dafnyOptions.ProjectFile = projectFile;
+      projectFile.AddFilesToOptions(dafnyOptions);
+    } else {
+      dafnyOptions.AddFile(singleFile.FullName);
+    }
+    return true;
+  }
+
+  private static IEnumerable<Option> AllOptions {
+    get { return Commands.SelectMany(c => c.Options); }
   }
 
   private static CommandLineBuilder AddDeveloperHelp(RootCommand rootCommand, CommandLineBuilder builder) {
