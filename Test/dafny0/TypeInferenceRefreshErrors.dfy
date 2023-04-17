@@ -96,3 +96,13 @@ method M() {
     print x + y, "\n";
 }
  */
+
+/* An additional match test
+
+method TupleTests(d: bv7) {
+  match d {
+    case (y) => // error: parentheses not allowed around pattern
+  }
+}
+
+ */
