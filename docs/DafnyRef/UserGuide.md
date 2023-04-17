@@ -951,6 +951,44 @@ method Slow(i: int, j: int)
 }
 ```
 
+Labelled assert statements are available both in expressions and statements.
+Assertion labels are not accessible outside of the block which the assert statement is in.
+If you need to access an assertion label outside of the enclosing expression or statement,
+you need to lift the labelled statement at the right place manually, e.g. rewrite
+
+<!-- %no-check -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  if x {
+    assert a: P(1) by { reveal r; }
+  }
+  assert x ==> P(1) by { reveal a; } // Error, a is not accessible
+}
+```
+to
+
+<!-- %check-verify -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  assert a: x ==> P(1) by {
+    if x {
+      assert P(1) by { reveal r; } // Proved without revealing the precondition
+    }
+  }
+  assert x ==> P(1) by { reveal a; } // Now a is accessible
+}
+```
+
+To lift assertions, please refer to the techniques described in [Verification Debugging](#sec-verification-debugging).
+
 #### 13.6.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
 
 Functions are normally used for specifications, but their functional syntax is sometimes also desirable to write application code.
