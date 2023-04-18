@@ -4681,12 +4681,12 @@ namespace Microsoft.Dafny {
       //   * required: a caller has to supply an argument
       //   * optional: the parameter has a default value that is used if a caller omits passing a specific argument
       //
-      // The syntax for giving a positional-only (i.e., nameless) parameter does not a default-value expression, so
+      // The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so
       // a positional-only parameter is always required.
       //
       // At a call site, positional arguments are not allowed to follow named arguments. Therefore, if "x" is
       // a nameonly parameter, then there is no way to supply the parameters after "x" by position. Thus, any
-      // parameter that follows "x" must either by passed by name or have a default value. That is, if a later
+      // parameter that follows "x" must either be passed by name or have a default value. That is, if a later
       // parameter does not have a default value, it is _effectively_ nameonly. We impose the rule that
       //   * an effectively nameonly parameter must be declared as nameonly
       //
@@ -4716,7 +4716,7 @@ namespace Microsoft.Dafny {
           // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
           reporter.Error(MessageSource.Resolver, formal.tok,
             $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
-            "declare it as nameonly or give it an default-value expression");
+            "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
           nameOfMostRecentNameonlyParameter = formal.Name;
