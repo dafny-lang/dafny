@@ -2923,7 +2923,7 @@ OneStmt<out Statement/*!*/ s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | ForLoopStmt<out s>
-  | AssertStmt<out s, false>
+  | AssertStmt<out s>
   | AssumeStmt<out s>
   | BreakStmt<out s>
   | CalcStmt<out s>
@@ -3639,7 +3639,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
   .
 
 /*------------------------------------------------------------------------*/
-AssertStmt<out Statement/*!*/ s, bool inExprContext>
+AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
@@ -3650,7 +3650,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   .)
   "assert"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( [ IF(IsLabel(!inExprContext))
+  ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>
@@ -4677,7 +4677,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 /*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
-  ( AssertStmt<out s, true>
+  ( AssertStmt<out s>
   | ExpectStmt<out s>
   | AssumeStmt<out s>
   | RevealStmt<out s>

@@ -30,6 +30,7 @@ GEM
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (2.0.3)
     ffi (1.15.5)
+    ffi (1.15.5-x64-mingw-ucrt)
     ffi (1.15.5-x64-unknown)
     forwardable-extended (2.6.0)
     gemoji (3.0.1)
@@ -217,6 +218,8 @@ GEM
     nokogiri (1.13.10)
       mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
+    nokogiri (1.13.10-x64-mingw-ucrt)
+      racc (~> 1.4)
     nokogiri (1.13.10-x86_64-linux)
       racc (~> 1.4)
     octokit (4.25.0)
@@ -254,12 +257,14 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.8.2)
+    unf_ext (0.0.8.2-x64-mingw-ucrt)
     unf_ext (0.0.8.2-x64-unknown)
     unicode-display_width (1.8.0)
+    webrick (1.8.1)
     zeitwerk (2.6.6)
 
 PLATFORMS
-  x64-unknown
+  x64-mingw-ucrt
   x64-unknown
   x86_64-linux
 
@@ -271,6 +276,7 @@ DEPENDENCIES
   tzinfo (~> 1.2)
   tzinfo-data
   wdm (~> 0.1.1)
+  webrick
 
 BUNDLED WITH
    2.3.8
