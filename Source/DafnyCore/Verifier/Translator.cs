@@ -4089,7 +4089,7 @@ namespace Microsoft.Dafny {
         } else if (eType is SetType) {
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, true, out pr);
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, false, out pr);
         } else if (eType is MultiSetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
