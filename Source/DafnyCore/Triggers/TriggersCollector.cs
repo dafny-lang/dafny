@@ -390,32 +390,68 @@ namespace Microsoft.Dafny.Triggers {
       return new TriggerAnnotation(children_contain_killers || expr_is_killer, new_term.Variables, collected_terms);
     }
 
-    private IEnumerable<TriggerTerm> CollectInSetOperations(Expression new_expr, Expression original_expr) {
-      yield return new TriggerTerm { Expr = new_expr, OriginalExpr = original_expr, Variables = CollectVariables(original_expr) };
-      if (new_expr is BinaryExpr
+    private IEnumerable<TriggerTerm> CollectInSetOperations(
+      Expression newExpr, Expression originalExpr, int boundVariables = -1
+    ) {
+      var term = new TriggerTerm { Expr = newExpr, OriginalExpr = originalExpr, Variables = CollectVariables(newExpr) };
+      var newBoundVariables = term.BoundVars.Count();
+      if (newBoundVariables < boundVariables && boundVariables >= 0) {
+        yield break;
+      }
+      yield return term;
+      if (newExpr is SeqSelectExpr
         {
-          ResolvedOp: BinaryExpr.ResolvedOpcode.InSet,
-          E0: var e0, E1: BinaryExpr
+          Seq: BinaryExpr
           {
-            ResolvedOp: BinaryExpr.ResolvedOpcode.SetDifference or
-                          BinaryExpr.ResolvedOpcode.Union or
-                          BinaryExpr.ResolvedOpcode.Intersection,
-            E0: var e10,
-            E1: var e11
-          }
-        }) {
-        var newTriggerTerm1 = new BinaryExpr(new_expr.tok, BinaryExpr.Opcode.In, e0, e10) {
-          ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
-          Type = Type.Bool
+            ResolvedOp:
+            BinaryExpr.ResolvedOpcode.MultiSetUnion or
+            BinaryExpr.ResolvedOpcode.MultiSetIntersection or
+            BinaryExpr.ResolvedOpcode.MultiSetDifference,
+            E0: var seq0,
+            E1: var seq1
+          },
+          E0: var seqArg
+        } newSeqSelectExpr) {
+        // Multiset triggers are of the form expression[index]
+        var newTriggerTerm1 = new SeqSelectExpr(newExpr.tok, true, seq0, seqArg, null, newSeqSelectExpr.CloseParen) {
+          Type = Type.Int
         };
-        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, original_expr)) {
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, originalExpr, newBoundVariables)) {
           yield return triggerTerm;
         }
-        var newTriggerTerm2 = new BinaryExpr(new_expr.tok, BinaryExpr.Opcode.In, e0, e11) {
-          ResolvedOp = BinaryExpr.ResolvedOpcode.InSet,
+        var newTriggerTerm2 = new SeqSelectExpr(newExpr.tok, true, seq1, seqArg, null, newSeqSelectExpr.CloseParen) {
+          Type = Type.Int
+        };
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, originalExpr, newBoundVariables)) {
+          yield return triggerTerm;
+        }
+      } else if (newExpr is BinaryExpr
+      {
+        ResolvedOp: BinaryExpr.ResolvedOpcode.InSet or
+                      BinaryExpr.ResolvedOpcode.InMultiSet,
+        E0: var e0, E1: BinaryExpr
+        {
+          ResolvedOp: BinaryExpr.ResolvedOpcode.SetDifference or
+                          BinaryExpr.ResolvedOpcode.Union or
+                          BinaryExpr.ResolvedOpcode.Intersection or
+                        BinaryExpr.ResolvedOpcode.MultiSetUnion or
+                        BinaryExpr.ResolvedOpcode.MultiSetIntersection,
+          E0: var e10,
+          E1: var e11
+        }
+      } newBinaryExpr) {
+        var newTriggerTerm1 = new BinaryExpr(newExpr.tok, BinaryExpr.Opcode.In, e0, e10) {
+          ResolvedOp = newBinaryExpr.ResolvedOp,
           Type = Type.Bool
         };
-        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, original_expr)) {
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, originalExpr, newBoundVariables)) {
+          yield return triggerTerm;
+        }
+        var newTriggerTerm2 = new BinaryExpr(newExpr.tok, BinaryExpr.Opcode.In, e0, e11) {
+          ResolvedOp = newBinaryExpr.ResolvedOp,
+          Type = Type.Bool
+        };
+        foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, originalExpr, newBoundVariables)) {
           yield return triggerTerm;
         }
       }

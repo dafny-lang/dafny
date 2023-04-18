@@ -1,10 +1,11 @@
 // RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
+function F(x: int): set<int>
 
-method SetDifferenceTrigger(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetDifferenceTrigger(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet - Elements
 {
   assume forall o: object | o in MainSet2 - Elements2 ::
@@ -12,17 +13,16 @@ method SetDifferenceTrigger(
   forall o <- MainSet2
     ensures true
   {
-    if o !in Elements2 {
-      assert o in MainSet;
-      assert o !in Elements;
+    if Elements2[o] < MainSet2[o] {
+      assert o in MainSet - Elements;
     }
   }
 }
 
 
-method SetUnionTrigger(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetUnionTrigger(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet - Elements
 {
   var p := MainSet - Elements;
@@ -36,9 +36,9 @@ method SetUnionTrigger(
   }
 }
 
-method SetIntersectionTrigger(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetIntersectionTrigger(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet - Elements
 {
   assume forall o: object | o in MainSet2 * Elements2 ::
@@ -50,23 +50,23 @@ method SetIntersectionTrigger(
   }
 }
 
-method SetDifferenceElement(
-    ghost MainSet: set<object>, Element: object,
-    ghost MainSet2: set<object>, Element2: object)
-  modifies MainSet - {Element}
+method MultiSetDifferenceElement(
+    ghost MainSet: multiset<object>, Element: object,
+    ghost MainSet2: multiset<object>, Element2: object)
+  modifies MainSet - multiset{Element}
 {
-  var p := MainSet - {Element};
-  var c := MainSet2 - {Element2};
+  var p := MainSet - multiset{Element};
+  var c := MainSet2 - multiset{Element2};
   assume c <= p;
   assert forall o: object | o in c ::
             o in p;  // Verified
-  assert c == MainSet2 - {Element2}; // Verified
-  modify MainSet2 - {Element2}; // This used to give a modify error
+  assert c == MainSet2 - multiset{Element2}; // Verified
+  modify MainSet2 - multiset{Element2}; // Verified, always worked
 }
 
-method SetDifference(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetDifference(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet - Elements
 {
   var p := MainSet - Elements;
@@ -75,13 +75,13 @@ method SetDifference(
   assume forall o: object | o in MainSet2 - Elements2 ::
             o in MainSet - Elements;  // Verified
   assert c == MainSet2 - Elements2; // Verified
-  modify MainSet2 - Elements2; // This used to give a modify error
+  modify MainSet2 - Elements2; // Verified, always worked
 }
 
 
-method SetUnion(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetUnion(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet + Elements
 {
   var p := MainSet + Elements;
@@ -94,9 +94,9 @@ method SetUnion(
 }
 
 
-method SetIntersection(
-    ghost MainSet: set<object>, Elements: set<object>,
-    ghost MainSet2: set<object>, Elements2: set<object>)
+method MultiSetIntersection(
+    ghost MainSet: multiset<object>, Elements: multiset<object>,
+    ghost MainSet2: multiset<object>, Elements2: multiset<object>)
   modifies MainSet * Elements
 {
   var p := MainSet * Elements;

@@ -1773,21 +1773,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
         performedRewrite = true;  // assume a rewrite will happen
         s = s.Resolved;
-        bool pr;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          /*
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.Union:
-              return Boogie.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
-            case BinaryExpr.ResolvedOpcode.Intersection:
-              return Boogie.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
-            case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Boogie.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr)));
-            default:
-              break;
-          }*/
-        } else if (s is SetDisplayExpr) {
+        if (s is SetDisplayExpr) {
           SetDisplayExpr disp = (SetDisplayExpr)s;
           Boogie.Expr disjunction = null;
           foreach (Expression a in disp.Elements) {
@@ -1857,17 +1843,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
         s = s.Resolved;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              return Boogie.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
-            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return Boogie.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
-            default:
-              break;
-          }
-        } else if (s is MultiSetDisplayExpr) {
+        if (s is MultiSetDisplayExpr) {
           MultiSetDisplayExpr disp = (MultiSetDisplayExpr)s;
           Boogie.Expr disjunction = null;
           foreach (Expression a in disp.Elements) {
@@ -1897,16 +1873,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Contract.Requires(s != null);
 
         s = s.Resolved;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return true;
-            default:
-              break;
-          }
-        } else if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
+        if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
           return true;
         } else if (s is SetComprehension) {
           return true;
