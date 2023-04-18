@@ -26,6 +26,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly Specification<Expression> Decreases;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
+  [FilledInDuringResolution] public Function FunctionFromWhichThisIsByMethodDecl;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
