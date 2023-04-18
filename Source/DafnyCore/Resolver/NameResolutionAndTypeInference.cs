@@ -327,6 +327,7 @@ namespace Microsoft.Dafny {
         // expression has already been resolved
         return;
       }
+      DominatingStatementLabels.PushMarker();
 
       // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
@@ -1091,6 +1092,8 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+
+      DominatingStatementLabels.PopMarker();
     }
 
     void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
@@ -3265,6 +3268,7 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(function.TypeArgs, false, function);
+
           function.Resolve(this);
           allTypeParameters.PopMarker();
           if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate } && ec == reporter.Count(ErrorLevel.Error)) {
@@ -5989,7 +5993,11 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          if (resolutionContext.InReveal) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label, or requires label in the current scope is named '{0}'", expr.Name);
+          } else {
+            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          }
         } else {
           expr.ResolvedExpression = null;
           return null;
