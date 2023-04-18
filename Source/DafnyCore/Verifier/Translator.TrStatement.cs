@@ -58,6 +58,11 @@ namespace Microsoft.Dafny {
           var method = (IMethodCodeContext)codeContext;
           method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
         }
+
+        if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
+          AssumeCanCallForByMethodDecl(method2, builder);
+        }
+
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -156,7 +161,7 @@ namespace Microsoft.Dafny {
             var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
             typeAntecedent = BplAnd(typeAntecedent, wh);
           } else {
-            havocLHSs.Add(lhs.Resolved);
+            havocLHSs.Add(lvalue);
             havocRHSs.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
           }
         }
