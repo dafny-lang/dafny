@@ -23,7 +23,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private const int ResolverMaxStackSize = 0x10000000; // 256MB
     private static readonly ThreadTaskScheduler ResolverScheduler = new(ResolverMaxStackSize);
 
-    private readonly DafnyOptions options;
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly ISymbolTableFactory symbolTableFactory;
@@ -33,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     protected readonly INotificationPublisher NotificationPublisher;
 
     protected TextDocumentLoader(
-      DafnyOptions options,
       ILoggerFactory loggerFactory,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
@@ -41,7 +39,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       IGhostStateDiagnosticCollector ghostStateDiagnosticCollector,
       ICompilationStatusNotificationPublisher statusPublisher,
       INotificationPublisher notificationPublisher) {
-      this.options = options;
       this.parser = parser;
       this.symbolResolver = symbolResolver;
       this.symbolTableFactory = symbolTableFactory;
@@ -61,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ILoggerFactory loggerFactory,
       INotificationPublisher notificationPublisher
       ) {
-      return new TextDocumentLoader(options, loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
+      return new TextDocumentLoader(loggerFactory, parser, symbolResolver, symbolTableFactory, ghostStateDiagnosticCollector, statusPublisher, notificationPublisher);
     }
 
     public IdeState CreateUnloaded(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
@@ -75,16 +72,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       );
     }
 
-    public async Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument,
+    public async Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await Task.Factory.StartNew(
-        async () => LoadInternal(textDocument, cancellationToken), cancellationToken,
+        async () => LoadInternal(options, textDocument, cancellationToken), cancellationToken,
 #pragma warning restore CS1998
         TaskCreationOptions.None, ResolverScheduler);
     }
 
-    private DocumentAfterParsing LoadInternal(DocumentTextBuffer textDocument,
+    private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
       var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
@@ -124,7 +121,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         textDocument,
         diagnostics,
         SymbolTable.Empty(),
-        SignatureAndCompletionTable.Empty(options, textDocument),
+        SignatureAndCompletionTable.Empty(DafnyOptions.Default, textDocument),
         new Dictionary<ImplementationId, IdeImplementationView>(),
         Array.Empty<Counterexample>(),
         false,
