@@ -54,8 +54,14 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
         yield return e;
       }
       yield return Source;
+      foreach (var mc in Cases) {
+        foreach (var ee in mc.Pat.SubExpressions) {
+          yield return ee;
+        }
+      }
     }
   }
+
   public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(rangeToken, attrs) {
     Contract.Requires(source != null);

@@ -64,6 +64,12 @@ public class LitPattern : ExtendedPattern {
   public override IEnumerable<Node> Children => new[] { OrigLit };
   public override IEnumerable<Node> PreResolveChildren => Children;
 
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      yield return OptimisticallyDesugaredLit;
+    }
+  }
+
   public override void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
