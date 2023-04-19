@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Tomlyn;
+using Tomlyn.Model;
 
 namespace Microsoft.Dafny; 
 
@@ -67,17 +68,33 @@ public class ProjectFile {
   }
 
   public void Validate(IEnumerable<Option> possibleOptions) {
+    if (Options == null) {
+      return;
+    }
+
     var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
     foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
-      Console.WriteLine($"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
+      Console.WriteLine(
+        $"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
     }
   }
 
   public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
+    if (Options == null) {
+      value = null;
+      return false;
+    } 
+    
     if (!Options.TryGetValue(option.Name, out value)) {
       return false;
     }
 
+    // TODO: Handle more generically
+    if (option.ValueType.IsAssignableFrom(typeof(IList<string>)) && value is TomlArray valueArray) {
+      value = valueArray.Select(o => (string)o).ToList();
+      return true;
+    }
+    
     if (value.GetType() != option.ValueType) {
       errorWriter.WriteLine(
         $"Error: property '{option.Name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");

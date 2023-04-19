@@ -68,10 +68,10 @@ public interface INameRewriter {
 internal class SemanticModel {
   private readonly string rootModule;
   private readonly INameRewriter nameRewriter;
-  private readonly IList<string> skippedInterfaces;
+  private readonly IEnumerable<string> skippedInterfaces;
   private readonly CA.SemanticModel model;
 
-  public SemanticModel(string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces, CA.SemanticModel model) {
+  public SemanticModel(string rootModule, INameRewriter nameRewriter, IEnumerable<string> skippedInterfaces, CA.SemanticModel model) {
     this.rootModule = rootModule;
     this.nameRewriter = nameRewriter;
     this.skippedInterfaces = skippedInterfaces;
@@ -137,7 +137,7 @@ internal class CSharpFile : PrettyPrintable {
 
   public static IEnumerable<CSharpFile> FromFiles(
     string projectPath, IEnumerable<string> sourceFiles,
-    string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces) {
+    string rootModule, INameRewriter nameRewriter, IEnumerable<string> skippedInterfaces) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
@@ -436,7 +436,7 @@ public static class Program {
 
   private static string GenerateDafnyCode(
     string projectPath, IList<string> sourceFiles,
-    string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces) {
+    string rootModule, INameRewriter nameRewriter, IEnumerable<string> skippedInterfaces) {
     var wr = new StringWriter();
     var asts = CSharpFile.FromFiles(projectPath, sourceFiles, rootModule, nameRewriter, skippedInterfaces).ToList();
     var last = asts.Last();
@@ -517,7 +517,7 @@ public static class Program {
     };
     rootCommand.AddOption(nameRewritesOption);
 
-    var skipInterfaceOption = new Option<List<string>>(
+    var skipInterfaceOption = new Option<IEnumerable<string>>(
       name: "--skip-interface",
       description: "An interface to ommit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
       ArgumentHelpName = "interfaceName",
@@ -526,7 +526,7 @@ public static class Program {
     };
     rootCommand.AddOption(skipInterfaceOption);
 
-    Action<string, string, List<(string, string)>, List<string>, string, string, string, List<string>>
+    Action<string, string, List<(string, string)>, IEnumerable<string>, string, string, string, List<string>>
       main = ParsedMain;
     rootCommand.SetHandler(main,
       projectPathArgument, rootModuleArgument, nameRewritesOption, skipInterfaceOption,
@@ -550,7 +550,7 @@ public static class Program {
   }
 
   private static void ParsedMain(
-    string projectPath, string rootModule, List<(string, string)> nameRewrites, IList<string> skippedInterfaces,
+    string projectPath, string rootModule, List<(string, string)> nameRewrites, IEnumerable<string> skippedInterfaces,
     string templatePath, string modelPath, string outputPath, List<string> sourceFiles
   ) {
     nameRewrites.Add((rootModule + ".", ""));
