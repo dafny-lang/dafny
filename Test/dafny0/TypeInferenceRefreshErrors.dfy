@@ -106,3 +106,103 @@ method TupleTests(d: bv7) {
 }
 
  */
+
+/*
+module TooLargeCaseLiteral {
+  method Test(bv: bv7) {
+    match bv {
+      case 84848484848484848 => // error (BUG: this is missed by Dafny 4.0)
+      case _ =>
+    }
+  }
+}
+
+module CaseLiteralWrongType {
+  method Test(bv: bv7, r: real) {
+    match bv {
+      case 2.18 => // error: wrong type // BUG: crashes Dafny 4.0
+    }
+    match r {
+      case 13 => // error: wrong type
+      case -0 => // error: wrong type
+      case 0 => // error: wrong type
+    }
+    match r {
+      case 15 => // error: wrong type // BUG: causes malformed Boogie in Dafny 4.0
+      case -15 => // error: wrong type // BUG: causes malformed Boogie in Dafny 4.0
+      case -0 => // error: wrong type // BUG: causes malformed Boogie in Dafny 4.0
+      case false => // error: wrong type // BUG: causes malformed Boogie in Dafny 4.0
+    }
+  }
+}
+
+module NegativeCaseLabels {
+  newtype int8 = x | -128 <= x < 128
+
+  method NegativeLabels(a: int, nt: int8, bv: bv7, o: ORDINAL, r: real) {
+    match a {
+      case -3 =>
+      case -0 =>
+      case 0 => // redundant
+      case _ =>
+    }
+
+    match nt {
+      case -3 =>
+      case -0 =>
+      case 0 => // redundant
+      case _ =>
+    }
+    
+    match bv {
+      case -3 => // error
+      case -0 => // error
+      case 0 =>
+      case _ =>
+    }
+
+    match o {
+      case -3 => // error
+      case -0 => // error
+      case 0 =>
+      case _ =>
+    }
+
+    match r {
+      case 2.18 =>
+      case -2.18 =>
+      case -0.0 =>
+      case 0.0 => // redundant
+      case _ =>
+    }
+  }
+}
+
+module RedundanCaseLiterals {
+  newtype int8 = x | -128 <= x < 128
+
+  method Tests(a: int, nt: int8, r: real) {
+    match a {
+      case -3 =>
+      case -0 =>
+      case 0 => // redundant
+      case _ =>
+    }
+
+    match nt {
+      case -3 =>
+      case -0 =>
+      case 0 => // redundant
+      case _ =>
+    }
+    
+    match r {
+      case 2.18 =>
+      case -2.18 =>
+      case -0.0 =>
+      case 0.0 => // redundant
+      case _ =>
+    }
+  }
+}
+ */

@@ -1026,3 +1026,36 @@ method TupleTests(a: (int, ghost real), b: (), c: (ghost bool)) {
 }
 
  */
+
+/*
+datatype Cell<T> = Cell(value: T)
+
+const X := 1
+
+method q() {
+  var c;
+  match c {
+    case X => // the literal 1
+    case Xyz => // a bound variable
+  }
+}
+
+datatype YT = Y
+const Y := 2
+
+method r() {
+  var c: Cell;
+  match c {
+    case Cell(Y) => // the literal 2
+    case Cell(_) =>
+  }
+}
+
+method s() {
+  var c: Cell;
+  match c {
+    case Cell(Y: real) => // bound variable
+    case Cell(_) => // redundant
+  }
+}
+ */
