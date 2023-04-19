@@ -145,6 +145,14 @@ namespace DafnyTestGeneration {
       if (program == null) {
         yield break;
       }
+      if (Utils.AttributeFinder.ProgramHasAttribute(program,
+            TestGenerationOptions.TestInlineAttribute)) {
+        options.VerifyAllModules = true;
+        program = Utils.Parse(options, source, sourceFile);
+        if (program == null) {
+          yield break;
+        }
+      }
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");

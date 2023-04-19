@@ -384,8 +384,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       than <n>. 0 (default) indicates no limit.
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
-  /generateTestInline
-      Inline all methods and functions annotated with the :testInline.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestVerbose

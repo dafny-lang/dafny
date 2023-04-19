@@ -349,8 +349,7 @@ namespace DafnyTestGeneration {
         } else if (node == modifier.ImplementationToTarget) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (options.TestGenOptions.TestInline &&
-                   modifier.timesToInline.ContainsKey(node.Name)) {
+        } else if (modifier.timesToInline.ContainsKey(node.Name)) {
           // This method is inlined (and hence tested)
           var depthExpression =
             new LiteralExpr(new Token(), BigNum.FromUInt(modifier.timesToInline[node.Name]));

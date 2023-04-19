@@ -12,7 +12,6 @@ namespace Microsoft.Dafny {
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
-    public bool TestInline = false;
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
@@ -53,10 +52,6 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestInline":
-          TestInline = true;
-          return true;
-
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
@@ -90,8 +85,6 @@ namespace Microsoft.Dafny {
     than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
-/generateTestInline
-    Inline all methods and functions annotated with the :testInline.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestVerbose

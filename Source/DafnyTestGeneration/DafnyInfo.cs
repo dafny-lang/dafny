@@ -139,13 +139,6 @@ namespace DafnyTestGeneration {
       Attributes attributes = callable.Attributes;
       while (attributes != null) {
         if (attributes.Name == TestGenerationOptions.TestInlineAttribute) {
-          if (!Options.TestGenOptions.TestInline) {
-            Options.Printer.ErrorWriteLine(Console.Error,
-              $"*** Error: Callable {callable.FullName} is annotated with " +
-              $":{TestGenerationOptions.TestInlineAttribute} but test " +
-              $"generation is called without the --inline command line option");
-            SetNonZeroExitCode = true;
-          }
           if (attributes.Args.Count != 1) {
             Options.Printer.ErrorWriteLine(Console.Error,
               $"*** Error: :{TestGenerationOptions.TestInlineAttribute} " +

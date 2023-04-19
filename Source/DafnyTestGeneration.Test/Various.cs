@@ -63,7 +63,6 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.a";
-      options.TestGenOptions.TestInline = true;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.Inlining.a"));
@@ -95,7 +94,6 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
-      options.TestGenOptions.TestInline = true;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 2);
     }
@@ -120,7 +118,6 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
-      options.TestGenOptions.TestInline = true;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count == 1);
     }
@@ -150,7 +147,6 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
-      options.TestGenOptions.TestInline = true;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count >= 3);
     }
@@ -180,7 +176,6 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
-      options.TestGenOptions.TestInline = true;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count < 3);
     }
@@ -491,7 +486,6 @@ module Math {
 ".TrimStart();
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInline = true;
       options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
@@ -520,7 +514,6 @@ module ShortCircuit {
 ".TrimStart();
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInline = true;
       options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
