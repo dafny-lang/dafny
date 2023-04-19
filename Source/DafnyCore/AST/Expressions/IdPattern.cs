@@ -93,7 +93,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
-    if (Arguments == null) {
+    if (ResolvedLit != null) {
+      // we're done
+    } else if (Arguments == null) {
       Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
       if (inStatementContext) {
         var localVariable = new LocalVariable(RangeToken, Id, null, isGhost);
@@ -108,14 +110,12 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       resolver.scope.Push(Id, BoundVar);
       resolver.ResolveType(Tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-    } else {
-      if (Ctor != null) {
-        var subst = TypeParameter.SubstitutionMap(sourceType.AsDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
-        for (var index = 0; index < Arguments.Count; index++) {
-          var argument = Arguments[index];
-          var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst), formal.IsGhost, inStatementContext, true, inDisjunctivePattern);
-        }
+    } else if (Ctor != null) {
+      var subst = TypeParameter.SubstitutionMap(sourceType.AsDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
+      for (var index = 0; index < Arguments.Count; index++) {
+        var argument = Arguments[index];
+        var formal = Ctor.Formals[index];
+        argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst), formal.IsGhost, inStatementContext, true, inDisjunctivePattern);
       }
     }
   }

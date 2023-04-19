@@ -7,6 +7,7 @@ namespace Microsoft.Dafny;
 
 public class LitPattern : ExtendedPattern {
   public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
+  private LiteralExpr optimisticallyDesugaredLit;
 
   /// <summary>
   /// The patterns of match constructs are rewritten very early during resolution, before any type information
@@ -34,21 +35,24 @@ public class LitPattern : ExtendedPattern {
   /// </summary>
   public LiteralExpr OptimisticallyDesugaredLit {
     get {
-      if (OrigLit is NegationExpression neg) {
-        var lit = (LiteralExpr)neg.E;
-        if (lit.Value is BaseTypes.BigDec d) {
-          return new LiteralExpr(neg.tok, -d);
+      if (optimisticallyDesugaredLit == null) {
+        if (OrigLit is NegationExpression neg) {
+          var lit = (LiteralExpr)neg.E;
+          if (lit.Value is BaseTypes.BigDec d) {
+            optimisticallyDesugaredLit = new LiteralExpr(neg.tok, -d);
+          } else {
+            var n = (BigInteger)lit.Value;
+            var tok = new Token(neg.tok.line, neg.tok.col) {
+              Filename = neg.tok.Filename,
+              val = "-0"
+            };
+            optimisticallyDesugaredLit = new LiteralExpr(tok, -n);
+          }
         } else {
-          var n = (BigInteger)lit.Value;
-          var tok = new Token(neg.tok.line, neg.tok.col) {
-            Filename = neg.tok.Filename,
-            val = "-0"
-          };
-          return new LiteralExpr(tok, -n);
+          optimisticallyDesugaredLit = (LiteralExpr)OrigLit;
         }
-      } else {
-        return (LiteralExpr)OrigLit;
       }
+      return optimisticallyDesugaredLit;
     }
   }
 
@@ -76,17 +80,9 @@ public class LitPattern : ExtendedPattern {
     bool inPattern, bool inDisjunctivePattern) {
 
     var literal = OptimisticallyDesugaredLit;
-    if (sourceType.IsBitVectorType || sourceType.IsBigOrdinalType) {
-      var n = (BigInteger)literal.Value;
-      var absN = n < 0 ? -n : n;
-
-      // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
-      // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-      if (n < 0 || literal.tok.val == "-0") {
-        Contract.Assert(literal.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-        resolver.reporter.Error(MessageSource.Resolver, literal.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, sourceType);
-      }
-    }
+    resolver.ResolveExpression(literal, resolutionContext);
+    resolver.AddAssignableConstraint(literal.tok, sourceType, literal.Type,
+      "literal expression in case (of type '{1}') not assignable to match source type '{0}'");
   }
 
   public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,

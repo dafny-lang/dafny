@@ -102,6 +102,11 @@ namespace Microsoft.Dafny {
       // currently stands, "preType" is needed to look up the given ID.
       // (End of Note.)
 
+      if (TryResolvingAsConst(idPattern, preType, false, resolutionContext)) {
+        // the ID is a const with a LiteralExpr RHS, so pick it
+        return;
+      }
+
       // Use "preType" as a guide to looking up the given ID. This requires knowing what "preType" is.
       if (!InsistOnKnowingPreType(sourceExprToken, preType)) {
         return;
@@ -148,21 +153,39 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Tries to resolve "idPattern" as a symbolic constant with a LiteralExpr RHS.
+    ///
+    /// Return "true" iff "idPattern" is a symbolic constant with a RHS (regardless of what that RHS is).
+    ///
+    /// If there is such a RHS and that RHS is a LiteralExpr, then
+    ///   * record the RHS literal as "idPattern.ResolvedLit", and
+    ///   * constrain its type to be assignable to "preType".
+    /// If there is such a RHS, but that RHS is not a LiteralExpr, then
+    ///   * report an error, if "reportErrors".
+    /// </summary>
+    private bool TryResolvingAsConst(IdPattern idPattern, PreType preType, bool reportErrors, ResolutionContext resolutionContext) {
+      var e = new NameSegment(idPattern.Tok, idPattern.Id, null);
+      ResolveNameSegment(e, true, null, resolutionContext, false, false);
+      if (e.ResolvedExpression is MemberSelectExpr { Member: ConstantField { IsStatic: true, Rhs: { } rhs } }) {
+        if (rhs is LiteralExpr lit) {
+          // the ID refers to a const whose RHS is a literal
+          // TODO: make sure that const declaration has been resolved; recursively do that, if necessary.
+          idPattern.ResolvedLit = lit;
+          AddSubtypeConstraint(preType, lit.PreType, idPattern.Tok, "literal pattern (of type {1}) cannot be used with source type {0}");
+        } else if (reportErrors) {
+          ReportError(idPattern.Tok, $"{idPattern.Id} is not initialized as a constant literal");
+        }
+        return true;
+      }
+      return false;
+    }
+
     private void ResolveParameterlessIdPattern(IdPattern idPattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
       Contract.Requires(idPattern.Arguments == null);
 
-      if (idPattern.Type is not TypeProxy) {
-        // check if the given ID is a const whose RHS is a literal expression
-        var e = new NameSegment(idPattern.Tok, idPattern.Id, null);
-        ResolveNameSegment(e, true, null, resolutionContext, false, false);
-        if (e.ResolvedExpression is MemberSelectExpr { Member: ConstantField { IsStatic: true, Rhs: { } rhs } }) {
-          if (rhs is LiteralExpr lit) {
-            // the ID refers to a const whose RHS is a literal
-            idPattern.ResolvedLit = lit;
-            AddSubtypeConstraint(preType, lit.PreType, idPattern.Tok, "literal pattern (of type {1}) cannot be used with source type {0}");
-          } else {
-            ReportError(idPattern.Tok, $"{idPattern.Id} is not initialized as a constant literal");
-          }
+      if (idPattern.Type is TypeProxy) {
+        if (TryResolvingAsConst(idPattern, preType, true, resolutionContext)) {
           return;
         }
       }

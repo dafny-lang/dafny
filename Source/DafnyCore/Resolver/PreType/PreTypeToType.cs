@@ -205,7 +205,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       case DisjunctivePattern disjunctivePattern:
         break;
       case LitPattern litPattern:
-        PostVisitOneExpression(litPattern.OrigLit, context);
+        PostVisitOneExpression(litPattern.OptimisticallyDesugaredLit, context);
         break;
       case IdPattern idPattern:
         if (idPattern.BoundVar != null) {
