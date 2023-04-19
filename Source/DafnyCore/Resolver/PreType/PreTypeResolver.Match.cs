@@ -170,7 +170,6 @@ namespace Microsoft.Dafny {
       if (e.ResolvedExpression is MemberSelectExpr { Member: ConstantField { IsStatic: true, Rhs: { } rhs } }) {
         if (rhs is LiteralExpr lit) {
           // the ID refers to a const whose RHS is a literal
-          // TODO: make sure that const declaration has been resolved; recursively do that, if necessary.
           idPattern.ResolvedLit = lit;
           AddSubtypeConstraint(preType, lit.PreType, idPattern.Tok, "literal pattern (of type {1}) cannot be used with source type {0}");
         } else if (reportErrors) {

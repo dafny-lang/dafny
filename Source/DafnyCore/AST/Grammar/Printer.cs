@@ -2799,7 +2799,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         int i = 0;
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
-          wr.Write(" case {0}", mc.Pat.ToString());
+          wr.Write(" case");
+          PrintAttributes(mc.Attributes);
+          wr.Write(" ");
+          PrintExtendedPattern(mc.Pat);
           wr.Write(" => ");
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;
