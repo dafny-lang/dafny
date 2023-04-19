@@ -2899,7 +2899,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-          } else if (idPat.Id.StartsWith("_")) {
+          } else if (idPat.IsWildcardPattern) {
             // In case of the universal match pattern, print '_' instead of
             // its node identifier, otherwise the printed program becomes
             // syntactically incorrect.
@@ -2916,6 +2916,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
               sep = ", ";
             }
             wr.Write(")");
+          } else if (options.DafnyPrintResolvedFile != null && idPat.ResolvedLit != null) {
+            Contract.Assert(idPat.BoundVar == null && idPat.Ctor == null);
+            wr.Write(" /*== ");
+            PrintExpression(idPat.ResolvedLit, false);
+            wr.Write("*/");
           } else if (ShowType(idPat.Type)) {
             wr.Write(": ");
             PrintType(idPat.Type);
