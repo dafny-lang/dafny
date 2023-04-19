@@ -2858,13 +2858,18 @@ public class CasePattern<VT> : TokenNode
       Var = cloner.CloneIVariable(original.Var, false);
     }
 
+    if (original.Arguments != null) {
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
+    }
+    
+    // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
+    // If we resolve the expression first, the references to variables declared in the case pattern
+    // will be cloned as references instead of declarations,
+    // and when we clone the declarations the cache in Cloner.clones will incorrectly return
+    // the original variable instead.
     if (cloner.CloneResolvedFields) {
       Expr = cloner.CloneExpr(original.Expr);
       Ctor = original.Ctor;
-    }
-
-    if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
   }
 
