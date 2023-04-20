@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -80,6 +81,16 @@ namespace Microsoft.Dafny {
       if (extension == ".dfy" || extension == ".dfyi") {
         IsPrecompiled = false;
         SourceFileName = filePath;
+      } else if (extension == ".doo") {
+        IsPrecompiled = true;
+
+        var dooFile = DooFile.Load(filePath);
+        
+        // TODO: Compatibility checks
+        
+        SourceFileName = Path.GetTempFileName();
+        File.WriteAllText(SourceFileName, dooFile.ProgramText);
+        
       } else if (extension == ".dll") {
         IsPrecompiled = true;
 

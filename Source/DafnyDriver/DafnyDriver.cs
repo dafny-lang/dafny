@@ -24,6 +24,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -277,7 +278,8 @@ namespace Microsoft.Dafny {
         var nameToShow = useRelative ? relative : file;
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
-          // .h files are not part of the build, they are just emitted as includes
+          // .h files are not This should be delegated to the backend insteadpart of the build, they are just emitted as includes
+          // TODO: This should be delegated to the backend instead (i.e. the CppCompilerBackend)
           if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);
           } else {
@@ -405,6 +407,11 @@ namespace Microsoft.Dafny {
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
+
+        if (verified) {
+          WriteDooFile(dafnyProgram);
+        }
+        
         bool compiled;
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
@@ -431,6 +438,12 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
+    private void WriteDooFile(Program dafnyProgram) {
+      var dooFile = new DooFile(dafnyProgram);
+      var basename = Path.GetFileNameWithoutExtension(dafnyProgram.Name);
+      dooFile.Write($"{basename}.doo");
+    }
+    
     private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
       ErrorReporter reporter, string programName) {
       var exitValue = ExitValue.SUCCESS;
