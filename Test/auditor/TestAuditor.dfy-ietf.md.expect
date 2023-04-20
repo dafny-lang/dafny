@@ -20,8 +20,6 @@
 
 ### Member `GenerateBytes`
 
-* Compiled declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
-
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
 * Declaration with `{:extern}` has a requires clause. MUST test external caller.
@@ -39,6 +37,12 @@
 ### Member `GenerateBytesNoGuarantee`
 
 * Declaration with `{:extern}` has a requires clause. MUST test external caller.
+
+### Member `ExternFunction`
+
+* Function with `{:extern}` attribute. SHOULD use `method` instead.
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
 ### Member `DoesNotTerminate`
 

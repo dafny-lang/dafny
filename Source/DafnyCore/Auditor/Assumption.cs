@@ -20,6 +20,11 @@ public record AssumptionDescription(
     mitigation: "Remove and prove if possible.",
     mitigationIETF: "MUST remove and prove.",
     isExplicit: false);
+  public static AssumptionDescription ExternFunction = new(
+    issue: "Function with [{:extern}] attribute.",
+    mitigation: "Turn into a [method] or test thoroughly for lack of side effects.",
+    mitigationIETF: "SHOULD use [method] instead.",
+    isExplicit: false);
   public static AssumptionDescription ExternWithPrecondition = new(
     issue: "Declaration with [{:extern}] has a requires clause.",
     mitigation: "Test external caller (maybe with [/testContracts]).",
@@ -80,7 +85,7 @@ public record AssumptionDescription(
       issue: (isGhost ? "Ghost" : "Compiled") +
              " declaration has no body and has an ensures clause.",
       mitigation: "Provide a body or add [{:axiom}].",
-      mitigationIETF: "MUST provide a body or add [{:axiom}].",
+      mitigationIETF: (isGhost ? "MUST" : "SHOULD") + " provide a body or add [{:axiom}].",
       isExplicit: false
     );
   }

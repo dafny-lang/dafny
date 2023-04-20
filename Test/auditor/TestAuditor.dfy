@@ -68,6 +68,10 @@ ghost function WhoKnows(x: int): int
 method {:extern} GenerateBytesNoGuarantee(i: int32) returns (res: seq<uint8>)
     requires i >= 0
 
+// Extern function with postcondition. Should result in two findings.
+function {:extern} ExternFunction(i: int32): (res: int32)
+  ensures res != i
+
 // Successful proof of a function, method, or lemma (shown only in reports from later versions of the tool)
 method GoodMethod(i: nat) returns (res: nat)
   requires i < 64

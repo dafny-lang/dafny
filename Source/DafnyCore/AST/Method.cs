@@ -42,7 +42,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
 
@@ -50,11 +50,11 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
       yield return AssumptionDescription.HasConcurrentAttribute;
     }
 
-    if (HasExternAttribute && HasPostcondition) {
+    if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
       yield return AssumptionDescription.ExternWithPostcondition;
     }
 
-    if (HasExternAttribute && HasPrecondition) {
+    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
       yield return AssumptionDescription.ExternWithPrecondition;
     }
 

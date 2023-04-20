@@ -47,7 +47,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
       yield return AssumptionDescription.NoBody(IsGhost);
     }
 
@@ -55,11 +55,14 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return AssumptionDescription.HasConcurrentAttribute;
     }
 
-    if (HasExternAttribute && HasPostcondition) {
-      yield return AssumptionDescription.ExternWithPostcondition;
+    if (HasExternAttribute) {
+      yield return AssumptionDescription.ExternFunction;
+      if (HasPostcondition && !HasAxiomAttribute) {
+        yield return AssumptionDescription.ExternWithPostcondition;
+      }
     }
 
-    if (HasExternAttribute && HasPrecondition) {
+    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
       yield return AssumptionDescription.ExternWithPrecondition;
     }
 
