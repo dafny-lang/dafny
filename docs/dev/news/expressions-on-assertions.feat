@@ -1,1 +1,1 @@
-API support for obtaining failed dafny expressions on assertions
+API support for obtaining the Dafny expression that is being checked by each assertion
