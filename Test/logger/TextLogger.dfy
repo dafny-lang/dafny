@@ -3,6 +3,8 @@
 // CHECK: Overall outcome: Errors
 // CHECK: Overall time: .*
 // CHECK: Overall resource count: .*
+// CHECK: Maximum assertion batch time: .*
+// CHECK: Maximum assertion batch resource count: .*
 // CHECK: Outcome: Valid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
