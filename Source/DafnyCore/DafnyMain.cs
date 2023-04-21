@@ -84,7 +84,7 @@ namespace Microsoft.Dafny {
       } else if (extension == ".doo") {
         IsPrecompiled = true;
 
-        var dooFile = DooFile.Load(filePath);
+        var dooFile = DooFile.Read(filePath);
         
         // TODO: Compatibility checks
         
