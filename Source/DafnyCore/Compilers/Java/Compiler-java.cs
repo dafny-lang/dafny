@@ -931,8 +931,7 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
-      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, null, wTypeMethod);
+      EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
 
       if (fullPrintName != null) {
         // By emitting a toString() method, printing an object will give the same output as with other target languages.
@@ -951,14 +950,24 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Generate the "_typeDescriptor" method for a generated class.
     /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
+    /// If "enclosingType" is null, then "targetTypeName" is expected to be the name of the Java type representing the type.
+    /// If "enclosingType" is non-null, then "targetTypeName" is expected to be null.
     /// </summary>
-    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, ConcreteSyntaxTree wr) {
-      string typeDescriptorExpr = null;
+    private void EmitTypeDescriptorMethod([CanBeNull] TopLevelDecl enclosingTypeDecl, List<TypeParameter> typeParams, string targetTypeName,
+      [CanBeNull] string initializer, ConcreteSyntaxTree wr) {
+      Contract.Requires((enclosingTypeDecl != null) != (targetTypeName != null));
+
+      string typeDescriptorExpr;
       if (enclosingTypeDecl == null) {
+        Contract.Assert(targetTypeName != null);
         // use reference type
         typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
       } else {
-        var targetType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl), true);
+        Contract.Assert(targetTypeName == null);
+        var enclosingTypeWithItsOwnTypeArguments = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+        var targetType = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments, true);
+        var targetTypeIgnoringConstraints = DatatypeWrapperEraser.SimplifyType(Options, enclosingTypeWithItsOwnTypeArguments, false);
+        targetTypeName = BoxedTypeName(targetTypeIgnoringConstraints, wr, enclosingTypeDecl.tok);
         var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
         switch (AsJavaNativeType(targetType)) {
           case JavaNativeType.Byte:
@@ -982,13 +991,24 @@ namespace Microsoft.Dafny.Compilers {
               } else {
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
               }
-            } else if (targetType.IsTypeParameter) {
-              typeDescriptorExpr = TypeDescriptor(targetType, wr, enclosingTypeDecl.tok);
             } else {
-              var d = initializer ?? DefaultValue(targetType, wr, enclosingTypeDecl.tok);
-              typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
+              var d = initializer ?? DefaultValue(targetType, wr, enclosingTypeDecl.tok, true);
+              // We'd like to say, essentially, targetTypeName.class. But this is not legal Java if targetTypeName is a type parameter.
+              // So, we detect that case here and use the corresponding type descriptor instead (because method
+              // referenceWithInitializerAndTypeDescriptor will use the .boxedClass of that type descriptor, which gives the Class<T> object
+              // we're looking for).
+              var tp = targetTypeIgnoringConstraints.AsTypeParameter;
+              if (tp == null) {
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
+              } else {
+                var td = FormatTypeDescriptorVariable(tp.GetCompileName(Options));
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
+              }
             }
             break;
+          default:
+            Contract.Assert(false); // unexpected case
+            throw new cce.UnreachableException();
         }
       }
 
@@ -1832,9 +1852,8 @@ namespace Microsoft.Dafny.Compilers {
           dt is CoDatatypeDecl, args, wDefault);
       }
 
-      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
       var arguments = usedTypeArgs.Comma(tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
-      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
+      EmitTypeDescriptorMethod(dt, dt.TypeArgs, null, $"Default({arguments})", wr);
 
       // create methods
       foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
@@ -2936,7 +2955,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var typeParamString = TypeParameters(typeParams);
       var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
-      EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
+      EmitTypeDescriptorMethod(null, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
       // public static Tuple4<T0, T1, T2, T3> Default(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1, dafny.TypeDescriptor<T2> _td_T2, dafny.TypeDescriptor<T3> _td_T3) {
       //   return new Tuple4<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue(), _td_T3.defaultValue());
@@ -3180,7 +3199,7 @@ namespace Microsoft.Dafny.Compilers {
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
-      EmitTypeMethod(null, name, typeParameters, typeParameters, name + typeParamString, initializer: null, staticMemberWriter);
+      EmitTypeDescriptorMethod(null, typeParameters, name + typeParamString, initializer: null, wr: staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
