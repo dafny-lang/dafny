@@ -1344,12 +1344,6 @@ namespace Microsoft.Dafny.Compilers {
           return "_dafny.Int64Type";
         }
 
-        if (xType.IsNonNullRefType) {
-          Contract.Assert(false); // KRML: do we ever get here?
-          // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
-          return "_dafny.PossiblyNullType/*not used*/";
-        }
-
         var w = new ConcreteSyntaxTree();
         w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
         var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
