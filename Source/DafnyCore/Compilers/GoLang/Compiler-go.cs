@@ -964,7 +964,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       // RTD
       {
-        CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
+        CreateRTD(IdName(sst), sst.TypeArgs, out var wDefaultBody, wr);
         var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
@@ -1325,7 +1325,15 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType.IsTypeParameter) {
         var tp = type.AsTypeParameter;
         Contract.Assert(tp != null);
-        return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.GetCompileName(Options)));
+        string th;
+        if (thisContext != null && tp.Parent is ClassDecl and not TraitDecl) {
+          th = "_this.";
+        } else if (thisContext == null && tp.Parent is SubsetTypeDecl) {
+          th = "_this.";
+        } else {
+          th = "";
+        }
+        return string.Format("{0}{1}", th, FormatRTDName(tp.GetCompileName(Options)));
       } else if (xType.IsBuiltinArrowType) {
         return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false, true));
       } else if (xType is UserDefinedType udt) {
@@ -1334,20 +1342,21 @@ namespace Microsoft.Dafny.Compilers {
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "_dafny.Int64Type";
-        } else if (cl is ClassDecl || cl is DatatypeDecl) {
-          var w = new ConcreteSyntaxTree();
-          w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
-          var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
-          EmitTypeDescriptorsActuals(typeArgs, udt.tok, w, true);
-          w.Write(")");
-          return w.ToString();
-        } else if (xType.IsNonNullRefType) {
+        }
+
+        if (xType.IsNonNullRefType) {
+          Contract.Assert(false); // KRML: do we ever get here?
           // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.PossiblyNullType/*not used*/";
-        } else {
-          Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
-          return TypeName_RTD(xType, wr, udt.tok) + "()";
         }
+
+        var w = new ConcreteSyntaxTree();
+        w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
+        var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
+        EmitTypeDescriptorsActuals(typeArgs, udt.tok, w, true);
+        w.Write(")");
+        return w.ToString();
+
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1555,6 +1564,10 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
+        if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
+          var typeSubstMap = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          return TypeInitializationValue(innerType.Subst(typeSubstMap), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+        }
         // In an auto-init context (like a field initializer), we may not have
         // access to all the type descriptors, so we can't construct the
         // default value, but then an empty structure is an acceptable default, since
