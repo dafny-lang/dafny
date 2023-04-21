@@ -1,11 +1,11 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-type MyType<T> = x: T | true witness *
+type MyType<T> = x: T | true witness * // this used to not compile (C#, Java, Go) -- issue #3883
 type MyInt<T> = x: int | true witness *
 
 method Main() {
-  var a: MyType<int> := 13; // NOTE: this used to not verify
-  TestMyTest(a, 14); // 13 14 // NOTE: this used to crash the resolved
+  var a: MyType<int> := 13; // this used to not verify (issue #3891)
+  TestMyTest(a, 14); // 13 14 // this used to crash the resolved
   var b: MyType<bool> := true;
   TestMyTest(b, false); // true false
   print a, " ", b, "\n"; // 13 true
@@ -58,7 +58,7 @@ method Print<X(0)>(x: X, suffix: string) {
 }
 
 type pos = x | 1 <= x witness 9
-type Fn<R(0)> = f: int -> R | true witness *
+type Fn<R(0)> = f: int -> R | true witness * // this used to generate malformed Java code (issue #3892)
 
 method Arrows() {
   var f: Fn<int>;
