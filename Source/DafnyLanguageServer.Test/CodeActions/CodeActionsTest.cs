@@ -137,8 +137,89 @@ const x := 1;
       await TestCodeAction(@"
 method Foo(i: int)
 {
-  (>Explicit failing assertion->assert i + 1 != 0;
+  (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2>< / (i + 1); 
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImp() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                 <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImp2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j ==> b;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j && b;
+}");
+    }
+
+
+    [Fact]
+    public async Task ExplicitDivisionOr() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b || (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionOr2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2 ></ (i + 1) == j || b;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := b <== 2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp2() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
+           2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
 }");
     }
 
@@ -148,7 +229,7 @@ method Foo(i: int)
 function Foo(i: int): int
 {
   if i < 0 then
-    (>Explicit failing assertion->assert i + 1 != 0;
+    (>Insert explicit failing assertion->assert i + 1 != 0;
     <)2>< / (i + 1)
   else
     2
@@ -164,7 +245,7 @@ function Foo(i: int): int
 {
   match i {
     case _ =>
-      (>Explicit failing assertion->assert i + 1 != 0;
+      (>Insert explicit failing assertion->assert i + 1 != 0;
       <)2>< / (i + 1)
   }
 }");
@@ -203,11 +284,9 @@ function Foo(i: int): int
               codeAction = await RequestResolveCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.NotNull(textDocumentEdit);
-              var edit = textDocumentEdit.Edits.Single();
-              Assert.Equal(
-                NewlineRegex.Replace(expectedNewText, "\n"),
-                NewlineRegex.Replace(edit.NewText, "\n"));
-              Assert.Equal(expectedRange, edit.Range);
+              var modifiedOutput = string.Join("\n", ApplyEdits(textDocumentEdit, output));
+              var expectedOutput = string.Join("\n", ApplySingleEdit(ToLines(output), expectedRange, expectedNewText));
+              Assert.Equal(expectedOutput, modifiedOutput);
             }
           }
         }
@@ -215,6 +294,33 @@ function Foo(i: int): int
         Assert.True(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
+    }
+
+    private static List<string> ApplyEdits(TextDocumentEdit? textDocumentEdit, string output) {
+      var inversedEdits = textDocumentEdit.Edits.ToList()
+        .OrderBy(x => -1000 * x.Range.Start.Line - x.Range.Start.Character);
+      var modifiedOutput = ToLines(output);
+      foreach (var textEdit in inversedEdits) {
+        modifiedOutput = ApplySingleEdit(modifiedOutput, textEdit.Range, textEdit.NewText);
+      }
+
+      return modifiedOutput;
+    }
+
+    private static List<string> ToLines(string output) {
+      return output.ReplaceLineEndings("\n").Split("\n").ToList();
+    }
+
+    private static List<string> ApplySingleEdit(List<string> modifiedOutput, Range range, string newText) {
+      var lineStart = modifiedOutput[range.Start.Line];
+      var lineEnd = modifiedOutput[range.End.Line];
+      modifiedOutput[range.Start.Line] =
+        lineStart.Substring(0, range.Start.Character) + newText +
+        lineEnd.Substring(range.End.Character);
+      modifiedOutput = modifiedOutput.Take(range.Start.Line).Concat(
+        modifiedOutput.Skip(range.End.Line)
+      ).ToList();
+      return modifiedOutput;
     }
   }
 }
