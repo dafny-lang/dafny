@@ -26,7 +26,7 @@ class BreadthFirstSearch<Vertex(==)>
   // this method returns, as a ghost out-parameter, that existential
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
-  method {:vcs_split_on_every_assert} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
+  method {:rlimit 8000} BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
     requires source in AllVertices && dest in AllVertices;
@@ -42,6 +42,7 @@ class BreadthFirstSearch<Vertex(==)>
     // Finally, under the outcome "d < 0", there is no path from "source" to "dest":
     ensures d < 0 ==> !exists p :: IsPath(source, dest, p);
   {
+    path := Nil; // avoid indefinite assignment errors
     var V, C, N := {source}, {source}, {};
     ghost var Processed, paths := {}, map[source := Nil];
     assert paths.Keys == {source};
@@ -56,6 +57,7 @@ class BreadthFirstSearch<Vertex(==)>
     assert d != 0 ==> dest !in R(source, d-1, AllVertices) by { reveal R(); }
     assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
     assert N == Successors(Processed, AllVertices) - R(source, d, AllVertices) by { reveal R(); }
+    assert {:split_here} true;
     while C != {}
       // V, Processed, C, N are all subsets of AllVertices:
       invariant V <= AllVertices && Processed <= AllVertices && C <= AllVertices && N <= AllVertices;
@@ -85,6 +87,8 @@ class BreadthFirstSearch<Vertex(==)>
     {
       // remove a vertex "v" from "C"
       var v :| v in C;
+      assert v != dest && C == {v} ==>
+        (Processed + {v}) + (N + (set w | w in Succ(v) && w !in V)) == R(source, d+1, AllVertices) by { reveal R(); }
       C, Processed := C - {v}, Processed + {v};
       ghost var pathToV := Find(source, v, paths);
 
@@ -97,13 +101,20 @@ class BreadthFirstSearch<Vertex(==)>
           if length(p) < length(pathToV) {
             // show that this branch is impossible
             RMonotonicity(source, length(p), d-1, AllVertices);
+            assert false;
           }
         }
         return d, pathToV;
       }
+      assert {:split_here} true;
+      assert C != {} ==> Processed + C == R(source, d, AllVertices) by { reveal R(); }
+      assert {:split_here} true;
 
       // process newly encountered successors
       var newlyEncountered := set w | w in Succ(v) && w !in V;
+      assert if C == {} then
+        Processed + (N + newlyEncountered) == R(source, d+1, AllVertices)
+        else Processed + C == R(source, d, AllVertices) by { reveal R(); }
       V, N := V + newlyEncountered, N + newlyEncountered;
       paths := UpdatePaths(newlyEncountered, source, paths, v, pathToV);
 
@@ -112,7 +123,10 @@ class BreadthFirstSearch<Vertex(==)>
       }
 
       assert Processed + C == R(source, d, AllVertices) by { reveal R(); }
+      assert d != 0 ==> dest !in R(source, d-1, AllVertices);
+      assert {:split_here} true;
     }
+    assert {:split_here} true;
 
     // show that "dest" in not in any reachability set, no matter
     // how many successors one follows
