@@ -27,8 +27,8 @@ public record AssumptionDescription(
     isExplicit: false);
   public static AssumptionDescription ExternWithPrecondition = new(
     issue: "Declaration with [{:extern}] has a requires clause.",
-    mitigation: "Test external caller (maybe with [/testContracts]).",
-    mitigationIETF: "MUST test external caller.",
+    mitigation: "Test any external callers (maybe with [/testContracts]).",
+    mitigationIETF: "MUST test any external callers.",
     isExplicit: false);
   public static AssumptionDescription ExternWithPostcondition = new(
     issue: "Declaration with [{:extern}] has a ensures clause.",

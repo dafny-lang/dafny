@@ -10,11 +10,11 @@ TestAuditor.dfy(22,6): Warning: MinusBv8NoBody: Ghost declaration has no body an
 TestAuditor.dfy(27,15): Warning: LeftShiftBV128: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(34,6): Warning: MinusBv8Assume: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove or add `{:axiom}`.
 TestAuditor.dfy(45,17): Warning: GenerateBytes: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
-TestAuditor.dfy(45,17): Warning: GenerateBytes: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(45,17): Warning: GenerateBytes: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
 TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
-TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
 TestAuditor.dfy(58,7): Warning: GenerateBytesWrapper: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove.
-TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test external caller (maybe with `/testContracts`).
+TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
 TestAuditor.dfy(72,19): Warning: ExternFunction: Function with `{:extern}` attribute. Possible mitigation: Turn into a `method` or test thoroughly for lack of side effects.
 TestAuditor.dfy(72,19): Warning: ExternFunction: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
 TestAuditor.dfy(83,7): Warning: DoesNotTerminate: Method may not terminate (uses `decreases *`). Possible mitigation: Provide a valid `decreases` clause.

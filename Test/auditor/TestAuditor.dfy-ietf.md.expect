@@ -22,13 +22,13 @@
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
-* Declaration with `{:extern}` has a requires clause. MUST test external caller.
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 ### Member `GenerateBytesWithModel`
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
-* Declaration with `{:extern}` has a requires clause. MUST test external caller.
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 ### Member `GenerateBytesWrapper`
 
@@ -36,7 +36,7 @@
 
 ### Member `GenerateBytesNoGuarantee`
 
-* Declaration with `{:extern}` has a requires clause. MUST test external caller.
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 ### Member `ExternFunction`
 
