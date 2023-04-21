@@ -132,6 +132,16 @@ const x := 1;
 }");
     }
 
+    [Fact]
+    public async Task ExplicitDivisionByZero() {
+      await TestCodeAction(@"
+method Foo(i: int)
+{
+  (>Explicit failing assertion->assert i + 1 != 0;
+  <)var x := 2>< / (i + 1); 
+}");
+    }
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
