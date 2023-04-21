@@ -142,6 +142,34 @@ method Foo(i: int)
 }");
     }
 
+    [Fact]
+    public async Task ExplicitDivisionByZeroFunction() {
+      await TestCodeAction(@"
+function Foo(i: int): int
+{
+  if i < 0 then
+    (>Explicit failing assertion->assert i + 1 != 0;
+    <)2>< / (i + 1)
+  else
+    2
+}");
+    }
+
+
+
+    [Fact]
+    public async Task ExplicitDivisionByZeroFunctionLetExpr() {
+      await TestCodeAction(@"
+function Foo(i: int): int
+{
+  match i {
+    case _ =>
+      (>Explicit failing assertion->assert i + 1 != 0;
+      <)2>< / (i + 1)
+  }
+}");
+    }
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {

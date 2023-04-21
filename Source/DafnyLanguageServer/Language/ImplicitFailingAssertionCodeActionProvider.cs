@@ -61,18 +61,28 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
       var suggestedEdits = new List<DafnyCodeActionEdit>();
       if (nodesTillFailure != null) {
+        Node? insertionNode = null;
         for (var i = 0; i < nodesTillFailure.Count; i++) {
           var node = nodesTillFailure[i];
-          if (node is Statement or LetExpr && (i == nodesTillFailure.Count - 1 || node is not UpdateStmt || nodesTillFailure[i + 1] is not VarDeclStmt)) {
-            var start = node.StartToken;
-            var assertStr = $"assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
-                            IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
-            suggestedEdits.Add(
-              new DafnyCodeActionEdit(
-                new RangeToken(start, null), assertStr));
+          var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
+          if ((node is Statement or LetExpr && (node is not UpdateStmt || nextNode is not VarDeclStmt))
+              || nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr or NestedMatchCase
+             ) {
+            insertionNode = node;
             break;
           }
         }
+
+        if (insertionNode == null) {
+          insertionNode = nodesTillFailure[0];
+        }
+
+        var start = insertionNode.StartToken;
+        var assertStr = $"assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
+                        IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
+        suggestedEdits.Add(
+          new DafnyCodeActionEdit(
+            new RangeToken(start, null), assertStr));
       }
 
       return suggestedEdits.ToArray();
