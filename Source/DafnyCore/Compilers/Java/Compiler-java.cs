@@ -999,7 +999,7 @@ namespace Microsoft.Dafny.Compilers {
               // we're looking for).
               var tp = targetTypeIgnoringConstraints.AsTypeParameter;
               if (tp == null) {
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> ({targetTypeName}){d})";
               } else {
                 var td = FormatTypeDescriptorVariable(tp.GetCompileName(Options));
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
@@ -3128,6 +3128,10 @@ namespace Microsoft.Dafny.Compilers {
           return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
         }
       } else if (cl is DatatypeDecl dt) {
+        if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
+          var typeSubstMap = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          return TypeInitializationValue(innerType.Subst(typeSubstMap), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+        }
         var s = FullTypeName(udt);
         var typeargs = "";
         var nonGhostTypeArgs = SelectNonGhost(cl, udt.TypeArgs);
