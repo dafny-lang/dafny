@@ -8,8 +8,8 @@
 // CHECK: Outcome: Invalid
 // CHECK: Duration: .*
 // CHECK: Resource count: .*
-// CHECK: TextLoggerBatch.dfy\(15,14\): divisor is always non-zero
-// CHECK: TextLoggerBatch.dfy\(16,9\): assertion always holds
+// CHECK: TextLoggerBatch.dfy\(17,14\): divisor is always non-zero
+// CHECK: TextLoggerBatch.dfy\(18,9\): assertion always holds
 method M(x: int, y: int)
   requires y > 0
   requires x > 0
