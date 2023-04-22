@@ -88,6 +88,12 @@ namespace Microsoft.Dafny {
         
         // TODO: Compatibility checks
         
+        // For now it's simpler to let the rest of the pipeline parse the
+        // program text back into the AST representation.
+        // At some point we'll likely want to serialize a program
+        // more efficiently inside a .doo file, at which point
+        // the DooFile class should encapsulate the serialization logic better
+        // and expose a Program instead of the program text.
         SourceFileName = Path.GetTempFileName();
         File.WriteAllText(SourceFileName, dooFile.ProgramText);
         

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Configuration;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using Microsoft.Dafny;
 using Tomlyn;
@@ -11,12 +13,12 @@ namespace DafnyCore;
 
 public class DooFile {
 
-  private const string PROGRAM_FILE_ENTRY = "program.dfy";
+  private const string ProgramFileEntry = "program.dfy";
   
-  private const string MANIFEST_FILE_ENTRY = "manifest.toml";
+  private const string ManifestFileEntry = "manifest.toml";
 
   public class ManifestData {
-    public const string CURRENT_DOO_FILE_VERSION = "1.0";
+    public const string CurrentDooFileVersion = "1.0";
     public string DooFileVersion { get; private set; }
   
     public string DafnyVersion { get; private set; }
@@ -28,7 +30,7 @@ public class DooFile {
     }
     
     public ManifestData(DafnyOptions options) {
-      DooFileVersion = CURRENT_DOO_FILE_VERSION;
+      DooFileVersion = CurrentDooFileVersion;
       DafnyVersion = options.VersionNumber;
       
       // TODO: collect relevant options
@@ -49,24 +51,23 @@ public class DooFile {
   
   public static DooFile Read(string path) {
     var result = new DooFile();
-    
-    using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Read)) {
-      ZipArchiveEntry manifestEntry = archive.GetEntry(MANIFEST_FILE_ENTRY);
-      if (manifestEntry == null) {
-        throw new ArgumentException(".doo file missing manifest entry");
-      }
-      using (var manifestStream = manifestEntry.Open()) {
-        result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
-      }
+
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    var manifestEntry = archive.GetEntry(ManifestFileEntry);
+    if (manifestEntry == null) {
+      throw new ArgumentException(".doo file missing manifest entry");
+    }
+    using (var manifestStream = manifestEntry.Open()) {
+      result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+    }
       
-      ZipArchiveEntry programTextEntry = archive.GetEntry(PROGRAM_FILE_ENTRY);
-      if (programTextEntry == null) {
-        throw new ArgumentException(".doo file missing program text entry");
-      }
-      using (var programTextStream = programTextEntry.Open()) {
-        var reader = new StreamReader(programTextStream, Encoding.UTF8);
-        result.ProgramText = reader.ReadToEnd();
-      }
+    var programTextEntry = archive.GetEntry(ProgramFileEntry);
+    if (programTextEntry == null) {
+      throw new ArgumentException(".doo file missing program text entry");
+    }
+    using (var programTextStream = programTextEntry.Open()) {
+      var reader = new StreamReader(programTextStream, Encoding.UTF8);
+      result.ProgramText = reader.ReadToEnd();
     }
 
     return result;
@@ -91,17 +92,66 @@ public class DooFile {
     
     using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Create);
 
-    var manifest = archive.CreateEntry(MANIFEST_FILE_ENTRY);
+    var manifest = archive.CreateEntry(ManifestFileEntry);
     using (var manifestStream = manifest.Open()) {
       using var manifestWriter = new StreamWriter(manifestStream, Encoding.UTF8);
       Manifest.Write(manifestWriter);
     }
 
-    var programText = archive.CreateEntry(PROGRAM_FILE_ENTRY);
+    var programText = archive.CreateEntry(ProgramFileEntry);
     using (var programTextStream = programText.Open()) {
       using var programTextWriter = new StreamWriter(programTextStream, Encoding.UTF8);
       programTextWriter.Write(ProgramText);
     }
   }
+
+  // Partitioning of all options into subsets that must be recorded in a .doo file
+  // to guard against unsafe usage.
   
+  private static readonly List<Option> OptionsThatAffectSeparateVerification = new() {
+    CommonOptionBag.UnicodeCharacters,
+    PrintStmt.TrackPrintEffectsOption
+  };
+  
+  private static readonly List<Option> OptionsThatAffectSeparateCompilation = new() {
+    // Ideally this feature shouldn't affect separate compilation,
+    // because it's automatically disabled on {:extern} signatures.
+    // Realistically though, we don't have enough strong mechanisms to stop
+    // target language code from referencing compiled internal code,
+    // so to be conservative we flag this as not compatible in general.
+    CommonOptionBag.OptimizeErasableDatatypeWrapper
+  };
+
+  // This should be all other options, but we explicitly list them so that
+  // whenever a new option is created, we consciously analyze whether they affect separate processing. 
+  private static readonly List<Option> OptionsThatDoNotAffectSeparateProcessing = new() {
+  };
+
+  private static ISet<Option> AllSupportedOptions =>
+    OptionsThatAffectSeparateVerification
+      .Concat(OptionsThatAffectSeparateCompilation)
+      .Concat(OptionsThatDoNotAffectSeparateProcessing)
+      .ToHashSet();
+
+  static DooFile() {
+    var conflicts = OptionsThatAffectSeparateVerification.Intersect(OptionsThatAffectSeparateCompilation);
+    if (conflicts.Any()) {
+      throw new Exception();
+    }
+    conflicts = OptionsThatAffectSeparateVerification.Intersect(OptionsThatDoNotAffectSeparateProcessing);
+    if (conflicts.Any()) {
+      throw new Exception();
+    }
+    conflicts = OptionsThatAffectSeparateCompilation.Intersect(OptionsThatDoNotAffectSeparateProcessing);
+    if (conflicts.Any()) {
+      throw new Exception();
+    }
+  }
+
+  public static void CheckOptions(IEnumerable<Option> allOptions) {
+    var unsupportedOptions = allOptions.Where(o => !AllSupportedOptions.Contains(o)).ToList();
+    if (unsupportedOptions.Any()) {
+      // throw new Exception($"Internal error - unsupported options registered: {{{string.Join(", ", unsupportedOptions)}}}");
+    }
+  }
 }

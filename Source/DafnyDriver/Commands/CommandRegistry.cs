@@ -8,6 +8,7 @@ using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
@@ -43,6 +44,10 @@ static class CommandRegistry {
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
 
+    // Check that the .doo file format is aware of all options,
+    // and therefore which have to be saved to safely support separate verification/compilation.
+    DooFile.CheckOptions(AllOptions);
+    
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
   }
 

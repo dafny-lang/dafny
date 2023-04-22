@@ -14,7 +14,7 @@ public class DooFileTest {
     var loadedDooFile = DooFile.Read(path);
     
     Assert.Equal(loadedDooFile.Manifest.DafnyVersion, options.VersionNumber);
-    Assert.Equal(loadedDooFile.Manifest.DooFileVersion, DooFile.ManifestData.CURRENT_DOO_FILE_VERSION);
+    Assert.Equal(loadedDooFile.Manifest.DooFileVersion, DooFile.ManifestData.CurrentDooFileVersion);
   }
 
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
