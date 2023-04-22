@@ -1690,7 +1690,7 @@ In many cases, Dafny can determine that a newly declared type has
 some value. 
 For example, in the absence of a witness clause,
 a numeric type that includes 0 is known by Dafny
-to be non-empty,  
+to be non-empty.
 However, Dafny cannot always make this determination.
 If it cannot, a `witness` clause is required. The value given in
 the `witness` clause must be a valid value for the type and assures Dafny
