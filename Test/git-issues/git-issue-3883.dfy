@@ -60,9 +60,20 @@ method Print<X(0)>(x: X, suffix: string) {
 type pos = x | 1 <= x witness 9
 type Fn<R(0)> = f: int -> R | true witness * // this used to generate malformed Java code (issue #3892)
 
+datatype Option<T> = Some(t: T) | None
+type Fn0<R(0)> = f: int -> Option<R> | true witness PartialFnWitness // this used to generate malformed Java code (issue #3892)
+type Fn1<R> = f: int -> Option<R> | true witness PartialFnWitness // this used to generate malformed Java code (issue #3892)
+
+function PartialFnWitness<R>(x: int): Option<R> {
+  None
+}
+
 method Arrows() {
   var f: Fn<int>;
   var g: Fn<pos>;
+
+  var h: Fn0<pos>;
+  var k: Fn1<pos>;
 }
 
 module MoreTests {

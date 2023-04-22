@@ -399,7 +399,11 @@ namespace Microsoft.Dafny.Compilers {
           cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, witness, null);
           witness = "Witness";
         }
-        var w = cw.StaticMemberWriter.NewBlock($"public static {TypeParameters(sst.TypeArgs, " ")}{typeName} defaultValue()");
+        cw.StaticMemberWriter.Write($"public static {TypeParameters(sst.TypeArgs, " ")}{typeName} defaultValue(");
+        var typeDescriptorParams = sst.TypeArgs.Where(NeedsTypeDescriptor);
+        cw.StaticMemberWriter.Write(typeDescriptorParams.Comma(tp =>
+          $"{DafnyTypeDescriptor}<{tp.GetCompileName(Options)}> {FormatTypeDescriptorVariable(tp.GetCompileName(Options))}"));
+        var w = cw.StaticMemberWriter.NewBlock(")");
         w.WriteLine($"return {witness};");
       }
     }
@@ -1018,10 +1022,8 @@ namespace Microsoft.Dafny.Compilers {
         typeDescriptorExpr = "_TYPE";
       }
       wr.Write($"public static {TypeParameters(typeParams, " ")}{DafnyTypeDescriptor}<{targetTypeName}> {TypeMethodName}(");
-      if (typeParams.Count != 0) {
-        var typeDescriptorParams = typeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
-        wr.Write(typeDescriptorParams.Comma(tp => $"{DafnyTypeDescriptor}<{tp.GetCompileName(Options)}> {FormatTypeDescriptorVariable(tp.GetCompileName(Options))}"));
-      }
+      var typeDescriptorParams = typeParams.Where(NeedsTypeDescriptor);
+      wr.Write(typeDescriptorParams.Comma(tp => $"{DafnyTypeDescriptor}<{tp.GetCompileName(Options)}> {FormatTypeDescriptorVariable(tp.GetCompileName(Options))}"));
       var wTypeMethodBody = wr.NewBlock(")", "");
       var typeDescriptorCast = $"({DafnyTypeDescriptor}<{targetTypeName}>) ({DafnyTypeDescriptor}<?>)";
       wTypeMethodBody.WriteLine($"return {typeDescriptorCast} {typeDescriptorExpr};");
@@ -3085,7 +3087,14 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          return FullTypeName(udt) + ".defaultValue()";
+          var relevantTypeArgs = new List<Type>();
+          for (int i = 0; i < td.TypeArgs.Count; i++) {
+            if (NeedsTypeDescriptor(td.TypeArgs[i])) {
+              relevantTypeArgs.Add(udt.TypeArgs[i]);
+            }
+          }
+          string typeParameters = Util.Comma(relevantTypeArgs, arg => TypeDescriptor(arg, wr, tok));
+          return $"{FullTypeName(udt)}.defaultValue({typeParameters})";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
