@@ -4515,6 +4515,9 @@ namespace Microsoft.Dafny.Compilers {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
             wr.Write(sep);
+            if (i >= s.Args.Count) {
+              Console.WriteLine("STAT " + s.Method.Ins.Count + " " + s.Args.Count + " " + s.ToString());
+            }
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
             var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
