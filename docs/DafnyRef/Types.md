@@ -1879,7 +1879,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.38](#sec-compile-time-constants).
+in [Section 9.37](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 
@@ -4495,4 +4495,61 @@ imposed on the body of `ReachableVia` makes sure that, if the
 predicate returns `true`, then every object reference in `p` is as old
 as some object reference in another parameter to the predicate.
 
+## 6.5. Nameonly Formal Parameters and Default-Value Expressions
+
+The formal parameters of a method, constructor in a class, iterator,
+function, or datatype constructor can be declared with an expression
+denoting a _default value_. This makes the parameter _optional_,
+as opposed to _required_. All required parameters must be declared
+before any optional parameters. 
+
+For example,
+```
+function f(x: int, y: int := 10): int
+```
+may be called as either
+```
+var i := f(1,2);
+var j := f(1);
+```
+where `f(1)` is equivalent to `f(1,10)` in this case.
+
+Formal parameters may also be declared `nameonly`, in which case a call site
+must explicitly name the formal when providing its actual argument.
+
+The above function may be called as
+```
+var k := f(y:=10, x:=2);
+```
+using names; here, though there are no `nameonly` parameters so the names may be used 
+or the actual arguments may be given in order.
+
+If a function is declared with a `nameonly` formal, then that formal's value must be given with a named assignment.
+For example, a function `ff` declared as
+```
+function ff(x: int, nameonly y: int)
+```
+may be called only using `ff(0, y := 4)`. A `nameonly` formal may also have a default value and thus be optional.
+
+Any formals after a nameonly formal must either be nameonly themselves or have default values.
+Otherwise an error will result when an attempt is made to call the function or method with such a formal list.
+
+The formals of datatype constructors are not required to have names. Such formals may have default values but
+may not be declared `nameonly`. Such nameless formals must be declared before `nameonly` formals.
+
+The default-value expression for a parameter is allowed to mention the
+other parameters, including `this` (for instance methods and instance
+functions), but not the implicit `_k` parameter in least and greatest
+predicates and lemmas. The default value of a parameter may mention
+both preceding and subsequent parameters, but there may not be any
+dependent cycle between the parameters and their default-value
+expressions.
+
+The well-formedness of default-value expressions is checked independent
+of the precondition of the enclosing declaration. For a function, the
+parameter default-value expressions may only read what the function's
+`reads` clause allows. For a datatype constructor, parameter default-value
+expressions may not read anything. A default-value expression may not be
+involved in any recursive or mutually recursive calls with the enclosing
+declaration.
 
