@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny.Compilers {
 
-  class DooCompiler : SinglePassCompiler {
-    public DooCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter)
+  class LibraryCompiler : SinglePassCompiler {
+    public LibraryCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter)
     {
     }
 

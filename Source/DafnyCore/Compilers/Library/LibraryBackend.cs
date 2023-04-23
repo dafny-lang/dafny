@@ -4,19 +4,20 @@ using System.IO;
 using System.IO.Compression;
 using DafnyCore;
 
-namespace Microsoft.Dafny.Compilers.Doo; 
+namespace Microsoft.Dafny.Compilers; 
 
-public class DooBackend : ExecutableBackend {
-  public DooBackend(DafnyOptions options) : base(options)
+public class LibraryBackend : ExecutableBackend {
+  public LibraryBackend(DafnyOptions options) : base(options)
   {
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {};
 
-  public override string TargetLanguage => "Doo";
+  public override string TargetName => "Dafny Library (.doo)";
 
   public override string TargetExtension => "doo";
-  
+  public override string TargetId => "lib";
+
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-doo";
 
@@ -25,7 +26,7 @@ public class DooBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   
   protected override SinglePassCompiler CreateCompiler() {
-    return new DooCompiler(Options, Reporter);
+    return new LibraryCompiler(Options, Reporter);
   }
   
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {

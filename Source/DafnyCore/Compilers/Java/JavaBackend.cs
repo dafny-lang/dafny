@@ -12,7 +12,7 @@ public class JavaBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".java" };
 
-  public override string TargetLanguage => "Java";
+  public override string TargetName => "Java";
   public override string TargetExtension => "java";
 
   public override string TargetBasename(string dafnyProgramName) =>

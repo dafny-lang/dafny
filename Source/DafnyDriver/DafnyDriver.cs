@@ -215,8 +215,8 @@ namespace Microsoft.Dafny {
       var compiler = compilers.LastOrDefault(c => c.TargetId == nonOutOptions.CompilerName);
       if (compiler == null) {
         if (nonOutOptions.CompilerName != null) {
-          var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetLanguage})"));
-          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for language \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a language name, not a -t or --target option)" : "")}; expecting one of {known}");
+          var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
+          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
@@ -919,7 +919,7 @@ namespace Microsoft.Dafny {
 
   class NoExecutableBackend : IExecutableBackend {
     public override IReadOnlySet<string> SupportedExtensions => new HashSet<string>();
-    public override string TargetLanguage => throw new NotSupportedException();
+    public override string TargetName => throw new NotSupportedException();
     public override string TargetExtension => throw new NotSupportedException();
     public override string PublicIdProtect(string name) {
       throw new NotSupportedException();

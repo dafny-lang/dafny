@@ -11,6 +11,8 @@ using Tomlyn;
 
 namespace DafnyCore; 
 
+// Model class for the .doo file format for Dafny libraries.
+// Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
 
   private const string ProgramFileEntry = "program.dfy";
@@ -138,6 +140,8 @@ public class DooFile {
   // This should be all other options, but we explicitly list them so that
   // whenever a new option is created, we consciously analyze whether they affect separate processing. 
   private static readonly List<Option> OptionsThatDoNotAffectSeparateProcessing = new() {
+    // CommonOptionBag
+    // CommonOptionBag
   };
 
   private static ISet<Option> AllSupportedOptions =>
