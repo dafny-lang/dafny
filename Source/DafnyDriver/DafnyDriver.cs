@@ -408,10 +408,6 @@ namespace Microsoft.Dafny {
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
 
-        if (verified) {
-          WriteDooFile(dafnyProgram);
-        }
-        
         bool compiled;
         try {
           compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
@@ -438,12 +434,6 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
-    private void WriteDooFile(Program dafnyProgram) {
-      var dooFile = new DooFile(dafnyProgram);
-      var basename = Path.GetFileNameWithoutExtension(dafnyProgram.Name);
-      dooFile.Write($"{basename}.doo");
-    }
-    
     private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
       ErrorReporter reporter, string programName) {
       var exitValue = ExitValue.SUCCESS;

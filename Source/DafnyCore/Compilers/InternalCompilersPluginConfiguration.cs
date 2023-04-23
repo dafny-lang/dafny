@@ -1,3 +1,4 @@
+using Microsoft.Dafny.Compilers.Doo;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny.Compilers;
@@ -13,7 +14,8 @@ internal class InternalCompilersPluginConfiguration : Plugins.PluginConfiguratio
       new JavaBackend(options),
       new PythonBackend(options),
       new CppCompilerBackend(options),
-      new DafnyBackend(options)
+      new DooBackend(options),
+      new DafnyBackend(options),
     };
   }
 }

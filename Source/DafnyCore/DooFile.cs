@@ -85,6 +85,16 @@ public class DooFile {
 
   private DooFile() {
   }
+
+  public void Write(ConcreteSyntaxTree wr) {
+    var manifestWr = wr.NewFile(ManifestFileEntry);
+    using var manifestWriter = new StringWriter();
+    Manifest.Write(manifestWriter);
+    manifestWr.Write(manifestWriter.ToString());
+    
+    var programTextWr = wr.NewFile(ProgramFileEntry);
+    programTextWr.Write(ProgramText);
+  }
   
   public void Write(string path) {
     // Delete first, we don't want to merge with existing zips
