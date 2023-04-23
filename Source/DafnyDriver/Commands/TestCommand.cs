@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -20,6 +21,8 @@ public class TestCommand : ICommandSpec {
 
   static TestCommand() {
     DafnyOptions.RegisterLegacyBinding(MethodsToTest, (o, v) => { o.MethodsToTest = v; });
+    
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] { MethodsToTest });
   }
 
 

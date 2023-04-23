@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Auditor;
 using Tomlyn;
 
 namespace DafnyCore; 
@@ -123,52 +124,41 @@ public class DooFile {
   // more difficult to completely categorize, which is the main reason the DooBackend
   // is restricted to only the new CLI.
 
-  private static readonly List<Option> OptionsThatAffectSeparateVerification = new() {
-    CommonOptionBag.UnicodeCharacters,
-    PrintStmt.TrackPrintEffectsOption
-  };
+  private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
+
+  public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
+
+  public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+    if (localValue != libraryValue) {
+      options.Printer.ErrorWriteLine(Console.Out, $"cannot use {libraryFile}: {option.Name} is set locally to {localValue}, but the library was build with {libraryValue}");
+      return false;
+    }
+
+    return true;
+  }
   
-  private static readonly List<Option> OptionsThatAffectSeparateCompilation = new() {
-    // Ideally this feature shouldn't affect separate compilation,
-    // because it's automatically disabled on {:extern} signatures.
-    // Realistically though, we don't have enough strong mechanisms to stop
-    // target language code from referencing compiled internal code,
-    // so to be conservative we flag this as not compatible in general.
-    CommonOptionBag.OptimizeErasableDatatypeWrapper
-  };
-
-  // This should be all other options, but we explicitly list them so that
-  // whenever a new option is created, we consciously analyze whether they affect separate processing. 
-  private static readonly List<Option> OptionsThatDoNotAffectSeparateProcessing = new() {
-    // CommonOptionBag
-    // CommonOptionBag
-  };
-
-  private static ISet<Option> AllSupportedOptions =>
-    OptionsThatAffectSeparateVerification
-      .Concat(OptionsThatAffectSeparateCompilation)
-      .Concat(OptionsThatDoNotAffectSeparateProcessing)
-      .ToHashSet();
-
-  static DooFile() {
-    var conflicts = OptionsThatAffectSeparateVerification.Intersect(OptionsThatAffectSeparateCompilation);
-    if (conflicts.Any()) {
-      throw new Exception();
+  public static bool NoOpOptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+    return true;
+  }
+  
+  public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks = null, IEnumerable<Option> noChecksNeeded = null) {
+    if (checks != null) {
+      foreach (var (option, check) in checks) {
+        OptionChecks.Add(option, check);
+      }
     }
-    conflicts = OptionsThatAffectSeparateVerification.Intersect(OptionsThatDoNotAffectSeparateProcessing);
-    if (conflicts.Any()) {
-      throw new Exception();
-    }
-    conflicts = OptionsThatAffectSeparateCompilation.Intersect(OptionsThatDoNotAffectSeparateProcessing);
-    if (conflicts.Any()) {
-      throw new Exception();
+
+    if (noChecksNeeded != null) {
+      foreach (var option in noChecksNeeded) {
+        OptionChecks.Add(option, NoOpOptionCheck);
+      }
     }
   }
-
+  
   public static void CheckOptions(IEnumerable<Option> allOptions) {
-    var unsupportedOptions = allOptions.Where(o => !AllSupportedOptions.Contains(o)).ToList();
+    var unsupportedOptions = allOptions.ToHashSet().Where(o => !OptionChecks.ContainsKey(o)).ToList();
     if (unsupportedOptions.Any()) {
-      // throw new Exception($"Internal error - unsupported options registered: {{{string.Join(", ", unsupportedOptions)}}}");
+      throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
     }
   }
 }

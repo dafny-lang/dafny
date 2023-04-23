@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -297,8 +298,55 @@ Functionality is still being expanded. Currently only checks contracts on every 
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
-  }
 
+    DooFile.RegisterLibraryChecks(
+      checks: new Dictionary<Option, DooFile.OptionCheck>() {
+        { UnicodeCharacters, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionMatches },
+        // Ideally this feature shouldn't affect separate compilation,
+        // because it's automatically disabled on {:extern} signatures.
+        // Realistically though, we don't have enough strong mechanisms to stop
+        // target language code from referencing compiled internal code,
+        // so to be conservative we flag this as not compatible in general.
+        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+        { IncludeRuntimeOption, DooFile.CheckOptionMatches },
+      },
+      noChecksNeeded: new Option[] {
+        Check,
+        Libraries,
+        Output,
+        Plugin,
+        Prelude,
+        Target,
+        Verbose,
+        ErrorLimit,
+        FormatPrint,
+        IsolateAssertions,
+        JsonDiagnostics,
+        QuantifierSyntax,
+        SolverLog,
+        SolverPath,
+        SolverPlugin,
+        SpillTranslation,
+        StdIn,
+        TestAssumptions,
+        WarnShadowing,
+        ManualLemmaInduction,
+        RelaxDefiniteAssignment,
+        SolverResourceLimit,
+        TypeInferenceDebug,
+        TypeSystemRefresh,
+        VerificationLogFormat,
+        VerifyIncludedFiles,
+        WarningAsErrors,
+        DisableNonLinearArithmetic,
+        NewTypeInferenceDebug,
+        UseBaseFileName,
+        WarnMissingConstructorParenthesis,
+        UseJavadocLikeDocstringRewriterOption,
+      }
+    );
+  }
 
   public static readonly Option<bool> FormatPrint = new("--print",
     @"Print Dafny program to stdout after formatting it instead of altering the files.") {

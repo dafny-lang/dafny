@@ -13,6 +13,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using DafnyCore;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -29,6 +30,10 @@ namespace Microsoft.Dafny {
     static Printer() {
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
+      });
+      
+      DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+        PrintMode
       });
     }
 

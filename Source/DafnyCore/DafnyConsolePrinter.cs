@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -57,6 +58,10 @@ public class DafnyConsolePrinter : ConsolePrinter {
   public static readonly Option<bool> ShowSnippets = new("--show-snippets",
     "Show a source code snippet for each Dafny message.");
 
+  static DafnyConsolePrinter() {
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] { ShowSnippets });    
+  }
+  
   public DafnyConsolePrinter(DafnyOptions options) {
     Options = options;
   }

@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.IO;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -52,6 +53,13 @@ enabling necessary special handling.".TrimStart()) {
       options.PrintFile = f;
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
         options.FileTimestamp);
+    });
+    
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+      BoogiePrint,
+      Print,
+      ResolvedPrint,
+      Bootstrapping
     });
   }
 }

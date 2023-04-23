@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -17,6 +18,10 @@ class RunCommand : ICommandSpec {
       foreach (var file in files) {
         options.AddFile(file);
       }
+    });
+    
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+      Inputs
     });
   }
 

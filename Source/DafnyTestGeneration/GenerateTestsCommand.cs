@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -98,6 +99,16 @@ path - Prints path-coverage tests for the given program.");
     });
     DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
       options.TestGenOptions.DisablePrune = value;
+    });
+    
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+      LoopUnroll,
+      SequenceLengthLimit,
+      Target,
+      TestInlineDepth,
+      Verbose,
+      PrintBpl,
+      DisablePrune
     });
   }
 }

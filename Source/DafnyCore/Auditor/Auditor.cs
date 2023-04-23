@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyCore;
 
 namespace Microsoft.Dafny.Auditor;
 
@@ -64,6 +65,14 @@ public class Auditor : IRewriter {
                                  "md", "markdown", "md-table", "markdown-table",
                                  "md-ietf", "markdown-ietf",
                                  "txt");
+    
+    DooFile.RegisterLibraryChecks(
+      noChecksNeeded: new Option[] {
+        ReportFileOption,
+        ReportFormatOption,
+        CompareReportOption
+      }
+      );
   }
 
   /// <summary>

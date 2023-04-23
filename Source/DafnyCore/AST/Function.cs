@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using DafnyCore;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -309,6 +310,10 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     FunctionSyntaxOption = FunctionSyntaxOption.FromAmong(functionSyntaxOptionsMap.Keys.ToArray());
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
+    });
+    
+    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+      FunctionSyntaxOption
     });
   }
 
