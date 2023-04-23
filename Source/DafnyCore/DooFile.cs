@@ -117,7 +117,10 @@ public class DooFile {
 
   // Partitioning of all options into subsets that must be recorded in a .doo file
   // to guard against unsafe usage.
-  
+  // Note that legacy CLI options are not as cleanly enumerated and therefore
+  // more difficult to completely categorize, which is the main reason the DooBackend
+  // is restricted to only the new CLI.
+
   private static readonly List<Option> OptionsThatAffectSeparateVerification = new() {
     CommonOptionBag.UnicodeCharacters,
     PrintStmt.TrackPrintEffectsOption

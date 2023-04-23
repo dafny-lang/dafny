@@ -116,7 +116,6 @@ public class JavaBackend : ExecutableBackend {
     var args = entryPointName == null ? // If null, then no entry point is added
         new List<string> { "cf", jarPath }
         : new List<string> { "cfe", jarPath, entryPointName };
-    args.Add("META-INF/Program.doo");
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
     return 0 == RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);

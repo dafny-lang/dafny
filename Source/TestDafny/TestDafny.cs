@@ -65,7 +65,7 @@ public class TestDafny {
     // Here we only ensure that the exit code is 0.
 
     var dafnyArgs = new List<string>(options.OtherArgs) {
-      $"/compile:0",
+      "verify",
       options.TestFile!
     };
 
@@ -108,13 +108,11 @@ public class TestDafny {
   private static int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
     Console.Out.WriteLine($"Executing on {backend.TargetLanguage}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
+      "run",
+      // Here we can pass --no-verify to save time since we already verified the program. 
+      "--no-verify",
+      $"--target:{backend.TargetId}",
       options.TestFile!,
-      // Here we can pass /noVerify to save time since we already verified the program. 
-      "/noVerify",
-      // /noVerify is interpreted pessimistically as "did not get verification success",
-      // so we have to force compiling and running despite this.
-      "/compile:4",
-      $"/compileTarget:{backend.TargetId}"
     };
 
 
