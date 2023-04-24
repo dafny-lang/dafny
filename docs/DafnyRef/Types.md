@@ -1518,7 +1518,10 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 9.10](#sec-as-is-expression).)
 
-The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare that there is
+a value that satisfies the subset type's predicate; that is, the witness clause establishes that the defined
+type is not empty. The compiler may, but is not obligated to, use this value when auto-initializing a
+newly declared variable of the subset type.
 
 Dafny builds in three families of subset types, as described next.
 
@@ -1684,11 +1687,15 @@ The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
 variables of any type are expected to have some value when they are used.
 In many cases, Dafny can determine that a newly declared type has 
-some value. For example, a numeric type that includes 0 is known by Dafny
-to be non-empty. However, Dafny cannot always make this determination.
+some value. 
+For example, in the absence of a witness clause,
+a numeric type that includes 0 is known by Dafny
+to be non-empty.
+However, Dafny cannot always make this determination.
 If it cannot, a `witness` clause is required. The value given in
 the `witness` clause must be a valid value for the type and assures Dafny
-that the type is non-empty.
+that the type is non-empty. (The variation `witness *` is described below.)
+
 
 For example, 
 <!-- %check-verify Types.10.expect -->
