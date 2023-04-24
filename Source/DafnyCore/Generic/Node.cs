@@ -296,7 +296,7 @@ public abstract class TokenNode : Node {
         var endTok = tok;
 
         void UpdateStartEndToken(IToken token1) {
-          if (token1.Filename != tok.Filename) {
+          if (token1.Filepath != tok.Filepath) {
             return;
           }
 
@@ -314,7 +314,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

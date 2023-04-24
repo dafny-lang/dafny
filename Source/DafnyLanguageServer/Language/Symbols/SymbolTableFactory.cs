@@ -418,7 +418,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private void RegisterLocation(ISymbol symbol, IToken token, Range name, Range declaration) {
-        if (token.Filename != null) {
+        if (token.Filepath != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
         }

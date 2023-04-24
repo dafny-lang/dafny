@@ -41,7 +41,7 @@ public class SymbolTable {
   public ISet<Location> GetUsages(Position position) {
     return NodePositions.Query(position).
       SelectMany(node => Usages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
-      Select(u => new Location { Uri = u.NameToken.Filename, Range = u.NameToken.GetLspRange() }).ToHashSet();
+      Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() }).ToHashSet();
   }
 
   public Location? GetDeclaration(Position position) {

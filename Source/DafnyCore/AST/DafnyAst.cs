@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
 
       var firstToken = DefaultModule.RootToken.Next;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 

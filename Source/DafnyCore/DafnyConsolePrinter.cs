@@ -68,7 +68,25 @@ public class DafnyConsolePrinter : ConsolePrinter {
     realigned_tok.pos = tok.pos;
     realigned_tok.val = tok.val;
     realigned_tok.filename = tok.filename;
-    base.ReportBplError(realigned_tok, message, error, tw, category);
+    
+    if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
+      return;
+    }
+
+    if (category != null) {
+      message = $"{category}: {message}";
+    }
+
+    if (tok != null) {
+      message = $"{((IToken)tok).TokenToString(Options)}: {message}";
+    }
+
+    if (error) {
+      ErrorWriteLine(tw, message);
+    } else {
+      tw.WriteLine(message);
+    }
+
     if (Options.Get(ShowSnippets)) {
       WriteSourceCodeSnippet(tok, tw);
     }

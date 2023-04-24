@@ -27,7 +27,7 @@ public interface IToken : Microsoft.Boogie.IToken {
   // }
 
   public string ActualFilename => Uri.LocalPath;
-  string Filename => Uri.LocalPath;
+  string Filepath => Uri.LocalPath;
 
   Uri Uri { get; set; }
 
@@ -77,8 +77,8 @@ public class Token : IToken {
 
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
-  public string ActualFilename => Filename;
-  public string Filename => Uri?.LocalPath;
+  public string ActualFilename => Filepath;
+  public string Filepath => Uri?.LocalPath;
   public Uri Uri { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
@@ -123,7 +123,7 @@ public class Token : IToken {
   }
 
   public override string ToString() {
-    return $"{Filename}@{pos} - @{line}:{col}";
+    return $"{Filepath}@{pos} - @{line}:{col}";
   }
 }
 
@@ -144,8 +144,8 @@ public abstract class TokenWrapper : IToken {
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
-  public virtual string Filename {
-    get { return WrappedToken.Filename; }
+  public virtual string Filepath {
+    get { return WrappedToken.Filepath; }
     set { WrappedToken.filename = value; } // TODO fix?
   }
 
@@ -196,7 +196,7 @@ public static class TokenExtensions {
 
 
   public static string TokenToString(this IToken tok, DafnyOptions options) {
-    var filename = options.UseBaseNameForFileName ? Path.GetFileName(tok.Filename) : tok.Filename;
+    var filename = options.UseBaseNameForFileName ? Path.GetFileName(tok.Filepath) : tok.Filepath;
     return $"{filename}({tok.line},{tok.col - 1})";
   }
 

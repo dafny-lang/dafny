@@ -107,7 +107,7 @@ namespace DafnyServer {
     }
 
     private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => cl.Tok.Filename == module.Tok.Filename)) {
+      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => cl.Tok.Filepath == module.Tok.Filepath)) {
         if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
@@ -253,7 +253,7 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filename == module.Tok.Filename)) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filepath == module.Tok.Filepath)) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -271,7 +271,7 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filename == module.Tok.Filename)) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e.Tok.Filepath == module.Tok.Filepath)) {
           if (!(clbl is Method)) {
             continue;
           }

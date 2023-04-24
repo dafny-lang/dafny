@@ -180,7 +180,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
-      return token.Filename == null
+      return token.Filepath == null
         ? entryDocumentUri
         : token.GetDocumentUri();
     }

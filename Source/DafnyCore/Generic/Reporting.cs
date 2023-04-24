@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
     }
 
     public string ErrorToString(ErrorLevel header, IToken tok, string msg) {
-      return $"{tok.TokenToString(Options)}: {header.ToString()}{": " + msg}";
+      return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
     }
   }
 
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny {
         var errorLine = ErrorToString(level, tok, msg);
         while (tok is NestedToken nestedToken) {
           tok = nestedToken.Inner;
-          if (tok.Filename == nestedToken.Filename &&
+          if (tok.Filepath == nestedToken.Filepath &&
               tok.line == nestedToken.line &&
               tok.col == nestedToken.col) {
             continue;

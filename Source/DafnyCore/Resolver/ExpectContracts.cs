@@ -38,7 +38,7 @@ public class ExpectContracts : IRewriter {
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
     var tok = expr.E.tok;
-    var msg = $"Runtime failure of {exprType} clause from {tok.Filename}:{tok.line}:{tok.col}";
+    var msg = $"Runtime failure of {exprType} clause from {tok.Filepath}:{tok.line}:{tok.col}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, tok,

@@ -75,7 +75,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "datatype",
                 ctor.Name,
                 ctor.GetCompileName(options),
-                ctor.tok.Filename,
+                ctor.tok.Filepath,
                 parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 ctor.tok.GetLspPosition());
@@ -102,7 +102,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 "constant",
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filename,
+                member.tok.Filepath,
                 parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
@@ -113,7 +113,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                 (member is Method ? "method" : "function"),
                 member.Name,
                 member.GetCompileName(options),
-                member.tok.Filename,
+                member.tok.Filepath,
                 parsedDocument.Uri.ToUri(),
                 verificationTreeRange,
                 member.tok.GetLspPosition());
@@ -124,7 +124,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
                   "by method part of function",
                   member.Name,
                   member.GetCompileName(options) + "_by_method",
-                  member.tok.Filename,
+                  member.tok.Filepath,
                   parsedDocument.Uri.ToUri(),
                   verificationTreeRangeByMethod,
                   function.ByMethodTok.GetLspPosition());
@@ -144,7 +144,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
             $"subset type",
             subsetTypeDecl.Name,
             subsetTypeDecl.GetCompileName(options),
-            subsetTypeDecl.tok.Filename,
+            subsetTypeDecl.tok.Filepath,
             parsedDocument.Uri.ToUri(),
             verificationTreeRange,
             subsetTypeDecl.tok.GetLspPosition());
@@ -320,7 +320,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         void AddChildOutcome(Counterexample? counterexample, AssertCmd assertCmd, IToken token,
           GutterVerificationStatus status, IToken? secondaryToken, string? assertDisplay = "",
           string assertIdentifier = "") {
-          if (token.Filename != implementationNode.Filename) {
+          if (token.Filepath != implementationNode.Filename) {
             return;
           }
 
@@ -335,7 +335,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
           var nodeDiagnostic = new AssertionVerificationTree(
             $"{targetMethodNode.DisplayName}{assertDisplay} #{childrenCount}",
             $"{targetMethodNode.Identifier}_{childrenCount}{assertIdentifier}",
-            token.Filename,
+            token.Filepath,
             token.Uri,
             secondaryOutcomePosition,
             outcomeRange

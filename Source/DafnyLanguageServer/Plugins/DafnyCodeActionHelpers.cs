@@ -132,7 +132,7 @@ public static class DafnyCodeActionHelpers {
     // Return the EndTok of them.
     foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filename == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
+        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filepath == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
           foreach (var member in classDecl.Members) {
             if (member is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
                 method.StartToken.line <= line && line <= method.EndToken.line &&
