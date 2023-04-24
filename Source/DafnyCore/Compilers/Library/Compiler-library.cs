@@ -16,7 +16,9 @@ namespace Microsoft.Dafny.Compilers {
       throw new NotImplementedException();
     }
 
-    public override IReadOnlySet<Feature> UnsupportedFeatures { get; }
+    public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+      Feature.LegacyCLI
+    };
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName) {
       throw new NotImplementedException();
     }
