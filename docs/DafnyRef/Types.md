@@ -4504,13 +4504,15 @@ as opposed to _required_. All required parameters must be declared
 before any optional parameters. 
 
 For example,
-```
+<!-- %check-resolve %save f.tmp -->
+```dafny
 function f(x: int, y: int := 10): int
 ```
 may be called as either
-```
-var i := f(1,2);
-var j := f(1);
+<!-- %check-resolve %use f.tmp -->
+```dafny
+const i := f(1,2);
+const j := f(1);
 ```
 where `f(1)` is equivalent to `f(1,10)` in this case.
 
@@ -4518,7 +4520,8 @@ Formal parameters may also be declared `nameonly`, in which case a call site
 must explicitly name the formal when providing its actual argument.
 
 The above function may be called as
-```
+<!-- %no-check -->
+```dafny
 var k := f(y:=10, x:=2);
 ```
 using names; here, though there are no `nameonly` parameters so the names may be used 
@@ -4526,8 +4529,9 @@ or the actual arguments may be given in order.
 
 If a function is declared with a `nameonly` formal, then that formal's value must be given with a named assignment.
 For example, a function `ff` declared as
-```
-function ff(x: int, nameonly y: int)
+<!-- %check-resolve -->
+```dafny
+function ff(x: int, nameonly y: int): int
 ```
 may be called only using `ff(0, y := 4)`. A `nameonly` formal may also have a default value and thus be optional.
 
