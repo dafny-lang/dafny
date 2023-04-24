@@ -4543,7 +4543,6 @@ as in `ff(0, y := 4)` or by giving both actuals by name (in any order).
 A `nameonly` formal may also have a default value and thus be optional.
 
 Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.
-Otherwise an error will result when an attempt is made to call the function or method with such a formal list.
 
 The formals of datatype constructors are not required to have names.
 A nameless formal may not have a default value, nor may it follow a formal
