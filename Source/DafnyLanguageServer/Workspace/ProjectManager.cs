@@ -94,14 +94,15 @@ abstract class ProjectManager : IProjectManager {
 
     Compilation.CancelPendingUpdates();
     var updatedText = textChangeProcessor.ApplyChange(textBuffer, documentChange, CancellationToken.None);
-    
+
+    var id = documentChange.TextDocument;
     var lastPublishedState = observer.LastPublishedState;
     var migratedVerificationTree =
-      relocator.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines, documentChange, CancellationToken.None);
+      relocator.RelocateVerificationTree(lastPublishedState.VerificationTrees[id], updatedText.NumberOfLines, documentChange, CancellationToken.None);
     var migratedPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(documentChange, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = relocator.RelocateSymbols(lastPublishedState.SignatureAndCompletionTable, documentChange, CancellationToken.None),
-      VerificationTree = migratedVerificationTree
+      VerificationTrees = lastPublishedState.VerificationTrees.Add(id, migratedVerificationTree)
     };
 
     lock (ChangedRanges) {
@@ -169,14 +170,21 @@ abstract class ProjectManager : IProjectManager {
     return serverOptions;
   }
 
+  
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,
     IReadOnlyDictionary<ImplementationId, IdeImplementationView> oldVerificationDiagnostics) {
     var result = new Dictionary<ImplementationId, IdeImplementationView>();
     foreach (var entry in oldVerificationDiagnostics) {
+      if (entry.Key.Uri != documentChange.TextDocument.Uri) {
+        // TODO consider using an immutable dictionary
+        result.Add(entry.Key, entry.Value);
+        continue;
+      }
+      
       var newRange = relocator.RelocateRange(entry.Value.Range, documentChange, CancellationToken.None);
       if (newRange != null) {
         result.Add(entry.Key with {
-          NamedVerificationTask = relocator.RelocatePosition(entry.Key.NamedVerificationTask, documentChange, CancellationToken.None)
+          Position = relocator.RelocatePosition(entry.Key.Position, documentChange, CancellationToken.None)
         }, entry.Value with {
           Range = newRange,
           Diagnostics = relocator.RelocateDiagnostics(entry.Value.Diagnostics, documentChange, CancellationToken.None)
@@ -194,7 +202,7 @@ abstract class ProjectManager : IProjectManager {
     }
   }
 
-  public async Task CloseAsync() {
+  public async Task CloseAsync(TextDocumentIdentifier documentIdentifier) {
     Compilation.CancelPendingUpdates();
     try {
       await Compilation.LastDocument;

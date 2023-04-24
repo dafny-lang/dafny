@@ -134,4 +134,4 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 }
 
 
-public record ImplementationId(Position NamedVerificationTask, string Name);
+public record ImplementationId(Uri Uri, Position Position, string Name);

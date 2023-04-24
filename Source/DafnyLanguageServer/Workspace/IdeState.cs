@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -19,20 +20,16 @@ public record IdeImplementationView(Range Range, PublishedVerificationStatus Sta
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  DocumentTextBuffer TextDocumentItem,
-  IEnumerable<Diagnostic> ResolutionDiagnostics,
+  int Version,
+  IDictionary<TextDocumentItem, IEnumerable<Diagnostic>> ResolutionDiagnostics,
   SymbolTable SymbolTable,
   SignatureAndCompletionTable SignatureAndCompletionTable,
   IReadOnlyDictionary<ImplementationId, IdeImplementationView> ImplementationIdToView,
   IReadOnlyList<Counterexample> Counterexamples,
   bool ImplementationsWereUpdated,
-  IEnumerable<Diagnostic> GhostDiagnostics,
-  VerificationTree VerificationTree
+  IDictionary<TextDocumentIdentifier, IEnumerable<Diagnostic>> GhostDiagnostics,
+  ImmutableDictionary<TextDocumentIdentifier, VerificationTree> VerificationTrees
 ) {
-
-  public DocumentUri Uri => TextDocumentItem.Uri;
-  public int? Version => TextDocumentItem.Version;
-
   public IEnumerable<Diagnostic> Diagnostics =>
     ResolutionDiagnostics.Concat(ImplementationIdToView.Values.SelectMany(v => v.Diagnostics));
 }

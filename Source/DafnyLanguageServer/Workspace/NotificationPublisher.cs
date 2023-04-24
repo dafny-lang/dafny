@@ -62,9 +62,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private static List<NamedVerifiableStatus> GetNamedVerifiableStatuses(IReadOnlyDictionary<ImplementationId, IdeImplementationView> implementationViews) {
-      var namedVerifiableGroups = implementationViews.GroupBy(task => task.Value.Range);
+      var namedVerifiableGroups = implementationViews.Values.GroupBy(task => task.Range);
       return namedVerifiableGroups.Select(taskGroup => {
-        var status = taskGroup.Select(kv => kv.Value.Status).Aggregate(Combine);
+        var status = taskGroup.Select(kv => kv.Status).Aggregate(Combine);
         return new NamedVerifiableStatus(taskGroup.Key, status);
       }).OrderBy(v => v.NameRange.Start).ToList();
     }
