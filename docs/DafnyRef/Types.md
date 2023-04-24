@@ -4497,7 +4497,7 @@ as some object reference in another parameter to the predicate.
 
 ## 6.5. Nameonly Formal Parameters and Default-Value Expressions
 
-The formal parameters of a method, constructor in a class, iterator,
+A formal parametes of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
 denoting a _default value_. This makes the parameter _optional_,
 as opposed to _required_. All required parameters must be declared
@@ -4531,7 +4531,7 @@ function ff(x: int, nameonly y: int)
 ```
 may be called only using `ff(0, y := 4)`. A `nameonly` formal may also have a default value and thus be optional.
 
-Any formals after a nameonly formal must either be nameonly themselves or have default values.
+Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.
 Otherwise an error will result when an attempt is made to call the function or method with such a formal list.
 
 The formals of datatype constructors are not required to have names. Such formals may have default values but
