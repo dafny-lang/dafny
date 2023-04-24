@@ -4497,11 +4497,10 @@ as some object reference in another parameter to the predicate.
 
 ## 6.5. Nameonly Formal Parameters and Default-Value Expressions
 
-A formal parametes of a method, constructor in a class, iterator,
+A formal parameter of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
 denoting a _default value_. This makes the parameter _optional_,
-as opposed to _required_. All required parameters must be declared
-before any optional parameters. 
+as opposed to _required_.
 
 For example,
 <!-- %check-resolve %save f.tmp -->
@@ -4511,35 +4510,37 @@ function f(x: int, y: int := 10): int
 may be called as either
 <!-- %check-resolve %use f.tmp -->
 ```dafny
-const i := f(1,2);
+const i := f(1, 2);
 const j := f(1);
 ```
-where `f(1)` is equivalent to `f(1,10)` in this case.
+where `f(1)` is equivalent to `f(1, 10)` in this case.
 
-Formal parameters may also be declared `nameonly`, in which case a call site
-must explicitly name the formal when providing its actual argument.
-
-The above function may be called as
+The above function may also be called as
 <!-- %no-check -->
 ```dafny
-var k := f(y:=10, x:=2);
+var k := f(y := 10, x := 2);
 ```
-using names; here, though there are no `nameonly` parameters so the names may be used 
-or the actual arguments may be given in order.
+using names; actual arguments with names may be given in any order,
+though they must be after actual arguments without names. 
 
-If a function is declared with a `nameonly` formal, then that formal's value must be given with a named assignment.
+Formal parameters may also be declared `nameonly`, in which case a call site
+must always explicitly name the formal when providing its actual argument.
+
 For example, a function `ff` declared as
 <!-- %check-resolve -->
 ```dafny
 function ff(x: int, nameonly y: int): int
 ```
-may be called only using `ff(0, y := 4)`. A `nameonly` formal may also have a default value and thus be optional.
+must be called either by listing the value for x and then y with a name, 
+as in `ff(0, y := 4)` or by giving both actuals by name (in any order). 
+A `nameonly` formal may also have a default value and thus be optional.
 
 Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.
 Otherwise an error will result when an attempt is made to call the function or method with such a formal list.
 
-The formals of datatype constructors are not required to have names. Such formals may have default values but
-may not be declared `nameonly`. Such nameless formals must be declared before `nameonly` formals.
+The formals of datatype constructors are not required to have names.
+A nameless formal may not have a default value, nor may it follow a formal
+that has a default value.
 
 The default-value expression for a parameter is allowed to mention the
 other parameters, including `this` (for instance methods and instance

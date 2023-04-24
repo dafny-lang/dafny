@@ -1837,7 +1837,7 @@ A parameter is either required or optional:
 The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so a positional-only parameter is always required.
 
 At a call site, positional arguments are not allowed to follow named arguments. Therefore, if `x` is a nameonly parameter, then there is no way to supply the parameters after `x` by position. 
-Thus, any parameter that follows `x` must either by passed by name or have a default value. 
+Thus, any parameter that follows `x` must either be passed by name or have a default value. 
 That is, if a later (in the formal parameter declaration) parameter does not have a default value, it is effectively nameonly. 
 
 Positional arguments must be given before any named arguments.
