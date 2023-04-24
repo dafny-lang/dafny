@@ -309,7 +309,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
-        { IncludeRuntimeOption, DooFile.CheckOptionMatches },
       },
       noChecksNeeded: new Option[] {
         Check,
@@ -344,6 +343,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
         UseBaseFileName,
         WarnMissingConstructorParenthesis,
         UseJavadocLikeDocstringRewriterOption,
+        IncludeRuntimeOption
       }
     );
   }

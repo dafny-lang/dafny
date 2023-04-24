@@ -22,10 +22,10 @@ public class DooFile {
 
   public class ManifestData {
     public const string CurrentDooFileVersion = "1.0";
-    public string DooFileVersion { get; private set; }
+    public string DooFileVersion { get; set; }
   
-    public string DafnyVersion { get; private set; }
-    
+    public string DafnyVersion { get; set; }
+
     public Dictionary<string, object> Options { get; set; }
 
     public ManifestData() {
@@ -35,8 +35,14 @@ public class DooFile {
     public ManifestData(DafnyOptions options) {
       DooFileVersion = CurrentDooFileVersion;
       DafnyVersion = options.VersionNumber;
-      
-      // TODO: collect relevant options
+
+      Options = new Dictionary<string, object>();
+      foreach (var (option, check) in OptionChecks) {
+        if (check != NoOpOptionCheck) {
+          options.Options.OptionArguments.TryGetValue(option, out var optionValue);
+          Options.Add(option.Name, optionValue);
+        }
+      }
     }
     
     public static ManifestData Read(TextReader reader) {
@@ -48,9 +54,9 @@ public class DooFile {
     }
   }
   
-  public ManifestData Manifest { get; private set; }
+  public ManifestData Manifest { get; set; }
   
-  public string ProgramText { get; private set; }
+  public string ProgramText { get; set; }
   
   public static DooFile Read(string path) {
     var result = new DooFile();
