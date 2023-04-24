@@ -887,7 +887,7 @@ namespace Microsoft.Dafny {
         Uri uri = null;
         try {
           uri = new Uri(exprTok.filename);
-        } catch (UriFormatException e) {
+        } catch (UriFormatException) {
 
         }
         // These boogie Tokens can be created by TokenTextWriter

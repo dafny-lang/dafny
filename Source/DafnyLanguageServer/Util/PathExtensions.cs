@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// </summary>
     /// <param name="token">The token to get the document filename from.</param>
     /// <returns>The filename (without path) of the document containing the given token.</returns>
-    public static string GetDocumentFileName(this Boogie.IToken token) {
+    public static string? GetDocumentFileName(this Boogie.IToken token) {
       if (token.filename == null) {
         return null;
       }
