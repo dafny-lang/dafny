@@ -461,7 +461,7 @@ public class AutoContractsRewriter : IRewriter {
     return new ExprDotName(tok, new ImplicitThisExpr(tok), "Repr", null);
   }
 
-  private Expression CreateUnresolvedValidCall(IToken tok) {
+  public static Expression CreateUnresolvedValidCall(IToken tok) {
     return new ApplySuffix(tok, null,
       new ExprDotName(tok, new ImplicitThisExpr(tok), "Valid", null),
       new List<ActualBinding>(), tok);
