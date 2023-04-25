@@ -404,10 +404,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine("}");
           }
 
-        } else if (d is ModuleDecl) {
+        } else if (d is ModuleDecl md) {
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
+            if (printMode == PrintModes.DllEmbed && !modDecl.ModuleDef.IsToBeCompiled) {
+              continue;
+            }
+
             VisibilityScope scope = null;
             if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;

@@ -84,9 +84,11 @@ public class DooFile {
 
   public DooFile(Program dafnyProgram) {
     var tw = new StringWriter();
-    var pr = new Printer(tw, dafnyProgram.Options, dafnyProgram.Options.PrintMode);
-    // TODO: afterResolver = true might be better, but is more likely
-    // to not be a valid parseable program
+    var pr = new Printer(tw, dafnyProgram.Options, PrintModes.DllEmbed);
+    // afterResolver is false because we don't yet have a way to safely skip resolution
+    // when reading the program back into memory.
+    // It's probably worth serializing a program in a more efficient way first
+    // before adding that feature.
     pr.PrintProgram(dafnyProgram, false);
     ProgramText = tw.ToString();
     Manifest = new ManifestData(dafnyProgram.Options);
