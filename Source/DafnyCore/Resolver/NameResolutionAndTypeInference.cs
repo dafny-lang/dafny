@@ -124,8 +124,8 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           scope.PopMarker();
         }
       }
