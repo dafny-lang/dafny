@@ -35,7 +35,7 @@ namespace DafnyTestGeneration {
       var procedureName = TargetImplementationVerboseName ??
                           implementation.VerboseName;
       node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
-      var record = modifications.GetProgramModification(DafnyInfo.Options, program, implementation,
+      var record = modifications.GetProgramModification(program, implementation,
         new HashSet<int>() { node.UniqueId }, ExtractCapturedStates(node),
           procedureName, $"{procedureName.Split(" ")[0]}(block#{node.UniqueId})");
 

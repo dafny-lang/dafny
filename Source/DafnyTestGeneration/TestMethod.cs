@@ -210,7 +210,6 @@ namespace DafnyTestGeneration {
 
     private string GetFunctionOfType(ArrowType type) {
       type = (ArrowType)DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
-      getDefaultValueParams = new();
       var lambda =
         $"({string.Join(",", type.TypeArgs.SkipLast(1).Select((t, i) => "a" + i + ":" + t))})" + // parameter types
         "=>" + // return type
@@ -497,7 +496,7 @@ namespace DafnyTestGeneration {
       }
       if (variable != null && variable.Children.ContainsKey(field.name) &&
           variable.Children[field.name].Count == 1) {
-        return ExtractVariable(variable.Children[field.name].First(), null);
+        return ExtractVariable(variable.Children[field.name].First(), field.type);
       }
 
       var previouslyCreated = ValueCreation.FirstOrDefault(obj =>

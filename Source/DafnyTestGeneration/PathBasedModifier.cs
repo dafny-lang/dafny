@@ -26,9 +26,9 @@ namespace DafnyTestGeneration {
       foreach (var path in paths) {
         path.AssertPath();
         var name = TargetImplementationVerboseName ?? path.Impl.VerboseName;
-        yield return modifications.GetProgramModification(DafnyInfo.Options, p, path.Impl,
+        yield return modifications.GetProgramModification(p, path.Impl,
           new HashSet<int>(), new HashSet<string>(), name,
-          $"{name.Split(" ")[0]}(path through {string.Join(",", path.path)})");
+          $"{name.Split(" ")[0]}" + path.name);
         path.NoAssertPath();
       }
     }
@@ -96,7 +96,8 @@ namespace DafnyTestGeneration {
 
       // if the block contains a return command, it is the last one in the path:
       if (block.TransferCmd is ReturnCmd) {
-        paths.Add(new Path(impl, currList, block));
+        paths.Add(new Path(impl, currList, block, 
+          $"(path through {string.Join(",", currList)},{blockToVariable[block]})"));
         return;
       }
 
@@ -113,19 +114,21 @@ namespace DafnyTestGeneration {
 
     internal class Path {
 
+      internal string name;
       public readonly Implementation Impl;
       public readonly List<Variable> path; // flags for the blocks along the path
       private readonly List<Block> returnBlocks; // block(s) where the path ends
 
-      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlocks)
-        : this(impl, path, new List<Block>() { returnBlocks }) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, Block returnBlock, string name)
+        : this(impl, path, new List<Block>() { returnBlock }, name) {
       }
 
-      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks) {
+      internal Path(Implementation impl, IEnumerable<Variable> path, List<Block> returnBlocks, string name) {
         Impl = impl;
         this.path = new();
         this.path.AddRange(path); // deepcopy is necessary here
         this.returnBlocks = returnBlocks;
+        this.name = name;
       }
 
       internal void AssertPath() {

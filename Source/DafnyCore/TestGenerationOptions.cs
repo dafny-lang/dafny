@@ -14,7 +14,7 @@ namespace Microsoft.Dafny {
     public uint SeqLengthLimit = 0;
     public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
-    [CanBeNull] public string PrintStats = null;
+    [CanBeNull] public string PrintCfg = null;
     public bool DisablePrune = false;
     public static readonly uint DefaultTimeLimit = 10;
 
@@ -57,6 +57,12 @@ namespace Microsoft.Dafny {
             PrintBpl = args[ps.i];
           }
           return true;
+        
+        case "generateTestPrintCfg":
+          if (ps.ConfirmArgumentCount(1)) {
+            PrintCfg = args[ps.i];
+          }
+          return true;
 
         case "generateTestVerbose":
           Verbose = true;
@@ -85,6 +91,9 @@ namespace Microsoft.Dafny {
     than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
+/generateTestPrintCfg:<fileName>
+    Print the control flow graph of the Boogie procedure corresponding to the
+    target method that is used for test generation.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
 /generateTestVerbose

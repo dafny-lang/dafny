@@ -12,8 +12,13 @@ using Program = Microsoft.Boogie.Program;
 
 namespace DafnyTestGeneration {
   public class Modifications {
+    private readonly DafnyOptions options;
+    public Modifications(DafnyOptions options) {
+      this.options = options;
+    }
+
     private readonly Dictionary<string, ProgramModification> idToModification = new();
-    public ProgramModification GetProgramModification(DafnyOptions options, Program program,
+    public ProgramModification GetProgramModification(Program program,
       Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
       string uniqueId) {
       if (!idToModification.ContainsKey(uniqueId)) {
@@ -24,6 +29,28 @@ namespace DafnyTestGeneration {
     }
 
     public IEnumerable<ProgramModification> Values => idToModification.Values;
+
+    public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
+      return NumberOfBlocksCovered(implementation, implementation.Blocks
+        .Where(block => block.Cmds.Count != 0)
+        .Select(block => block.UniqueId).ToHashSet(), onlyIfTestsExists);
+    }
+
+    public int NumberOfBlocksCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
+      var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
+        modification.counterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
+      return blockIds.Count(blockId =>
+        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
+    }
+
+    public IEnumerable<ProgramModification> ModificationsForImplementation(Implementation implementation) =>
+      Values.Where(modification =>
+        modification.implementation == implementation ||
+        options.TestGenOptions.TargetMethod != null);
+
+    internal int ModificationsWithStatus(Implementation implementation, ProgramModification.Status status) =>
+      ModificationsForImplementation(implementation)
+        .Count(mod => mod.counterexampleStatus == status);
   }
 
   /// <summary>
@@ -34,19 +61,19 @@ namespace DafnyTestGeneration {
   public class ProgramModification {
     public DafnyOptions Options { get; }
 
-    private enum Status { Success, Failure, Untested }
+    internal enum Status { Success, Failure, Untested }
 
-    private Status counterexampleStatus;
-    private readonly Implementation implementation; // implementation under test
+    internal Status counterexampleStatus;
+    public readonly Implementation implementation; // implementation under test
 
     private readonly string uniqueId;
     public readonly HashSet<string> CapturedStates;
 
     private readonly string procedure; // procedure to start verification from
     private Program/*?*/ program;
-    private readonly HashSet<int> coversBlocks;
+    internal readonly HashSet<int> coversBlocks;
     private string/*?*/ counterexampleLog;
-    private TestMethod testMethod;
+    internal TestMethod testMethod;
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
       HashSet<int> coversBlocks, HashSet<string> capturedStates,
@@ -77,13 +104,16 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      var proverOptions = new SMTLibSolverOptions(options);
-      proverOptions.Parse(options.ProverOptions);
+      var proverOptions = new SMTLibSolverOptions(original);
+      proverOptions.Parse(original.ProverOptions);
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       options.ProverOptions = new List<string>() {
         "O:model_evaluator.completion=true",
         "O:model.completion=true"
       };
+      foreach (var option in original.ProverOptions) {
+        options.ProverOptions.Add(option);
+      }
       if (z3Version is null || z3Version < new Version(4, 8, 6)) {
         options.ProverOptions.Insert(0, "O:model.compress=false");
       } else {
@@ -182,13 +212,10 @@ namespace DafnyTestGeneration {
       if (!testMethod.IsValid || !returnNullIfNotUnique) {
         return testMethod;
       }
-      var duplicate = ModificationsForImplementation(cache, implementation)
+      var duplicate = cache.ModificationsForImplementation(implementation)
         .Where(mod => mod != this && Equals(mod.testMethod, testMethod))
         .FirstOrDefault((ProgramModification)null);
-      if (duplicate == null) {
-        return testMethod;
-      }
-      if (Options.TestGenOptions.Verbose) {
+      if (Options.TestGenOptions.Verbose && duplicate != null) {
         Console.WriteLine(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}. This happens when test generation tool " +
@@ -196,22 +223,10 @@ namespace DafnyTestGeneration {
           $"e.g. if branching is conditional on the result of a trait instance " +
           $"method call.");
       }
-      return null;
+      return testMethod;
     }
-
-    private bool BlocksAreCovered(Modifications cache, Implementation implementation,
-      HashSet<int> blockIds, bool onlyIfTestsExists = false) {
-      var relevantModifications = ModificationsForImplementation(cache, implementation).Where(modification =>
-        modification.counterexampleStatus == Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
-      return blockIds.All(blockId =>
-        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
-    }
-
-    private IEnumerable<ProgramModification> ModificationsForImplementation(Modifications cache, Implementation implementation) =>
-      cache.Values.Where(modification =>
-        modification.implementation == implementation ||
-        Options.TestGenOptions.TargetMethod != null);
-
-    public bool IsCovered(Modifications cache) => BlocksAreCovered(cache, implementation, coversBlocks);
+    
+    public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(implementation, coversBlocks) == coversBlocks.Count;
+    
   }
 }
