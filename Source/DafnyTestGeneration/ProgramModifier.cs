@@ -26,9 +26,11 @@ namespace DafnyTestGeneration {
   /// condition is met (such as when a block is visited or a path is taken)
   /// </summary>
   public abstract class ProgramModifier {
-
+    private static readonly string ImplPrefix = "Impl$$";
+    private static readonly string CallPrefix = "Call$$";
+    private static readonly string CtorPostfix = "__ctor";
     // The implementation to test.
-    protected Implementation/*?*/ ImplementationToTarget;
+    protected string TargetImplementationVerboseName = null;
     // Boogie names of implementations to be tested or inlined
     private Dictionary<string, uint> timesToInline = new();
     protected DafnyInfo DafnyInfo;
@@ -42,19 +44,24 @@ namespace DafnyTestGeneration {
       DafnyInfo = dafnyInfo;
       var options = dafnyInfo.Options;
       var program = MergeBoogiePrograms(options, programs);
+      string targetImplementationName = null;
+      if (options.TestGenOptions.TargetMethod != null) {
+        // cannot use the implementation object directly because it changes
+        // after various transformations are applied
+        var targetImplementation = program.Implementations.FirstOrDefault(i =>
+          i.Name.StartsWith(ImplPrefix)
+          && i.VerboseName.Split(" ")[0]
+          == options.TestGenOptions.TargetMethod);
+        targetImplementationName = targetImplementation?.Name;
+        TargetImplementationVerboseName = targetImplementation?.VerboseName;
+      }
+      var callGraphVisitor = new CallGraph(dafnyInfo, program);
+      timesToInline = callGraphVisitor.GetCallees(targetImplementationName);
       program = new FunctionToMethodCallRewriter(this, options).VisitProgram(program);
       program = new AddImplementationsForCalls(options).VisitProgram(program);
       program = new RemoveChecks(options).VisitProgram(program);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       engine.CoalesceBlocks(program); // removes redundant basic blocks
-      if (options.TestGenOptions.TargetMethod != null) {
-        ImplementationToTarget = program.Implementations.FirstOrDefault(i =>
-          i.Name.StartsWith("Impl$$")
-          && i.VerboseName.Split(" ")[0]
-          == options.TestGenOptions.TargetMethod);
-      }
-      var callGraphVisitor = new CallGraph(dafnyInfo, program);
-      timesToInline = callGraphVisitor.GetCallees(ImplementationToTarget?.Name);
       var annotator = new AnnotationVisitor(this, options);
       program = annotator.VisitProgram(program);
       AddAxioms(options, program);
@@ -68,8 +75,9 @@ namespace DafnyTestGeneration {
     protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
     protected bool ImplementationIsToBeTested(Implementation impl) =>
-      (ImplementationToTarget == null || timesToInline.GetValueOrDefault<string, uint>(impl.Name, 0) > 0) &&
-      impl.Name.StartsWith("Impl$$") && !impl.Name.EndsWith("__ctor") &&
+      (TargetImplementationVerboseName == null ||
+       timesToInline.GetValueOrDefault<string, uint>(impl.Name, 0) > 0) &&
+      impl.Name.StartsWith(ImplPrefix) && !impl.Name.EndsWith(CtorPostfix) &&
       !DafnyInfo.IsGhost(impl.VerboseName.Split(" ").First());
 
     /// <summary>
@@ -172,13 +180,13 @@ namespace DafnyTestGeneration {
       }
 
       public override Procedure/*?*/ VisitProcedure(Procedure/*?*/ node) {
-        if (node == null || !node.Name.StartsWith("Call$$") ||
-            node.Name.EndsWith("__ctor")) {
+        if (node == null || !node.Name.StartsWith(CallPrefix) ||
+            node.Name.EndsWith(CtorPostfix)) {
           return node;
         }
 
         var callerName = node.Name;
-        var calleeName = $"Impl$${node.Name.Split("$").Last()}";
+        var calleeName = $"{ImplPrefix}{node.Name.Split("$").Last()}";
         var calleeProc = program?.Procedures
           .Where(f => f.Name == calleeName)
           .FirstOrDefault((Procedure)null);
@@ -243,16 +251,33 @@ namespace DafnyTestGeneration {
       private string/*?*/ implementation; // implementation currently traversed
       private readonly DafnyInfo info;
       private readonly Dictionary<string, uint> timesToInline = new();
+      private bool insideAssignCommand = false;
+      private HashSet<string> procedureNames = new();
 
       public CallGraph(DafnyInfo info, Program program) {
         this.info = info;
+        procedureNames = new();
+        program.Procedures.Iter(p => procedureNames.Add(p.Name));
         VisitProgram(program);
+      }
+
+      public override Procedure VisitProcedure(Procedure node) {
+        var procedure = node.Name;
+        if (!calls.ContainsKey(procedure)) {
+          calls[procedure] = new();
+        }
+        if (procedure.StartsWith(CallPrefix)) {
+          calls[procedure].Add(ImplPrefix + procedure[CallPrefix.Length..]);
+        }
+        timesToInline[node.Name] = info.TimesToInline(node.VerboseName.Split(" ").First());
+        return node;
       }
 
       public override Implementation VisitImplementation(Implementation node) {
         implementation = node.Name;
-        calls[implementation] = new();
-        timesToInline[node.Name] = info.TimesToInline(node.VerboseName.Split(" ").First());
+        if (!calls.ContainsKey(implementation)) {
+          calls[implementation] = new();
+        }
         node.Blocks.ForEach(block => VisitBlock(block));
         return node;
       }
@@ -262,6 +287,24 @@ namespace DafnyTestGeneration {
           calls[implementation].Add(node.callee);
         }
         return base.VisitCallCmd(node);
+      }
+
+      public override Expr VisitNAryExpr(NAryExpr node) {
+        if (!insideAssignCommand) {
+          return node;
+        }
+        var procedure = ImplPrefix + node.Fun.FunctionName;
+        if (procedureNames.Contains(procedure)) {
+          calls[implementation].Add(procedure);
+        }
+        return base.VisitNAryExpr(node);
+      }
+
+      public override Cmd VisitAssignCmd(AssignCmd node) {
+        insideAssignCommand = true;
+        var result = base.VisitAssignCmd(node);
+        insideAssignCommand = false;
+        return result;
       }
 
       public sealed override Program VisitProgram(Program node) {
@@ -346,7 +389,8 @@ namespace DafnyTestGeneration {
         if (toTest == null) {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
-        } else if (node == modifier.ImplementationToTarget) {
+        } else if (node.VerboseName != null &&
+                   node.VerboseName == modifier.TargetImplementationVerboseName) {
           // This method is tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumePrintCmd(data));
         } else if (modifier.timesToInline.ContainsKey(node.Name)) {
@@ -395,7 +439,7 @@ namespace DafnyTestGeneration {
       /// stores the result of the method call</returns>
       private IdentifierExpr/*?*/ TryConvertFunctionCall(NAryExpr call) {
         Procedure/*?*/ proc = currProgram?.Procedures
-          .Where(f => f.Name == "Impl$$" + call.Fun.FunctionName)
+          .Where(f => f.Name == ImplPrefix + call.Fun.FunctionName)
           .FirstOrDefault((Procedure)null);
         if (proc == null) {
           return null; // this function is not a function-by-method
@@ -471,7 +515,7 @@ namespace DafnyTestGeneration {
       }
 
       public override Implementation VisitImplementation(Implementation node) {
-        if (!node.Name.StartsWith("Impl$$")) {
+        if (!node.Name.StartsWith(ImplPrefix)) {
           return node;
         }
         currImpl = node;
@@ -540,7 +584,7 @@ namespace DafnyTestGeneration {
         Function/*?*/ findFunction =
           functionMap.GetValueOrDefault(node.Fun.FunctionName + CanCallSuffix, null);
         Procedure/*?*/ findProcedure =
-          procedureMap.GetValueOrDefault("Impl$$" + node.Fun.FunctionName,
+          procedureMap.GetValueOrDefault(ImplPrefix + node.Fun.FunctionName,
             null);
         if (currAssignCmd == null ||
             findFunction == null ||
@@ -585,7 +629,7 @@ namespace DafnyTestGeneration {
 
         Implementation/*?*/ findImplementation =
           implementationMap.GetValueOrDefault(
-            "Impl$$" + expr.Fun.FunctionName[..^CanCallSuffix.Length], null);
+            ImplPrefix + expr.Fun.FunctionName[..^CanCallSuffix.Length], null);
         if (findImplementation == null) {
           return node;
         }
@@ -633,7 +677,7 @@ namespace DafnyTestGeneration {
 
       public override Implementation VisitImplementation(Implementation node) {
         var findFunction = functionMap.GetValueOrDefault(node.Name[6..], null);
-        if (!node.Name.StartsWith("Impl$$") || findFunction == null) {
+        if (!node.Name.StartsWith(ImplPrefix) || findFunction == null) {
           return node; // this implementation is potentially side-effecting
         }
         currImpl = node;
