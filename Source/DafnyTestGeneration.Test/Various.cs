@@ -47,7 +47,7 @@ module M {
       var source = @"
 module M {
   class Inlining {
-    method b (i:int) returns (r:int) {
+    method {:testInline 1} b (i:int) returns (r:int) {
       if (i == 0) {
           return 7;
       } else {
@@ -63,9 +63,8 @@ module M {
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.a";
-      options.TestGenOptions.TestInlineDepth = 2;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.Inlining.a"));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
@@ -73,6 +72,112 @@ module M {
       Assert.True(methods.Exists(m => m.ArgValues[1] == "0"));
       Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[1], "-?[1-9][0-9]*")));
+    }
+
+    [Fact]
+    public async Task NestedInlining() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
+    }
+    function {:testInline 1} max (a:int, b:int):int {
+      min(b, a)
+    }
+    method test (a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 2);
+    }
+
+    [Fact]
+    public async Task SelectiveInlining() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
+    }
+    function max (a:int, b:int):int {
+      if a > b then a else b
+    }
+    method test(a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count == 1);
+    }
+
+    [Fact]
+    public async Task InliningRecursion() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 2} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 3);
+    }
+
+    [Fact]
+    public async Task InliningNoRecursion() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count < 3);
     }
 
     [Fact]
@@ -371,7 +476,7 @@ module Test {
     public async Task FunctionMethod() {
       var source = @"
 module Math {
-  function Max(a:int, b:int):int {
+  function {:testInline 1} Max(a:int, b:int):int {
     if (a > b) then a else b
   }
   function Min(a:int, b:int):int {
@@ -381,7 +486,6 @@ module Math {
 ".TrimStart();
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 2;
       options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
@@ -401,7 +505,7 @@ module ShortCircuit {
   function Or(a:bool):bool {
     a || OnlyFalse(a)
   }
-  function OnlyFalse(a:bool):bool
+  function {:testInline 1} OnlyFalse(a:bool):bool
     requires !a
   {
     false
@@ -410,10 +514,9 @@ module ShortCircuit {
 ".TrimStart();
       var options = Setup.GetDafnyOptions();
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 1;
       options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
