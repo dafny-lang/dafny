@@ -40,7 +40,9 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName ?? typ.Name,
+          typ?.ResolvedClass?.FullName == null ?
+            typ.Name :
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : ""),
           typ.TypeArgs));
     }
 

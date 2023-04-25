@@ -332,6 +332,43 @@ module Objects {
         m.ValueCreation.Count == 2)));
     }
 
+    /// <summary>
+    /// This test addresses the situation in which there is a class-type object
+    /// that does not matter for the construction of a counterexample.
+    /// Furthermore, this class-type object is self-referential,
+    /// with a field of the same type. Test generation must not enter infinite
+    /// loop and must figure out that it needs to set the field of the object
+    /// to itself.
+    /// </summary>
+    [Fact]
+    public async Task TestByDefaultConstructionOfSelfReferentialValue() {
+      var source = @"
+module M {
+
+    class LoopingList {
+
+        var next:LoopingList;
+        var value:int;
+
+        constructor() {
+            value := 0;
+            next := this;
+        }
+
+        method getValue() returns (value:int) {
+            return this.value;
+        }
+    }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod =
+        "M.LoopingList.getValue";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Single(methods);
+    }
+
     [Fact]
     public async Task RecursivelyExtractDatatypeFields() {
       var source = @"
