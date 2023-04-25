@@ -667,9 +667,11 @@ namespace Microsoft.Dafny {
         }
         ResolveConstraintAndWitness(nd, true);
       } else if (declaration is IteratorDecl iter) {
-        iter.Ins.ForEach(ComputePreType);
+        // Note, iter.Ins are reused with the parameters of the iterator's automatically generated _ctor, and
+        // the iter.OutsFields are shared with the automatically generated fields of the iterator class. To avoid
+        // computing their pre-types twice, we omit their pre-type computations here and instead do them in
+        // the _ctor Method and for each Field of the iterator class.
         iter.Outs.ForEach(ComputePreType);
-        iter.OutsFields.ForEach(ComputePreTypeField);
       } else if (declaration is DatatypeDecl dtd) {
         foreach (var ctor in dtd.Ctors) {
           ctor.Formals.ForEach(ComputePreType);
@@ -937,21 +939,24 @@ namespace Microsoft.Dafny {
       // the types only after resolving the decreases clause (and it may be that some of resolution has already seen uses of
       // these fields; so, with no further ado, here we go
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
+      ResolveAttributes(iter.Decreases, new ResolutionContext(iter, false), false);
       for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var e = iter.Decreases.Expressions[i];
         ResolveExpression(e, new ResolutionContext(iter, false));
         // any type is fine, but associate this type with the corresponding _decreases<n> field
         var d = iter.DecreasesFields[i];
         // If the following type constraint does not hold, then: Bummer, there was a use--and a bad use--of the field before, so this won't be the best of error messages
-        AddSubtypeConstraint(Type2PreType(d.Type), e.PreType, e.tok, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
+        AddSubtypeConstraint(d.PreType, e.PreType, e.tok, "type of field '" + d.Name + "' is {1}, but has been constrained elsewhere to be of type {0}");
       }
       foreach (FrameExpression fe in iter.Reads.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Reads, iter);
       }
+      ResolveAttributes(iter.Modifies, new ResolutionContext(iter, false), false);
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Modifies, iter);
       }
       foreach (AttributedExpression e in iter.Requires) {
+        ResolveAttributes(e, new ResolutionContext(iter, false), false);
         ResolveExpression(e.E, new ResolutionContext(iter, false));
         ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
@@ -965,14 +970,17 @@ namespace Microsoft.Dafny {
       Contract.Assert(scope.AllowInstance);
 
       foreach (AttributedExpression e in iter.YieldRequires) {
+        ResolveAttributes(e, new ResolutionContext(iter, false), false);
         ResolveExpression(e.E, new ResolutionContext(iter, false));
         ConstrainTypeExprBool(e.E, "Yield precondition must be a boolean (got {0})");
       }
       foreach (AttributedExpression e in iter.YieldEnsures) {
+        ResolveAttributes(e, new ResolutionContext(iter, true), false);
         ResolveExpression(e.E, new ResolutionContext(iter, true));
         ConstrainTypeExprBool(e.E, "Yield postcondition must be a boolean (got {0})");
       }
       foreach (AttributedExpression e in iter.Ensures) {
+        ResolveAttributes(e, new ResolutionContext(iter, true), false);
         ResolveExpression(e.E, new ResolutionContext(iter, true));
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
