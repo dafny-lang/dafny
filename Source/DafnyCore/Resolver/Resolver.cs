@@ -5975,15 +5975,19 @@ namespace Microsoft.Dafny {
         if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have functions 'IsFailure()', {1} 'Extract()'",
-            tp, expectExtract ? "and" : "but not");
+            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have function{1}", tp,
+            expectExtract
+              ? "s 'IsFailure()' and 'Extract()'"
+              : " 'IsFailure()', but not 'Extract()'");
         }
       } else {
         if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have functions 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
-            tp, expectExtract ? "and" : "but not");
+            "The right-hand side of ':-', which is of type '{0}', must have function{1}", tp,
+            expectExtract
+              ? "s 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
+              : "s 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'");
         }
       }
 
