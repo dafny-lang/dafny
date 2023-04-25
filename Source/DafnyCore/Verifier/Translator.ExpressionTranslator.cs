@@ -484,6 +484,9 @@ namespace Microsoft.Dafny {
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
                   }
+                  if (fn.IsOpaque) {
+                    args.Add(translator.GetRevealConstant(fn));
+                  }
                   if (fn is TwoStateFunction) {
                     args.Add(Old.HeapExpr);
                   }
@@ -639,6 +642,7 @@ namespace Microsoft.Dafny {
                 return TrExprSpecialFunctionCall(e);
               } else {
                 Boogie.Expr layerArgument;
+                Boogie.Expr revealArgument;
                 var etran = this;
                 if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
                   // we need to increase fuel functions that contain quantifier expr in the assume context.
@@ -659,11 +663,17 @@ namespace Microsoft.Dafny {
                   layerArgument = null;
                 }
 
+                if (e.Function.IsOpaque) {
+                  revealArgument = translator.GetRevealConstant(e.Function);
+                } else {
+                  revealArgument = null;
+                }
+
                 var ty = translator.TrType(e.Type);
                 var id = new Boogie.IdentifierExpr(GetToken(e), e.Function.FullSanitizedName, ty);
 
                 bool argsAreLit;
-                var args = FunctionInvocationArguments(e, layerArgument, false, out argsAreLit);
+                var args = FunctionInvocationArguments(e, layerArgument, revealArgument, false, out argsAreLit);
                 Expr result = new Boogie.NAryExpr(GetToken(e), new Boogie.FunctionCall(id), args);
                 result = translator.CondApplyUnbox(GetToken(e), result, e.Function.ResultType, e.Type);
 
@@ -1452,7 +1462,7 @@ namespace Microsoft.Dafny {
           return TrToFunctionCall(GetToken(expr), "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
         } else {
           bool argsAreLit_dummy;
-          var args = FunctionInvocationArguments(expr, null, true, out argsAreLit_dummy);
+          var args = FunctionInvocationArguments(expr, null, null, true, out argsAreLit_dummy);
           var id = new Boogie.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, translator.TrType(expr.Type));
           return new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(id), args);
         }
@@ -1642,12 +1652,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         return typeAntecedent;
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument) {
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, Boogie.Expr revealArgument) {
         bool dummy;
-        return FunctionInvocationArguments(e, layerArgument, false, out dummy);
+        return FunctionInvocationArguments(e, layerArgument, revealArgument, false, out dummy);
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, bool omitHeapArgument, out bool argsAreLit) {
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, Boogie.Expr revealArgument, bool omitHeapArgument, out bool argsAreLit) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<List<Boogie.Expr>>() != null);
 
@@ -1660,6 +1670,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
         if (layerArgument != null) {
           args.Add(layerArgument);
+        }
+        if (revealArgument != null) {
+          args.Add(revealArgument);
         }
         if (e.Function is TwoStateFunction) {
           args.Add(OldAt(e.AtLabel).HeapExpr);
