@@ -161,8 +161,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Scan an unresolved dafny program to look for the presence of a specific
-    /// attribute
+    /// Scan an unresolved dafny program to look for a specific attribute
     /// </summary>
     internal class AttributeFinder {
 
