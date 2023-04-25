@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration {
+public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
   public readonly List<Statement> Body;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -21,6 +21,14 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
     this.Attributes = attrs;
   }
 
+  private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.tok, original.Pat) {
+    this.Body = original.Body.Select(cloner.CloneStmt).ToList();
+    this.Attributes = cloner.CloneAttributes(original.Attributes);
+  }
+
+  public NestedMatchCaseStmt Clone(Cloner cloner) {
+    return new NestedMatchCaseStmt(cloner, this);
+  }
   public override IEnumerable<Node> Children => new[] { Pat }.Concat<Node>(Body).Concat(Attributes?.Args ?? Enumerable.Empty<Node>());
   public override IEnumerable<Node> PreResolveChildren => Children;
 
