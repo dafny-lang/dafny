@@ -4,11 +4,16 @@
 // RUN: %baredafny build %args -t:lib %S/Inputs/wrappers.dfy > %t
 // RUN: %baredafny build %args -t:lib %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
 // RUN: %baredafny run   %args %s --library %S/Inputs/seq.doo --library %S/Inputs/wrappers.doo >> %t
-// RUN: %diff "%s.expect" %t
 
 // Error cases: mismatched options
-// RUN: %baredafny build %args -t:lib --unicode-char:true %S/Inputs/wrappers.dfy > %t
-// RUN: %baredafny build %args -t:lib --unicode-char:false %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
+// RUN: %baredafny build %args -t:lib --unicode-char:true %S/Inputs/wrappers.dfy
+// RUN: ! %baredafny build %args -t:lib --unicode-char:false %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
+
+// Error cases: mismatched options
+// RUN: %baredafny build %args -t:lib --boogie /vcsLoad:2 %S/Inputs/wrappers.dfy
+// RUN: ! %baredafny build %args -t:lib %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
+
+// RUN: %diff "%s.expect" %t
 
 module App {
 

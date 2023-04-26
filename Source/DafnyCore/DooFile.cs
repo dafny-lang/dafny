@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Auditor;
 using Tomlyn;
+using Tomlyn.Model;
 
 namespace DafnyCore; 
 
@@ -49,6 +50,23 @@ public class DooFile {
         Options.Add(option.Name, optionValue);
       }
     }
+
+    // private static object ToTomlValue(object optionValue) {
+    //   switch (optionValue) {
+    //     case null or string or bool or uint:
+    //       return optionValue;
+    //     case IEnumerable<object> values: {
+    //       var tomlValue = new TomlArray();
+    //       foreach (var value in values) {
+    //         tomlValue.Add(ToTomlValue(value));
+    //       }
+    //
+    //       return tomlValue;
+    //     }
+    //     default:
+    //       throw new ArgumentException($"Unsupported option value type: {optionValue}");
+    //   }
+    // }
     
     public static ManifestData Read(TextReader reader) {
       return Toml.ToModel<ManifestData>(reader.ReadToEnd(), null, new TomlModelOptions());
@@ -110,8 +128,13 @@ public class DooFile {
     
     var success = true;
     foreach (var (option, check) in OptionChecks) {
-      var localValue = options.Get(option);
-      var libraryValue = Manifest.Options[option.Name];
+      if (!options.Options.OptionArguments.TryGetValue(option, out var localValue)) {
+        localValue = new List<string>();
+      }
+      if (!Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
+        // This can happen because Tomlyn will drop aggregate properties with no values.
+        libraryValue = new List<string>();
+      };
       success = success && check(options, option, localValue, filePath, libraryValue);
     }
     return success;
@@ -157,14 +180,35 @@ public class DooFile {
   private static readonly HashSet<Option> NoChecksNeeded = new();
   
   public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (localValue == libraryValue) {
+    if (OptionValuesEqual(option, localValue, libraryValue)) {
       return true;
     }
 
-    options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {libraryFile}: {option.Name} is set locally to {localValue}, but the library was built with {libraryValue}");
+    options.Printer.ErrorWriteLine(Console.Out, $"*** Error: Cannot load {libraryFile}: {option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
+  private static bool OptionValuesEqual(Option option, object first, object second) {
+    if (first.Equals(second)) {
+      return true;
+    }
+
+    if (option.ValueType == typeof(IEnumerable<string>)) {
+      return ((IEnumerable<string>)first).SequenceEqual((IEnumerable<string>)second);
+    }
+
+    return false;
+  }
+  
+  private static string OptionValueToString(Option option, object value) {
+    if (option.ValueType == typeof(IEnumerable<string>)) {
+      var values = (IEnumerable<string>)value;
+      return $"[{string.Join("", "", values)}]";
+    }
+
+    return value.ToString();
+  }
+  
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
       if (NoChecksNeeded.Contains(option)) {
