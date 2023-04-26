@@ -180,7 +180,8 @@ namespace Microsoft.Dafny {
       } else if (type is UserDefinedType { ResolvedClass: NewtypeDecl newtypeDecl }) {
         // Make sure the newtype declaration itself has been pre-type resolved
         ResolvePreTypeSignature(newtypeDecl);
-        Contract.Assert(newtypeDecl.Var.PreType != null);
+        Contract.Assert(newtypeDecl.Var == null || newtypeDecl.Var.PreType != null);
+        Contract.Assert(newtypeDecl.BaseType != null);
       }
 
       if (type is TypeProxy) {
@@ -1321,24 +1322,12 @@ namespace Microsoft.Dafny {
       }
 #endif
 
-#if SOON
-      if (receiverTypeBound != null) {
-        TopLevelDeclWithMembers cl;
-        var udt = receiverTypeBound?.AsNonNullRefType;
-        if (udt != null) {
-          cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
-        } else {
-          udt = receiverTypeBound.NormalizeExpand() as UserDefinedType;
-          cl = udt?.ResolvedClass as TopLevelDeclWithMembers;
-        }
-        if (cl != null) {
-          foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-            var v = entry.Value.Substitute(subst);
-            subst.Add(entry.Key, v);
-          }
+      if (receiverTypeBound?.Decl is TopLevelDeclWithMembers cl) {
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = Type2PreType(entry.Value).Substitute(subst);
+          subst.Add(entry.Key, v);
         }
       }
-#endif
 
       return subst;
     }
