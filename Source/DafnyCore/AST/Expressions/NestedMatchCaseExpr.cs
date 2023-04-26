@@ -27,13 +27,13 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
-    var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
-    if (boundVars.Any()) {
-      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
-      var rhss = boundVars.Select(b => b.usage).ToList();
-
-      Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
-    }
+    // var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
+    // if (boundVars.Any()) {
+    //   var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
+    //   var rhss = boundVars.Select(b => b.usage).ToList();
+    //
+    //   Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
+    // }
 
     Pat.Resolve(resolver, resolutionContext, sourceType, false, false, false, false);
 

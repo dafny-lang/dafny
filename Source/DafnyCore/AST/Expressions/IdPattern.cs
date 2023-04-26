@@ -79,13 +79,15 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Debug.Assert(Arguments != null || Type is InferredTypeProxy);
 
     if (Arguments == null) {
-      Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
       if (mutable) {
         var localVariable = new LocalVariable(RangeToken, Id, null, isGhost);
-        localVariable.type = sourceType;
+        var casePattern = new CasePattern<LocalVariable>(Tok, localVariable);
+        resolver.ResolveCasePattern(casePattern, sourceType, resolutionContext);
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, sourceType);
+        var boundVar = new BoundVar(Tok, Id, Type);
+        var casePattern = new CasePattern<BoundVar>(Tok, boundVar);
+        resolver.ResolveCasePattern(casePattern, sourceType, resolutionContext);
         boundVar.IsGhost = isGhost;
         BoundVar = boundVar;
       }
