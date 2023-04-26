@@ -123,11 +123,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
     ResolutionContext resolutionContext) {
     if (Arguments == null && Type is not InferredTypeProxy) {
-      var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
       var boundVar = new BoundVar(Tok, Id, Type);
       boundVar.IsGhost = IsGhost;
-      yield return (boundVar, new IdentifierExpr(Tok, freshName));
-      Id = freshName;
+      yield return (boundVar, new IdentifierExpr(Tok, Id));
       Type = new InferredTypeProxy();
     }
 
