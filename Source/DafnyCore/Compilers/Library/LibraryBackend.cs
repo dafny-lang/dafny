@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using DafnyCore;
 
 namespace Microsoft.Dafny.Compilers; 
@@ -33,7 +34,14 @@ public class LibraryBackend : ExecutableBackend {
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetFirstTopLevelToken(), Feature.LegacyCLI);
     }
-    
+
+    var disallowedAssumptions = dafnyProgram.Assumptions()
+      .Where(a => !a.desc.allowedInLibraries);
+    foreach (var assumption in disallowedAssumptions) {
+      var message = assumption.desc.issue.Replace("{", "{{").Replace("}", "}}");
+      compiler.Error(assumption.tok, message, output);
+    }
+
     var dooFile = new DooFile(dafnyProgram);
     dooFile.Write(output);
   }

@@ -66,8 +66,8 @@ public abstract class Node : INode {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
   }
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions() {
-    return Enumerable.Empty<AssumptionDescription>();
+  public virtual IEnumerable<Assumption> Assumptions() {
+    return Enumerable.Empty<Assumption>();
   }
 
   public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {

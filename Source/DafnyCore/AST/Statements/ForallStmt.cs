@@ -129,9 +129,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     }
   }
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
+  public override IEnumerable<Assumption> Assumptions() {
     if (Body is null) {
-      yield return AssumptionDescription.ForallWithoutBody;
+      yield return new Assumption(tok, AssumptionDescription.ForallWithoutBody);
     }
   }
 

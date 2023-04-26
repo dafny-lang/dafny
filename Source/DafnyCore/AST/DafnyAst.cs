@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -114,6 +115,10 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
     public override IEnumerable<Node> PreResolveChildren => Children;
+
+    public override IEnumerable<Assumption> Assumptions() {
+      return Modules().SelectMany(m => m.Assumptions());
+    }
   }
 
   public class Include : TokenNode, IComparable {
@@ -916,6 +921,13 @@ namespace Microsoft.Dafny {
       stmt.SubStatements.Iter(Visit);
       VisitOneStmt(stmt);
     }
+
+    // public void Visit(TopLevelDecl decl) {
+    //   
+    // }
+    // public void Visit(ModuleDefinition module) {
+    //   module.TopLevelDecls.Iter(Visit);
+    // }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
       // by default, do nothing
