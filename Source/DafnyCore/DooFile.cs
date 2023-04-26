@@ -26,6 +26,9 @@ public class DooFile {
   
     public string DafnyVersion { get; set; }
 
+    public string SolverIdentifier { get; set; }
+    public string SolverVersion { get; set; }
+    
     public Dictionary<string, object> Options { get; set; }
 
     public ManifestData() {
@@ -36,6 +39,9 @@ public class DooFile {
       DooFileVersion = CurrentDooFileVersion;
       DafnyVersion = options.VersionNumber;
 
+      SolverIdentifier = options.SolverIdentifier;
+      SolverVersion = options.SolverVersion.ToString();
+      
       Options = new Dictionary<string, object>();
       foreach (var (option, check) in OptionChecks) {
         if (check != NoOpOptionCheck) {

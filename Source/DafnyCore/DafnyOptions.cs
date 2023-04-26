@@ -240,7 +240,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public override string VersionSuffix {
       get { return " " + VersionNumber; }
     }
-
+    
     public bool RunLanguageServer { get; set; }
 
     public enum DiagnosticsFormats {
@@ -333,6 +333,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";
+    // Not directly user-configurable, only recorded once we discover it
+    public string SolverIdentifier { get; private set; }
+    public Version SolverVersion { get; private set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
@@ -1161,6 +1164,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private void SetZ3Options(Version z3Version) {
+      SolverIdentifier = "Z3";
+      SolverVersion = z3Version;
+      
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
