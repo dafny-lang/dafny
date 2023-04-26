@@ -83,10 +83,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ThisExpr) {
         if (!scope.AllowInstance) {
-          ReportError(expr, "'this' is not allowed in a 'static' resolutionContext");
+          ReportError(expr, "'this' is not allowed in a 'static' context");
         }
         if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
           // there's no type
+        } else if (currentClass == null) {
+          Contract.Assert(resolver.reporter.HasErrors);
         } else {
           var ty = Resolver.GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
           expr.PreType = Type2PreType(ty, "type of 'this'");
@@ -1539,7 +1541,7 @@ namespace Microsoft.Dafny {
           ReportError(tok, "a field ({0}) does not take any type arguments (got {1})", field.Name, optTypeArguments.Count);
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
-        rr.PreType = Type2PreType(field.Type).Substitute(subst);
+        rr.PreType = field.PreType.Substitute(subst);
 #if SOON
         resolver.AddCallGraphEdgeForField(resolutionContext, field, rr);
 #endif

@@ -675,6 +675,14 @@ namespace Microsoft.Dafny {
       } else if (declaration is DatatypeDecl dtd) {
         foreach (var ctor in dtd.Ctors) {
           ctor.Formals.ForEach(ComputePreType);
+          ComputePreTypeField(ctor.QueryField);
+          foreach (var dtor in ctor.Destructors) {
+            // The following "if" condition makes sure ComputePreTypeField is called just once (since a destructor
+            // can be shared among several constructors).
+            if (dtor.EnclosingCtors[0] == ctor) {
+              ComputePreTypeField(dtor);
+            }
+          }
         }
       } else if (declaration is TopLevelDeclWithMembers or ValuetypeDecl or TypeSynonymDecl or ModuleDecl) {
         // nothing to do
@@ -737,14 +745,12 @@ namespace Microsoft.Dafny {
         // The following method generates the iterator's members, which in turn are resolved below.
         ResolveIterator(iter);
       } else if (d is DatatypeDecl dt) {
-        foreach (var ctor in dt.Ctors) {
-          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
-        }
         // resolve any default parameters
         foreach (var ctor in dt.Ctors) {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => ScopePushAndReport(p, "destructor", false));
+          ResolveAttributes(ctor, new ResolutionContext(new NoContext(d.EnclosingModuleDefinition), false), true);
           ResolveParameterDefaultValues(ctor.Formals, dt);
           scope.PopMarker();
         }
