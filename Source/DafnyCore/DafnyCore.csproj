@@ -44,4 +44,9 @@
       <LogicalName>audit_template.html</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup>
+      <PackageReference Include="dafny.msbuild" Version="1.0.0" />
+  </ItemGroup>
+
 </Project>
