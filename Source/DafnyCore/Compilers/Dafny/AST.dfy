@@ -1,7 +1,7 @@
 
 module {:extern "DAST"} DAST {
 
-	datatype Program = Program(string)
+	datatype Program = Program(content: string)
 
   class ASTBuilder {
 		

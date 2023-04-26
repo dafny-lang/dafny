@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Dafny;
 using JetBrains.Annotations;
 using DAST;
 
 namespace Microsoft.Dafny.Compilers {
 
   class DafnyCompiler : SinglePassCompiler {
+
+    public ISequence<Rune> DafnyAST;
+
     public DafnyCompiler(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
@@ -66,6 +70,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("import opened i_module");
       var wrBody = wr.NewBlock("method Main()", "");
       wrBody.WriteLine("ii__default.iMain();");
+      DafnyAST = ASTBuilder.CreateProgram();
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {

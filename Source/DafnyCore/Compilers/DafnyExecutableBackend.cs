@@ -13,4 +13,20 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   {
   }
   
+  protected override SinglePassCompiler CreateCompiler() {
+    return new DafnyCompiler(Options, Reporter);
+  }
+  
+  //protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();
+  
+  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    compiler.Compile(dafnyProgram, output);
+    var dast = ((DafnyCompiler) compiler).DafnyAST;
+    
+  }
+
+  public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+    compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+  }
+  
 }
