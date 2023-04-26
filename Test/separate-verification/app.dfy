@@ -6,8 +6,9 @@
 // RUN: %baredafny run   %args %s --library %S/Inputs/seq.doo --library %S/Inputs/wrappers.doo >> %t
 // RUN: %diff "%s.expect" %t
 
-// include "wrappers.dfy"
-// include "seq.dfy"
+// Error cases: mismatched options
+// RUN: %baredafny build %args -t:lib --unicode-char:true %S/Inputs/wrappers.dfy > %t
+// RUN: %baredafny build %args -t:lib --unicode-char:false %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
 
 module App {
 

@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Auditor;
 using Tomlyn;
@@ -102,6 +103,21 @@ public class DooFile {
 
   private DooFile() {
   }
+  
+  public bool Validate(string filePath, DafnyOptions options) {
+    if (options.VersionNumber != Manifest.DafnyVersion) {
+      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+      return false;
+    }
+    
+    var success = true;
+    foreach (var (option, check) in OptionChecks) {
+      var localValue = options.Get(option);
+      var libraryValue = Manifest.Options[option.Name];
+      success = success && check(options, option, localValue, filePath, libraryValue);
+    }
+    return success;
+  }
 
   public void Write(ConcreteSyntaxTree wr) {
     var manifestWr = wr.NewFile(ManifestFileEntry);
@@ -117,7 +133,7 @@ public class DooFile {
     // Delete first, we don't want to merge with existing zips
     File.Delete(path);
     
-    using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Create);
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
 
     var manifest = archive.CreateEntry(ManifestFileEntry);
     using (var manifestStream = manifest.Open()) {
@@ -138,20 +154,19 @@ public class DooFile {
   // more difficult to completely categorize, which is the main reason the DooBackend
   // is restricted to only the new CLI.
 
-  private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
-
   public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
-
+  private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
+  
   public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (localValue != libraryValue) {
-      options.Printer.ErrorWriteLine(Console.Out, $"cannot use {libraryFile}: {option.Name} is set locally to {localValue}, but the library was build with {libraryValue}");
-      return false;
+    if (localValue == libraryValue) {
+      return true;
     }
 
-    return true;
+    options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {libraryFile}: {option.Name} is set locally to {localValue}, but the library was built with {libraryValue}");
+    return false;
   }
-  
-  public static bool NoOpOptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
+
+  private static bool NoOpOptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
     return true;
   }
   
@@ -162,10 +177,11 @@ public class DooFile {
       }
     }
 
-    if (noChecksNeeded != null) {
-      foreach (var option in noChecksNeeded) {
-        OptionChecks.Add(option, NoOpOptionCheck);
-      }
+    if (noChecksNeeded == null) {
+      return;
+    }
+    foreach (var option in noChecksNeeded) {
+      OptionChecks.Add(option, NoOpOptionCheck);
     }
   }
   
