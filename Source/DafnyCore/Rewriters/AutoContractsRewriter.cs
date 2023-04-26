@@ -461,7 +461,7 @@ public class AutoContractsRewriter : IRewriter {
     return new ExprDotName(tok, new ImplicitThisExpr(tok), "Repr", null);
   }
 
-  private Expression CreateUnresolvedValidCall(IToken tok) {
+  public static Expression CreateUnresolvedValidCall(IToken tok) {
     return new ApplySuffix(tok, null,
       new ExprDotName(tok, new ImplicitThisExpr(tok), "Valid", null),
       new List<ActualBinding>(), tok);
@@ -479,7 +479,7 @@ public class AutoContractsRewriter : IRewriter {
     Contract.Requires(receiver.Type.NormalizeExpand().TypeArgs.Count == Valid.EnclosingClass.TypeArgs.Count);
 
     callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
-    return Expression.CreateResolvedCall(tok, receiver, Valid, builtIns);
+    return Expression.CreateResolvedCall(tok, receiver, Valid, new List<Expression>(), new List<Type>(), builtIns);
   }
 
   public static Expression CreateResolvedFieldSelect(IToken tok, Expression receiver, Field field) {

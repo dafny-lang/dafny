@@ -138,13 +138,9 @@ partial class Resolver {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          if (stexpr.ObjectToDiscard != null) {
-            VisitExpression(stexpr.ObjectToDiscard, context);
-          } else {
-            foreach (Type t in stexpr.Type.TypeArgs) {
-              if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
-                resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
-              }
+          foreach (Type t in stexpr.Type.TypeArgs) {
+            if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
+              resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
             }
           }
         }

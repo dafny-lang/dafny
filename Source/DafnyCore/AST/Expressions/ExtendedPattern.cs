@@ -23,8 +23,14 @@ public abstract class ExtendedPattern : TokenNode {
   public IEnumerable<Node> DescendantsAndSelf =>
     new[] { this }.Concat(Children.OfType<ExtendedPattern>().SelectMany(c => c.DescendantsAndSelf));
 
+  public virtual IEnumerable<Expression> SubExpressions {
+    get {
+      yield break;
+    }
+  }
+
   public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern);
 
   public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,

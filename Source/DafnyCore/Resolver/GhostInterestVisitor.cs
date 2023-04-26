@@ -10,13 +10,15 @@ class GhostInterestVisitor {
   readonly Resolver resolver;
   private readonly ErrorReporter reporter;
   private readonly bool inConstructorInitializationPhase;
-  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, ErrorReporter reporter, bool inConstructorInitializationPhase) {
+  private readonly bool allowAssumptionVariables;
+  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, ErrorReporter reporter, bool inConstructorInitializationPhase, bool allowAssumptionVariables) {
     Contract.Requires(codeContext != null);
     Contract.Requires(resolver != null);
     this.codeContext = codeContext;
     this.resolver = resolver;
     this.reporter = reporter;
     this.inConstructorInitializationPhase = inConstructorInitializationPhase;
+    this.allowAssumptionVariables = allowAssumptionVariables;
   }
   protected void Error(Statement stmt, string msg, params object[] msgArgs) {
     Contract.Requires(stmt != null);
@@ -164,6 +166,22 @@ class GhostInterestVisitor {
       }
       s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
+      // Check on "assumption" variables
+      foreach (var local in s.Locals) {
+        if (Attributes.Contains(local.Attributes, "assumption")) {
+          if (allowAssumptionVariables) {
+            if (!local.Type.IsBoolType) {
+              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be of type 'bool'");
+            }
+            if (!local.IsGhost) {
+              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
+            }
+          } else {
+            reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
+          }
+        }
+      }
+
     } else if (stmt is VarDeclPattern) {
       var s = (VarDeclPattern)stmt;
 
@@ -248,7 +266,7 @@ class GhostInterestVisitor {
       var s = (BlockStmt)stmt;
       s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       if (s is DividedBlockStmt ds) {
-        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true);
+        var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true, allowAssumptionVariables);
         ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
         ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
       } else {

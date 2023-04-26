@@ -2799,7 +2799,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         int i = 0;
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
-          wr.Write(" case {0}", mc.Pat.ToString());
+          wr.Write(" case");
+          PrintAttributes(mc.Attributes);
+          wr.Write(" ");
+          PrintExtendedPattern(mc.Pat);
           wr.Write(" => ");
           PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
           i++;
@@ -2899,7 +2902,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       switch (pat) {
         case IdPattern idPat:
           if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-          } else if (idPat.Id.StartsWith("_")) {
+          } else if (idPat.IsWildcardPattern) {
             // In case of the universal match pattern, print '_' instead of
             // its node identifier, otherwise the printed program becomes
             // syntactically incorrect.
@@ -2916,6 +2919,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
               sep = ", ";
             }
             wr.Write(")");
+          } else if (options.DafnyPrintResolvedFile != null && idPat.ResolvedLit != null) {
+            Contract.Assert(idPat.BoundVar == null && idPat.Ctor == null);
+            wr.Write(" /*== ");
+            PrintExpression(idPat.ResolvedLit, false);
+            wr.Write("*/");
+          } else if (ShowType(idPat.Type)) {
+            wr.Write(": ");
+            PrintType(idPat.Type);
           }
           break;
         case DisjunctivePattern dPat:
