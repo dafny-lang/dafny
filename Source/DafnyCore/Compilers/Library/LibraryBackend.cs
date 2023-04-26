@@ -42,7 +42,7 @@ public class LibraryBackend : ExecutableBackend {
       compiler.Error(assumption.tok, message, output);
     }
 
-    var dooFile = DooFile.Package(dafnyProgram);
+    var dooFile = new DooFile(dafnyProgram);
     dooFile.Write(output);
   }
 

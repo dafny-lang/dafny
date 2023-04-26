@@ -8,11 +8,11 @@ public class DooFileTest {
     var options = DafnyOptions.Default;
     options.ApplyDefaultOptionsWithoutSettingsDefault();
     var program = ParseProgram("module MyModule { function TheAnswer(): int { 42 } }", options);
-    var dooFile = DooFile.Package(program);
+    var dooFile = new DooFile(program);
 
     var path = Path.GetTempFileName();
     dooFile.Write(path);
-    var loadedDooFile = DooFile.Load(path, options);
+    var loadedDooFile = DooFile.Read(path);
     
     Assert.Equal(loadedDooFile.Manifest.DooFileVersion, DooFile.ManifestData.CurrentDooFileVersion);
     Assert.Equal(loadedDooFile.Manifest.DafnyVersion, options.VersionNumber);

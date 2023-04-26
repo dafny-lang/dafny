@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Configuration;
 using System.IO;
 using System.IO.Compression;
@@ -15,8 +14,7 @@ namespace DafnyCore;
 
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
-// See also the LibraryBackend that builds these.
-public class DooFile : DafnyFile {
+public class DooFile {
 
   private const string ProgramFileEntry = "program.dfy";
   
@@ -66,13 +64,8 @@ public class DooFile : DafnyFile {
   
   public string ProgramText { get; set; }
   
-  private DooFile(string path) : base(path, false) {
-    IsPreverified = true;
-    IsPrecompiled = false;
-  }
-  
-  public static DooFile Load(string path, DafnyOptions options) {
-    var result = new DooFile(path);
+  public static DooFile Read(string path) {
+    var result = new DooFile();
 
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
@@ -91,13 +84,11 @@ public class DooFile : DafnyFile {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
       result.ProgramText = reader.ReadToEnd();
     }
-    
-    result.Validate(path, options);
 
     return result;
   }
 
-  public static DooFile Package(Program dafnyProgram) {
+  public DooFile(Program dafnyProgram) {
     var tw = new StringWriter();
     var pr = new Printer(tw, dafnyProgram.Options, PrintModes.DllEmbed);
     // afterResolver is false because we don't yet have a way to safely skip resolution
@@ -105,21 +96,11 @@ public class DooFile : DafnyFile {
     // It's probably worth serializing a program in a more efficient way first
     // before adding that feature.
     pr.PrintProgram(dafnyProgram, false);
-
-    // TODO: don't have a path yet
-    var result = new DooFile("<stdin>");
-    result.ProgramText = tw.ToString();
-    result.Manifest = new ManifestData(dafnyProgram.Options);
-    return result;
+    ProgramText = tw.ToString();
+    Manifest = new ManifestData(dafnyProgram.Options);
   }
-  
 
-  public void Validate(string filePath, DafnyOptions localOptions) {
-    foreach (var (option, check) in OptionChecks) {
-      var localValue = localOptions.Get(option);
-      var libraryValue = Manifest.Options[option.Name];
-      check(localOptions, option, localValue, filePath, libraryValue);
-    }
+  private DooFile() {
   }
 
   public void Write(ConcreteSyntaxTree wr) {

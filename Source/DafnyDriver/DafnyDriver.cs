@@ -262,8 +262,6 @@ namespace Microsoft.Dafny {
         try {
           var df = new DafnyFile(file);
           if (options.LibraryFiles.Contains(file)) {
-            // TODO: Deprecate this now that we have .doo files
-            df.IsPreverified = true;
             df.IsPrecompiled = true;
           }
           if (!filesSeen.Add(df.CanonicalPath)) {
