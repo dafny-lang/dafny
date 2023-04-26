@@ -101,7 +101,7 @@ path - Prints path-coverage tests for the given program.");
       options.TestGenOptions.DisablePrune = value;
     });
     
-    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+    DooFile.RegisterNoChecksNeeded(
       LoopUnroll,
       SequenceLengthLimit,
       Target,
@@ -109,6 +109,6 @@ path - Prints path-coverage tests for the given program.");
       Verbose,
       PrintBpl,
       DisablePrune
-    });
+    );
   }
 }

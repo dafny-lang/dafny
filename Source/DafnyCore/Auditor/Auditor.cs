@@ -66,13 +66,11 @@ public class Auditor : IRewriter {
                                  "md-ietf", "markdown-ietf",
                                  "txt");
     
-    DooFile.RegisterLibraryChecks(
-      noChecksNeeded: new Option[] {
-        ReportFileOption,
-        ReportFormatOption,
-        CompareReportOption
-      }
-      );
+    DooFile.RegisterNoChecksNeeded(
+      ReportFileOption,
+      ReportFormatOption,
+      CompareReportOption
+    );
   }
 
   /// <summary>

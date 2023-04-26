@@ -17,14 +17,12 @@ public class ServerCommand : ICommandSpec {
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
     
-    DooFile.RegisterLibraryChecks(
-      noChecksNeeded: new Option[] {
-        Verification,
-        GhostIndicators,
-        LineVerificationStatus,
-        VerifySnapshots,
-      }
-      );
+    DooFile.RegisterNoChecksNeeded(
+      Verification,
+      GhostIndicators,
+      LineVerificationStatus,
+      VerifySnapshots
+    );
   }
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",

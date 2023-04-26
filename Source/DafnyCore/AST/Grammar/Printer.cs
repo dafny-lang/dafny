@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
         options.PrintMode = value;
       });
       
-      DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+      DooFile.RegisterNoChecksNeeded(new Option[] {
         PrintMode
       });
     }

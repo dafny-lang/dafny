@@ -45,10 +45,8 @@ public class DooFile {
       
       Options = new Dictionary<string, object>();
       foreach (var (option, check) in OptionChecks) {
-        if (check != NoOpOptionCheck) {
-          options.Options.OptionArguments.TryGetValue(option, out var optionValue);
-          Options.Add(option.Name, optionValue);
-        }
+        options.Options.OptionArguments.TryGetValue(option, out var optionValue);
+        Options.Add(option.Name, optionValue);
       }
     }
     
@@ -156,6 +154,7 @@ public class DooFile {
 
   public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
   private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
+  private static readonly HashSet<Option> NoChecksNeeded = new();
   
   public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
     if (localValue == libraryValue) {
@@ -166,27 +165,29 @@ public class DooFile {
     return false;
   }
 
-  private static bool NoOpOptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
-    return true;
-  }
-  
-  public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks = null, IEnumerable<Option> noChecksNeeded = null) {
-    if (checks != null) {
-      foreach (var (option, check) in checks) {
-        OptionChecks.Add(option, check);
+  public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
+    foreach (var (option, check) in checks) {
+      if (NoChecksNeeded.Contains(option)) {
+        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
       }
-    }
-
-    if (noChecksNeeded == null) {
-      return;
-    }
-    foreach (var option in noChecksNeeded) {
-      OptionChecks.Add(option, NoOpOptionCheck);
+      OptionChecks.Add(option, check);
     }
   }
-  
+
+  public static void RegisterNoChecksNeeded(params Option[] options) {
+    foreach (var option in options) {
+      if (OptionChecks.ContainsKey(option)) {
+        throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
+      }
+      NoChecksNeeded.Add(option);
+    }
+  }
+
   public static void CheckOptions(IEnumerable<Option> allOptions) {
-    var unsupportedOptions = allOptions.ToHashSet().Where(o => !OptionChecks.ContainsKey(o)).ToList();
+    var unsupportedOptions = allOptions.ToHashSet()
+      .Where(o =>
+        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.Contains(o))
+      .ToList();
     if (unsupportedOptions.Any()) {
       throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
     }

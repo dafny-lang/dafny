@@ -55,11 +55,11 @@ enabling necessary special handling.".TrimStart()) {
         options.FileTimestamp);
     });
     
-    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+    DooFile.RegisterNoChecksNeeded(
       BoogiePrint,
       Print,
       ResolvedPrint,
       Bootstrapping
-    });
+    );
   }
 }

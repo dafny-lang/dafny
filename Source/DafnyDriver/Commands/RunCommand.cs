@@ -20,9 +20,9 @@ class RunCommand : ICommandSpec {
       }
     });
     
-    DooFile.RegisterLibraryChecks(noChecksNeeded: new Option[] {
+    DooFile.RegisterNoChecksNeeded(
       Inputs
-    });
+    );
   }
 
   public IEnumerable<Option> Options =>

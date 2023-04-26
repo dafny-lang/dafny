@@ -300,7 +300,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       });
 
     DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, DooFile.OptionCheck>() {
+      new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionMatches },
         // Ideally this feature shouldn't affect separate compilation,
@@ -309,42 +309,42 @@ Functionality is still being expanded. Currently only checks contracts on every 
         // target language code from referencing compiled internal code,
         // so to be conservative we flag this as not compatible in general.
         { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
-      },
-      noChecksNeeded: new Option[] {
-        Check,
-        Libraries,
-        Output,
-        Plugin,
-        Prelude,
-        Target,
-        Verbose,
-        ErrorLimit,
-        FormatPrint,
-        IsolateAssertions,
-        JsonDiagnostics,
-        QuantifierSyntax,
-        SolverLog,
-        SolverPath,
-        SolverPlugin,
-        SpillTranslation,
-        StdIn,
-        TestAssumptions,
-        WarnShadowing,
-        ManualLemmaInduction,
-        RelaxDefiniteAssignment,
-        SolverResourceLimit,
-        TypeInferenceDebug,
-        TypeSystemRefresh,
-        VerificationLogFormat,
-        VerifyIncludedFiles,
-        WarningAsErrors,
-        DisableNonLinearArithmetic,
-        NewTypeInferenceDebug,
-        UseBaseFileName,
-        WarnMissingConstructorParenthesis,
-        UseJavadocLikeDocstringRewriterOption,
-        IncludeRuntimeOption
       }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Check,
+      Libraries,
+      Output,
+      Plugin,
+      Prelude,
+      Target,
+      Verbose,
+      ErrorLimit,
+      FormatPrint,
+      IsolateAssertions,
+      JsonDiagnostics,
+      QuantifierSyntax,
+      SolverLog,
+      SolverPath,
+      SolverPlugin,
+      SpillTranslation,
+      StdIn,
+      TestAssumptions,
+      WarnShadowing,
+      ManualLemmaInduction,
+      RelaxDefiniteAssignment,
+      SolverResourceLimit,
+      TypeInferenceDebug,
+      TypeSystemRefresh,
+      VerificationLogFormat,
+      VerifyIncludedFiles,
+      WarningAsErrors,
+      DisableNonLinearArithmetic,
+      NewTypeInferenceDebug,
+      UseBaseFileName,
+      WarnMissingConstructorParenthesis,
+      UseJavadocLikeDocstringRewriterOption,
+      IncludeRuntimeOption
     );
   }
 

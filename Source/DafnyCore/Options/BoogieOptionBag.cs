@@ -72,18 +72,18 @@ public static class BoogieOptionBag {
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
-    
+
     DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, DooFile.OptionCheck> {
+      new Dictionary<Option, DooFile.OptionCheck> {
         { BoogieArguments, DooFile.CheckOptionMatches },
         { BoogieFilter, DooFile.CheckOptionMatches },
         { NoVerify, DooFile.CheckOptionMatches },
-      },
-      noChecksNeeded: new Option[] {
-        Cores,
-        VerificationTimeLimit,
       }
-      );
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Cores,
+      VerificationTimeLimit
+    );
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {
