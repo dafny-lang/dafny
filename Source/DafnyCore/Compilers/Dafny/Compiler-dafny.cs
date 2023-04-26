@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
+using DAST;
 
 namespace Microsoft.Dafny.Compilers {
 
@@ -115,7 +117,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
+      // Currently ignores subset types because they appear in the prelude
+      // throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {

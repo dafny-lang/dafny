@@ -1,12 +1,12 @@
 
-module {:extern "DafnyToDafny.AST"} AST {
+module {:extern "DAST"} DAST {
 
 	datatype Program = Program(string)
 
   class ASTBuilder {
 		
-	  static method CreateProgram(msg: string) returns (o: Program) {
-			o := Program(msg);
+	  static method CreateProgram() returns (o: Program) {
+			o := Program("Hi\n");
 		}
 
   }
