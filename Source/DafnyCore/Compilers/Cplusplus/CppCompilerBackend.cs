@@ -14,7 +14,8 @@ public class CppCompilerBackend : ExecutableBackend {
     return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
+    string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Contract.Assert(assemblyLocation != null);

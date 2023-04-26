@@ -68,7 +68,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     realigned_tok.pos = tok.pos;
     realigned_tok.val = tok.val;
     realigned_tok.filename = tok.filename;
-    
+
     if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
       return;
     }

@@ -196,7 +196,11 @@ public static class TokenExtensions {
 
 
   public static string TokenToString(this IToken tok, DafnyOptions options) {
-    var filename = options.UseBaseNameForFileName ? Path.GetFileName(tok.Filepath) : tok.Filepath;
+    var filename = tok.Uri.Scheme == "stdin"
+      ? "<stdin>"
+      : (options.UseBaseNameForFileName
+        ? Path.GetFileName(tok.Filepath)
+        : Path.GetRelativePath(Directory.GetCurrentDirectory(), tok.Filepath));
     return $"{filename}({tok.line},{tok.col - 1})";
   }
 

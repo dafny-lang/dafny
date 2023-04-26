@@ -259,7 +259,7 @@ namespace Microsoft.Dafny {
 
         bool isDafnyFile = false;
         try {
-          var df = new DafnyFile(file);
+          var df = new DafnyFile(Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
             df.IsPrecompiled = true;
           }
@@ -274,11 +274,14 @@ namespace Microsoft.Dafny {
 
         var relative = System.IO.Path.GetFileName(file);
         bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
-        var nameToShow = useRelative ? relative : file;
+        var nameToShow = useRelative ? relative
+          : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes
-          if (File.Exists(file) || extension == ".h") {
+          if (File.Exists(file)) {
+            otherFiles.Add(file);
+          } else if (extension == ".h") {
             otherFiles.Add(file);
           } else {
             options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {nameToShow} not found");
