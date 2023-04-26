@@ -37,6 +37,7 @@ jobs:
       run: dotnet tool restore
     - name: Get Boogie Version
       run: |
+        sudo apt-get update
         sudo apt-get install -qq libxml2-utils
         echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
     - name: Attempt custom Boogie patch
