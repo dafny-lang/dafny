@@ -25,9 +25,22 @@ namespace Microsoft.Dafny {
     public string FilePath { get; private set; }
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
+    public bool IsPreverified { get; set; }
     public bool IsPrecompiled { get; set; }
     public string SourceFileName { get; private set; }
 
+    protected DafnyFile(string filePath, bool useStdin = false) {
+      UseStdin = useStdin;
+      FilePath = filePath;
+      BaseName = Path.GetFileName(filePath);
+
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = !useStdin ? Canonicalize(filePath).LocalPath : "<stdin>";
+    }
+    
     // Returns a canonical string for the given file path, namely one which is the same
     // for all paths to a given file and different otherwise. The best we can do is to
     // make the path absolute -- detecting case and canonicalizing symbolic and hard
@@ -63,51 +76,39 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-    public DafnyFile(string filePath, bool useStdin = false) {
-      UseStdin = useStdin;
-      FilePath = filePath;
-      BaseName = Path.GetFileName(filePath);
-
+    public static DafnyFile Load(string filePath, DafnyOptions options, bool useStdin = false) {
       var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
-      if (extension != null) { extension = extension.ToLower(); }
+      extension = extension?.ToLower();
 
-      // Normalizing symbolic links appears to be not
-      // supported in .Net APIs, because it is very difficult in general
-      // So we will just use the absolute path, lowercased for all file systems.
-      // cf. IncludeComparer.CompareTo
-      CanonicalPath = !useStdin ? Canonicalize(filePath).LocalPath : "<stdin>";
-      filePath = CanonicalPath;
-
-      if (extension == ".dfy" || extension == ".dfyi") {
-        IsPrecompiled = false;
-        SourceFileName = filePath;
-      } else if (extension == ".doo") {
-        IsPrecompiled = true;
-
-        var dooFile = DooFile.Read(filePath);
-        
-        // TODO: Compatibility checks
-        
-        // For now it's simpler to let the rest of the pipeline parse the
-        // program text back into the AST representation.
-        // At some point we'll likely want to serialize a program
-        // more efficiently inside a .doo file, at which point
-        // the DooFile class should encapsulate the serialization logic better
-        // and expose a Program instead of the program text.
-        SourceFileName = Path.GetTempFileName();
-        File.WriteAllText(SourceFileName, dooFile.ProgramText);
-        
-      } else if (extension == ".dll") {
-        IsPrecompiled = true;
-
-        var sourceText = GetDafnySourceAttributeText(filePath);
-        if (sourceText == null) { throw new IllegalDafnyFile(); }
-        SourceFileName = Path.GetTempFileName();
-        File.WriteAllText(SourceFileName, sourceText);
-
-      } else {
-        throw new IllegalDafnyFile();
+      if (extension is ".dfy" or ".dfyi") {
+        var result = new DafnyFile(filePath, useStdin) {
+          IsPreverified = false,
+          IsPrecompiled = false,
+        };
+        result.SourceFileName = result.CanonicalPath;
+        return result;
       }
+
+      if (extension == ".dll") {
+        var result = new DafnyFile(filePath, useStdin) {
+          IsPreverified = true,
+          IsPrecompiled = true
+        };
+
+        var sourceText = GetDafnySourceAttributeText(result.CanonicalPath);
+        if (sourceText == null) { throw new IllegalDafnyFile(); }
+        result.SourceFileName = Path.GetTempFileName();
+        File.WriteAllText(result.SourceFileName, sourceText);
+        
+        return result;
+
+      }
+
+      if (extension == ".doo") {
+        return DooFile.Load(filePath, options);
+      }
+
+      throw new IllegalDafnyFile();
     }
 
     private static string GetDafnySourceAttributeText(string dllPath) {
@@ -218,8 +219,8 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
-        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
+        var include = dafnyFile.IsPreverified ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
+        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -317,7 +318,7 @@ namespace Microsoft.Dafny {
 
           DafnyFile file;
           try {
-            file = new DafnyFile(include.IncludedFilename);
+            file = DafnyFile.Load(include.IncludedFilename);
           } catch (IllegalDafnyFile) {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }
