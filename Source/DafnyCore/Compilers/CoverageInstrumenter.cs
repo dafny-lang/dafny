@@ -76,7 +76,7 @@ public class CoverageInstrumenter {
       {
         for (var i = 0; i < legend.Count; i++) {
           var e = legend[i];
-          wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.Filepath, e.Item1.line, e.Item1.col, e.Item2);
+          wr.WriteLine($"{i}: {e.Item1.TokenToString(compiler.Options)}: {e.Item2}");
         }
       }
       legend = null;
