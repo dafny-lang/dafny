@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -885,11 +886,11 @@ namespace Microsoft.Dafny {
       } else {
 
         Uri uri = null;
-        try {
-          uri = new Uri(exprTok.filename);
-        } catch (UriFormatException) {
-
-        }
+        // try {
+        //   uri = new Uri(exprTok.filename);
+        // } catch (UriFormatException) {
+        //
+        // }
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {

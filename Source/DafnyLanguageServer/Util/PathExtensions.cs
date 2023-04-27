@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
         token = refinementToken.WrappedToken;
       }
 
-      return DocumentUri.Parse(token.filename);
+      return DocumentUri.Parse(((IToken)token).Filepath);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
         return null;
       }
 
-      return Path.GetFileName(new Uri(token.filename).LocalPath);
+      return Path.GetFileName(((IToken)token).Filepath);
     }
   }
 }

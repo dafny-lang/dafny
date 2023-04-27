@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
 
       foreach (var (implementation, result) in verificationResults) {
         var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        var currentFile = new Uri(implementation.tok.filename);
+        var currentFile = ((IToken)implementation.tok).Uri;
         foreach (var vcResult in vcResults) {
           var verbName = implementation.VerboseName;
           var name = vcResults.Count() > 1

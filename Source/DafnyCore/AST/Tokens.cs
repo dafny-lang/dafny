@@ -18,7 +18,7 @@ public interface IToken : Microsoft.Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
   string Boogie.IToken.filename {
-    get => Uri?.AbsoluteUri;
+    get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
     set => throw new NotSupportedException();
   }
   // string Boogie.IToken.filename {

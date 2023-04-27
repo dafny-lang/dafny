@@ -176,7 +176,9 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
         var position = implementation.tok.GetLspPosition();
         var availableMethodNodes = string.Join(",", document.VerificationTree.Children.Select(vt =>
           $"{vt.Kind} {vt.DisplayName} at {vt.Filename}:{vt.Position.Line}"));
-        logger.LogError($"In document {document.Uri} and filename {document.VerificationTree.Filename}, no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\nAvailable:" + availableMethodNodes);
+        logger.LogError($"In document {document.Uri} and filename {document.VerificationTree.Filename}, " +
+                        $"no method node at {implementation.tok.filename}:{position.Line}:{position.Character}.\n" +
+                        $"Available:" + availableMethodNodes);
         continue;
       }
       var newDisplayName = targetMethodNode.DisplayName + " #" + (targetMethodNode.Children.Count + 1) + ":" +
@@ -397,7 +399,8 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <returns>The top-level verification tree</returns>
   private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
     var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
-      node => node?.Position == implementation.tok.GetLspPosition() && node?.Uri.AbsoluteUri == implementation.tok.filename
+      node => node?.Position == implementation.tok.GetLspPosition() && 
+              node?.Uri == ((IToken)implementation.tok).Uri
       , null);
     if (nameBased) {
       implementationTree = targetMethodNode?.Children.OfType<ImplementationVerificationTree>().FirstOrDefault(
