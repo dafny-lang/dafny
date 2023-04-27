@@ -18,4 +18,4 @@ TestAuditor.dfy(75,7): Error: Method may not terminate (uses [decreases *]).
 TestAuditor.dfy(94,4): Error: Definition contains loop with no body.
 TestAuditor.dfy(110,21): Error: Declaration has [{:concurrent}] attribute.
 TestAuditor.dfy(81,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
-Wrote textual form of partial target program to assumptions-lib/assumptions.lib
+Wrote textual form of partial target program to assumptions-lib/assumptions.doo

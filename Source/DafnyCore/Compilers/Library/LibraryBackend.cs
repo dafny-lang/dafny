@@ -21,7 +21,7 @@ public class LibraryBackend : ExecutableBackend {
   public override string TargetId => "lib";
 
   public override string TargetBaseDir(string dafnyProgramName) =>
-    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-doo";
+    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-lib";
 
   public override bool TextualTargetIsExecutable => false;
 
@@ -52,7 +52,7 @@ public class LibraryBackend : ExecutableBackend {
       .Where(a => !a.desc.allowedInLibraries);
     foreach (var assumption in disallowedAssumptions) {
       var message = assumption.desc.issue.Replace("{", "{{").Replace("}", "}}");
-      compiler.Error(assumption.tok, message, output);
+      Reporter.Error(MessageSource.Compiler, assumption.tok, message, message);
     }
 
     var dooFile = new DooFile(dafnyProgram);
