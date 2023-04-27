@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
 using System.Diagnostics;
+using System.Reflection.Emit;
 using System.Security.AccessControl;
 using Microsoft.Boogie;
 
@@ -2258,7 +2259,10 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
           formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
         } else {
           var startToken = this.StartToken;
-          var newIndent = formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentInlineOrAbove(startToken));
+          var newIndent =
+            ownedTokens[0].val == "," ?
+              formatter.GetIndentInlineOrAbove(startToken)
+              : formatter.GetNewTokenVisualIndent(startToken, formatter.GetIndentInlineOrAbove(startToken));
           formatter.SetIndentations(ownedTokens[0], newIndent, newIndent, newIndent);
         }
       }
@@ -2322,6 +2326,33 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
       formatter.Visit(E0, itemIndent);
       formatter.Visit(E1, item2Indent);
       formatter.SetIndentations(EndToken, below: indent);
+      return false;
+    } else if (Op is Opcode.In or Opcode.NotIn) {
+      var itemIndent = formatter.GetNewTokenVisualIndent(
+        E0.StartToken, indent);
+      var item2Indent = itemIndent + formatter.SpaceTab;
+      formatter.Visit(E0, itemIndent);
+      foreach (var token in this.OwnedTokens) {
+        switch (token.val) {
+          case "<": {
+              if (token.Prev.line != token.line) {
+                itemIndent = formatter.GetNewTokenVisualIndent(token, indent);
+              }
+
+              break;
+            }
+          case "in":
+          case "-": {
+              if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+                formatter.SetOpeningIndentedRegion(token, itemIndent);
+              } else {
+                formatter.SetAlign(itemIndent, token, out item2Indent, out _);
+              }
+              break;
+            }
+        }
+      }
+      formatter.Visit(E1, item2Indent);
       return false;
     } else {
       foreach (var token in OwnedTokens) {
