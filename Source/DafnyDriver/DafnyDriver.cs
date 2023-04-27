@@ -763,7 +763,9 @@ namespace Microsoft.Dafny {
 
     static void WriteDafnyProgramToFiles(DafnyOptions options, TargetPaths paths, bool targetProgramHasErrors, string targetProgramText,
       string/*?*/ callToMain, Dictionary<string, string> otherFiles, TextWriter outputWriter) {
-      WriteFile(paths.Filename, targetProgramText, callToMain);
+      if (targetProgramText.Length != 0) {
+        WriteFile(paths.Filename, targetProgramText, callToMain);
+      }
 
       string NormalizeRelativeFilename(string fileName) {
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
