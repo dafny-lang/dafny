@@ -1574,10 +1574,13 @@ namespace Microsoft.Dafny.Compilers {
     protected override void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
-      if (stmts.All(s => s.IsGhost)) {
+      var listWriter = new ConcreteSyntaxTree();
+      base.TrStmtList(stmts, listWriter);
+      if (listWriter.Descendants.OfType<LineSegment>().Any()) {
+        writer.Append(listWriter);
+      } else {
         writer.WriteLine("pass");
       }
-      base.TrStmtList(stmts, writer);
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
