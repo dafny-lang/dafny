@@ -51,23 +51,6 @@ public class DooFile {
       }
     }
 
-    // private static object ToTomlValue(object optionValue) {
-    //   switch (optionValue) {
-    //     case null or string or bool or uint:
-    //       return optionValue;
-    //     case IEnumerable<object> values: {
-    //       var tomlValue = new TomlArray();
-    //       foreach (var value in values) {
-    //         tomlValue.Add(ToTomlValue(value));
-    //       }
-    //
-    //       return tomlValue;
-    //     }
-    //     default:
-    //       throw new ArgumentException($"Unsupported option value type: {optionValue}");
-    //   }
-    // }
-    
     public static ManifestData Read(TextReader reader) {
       return Toml.ToModel<ManifestData>(reader.ReadToEnd(), null, new TomlModelOptions());
     }
@@ -80,6 +63,11 @@ public class DooFile {
   public ManifestData Manifest { get; set; }
   
   public string ProgramText { get; set; }
+  
+  // This must be independent from any user-provided options,
+  // and remain fixed over the lifetime of a single .doo file format version.
+  // We don't want to attempt to read the program text using --function-syntax:3 for example.
+  private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
   
   public static DooFile Read(string path) {
     var result = new DooFile();
@@ -107,7 +95,7 @@ public class DooFile {
 
   public DooFile(Program dafnyProgram) {
     var tw = new StringWriter();
-    var pr = new Printer(tw, dafnyProgram.Options, PrintModes.DllEmbed);
+    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.DllEmbed);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
     // It's probably worth serializing a program in a more efficient way first
@@ -133,11 +121,20 @@ public class DooFile {
       }
       if (!Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = new List<string>();
+        libraryValue = new TomlArray();
       };
+      libraryValue = FromTomlValue(option, libraryValue);
       success = success && check(options, option, localValue, filePath, libraryValue);
     }
     return success;
+  }
+
+  private static object FromTomlValue(Option option, object tomlValue) {
+    if (option.ValueType == typeof(IEnumerable<string>)) {
+      return ((TomlArray)tomlValue).Select(o => (string)o).ToList();
+    }
+
+    return tomlValue;
   }
 
   public void Write(ConcreteSyntaxTree wr) {
@@ -172,7 +169,7 @@ public class DooFile {
   // Partitioning of all options into subsets that must be recorded in a .doo file
   // to guard against unsafe usage.
   // Note that legacy CLI options are not as cleanly enumerated and therefore
-  // more difficult to completely categorize, which is the main reason the DooBackend
+  // more difficult to completely categorize, which is the main reason the LibraryBackend
   // is restricted to only the new CLI.
 
   public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
@@ -184,7 +181,7 @@ public class DooFile {
       return true;
     }
 
-    options.Printer.ErrorWriteLine(Console.Out, $"*** Error: Cannot load {libraryFile}: {option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    options.Printer.ErrorWriteLine(Console.Out, $"*** Error: Cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -203,7 +200,7 @@ public class DooFile {
   private static string OptionValueToString(Option option, object value) {
     if (option.ValueType == typeof(IEnumerable<string>)) {
       var values = (IEnumerable<string>)value;
-      return $"[{string.Join("", "", values)}]";
+      return $"[{string.Join(',', values)}]";
     }
 
     return value.ToString();

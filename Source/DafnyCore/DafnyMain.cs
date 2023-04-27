@@ -95,7 +95,8 @@ namespace Microsoft.Dafny {
 
         var dooFile = DooFile.Read(filePath);
 
-        if (!dooFile.Validate(filePath, options)) {
+        var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+        if (!dooFile.Validate(filePathForErrors, options)) {
           throw new IllegalDafnyFile(true);
         }
         
