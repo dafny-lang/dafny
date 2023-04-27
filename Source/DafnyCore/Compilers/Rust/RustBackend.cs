@@ -19,8 +19,8 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
-  protected override SinglePassCompiler CreateCompiler() {
-    return new DafnyCompiler(Options, Reporter);
+  protected override DafnyWrittenCompiler CreateDafnyWrittenCompiler() {
+    return new RustCompiler();
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,

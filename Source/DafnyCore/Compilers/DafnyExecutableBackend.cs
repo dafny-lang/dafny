@@ -17,7 +17,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
     return new DafnyCompiler(Options, Reporter);
   }
   
-  //protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();
+  protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();
   
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
