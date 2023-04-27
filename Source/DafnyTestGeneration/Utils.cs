@@ -24,8 +24,8 @@ namespace DafnyTestGeneration {
       var thread = new System.Threading.Thread(
         () => {
           ret = Translator
-    .Translate(program, program.Reporter)
-    .ToList().ConvertAll(tuple => tuple.Item2);
+            .Translate(program, program.Reporter)
+            .ToList().ConvertAll(tuple => tuple.Item2);
         },
         0x10000000); // 256MB stack size to prevent stack overflow
       thread.Start();
