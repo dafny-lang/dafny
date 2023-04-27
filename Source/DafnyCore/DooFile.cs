@@ -67,6 +67,8 @@ public class DooFile {
   // This must be independent from any user-provided options,
   // and remain fixed over the lifetime of a single .doo file format version.
   // We don't want to attempt to read the program text using --function-syntax:3 for example.
+  // If we change default option values in future Dafny major version bumps,
+  // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
   
   public static DooFile Read(string path) {
