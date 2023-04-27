@@ -2259,6 +2259,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
           formatter.SetIndentations(ownedTokens[0], formatter.binOpIndent, formatter.binOpIndent, formatter.binOpArgIndent);
         } else {
           var startToken = this.StartToken;
+          //"," in a comprehension is an "&&", except that it should not try to keep a visual indentation between components.
           var newIndent =
             ownedTokens[0].val == "," ?
               formatter.GetIndentInlineOrAbove(startToken)
