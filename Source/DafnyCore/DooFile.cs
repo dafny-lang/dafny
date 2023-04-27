@@ -18,7 +18,7 @@ namespace DafnyCore;
 // Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
 
-  private const string ProgramFileEntry = "program.dfy";
+  private const string ProgramFileEntry = "program";
   
   private const string ManifestFileEntry = "manifest.toml";
 
