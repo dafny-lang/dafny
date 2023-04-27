@@ -61,53 +61,48 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
       var suggestedEdits = new List<DafnyCodeActionEdit>();
       var needsIsolation = false;
-      if (nodesTillFailure != null) {
-        Node? insertionNode = null;
-        for (var i = 0; i < nodesTillFailure.Count; i++) {
-          var node = nodesTillFailure[i];
-          var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
-          if ((node is Statement or LetExpr && (node is not UpdateStmt || nextNode is not VarDeclStmt))) {
-            insertionNode = node;
-            break;
-          }
+      if (nodesTillFailure == null) {
+        return suggestedEdits.ToArray();
+      }
 
-          if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
-              or NestedMatchCase) {
-            insertionNode = node;
-            break;
-          }
-
-          if (nextNode is BinaryExpr
-            {
-              Op: var op
-            } binaryExpr &&
-             ((op == BinaryExpr.Opcode.Imp && node == binaryExpr.E1 ||
-               op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1 ||
-               op == BinaryExpr.Opcode.And && node == binaryExpr.E1 ||
-               op == BinaryExpr.Opcode.Or && node == binaryExpr.E1))) {
-            insertionNode = node;
-            needsIsolation = (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1);
-            break;
-          }
+      Node? insertionNode = null;
+      for (var i = 0; i < nodesTillFailure.Count; i++) {
+        var node = nodesTillFailure[i];
+        var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
+        if (node is Statement or LetExpr &&
+            (node is not UpdateStmt || nextNode is not VarDeclStmt)) {
+          insertionNode = node;
+          break;
         }
 
-        if (insertionNode == null) {
-          insertionNode = nodesTillFailure[0];
+        if (nextNode is TopLevelDecl or MemberDecl or ITEExpr or MatchExpr or NestedMatchExpr
+            or NestedMatchCase) {
+          insertionNode = node;
+          break;
         }
 
-        var start = insertionNode.StartToken;
-        var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
-                        IndentationFormatter.Whitespace(Math.Max(start.col - 1, 0));
-        suggestedEdits.Add(
-          new DafnyCodeActionEdit(
-            new RangeToken(start, null), assertStr));
-        if (needsIsolation) {
-          suggestedEdits.Add(
-              new DafnyCodeActionEdit(
-                new RangeToken(new Token(insertionNode.EndToken.line, insertionNode.EndToken.col + insertionNode.EndToken.val.Length) {
-                  pos = insertionNode.EndToken.pos + insertionNode.EndToken.val.Length,
-                }, null), ")"));
+        if (nextNode is BinaryExpr { Op: var op } binaryExpr &&
+            ((op == BinaryExpr.Opcode.Imp && node == binaryExpr.E1) ||
+             (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1) ||
+             (op == BinaryExpr.Opcode.And && node == binaryExpr.E1) ||
+             (op == BinaryExpr.Opcode.Or && node == binaryExpr.E1))) {
+          insertionNode = node;
+          needsIsolation = (op == BinaryExpr.Opcode.Exp && node == binaryExpr.E1);
+          break;
         }
+      }
+
+      insertionNode ??= nodesTillFailure[0];
+
+      var start = insertionNode.StartToken;
+      var assertStr = $"{(needsIsolation ? "(" : "")}assert {Printer.ExprToString(options, failingImplicitAssertion)};\n" +
+                      IndentationFormatter.Whitespace(Math.Max(start.col - 1 + (needsIsolation ? 1 : 0), 0));
+      suggestedEdits.Add(
+        new DafnyCodeActionEdit(
+          InsertBefore(start), assertStr));
+      if (needsIsolation) {
+        suggestedEdits.Add(new DafnyCodeActionEdit(
+            InsertAfter(insertionNode.EndToken), ")"));
       }
 
       return suggestedEdits.ToArray();
@@ -116,7 +111,6 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
 
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     DafnyDiagnostic diagnostic, Range selection) {
-    var uri = input.Uri;
     if (input.Program == null || diagnostic.Source != MessageSource.Verifier) {
       return null;
     }

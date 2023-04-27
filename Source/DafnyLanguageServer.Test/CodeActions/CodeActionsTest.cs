@@ -203,6 +203,18 @@ method Foo(b: bool, i: int, j: int)
 }");
     }
 
+
+
+    [Fact]
+    public async Task ExplicitDivisionAddParentheses() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
+  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+}");
+    }
+
     [Fact]
     public async Task ExplicitDivisionExp() {
       await TestCodeAction(@"
@@ -219,7 +231,7 @@ method Foo(b: bool, i: int, j: int)
 method Foo(b: bool, i: int, j: int)
 {
   var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
-           2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
+            2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
 }");
     }
 
@@ -296,9 +308,10 @@ function Foo(i: int): int
       }
     }
 
-    private static List<string> ApplyEdits(TextDocumentEdit? textDocumentEdit, string output) {
+    private static List<string> ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {
       var inversedEdits = textDocumentEdit.Edits.ToList()
-        .OrderBy(x => -1000 * x.Range.Start.Line - x.Range.Start.Character);
+        .OrderByDescending(x => x.Range.Start.Line)
+        .ThenByDescending(x => x.Range.Start.Character);
       var modifiedOutput = ToLines(output);
       foreach (var textEdit in inversedEdits) {
         modifiedOutput = ApplySingleEdit(modifiedOutput, textEdit.Range, textEdit.NewText);
