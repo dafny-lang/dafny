@@ -20,7 +20,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 
-  public override bool SupportsDatatypeWrapperErasure => 
+  public override bool SupportsDatatypeWrapperErasure =>
     CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
@@ -117,7 +117,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
   }
 
   protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter) {
-    
+
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
      * because dafny is not currently in the path

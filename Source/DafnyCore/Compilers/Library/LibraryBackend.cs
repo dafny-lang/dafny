@@ -9,11 +9,10 @@ using DafnyCore;
 namespace Microsoft.Dafny.Compilers; 
 
 public class LibraryBackend : ExecutableBackend {
-  public LibraryBackend(DafnyOptions options) : base(options)
-  {
+  public LibraryBackend(DafnyOptions options) : base(options) {
   }
 
-  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> {};
+  public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
 
   public override string TargetName => "Dafny Library (.doo)";
 
@@ -26,23 +25,23 @@ public class LibraryBackend : ExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   public override bool SupportsInMemoryCompilation => false;
-  
+
   public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
     Feature.LegacyCLI
   };
-  
+
   protected override SinglePassCompiler CreateCompiler() {
     return null;
   }
-  
+
   public override void OnPostCompile() {
     // Not calling base.OnPostCompile() since it references `compiler`
   }
-  
+
   public override string PublicIdProtect(string name) {
     throw new NotSupportedException();
   }
-  
+
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetFirstTopLevelToken(), Feature.LegacyCLI);
@@ -66,13 +65,13 @@ public class LibraryBackend : ExecutableBackend {
   private string DooFilePath(string dafnyProgramName) {
     return Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".doo"));
   }
-  
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    
+
     var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     var dooPath = DooFilePath(dafnyProgramName);
-    
+
     File.Delete(dooPath);
     ZipFile.CreateFromDirectory(targetDirectory, dooPath);
 

@@ -65,7 +65,7 @@ public class Auditor : IRewriter {
                                  "md", "markdown", "md-table", "markdown-table",
                                  "md-ietf", "markdown-ietf",
                                  "txt");
-    
+
     DooFile.RegisterNoChecksNeeded(
       ReportFileOption,
       ReportFormatOption,

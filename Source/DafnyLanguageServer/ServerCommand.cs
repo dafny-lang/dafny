@@ -16,7 +16,7 @@ public class ServerCommand : ICommandSpec {
 
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
-    
+
     DooFile.RegisterNoChecksNeeded(
       Verification,
       GhostIndicators,

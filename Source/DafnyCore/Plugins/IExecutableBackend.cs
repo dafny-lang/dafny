@@ -91,7 +91,7 @@ public abstract class IExecutableBackend {
   /// Marks backends that should not be documented in the reference manual.
   /// </summary>
   public virtual bool IsInternal => false;
-  
+
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;
   protected ReadOnlyCollection<string>? OtherFileNames;

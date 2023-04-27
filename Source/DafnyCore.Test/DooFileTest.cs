@@ -13,7 +13,7 @@ public class DooFileTest {
     var path = Path.GetTempFileName();
     dooFile.Write(path);
     var loadedDooFile = DooFile.Read(path);
-    
+
     Assert.Equal(loadedDooFile.Manifest.DooFileVersion, DooFile.ManifestData.CurrentDooFileVersion);
     Assert.Equal(loadedDooFile.Manifest.DafnyVersion, options.VersionNumber);
     Assert.Equal(loadedDooFile.Manifest.SolverIdentifier, options.SolverIdentifier);

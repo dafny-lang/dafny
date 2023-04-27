@@ -19,7 +19,7 @@ class RunCommand : ICommandSpec {
         options.AddFile(file);
       }
     });
-    
+
     DooFile.RegisterNoChecksNeeded(
       Inputs
     );

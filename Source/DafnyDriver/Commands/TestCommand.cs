@@ -21,7 +21,7 @@ public class TestCommand : ICommandSpec {
 
   static TestCommand() {
     DafnyOptions.RegisterLegacyBinding(MethodsToTest, (o, v) => { o.MethodsToTest = v; });
-    
+
     DooFile.RegisterNoChecksNeeded(MethodsToTest);
   }
 

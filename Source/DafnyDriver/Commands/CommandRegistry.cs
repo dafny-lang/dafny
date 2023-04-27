@@ -47,7 +47,7 @@ static class CommandRegistry {
     // Check that the .doo file format is aware of all options,
     // and therefore which have to be saved to safely support separate verification/compilation.
     DooFile.CheckOptions(AllOptions);
-    
+
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
   }
 

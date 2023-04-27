@@ -15,7 +15,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     DafnyOptions.RegisterLegacyBinding(TrackPrintEffectsOption, (options, value) => {
       options.EnforcePrintEffects = value;
     });
-    
+
     DooFile.RegisterLibraryChecks(
       checks: new Dictionary<Option, DooFile.OptionCheck> {
         { TrackPrintEffectsOption, DooFile.CheckOptionMatches }

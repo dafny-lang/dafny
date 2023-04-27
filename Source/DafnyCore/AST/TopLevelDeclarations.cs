@@ -1122,8 +1122,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
     preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
   }
-  
-      
+
+
   public override IEnumerable<Assumption> Assumptions() {
     return TopLevelDecls.SelectMany(m => m.Assumptions());
   }

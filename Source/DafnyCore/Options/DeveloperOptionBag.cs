@@ -54,7 +54,7 @@ enabling necessary special handling.".TrimStart()) {
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
-    
+
     DooFile.RegisterNoChecksNeeded(
       BoogiePrint,
       Print,

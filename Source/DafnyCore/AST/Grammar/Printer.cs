@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
       DafnyOptions.RegisterLegacyBinding(PrintMode, (options, value) => {
         options.PrintMode = value;
       });
-      
+
       DooFile.RegisterNoChecksNeeded(new Option[] {
         PrintMode
       });

@@ -75,7 +75,7 @@ public record Assumption(IToken tok, AssumptionDescription desc) {
     var tickMitigation = UpdateVerbatim(desc.mitigation, "`", "`");
     return decl.Name + ": " + tickIssue + " Possible mitigation: " + tickMitigation;
   }
-  
+
   public static string UpdateVerbatim(string text, string beg, string end) {
     return text.Replace("[", beg).Replace("]", end);
   }

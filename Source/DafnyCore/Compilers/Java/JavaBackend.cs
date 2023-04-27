@@ -69,7 +69,7 @@ public class JavaBackend : ExecutableBackend {
     foreach (string file in Directory.EnumerateFiles(targetDirectory, "*.java", SearchOption.AllDirectories)) {
       files.Add(Path.GetFullPath(file));
     }
-    
+
     // Compile the generated source to .class files, adding the output directory to the classpath
     var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));

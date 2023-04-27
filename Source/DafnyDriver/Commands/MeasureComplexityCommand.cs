@@ -16,7 +16,7 @@ public class MeasureComplexityCommand : ICommandSpec {
   static MeasureComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
-    
+
     DooFile.RegisterNoChecksNeeded(
       Iterations,
       RandomSeed

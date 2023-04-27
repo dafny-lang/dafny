@@ -59,9 +59,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
     "Show a source code snippet for each Dafny message.");
 
   static DafnyConsolePrinter() {
-    DooFile.RegisterNoChecksNeeded(ShowSnippets);    
+    DooFile.RegisterNoChecksNeeded(ShowSnippets);
   }
-  
+
   public DafnyConsolePrinter(DafnyOptions options) {
     Options = options;
   }

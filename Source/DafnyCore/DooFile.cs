@@ -19,31 +19,31 @@ namespace DafnyCore;
 public class DooFile {
 
   private const string ProgramFileEntry = "program";
-  
+
   private const string ManifestFileEntry = "manifest.toml";
 
   public class ManifestData {
     public const string CurrentDooFileVersion = "1.0";
     public string DooFileVersion { get; set; }
-  
+
     public string DafnyVersion { get; set; }
 
     public string SolverIdentifier { get; set; }
     public string SolverVersion { get; set; }
-    
+
     public Dictionary<string, object> Options { get; set; }
 
     public ManifestData() {
       // Only for TOML deserialization!
     }
-    
+
     public ManifestData(DafnyOptions options) {
       DooFileVersion = CurrentDooFileVersion;
       DafnyVersion = options.VersionNumber;
 
       SolverIdentifier = options.SolverIdentifier;
       SolverVersion = options.SolverVersion.ToString();
-      
+
       Options = new Dictionary<string, object>();
       foreach (var (option, check) in OptionChecks) {
         options.Options.OptionArguments.TryGetValue(option, out var optionValue);
@@ -59,18 +59,18 @@ public class DooFile {
       writer.Write(Toml.FromModel(this, new TomlModelOptions()));
     }
   }
-  
+
   public ManifestData Manifest { get; set; }
-  
+
   public string ProgramText { get; set; }
-  
+
   // This must be independent from any user-provided options,
   // and remain fixed over the lifetime of a single .doo file format version.
   // We don't want to attempt to read the program text using --function-syntax:3 for example.
   // If we change default option values in future Dafny major version bumps,
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
-  
+
   public static DooFile Read(string path) {
     var result = new DooFile();
 
@@ -82,7 +82,7 @@ public class DooFile {
     using (var manifestStream = manifestEntry.Open()) {
       result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
-      
+
     var programTextEntry = archive.GetEntry(ProgramFileEntry);
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
@@ -109,13 +109,13 @@ public class DooFile {
 
   private DooFile() {
   }
-  
+
   public bool Validate(string filePath, DafnyOptions options) {
     if (options.VersionNumber != Manifest.DafnyVersion) {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;
     }
-    
+
     var success = true;
     foreach (var (option, check) in OptionChecks) {
       if (!options.Options.OptionArguments.TryGetValue(option, out var localValue)) {
@@ -144,15 +144,15 @@ public class DooFile {
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
     manifestWr.Write(manifestWriter.ToString());
-    
+
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);
   }
-  
+
   public void Write(string path) {
     // Delete first, we don't want to merge with existing zips
     File.Delete(path);
-    
+
     using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
 
     var manifest = archive.CreateEntry(ManifestFileEntry);
@@ -177,7 +177,7 @@ public class DooFile {
   public delegate bool OptionCheck(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue);
   private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
   private static readonly HashSet<Option> NoChecksNeeded = new();
-  
+
   public static bool CheckOptionMatches(DafnyOptions options, Option option, object localValue, string libraryFile, object libraryValue) {
     if (OptionValuesEqual(option, localValue, libraryValue)) {
       return true;
@@ -198,7 +198,7 @@ public class DooFile {
 
     return false;
   }
-  
+
   private static string OptionValueToString(Option option, object value) {
     if (option.ValueType == typeof(IEnumerable<string>)) {
       var values = (IEnumerable<string>)value;
@@ -207,7 +207,7 @@ public class DooFile {
 
     return value.ToString();
   }
-  
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
       if (NoChecksNeeded.Contains(option)) {

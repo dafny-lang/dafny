@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
         var nameToShow = useRelative ? relative : file;
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
-          // .h files are not This should be delegated to the backend insteadpart of the build, they are just emitted as includes
+          // .h files are not part of the build, they are just emitted as includes
           // TODO: This should be delegated to the backend instead (i.e. the CppCompilerBackend)
           if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);

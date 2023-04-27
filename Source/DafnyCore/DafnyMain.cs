@@ -99,7 +99,7 @@ namespace Microsoft.Dafny {
         if (!dooFile.Validate(filePathForErrors, options)) {
           throw new IllegalDafnyFile(true);
         }
-        
+
         // For now it's simpler to let the rest of the pipeline parse the
         // program text back into the AST representation.
         // At some point we'll likely want to serialize a program
@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
         // and expose a Program instead of the program text.
         SourceFileName = Path.GetTempFileName();
         File.WriteAllText(SourceFileName, dooFile.ProgramText);
-        
+
       } else if (extension == ".dll") {
         IsPreverified = true;
         // Technically only for C#, this is for backwards compatability
