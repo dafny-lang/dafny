@@ -556,6 +556,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 
   public Type Path;
   [FilledInDuringResolution] public CallStmt InitCall;  // may be null (and is definitely null for arrays),
+  [FilledInDuringResolution] public PreType PreType;
   [FilledInDuringResolution] public Type Type;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -877,6 +878,9 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       return type.Normalize();
     }
   }
+
+  public PreType PreType { get; set; }
+
   public bool IsMutable {
     get {
       return true;

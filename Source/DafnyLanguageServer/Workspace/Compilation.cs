@@ -52,11 +52,11 @@ public class Compilation {
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
+    DafnyOptions options,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    options = new DafnyOptions(services.GetRequiredService<DafnyOptions>());
+    options = new DafnyOptions(options);
     options.AddFile(textBuffer.Uri.GetFileSystemPath());
-
     logger = services.GetRequiredService<ILogger<Compilation>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
@@ -81,7 +81,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -339,14 +339,14 @@ public class Compilation {
   private readonly DafnyOptions options;
 
   public void MarkVerificationStarted() {
-    logger.LogDebug("MarkVerificationStarted called");
+    logger.LogTrace("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogDebug("MarkVerificationFinished called");
+    logger.LogTrace("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 

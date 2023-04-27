@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <VersionPrefix>4.0.0.50303<!--Version 4.0.0, year 2018+5, month 3, day 3.--></VersionPrefix>
+    <VersionPrefix>4.1.0</VersionPrefix>
     <NoWarn>1701;1702;VSTHRD200</NoWarn>
   </PropertyGroup>
  

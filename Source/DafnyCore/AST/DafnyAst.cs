@@ -395,6 +395,11 @@ namespace Microsoft.Dafny {
     string CompileName {
       get;
     }
+
+    PreType PreType {
+      get;
+      set;
+    }
     Type Type {
       get;
     }
@@ -458,6 +463,9 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
+
+    public PreType PreType { get; set; }
+
     public bool IsMutable {
       get {
         throw new NotImplementedException();
@@ -558,6 +566,8 @@ namespace Microsoft.Dafny {
     Type type;
     public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
+    public PreType PreType { get; set; }
+
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
