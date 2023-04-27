@@ -55,7 +55,7 @@ public class Compilation {
     DafnyOptions options,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    options = new DafnyOptions(options);
+    this.options = new DafnyOptions(options);
     options.AddFile(textBuffer.Uri.GetFileSystemPath());
     logger = services.GetRequiredService<ILogger<Compilation>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();

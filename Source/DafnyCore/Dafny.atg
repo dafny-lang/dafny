@@ -180,7 +180,7 @@ public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
-  if((module.RootToken.Filename ?? "") == "") { // This is the first module
+  if((module.RootToken.Filepath ?? "") == "") { // This is the first module
     module.RootToken.Uri = uri;
     firstToken = module.RootToken;
   } else {
