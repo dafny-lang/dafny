@@ -196,6 +196,10 @@ public static class TokenExtensions {
 
 
   public static string TokenToString(this IToken tok, DafnyOptions options) {
+    if (tok.Uri == null) {
+      return "Token has no URI" + tok;
+    }
+    
     var filename = tok.Uri.Scheme == "stdin"
       ? "<stdin>"
       : (options.UseBaseNameForFileName
