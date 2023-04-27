@@ -39,7 +39,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   private void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.filename, tok.line - 1);
+    string line = GetFileLine(new Uri(tok.filename).LocalPath, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);

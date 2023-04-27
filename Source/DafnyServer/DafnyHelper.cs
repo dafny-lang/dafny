@@ -19,8 +19,8 @@ namespace Microsoft.Dafny {
     private readonly ExecutionEngine engine;
     private string[] args;
 
-    private readonly Dafny.ErrorReporter reporter;
-    private Dafny.Program dafnyProgram;
+    private readonly ErrorReporter reporter;
+    private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
     public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
       this.args = args;
       this.fname = fname;
       this.source = source;
-      this.reporter = new Dafny.ConsoleErrorReporter(options);
+      reporter = new ConsoleErrorReporter(options);
     }
 
     public bool Verify() {
@@ -39,18 +39,18 @@ namespace Microsoft.Dafny {
     private DafnyOptions Options => reporter.Options;
 
     private bool Parse() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDefinition(), null);
-      Dafny.BuiltIns builtIns = new Dafny.BuiltIns(Options);
-      var success = (Parser.Parse(source, new Uri(fname), module, builtIns, new Dafny.Errors(reporter)) == 0 &&
-                     Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
+      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+      BuiltIns builtIns = new BuiltIns(Options);
+      var success = (Parser.Parse(source, new Uri("stdin:///"), module, builtIns, new Errors(reporter)) == 0 &&
+                     Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
+        dafnyProgram = new Program(fname, module, builtIns, reporter);
       }
       return success;
     }
 
     private bool Resolve() {
-      var resolver = new Dafny.Resolver(dafnyProgram);
+      var resolver = new Resolver(dafnyProgram);
       resolver.ResolveProgram(dafnyProgram);
       return reporter.Count(ErrorLevel.Error) == 0;
     }
