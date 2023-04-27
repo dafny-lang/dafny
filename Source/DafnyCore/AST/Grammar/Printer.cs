@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
 
   public enum PrintModes {
     Everything,
-    DllEmbed,
+    Serialization, // Serializing the program to a file for lossless loading later
     NoIncludes,
     NoGhost
   }
@@ -201,7 +201,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.WriteLine("// " + options.Version);
         wr.WriteLine("// " + options.Environment);
       }
-      if (options.PrintMode != PrintModes.DllEmbed) {
+      if (options.PrintMode != PrintModes.Serialization) {
         wr.WriteLine("// {0}", prog.Name);
       }
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
@@ -408,7 +408,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
-            if (printMode == PrintModes.DllEmbed && !modDecl.ModuleDef.IsToBeCompiled) {
+            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.IsToBeCompiled) {
+              // This mode is used to losslessly serialize the source program by the C# and Library backends.
+              // Backends don't compile any code for modules not marked for compilation,
+              // so it's consistent to skip those modules here too. 
               continue;
             }
 
@@ -424,7 +427,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
+            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
@@ -447,7 +450,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Opened) {
               wr.Write(" opened");
             }
-            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.DllEmbed) {
+            if (dd.ResolvedHash.HasValue && this.printMode == PrintModes.Serialization) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
@@ -692,7 +695,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
         if (PrintModeSkipGeneral(m.tok, fileBeingPrinted)) { continue; }
-        if (printMode == PrintModes.DllEmbed && Attributes.Contains(m.Attributes, "auto_generated")) {
+        if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }

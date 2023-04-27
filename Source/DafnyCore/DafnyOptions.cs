@@ -111,7 +111,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
           } else if (ps.args[ps.i].Equals("NoGhost")) {
             options.Set(option, PrintModes.NoGhost);
           } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            options.Set(option, PrintModes.DllEmbed);
+            // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+            // but it is now used by the LibraryBackend when building .doo files as well. 
+            options.Set(option, PrintModes.Serialization);
           } else {
             ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
           }
