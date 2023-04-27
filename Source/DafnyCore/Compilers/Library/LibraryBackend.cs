@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -26,8 +27,20 @@ public class LibraryBackend : ExecutableBackend {
 
   public override bool SupportsInMemoryCompilation => false;
   
+  public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
+    Feature.LegacyCLI
+  };
+  
   protected override SinglePassCompiler CreateCompiler() {
-    return new LibraryCompiler(Options, Reporter);
+    return null;
+  }
+  
+  public override void OnPostCompile() {
+    // Not calling base.OnPostCompile() since it references `compiler`
+  }
+  
+  public override string PublicIdProtect(string name) {
+    throw new NotSupportedException();
   }
   
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {

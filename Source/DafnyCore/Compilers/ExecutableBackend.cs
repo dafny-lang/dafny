@@ -9,6 +9,7 @@ using System.Linq;
 namespace Microsoft.Dafny.Compilers;
 
 public abstract class ExecutableBackend : Plugins.IExecutableBackend {
+  // May be null for backends that don't use the single-pass compiler logic
   protected SinglePassCompiler compiler;
 
   protected ExecutableBackend(DafnyOptions options) {
