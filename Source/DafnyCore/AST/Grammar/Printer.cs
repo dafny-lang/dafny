@@ -2926,6 +2926,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // its node identifier, otherwise the printed program becomes
             // syntactically incorrect.
             wr.Write("_");
+            if (!idPat.IsWildcardExact) {
+              wr.Write($" /* {idPat.Id} */");
+            }
           } else {
             wr.Write(idPat.Id);
           }

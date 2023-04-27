@@ -761,7 +761,7 @@ public class MatchFlattener : IRewriter {
   // Otherwise do nothing
   private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
     Contract.Assert(var.Ctor == null);
-    if (var.ResolvedLit == null && !var.IsWildcardPattern) {
+    if (var.ResolvedLit == null && !var.IsWildcardExact) {
       return LetBind(var, expr, bodyPath);
     }
 

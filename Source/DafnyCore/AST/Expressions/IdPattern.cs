@@ -22,6 +22,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public bool IsWildcardPattern =>
     Arguments == null && Id.StartsWith("_");
 
+  public bool IsWildcardExact =>
+    Arguments == null && Id == "_";
+
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();
   }
