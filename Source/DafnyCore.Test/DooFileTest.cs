@@ -1,4 +1,5 @@
 using Microsoft.Dafny;
+using Tomlyn;
 
 namespace DafnyCore.Test;
 
@@ -20,6 +21,13 @@ public class DooFileTest {
     Assert.Equal(loadedDooFile.Manifest.SolverVersion, options.SolverVersion.ToString());
   }
 
+  [Fact]
+  public void UnknownManifestEntries() {
+    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "TestFiles/DooFileTest/badManifest.toml");
+    var source = File.ReadAllText(filePath);
+    Assert.Throws<TomlException>(() => DooFile.ManifestData.Read(new StringReader(source)));
+  }
+  
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
     var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     const string fullFilePath = "foo";
