@@ -9,6 +9,8 @@ namespace Microsoft.Dafny.Compilers;
 
 public abstract class DafnyExecutableBackend : ExecutableBackend {
 
+  protected DafnyWrittenCompiler dafnyCompiler;
+  
   protected DafnyExecutableBackend(DafnyOptions options) : base(options)
   {
   }
@@ -19,14 +21,21 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   
   protected abstract DafnyWrittenCompiler CreateDafnyWrittenCompiler();
   
+  public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
+    base.OnPreCompile(reporter, otherFileNames);
+    dafnyCompiler = CreateDafnyWrittenCompiler();
+  }
+  
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
-    var dast = ((DafnyCompiler) compiler).DafnyAST;
-    
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
     compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+    var dast = ((DafnyCompiler) compiler).DafnyAST;
+    var o = dafnyCompiler.Compile(dast);
+    callToMainTree.Clear();
+    callToMainTree.Write(o.ToVerbatimString(false));
   }
   
 }

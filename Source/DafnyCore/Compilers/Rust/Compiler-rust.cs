@@ -1,12 +1,12 @@
 using Dafny;
-using DAST;
+using DCOMP;
 
 namespace Microsoft.Dafny.Compilers {
 
   class RustCompiler : DafnyWrittenCompiler {
 
-    public override string Compile(ISequence<Rune> program) {
-      return "hello";
+    public override ISequence<Rune> Compile(ISequence<Rune> program) {
+      return COMP.Compile(program);
     }
     
   }

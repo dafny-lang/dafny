@@ -1,12 +1,12 @@
 
 module {:extern "DAST"} DAST {
 
-	datatype Program = Program(content: string)
+  datatype Program = Program(content: string)
 
   class ASTBuilder {
 		
-	  static method CreateProgram() returns (o: Program) {
-			o := Program("Hi\n");
+	  static function CreateProgram(s: string) : Program {
+			Program(s)
 		}
 
   }

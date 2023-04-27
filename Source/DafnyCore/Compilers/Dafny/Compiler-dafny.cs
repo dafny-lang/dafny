@@ -70,7 +70,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("import opened i_module");
       var wrBody = wr.NewBlock("method Main()", "");
       wrBody.WriteLine("ii__default.iMain();");
-      DafnyAST = ASTBuilder.CreateProgram();
+      //var test = StringUtils.OfCString("hello");
+      var test2 = Sequence<Rune>.UnicodeFromString("Hello, world!\n");
+      DafnyAST = ASTBuilder.CreateProgram(test2);
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
