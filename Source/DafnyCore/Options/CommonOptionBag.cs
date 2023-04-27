@@ -303,6 +303,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionMatches },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
         // Ideally this feature shouldn't affect separate compilation,
         // because it's automatically disabled on {:extern} signatures.
         // Realistically though, we don't have enough strong mechanisms to stop
@@ -332,7 +333,6 @@ Functionality is still being expanded. Currently only checks contracts on every 
       TestAssumptions,
       WarnShadowing,
       ManualLemmaInduction,
-      RelaxDefiniteAssignment,
       SolverResourceLimit,
       TypeInferenceDebug,
       TypeSystemRefresh,
