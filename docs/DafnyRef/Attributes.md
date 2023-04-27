@@ -106,7 +106,7 @@ be added.
 ```
 
 ### 11.1.2. `{:nativeType}` {#sec-nativetype}
-The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
+The `{:nativeType}` attribute is only recognized by a `newtype` declaration
 where the base type is an integral type or a real type. For example:
 
 <!-- %check-resolve Attributes.1.expect -->
@@ -117,10 +117,10 @@ newtype {:nativeType "byte"} bad_ubyte = x : int | 0 <= x < 257 // Fails
 
 It can take one of the following forms:
 
-* `{:nativeType}` - With no parameters it has no effect and the ``NewtypeDecl``
-will have its default behavior which is to choose a native type that can hold any
-value satisfying the constraints, if possible, otherwise BigInteger is used.
-* `{:nativeType true}` - Also gives default ``NewtypeDecl`` behavior,
+* `{:nativeType}` - With no parameters it has no effect and the declaration
+will have its default behavior, which is to choose a native type that can hold any
+value satisfying the constraints, if possible, and otherwise to use BigInteger.
+* `{:nativeType true}` - Also gives default behavior,
 but gives an error if the base type is not integral.
 * `{:nativeType false}` - Inhibits using a native type. BigInteger is used.
 * `{:nativeType "typename"}` - This form has an native integral
@@ -222,7 +222,7 @@ The `{:axiom}` attribute only prevents Dafny from verifying that the body matche
 Dafny still verifies the well-formedness of pre-conditions, of post-conditions, and of the body if provided.
 To prevent Dafny from running all these checks, one would use [`{:verify false}`](#sec-verify), which is not recommended.
 
-The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function method`, a `method` or a `function by method`](#sec-function-declarations) with a body.
+The compiler will still emit code for an [`{:axiom}`](#sec-axiom), if it is a [`function`, a `method` or a `function by method`](#sec-function-declarations) with a body.
 
 ### 11.2.3. `{:compile}`
 The `{:compile}` attribute takes a boolean argument. It may be applied to
@@ -313,6 +313,9 @@ lemma Correspondence()
 ```
 
 ### 11.2.8. `{:opaque}` {#sec-opaque}
+
+_This attribute is replaced by the keyword `opaque`; the attribute is deprecated._
+
 Ordinarily, the body of a function is transparent to its users, but
 sometimes it is useful to hide it. If a function `foo` or `bar` is given the
 `{:opaque}` attribute, then Dafny hides the body of the function,
@@ -329,7 +332,7 @@ methods, constructors, and iterators, and it gives an error if
 applied to functions or ghost methods. An overriding method is
 allowed to use a `{:print}` attribute only if the overridden method
 does.
-Print effects are enforced only with `/trackPrintEffects:1`.
+Print effects are enforced only with `--track-print-effects`.
 
 ### 11.2.10. `{:priority}`
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
@@ -430,7 +433,7 @@ There are also two different approaches to executing all tests in a program:
 1. By default, the compiler will mark each compiled method as necessary so that
    a designated target language testing framework will discover and run it.
    This is currently only implemented for C#, using the xUnit `[Fact]` annotation.
-2. If the `/runAllTests:1` option is provided, Dafny will instead produce a main method
+2. If `dafny test` is used, Dafny will instead produce a main method
    that invokes each test and prints the results.
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
@@ -638,30 +641,7 @@ attribute in Boogie.
 
 ### 11.5.1. `{:heapQuantifier}`
 
-_This attribute has been deprecated._
-
-The `{:heapQuantifier}` attribute may be used on a [`QuantifierExpression`](#sec-quantifier-expression).
-When it appears in a quantifier expression, it is as if a new heap-valued
-quantifier variable was added to the quantification. Consider this code
-that is one of the invariants of a while loop.
-
-<!-- %no-check -->
-```dafny
-invariant forall u {:heapQuantifier} :: f(u) == u + r
-```
-
-The quantifier is translated into the following Boogie:
-
-```boogie
-(forall q$heap#8: Heap, u#5: int ::
-    {:heapQuantifier}
-    $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
-       ==> $Unbox(Apply1(TInt, TInt, f#0, q$heap#8, $Box(u#5))): int == u#5 + r#0);
-```
-
-What this is saying is that the quantified expression, `f(u) == u + r`,
-which may depend on the heap, is also valid for any good heap that is either the
-same as the current heap, or that is derived from it by heap update operations.
+_This attribute has been removed._
 
 ### 11.5.2. `{:induction}` {#sec-induction-quantifier}
 See [`{:induction}`](#sec-induction) for functions and methods.
@@ -714,9 +694,10 @@ Here are ways one can prove `assert P(j + 4);`:
 
 ## 11.6. Deprecated attributes
 
-These attributes have been deprecated. They are no longer useful (or perhaps never were) or were experimental.
+These attributes have been deprecated or removed. They are no longer useful (or perhaps never were) or were experimental.
 They will likely be removed entirely sometime soon after the release of Dafny 4.
 
+Removed:
 - :heapQuantifier
 - :dllimport
 - :handle

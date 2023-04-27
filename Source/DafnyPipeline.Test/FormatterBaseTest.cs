@@ -37,11 +37,10 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      BatchErrorReporter reporter = new BatchErrorReporter();
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
+        BatchErrorReporter reporter = new BatchErrorReporter(options);
         currentNewlines = newLinesType;
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
@@ -51,14 +50,14 @@ namespace DafnyPipeline.Test {
           ? AdjustNewlines(expectedProgramString)
           : removeTrailingNewlineRegex.Replace(programString, "");
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.message}: line {error.token.line} col {error.token.col}");
+          Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
         var firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -71,15 +70,30 @@ namespace DafnyPipeline.Test {
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         EnsureEveryTokenIsOwned(programNotIndented, dafnyProgram);
-        Assert.Equal(expectedProgram, reprinted);
+        if (expectedProgram != reprinted) {
+          Console.Out.WriteLine("Formatting before resolution generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+
+        // Formatting should work after resolution as well.
+        Main.Resolve(dafnyProgram, reporter);
+        reprinted = firstToken != null && firstToken.line > 0
+          ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
+            IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
+          : programString;
+        if (expectedProgram != reprinted) {
+          Console.Error.WriteLine("Formatting after resolution generates an error:");
+          Assert.Equal(expectedProgram, reprinted);
+        }
+        var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns();
+        builtIns = new BuiltIns(options);
         Parser.Parse(reprinted, "virtual", "virtual", module, builtIns, reporter);
         dafnyProgram = new Program("programName", module, builtIns, reporter);
-        Assert.Equal(0, reporter.ErrorCount);
+        Assert.Equal(initErrorCount, reporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,

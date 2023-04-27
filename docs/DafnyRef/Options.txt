@@ -88,9 +88,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /pmtrace
       Print pattern-match compiler debug info.
   
-  /titrace
-      Print type-inference debug info.
-  
   /printTooltips
       Dump additional positional information (displayed as mouse-over
       tooltips by the VS Code plugin) to stdout as 'Info' messages.
@@ -102,25 +99,37 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   ---- Language feature selection --------------------------------------------
   
+  /ntitrace:<value>
+      0 (default) - Don't print debug information for the new type system.
+      1 - Print debug information for the new type system.
+
+  /titrace:<value>
+      0 (default) - Don't print type-inference debug information.
+      1 - Print type-inference debug information.
+
+  /typeSystemRefresh:<value>
+      0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
+      1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.
+
   /unicodeChar:<value>
-      0 (default) - The char type represents any UTF-16 code unit.
-      1 - The char type represents any Unicode scalar value.
+      0 - The char type represents any UTF-16 code unit.
+      1 (default) - The char type represents any Unicode scalar value.
 
   /noIncludes
       Ignore include directives.
   
   /noExterns
-      Ignore extern and dllimport attributes.
+      Ignore extern attributes.
   
   /functionSyntax:<version>
       The syntax for functions is changing from Dafny version 3 to version
       4. This switch gives early access to the new syntax, and also
       provides a mode to help with migration.
   
-      3 (default) - Compiled functions are written `function method` and
+      3 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `function` and
           `predicate`.
-      4 - Compiled functions are written `function` and `predicate`. Ghost
+      4 (default) - Compiled functions are written `function` and `predicate`. Ghost
           functions are written `ghost function` and `ghost predicate`.
       migration3to4 - Compiled functions are written `function method` and
           `predicate method`. Ghost functions are written `ghost function`
@@ -150,10 +159,10 @@ Usage: dafny [ option ... ] [ filename ... ]
       <Range>) are allowed. This switch gives early access to the new
       syntax.
   
-      3 (default) - Ranges are only allowed after all quantified variables
+      3 - Ranges are only allowed after all quantified variables
           are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
           y :: y)
-      4 - Ranges are allowed after each quantified variable declaration.
+      4 (default) - Ranges are allowed after each quantified variable declaration.
           (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
   
       Note that quantifier variable domains (<- <Domain>) are available in
@@ -266,6 +275,8 @@ Usage: dafny [ option ... ] [ filename ... ]
          print effects only if it is marked with {:print}.
   
   /allocated:<n>
+      This option is deprecated. Going forward, only what is /allocated:4
+      will be supported.
       Specify defaults for where Dafny should assert and assume
       allocated(x) for various parameters x, local variables x, bound
       variables x, etc. Lower <n> may require more manual allocated(x)
@@ -284,8 +295,8 @@ Usage: dafny [ option ... ] [ filename ... ]
       2 - Assert/assume allocated(x) on all variables, even bound
           variables in quantifiers. This option is the easiest to use for
           heapful code.
-      3 - (default) Frugal use of heap parameters.
-      4 - Mode 3 but with alloc antecedents when ranges don't imply
+      3 - Frugal use of heap parameter (not sound).
+      4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
           allocatedness.
   
   /definiteAssignment:<n>
@@ -293,7 +304,7 @@ Usage: dafny [ option ... ] [ filename ... ]
           only--it is not sound.
       1 (default) - Enforces definite-assignment rules for compiled
           variables and fields whose types do not support
-          auto-initialization and for ghost variables and fields whose
+          auto-initialization, and for ghost variables and fields whose
           type is possibly empty.
       2 - Enforces definite-assignment for all non-yield-parameter
           variables and fields, regardless of their types.
@@ -302,6 +313,10 @@ Usage: dafny [ option ... ] [ filename ... ]
           passes at this level 3 is one that the language guarantees that
           values seen during execution will be the same in every run of
           the program.
+      4 - Like 1, but enforces definite assignment for all local variables
+          and out-parameters, regardless of their types. (Whether or not
+          fields and new arrays are subject to definite assignments depends
+          on their types.)
   
   /noAutoReq
       Ignore autoReq attributes.
@@ -400,6 +415,7 @@ Usage: dafny [ option ... ] [ filename ... ]
       However, these contents are skipped during code generation and verification.
       This option is useful in a diamond dependency situation, 
       to prevent code from the bottom dependency from being generated more than once.
+      The value may be a comma-separated list of files and folders.
 
   /optimizeErasableDatatypeWrapper:<value>
       0 - Include all non-ghost datatype constructors in the compiled code
@@ -507,7 +523,9 @@ Usage: dafny [ option ... ] [ filename ... ]
   Multiple .bpl files supplied on the command line are concatenated into one
   Boogie program.
 
-  /lib           : Include library definitions
+  /lib:<name>    : Include definitions in library <name>. The file <name>.bpl
+                   must be an included resource in Core.dll. Currently, the
+                   following libraries are supported---base, node.
   /proc:<p>      : Only check procedures matched by pattern <p>. This option
                    may be specified multiple times to match multiple patterns.
                    The pattern <p> matches the whole procedure name and may
@@ -602,6 +620,8 @@ Usage: dafny [ option ... ] [ filename ... ]
 
   ---- Debugging and general tracing options ---------------------------------
 
+  /silent       print nothing at all
+  /quiet        print nothing but warnings and errors
   /trace        blurt out various debug trace information
   /traceTimes   output timing information at certain points in the pipeline
   /tracePOs     output information about the number of proof obligations
@@ -709,25 +729,23 @@ Usage: dafny [ option ... ] [ filename ... ]
                 a linear number of splits. The default way (top-down) is more
                 aggressive and it may create an exponential number of splits.
 
-  /randomSeed:<n>
-                Turn on randomization of the input that Boogie passes to the 
+  /randomSeed:<s>
+                Supply the random seed for /randomizeVcIterations option.
+
+  /randomizeVcIterations:<n>
+                Turn on randomization of the input that Boogie passes to the
                 SMT solver and turn on randomization in the SMT solver itself.
- 
+                Attempt to randomize and prove each VC n times using the random
+                seed s provided by the option /randomSeed:<s>. If /randomSeed option
+                is not provided, s is chosen to be zero.
+
                 Certain Boogie inputs are unstable in the sense that changes to 
                 the input that preserve its meaning may cause the output to change.
-                The /randomSeed option simulates meaning-preserving changes to 
-                the input without requiring the user to actually make those changes.
-
-                The /randomSeed option is implemented by renaming variables and 
-                reordering declarations in the input, and by setting 
-                solver options that have similar effects.
-
-  /randomSeedIterations:<n>
-                Attempt to prove each VC n times with n random seeds. If
-                /randomSeed has been provided, each proof attempt will use
-                a new random seed derived from this original seed. If not,
-                it will implicitly use /randomSeed:0 to ensure a difference
-                between iterations.
+                This option simulates meaning-preserving changes to the input
+                without requiring the user to actually make those changes.
+                This option is implemented by renaming variables and reordering
+                declarations in the input, and by setting solver options that have
+                similar effects.
 
   ---- Verification-condition splitting --------------------------------------
 

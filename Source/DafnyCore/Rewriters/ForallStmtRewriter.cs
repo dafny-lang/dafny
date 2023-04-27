@@ -100,26 +100,35 @@ public class ForallStmtRewriter : IRewriter {
                     lhs = lhsBuilder(jj);
                     Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, s.Attributes);
                     var newRhs = Substitute(rhs, i, val.FInverse);
+                    var newBounds = SubstituteBoundedPoolList(s.Bounds, i, val.FInverse);
+
                     var msg = string.Format("rewrite: forall {0}: {1} {2}| {3} {{ {4} := {5}; }}",
                       j.Name,
                       j.Type.ToString(),
-                      Printer.AttributesToString(attributes),
-                      Printer.ExprToString(val.Range),
-                      Printer.ExprToString(lhs),
-                      Printer.ExprToString(newRhs));
+                      Printer.AttributesToString(reporter.Options, attributes),
+                      Printer.ExprToString(reporter.Options, val.Range),
+                      Printer.ExprToString(reporter.Options, lhs),
+                      Printer.ExprToString(reporter.Options, newRhs));
                     reporter.Info(MessageSource.Resolver, stmt.Tok, msg);
 
-                    var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs), attributes);
-                    expr.Type = Type.Bool; //resolve here
+                    var expr = new ForallExpr(s.Tok, s.RangeToken, jList, val.Range,
+                      new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, newRhs),
+                      attributes) {
+                      Type = Type.Bool,
+                      Bounds = newBounds,
+                    };
                     exprList.Add(expr);
                   }
                   usedInversion = true;
                 }
               }
               if (!usedInversion) {
-                var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
-                expr.Type = Type.Bool; // resolve here
-                expr.Bounds = s.Bounds;
+                var expr = new ForallExpr(s.Tok, s.RangeToken, s.BoundVars, s.Range,
+                  new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs),
+                  s.Attributes) {
+                  Type = Type.Bool,
+                  Bounds = s.Bounds
+                };
                 exprList.Add(expr);
               }
               s.ForallExpressions = exprList;
@@ -312,6 +321,14 @@ public class ForallStmtRewriter : IRewriter {
       substMap.Add(v, e);
       Substituter sub = new Substituter(null, substMap, typeMap);
       return sub.Substitute(expr);
+    }
+
+    List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list, IVariable v, Expression e) {
+      Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
+      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+      substMap.Add(v, e);
+      Substituter sub = new Substituter(null, substMap, typeMap);
+      return sub.SubstituteBoundedPoolList(list);
     }
   }
 }

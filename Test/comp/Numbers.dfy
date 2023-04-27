@@ -1,9 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -215,10 +215,10 @@ method DivModNative() {
   TestDivModInt64(-108, 9, " ");                     // (-12, 0)
   TestDivModInt64(-108, -9, "\n");                   // (12, 0)
 }
-function method Sign(n: int): int {
+function Sign(n: int): int {
   if n < 0 then -1 else if n == 0 then 0 else 1
 }
-function method Abs(n: int): nat {
+function Abs(n: int): nat {
   if n < 0 then -n else n
 }
 method EuclideanDefinitions(i: int, j: int, suffix: string)
@@ -467,7 +467,7 @@ method ZeroComparisonTests() {
   ZCNativeTypeTests(23);
 }
 
-function method YN(b : bool) : string {
+function YN(b : bool) : string {
   if b then "Y" else "N"
 }
 

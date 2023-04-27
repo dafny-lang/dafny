@@ -1,0 +1,4 @@
+includdddes = ["src/**/*"]
+
+[options]
+warn-shadowing = true

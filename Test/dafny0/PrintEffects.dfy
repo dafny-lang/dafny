@@ -1,4 +1,4 @@
-// RUN: %baredafny run %args "%s" > "%t"
+// RUN:   %baredafny run %args "%s" > "%t"
 // RUN: ! %baredafny run %args --track-print-effects "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

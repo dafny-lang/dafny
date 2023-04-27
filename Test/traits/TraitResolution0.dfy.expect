@@ -32,10 +32,10 @@ module _System {
   */
 
   class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
+    ghost function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    ghost function reads(x0: T0): set<object?>
       reads reads(x0)
   }
 
@@ -48,10 +48,10 @@ module _System {
     /*special witness*/
 
   class {:compile false} /*_#Func0*/ () ~> +R {
-    function requires(): bool
+    ghost function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    ghost function reads(): set<object?>
       reads reads()
   }
 
@@ -66,10 +66,10 @@ module _System {
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
   class {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
-    function requires(x0: T0, x1: T1): bool
+    ghost function requires(x0: T0, x1: T1): bool
       reads reads(x0, x1)
 
-    function reads(x0: T0, x1: T1): set<object?>
+    ghost function reads(x0: T0, x1: T1): set<object?>
       reads reads(x0, x1)
   }
 
@@ -97,18 +97,18 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function RotateLeft(w: nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function RotateRight(w: nat): selftype
   }
 
-  type map<T, U> {
+  type map<+T, +U> {
     var Keys: set<T>  // immutable
     var Values: set<U>  // immutable
     var Items: set<(T, U)>  // immutable
   }
 
-  type imap<T, U> {
+  type imap<*T, +U> {
     var Keys: iset<T>  // immutable
     var Values: iset<U>  // immutable
     var Items: iset<(T, U)>  // immutable
@@ -134,7 +134,7 @@ module M0 {
    *   Tr.F
    */
   trait Tr<X> {
-    function F(x: X): int
+    ghost function F(x: X): int
     {
       15
     }
@@ -197,7 +197,7 @@ module M2 {
    *   Tr.F
    */
   trait Tr<X, W> {
-    function method F(x: X, w: W): bv10
+    function F(x: X, w: W): bv10
     {
       15
     }
@@ -234,7 +234,7 @@ module P0 {
    *   TrX.F
    */
   trait TrX<X> {
-    function F(x: X): int
+    ghost function F(x: X): int
     {
       15
     }
@@ -311,7 +311,7 @@ module P2 {
    *   TrX.F
    */
   trait TrX<X, W> {
-    function method F(x: X, w: W): bv10
+    function F(x: X, w: W): bv10
     {
       15
     }

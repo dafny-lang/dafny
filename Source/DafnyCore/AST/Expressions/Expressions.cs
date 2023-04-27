@@ -18,7 +18,7 @@ public abstract class Expression : TokenNode {
 
   [System.Diagnostics.Contracts.Pure]
   public bool WasResolved() {
-    return Type != null;
+    return PreType != null || Type != null;
   }
 
   public Expression Resolved {
@@ -38,6 +38,15 @@ public abstract class Expression : TokenNode {
           return rr is NegationExpression ? rr : null;
         }
       }
+    }
+  }
+
+
+  public PreType PreType;
+
+  public virtual IEnumerable<Expression> TerminalExpressions {
+    get {
+      yield return this;
     }
   }
 
@@ -90,7 +99,7 @@ public abstract class Expression : TokenNode {
 
   public override string ToString() {
     try {
-      return Printer.ExprToString(this);
+      return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print expr because: {e.Message}";
     }
@@ -695,6 +704,47 @@ public abstract class Expression : TokenNode {
   }
 
   /// <summary>
+  /// Create a resolved function-call expression. The returned expression will have syntactic scaffolding, which
+  /// enables resolving a syntactic clone of this resolved expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// Expects that "function" has no type parameters, but it's okay for the enclosing type to have type parameters.
+  /// </summary>
+  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, BuiltIns builtIns) {
+    Contract.Requires(function.TypeArgs.Count == 0);
+
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
+      Function = function,
+      Type = Type.Bool,
+      TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
+      TypeApplication_JustFunction = new List<Type>()
+    };
+
+    // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
+    var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
+    var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
+    subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    var exprDotName = new ExprDotName(tok, receiver, function.Name, null) {
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(function, subst, builtIns)
+    };
+    return new ApplySuffix(tok, null, exprDotName, new List<ActualBinding>(), tok) {
+      ResolvedExpression = call,
+      Type = function.ResultType
+    };
+  }
+
+  /// <summary>
+  /// Create a resolved field-selection expression.
+  /// Expects "receiver" to be a resolved expression.
+  /// </summary>
+  public static Expression CreateFieldSelect(IToken tok, Expression receiver, Field field) {
+    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
+    return new ExprDotName(tok, receiver, field.Name, null) {
+      ResolvedExpression = memberSelectExpr,
+      Type = memberSelectExpr.Type
+    };
+  }
+
+  /// <summary>
   /// Create a resolved case expression for a match expression
   /// </summary>
   public static MatchCaseExpr CreateMatchCase(MatchCaseExpr old_case, Expression new_body) {
@@ -777,7 +827,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.RangeToken.StartToken, v.Name);
+    var e = new IdentifierExpr(v.Tok, v.Name);
     e.Var = v;  // resolve here
     e.type = v.Type;  // resolve here
     return e;
@@ -922,7 +972,7 @@ public class StringLiteralExpr : LiteralExpr {
   }
 }
 
-public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
+public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, ICanFormat {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -932,6 +982,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
 
   [FilledInDuringResolution] public DatatypeCtor Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = new List<Type>();
+  [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = new List<PreType>();
   [FilledInDuringResolution] public bool IsCoCall;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -986,6 +1037,10 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue> {
   }
 
   public IToken NameToken => tok;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
+    return true;
+  }
 }
 
 public class ThisExpr : Expression {
@@ -1093,6 +1148,13 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     }
   }
 
+  /// <summary>
+  /// Returns whether or not "expr" is an IdentifierExpr for "variable".
+  /// </summary>
+  public static bool Is(Expression expr, IVariable variable) {
+    return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
+  }
+
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Var, 1);
   }
@@ -1168,7 +1230,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
   }
   public class ResolverType_Module : ResolverType {
     [System.Diagnostics.Contracts.Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
     }
@@ -1178,7 +1240,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
   }
   public class ResolverType_Type : ResolverType {
     [System.Diagnostics.Contracts.Pure]
-    public override string TypeName(ModuleDefinition context, bool parseAble) {
+    public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
     }
@@ -1195,6 +1257,7 @@ class Resolver_IdentifierExpr : Expression, IHasUsages {
     Decl = decl;
     TypeArgs = typeArgs;
     Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
   public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
     : this(tok, tp, new List<Type>()) {
@@ -1430,6 +1493,8 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   public readonly Label/*?*/ AtLabel;
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
   [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<Type> TypeApplication_JustFunction;
   [FilledInDuringResolution] public bool IsByMethodCall;
@@ -2091,7 +2156,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
 
   public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
-    : base(tok) {
+    :
+    base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);
@@ -2615,6 +2681,14 @@ public class StmtExpr : Expression, ICanFormat {
     }
   }
 
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in E.TerminalExpressions) {
+        yield return e;
+      }
+    }
+  }
+
   /// <summary>
   /// Returns a conclusion that S gives rise to, that is, something that is known after
   /// S is executed.
@@ -2650,6 +2724,14 @@ public class ITEExpr : Expression, ICanFormat {
   public readonly Expression Test;
   public readonly Expression Thn;
   public readonly Expression Els;
+
+  public enum ITECompilation {
+    CompileBothBranches,
+    CompileJustThenBranch,
+    CompileJustElseBranch
+  };
+  public ITECompilation HowToCompile = ITECompilation.CompileBothBranches; // updated by CheckIsCompilable during resolution
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Test != null);
@@ -2674,6 +2756,17 @@ public class ITEExpr : Expression, ICanFormat {
       yield return Test;
       yield return Thn;
       yield return Els;
+    }
+  }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in Thn.TerminalExpressions) {
+        yield return e;
+      }
+      foreach (var e in Els.TerminalExpressions) {
+        yield return e;
+      }
     }
   }
 
@@ -2765,13 +2858,18 @@ public class CasePattern<VT> : TokenNode
       Var = cloner.CloneIVariable(original.Var, false);
     }
 
+    if (original.Arguments != null) {
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
+    }
+
+    // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
+    // If we resolve the expression first, the references to variables declared in the case pattern
+    // will be cloned as references instead of declarations,
+    // and when we clone the declarations the cache in Cloner.clones will incorrectly return
+    // the original variable instead.
     if (cloner.CloneResolvedFields) {
       Expr = cloner.CloneExpr(original.Expr);
       Ctor = original.Ctor;
-    }
-
-    if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
   }
 
@@ -2940,7 +3038,14 @@ public class AttributedExpression : TokenNode, IAttributeBearingDeclaration {
 }
 
 public class FrameExpression : TokenNode, IHasUsages {
-  public readonly Expression E;  // may be a WildcardExpr
+  public readonly Expression OriginalExpression; // may be a WildcardExpr
+  [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
+
+  /// <summary>
+  /// .E starts off as OriginalExpression; destructively updated to its desugared version during resolution
+  /// </summary>
+  public Expression E => DesugaredExpression ?? OriginalExpression;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);
@@ -2959,17 +3064,20 @@ public class FrameExpression : TokenNode, IHasUsages {
     Contract.Requires(e != null);
     Contract.Requires(!(e is WildcardExpr) || fieldName == null);
     this.tok = tok;
-    E = e;
+    OriginalExpression = e;
     FieldName = fieldName;
   }
 
   public FrameExpression(Cloner cloner, FrameExpression original) {
     this.tok = cloner.Tok(original.tok);
-    E = cloner.CloneExpr(original.E);
+    OriginalExpression = cloner.CloneExpr(original.OriginalExpression);
     FieldName = original.FieldName;
 
     if (cloner.CloneResolvedFields) {
       Field = original.Field;
+      if (original.DesugaredExpression != null) {
+        DesugaredExpression = cloner.CloneExpr(original.DesugaredExpression);
+      }
     }
   }
 
@@ -3013,6 +3121,14 @@ public abstract class ConcreteSyntaxExpression : Expression {
     get {
       if (ResolvedExpression != null) {
         yield return ResolvedExpression;
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      foreach (var e in ResolvedExpression.TerminalExpressions) {
+        yield return e;
       }
     }
   }
@@ -3174,7 +3290,7 @@ public class AutoGeneratedExpression : ParensExpression, ICloneable<AutoGenerate
 /// writing, a change to a separate type has shown to be more hassle than the need for special
 /// attention to DefaultValueExpression's in some places.
 /// </summary>
-public class DefaultValueExpression : ConcreteSyntaxExpression {
+public class DefaultValueExpression : ConcreteSyntaxExpression, ICloneable<DefaultValueExpression> {
   public readonly Formal Formal;
   public readonly Expression Receiver;
   public readonly Dictionary<IVariable, Expression> SubstMap;
@@ -3194,6 +3310,20 @@ public class DefaultValueExpression : ConcreteSyntaxExpression {
     TypeMap = typeMap;
     Type = formal.Type.Subst(typeMap);
     RangeToken = new RangeToken(tok, tok);
+  }
+
+  public DefaultValueExpression(Cloner cloner, DefaultValueExpression original) : base(cloner, original) {
+    if (!cloner.CloneResolvedFields) {
+      throw new InvalidOperationException("DefaultValueExpression is created during resolution");
+    }
+    Formal = cloner.CloneFormal(original.Formal, true);
+    Receiver = cloner.CloneExpr(original.Receiver);
+    SubstMap = original.SubstMap;
+    TypeMap = original.TypeMap;
+  }
+
+  public DefaultValueExpression Clone(Cloner cloner) {
+    return new DefaultValueExpression(cloner, this);
   }
 }
 
@@ -3431,7 +3561,7 @@ public abstract class SuffixExpr : ConcreteSyntaxExpression {
   }
 }
 
-public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
+public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public readonly List<Type> OptTypeArguments;
   public NameSegment(IToken tok, string name, List<Type> optTypeArguments)
@@ -3453,6 +3583,13 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment> {
   }
 
   public override IEnumerable<Node> PreResolveChildren => OptTypeArguments ?? new List<Type>();
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetTypeLikeIndentation(indentBefore, OwnedTokens);
+    foreach (var subType in PreResolveChildren.OfType<Type>()) {
+      formatter.SetTypeIndentation(subType);
+    }
+    return false;
+  }
 }
 
 /// <summary>

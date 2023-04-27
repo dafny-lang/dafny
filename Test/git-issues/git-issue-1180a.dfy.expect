@@ -15,39 +15,39 @@ git-issue-1180a.dfy(24,8): Error: declaration 'Class' indicates refining (notati
 git-issue-1180a.dfy(25,8): Error: declaration 'Trait' indicates refining (notation `...`), but does not refine anything
 git-issue-1180a.dfy(23,10): Info: defaulting to 'int' for unspecified base type of 'Newtype'
 git-issue-1180a.dfy(37,9): Error: opaque type 'Ty' is declared with a different number of type parameters (2 instead of 1) than the corresponding opaque type in the module it refines
-git-issue-1180a.dfy(38,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(38,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(38,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(38,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(39,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(39,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy(43,13): Error: datatype 'Ty' is declared with a different number of type parameters (0 instead of 1) than the corresponding datatype in the module it refines
-git-issue-1180a.dfy(44,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(44,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(44,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(44,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(45,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(45,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy[Datatype'](31,12): Error: Duplicate member name: c
-git-issue-1180a.dfy[Datatype'](32,22): Error: Duplicate member name: F
+git-issue-1180a.dfy[Datatype'](32,15): Error: Duplicate member name: F
 git-issue-1180a.dfy[Datatype'](33,13): Error: Duplicate member name: M
 git-issue-1180a.dfy(52,15): Error: codatatype 'Ty' is declared with a different number of type parameters (0 instead of 1) than the corresponding codatatype in the module it refines
-git-issue-1180a.dfy(53,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(53,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(53,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(53,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(54,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(54,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy[Codatatype'](31,12): Error: Duplicate member name: c
-git-issue-1180a.dfy[Codatatype'](32,22): Error: Duplicate member name: F
+git-issue-1180a.dfy[Codatatype'](32,15): Error: Duplicate member name: F
 git-issue-1180a.dfy[Codatatype'](33,13): Error: Duplicate member name: M
 git-issue-1180a.dfy(61,12): Error: newtype 'Ty' is declared with a different number of type parameters (0 instead of 1) than the corresponding newtype in the module it refines
-git-issue-1180a.dfy(62,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(62,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(62,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(62,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(63,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(63,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy(67,10): Error: class 'Ty' is declared with a different number of type parameters (0 instead of 1) than the corresponding class in the module it refines
-git-issue-1180a.dfy(68,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(68,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(68,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(68,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(69,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(69,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy(73,10): Error: trait 'Ty' is declared with a different number of type parameters (0 instead of 1) than the corresponding trait in the module it refines
-git-issue-1180a.dfy(74,22): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
-git-issue-1180a.dfy(74,22): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
+git-issue-1180a.dfy(74,15): Error: function 'F' is declared with a different number of type parameters (1 instead of 0) than the corresponding function in the module it refines
+git-issue-1180a.dfy(74,15): Error: the result type of function 'F' (Z) differs from the result type of the corresponding function in the module it refines (nat)
 git-issue-1180a.dfy(75,13): Error: method 'M' is declared with a different number of type parameters (1 instead of 0) than the corresponding method in the module it refines
 git-issue-1180a.dfy(75,35): Error: the type of out-parameter 'r' is different from the type of the same out-parameter in the corresponding method in the module it refines ('Z' instead of 'nat')
 git-issue-1180a.dfy(79,9): Error: a type synonym (Ty) cannot declare members, so it cannot refine an opaque type with members

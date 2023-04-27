@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -51,6 +52,17 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
     Exact = exact;
     Attributes = attrs;
   }
+
+  public static LetExpr Havoc(IToken tok, Type type = null) {
+    type ??= new InferredTypeProxy();
+    var boundVar = new BoundVar(tok, "x", type);
+    var casePatterns = new List<CasePattern<BoundVar>>() { new(tok, boundVar) };
+    return new LetExpr(tok, casePatterns, new List<Expression>() { CreateBoolLiteral(tok, true) },
+      new IdentifierExpr(tok, boundVar), false) {
+      Type = type
+    };
+  }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       foreach (var e in Attributes.SubExpressions(Attributes)) {
@@ -60,6 +72,39 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
         yield return rhs;
       }
       yield return Body;
+    }
+  }
+
+  public override IEnumerable<Expression> TerminalExpressions {
+    get {
+      // The terminal expressions of a let expression are usually the terminal expressions of
+      // the let's body. However, if anyone of those terminal expressions is a simple bound
+      // variable of an exact let expression, then that terminal expression is replaced by
+      // the terminal expressions of the corresponding RHS.
+      // For example, the terminal expressions of
+      //     var x := E;
+      //     assert P(x);
+      //     x
+      // are the terminal expressions of E.
+      Contract.Assert(!Exact || LHSs.Count == RHSs.Count);
+      var rhsUsed = new bool[LHSs.Count];
+      foreach (var e in Body.TerminalExpressions) {
+        if (Exact) {
+          for (var i = 0; i < LHSs.Count; i++) {
+            if (LHSs[i].Var != null && IdentifierExpr.Is(e, LHSs[i].Var)) {
+              if (!rhsUsed[i]) {
+                foreach (var ee in RHSs[i].TerminalExpressions) {
+                  yield return ee;
+                }
+                rhsUsed[i] = true;
+              }
+              goto Next;
+            }
+          }
+        }
+        yield return e;
+      Next: { }
+      }
     }
   }
 

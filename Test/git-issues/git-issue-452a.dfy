@@ -1,11 +1,11 @@
 // RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function TwinPrimes(): (int, int) {
+ghost function TwinPrimes(): (int, int) {
   (41, 43)
 }
 
-function method TwinPrimesM(): (int, int) {
+function TwinPrimesM(): (int, int) {
   (41, 43)
 }
 

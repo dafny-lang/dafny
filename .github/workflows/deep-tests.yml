@@ -13,7 +13,7 @@ on:
     # Chosen to be hopefully outside of business hours for most contributors'
     # time zones, and not on the hour to avoid heavy scheduled-job times:
     # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
-    - cron: "30 6 * * *"
+    - cron: "30 14 * * *"
   workflow_dispatch:
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       num_shards: 5
 
   determine-vars:
-    if: github.repository_owner == 'dafny-lang'
+    if: github.repository_owner == 'dafny-lang' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Dafny
@@ -43,7 +43,6 @@ jobs:
       name: nightly-${{ env.date }}-${{ env.sha_short }}
 
   publish-release:
-    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/publish-release-reusable.yml
     needs: [deep-integration-tests, determine-vars]
     with:

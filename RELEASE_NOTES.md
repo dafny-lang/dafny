@@ -2,6 +2,72 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.0.0
+
+## Breaking changes
+
+- Remove deprecated countVerificationErrors option (https://github.com/dafny-lang/dafny/pull/3165)
+
+- The default version of Z3 Dafny uses for verification is now 4.12.1. (https://github.com/dafny-lang/dafny/pull/3400)
+
+- The default values of several options has changed in Dafny 4.0. See `--help` for details.
+     - `--function-syntax` changed from `3` to `4`
+     - `--quantifier-syntax` changed from `3` to `4`
+     - `--unicode-char` changed from `false` to `true`
+  (https://github.com/dafny-lang/dafny/pull/3623)
+
+- The default value of the `/allocated` option is now `4`, and the option itself is deprecated. (https://github.com/dafny-lang/dafny/pull/3637)
+
+- Compilation to Go no longer attempts to use the Dafny `string` type and the Go `string` type interchangably when calling external methods (which was buggy and unsound). (https://github.com/dafny-lang/dafny/pull/3647)
+
+# 3.13.1
+
+## New features
+
+- Expose non-relaxed definite assignment (`/definiteAssignment:4`) in legacy CLI (https://github.com/dafny-lang/dafny/pull/3641)
+
+## Bug fixes
+
+- Fix translation of Dafny FunctionHandles to Boogie (https://github.com/dafny-lang/dafny/pull/2266)
+
+- To ensure that a `class` correctly implements a `trait`, we perform an override check. This check was previously faulty across `module`s, but works unconditionally now. (https://github.com/dafny-lang/dafny/pull/3479)
+
+- Fixes to definite assignment and determinism options:
+     - `--enforce-determinism` now forbids constructor-less classes
+     - With non-relaxed definite assignment, allow auto-init fields to be uninitialized
+  (https://github.com/dafny-lang/dafny/pull/3641)
+
+# 3.12.0
+
+## New features
+
+- Dafny code formatter with IDE support (https://github.com/dafny-lang/dafny/pull/2399)
+     - Makes it possible to "format" one or many Dafny files on the command-line, which for now means only changing the indentation of lines.
+     - Instructions and more details are available in the [Dafny Reference Manual](https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dafny-format)
+
+- Implements error detail information and quick fixes:
+     - An error catalog with error message explanations is at https://dafny.org/latest/HowToFAQ/Errors
+     - In VSCode, when hovering over an error, the hover information shows additional explanation and
+       an error id, which is also a link to the error explanation page
+     - Where a Quick Fix is available, the Quick Fix link is active
+  (https://github.com/dafny-lang/dafny/pull/3299)
+
+- * `opaque` is now a modifier, though still allowed, but deprecated as an identifier; it replaces the `{:opaque}` attribute (https://github.com/dafny-lang/dafny/pull/3462)
+
+- * The value of the --library option is allowed to be a comma-separated list of files or folders (https://github.com/dafny-lang/dafny/pull/3540)
+
+## Bug fixes
+
+- Exclude verifier's type information for “new object” allocations (https://github.com/dafny-lang/dafny/pull/3450)
+
+- The Dafny scanner no longer treats lines beginning with # (even those in strings) as pragmas. (https://github.com/dafny-lang/dafny/pull/3452)
+
+- * The attribute `:heapQuantifier` is deprecated and will be removed in the future. (https://github.com/dafny-lang/dafny/pull/3456)
+
+- Fixed race conditions in the language server that made gutter icons behave abnormally (https://github.com/dafny-lang/dafny/pull/3502)
+
+- No more crash when hovering assertions that reference code written in other smaller files (https://github.com/dafny-lang/dafny/pull/3585)
+
 # 3.11.0
 
 ## New features

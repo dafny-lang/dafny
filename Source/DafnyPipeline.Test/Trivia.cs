@@ -18,9 +18,8 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      ErrorReporter reporter = new ConsoleErrorReporter();
       var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+      ErrorReporter reporter = new ConsoleErrorReporter(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
@@ -72,9 +71,9 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
+        BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);

@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -19,11 +18,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 /// This class tests whether editing a file results in
 /// methods priorities for verification being set automatically.
 /// </summary>
-[TestClass]
 public class ReorderingVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
+  [Fact/*, Timeout(MaxTestExecutionTimeMs * 10)*/]
   public async Task EnsuresPriorityDependsOnEditing() {
     await TestPriorities(@"
 method m1() {
@@ -39,7 +37,7 @@ method m2() {
     );
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityDependsOnEditingWhileEditingSameMethod() {
     await TestPriorities(@"
 method m1() {
@@ -71,7 +69,7 @@ method m5() {
     );
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethods() {
     await TestPriorities(@"
 method m1() { assert false; }
@@ -90,7 +88,7 @@ method m5() { assert false; } //Remove3:
       "m4 m3 m1 m2");
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsuresPriorityWorksEvenIfRemovingMethodsWhileTypo() {
     await TestPriorities(@"
 method m1() { assert false; }
@@ -116,24 +114,27 @@ method m5() { assert false; } //Remove4:
 
   // Requires changes to not change the position of symbols for now, as we are not applying the changes to the local code for now.
   private async Task TestPriorities(string codeAndChanges, string symbolsString) {
-    var symbols = ExtractSymbols(symbolsString);
     var semaphoreSlim = new SemaphoreSlim(0);
-    var original = DafnyOptions.O.CreateSolver;
-    DafnyOptions.O.CreateSolver = (_, _) =>
-      new UnsatSolver(semaphoreSlim);
-    await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
+    await SetUp(options => {
+      options.CreateSolver = (_, _) =>
+        new UnsatSolver(semaphoreSlim);
+      options.Set(BoogieOptionBag.Cores, 1U);
+    });
+    var symbols = ExtractSymbols(symbolsString);
 
     var (code, changes) = ExtractCodeAndChanges(codeAndChanges.TrimStart());
     var documentItem = CreateTestDocument(code);
     client.OpenDocument(documentItem);
 
+    var source = new CancellationTokenSource();
+    source.CancelAfter(TimeSpan.FromMinutes(5));
     var index = 0;
     // ReSharper disable AccessToModifiedClosure
     async Task CompareWithExpectation(List<string> expectedSymbols) {
       try {
-        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, CancellationToken);
+        var orderAfterChange = await GetFlattenedPositionOrder(semaphoreSlim, source.Token);
         var orderAfterChangeSymbols = GetSymbols(code, orderAfterChange).ToList();
-        Assert.IsTrue(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
+        Assert.True(expectedSymbols.SequenceEqual(orderAfterChangeSymbols),
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
           $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       } catch (OperationCanceledException) {
@@ -158,8 +159,6 @@ method m5() { assert false; } //Remove4:
         await CompareWithExpectation(expectedSymbols);
       }
     }
-
-    DafnyOptions.O.CreateSolver = original;
   }
 
   private IEnumerable<string> GetSymbols(string code, List<Position> positions) {
@@ -200,7 +199,9 @@ method m5() { assert false; } //Remove4:
 
       } catch (OperationCanceledException) {
         Console.WriteLine("count: " + count);
-        Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus!.NamedVerifiables));
+        if (foundStatus != null) {
+          Console.WriteLine("Found status before timeout: " + string.Join(", ", foundStatus.NamedVerifiables));
+        }
         Console.WriteLine($"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
         throw;
       }
@@ -229,10 +230,5 @@ method m5() { assert false; } //Remove4:
 
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
-  }
-
-  [TestCleanup]
-  public void Cleanup() {
-    DafnyOptions.Install(DafnyOptions.Create());
   }
 }

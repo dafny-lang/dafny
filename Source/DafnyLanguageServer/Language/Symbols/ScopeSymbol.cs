@@ -4,7 +4,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
-    public object Node { get; }
+    public INode Node { get; }
     public readonly IToken BodyStartToken;
     public readonly IToken BodyEndToken;
     public List<ISymbol> Symbols { get; } = new();
@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return visitor.Visit(this);
     }
 
-    public string GetDetailText(CancellationToken cancellationToken) {
+    public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return "";
     }
   }

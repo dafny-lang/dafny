@@ -11,7 +11,6 @@ namespace SimpleCompiler {
 
   namespace CSharpAST {
     public class AST { } // ANTLR root
-
     public class Expr : AST { }
 
     public class Const : Expr {

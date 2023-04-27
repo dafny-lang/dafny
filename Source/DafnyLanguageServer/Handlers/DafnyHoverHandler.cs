@@ -20,14 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
+    private DafnyOptions options;
 
     private const int RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;
+      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -72,10 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       areMethodStatistics = false;
       foreach (var diagnostic in state.Diagnostics) {
         if (diagnostic.Range.Contains(position)) {
-          string? code = diagnostic.Code;
-          ErrorDetail.ErrorID errorID = ErrorDetail.ErrorID.None;
-          Enum.TryParse<ErrorDetail.ErrorID>(code, out errorID);
-          string? detail = ErrorDetail.GetDetail(errorID);
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
           if (detail is not null) {
             return detail;
           }
@@ -258,8 +257,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + ideState.TextDocumentItem.Text.Substring(rangeToken.StartToken.pos,
-              rangeToken.EndToken.pos + rangeToken.EndToken.val.Length - rangeToken.StartToken.pos);
+            var originalText = rangeToken.PrintOriginal();
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
           }
 
           hoveringPostcondition = false;
@@ -346,8 +345,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
+    private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
+      var docString = symbol.Node is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
+      return (docString + $"\n```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
     }
   }
 }

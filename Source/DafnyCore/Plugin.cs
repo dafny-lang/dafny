@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -8,17 +9,22 @@ namespace Microsoft.Dafny;
 using Dafny.Plugins;
 
 public interface Plugin {
-  public IEnumerable<IExecutableBackend> GetCompilers();
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options);
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter);
+  public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options);
 }
 
 record ErrorPlugin(string AssemblyAndArgument, Exception Exception) : Plugin {
-  public IEnumerable<IExecutableBackend> GetCompilers() {
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
     return Enumerable.Empty<IExecutableBackend>();
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
     return new[] { new ErrorRewriter(reporter, this) };
+  }
+
+  public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
+    return Enumerable.Empty<DocstringRewriter>();
   }
 
   class ErrorRewriter : IRewriter {
@@ -42,12 +48,16 @@ public class ConfiguredPlugin : Plugin {
     Configuration = configuration;
   }
 
-  public IEnumerable<IExecutableBackend> GetCompilers() {
-    return Configuration.GetCompilers();
+  public IEnumerable<IExecutableBackend> GetCompilers(DafnyOptions options) {
+    return Configuration.GetCompilers(options);
   }
 
   public IEnumerable<IRewriter> GetRewriters(ErrorReporter reporter) {
     return Configuration.GetRewriters(reporter).Select(rewriter => new PluginRewriter(reporter, rewriter));
+  }
+
+  public IEnumerable<DocstringRewriter> GetDocstringRewriters(DafnyOptions options) {
+    return Configuration.GetDocstringRewriters(options);
   }
 }
 
@@ -101,7 +111,7 @@ public class AssemblyPlugin : ConfiguredPlugin {
       Rewriters.Select(funcErrorReporterRewriter =>
         funcErrorReporterRewriter(errorReporter)).ToArray();
 
-    public override IExecutableBackend[] GetCompilers() =>
+    public override IExecutableBackend[] GetCompilers(DafnyOptions options) =>
       Compilers.Select(c => c()).ToArray();
   }
 

@@ -199,7 +199,7 @@ Even ghost functions must have bodies because body-less ghost functions are a fo
 
 <!-- %check-run -->
 ```dafny
-function {:test} f(): int { 42 }
+ghost function {:test} f(): int { 42 }
 ```
 
 Only compiled functions and methods may be tested using the `dafny test` command, 
@@ -212,6 +212,7 @@ or as `function method` instead of `function` in Dafny 3.
 ## **Error: Method _name_ is annotated with :synthesize but is not static, has a body, or does not return anything**
 
 <!-- TODO: Need example? -->
+
 
 The `{:synthesize}` attribute is an experimental attribute used to create 
 a mock object for methods that do not have bodies.
@@ -231,16 +232,13 @@ so they too must have bodies.
 
 ## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be marked as :handle as well: _trait_**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
+The `:handle` attribute is deprecated.
 
 ## **Error: _kind '_name_' is marked as :handle, so all its non-static members must be ghost: _trait_**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
+The `:handle` attribute is deprecated.
 
-
-## **Error: an assume statement without an {:axiom} attribute cannot be compiled**
+## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)**
 
 <!-- %check-run -->
 ```dafny
@@ -259,10 +257,11 @@ If the assumption marked with `{:axiom}` is not actually valid, then the validit
 
 ## **Error: a forall statement without a body cannot be compiled**
 
-<!-- %check-run -->
+<!-- %no-check  FIX: now has multiple lines of error messages -->
 ```dafny
+predicate P(i: int)
 method m(a: array<int>) {
-  forall x: int | x > 0 
+  forall x: int | P(x) 
   var y := 3;
 }
 ```
@@ -274,7 +273,7 @@ similar to unchecked assumptions.
 
 ## **Error: a loop without a body cannot be compiled**
 
-<!-- %check-run -->
+<!-- %no-check  FIX: now has multiple lines of error messages -->
 ```dafny
 ghost method m(i: int) {
   var x: int := i;
@@ -487,47 +486,6 @@ This message relates to mocking methods in C# with the Moq framework.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
 <!-- DafnyCore/Compilers/Compiler-Csharp.cs -->
-
-# Errors specific to the C# compiler
-
-## **Error: Expected arguments are {:dllimport dllName} or {:dllimport dllName, entryPoint} where dllName and entryPoint are strings: _argument_**
-
-<!-- %check-run -->
-```dafny
-class A { 
-  var Q: string
-  method {:dllimport Q} mm()
-}
-```
-
-A `{:dllimport}` attribute states that the method is implemented in the given dll.
-Accordingly the attribute has an argument that names the dll and, possibly, the entry point within the dll.
-Both of these arguments must be string literals.
-
-## **Error: A _kind_ declared with :dllimport is not allowed a body: _name_**
-
-<!-- %check-run -->
-```dafny
-class A { 
-  method {:dllimport "Q.dll"} mm() {}
-}
-```
-
-The `{:dllimport}` attribute indicates that the given method is implemented in the stated dll.
-As such, the method should not have a body. The method should, though, have specifications,
-as these specifications will be used to reason about the calls of the method elsewhere in the
-Dafny program.
-
-## **Error: A _kind_ declared with :dllimport must be static: _name_**
-
-<!-- %check-run -->
-```dafny
-class A { 
-  method {:dllimport "Q.dll"} mm()
-}
-```
-
-Only static methods may be associated with dlls.
 
 <!-- DafnyCore/Compilers/Compiler-go.cs -->
 # Errors specific to the Go compiler

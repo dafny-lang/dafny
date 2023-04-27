@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using static Microsoft.Dafny.ErrorDetail;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
@@ -41,7 +41,7 @@ public class ExpectContracts : IRewriter {
     var msg = $"Runtime failure of {exprType} clause from {tok.filename}:{tok.line}:{tok.col}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
-      Reporter.Warning(MessageSource.Rewriter, ErrorID.None, tok,
+      Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
       msg += " (not compiled because it references ghost state)";
@@ -92,7 +92,7 @@ public class ExpectContracts : IRewriter {
 
     if (decl is Method origMethod) {
       var newMethod = cloner.CloneMethod(origMethod);
-      newMethod.Name = newName;
+      newMethod.NameNode.Value = newName;
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
@@ -105,7 +105,7 @@ public class ExpectContracts : IRewriter {
       newDecl = newMethod;
     } else if (decl is Function origFunc) {
       var newFunc = cloner.CloneFunction(origFunc);
-      newFunc.Name = newName;
+      newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
       var callExpr = ApplySuffix.MakeRawApplySuffix(tok, origFunc.Name, args);
@@ -202,11 +202,11 @@ public class ExpectContracts : IRewriter {
       }
       // If there's no wrapper for the callee, don't try to call it, but warn.
       if (!newRedirections.ContainsKey(callee)) {
-        reporter.Warning(MessageSource.Rewriter, ErrorID.None, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+        reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
         return false;
       }
 
-      var opt = DafnyOptions.O.TestContracts;
+      var opt = reporter.Options.TestContracts;
       return ((HasTestAttribute(caller) && opt == DafnyOptions.ContractTestingMode.TestedExterns) ||
               (opt == DafnyOptions.ContractTestingMode.Externs)) &&
              // Skip if the caller is a wrapper, otherwise it'd just call itself recursively.
@@ -278,7 +278,7 @@ public class ExpectContracts : IRewriter {
   }
 
   internal override void PostResolve(Program program) {
-    if (DafnyOptions.O.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
+    if (Reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
       return;
     }
 
@@ -287,7 +287,7 @@ public class ExpectContracts : IRewriter {
       callRedirector.newRedirections.ExceptBy(callRedirector.calledWrappers, x => x.Value);
     foreach (var uncalledRedirection in uncalledRedirections) {
       var uncalledOriginal = uncalledRedirection.Key;
-      Reporter.Warning(MessageSource.Rewriter, ErrorID.None, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+      Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
   }
 }
