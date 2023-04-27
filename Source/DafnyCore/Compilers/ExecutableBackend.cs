@@ -20,7 +20,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
 
   public override IReadOnlySet<Feature> UnsupportedFeatures => CreateCompiler().UnsupportedFeatures;
 
-  public override bool SupportsDatatypeWrapperErasure => CreateCompiler().SupportsDatatypeWrapperErasure;
+  public override bool SupportsDatatypeWrapperErasure => 
+    CreateCompiler()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
