@@ -921,13 +921,6 @@ namespace Microsoft.Dafny {
       stmt.SubStatements.Iter(Visit);
       VisitOneStmt(stmt);
     }
-
-    // public void Visit(TopLevelDecl decl) {
-    //   
-    // }
-    // public void Visit(ModuleDefinition module) {
-    //   module.TopLevelDecls.Iter(Visit);
-    // }
     protected virtual void VisitOneExpr(Expression expr) {
       Contract.Requires(expr != null);
       // by default, do nothing
