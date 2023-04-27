@@ -14,8 +14,6 @@ public class RustBackend : DafnyExecutableBackend {
   public override string TargetLanguage => "Rust";
   public override string TargetExtension => "rs";
   public override int TargetIndentSize => 4;
-  public override string TargetBaseDir(string dafnyProgramName) =>
-    $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rs";
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
@@ -23,20 +21,26 @@ public class RustBackend : DafnyExecutableBackend {
     return new RustCompiler();
   }
 
+  private string ComputeExeName(string targetFilename) {
+    return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
+  }
+  
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     compilationResult = null;
-    return true;
+    var psi = PrepareProcessStartInfo("rustc", new List<string> {
+      "-o", ComputeExeName(targetFilename),
+      targetFilename
+    });
+    return 0 == RunProcess(psi, outputWriter, "Error while compiling Rust files.");
   }
   
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
-
-
-    return true;
-
+    var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
+    return 0 == RunProcess(psi, outputWriter);
   }
 
   public RustBackend(DafnyOptions options) : base(options) {

@@ -28,6 +28,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
     compiler.Compile(dafnyProgram, output);
+    output.Clear();
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
