@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.Configuration;
 using System.IO;
 using System.IO.Compression;
@@ -11,6 +12,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.Auditor;
 using Tomlyn;
 using Tomlyn.Model;
+using Type = System.Type;
 
 namespace DafnyCore; 
 
@@ -45,8 +47,8 @@ public class DooFile {
       SolverVersion = options.SolverVersion.ToString();
 
       Options = new Dictionary<string, object>();
-      foreach (var (option, check) in OptionChecks) {
-        options.Options.OptionArguments.TryGetValue(option, out var optionValue);
+      foreach (var (option, _) in OptionChecks) {
+        var optionValue = GetOptionValue(options, option);
         Options.Add(option.Name, optionValue);
       }
     }
@@ -110,27 +112,54 @@ public class DooFile {
   private DooFile() {
   }
 
-  public bool Validate(string filePath, DafnyOptions options) {
+  public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
     if (options.VersionNumber != Manifest.DafnyVersion) {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;
     }
 
     var success = true;
+    var revelantOptions = currentCommand.Options.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
-      if (!options.Options.OptionArguments.TryGetValue(option, out var localValue)) {
-        localValue = new List<string>();
+      // It's important to only look at the options the current command uses,
+      // because other options won't be initialized to the correct default value.
+      // See CommandRegistry.Create().
+      if (!revelantOptions.Contains(option)) {
+        continue;
       }
-      if (!Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
+      
+      var localValue = options.Get(option);
+      
+      if (Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
+        libraryValue = FromTomlValue(option, libraryValue);
+      } else if (option.ValueType == typeof(IEnumerable<string>)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = new TomlArray();
-      };
-      libraryValue = FromTomlValue(option, libraryValue);
+        libraryValue = Array.Empty<string>();
+      }
       success = success && check(options, option, localValue, filePath, libraryValue);
     }
     return success;
   }
 
+  private static object GetOptionValue(DafnyOptions options, Option option) {
+    // This is annoyingly necessary because only DafnyOptions.Get<T>(Option<T> option)
+    // handles falling back to the configured default option value,
+    // whereas the non-generic DafnyOptions.Get(Option option) doesn't.
+    // TODO: Move somewhere more generic if this is useful in other cases?
+    var optionType = option.ValueType;
+    if (optionType == typeof(bool)) {
+      return options.Get((Option<bool>)option);
+    }
+    if (optionType == typeof(string)) {
+      return options.Get((Option<string>)option);
+    }
+    if (optionType == typeof(IEnumerable<string>)) {
+      return options.Get((Option<IEnumerable<string>>)option);
+    }
+
+    throw new ArgumentException();
+  } 
+  
   private static object FromTomlValue(Option option, object tomlValue) {
     if (option.ValueType == typeof(IEnumerable<string>)) {
       return ((TomlArray)tomlValue).Select(o => (string)o).ToList();

@@ -144,6 +144,7 @@ static class CommandRegistry {
         dafnyOptions.ApplyBinding(option);
       }
 
+      dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       commandSpec.PostProcess(dafnyOptions, options, context);
     }
