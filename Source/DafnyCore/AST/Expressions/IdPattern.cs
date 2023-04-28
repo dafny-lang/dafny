@@ -118,7 +118,8 @@ public class IdPattern : ExtendedPattern, IHasUsages {
       for (var index = 0; index < Arguments.Count; index++) {
         var argument = Arguments[index];
         var formal = Ctor.Formals[index];
-        argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst), formal.IsGhost, inStatementContext, true, inDisjunctivePattern);
+        argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst),
+          isGhost || formal.IsGhost, inStatementContext, true, inDisjunctivePattern);
       }
     }
   }
