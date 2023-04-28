@@ -389,7 +389,7 @@ partial class Resolver {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Requires(what != null);
-      t = t.NormalizeExpand();
+      t = t.NormalizeExpandKeepConstraints();
 
       if (t is TypeProxy) {
         var proxy = (TypeProxy)t;
