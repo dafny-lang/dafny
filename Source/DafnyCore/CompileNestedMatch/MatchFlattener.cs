@@ -339,11 +339,11 @@ public class MatchFlattener : IRewriter {
       foreach (var path in paths) {
         var (head, tail) = SplitPath(path);
         if (head is IdPattern idPattern) {
-          if (ctor.Name.Equals(idPattern.Id) && idPattern.Arguments != null) {
+          if (ctor.Name == idPattern.Id && idPattern.Arguments != null) {
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
             // After making sure the constructor is applied to the right number of arguments
 
-            if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
+            if (idPattern.Arguments.Count != ctor.Formals.Count) {
               Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
