@@ -127,9 +127,9 @@ public class DooFile {
       if (!revelantOptions.Contains(option)) {
         continue;
       }
-      
+
       var localValue = options.Get(option);
-      
+
       if (Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
         libraryValue = FromTomlValue(option, libraryValue);
       } else if (option.ValueType == typeof(IEnumerable<string>)) {
@@ -158,8 +158,8 @@ public class DooFile {
     }
 
     throw new ArgumentException();
-  } 
-  
+  }
+
   private static object FromTomlValue(Option option, object tomlValue) {
     if (option.ValueType == typeof(IEnumerable<string>)) {
       return ((TomlArray)tomlValue).Select(o => (string)o).ToList();

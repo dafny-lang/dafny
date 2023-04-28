@@ -27,7 +27,7 @@ public class DooFileTest {
     var source = File.ReadAllText(filePath);
     Assert.Throws<TomlException>(() => DooFile.ManifestData.Read(new StringReader(source)));
   }
-  
+
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
     var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     const string fullFilePath = "foo";
