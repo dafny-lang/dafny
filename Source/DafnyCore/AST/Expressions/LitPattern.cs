@@ -84,9 +84,4 @@ public class LitPattern : ExtendedPattern {
     resolver.AddAssignableConstraint(literal.tok, sourceType, literal.Type,
       "literal expression in case (of type '{1}') not assignable to match source type '{0}'");
   }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    return Enumerable.Empty<(BoundVar var, Expression usage)>();
-  }
 }

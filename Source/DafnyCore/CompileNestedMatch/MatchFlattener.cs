@@ -718,7 +718,7 @@ public class MatchFlattener : IRewriter {
       }
     }
     if (bodyPath is StmtPatternPath stmtPath) {
-      if (stmtPath.Body.Count <= 0) {
+      if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
         return stmtPath;
       }
 
@@ -759,12 +759,11 @@ public class MatchFlattener : IRewriter {
 
   // If cp is not a literal or wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
-  private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
-    Contract.Assert(var.Ctor == null);
-    if (var.ResolvedLit == null && !var.IsWildcardExact) {
-      return LetBind(var, expr, bodyPath);
+  private PatternPath LetBindNonWildCard(IdPattern idPattern, Expression expr, PatternPath bodyPath) {
+    Contract.Assert(idPattern.Ctor == null);
+    if (idPattern.ResolvedLit != null || idPattern.IsWildcardPattern) {
+      return bodyPath;
     }
-
-    return bodyPath;
+    return LetBind(idPattern, expr, bodyPath);
   }
 }
