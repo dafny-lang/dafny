@@ -1454,6 +1454,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
           Indent(indent); PrintStatement(s.Flattened, indent);
+          wr.WriteLine();
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
