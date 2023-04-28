@@ -1167,6 +1167,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private void SetZ3Options(Version z3Version) {
+      // Don't allow changing this once set, just in case:
+      // a DooFile will record this and will get confused if it changes.
+      if (SolverIdentifier != null || SolverVersion != null) {
+        throw new Exception("Attempted to set Z3 options more than once");
+      }
       SolverIdentifier = "Z3";
       SolverVersion = z3Version;
 
