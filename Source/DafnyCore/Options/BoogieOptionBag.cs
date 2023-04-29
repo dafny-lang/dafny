@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Transactions;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -71,6 +72,18 @@ public static class BoogieOptionBag {
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
+
+    DooFile.RegisterLibraryChecks(
+      new Dictionary<Option, DooFile.OptionCheck> {
+        { BoogieArguments, DooFile.CheckOptionMatches },
+        { BoogieFilter, DooFile.CheckOptionMatches },
+        { NoVerify, DooFile.CheckOptionMatches },
+      }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Cores,
+      VerificationTimeLimit
+    );
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {
