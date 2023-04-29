@@ -56,16 +56,22 @@ namespace Microsoft.Dafny {
       protected object[] RemoveAmbiguity(object[] msgArgs) {
         var renderedInterpolated = new HashSet<string>();
         var ambiguity = false;
+        var same = msgArgs.Length > 1;
+        string common = null;
         foreach (var x in msgArgs) {
           var str = x.ToString();
           if (renderedInterpolated.Contains(str)) {
             ambiguity = true;
           }
-
+          if (common == null) {
+            common = str;
+          } else if (common != str) {
+            same = false;
+          }
           renderedInterpolated.Add(str);
         }
-        if (ambiguity) {
-          return msgArgs.Select(x =>
+        if (ambiguity || same) {
+          msgArgs = msgArgs.Select(x =>
             (object)(x is UserDefinedType udt ? udt.FullName : x.ToString())
           ).ToArray();
         }
