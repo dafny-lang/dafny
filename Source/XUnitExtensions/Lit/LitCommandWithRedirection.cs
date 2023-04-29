@@ -37,7 +37,7 @@ namespace XUnitExtensions.Lit {
       var redirectErrorIndex = argumentList.FindIndex(t => t.Value == "&>");
       if (redirectErrorIndex >= 0) {
         errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
-        argumentList.RemoveRange(redirectErrorIndex, 2);
+        argumentList.RemoveRange(redirectErrorIndex, 1);
       }
       redirectErrorIndex = argumentList.FindIndex(t => t.Value == "2>");
       if (redirectErrorIndex >= 0) {
