@@ -107,7 +107,7 @@ and can be used as input anywhere a `.dfy` file can be.
 identified with the name `lib` on the command line. For example, to build multiple
 Dafny files into a single build artifact for shared reuse, the command would look something like:
 
-```
+```bash
 dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
 ```
 
