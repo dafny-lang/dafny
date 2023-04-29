@@ -233,7 +233,7 @@ namespace Microsoft.Dafny {
       None
     } // note, these are ordered, so they can be used as indices into valuetypeDecls
 
-    readonly ValuetypeDecl[] valuetypeDecls;
+    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
@@ -2003,6 +2003,7 @@ namespace Microsoft.Dafny {
         f.ByMethodBody, f.Attributes, null, true);
       Contract.Assert(f.ByMethodDecl == null);
       method.InheritVisibility(f);
+      method.FunctionFromWhichThisIsByMethodDecl = f;
       f.ByMethodDecl = method;
     }
 
@@ -2325,6 +2326,10 @@ namespace Microsoft.Dafny {
         // Resolve all names and infer types.
         var preTypeResolver = new PreTypeResolver(this);
         preTypeResolver.ResolveDeclarations(declarations, moduleName);
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
+        }
 
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information

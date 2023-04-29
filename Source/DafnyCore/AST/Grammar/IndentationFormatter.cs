@@ -327,10 +327,5 @@ public class IndentationFormatter : IIndentationFormatter {
     return WhitespaceCache.GetOrAdd(characters, _ => new string(' ', characters));
   }
 
-  public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
-    _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, out newLeadingTrivia,
-      out newTrailingTrivia);
-  }
-
   #endregion
 }

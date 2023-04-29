@@ -467,7 +467,7 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the [`{:test}` attribute](#sec-test-attribute).
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
@@ -983,6 +983,44 @@ method Slow(i: int, j: int)
   }
 }
 ```
+
+Labelled assert statements are available both in expressions and statements.
+Assertion labels are not accessible outside of the block which the assert statement is in.
+If you need to access an assertion label outside of the enclosing expression or statement,
+you need to lift the labelled statement at the right place manually, e.g. rewrite
+
+<!-- %no-check -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  if x {
+    assert a: P(1) by { reveal r; }
+  }
+  assert x ==> P(1) by { reveal a; } // Error, a is not accessible
+}
+```
+to
+
+<!-- %check-verify -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  assert a: x ==> P(1) by {
+    if x {
+      assert P(1) by { reveal r; } // Proved without revealing the precondition
+    }
+  }
+  assert x ==> P(1) by { reveal a; } // Now a is accessible
+}
+```
+
+To lift assertions, please refer to the techniques described in [Verification Debugging](#sec-verification-debugging).
 
 #### 13.6.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
 
