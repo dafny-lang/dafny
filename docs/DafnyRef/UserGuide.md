@@ -96,7 +96,7 @@ These commands are described in [Section 13.5.1](#sec-dafny-commands).
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-### 13.3.1 Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
 As of Dafny 4.1, `dafny` now supports outputting a single file containing
 a fully-verified program along with metadata about how it was verified.
