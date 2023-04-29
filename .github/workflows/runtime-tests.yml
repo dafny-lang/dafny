@@ -33,6 +33,11 @@ jobs:
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
         run: make z3-ubuntu
+      - name: Test DafnyCore
+        run: |
+          cd ./Source/DafnyCore
+          make test
+          make check-format
       - name: Test DafnyRuntimeDafny
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeDafny

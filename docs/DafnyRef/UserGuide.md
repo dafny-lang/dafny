@@ -434,7 +434,7 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the [`{:test}` attribute](#sec-test-attribute).
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
