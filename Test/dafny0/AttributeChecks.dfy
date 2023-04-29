@@ -58,8 +58,8 @@ module JustAboutEverything {
   {
     match r {
       case Nil => Nil
-      case {:ignore 3 + true} Cons(h, Nil) => Nil // error:  3 + true is ill-typed
-      case {:ignore false} Cons(h, t) => CaseExpr(t)
+//      case {:ignore 3 + true} Cons(h, Nil) => Nil // error:  3 + true is ill-typed
+//      case {:ignore false} Cons(h, t) => CaseExpr(t)
     }
   }
 
