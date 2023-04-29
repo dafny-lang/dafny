@@ -15,8 +15,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public class UnderspecificationDetector : ResolverPass {
     public UnderspecificationDetector(Resolver resolver)
-      : base(resolver)
-    {
+      : base(resolver) {
     }
 
     /// <summary>
@@ -229,12 +228,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-    // ------------------------------------------------------------------------------------------------------
-    // ----- CheckTypeInference -----------------------------------------------------------------------------
-    // ------------------------------------------------------------------------------------------------------
-    // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
-    // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
-    // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
+  // ------------------------------------------------------------------------------------------------------
+  // ----- CheckTypeInference -----------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------------
+  // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
+  // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
+  // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
 #if SOON
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
@@ -581,17 +580,17 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Disjoint:
           return operandFamilyName == "multiset" ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt: {
-          if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
-            return BinaryExpr.ResolvedOpcode.RankLt;
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+              return BinaryExpr.ResolvedOpcode.RankLt;
+            }
+            return operandFamilyName switch {
+              "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSubset,
+              "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSubset,
+              "seq" => BinaryExpr.ResolvedOpcode.ProperPrefix,
+              "char" => BinaryExpr.ResolvedOpcode.LtChar,
+              _ => BinaryExpr.ResolvedOpcode.Lt
+            };
           }
-          return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSubset,
-            "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSubset,
-            "seq" => BinaryExpr.ResolvedOpcode.ProperPrefix,
-            "char" => BinaryExpr.ResolvedOpcode.LtChar,
-            _ => BinaryExpr.ResolvedOpcode.Lt
-          };
-        }
         case BinaryExpr.Opcode.Le:
           return operandFamilyName switch {
             "set" or "iset" => BinaryExpr.ResolvedOpcode.Subset,
@@ -613,16 +612,16 @@ namespace Microsoft.Dafny {
             _ => BinaryExpr.ResolvedOpcode.Add
           };
         case BinaryExpr.Opcode.Sub: {
-          var leftFamilyName = PreTypeResolver.AncestorName(leftOperandPreType);
-          if (leftFamilyName == "map" || leftFamilyName == "imap") {
-            return BinaryExpr.ResolvedOpcode.MapSubtraction;
+            var leftFamilyName = PreTypeResolver.AncestorName(leftOperandPreType);
+            if (leftFamilyName == "map" || leftFamilyName == "imap") {
+              return BinaryExpr.ResolvedOpcode.MapSubtraction;
+            }
+            return operandFamilyName switch {
+              "set" or "iset" => BinaryExpr.ResolvedOpcode.SetDifference,
+              "multiset" => BinaryExpr.ResolvedOpcode.MultiSetDifference,
+              _ => BinaryExpr.ResolvedOpcode.Sub
+            };
           }
-          return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.SetDifference,
-            "multiset" => BinaryExpr.ResolvedOpcode.MultiSetDifference,
-            _ => BinaryExpr.ResolvedOpcode.Sub
-          };
-        }
         case BinaryExpr.Opcode.Mul:
           return operandFamilyName switch {
             "set" or "iset" => BinaryExpr.ResolvedOpcode.Intersection,
@@ -630,16 +629,16 @@ namespace Microsoft.Dafny {
             _ => BinaryExpr.ResolvedOpcode.Mul
           };
         case BinaryExpr.Opcode.Gt: {
-          if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
-            return BinaryExpr.ResolvedOpcode.RankGt;
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+              return BinaryExpr.ResolvedOpcode.RankGt;
+            }
+            return operandFamilyName switch {
+              "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSuperset,
+              "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSuperset,
+              "char" => BinaryExpr.ResolvedOpcode.GtChar,
+              _ => BinaryExpr.ResolvedOpcode.Gt
+            };
           }
-          return operandFamilyName switch {
-            "set" or "iset" => BinaryExpr.ResolvedOpcode.ProperSuperset,
-            "multiset" => BinaryExpr.ResolvedOpcode.ProperMultiSuperset,
-            "char" => BinaryExpr.ResolvedOpcode.GtChar,
-            _ => BinaryExpr.ResolvedOpcode.Gt
-          };
-        }
         case BinaryExpr.Opcode.Ge:
           return operandFamilyName switch {
             "set" or "iset" => BinaryExpr.ResolvedOpcode.Superset,

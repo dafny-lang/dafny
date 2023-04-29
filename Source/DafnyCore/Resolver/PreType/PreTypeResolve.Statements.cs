@@ -1249,59 +1249,59 @@ namespace Microsoft.Dafny {
             ReportError(stmt, "new can be applied only to class types (got {0})", rr.EType);
           }
         } else {
-            string initCallName = null;
-            IToken initCallTok = null;
-            // Resolve rr.Path and do one of three things:
-            // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
-            // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
-            // * Otherwise, report an error
-            var ret = resolver.ResolveTypeLenient(rr.Tok, rr.Path, resolutionContext,
-              new Resolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
-            if (ret != null) {
-              // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-              rr.EType = ret.ReplacementType;
-              initCallName = ret.LastComponent.SuffixName;
-              initCallTok = ret.LastComponent.tok;
-            } else {
-              // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
-              // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
-              rr.EType = rr.Path;
-              initCallName = "_ctor";
-              initCallTok = rr.Tok;
-            }
-            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl == null || rr.EType.IsTraitType) {
-              ReportError(rr.tok, "new can be applied only to class types (got {0})", rr.EType);
-            } else {
-              // ---------- new C.Init(EE)
-              Contract.Assert(initCallName != null);
-              var prevErrorCount = ErrorCount;
+          string initCallName = null;
+          IToken initCallTok = null;
+          // Resolve rr.Path and do one of three things:
+          // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
+          // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
+          // * Otherwise, report an error
+          var ret = resolver.ResolveTypeLenient(rr.Tok, rr.Path, resolutionContext,
+            new Resolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+          if (ret != null) {
+            // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
+            rr.EType = ret.ReplacementType;
+            initCallName = ret.LastComponent.SuffixName;
+            initCallTok = ret.LastComponent.tok;
+          } else {
+            // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
+            // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
+            rr.EType = rr.Path;
+            initCallName = "_ctor";
+            initCallTok = rr.Tok;
+          }
+          var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+          if (cl == null || rr.EType.IsTraitType) {
+            ReportError(rr.tok, "new can be applied only to class types (got {0})", rr.EType);
+          } else {
+            // ---------- new C.Init(EE)
+            Contract.Assert(initCallName != null);
+            var prevErrorCount = ErrorCount;
 
-              // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
-              // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              // It is important that this throw-away receiver have its .PreType filled in, because the call to ResolveDotSuffix will recursive
-              // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
-              // static context" error if the code tried to resolve this "this" against the enclosing environment.
-              var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) {
-                Type = rr.EType,
-                PreType = Type2PreType(rr.EType)
-              };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
-              ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
-              if (prevErrorCount == ErrorCount) {
-                Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
-                var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
-                if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
-                  ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
-                  if (rr.InitCall.Method is Constructor) {
-                    callsConstructor = true;
-                  }
-                } else {
-                  ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
+            // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
+            // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
+            // It is important that this throw-away receiver have its .PreType filled in, because the call to ResolveDotSuffix will recursive
+            // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
+            // static context" error if the code tried to resolve this "this" against the enclosing environment.
+            var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) {
+              Type = rr.EType,
+              PreType = Type2PreType(rr.EType)
+            };
+            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
+            ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+            if (prevErrorCount == ErrorCount) {
+              Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
+              var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
+              if (methodSel.Member is Method) {
+                rr.InitCall = new CallStmt(stmt.RangeToken, new List<Expression>(), methodSel, rr.Bindings.ArgumentBindings, initCallTok);
+                ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
+                if (rr.InitCall.Method is Constructor) {
+                  callsConstructor = true;
                 }
+              } else {
+                ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
               }
             }
+          }
         }
         if (rr.EType.IsRefType) {
           var udt = rr.EType.NormalizeExpand() as UserDefinedType;

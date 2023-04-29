@@ -681,7 +681,7 @@ namespace Microsoft.Dafny {
         expr.PreType = BuiltInArrowType(e.BoundVars.ConvertAll(v => v.PreType), e.Body.PreType);
 
       } else if (expr is WildcardExpr) {
-        var obj = new DPreType(BuiltInTypeDecl("object?"), new List<PreType>() {});
+        var obj = new DPreType(BuiltInTypeDecl("object?"), new List<PreType>() { });
         expr.PreType = new DPreType(BuiltInTypeDecl("set"), new List<PreType>() { obj });
 
       } else if (expr is StmtExpr) {
@@ -737,10 +737,10 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Exp:
         case BinaryExpr.Opcode.And:
         case BinaryExpr.Opcode.Or: {
-          resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
-          break;
-        }
+            resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
+            ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+            break;
+          }
 
         case BinaryExpr.Opcode.Eq:
         case BinaryExpr.Opcode.Neq:
@@ -924,13 +924,13 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.Opcode.LeftShift:
         case BinaryExpr.Opcode.RightShift: {
-          resultPreType = CreatePreTypeProxy("result of " + opString + " operation");
-          AddConfirmation("IsBitvector", resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
-          ConstrainOperandTypes(tok, opString, e0, null, resultPreType);
-          AddConfirmation("IntLikeOrBitvector", e1.PreType, tok,
-            "type of right argument to " + opString + " ({0}) must be an integer-numeric or bitvector type");
-          break;
-        }
+            resultPreType = CreatePreTypeProxy("result of " + opString + " operation");
+            AddConfirmation("IsBitvector", resultPreType, tok, "type of " + opString + " must be of a bitvector type (instead got {0})");
+            ConstrainOperandTypes(tok, opString, e0, null, resultPreType);
+            AddConfirmation("IntLikeOrBitvector", e1.PreType, tok,
+              "type of right argument to " + opString + " ({0}) must be an integer-numeric or bitvector type");
+            break;
+          }
 
         default:
           Contract.Assert(false);

@@ -779,7 +779,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     void ResolveAttributes(IAttributeBearingDeclaration attributeHost, ResolutionContext opts, bool solveConstraints) {
       Contract.Requires(attributeHost != null);
       Contract.Requires(opts != null);
@@ -896,7 +896,7 @@ namespace Microsoft.Dafny {
         ResolveTypeParameters(f.TypeArgs, false, f);
         ResolveFunction(f);
         resolver.allTypeParameters.PopMarker();
-        
+
         if (f is ExtremePredicate extremePredicate && extremePredicate.PrefixPredicate != null && ec == ErrorCount) {
           var ff = extremePredicate.PrefixPredicate;
           resolver.allTypeParameters.PushMarker();
@@ -911,7 +911,7 @@ namespace Microsoft.Dafny {
         ResolveTypeParameters(m.TypeArgs, false, m);
         ResolveMethod(m);
         resolver.allTypeParameters.PopMarker();
-        
+
         if (m is ExtremeLemma em && em.PrefixLemma != null && ec == ErrorCount) {
           var mm = em.PrefixLemma;
           resolver.allTypeParameters.PushMarker();
@@ -924,7 +924,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
       }
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
@@ -1022,7 +1022,7 @@ namespace Microsoft.Dafny {
         iter.CreateIteratorMethodSpecs(resolver);
       }
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed.
     /// Also assumes that "currentClass" has been set to the parent of "f".
@@ -1107,7 +1107,7 @@ namespace Microsoft.Dafny {
 
       resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }
-    
+
     /// <summary>
     /// Assumes type parameters have already been pushed.
     /// Also assumes that "currentClass" has been set to the parent of "m".
@@ -1274,7 +1274,7 @@ namespace Microsoft.Dafny {
         if (!DPreType.IsReferenceTypeDecl(dp.Decl) || (hasArrowType && !hasCollectionType)) {
           var expressionMustDenoteObject = "expression must denote an object";
           var collection = "a set/iset/multiset/seq of objects";
-          var instead =  "(instead got {0})";
+          var instead = "(instead got {0})";
           var errorMsgFormat = use switch {
             FrameExpressionUse.Reads =>
               $"a reads-clause {expressionMustDenoteObject}, {collection}, or a function to {collection} {instead}",
@@ -1364,7 +1364,7 @@ namespace Microsoft.Dafny {
                 visitor.Visit(extremeLemma.PrefixLemma);
               }
             }
-          }        
+          }
         }
       }
     }
@@ -1375,7 +1375,7 @@ namespace Microsoft.Dafny {
       public PreTypeSanityChecker(PreTypeResolver preTypeResolver) {
         this.preTypeResolver = preTypeResolver;
       }
-      
+
       protected override void VisitOneExpr(Expression expr) {
         // compare expr.PreType and expr.Type
         if (expr.PreType == null) {

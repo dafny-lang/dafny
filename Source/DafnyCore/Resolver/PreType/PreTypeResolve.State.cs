@@ -855,13 +855,12 @@ namespace Microsoft.Dafny {
             default:
               return false;
           }
-        case "Freshable":
-        {
-          var t = familyDeclName == "set" || familyDeclName == "iset" || familyDeclName == "seq"
-            ? ancestorPt.Arguments[0].Normalize() as DPreType
-            : ancestorPt;
-          return t != null && DPreType.IsReferenceTypeDecl(t.Decl);
-        }
+        case "Freshable": {
+            var t = familyDeclName == "set" || familyDeclName == "iset" || familyDeclName == "seq"
+              ? ancestorPt.Arguments[0].Normalize() as DPreType
+              : ancestorPt;
+            return t != null && DPreType.IsReferenceTypeDecl(t.Decl);
+          }
 
         default:
           Contract.Assert(false); // unexpected case
