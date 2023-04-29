@@ -36,9 +36,4 @@ public class DisjunctivePattern : ExtendedPattern {
       alternative.Resolve(resolver, resolutionContext, sourceType, isGhost, inStatementContext, true, true);
     }
   }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    return Enumerable.Empty<(BoundVar var, Expression usage)>();
-  }
 }

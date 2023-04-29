@@ -51,7 +51,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     var fvs = new HashSet<IVariable>();
     var usesHeap = false;
 
-    if (this is WhileStmt { Guard: {} whileGuard }) {
+    if (this is WhileStmt { Guard: { } whileGuard }) {
       FreeVariablesUtil.ComputeFreeVariables(reporter.Options, whileGuard, fvs, ref usesHeap);
 
     } else if (this is ForLoopStmt forS) {

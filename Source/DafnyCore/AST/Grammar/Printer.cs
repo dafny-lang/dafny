@@ -1454,6 +1454,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var savedDesugarMode = printingDesugared;
           printingDesugared = true;
           Indent(indent); PrintStatement(s.Flattened, indent);
+          wr.WriteLine();
           printingDesugared = savedDesugarMode;
 
           if (!printingDesugared) {
@@ -2926,6 +2927,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // its node identifier, otherwise the printed program becomes
             // syntactically incorrect.
             wr.Write("_");
+            if (!idPat.IsWildcardExact) {
+              wr.Write($" /* {idPat.Id} */");
+            }
           } else {
             wr.Write(idPat.Id);
           }

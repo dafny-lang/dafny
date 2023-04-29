@@ -33,9 +33,6 @@ public abstract class ExtendedPattern : TokenNode {
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern);
 
-  public abstract IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext);
-
   /*
   *  Ensures that all ExtendedPattern held in NestedMatchCase are linear
   *  Uses provided type to determine if IdPatterns are datatypes (of the provided type) or variables
