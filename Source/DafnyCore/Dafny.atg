@@ -127,9 +127,16 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
+bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
+  if (attr.val == "ignore") {
+    errors.Warning(
+      attr,
+      $"attribute :{attr.val} is deprecated");
+    return false;
+  }
+  return true;
 }
 
 bool IsAssumeTypeKeyword(IToken la) {
@@ -5229,9 +5236,10 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
+     var rtok = new RangeToken(openBrace, t);
+     if (!CheckAttribute(errors, x, rtok)) return;
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken);
+     attrs.RangeToken = rtok;
   .)
   .
 
