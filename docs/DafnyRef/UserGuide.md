@@ -93,10 +93,43 @@ However, which files are verified, built, run, or processed by other
 dafny commands depends on the individual command. 
 These commands are described in [Section 13.5.1](#sec-dafny-commands).
 
-
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
+### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+
+As of Dafny 4.1, `dafny` now supports outputting a single file containing
+a fully-verified program along with metadata about how it was verified.
+Such files use the extension `.doo`, for Dafny Output Object,
+and can be used as input anywhere a `.dfy` file can be.
+
+`.doo` files are produced by an additional backend called the "Dafny Library" backend,
+identified with the name `lib` on the command line. For example, to build multiple
+Dafny files into a single build artifact for shared reuse, the command would look something like:
+
+```bash
+dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
+```
+
+The Dafny code contained in a `.doo` file is not re-verified when passed back to the `dafny` tool,
+just as included files and those passed with the `--library` option are not.
+Using `.doo` files provides a guarantee that the Dafny code was in fact verified,
+however, and therefore offers protection against build system mistakes.
+`.doo` files are therefore ideal for sharing Dafny libraries between projects.
+
+`.doo` files also contain metadata about the version of Dafny used to verify them
+and the values of relevant options that affect the sound separate verification and
+compilation of Dafny code, such as `--unicode-char`.
+This means attempting to use a library that was built with options
+that are not compatible with the currently executing command options
+will lead to errors.
+This also includes attempting to use a `.doo` file built with a different version of Dafny,
+although this restriction may be lifted in the future.
+
+A `.doo` file is a compressed archive of multiple files, similar to the `.jar` file format for Java packages.
+The exact file format is internal and may evolve over time to support additional features.
+
+Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
 
 ## 13.4. Dafny Code Style
 
