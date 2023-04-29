@@ -219,6 +219,7 @@ module ConcreteModule {
     
     /*---------- flattened ----------
     {
+      var _ /* _v3 */: int := n;
     }
     ---------- end flattened ----------*/
     match n {
@@ -227,6 +228,7 @@ module ConcreteModule {
     
     /*---------- flattened ----------
     {
+      var _ /* _v4 */: nat := n;
     }
     ---------- end flattened ----------*/
     match n {
@@ -236,6 +238,7 @@ module ConcreteModule {
     /*---------- flattened ----------
     if n == 3 {
     } else {
+      var _ /* _v5 */: int := n;
     }
     ---------- end flattened ----------*/
     match n {

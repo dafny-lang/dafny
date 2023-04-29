@@ -710,12 +710,11 @@ public class MatchFlattener : IRewriter {
     var type = var.Type ?? new InferredTypeProxy();
     var isGhost = var.IsGhost;
 
-    // if the expression is a generated IdentifierExpr, replace its token by the path's
+    // if the expression is a generated IdentifierExpr, replace its token by the path's; this causes any sub-range error message
+    // to point at the bound variable, not at the source expression
     Expression expr = genExpr;
-    if (genExpr is IdentifierExpr idExpr) {
-      if (idExpr.Name.StartsWith("_")) {
-        expr = new IdentifierExpr(var.Tok, idExpr.Var);
-      }
+    if (genExpr.Resolved is IdentifierExpr idExpr) {
+      expr = new IdentifierExpr(var.Tok, idExpr.Var);
     }
     if (bodyPath is StmtPatternPath stmtPath) {
       if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
@@ -761,7 +760,7 @@ public class MatchFlattener : IRewriter {
   // Otherwise do nothing
   private PatternPath LetBindNonWildCard(IdPattern idPattern, Expression expr, PatternPath bodyPath) {
     Contract.Assert(idPattern.Ctor == null);
-    if (idPattern.ResolvedLit != null || idPattern.IsWildcardPattern) {
+    if (idPattern.ResolvedLit != null || (idPattern.IsWildcardPattern && (idPattern.Id.Contains('#') || idPattern.Type is TypeProxy))) {
       return bodyPath;
     }
     return LetBind(idPattern, expr, bodyPath);
