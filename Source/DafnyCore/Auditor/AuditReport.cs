@@ -13,12 +13,12 @@ namespace Microsoft.Dafny.Auditor;
 /// </summary>
 public class AuditReport {
   private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
-  
+
   // All three fields below are filtered by AddAssumptions()
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
   private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
-  
+
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);
     switch (decl) {
@@ -42,9 +42,9 @@ public class AuditReport {
   public IEnumerable<KeyValuePair<Declaration, IEnumerable<Assumption>>> AllAssumptions() {
     return assumptionsByDecl;
   }
-  
+
   public IEnumerable<Assumption> AllAssumptionsForDecl(Declaration decl) {
-    return allAssumptionsByDecl.TryGetValue(decl, out var assumptions) 
+    return allAssumptionsByDecl.TryGetValue(decl, out var assumptions)
       ? assumptions : Enumerable.Empty<Assumption>();
   }
 
