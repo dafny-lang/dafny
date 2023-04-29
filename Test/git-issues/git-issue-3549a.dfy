@@ -1,2 +1,2 @@
-// RUN: %exits-with 1 %baredafny "" > "%t" 2>&1
+// RUN: %exits-with 1 %baredafny "" &> "%t"
 // RUN: %diff "%s.expect" "%t"
