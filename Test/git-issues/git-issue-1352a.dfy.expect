@@ -1,0 +1,2 @@
+git-issue-1352a.dfy(7,13): Error: in a statement expression, calls are allowed only to lemmas
+1 resolution/type errors detected in git-issue-1352a.dfy

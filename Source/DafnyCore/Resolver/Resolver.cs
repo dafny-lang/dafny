@@ -3917,7 +3917,8 @@ namespace Microsoft.Dafny {
       protected override void VisitOneExpr(Expression expr) {
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          resolver.ComputeGhostInterest(e.S, CodeContext.IsGhost, CodeContext.IsGhost ? "a statement expression" : null, CodeContext);
+          var mustBeErasable = CodeContext.IsGhost || !(e.S is ExpectStmt);
+          resolver.ComputeGhostInterest(e.S, mustBeErasable, mustBeErasable ? "a statement expression" : null, CodeContext);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           if (CodeContext.IsGhost) {
