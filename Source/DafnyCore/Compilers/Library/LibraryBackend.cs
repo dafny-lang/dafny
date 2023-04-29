@@ -47,7 +47,7 @@ public class LibraryBackend : ExecutableBackend {
       throw new UnsupportedFeatureException(dafnyProgram.GetFirstTopLevelToken(), Feature.LegacyCLI);
     }
 
-    var disallowedAssumptions = dafnyProgram.Assumptions()
+    var disallowedAssumptions = dafnyProgram.Assumptions(null)
       .Where(a => !a.desc.allowedInLibraries);
     foreach (var assumption in disallowedAssumptions) {
       var message = assumption.desc.issue.Replace("{", "{{").Replace("}", "}}");

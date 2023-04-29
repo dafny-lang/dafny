@@ -116,8 +116,8 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Node> PreResolveChildren => Children;
 
-    public override IEnumerable<Assumption> Assumptions() {
-      return Modules().SelectMany(m => m.Assumptions());
+    public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+      return Modules().SelectMany(m => m.Assumptions(decl));
     }
   }
 

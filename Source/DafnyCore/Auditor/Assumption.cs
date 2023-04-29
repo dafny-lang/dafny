@@ -69,8 +69,8 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
   }
 }
 
-public record Assumption(IToken tok, AssumptionDescription desc) {
-  public string Warning(Declaration decl) {
+public record Assumption(Declaration decl, IToken tok, AssumptionDescription desc) {
+  public string Warning() {
     var tickIssue = UpdateVerbatim(desc.issue, "`", "`");
     var tickMitigation = UpdateVerbatim(desc.mitigation, "`", "`");
     return decl.Name + ": " + tickIssue + " Possible mitigation: " + tickMitigation;

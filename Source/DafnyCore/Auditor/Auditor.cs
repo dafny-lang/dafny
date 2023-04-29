@@ -125,7 +125,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var (decl, assumptions) in report.AllAssumptions()) {
         foreach (var assumption in assumptions) {
-          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.tok, assumption.Warning(decl));
+          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.tok, assumption.Warning());
         }
       }
     } else {

@@ -12,10 +12,13 @@ namespace Microsoft.Dafny.Auditor;
 /// of a set of assumptions that can be rendered in several formats.
 /// </summary>
 public class AuditReport {
+  private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
+  
+  // All three fields below are filtered by AddAssumptions()
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
   private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
-
+  
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);
     switch (decl) {
@@ -38,6 +41,11 @@ public class AuditReport {
 
   public IEnumerable<KeyValuePair<Declaration, IEnumerable<Assumption>>> AllAssumptions() {
     return assumptionsByDecl;
+  }
+  
+  public IEnumerable<Assumption> AllAssumptionsForDecl(Declaration decl) {
+    return allAssumptionsByDecl.TryGetValue(decl, out var assumptions) 
+      ? assumptions : Enumerable.Empty<Assumption>();
   }
 
   private string RenderRow(string beg, string sep, string end, IEnumerable<string> cells) {
@@ -126,7 +134,7 @@ public class AuditReport {
           text.AppendLine($"## Type `{topLevelDecl.Name}`");
         }
 
-        foreach (var a in topLevelDecl.Assumptions()) {
+        foreach (var a in AllAssumptionsForDecl(topLevelDecl)) {
           AppendMarkdownIETFDescription(a.desc, text);
         }
 
@@ -140,7 +148,7 @@ public class AuditReport {
 
           text.AppendLine("");
           text.AppendLine($"### Member `{decl.Name}`");
-          foreach (var a in decl.Assumptions()) {
+          foreach (var a in AllAssumptionsForDecl(decl)) {
             AppendMarkdownIETFDescription(a.desc, text);
           }
         }
@@ -155,7 +163,7 @@ public class AuditReport {
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{ErrorReporter.TokenToString(decl.tok)}:{assumption.Warning(decl)}");
+        text.AppendLine($"{ErrorReporter.TokenToString(decl.tok)}:{assumption.Warning()}");
       }
     }
 
@@ -165,15 +173,21 @@ public class AuditReport {
   public static AuditReport BuildReport(Program program) {
     AuditReport report = new();
 
+    report.allAssumptionsByDecl = program.Assumptions(null)
+      .GroupBy(a => a.decl)
+      .ToDictionary(g => g.Key,
+                    g => g.Select(a => a));
+
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions());
+        report.AddAssumptions(topLevelDecl, report.AllAssumptionsForDecl(topLevelDecl));
+
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
 
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          report.AddAssumptions(decl, decl.Assumptions());
+          report.AddAssumptions(decl, report.AllAssumptionsForDecl(decl));
         }
       }
     }
