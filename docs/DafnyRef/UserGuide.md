@@ -1923,13 +1923,13 @@ Legacy options:
 * `-mimicVerificationOf:<dafny version>` - let `dafny` attempt to mimic
   the verification behavior of a previous version of `dafny`. This can be
   useful during migration to a newer version of `dafny` when a Dafny
-  program has proofs, such as methods or lemmas, that are unstable in
+  program has proofs, such as methods or lemmas, that are highly variable in
   the sense that their verification may become slower or fail altogether
   after logically irrelevant changes are made in the verification input.
 
   Accepted versions are: `3.3`. Note that falling back on the behavior
   of version 3.3 turns off features that prevent certain classes of
-  verification instability.
+  verification variability.
 
 * `-noCheating:<n>` - control whether certain assumptions are allowed.
   The value of `<n>` can be one of the following.
@@ -2244,7 +2244,7 @@ Legacy options:
   passes to the SMT solver and turn on randomization in the SMT solver
   itself.
 
-  Certain Boogie inputs are unstable in the sense that changes to the
+  Certain Boogie inputs cause proof variability in the sense that changes to the
   input that preserve its meaning may cause the output to change. The
   `-randomSeed` option simulates meaning-preserving changes to the
   input without requiring the user to actually make those changes.
@@ -2258,7 +2258,7 @@ Legacy options:
   proof attempt will use a new random seed derived from this original
   seed. If not, it will implicitly use `-randomSeed:0` to ensure a
   difference between iterations. This option can be very useful for
-  identifying input programs for which verification is unstable. If the
+  identifying input programs for which verification is highly variable. If the
   verification times or solver resource counts associated with each
   proof attempt vary widely for a given procedure, small changes to that
   procedure might be more likely to cause proofs to fail in the future.
