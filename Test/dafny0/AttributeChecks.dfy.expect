@@ -143,6 +143,10 @@ module JustAboutEverything {
     match r {
       case Nil =>
         Nil
+      case {:ignore 3 + true} Cons(h, Nil) =>
+        Nil
+      case {:ignore false} Cons(h, t) =>
+        CaseExpr(t)
     }
   }
 
@@ -448,6 +452,8 @@ AttributeChecks.dfy(43,21): Error: type of left argument to + (int) must agree w
 AttributeChecks.dfy(43,21): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(53,21): Error: type of left argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(53,21): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(61,22): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(61,22): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(68,30): Error: type of left argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(68,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(78,27): Error: type of left argument to + (int) must agree with the result type (bool)
@@ -643,4 +649,4 @@ AttributeChecks.dfy(483,13): Error: unresolved identifier: y
 AttributeChecks.dfy(482,13): Error: unresolved identifier: Ctor?
 AttributeChecks.dfy(481,13): Error: 'this' is not allowed in a 'static' context
 AttributeChecks.dfy(494,18): Error: 'this' is not allowed in a 'static' context
-233 resolution/type errors detected in AttributeChecks.dfy
+235 resolution/type errors detected in AttributeChecks.dfy
