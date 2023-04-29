@@ -1,4 +1,0 @@
-
-Dafny program verifier finished with 0 verified, 0 errors
-*** Error: Cannot load wrappers3.doo: --unicode-char is set locally to False, but the library was built with True
-Include of file "wrappers3.doo" failed.
