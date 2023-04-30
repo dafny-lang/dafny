@@ -1530,6 +1530,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      Attributes attrs = null;
      Type/*!*/ ty;
      Expression e = null;
+     IToken startToken = t;
      if (moduleLevelDecl && dmod.StaticToken != null) {
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
@@ -1539,17 +1540,23 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
+  ( IF(!IsIdentifier(la.kind))
+    (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
+  |
+    CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+    [ ellipsis ]
+    [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
-                                             (. if (e == null && ty is InferredTypeProxy) {
+                                             (. ConstantField c = null;
+                                                if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
+                                                } else {
+                                                  c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
+                                                  mm.Add(c);
                                                 }
-                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
-                                                mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+    OldSemi                                  (. if (c != null) c.TokenWithTrailingDocString = t; .)
+  )
   .
 
 /*------------------------------------------------------------------------*/
