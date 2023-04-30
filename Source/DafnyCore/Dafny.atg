@@ -1546,15 +1546,13 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
     [ ellipsis ]
     [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
-                                             (. ConstantField c = null;
-                                                if (e == null && ty is InferredTypeProxy) {
+                                             (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
-                                                } else {
-                                                  c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
-                                                  mm.Add(c);
                                                 }
+                                                var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
+                                                mm.Add(c);
                                              .)
-    OldSemi                                  (. if (c != null) c.TokenWithTrailingDocString = t; .)
+    OldSemi                                  (. c.TokenWithTrailingDocString = t; .)
   )
   .
 
