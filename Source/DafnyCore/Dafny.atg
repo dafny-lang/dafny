@@ -1539,7 +1539,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  ( IF(!IsIdentifier(la.kind))
+  ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
     (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
   |
     CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
