@@ -15,7 +15,8 @@ public class ParseErrors {
     p_ghost_forbidden_default,
     p_ghost_forbidden,
     p_no_static,
-    p_deprecated_attribute,
+    p_no_opaque,
+    p_deprecated_attribute, // TODO
     p_literal_string_required,
     p_no_leading_underscore,
     p_bitvector_too_large,
@@ -24,16 +25,17 @@ public class ParseErrors {
     p_bad_module_decl,
     p_extraneous_comma_in_export,
     p_top_level_field,
-    p_bad_datatype_refinement,
+    p_ellipsis_position,
+    p_bad_datatype_refinement, // TODO - not present
     p_no_mutable_fields_in_value_types,
-    p_bad_const_initialize_op,
+    p_bad_const_initialize_op, // TODO - check for new error near here
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
     p_output_of_function_not_ghost,
-    p_ghost_function_output_not_ghost,
-    p_no_new_on_output_formals,
-    p_no_nameonly_on_output_formals,
-    p_no_older_on_output_formals,
+    p_ghost_function_output_not_ghost, // TODO - unused?
+    p_no_new_on_output_formals, // TODO - unused?
+    p_no_nameonly_on_output_formals, // TODO - unused?
+    p_no_older_on_output_formals, // TODO - unused?
     p_var_decl_must_have_type,
     p_no_init_for_var_field,
     p_datatype_formal_is_not_id,
@@ -57,7 +59,65 @@ public class ParseErrors {
     p_seq_only_one_type_parameter,
     p_map_needs_two_type_parameters,
     p_imap_needs_two_type_parameters,
-    p_deprecating_function_method,
+    p_no_ghost_arrow_type_arguments,
+    p_no_empty_type_parameter_list,
+    p_formal_ktype_only_in_least_and_greatest_predicates,
+    p_no_by_method_in_twostate,
+    p_no_by_method_in_extreme_predicate,
+    p_no_by_method_for_ghost_function,
+    p_twostate_and_extreme_are_always_ghost,
+    p_old_ghost_syntax,
+    p_no_method_keyword_in_new_function_syntax,
+    p_no_ghost_function_method,
+    p_migration_syntax,
+    p_no_ghost_formal,
+    p_no_decreases_for_extreme_predicates,
+    p_predicate_return_type_must_be_bool,
+    p_no_return_type_for_predicate,
+    p_no_wild_expression,
+    p_invalid_colon,
+    p_initializing_display_only_for_1D_arrays,
+    p_no_equal_for_initializing,
+    p_no_patterns_and_such_that,
+    p_no_modifies_on_refining_loops, // refining loops are deprecated
+    p_to_or_downto,
+    p_no_decreases_expressions_with_star,
+    p_forall_with_ensures_must_have_body,
+    p_calc_operator_must_be_transitive,
+    p_invalid_calc_op_combination,
+    p_calc_dangling_operator,
+    p_no_side_effects_in_expressions,
+    p_ambiguous_implies,
+    p_ambiguous_and_or,
+    p_invalid_operator_chaining,
+    p_invalid_notequal_chaining,
+    p_invalid_disjoint_chaining,
+    p_operator_does_not_chain,
+    p_bang_not_a_relational_op,
+    p_invalid_relational_op,
+    p_ambiguous_bitop,
+    p_invalid_char_literal,
+    p_no_parenthesized_binding,
+    p_must_be_multiset,
+    p_seq_has_one_type_argument, // TODO - needs a token position?
+    p_no_equal_in_let_initialization,
+    p_elephant_has_one_lhs,
+    p_elephant_has_one_rhs,
+    p_set_comprehension_needs_term_expression,
+    p_map_comprehension_must_have_term_expression,
+    p_no_patterns_in_let_such_that,
+    p_no_wild_frame_expression,
+    p_invalid_name_after_dot, // not reachable
+    p_bad_number_format,
+    p_bad_hex_number_format,
+    p_bad_decimal_number_format,
+    p_deprecated_inductive_predicate,
+    p_deprecated_copredicate,
+    p_deprecated_statement_refinement,
+    p_deprecated_forall_with_no_bound_variables,
+    p_deprecated_modify_statement_with_block,
+    p_deprecated_opaque_as_identifier,
+    //p_deprecating_function_method, // TODO
     p_deprecated_semicolon,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
@@ -407,13 +467,13 @@ A `imap` type has two type parameters: the type of the keys and the type of the 
 The error message states that the parser sees some number of type parameters different than two.
 ");
 
-    Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
-    @"
-In Dafny 4 on, the phrases `function method` and `predicate method` are no
-longer accepted. Use `function` for compiled, non-ghost functions and
-`ghost function` for non-compiled, ghost functions, and similarly for predicates.
-See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-");
+    //     Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
+    //     @"
+    // In Dafny 4 on, the phrases `function method` and `predicate method` are no
+    // longer accepted. Use `function` for compiled, non-ghost functions and
+    // `ghost function` for non-compiled, ghost functions, and similarly for predicates.
+    // See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
+    // ");
 
     Add(ErrorId.p_deprecated_semicolon,
     @"

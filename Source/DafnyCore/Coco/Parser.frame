@@ -65,7 +65,7 @@ public class Parser {
     if (errDist >= minErrDist) errors.SynErr(la.filename, la.line, la.col, n);
     errDist = 0;
   }
-
+/*
   public void SemErr(string msg) {
     Contract.Requires(msg != null);
     if (errDist >= minErrDist) errors.SemErr(null, t, msg);
@@ -77,7 +77,7 @@ public class Parser {
     Contract.Requires(msg != null);
     errors.SemErr(ErrorRegistry.NoneId, tok, msg);
   }
-
+*/
   public void SemErr(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
