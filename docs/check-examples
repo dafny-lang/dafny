@@ -123,7 +123,7 @@ do
   ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/\[/\\\[/g' -e 's/\]/\\\]/g' -e 's/_[a-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -225,7 +225,7 @@ do
         elif [ "$command" == "%check-test" ]; then
           com=test
           ec=2
-          ##if [ "$useHeadings" == "1" ]; then ec=3; fi
+          ##if [ "$useHeadings" Calls with side-effects such as constructors are not allowed in expressions.== "1" ]; then ec=3; fi
         elif [ "$command" == "%check-legacy" ]; then
           com=
           ec=0
@@ -239,7 +239,7 @@ do
         else
           if [ "$capture" == "2" ]; then
             "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
-          elif [ "$com" == "%check-legacy" ]; then
+          elif [ "$command" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
           else
             "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual

@@ -1442,7 +1442,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   [ GenericParameters<typeArgs, true> ]
   (
   "="                                      (. bodyStart = t; .)
-  [ ellipsis                               (. SemErr(ErrorId.p_ellipsis_position, t, // Help users adjust to the new syntax
+  [ ellipsis                               (. SemErr(ErrorId.p_bad_datatype_refinement, t, // Help users adjust to the new syntax
       $"in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement"); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
@@ -1686,9 +1686,9 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
   .)
   { IF(IsKeywordForFormal())
     ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'older' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorId.p_no_new_on_output_formals, t, "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorId.p_no_nameonly_on_output_formals, t, "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorId.p_no_older_on_output_formals, t, "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
@@ -2540,7 +2540,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType, out IToken openBracket, out IToken closeBracket> 
         (. SemErr(ErrorId.p_formal_ktype_only_in_least_and_greatest_predicates,
-                  t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
+                  new RangeToken(openBracket, t), 
+                  "a formal [ ] declaration is only allowed for least and greatest predicates");
+        .)
       ]
       [ Formals<true, true, isTwoState, true, formals>
       ]
@@ -2647,7 +2649,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(ErrorId.p_no_method_keyword_in_new_function_syntax, functionMethodToken, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             SemErr(ErrorId.p_deprecating_function_method, functionMethodToken, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
              SemErr(ErrorId.p_no_ghost_function_method, t, $"there is no such thing as a 'ghost {what} method'");
@@ -3961,7 +3963,7 @@ QSep = "::" | '\u2022'.
  */
 Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken semiToken; .)
-  [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Side-effect methods calls such as constructors are not allowed in expressions."); .) ]
+  [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowLemma, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
@@ -4132,21 +4134,21 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                    .)
       RelOp<out x, out op, out k>  (. switch (op) {
                                         case BinaryExpr.Opcode.Eq:
-                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_operator_chaining, x, "chaining not allowed from the previous operator"); kind = 3; }
+                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_equal_chaining, x, "chaining not allowed from the previous operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Neq:
                                           if (hasSeenNeq) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "a chain cannot have more than one != operator"); kind = 3; }
-                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_operator_chaining, x, "this operator cannot continue this chain"); kind = 3; }
+                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "this operator cannot continue this chain"); kind = 3; }
                                           hasSeenNeq = true;  break;
                                         case BinaryExpr.Opcode.Lt:
                                         case BinaryExpr.Opcode.Le:
                                           if (kind == 0) { kind = 1; }
-                                          else if (kind != 1) { SemErr(ErrorId.p_invalid_operator_chaining, x, "this operator chain cannot continue with an ascending operator"); kind = 3; }
+                                          else if (kind != 1) { SemErr(ErrorId.p_invalid_descending_chaining, x, "this operator chain cannot continue with an ascending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Gt:
                                         case BinaryExpr.Opcode.Ge:
                                           if (kind == 0) { kind = 2; }
-                                          else if (kind != 2) { SemErr(ErrorId.p_invalid_operator_chaining, x, "this operator chain cannot continue with a descending operator"); kind = 3; }
+                                          else if (kind != 2) { SemErr(ErrorId.p_invalid_ascending_chaining, x, "this operator chain cannot continue with a descending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Disjoint:
                                           if (kind != 4) { SemErr(ErrorId.p_invalid_disjoint_chaining, x, "can only chain disjoint (!!) with itself"); kind = 3; }

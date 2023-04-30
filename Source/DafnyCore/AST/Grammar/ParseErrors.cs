@@ -25,17 +25,16 @@ public class ParseErrors {
     p_bad_module_decl,
     p_extraneous_comma_in_export,
     p_top_level_field,
-    p_ellipsis_position,
-    p_bad_datatype_refinement, // TODO - not present
+    p_bad_datatype_refinement,
     p_no_mutable_fields_in_value_types,
     p_bad_const_initialize_op, // TODO - check for new error near here
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
     p_output_of_function_not_ghost,
     p_ghost_function_output_not_ghost, // TODO - unused?
-    p_no_new_on_output_formals, // TODO - unused?
-    p_no_nameonly_on_output_formals, // TODO - unused?
-    p_no_older_on_output_formals, // TODO - unused?
+    p_no_new_on_output_formals,
+    p_no_nameonly_on_output_formals,
+    p_no_older_on_output_formals,
     p_var_decl_must_have_type,
     p_no_init_for_var_field,
     p_datatype_formal_is_not_id,
@@ -67,7 +66,7 @@ public class ParseErrors {
     p_no_by_method_for_ghost_function,
     p_twostate_and_extreme_are_always_ghost,
     p_old_ghost_syntax,
-    p_no_method_keyword_in_new_function_syntax,
+    p_deprecating_function_method,
     p_no_ghost_function_method,
     p_migration_syntax,
     p_no_ghost_formal,
@@ -89,8 +88,10 @@ public class ParseErrors {
     p_no_side_effects_in_expressions,
     p_ambiguous_implies,
     p_ambiguous_and_or,
-    p_invalid_operator_chaining,
+    p_invalid_equal_chaining,
     p_invalid_notequal_chaining,
+    p_invalid_descending_chaining,
+    p_invalid_ascending_chaining,
     p_invalid_disjoint_chaining,
     p_operator_does_not_chain,
     p_bang_not_a_relational_op,
@@ -117,7 +118,6 @@ public class ParseErrors {
     p_deprecated_forall_with_no_bound_variables,
     p_deprecated_modify_statement_with_block,
     p_deprecated_opaque_as_identifier,
-    //p_deprecating_function_method, // TODO
     p_deprecated_semicolon,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
