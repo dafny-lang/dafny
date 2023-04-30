@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -62,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
 
-        if (!TryParseIncludesOfModule(program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
+        if (!TryParseIncludesOfModule(document.Uri, program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
           logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
 
@@ -103,6 +104,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
     //      It could be convenient to adapt them in the main-repo so location info could be extracted.
     private bool TryParseIncludesOfModule(
+      DocumentUri root,
       ModuleDecl module,
       BuiltIns builtIns,
       ErrorReporter errorReporter,
@@ -113,8 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
       var resolvedIncludes = new SortedSet<Include>();
-      var dependencyMap = new DependencyMap();
-      dependencyMap.AddIncludes(resolvedIncludes);
+      resolvedIncludes.Add(new Include(Token.NoToken, "root", root.ToString(), false));
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
@@ -122,7 +123,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         newIncludeParsed = false;
         // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
         var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
-        dependencyMap.AddIncludes(moduleIncludes);
         foreach (var include in moduleIncludes) {
           bool isNewInclude = resolvedIncludes.Add(include);
           if (isNewInclude) {
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
-        var dafnyFile = new DafnyFile(include.IncludedFilename);
+        var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
           useStdin: false,
           dafnyFile.SourceFileName,

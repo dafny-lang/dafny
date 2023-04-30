@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using static Microsoft.Dafny.ErrorRegistry;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// Removes nesting from matching patterns, such as case Cons(head1, Cons(head2, tail))
@@ -123,7 +123,9 @@ public class MatchFlattener : IRewriter {
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
-    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
+    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt)
+      .Select(nms => nms.Clone(new Cloner(true)))
+      .ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
     var paths = cases.Select((@case, index) => (PatternPath)new StmtPatternPath(index, @case, @case.Attributes)).ToList();

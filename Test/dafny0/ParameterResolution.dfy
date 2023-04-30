@@ -198,11 +198,11 @@ module TypesAreDetermined {
   datatype Record = Record(y: int := F()) // error: type parameter X not determined
 }
 
-module RequiresBeforeOptional {
-  datatype Color = Blue(x: int := y, y: int) // error: required parameters must precede optional parameters
-  iterator Iter(x: int := y, y: int) // error: required parameters must precede optional parameters (reported twice)
-  lemma Lemma(x: int := y, y: int) // error: required parameters must precede optional parameters
-  least predicate Least(x: int := y, y: int) // error: required parameters must precede optional parameters
+module RequiredBeforeOptional {
+  datatype Color = Blue(x: int := y, y: int)
+  iterator Iter(x: int := y, y: int)
+  lemma Lemma(x: int := y, y: int)
+  least predicate Least(x: int := y, y: int)
 }
 
 module TwoState {
@@ -275,15 +275,15 @@ module NameOnlyParameters {
     least predicate LP(a: int, nameonly b: int, c: int := 100)
     static greatest predicate GP(a: int, nameonly b: int := 75, c: int := 100)
   }
-  iterator Iter(nameonly u: int, x: int)
+  iterator Iter(nameonly u: int, x: int) // error (x2, because of the desugaring of iterators): x is effectively nameonly, but not declared as such
   datatype D =
     | DD(a: int, nameonly b: int)
-    | DE(int, 0: int, real, nameonly 1: int, c: int)
+    | DE(int, 0: int, real, nameonly 1: int, c: int) // error: c is effective nameonly, but not declared as such
     | DF(800: int, nameonly 900: int, 9_0_0: int := 100)
   datatype E =
-    | E0(a: int, b: int := 6, int) // error: required parameters must preceded optional parameters
-    | E1(a: int, nameonly b: int := 6, u: int) // error: required parameters must preceded optional parameters
-    | E2(a: int, nameonly b: int, int) // error: after a 'nameonly' parameter, all remaining parameters must have names
+    | E0(a: int, b: int := 6, int) // error: there is no way for the default value of 'b' to be used
+    | E1(a: int, nameonly b: int := 6, u: int) // u is effectively nameonly
+    | E2(a: int, nameonly b: int, int) // error: after a 'nameonly' parameter, all remaining parameters must be nameonly or have a default value
 
   method Test() {
     var c: C;
@@ -354,5 +354,27 @@ module NameOnlyParameters {
     d := DF(900 := 3, 9_0_0 := 4, 800 := 2);
     d := DF(2, 0900 := 3, 9_0_0 := 4); // error (x2): no parameter is named '0900'; no argument passed for parameter '900'
     d := DF(2, 900 := 3, 90_0 := 4); // error: no parameter is named '90_0'
+  }
+
+  // Issue 3859
+  datatype Foo = Foo(nameonly bar: string := "", nameonly baz: string, qux: int := 8)
+  function FooF(nameonly bar: string := "", nameonly baz: string, qux: int := 8): int
+  method FooM(nameonly bar: string := "", nameonly baz: string, qux: int := 8)
+
+  datatype XFoo = XFoo(bar: string := "", nameonly baz: string, qux: int := 8)
+  function XFooF(bar: string := "", nameonly baz: string, qux: int := 8): int
+  method XFooM(bar: string := "", nameonly baz: string, qux: int := 8)
+
+  datatype YFoo = YFoo(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0) // error: onho is effectively nameonly, but not declared as such
+  function YFooF(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0): int // error: onho is effectively nameonly, but not declared as such
+  method YFooM(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0) // error: onho is effectively nameonly, but not declared as such
+
+  method FooUse() {
+    var f := Foo(baz := "yeah");
+    f := Foo(baz := "yeah", bar := "fun");
+    f := Foo(bar := "fun", baz := "yeah", qux := 10);
+    f := Foo(qux := 10, baz := "yeah");
+    f := Foo(); // error: baz is missing
+    var y := YFoo(baz := "a", ohno := 21);
   }
 }

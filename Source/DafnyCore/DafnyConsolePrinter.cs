@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -49,13 +50,17 @@ public class DafnyConsolePrinter : ConsolePrinter {
     var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
     string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
-    tw.WriteLine($"{lineNumber      } | {line}");
+    tw.WriteLine($"{lineNumber} | {line}");
     tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
     tw.WriteLine("");
   }
 
   public static readonly Option<bool> ShowSnippets = new("--show-snippets",
     "Show a source code snippet for each Dafny message.");
+
+  static DafnyConsolePrinter() {
+    DooFile.RegisterNoChecksNeeded(ShowSnippets);
+  }
 
   public DafnyConsolePrinter(DafnyOptions options) {
     Options = options;

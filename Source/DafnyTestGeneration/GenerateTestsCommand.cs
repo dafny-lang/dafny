@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
@@ -99,5 +100,15 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
       options.TestGenOptions.DisablePrune = value;
     });
+
+    DooFile.RegisterNoChecksNeeded(
+      LoopUnroll,
+      SequenceLengthLimit,
+      Target,
+      TestInlineDepth,
+      Verbose,
+      PrintBpl,
+      DisablePrune
+    );
   }
 }

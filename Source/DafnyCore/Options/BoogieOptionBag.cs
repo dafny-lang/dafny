@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Transactions;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -14,9 +15,10 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "pattern",
   };
 
-  public static readonly Option<string> BoogieArguments = new("--boogie",
+  public static readonly Option<IEnumerable<string>> BoogieArguments = new("--boogie",
     "Specify arguments that are passed to Boogie, a tool used to verify Dafny programs.") {
     ArgumentHelpName = "arguments",
+    Arity = ArgumentArity.ZeroOrMore
   };
 
   public static readonly Option<uint> Cores = new("--cores", result => {
@@ -61,18 +63,34 @@ public static class BoogieOptionBag {
 
     DafnyOptions.RegisterLegacyBinding(BoogieFilter, (o, f) => o.ProcsToCheck.AddRange(f));
     DafnyOptions.RegisterLegacyBinding(BoogieArguments, (o, boogieOptions) => {
-
-      if (!string.IsNullOrEmpty(boogieOptions)) {
-        o.Parse(SplitArguments(boogieOptions).ToArray());
+      var splitOptions = boogieOptions.SelectMany(SplitArguments).ToArray();
+      if (splitOptions.Any()) {
+        o.Parse(splitOptions.ToArray());
       }
     });
     DafnyOptions.RegisterLegacyBinding(Cores,
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
+
+    DooFile.RegisterLibraryChecks(
+      new Dictionary<Option, DooFile.OptionCheck> {
+        { BoogieArguments, DooFile.CheckOptionMatches },
+        { BoogieFilter, DooFile.CheckOptionMatches },
+        { NoVerify, DooFile.CheckOptionMatches },
+      }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Cores,
+      VerificationTimeLimit
+    );
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {
+    if (string.IsNullOrEmpty(commandLine)) {
+      return Array.Empty<string>();
+    }
+
     var inSingleQuote = false;
     var inDoubleQuote = false;
     var result = new List<string>();

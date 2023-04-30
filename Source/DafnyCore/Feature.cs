@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class FeatureDescriptionAttribute : Attribute {
   public readonly string Description;
@@ -170,7 +170,11 @@ public enum Feature {
   UnicodeChars,
 
   [FeatureDescription("Converting values to strings", "#sec-print-statement")]
-  ConvertingValuesToStrings
+  ConvertingValuesToStrings,
+
+  // Only used internally for the DooBackend to skip legacy CLI tests
+  [FeatureDescription("Legacy CLI without commands", "##sec-dafny-commands")]
+  LegacyCLI
 }
 
 public class UnsupportedFeatureException : Exception {

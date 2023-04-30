@@ -2,9 +2,9 @@ diff --git a/Source/Dafny.sln b/Source/Dafny.sln
 index 426b132e2..18db4aebb 100644
 --- a/Source/Dafny.sln
 +++ b/Source/Dafny.sln
-@@ -39,6 +39,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExte
+@@ -41,6 +41,32 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoExtern.Test", "AutoExte
  EndProject
- Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver.Test", "DafnyDriver.Test\DafnyDriver.Test.csproj", "{FD18CD43-4D20-42EB-93EF-12125C206D76}"
+ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore.Test", "DafnyCore.Test\DafnyCore.Test.csproj", "{33C29F26-A27B-474D-B436-83EA615B09FC}"
  EndProject
 +Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{60332269-9C5D-465E-8582-01F9B738BD90}"
 +EndProject
@@ -54,15 +54,15 @@ index 426b132e2..18db4aebb 100644
  	EndGlobalSection
  EndGlobal
 diff --git a/Source/DafnyCore/DafnyCore.csproj b/Source/DafnyCore/DafnyCore.csproj
-index 0f17aa923..6b937ebcb 100644
+index 4a8b2f89b..a308be9bf 100644
 --- a/Source/DafnyCore/DafnyCore.csproj
 +++ b/Source/DafnyCore/DafnyCore.csproj
-@@ -30,7 +30,7 @@
+@@ -31,7 +31,7 @@
        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
--      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.3" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="2.16.4" />
 +      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
+       <PackageReference Include="Tomlyn" Version="0.16.2" />
    </ItemGroup>
  
-   <ItemGroup>

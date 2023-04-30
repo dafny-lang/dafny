@@ -93,10 +93,43 @@ However, which files are verified, built, run, or processed by other
 dafny commands depends on the individual command. 
 These commands are described in [Section 13.5.1](#sec-dafny-commands).
 
-
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
+### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+
+As of Dafny 4.1, `dafny` now supports outputting a single file containing
+a fully-verified program along with metadata about how it was verified.
+Such files use the extension `.doo`, for Dafny Output Object,
+and can be used as input anywhere a `.dfy` file can be.
+
+`.doo` files are produced by an additional backend called the "Dafny Library" backend,
+identified with the name `lib` on the command line. For example, to build multiple
+Dafny files into a single build artifact for shared reuse, the command would look something like:
+
+```bash
+dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
+```
+
+The Dafny code contained in a `.doo` file is not re-verified when passed back to the `dafny` tool,
+just as included files and those passed with the `--library` option are not.
+Using `.doo` files provides a guarantee that the Dafny code was in fact verified,
+however, and therefore offers protection against build system mistakes.
+`.doo` files are therefore ideal for sharing Dafny libraries between projects.
+
+`.doo` files also contain metadata about the version of Dafny used to verify them
+and the values of relevant options that affect the sound separate verification and
+compilation of Dafny code, such as `--unicode-char`.
+This means attempting to use a library that was built with options
+that are not compatible with the currently executing command options
+will lead to errors.
+This also includes attempting to use a `.doo` file built with a different version of Dafny,
+although this restriction may be lifted in the future.
+
+A `.doo` file is a compressed archive of multiple files, similar to the `.jar` file format for Java packages.
+The exact file format is internal and may evolve over time to support additional features.
+
+Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
 
 ## 13.4. Dafny Code Style
 
@@ -434,7 +467,7 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the [`{:test}` attribute](#sec-test-attribute).
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
@@ -570,6 +603,25 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 - Dafny `print` statements, when executed, send output to **standard-out**
 - Dafny `expect` statements (when they fail) send a message to **standard-out**.
 - Dafny I/O libraries send output explicitly to either **standard-out or standard-error**
+
+### 13.5.5. Project files
+
+Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. Here's an example of a Dafny project file:
+
+```toml
+includes = ["src/**/*.dfy"]
+excludes = ["**/ignore.dfy"]
+
+[options]
+enforce-determinism = true
+warn-shadowing = true
+```
+
+Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored.
+
+When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file it can find. Options from the project file will override options passed to `dafny server`.
+
+It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
 ## 13.6. Verification {#sec-verification}
 
@@ -931,6 +983,44 @@ method Slow(i: int, j: int)
   }
 }
 ```
+
+Labelled assert statements are available both in expressions and statements.
+Assertion labels are not accessible outside of the block which the assert statement is in.
+If you need to access an assertion label outside of the enclosing expression or statement,
+you need to lift the labelled statement at the right place manually, e.g. rewrite
+
+<!-- %no-check -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  if x {
+    assert a: P(1) by { reveal r; }
+  }
+  assert x ==> P(1) by { reveal a; } // Error, a is not accessible
+}
+```
+to
+
+<!-- %check-verify -->
+```dafny
+ghost predicate P(i: int)
+
+method TestMethod(x: bool)
+  requires r: x <==> P(1)
+{
+  assert a: x ==> P(1) by {
+    if x {
+      assert P(1) by { reveal r; } // Proved without revealing the precondition
+    }
+  }
+  assert x ==> P(1) by { reveal a; } // Now a is accessible
+}
+```
+
+To lift assertions, please refer to the techniques described in [Verification Debugging](#sec-verification-debugging).
 
 #### 13.6.2.4. Non-opaque `function method` {#sec-non-opaque-function-method}
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -61,7 +62,8 @@ The `text` format also includes a more detailed breakdown of what assertions app
   };
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit", @"Specify the maximum resource limit (rlimit) value to pass to Z3. Multiplied by 1000 before sending to Z3.");
-  public static readonly Option<string> SolverPlugin = new("--solver-plugin", @"Specify a plugin to use to solve verification conditions (instead of an external Z3 process).");
+  public static readonly Option<string> SolverPlugin = new("--solver-plugin",
+    @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/v2.16.3/Source/Provers/SMTLib/ProverUtil.cs#L316");
 
   public static readonly Option<string> SolverLog =
     new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
@@ -150,6 +152,20 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
 true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
+    @"
+false - Don't print type-inference debug information.
+true - Print type-inference debug information.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> NewTypeInferenceDebug = new("--type-system-debug", () => false,
+    @"
+false - Don't print debug information for the new type system.
+true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
@@ -282,8 +298,55 @@ Functionality is still being expanded. Currently only checks contracts on every 
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
-  }
 
+    DooFile.RegisterLibraryChecks(
+      new Dictionary<Option, DooFile.OptionCheck>() {
+        { UnicodeCharacters, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionMatches },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
+        // Ideally this feature shouldn't affect separate compilation,
+        // because it's automatically disabled on {:extern} signatures.
+        // Realistically though, we don't have enough strong mechanisms to stop
+        // target language code from referencing compiled internal code,
+        // so to be conservative we flag this as not compatible in general.
+        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+      }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Check,
+      Libraries,
+      Output,
+      Plugin,
+      Prelude,
+      Target,
+      Verbose,
+      ErrorLimit,
+      FormatPrint,
+      IsolateAssertions,
+      JsonDiagnostics,
+      QuantifierSyntax,
+      SolverLog,
+      SolverPath,
+      SolverPlugin,
+      SpillTranslation,
+      StdIn,
+      TestAssumptions,
+      WarnShadowing,
+      ManualLemmaInduction,
+      SolverResourceLimit,
+      TypeInferenceDebug,
+      TypeSystemRefresh,
+      VerificationLogFormat,
+      VerifyIncludedFiles,
+      WarningAsErrors,
+      DisableNonLinearArithmetic,
+      NewTypeInferenceDebug,
+      UseBaseFileName,
+      WarnMissingConstructorParenthesis,
+      UseJavadocLikeDocstringRewriterOption,
+      IncludeRuntimeOption
+    );
+  }
 
   public static readonly Option<bool> FormatPrint = new("--print",
     @"Print Dafny program to stdout after formatting it instead of altering the files.") {
