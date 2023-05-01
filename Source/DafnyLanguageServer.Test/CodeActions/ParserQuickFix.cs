@@ -11,38 +11,24 @@ using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionTest : ClientBasedLanguageServerTest {
-    private async Task<List<CommandOrCodeAction>> RequestCodeActionAsync(TextDocumentItem documentItem, Range range) {
-      var completionList = await client.RequestCodeAction(
-        new CodeActionParams {
-          TextDocument = documentItem.Uri.GetFileSystemPath(),
-          Range = range
-        },
-        CancellationToken
-      ).AsTask();
-      return completionList.ToList();
-    }
-
-    private async Task<CodeAction> RequestResolveCodeAction(CodeAction codeAction) {
-      return await client.ResolveCodeAction(codeAction, CancellationToken);
-    }
 
     [Fact]
     public async Task RemoveDuplicateModifier() {
-      await TestCodeAction(@"
+      await TestErrorCodeAction(@"
 abstract (>remove 'abstract'->:::abstract <)module Foo {
 }");
     }
 
     [Fact]
     public async Task RemoveAbstractFromClass() {
-      await TestCodeAction(@"
+      await TestErrorCodeAction(@"
 (>remove 'abstract'->:::abstract <)class Foo {
 }");
     }
 
     [Fact]
     public async Task RemoveLeadingUnderscore() {
-      await TestCodeAction(@"
+      await TestErrorCodeAction(@"
 method Foo()
 {
   var (>remove underscore->qx:::_x<) := 3; 
@@ -55,7 +41,21 @@ method Foo()
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
-    private async Task TestCodeAction(string source) {
+    private async Task<List<CommandOrCodeAction>> RequestTestCodeActionAsync(TextDocumentItem documentItem, Range range) {
+      var completionList = await client.RequestCodeAction(
+        new CodeActionParams {
+          TextDocument = documentItem.Uri.GetFileSystemPath(),
+          Range = range
+        },
+        CancellationToken
+      ).AsTask();
+      return completionList.ToList();
+    }
+
+    private async Task<CodeAction> RequestResolveTestCodeAction(CodeAction codeAction) {
+      return await client.ResolveCodeAction(codeAction, CancellationToken);
+    }
+    private async Task TestErrorCodeAction(string source) { // Same as CodeActionsTest.TestCodeAction
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
       MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
@@ -75,7 +75,7 @@ method Foo()
         var expectedTitle = split[0];
         var expectedNewText = split.Length > 1 ? split[1] : "";
         var expectedRange = actionData.Second.Range;
-        var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        var completionList = await RequestTestCodeActionAsync(documentItem, new Range(position, position));
         var found = false;
         var otherTitles = new List<string>();
         foreach (var completion in completionList) {
@@ -83,7 +83,7 @@ method Foo()
             otherTitles.Add(title);
             if (title == expectedTitle) {
               found = true;
-              codeAction = await RequestResolveCodeAction(codeAction);
+              codeAction = await RequestResolveTestCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.NotNull(textDocumentEdit);
               var edit = textDocumentEdit.Edits.Single();
