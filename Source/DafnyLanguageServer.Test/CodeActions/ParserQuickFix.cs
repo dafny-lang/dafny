@@ -10,7 +10,7 @@ using Xunit;
 using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
-  public class CodeActionTest : ClientBasedLanguageServerTest {
+  public class CodeActionErrorTest : ClientBasedLanguageServerTest {
 
     [Fact]
     public async Task RemoveDuplicateModifier() {
