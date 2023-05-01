@@ -60,8 +60,12 @@ public static class ErrorRegistry {
   }
 
   public static RangeToken IncludeComma(RangeToken range) {
-    if (range.EndToken.Next.val == ",") return new RangeToken(range.StartToken, range.EndToken.Next);
-    if (range.StartToken.Prev.val == ",") return new RangeToken(range.StartToken.Prev, range.EndToken);
+    if (range.EndToken.Next.val == ",") {
+      return new RangeToken(range.StartToken, range.EndToken.Next);
+    }
+    if (range.StartToken.Prev.val == ",") {
+      return new RangeToken(range.StartToken.Prev, range.EndToken);
+    }
     return range;
   }
 
@@ -71,10 +75,11 @@ public static class ErrorRegistry {
     while (!pred(t)) {
       p = t;
       t = t.Prev;
-      if (t == null) return range;
+      if (t == null) {
+        return range;
+      }
     }
-    if (include) return new RangeToken(t, range.EndToken);
-    return new RangeToken(p, range.EndToken);
+    return new RangeToken(include ? t : p, range.EndToken);
   }
 
   public static RangeToken ExpandEnd(RangeToken range, TokenPredicate pred, bool include) {
@@ -83,10 +88,11 @@ public static class ErrorRegistry {
     while (!pred(t)) {
       p = t;
       t = t.Prev;
-      if (t == null) return range;
+      if (t == null) {
+        return range;
+      }
     }
-    if (include) return new RangeToken(range.StartToken, t);
-    return new RangeToken(range.StartToken, p);
+    return new RangeToken(range.StartToken, include ? t : p);
   }
 
   public static ActionSignature Replacements(IEnumerable<(string NewContent, string Title)> replacements) {

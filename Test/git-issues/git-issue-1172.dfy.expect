@@ -24,13 +24,13 @@ git-issue-1172.dfy(152,14): Error: A 'decreases' clause that contains '*' is not
 git-issue-1172.dfy(157,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 git-issue-1172.dfy(158,17): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 git-issue-1172.dfy(165,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(168,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(168,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
 git-issue-1172.dfy(172,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(176,11): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(179,14): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(182,17): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(186,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(187,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(188,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
-git-issue-1172.dfy(189,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(175,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(179,11): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(182,11): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(185,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(185,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(185,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
+git-issue-1172.dfy(185,8): Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions
 35 parse errors detected in git-issue-1172.dfy
