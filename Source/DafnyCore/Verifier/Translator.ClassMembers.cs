@@ -41,6 +41,7 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(isAllocContext == null);
         currentDeclaration = member;
+        SetAssertionOnlyFilter(member);
         if (member is Field) {
           Field f = (Field)member;
           Boogie.Declaration fieldDeclaration;
@@ -73,6 +74,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
+      ResetAssertionOnlyFilter();
     }
 
     /**
@@ -1353,6 +1355,45 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
     }
 
+    // Return a way to know if an assertion should be converted to an assumptions
+    private void SetAssertionOnlyFilter(Node m) {
+      List<RangeToken> rangesOnly = new List<RangeToken>();
+      m.Visit(node => {
+        if (node is AssertStmt assertStmt && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+          var (isBefore, isAfter) = attribute.Args.Count == 1 && attribute.Args[0] is LiteralExpr { Value: var value } &&
+                                  value is "after" or "before" ? (value is "before", value is "after") : (false, false);
+
+          var ifAfterLastToken = m.EndToken;
+          if (rangesOnly.FindIndex(r => r.Contains(node.StartToken.pos)) is var x && x >= 0) {
+            if (isBefore) {// Just shorten the previous range
+              rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
+              return true;
+            }
+
+            ifAfterLastToken = rangesOnly[x].EndToken;
+            rangesOnly.RemoveAt(x);
+          }
+
+          var rangeToAdd =
+            isBefore ?
+              new RangeToken(m.StartToken, assertStmt.EndToken) :
+            isAfter ?
+              new RangeToken(assertStmt.StartToken, ifAfterLastToken)
+              : assertStmt.RangeToken;
+          rangesOnly.Add(rangeToAdd);
+        }
+        return true;
+      });
+      if (rangesOnly.Any()) {
+        // TODO: What to do with refined postconditions?
+        assertionOnlyFilter = token => rangesOnly.Any(range => range.Contains((token.pos)));
+      }
+    }
+
+    private void ResetAssertionOnlyFilter() {
+      assertionOnlyFilter = null;
+    }
+
     /// <summary>
     /// This method is expected to be called at most once for each parameter combination, and in particular
     /// at most once for each value of "kind".
@@ -1369,7 +1410,6 @@ namespace Microsoft.Dafny {
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
-
       Boogie.Expr prevHeap = null;
       Boogie.Expr currHeap = null;
       var ordinaryEtran = new ExpressionTranslator(this, predef, m.tok);
@@ -1464,16 +1504,16 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree, post, errorMessage, null));
+              AddEnsures(ens, Ensures(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, post, errorMessage, null));
             }
           }
         }
         if (m is Constructor && kind == MethodTranslationKind.Call) {
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false, fresh, null, "constructor allocates the object"));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
+          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
 
         // add the fuel assumption for the reveal method of a opaque method
