@@ -1380,6 +1380,10 @@ namespace Microsoft.Dafny {
             isAfter ?
               new RangeToken(assertStmt.StartToken, ifAfterLastToken)
               : assertStmt.RangeToken;
+          if (isBefore && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
+            // There are more precise ranges so we don't add this one
+            return true;
+          }
           rangesOnly.Add(rangeToAdd);
         }
         return true;

@@ -3,39 +3,46 @@ git-issue-3095.dfy(19,9): Warning: Assertion with {:only} temporarily transforms
 git-issue-3095.dfy(25,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
 git-issue-3095.dfy(26,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
 git-issue-3095.dfy(32,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(41,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(51,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(53,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(65,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(75,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(77,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(87,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(89,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(97,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(99,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(40,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(49,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(51,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(62,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(71,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(73,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(83,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(85,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(93,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(95,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(103,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(105,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(114,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(116,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
 git-issue-3095.dfy(19,19): Error: assertion might not hold
 git-issue-3095.dfy(26,21): Error: assertion might not hold
 git-issue-3095.dfy(27,15): Error: assertion might not hold
 git-issue-3095.dfy(32,19): Error: assertion might not hold
-git-issue-3095.dfy(41,27): Error: assertion might not hold
+git-issue-3095.dfy(40,27): Error: assertion might not hold
+git-issue-3095.dfy(41,11): Error: assertion might not hold
 git-issue-3095.dfy(42,11): Error: assertion might not hold
-git-issue-3095.dfy(43,11): Error: assertion might not hold
-git-issue-3095.dfy(44,0): Error: out-parameter 'j', which is subject to definite-assignment rules, might be uninitialized at this return point
-git-issue-3095.dfy(53,29): Error: assertion might not hold
-git-issue-3095.dfy(54,13): Error: assertion might not hold
-git-issue-3095.dfy(63,11): Error: assertion might not hold
-git-issue-3095.dfy(64,11): Error: assertion might not hold
-git-issue-3095.dfy(65,28): Error: assertion might not hold
-git-issue-3095.dfy(75,19): Error: assertion might not hold
-git-issue-3095.dfy(76,13): Error: assertion might not hold
-git-issue-3095.dfy(77,30): Error: assertion might not hold
-git-issue-3095.dfy(87,27): Error: assertion might not hold
-git-issue-3095.dfy(88,11): Error: assertion might not hold
-git-issue-3095.dfy(89,28): Error: assertion might not hold
+git-issue-3095.dfy(43,0): Error: out-parameter 'j', which is subject to definite-assignment rules, might be uninitialized at this return point
+git-issue-3095.dfy(51,29): Error: assertion might not hold
+git-issue-3095.dfy(52,13): Error: assertion might not hold
+git-issue-3095.dfy(60,11): Error: assertion might not hold
+git-issue-3095.dfy(61,11): Error: assertion might not hold
+git-issue-3095.dfy(62,28): Error: assertion might not hold
+git-issue-3095.dfy(71,19): Error: assertion might not hold
+git-issue-3095.dfy(72,13): Error: assertion might not hold
+git-issue-3095.dfy(73,30): Error: assertion might not hold
+git-issue-3095.dfy(83,27): Error: assertion might not hold
+git-issue-3095.dfy(84,11): Error: assertion might not hold
+git-issue-3095.dfy(85,28): Error: assertion might not hold
+git-issue-3095.dfy(92,11): Error: assertion might not hold
+git-issue-3095.dfy(93,28): Error: assertion might not hold
+git-issue-3095.dfy(95,27): Error: assertion might not hold
 git-issue-3095.dfy(96,11): Error: assertion might not hold
-git-issue-3095.dfy(97,28): Error: assertion might not hold
-git-issue-3095.dfy(99,27): Error: assertion might not hold
-git-issue-3095.dfy(100,11): Error: assertion might not hold
-git-issue-3095.dfy(101,0): Error: out-parameter 'j', which is subject to definite-assignment rules, might be uninitialized at this return point
+git-issue-3095.dfy(97,0): Error: out-parameter 'j', which is subject to definite-assignment rules, might be uninitialized at this return point
+git-issue-3095.dfy(103,19): Error: assertion might not hold
+git-issue-3095.dfy(113,11): Error: assertion might not hold
+git-issue-3095.dfy(114,28): Error: assertion might not hold
 
-Dafny program verifier finished with 0 verified, 24 errors
+Dafny program verifier finished with 0 verified, 27 errors

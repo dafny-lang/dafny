@@ -563,7 +563,7 @@ Here is precisely how Dafny determines what to verify or not.
 
 * `assert {:only} X [by {...} | ;]` sets a verification interval that starts at the keyword `assert` and ends either at the end of the proof `}` or the semicolon `;`, depending on which variant of `assert` is being used.
 * `assert {:only} ...` inside an other verification interval removes that verification interval and sets a new one.
-* `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside verification intervals, it sets a verification interval from the beginning of the declaration to the end of this assertion.
+* `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside verification intervals, it sets a verification interval from the beginning of the declaration to the end of this assertion, but only if there were no other verification intervals before.
 * `assert {:only "after"} ...` inside another verification interval moves the start of that verification interval to the start of this new assert. Outside verification interval, it sets a verification interval from the beginning of this `assert` to the end of the declaration.
 
 The start of an asserted expression is used to determines if it's inside a verification interval or not.

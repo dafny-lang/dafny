@@ -32,7 +32,6 @@ method TestOnly(i: int, k: int, o1: set<object>, o2: set<object>) returns (j :in
   assert {:only} i >= 5;       // Checked (error)
 }
 
-
 method TestOnlyAfter(i: int) returns (j :int)
   ensures j >= i // Postconditions are "free" in only mode so they are not tested
 {               
@@ -42,7 +41,6 @@ method TestOnlyAfter(i: int) returns (j :int)
   assert i >= 4;                 // Checked (error)
   assert i >= 5;                 // Checked (error)
 }
-
 
 method TestOnlyAfter2(i: int) returns (j :int)
   ensures j >= i // Postconditions are "free" in only mode so they are not tested
@@ -56,7 +54,6 @@ method TestOnlyAfter2(i: int) returns (j :int)
   assert i >= 6;                   // Unchecked
 }
 
-
 method TestOnlyBefore(i: int) returns (j :int)
   ensures j >= i
 {               
@@ -66,7 +63,6 @@ method TestOnlyBefore(i: int) returns (j :int)
   assert i >= 4;                  // Unchecked
   assert i >= 5;                  // Unchecked
 }
-
 
 method TestOnlyBefore2(i: int) returns (j :int)
   ensures j >= i // Postconditions are "free" in only mode so they are not tested
@@ -99,3 +95,25 @@ method TestOnlyBeforeAfter(i: int) returns (j :int)
   assert {:only "after"} i >= 4;  // Checked (error)
   assert i >= 5;                  // Checked (error)
 }                                 // Checked (error)
+
+method TestOnlyOnlyBefore(i: int) returns (j :int)
+  ensures j >= i
+{               
+  assert i >= 1;                  // Unchecked
+  assert {:only} i >= 2;          // Checked (error)
+  assert i >= 3;                  // Unchecked
+  assert {:only "before"} i >= 4; // Unchecked
+  assert i >= 5;                  // Unchecked
+  assert i >= 6;                  // Unchecked
+}
+
+method TestOnlyBeforeOnlyBefore(i: int) returns (j :int)
+  ensures j >= i
+{               
+  assert i >= 1;                  // Checked (error)
+  assert {:only "before"} i >= 2; // Checked (error)
+  assert i >= 3;                  // Unchecked
+  assert {:only "before"} i >= 4; // Unchecked
+  assert i >= 5;                  // Unchecked
+  assert i >= 6;                  // Unchecked
+}
