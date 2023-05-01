@@ -194,7 +194,7 @@ module Tests {
       }
     }
   }
-
+} module BodyLessLoops {
   method BodyLessLoop(a: nat, b: nat) {
     for i := a to b // body-less loop
   }
@@ -210,7 +210,7 @@ module Tests {
     for i := a to b // body-less loop (loop frame: $Heap)
       modifies arr
   }
-
+} module MoreTests {
   method LoopSpecs(a: array<int>, b: array<int>)
     modifies a, b
   {
