@@ -1,2 +1,2 @@
-git-issue-3366.dfy(16,17): Error: Side-effect methods calls such as constructors are not allowed in expressions.
+git-issue-3366.dfy(16,17): Error: Calls with side-effects such as constructors are not allowed in expressions.
 1 parse errors detected in git-issue-3366.dfy
