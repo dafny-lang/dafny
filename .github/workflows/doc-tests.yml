@@ -55,3 +55,8 @@ jobs:
         cd dafny/docs
         chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
+    - name: Check ProofOptimization examples
+      run: |
+        cd dafny/docs
+        chmod +x ./check-examples
+        PATH=../bin:$PATH ./check-examples ProofOptimization/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
