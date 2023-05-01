@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -52,6 +53,12 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     get {
       foreach (var e in base.SpecificationSubExpressions) { yield return e; }
       yield return Expr;
+    }
+  }
+
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    if (Attributes.Contains(Attributes, "only")) {
+      yield return new Assumption(decl, tok, AssumptionDescription.AssertOnly);
     }
   }
 
