@@ -543,6 +543,8 @@ The error message states that the parser sees some number of type parameters dif
 const m: imap<int,bool,string>
 ```
 
+<!-- UP TO HERE -->
+
 A `imap` type has two type parameters: the type of the keys and the type of the values.
 The error message states that the parser sees some number of type parameters different than two.
 
