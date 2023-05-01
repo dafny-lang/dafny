@@ -438,6 +438,13 @@ There are also two different approaches to executing all tests in a program:
    This runner is currently very basic, but avoids introducing any additional target
    language dependencies in the compiled code.
 
+A method marked `{:test}` may not have any input arguments. If there is an
+output value that does not have a failure-compatible type, that value is 
+ignored. A method that does have input arguments can be wrapped in a test
+harness that supplies input arguments but has no inputs of its own and that
+checks any output values, perhaps with `expect` statements. The test harness
+is then the method marked with `{:test}`.
+
 ### 11.2.15. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 

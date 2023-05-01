@@ -1,0 +1,13 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier finished with 1 verified, 0 errors
+[1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier finished with 2 verified, 0 errors
+*** Error: Cannot load wrappers.doo: --unicode-char is set locally to False, but the library was built with True
+*** Error: Cannot load wrappers.doo: --boogie is set locally to [], but the library was built with [/vcsLoad:2]
