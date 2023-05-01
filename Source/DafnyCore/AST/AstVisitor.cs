@@ -274,16 +274,20 @@ namespace Microsoft.Dafny {
     protected virtual void VisitExtendedPattern(ExtendedPattern pattern, VisitorContext context) {
       switch (pattern) {
         case DisjunctivePattern disjunctivePattern:
-          disjunctivePattern.Alternatives.ForEach(alternative => VisitExtendedPattern(alternative, context));
+          foreach (var alternative in disjunctivePattern.Alternatives) {
+            VisitExtendedPattern(alternative, context);
+          }
           break;
-        case LitPattern litPattern:
+        case LitPattern:
           break;
         case IdPattern idPattern:
           if (idPattern.BoundVar != null) {
             VisitUserProvidedType(idPattern.BoundVar.Type, context);
           }
           if (idPattern.Arguments != null) {
-            idPattern.Arguments.ForEach(argument => VisitExtendedPattern(argument, context));
+            foreach (var argument in idPattern.Arguments) {
+              VisitExtendedPattern(argument, context);
+            }
           }
           break;
         default:
