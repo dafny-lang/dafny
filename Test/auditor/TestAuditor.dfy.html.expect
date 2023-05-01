@@ -48,6 +48,7 @@
 <tr><td>ForallWithoutBody</td><td>False</td><td>False</td><td>False</td><td>Definition contains <code>forall</code> statement with no body.</td><td>Provide a body.</td></tr>
 <tr><td>LoopWithoutBody</td><td>True</td><td>False</td><td>False</td><td>Definition contains loop with no body.</td><td>Provide a body.</td></tr>
 <tr><td>ConcurrentMethod</td><td>True</td><td>False</td><td>False</td><td>Declaration has <code>{:concurrent}</code> attribute.</td><td>Manually review and test in a concurrent setting.</td></tr>
+<tr><td>AssertOnly</td><td>True</td><td>False</td><td>False</td><td>ASsertion has explicit temporary <code>{:only}</code> attribute.</td><td>Remove the attribute <code>{:only}</code></td></tr>
 </table>
 <script>$( "table" ).last().addClass( "sortable" );</script>
 </body>

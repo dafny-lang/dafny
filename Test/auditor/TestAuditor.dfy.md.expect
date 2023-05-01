@@ -15,3 +15,4 @@
 | ForallWithoutBody | False | False | False | Definition contains `forall` statement with no body. | Provide a body. |
 | LoopWithoutBody | True | False | False | Definition contains loop with no body. | Provide a body. |
 | ConcurrentMethod | True | False | False | Declaration has `{:concurrent}` attribute. | Manually review and test in a concurrent setting. |
+| AssertOnly | True | False | False | ASsertion has explicit temporary `{:only}` attribute. | Remove the attribute `{:only}` |
