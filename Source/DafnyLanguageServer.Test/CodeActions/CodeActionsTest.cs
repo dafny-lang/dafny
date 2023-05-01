@@ -296,8 +296,8 @@ function Foo(i: int): int
               codeAction = await RequestResolveCodeAction(codeAction);
               var textDocumentEdit = codeAction.Edit?.DocumentChanges?.Single().TextDocumentEdit;
               Assert.NotNull(textDocumentEdit);
-              var modifiedOutput = string.Join("\n", ApplyEdits(textDocumentEdit, output));
-              var expectedOutput = string.Join("\n", ApplySingleEdit(ToLines(output), expectedRange, expectedNewText));
+              var modifiedOutput = string.Join("\n", ApplyEdits(textDocumentEdit, output)).Replace("\r\n", "\n");
+              var expectedOutput = string.Join("\n", ApplySingleEdit(ToLines(output), expectedRange, expectedNewText)).Replace("\r\n", "\n");
               Assert.Equal(expectedOutput, modifiedOutput);
             }
           }
