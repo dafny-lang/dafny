@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
 
       // Populate the members of the basic types
 
-      void addMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+      void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
         var enclosingType = valuetypeDecls[(int)valuetypeVariety];
         member.EnclosingClass = enclosingType;
         member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -290,20 +290,20 @@ namespace Microsoft.Dafny {
       }
 
       var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
-      addMember(floor, ValuetypeVariety.Real);
+      AddMember(floor, ValuetypeVariety.Real);
 
       var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
-      addMember(isLimit, ValuetypeVariety.BigOrdinal);
+      AddMember(isLimit, ValuetypeVariety.BigOrdinal);
 
       var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
-      addMember(isSucc, ValuetypeVariety.BigOrdinal);
+      AddMember(isSucc, ValuetypeVariety.BigOrdinal);
 
       var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
-      addMember(limitOffset, ValuetypeVariety.BigOrdinal);
+      AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
       builtIns.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
-      addMember(isNat, ValuetypeVariety.BigOrdinal);
+      AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
       // Add "Keys", "Values", and "Items" to map, imap
       foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
         var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
         foreach (var memb in new[] { keys, values, items }) {
-          addMember(memb, typeVariety);
+          AddMember(memb, typeVariety);
         }
       }
 
