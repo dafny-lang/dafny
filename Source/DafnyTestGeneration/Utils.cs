@@ -17,6 +17,23 @@ namespace DafnyTestGeneration {
   public static class Utils {
 
     /// <summary>
+    /// Call Translator with larger stack to prevent stack overflow
+    /// </summary>
+    public static List<Microsoft.Boogie.Program> Translate(Program program) {
+      var ret = new List<Microsoft.Boogie.Program> { };
+      var thread = new System.Threading.Thread(
+        () => {
+          ret = Translator
+            .Translate(program, program.Reporter)
+            .ToList().ConvertAll(tuple => tuple.Item2);
+        },
+        0x10000000); // 256MB stack size to prevent stack overflow
+      thread.Start();
+      thread.Join();
+      return ret;
+    }
+
+    /// <summary>
     /// Take a resolved type and change all names to fully-qualified.
     /// </summary>
     public static Type UseFullName(Type type) {
