@@ -547,7 +547,7 @@ Only a small subset of Dafny's command line options is supported.  Use the
 
 `assert {:only} X;` temporarily transforms all other non-`{:only}` assertions in the surrounding declaration into assumptions.
 
-<!-- %check-verify -->
+<!-- %no-check -->
 ```dafny
 method Test() {
   assert true;                  // Unchecked
