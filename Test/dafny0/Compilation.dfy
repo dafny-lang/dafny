@@ -351,7 +351,8 @@ class DigitUnderscore_Names_Functions_and_Methods {
   }
 
   constructor 20_0(x: int)
-  { new;
+  {
+    new;
     var u := this.88;
     assert u == DigitUnderscore_Names_Functions_and_Methods.88;
   }
