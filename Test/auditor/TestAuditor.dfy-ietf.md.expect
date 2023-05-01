@@ -60,4 +60,4 @@
 
 ### Member `AssertOnly`
 
-* ASsertion has explicit temporary `{:only}` attribute. MUST remove the attribute `{:only}`
+* Assertion has explicit temporary `{:only}` attribute. MUST remove the attribute `{:only}`
