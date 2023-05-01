@@ -41,7 +41,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
 
   public AssignOrReturnStmt(Cloner cloner, AssignOrReturnStmt original) : base(cloner, original) {
     Rhs = (ExprRhs)cloner.CloneRHS(original.Rhs);
-    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
+    Rhss = original.Rhss.ConvertAll(cloner.CloneRHS);
     KeywordToken = cloner.AttributedTok(original.KeywordToken);
 
     if (cloner.CloneResolvedFields) {
@@ -49,12 +49,13 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss = null)
+  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhss != null);
     Contract.Requires(lhss.Count <= 1);
     Contract.Requires(rhs != null);
+    Contract.Requires(rhss != null);
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
@@ -230,7 +231,24 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         throw new InvalidOperationException("Internal error: unexpected option in AssignOrReturnStmt.Resolve");
       }
     }
-    var temp = resolver.FreshTempVarName("valueOrError", resolutionContext.CodeContext);
+
+    DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
+    ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
+    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken != null);
+  }
+
+  /// <summary>
+  /// Add to .Resolved
+  /// </summary>
+  /// <param name="expectExtract"></param>
+  /// <param name="lhsExtract"></param>
+  /// <param name="firstType"></param>
+  /// <param name="resolver"></param>
+  /// <param name="enclosingMethod"></param>
+  private void DesugarElephantStatement(bool expectExtract, Expression lhsExtract, Type firstType,
+    Resolver resolver, Method enclosingMethod) {
+
+    var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
     var lhss = new List<LocalVariable>() { new LocalVariable(RangeToken, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
     ResolvedStatements.Add(new VarDeclStmt(RangeToken, lhss, null));
@@ -275,10 +293,10 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       }
       ResolvedStatements.Add(ss);
     } else {
-      var enclosingOutParameter = ((Method)resolutionContext.CodeContext).Outs[0];
+      var enclosingOutParameter = enclosingMethod.Outs[0];
       var ident = new IdentifierExpr(Tok, enclosingOutParameter.Name);
       // resolve it here to avoid capture into more closely declared local variables
-      Contract.Assert(enclosingOutParameter.Type != null);  // this confirms our belief that the out-parameter has already been resolved
+      Contract.Assert(enclosingOutParameter.Type != null); // this confirms our belief that the out-parameter has already been resolved
       ident.Var = enclosingOutParameter;
       ident.Type = ident.Var.Type;
 
@@ -289,7 +307,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
           new BlockStmt(RangeToken, new List<Statement>() {
             new UpdateStmt(RangeToken,
               new List<Expression>() { ident },
-              new List<AssignmentRhs>() {new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure"))}
+              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
             ),
             new ReturnStmt(RangeToken, null),
           }),
@@ -314,8 +332,5 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
           "The Extract member may not be ghost unless the initial LHS is ghost");
       }
     }
-
-    ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
-    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken != null);
   }
 }
