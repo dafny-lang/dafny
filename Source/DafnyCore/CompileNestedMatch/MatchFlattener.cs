@@ -149,7 +149,7 @@ public class MatchFlattener : IRewriter {
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).
+      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false, false).
         Visit(result, nestedMatchStmt.IsGhost, null);
       return result;
     }
@@ -339,11 +339,11 @@ public class MatchFlattener : IRewriter {
       foreach (var path in paths) {
         var (head, tail) = SplitPath(path);
         if (head is IdPattern idPattern) {
-          if (ctor.Name.Equals(idPattern.Id) && idPattern.Arguments != null) {
+          if (ctor.Name == idPattern.Id && idPattern.Arguments != null) {
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
             // After making sure the constructor is applied to the right number of arguments
 
-            if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
+            if (idPattern.Arguments.Count != ctor.Formals.Count) {
               Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
@@ -710,15 +710,14 @@ public class MatchFlattener : IRewriter {
     var type = var.Type ?? new InferredTypeProxy();
     var isGhost = var.IsGhost;
 
-    // if the expression is a generated IdentifierExpr, replace its token by the path's
+    // if the expression is a generated IdentifierExpr, replace its token by the path's; this causes any sub-range error message
+    // to point at the bound variable, not at the source expression
     Expression expr = genExpr;
-    if (genExpr is IdentifierExpr idExpr) {
-      if (idExpr.Name.StartsWith("_")) {
-        expr = new IdentifierExpr(var.Tok, idExpr.Var);
-      }
+    if (genExpr.Resolved is IdentifierExpr idExpr) {
+      expr = new IdentifierExpr(var.Tok, idExpr.Var);
     }
     if (bodyPath is StmtPatternPath stmtPath) {
-      if (stmtPath.Body.Count <= 0) {
+      if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
         return stmtPath;
       }
 
@@ -757,13 +756,13 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  // If cp is not a wildcard, replace path.Body with let cp = expr in path.Body
+  // If cp is not a literal or wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
-  private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
-    if (!var.IsWildcardPattern) {
-      return LetBind(var, expr, bodyPath);
+  private PatternPath LetBindNonWildCard(IdPattern idPattern, Expression expr, PatternPath bodyPath) {
+    Contract.Assert(idPattern.Ctor == null);
+    if (idPattern.ResolvedLit != null || (idPattern.IsWildcardPattern && (idPattern.Id.Contains('#') || idPattern.Type is TypeProxy))) {
+      return bodyPath;
     }
-
-    return bodyPath;
+    return LetBind(idPattern, expr, bodyPath);
   }
 }
