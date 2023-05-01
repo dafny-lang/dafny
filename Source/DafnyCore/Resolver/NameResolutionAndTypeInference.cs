@@ -5098,7 +5098,7 @@ namespace Microsoft.Dafny {
       foreach (var valuet in valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
           MemberDecl member;
-          if (valuet.Members.TryGetValue(memberName, out member)) {
+          if (classMembers[valuet].TryGetValue(memberName, out member)) {
             SelfType resultType = null;
             if (member is SpecialFunction) {
               resultType = ((SpecialFunction)member).ResultType as SelfType;

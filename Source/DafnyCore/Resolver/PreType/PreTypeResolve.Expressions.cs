@@ -1049,11 +1049,6 @@ namespace Microsoft.Dafny {
           // caller can figure out the types, and then a later pass can figure out which particular "member" is intended.
           return (member, dReceiver);
         }
-
-      } else if (receiverDecl is ValuetypeDecl valuetypeDecl) {
-        if (valuetypeDecl.Members.TryGetValue(memberName, out var member)) {
-          return (member, dReceiver);
-        }
       }
       ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
       return (null, null);

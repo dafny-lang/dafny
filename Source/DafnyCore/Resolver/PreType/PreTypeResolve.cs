@@ -86,6 +86,10 @@ namespace Microsoft.Dafny {
         preTypeInferenceModuleState.PreTypeBuiltins.Add(name, bvDecl);
         AddRotateMember(bvDecl, "RotateLeft", width);
         AddRotateMember(bvDecl, "RotateRight", width);
+        // register the names of the type members
+        var members = new Dictionary<string, MemberDecl>();
+        resolver.classMembers.Add(bvDecl, members);
+        resolver.RegisterMembers(bvDecl.EnclosingModuleDefinition, bvDecl, members);
         return bvDecl;
       } else {
         decl = null;
@@ -130,7 +134,7 @@ namespace Microsoft.Dafny {
         ResultPreType = Type2PreType(resultType)
       };
       rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
-      bitvectorTypeDecl.Members.Add(name, rotateMember);
+      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -690,9 +694,14 @@ namespace Microsoft.Dafny {
       } else if (declaration is Field field) {
         ComputePreTypeField(field);
       } else if (declaration is Function function) {
-        ComputePreTypeFunction(function);
-        if (function is ExtremePredicate extremePredicate) {
-          ComputePreTypeFunction(extremePredicate.PrefixPredicate);
+        if (function.ResultType is SelfType) {
+          // This is a special case that, with the legacy type inference, handled the .Rotate{Left, Right} method of
+          // bitvector types. That's now handled in a different way, which does not use SelfType.
+        } else {
+          ComputePreTypeFunction(function);
+          if (function is ExtremePredicate extremePredicate) {
+            ComputePreTypeFunction(extremePredicate.PrefixPredicate);
+          }
         }
       } else if (declaration is Method method) {
         ComputePreTypeMethod(method);

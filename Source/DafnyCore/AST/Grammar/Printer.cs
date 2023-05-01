@@ -399,7 +399,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine(" { }");
           } else {
             wr.WriteLine(" {");
-            PrintMembers(new List<MemberDecl>(vtd.Members.Values), indent + IndentAmount, fileBeingPrinted);
+            PrintMembers(vtd.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
             wr.WriteLine("}");
           }

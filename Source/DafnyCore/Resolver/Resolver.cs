@@ -286,7 +286,7 @@ namespace Microsoft.Dafny {
         var enclosingType = valuetypeDecls[(int)valuetypeVariety];
         member.EnclosingClass = enclosingType;
         member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-        enclosingType.Members.Add(member.Name, member);
+        enclosingType.Members.Add(member);
       }
 
       var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
@@ -341,7 +341,7 @@ namespace Microsoft.Dafny {
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateMember.EnclosingClass = enclosingType;
       rotateMember.AddVisibilityScope(builtIns.SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(name, rotateMember);
+      enclosingType.Members.Add(rotateMember);
     }
 
     [ContractInvariantMethod]
@@ -760,11 +760,11 @@ namespace Microsoft.Dafny {
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
       foreach (var valueTypeDecl in valuetypeDecls) {
-        foreach (var kv in valueTypeDecl.Members) {
-          if (kv.Value is Function function) {
+        foreach (var member in valueTypeDecl.Members) {
+          if (member is Function function) {
             ResolveFunctionSignature(function);
             CallGraphBuilder.VisitFunction(function, reporter);
-          } else if (kv.Value is Method method) {
+          } else if (member is Method method) {
             ResolveMethodSignature(method);
             CallGraphBuilder.VisitMethod(method, reporter);
           }
@@ -1882,7 +1882,11 @@ namespace Microsoft.Dafny {
           // finally, add any additional user-defined members
           RegisterMembers(moduleDef, dt, members);
         } else {
-          Contract.Assert(d is ValuetypeDecl);
+          var cl = (ValuetypeDecl)d;
+          // register the names of the type members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(cl, members);
+          RegisterMembers(moduleDef, cl, members);
         }
       }
 
@@ -1905,7 +1909,7 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl,
+    internal void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl,
       Dictionary<string, MemberDecl> members) {
       Contract.Requires(moduleDef != null);
       Contract.Requires(cl != null);

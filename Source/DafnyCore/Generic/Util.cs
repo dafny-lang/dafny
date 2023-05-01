@@ -827,10 +827,6 @@ namespace Microsoft.Dafny {
         }
       } else if (d is ModuleDecl md) {
         return Traverse(md);
-      } else if (d is ValuetypeDecl vd) {
-        if (vd.Members.Any(pair => Traverse(pair.Value, "Members.Value", vd))) {
-          return true;
-        }
       } else if (d is TypeSynonymDecl tsd) {
         // Nothing here.
       }

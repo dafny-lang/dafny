@@ -1823,14 +1823,15 @@ public class CoDatatypeDecl : DatatypeDecl {
 /// The "ValuetypeDecl" class models the built-in value types (like bool, int, set, and seq.
 /// Its primary function is to hold the formal type parameters and built-in members of these types.
 /// </summary>
-public class ValuetypeDecl : TopLevelDecl {
+public class ValuetypeDecl : TopLevelDeclWithMembers {
   public override string WhatKind { get { return "type"; } }
-  public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
   readonly Func<Type, bool> typeTester;
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
+  public override bool AcceptThis => true;
+
   public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
@@ -1840,7 +1841,7 @@ public class ValuetypeDecl : TopLevelDecl {
 
   public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
     Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
