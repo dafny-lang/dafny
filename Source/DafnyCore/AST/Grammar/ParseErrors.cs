@@ -168,6 +168,13 @@ fields, constants, methods, and functions, and only within classes.
 Modules and the declarations within them are already always static.
 ", Remove(true));
 
+    Add(ErrorId.p_no_opaque,
+    @"
+Only some kinds of declarations can be declared 'opaque':
+const fields and the various kinds of functions.
+", Remove(true));
+
+    // TODO - not used at present
     Add(ErrorId.p_deprecated_attribute,
     @"
 This attribute is obsolete and unmaintained. It will be removed from dafny in the future.
@@ -176,18 +183,21 @@ This attribute is obsolete and unmaintained. It will be removed from dafny in th
     Add(ErrorId.p_literal_string_required,
     @"
 The value of an options attribute cannot be a computed expression. It must be a literal string.
-", Replace("\"\"", "replace with empty string"));
+", range => new List<DafnyAction> {
+    OneAction("remove " + range.PrintOriginal(), range, ""), // TODO - remove surrounding whitespace?
+    OneAction("replace with empty string", range, "\"\""),
+    OneAction("enclose in quotes", range, "\"" + range.PrintOriginal() + "\"")
+});
 
+    // TODO - what about multiple leading underscores
     Add(ErrorId.p_no_leading_underscore,
   @"
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-", range => new List<DafnyAction> { new("remove underscore",
-    new [] {
-      new DafnyCodeActionEdit(range, range.PrintOriginal().Substring(1))
-    })
+", range => new List<DafnyAction> {
+    OneAction("remove underscore", range, range.PrintOriginal().Substring(1))
   });
 
     Add(ErrorId.p_bitvector_too_large,
@@ -211,14 +221,17 @@ overly long to resolve ([Issue #3180](https://github.com/dafny-lang/dafny/issues
 Although all top-level declarations are contained in an implicit top-level module, there is no syntax to import that module.
 Such an import would likely cause a circular module dependency error.
 If the implicit module cannot be imported, there is no point to any export declarations inside the implicit module.
-"); // TODO add a code action
+", Remove(false, "remove export declaration"));
 
     Add(ErrorId.p_bad_module_decl,
     @"
 The [syntax for a module declaration](https://dafny.org/latest/DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
-   ");
+", range => new List<DafnyAction> {
+    OneAction("replace '" + range.PrintOriginal() + "' with 'refines'", range, "refines"),
+    OneAction("remove '" + range.PrintOriginal() + "'", range, "", true)
+  });
 
     Add(ErrorId.p_extraneous_comma_in_export,
     @"
@@ -233,9 +246,9 @@ This mistake is easy to make when the clauses are on the same line.
 `var` declarations are used to declare mutable fields of classes, local variables in method bodies, and identifiers in let-expressions.
 But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
-", Replace("const", "replace 'var' by 'const'"));
+", Replace("const"));
 
-    Add(ErrorId.p_bad_datatype_refinement, // TODO errorId is never used in parser
+    Add(ErrorId.p_bad_datatype_refinement, // TODO - add a code action
     @"
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
@@ -250,7 +263,7 @@ classes, traits and iterators.
 
     Add(ErrorId.p_bad_const_initialize_op,
     @"
-Dafny's syntax for initialization and assignment uses `:=`, not `=`.
+Dafny's syntax for initialization of const fields uses `:=`, not `=`.
 In Dafny, `=` is used only in type definitions.
 ", Replace(":="));
 
@@ -259,13 +272,14 @@ In Dafny, `=` is used only in type definitions.
 A `const` declaration needs its type indicated by either an explicit type
 or a right-hand-side expression, whose type is then the type of the 
 declared identifier. 
-So use syntax either like `const i: int` or `const i:= 5` (or both together).
+So use syntax either like `const i: int` or `const i := 5` (or both together).
 ", Insert(": int := 42", "add example"));
 
     Add(ErrorId.p_misplaced_ellipsis_in_newtype,
     @"
 There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
-");
+When refining a newtype by adding a body, the ... stands in place of both the '=' and the base type.
+"); // TODO - add an action
 
     Add(ErrorId.p_output_of_function_not_ghost,
     @"
@@ -273,23 +287,23 @@ The output of a predicate or function cannot be ghost.
 It is implicitly ghost if the function is ghost itself.
 ", Remove(true));
 
-    Add(ErrorId.p_ghost_function_output_not_ghost, // TODO errorId is never used in parser
+    Add(ErrorId.p_ghost_function_output_not_ghost, // TODO errorId is never used in parser -- misplaced?
     @"
 If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
 Any use of this construct will always be in ghost contexts.
 ", Remove(true));
 
-    Add(ErrorId.p_no_new_on_output_formals, // TODO errorId is never used in parser
+    Add(ErrorId.p_no_new_on_output_formals,
     @"
 The `new` modifier only applies to input parameters.
 ", Remove(true));
 
-    Add(ErrorId.p_no_nameonly_on_output_formals, // TODO errorId is never used in parser
+    Add(ErrorId.p_no_nameonly_on_output_formals,
     @"
 The `nameonly` modifier only applies to input parameters.
 ", Remove(true));
 
-    Add(ErrorId.p_no_older_on_output_formals, // TODO errorId is never used in parser
+    Add(ErrorId.p_no_older_on_output_formals,
     @"
 The `older` modifier only applies to input parameters.
 ", Remove(true));
@@ -298,21 +312,24 @@ The `older` modifier only applies to input parameters.
     @"
 Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
 `const` declarations may have initializers; if they do they do not need an explicit type.
-");
+", range => new List<DafnyAction> {
+    OneAction("insert ': bool'", range, range.PrintOriginal() + ": bool"),
+    OneAction("insert ': int'", range, range.PrintOriginal() + ": int")
+  });
 
     Add(ErrorId.p_no_init_for_var_field,
     @"
 Dafny does not allow field declarations to have initializers. They are initialized in constructors.
 Local variable declarations (which also begin with `var`) may have initializers.
-");
+"); // TODO - add action: remove := and expression
 
     Add(ErrorId.p_datatype_formal_is_not_id,
     @"
 Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
 In datatype constructors the 'name :' is optional; one can just state the type.
-However, if there is a name, it may not be a typename, as in the failing example above.
+However, if there is a name, it may not be a typename.
 The formal parameter name should be a simple identifier that is not a reserved word.
-");
+", Replace("_"));
 
     Add(ErrorId.p_nameonly_must_have_parameter_name,
     @"
@@ -321,7 +338,10 @@ However, if `nameonly` is used, meaning the constructor can be called using name
 then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
 More detail is given [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-parameter-bindings).
-", Remove(true));
+", range => new List<DafnyAction> {
+    OneAction("remove 'nameonly'", range, "", true),
+    OneAction("insert '_:'", range, range.PrintOriginal() + " _:")
+  });
 
     Add(ErrorId.p_should_be_yields_instead_of_returns,
     @"
@@ -357,7 +377,13 @@ The currently defined type characteristics are designated by `==` (equality-supp
 state properties of the otherwise uninterpreted or opaque type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
-");
+", range => new List<DafnyAction> {
+    OneAction("remove comma", range, range.PrintOriginal()[1..]),
+    OneAction("insert '=='", range, "==" + range.PrintOriginal()),
+    OneAction("insert '0'", range, "0" + range.PrintOriginal()),
+    OneAction("insert '00'", range, "00" + range.PrintOriginal()),
+    OneAction("insert '!new'", range, "!new" + range.PrintOriginal())
+  }); // TODO - needs fixing for variations: T() T(0,) T(0,,0) T(,) 
 
     Add(ErrorId.p_illegal_type_characteristic,
     @"
@@ -365,7 +391,12 @@ The currently defined type characteristics are designated by `==` (equality - su
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 Type parameters are given in a parentheses-enclosed, comma-separated list after the type name.
-");
+", Replacements(new[] {
+      ("==", "replace with '==' - this type supports equality"),
+      ("0", "replace with '0' - this type is auto-initializable"),
+      ("00", "replace with '00' - this type is nonempty"),
+      ("!new", "replace with '!new' - this type is not allocated on the heap")
+    }));
 
     Add(ErrorId.p_deprecated_colemma,
     @"
@@ -382,14 +413,14 @@ The adjectives `least` and `greatest` for lemmas and functions are more consiste
 Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
 So, constructor declarations only make sense within classes.
-", Replace("method"));
+", Replace("method")); // TODO - remove whole declaration
 
     Add(ErrorId.p_method_missing_name,
     @"
 A method declaration always requires an identifier between the `method` keyword and the `(` that starts the formal parameter list.
 This is the case even when, as in the example above, a name is specified using `:extern`. The extern name is only used in the
 compiled code; it is not the name used to refer to the method in Dafny code
-");
+", InsertBefore("M"));
 
     Add(ErrorId.p_extraneous_k,
     @"
@@ -408,7 +439,7 @@ a reference to the newly constructed object (as in `new C(42)`).
 There is no syntax to receive out-parameter values of a constructor
 and they may not be declared. 
 (This is similar to constructors in other programming languages, like Java.)
-");
+", Remove(true, "remove out parameters"));
 
     Add(ErrorId.p_reads_star_must_be_alone,
     @"
@@ -417,7 +448,9 @@ containing such objects). `reads *` means the function may read anything.
 So it does not make sense to list `*` along with something more specific.
 If you mean that the function should be able to read anything, just list `*`.
 Otherwise, omit the `*` and list expressions containing all the objects that are read.
-");
+", range => new List<DafnyAction> {
+    OneAction("remove *", IncludeComma(range), "", true)
+});
 
     Add(ErrorId.p_no_defaults_for_out_parameters,
     @"
@@ -425,14 +458,14 @@ Out-parameters of a method are declared (inside the parentheses after the `retur
 with just an identifier and a type, separated by a colon. 
 No initializing value may be given. If a default value is needed, assign the out-parameter
 that value as a first statement in the body of the method.
-", Remove(false, "remove initializer"));
+", Remove(true, "remove initializer")); // TODO - could be improved by removing leading whitespace
 
     Add(ErrorId.p_set_only_one_type_parameter,
     @"
 A `set` type has one type parameter, namely the type of the elements of the set.
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
-");
+"); // TODO - code action: keep only first parameter, and for susequent errors
 
     Add(ErrorId.p_iset_only_one_type_parameter,
     @"
@@ -467,13 +500,13 @@ A `imap` type has two type parameters: the type of the keys and the type of the 
 The error message states that the parser sees some number of type parameters different than two.
 ");
 
-    //     Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
-    //     @"
-    // In Dafny 4 on, the phrases `function method` and `predicate method` are no
-    // longer accepted. Use `function` for compiled, non-ghost functions and
-    // `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-    // See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-    // ");
+    Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
+    @"
+    From Dafny 4 on, the phrases `function method` and `predicate method` are no
+    longer accepted. Use `function` for compiled, non-ghost functions and
+    `ghost function` for non-compiled, ghost functions, and similarly for predicates.
+    See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
+    ");
 
     Add(ErrorId.p_deprecated_semicolon,
     @"

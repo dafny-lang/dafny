@@ -217,10 +217,6 @@ public class Errors {
     Reporting.Warning(MessageSource.Parser, ErrorRegistry.NoneId, tok, msg);
   }
 
-  // Code action range is up to, not including, the next token
-  public static RangeToken CodeAction(IToken sourceTok, IToken next) {
-    return new RangeToken(sourceTok, next);
-  }
 } // Errors
 
 

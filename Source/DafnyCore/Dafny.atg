@@ -1106,7 +1106,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
-    (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.tok.Prev,
+    (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.RangeToken,
           "There is no point to an export declaration at the top level");
     .)
   )
@@ -2016,15 +2016,16 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                          // Note: When ranges are refactored, make the first use of openBracket a range
                                          // that extends through closeBracket
                                          SemErr(ErrorId.p_extraneous_k, 
-                                                Errors.CodeAction(openBracket, closeBracket.Next), 
+                                                new RangeToken(openBracket, closeBracket), 
                                                 "type of _k can only be specified for least and greatest lemmas"); 
                                        } 
                                     .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, false, ins>
-    [ "returns"                                 (. if (isConstructor) { SemErr(ErrorId.p_constructors_have_no_out_parameters, t, "constructors cannot have out-parameters"); } .)
+    [ "returns"                                 (. var returnsToken = t; .)
       Formals<false, isCompilable, false, false, outs>
+      (. if (isConstructor) { SemErr(ErrorId.p_constructors_have_no_out_parameters, new RangeToken(returnsToken, t), "constructors cannot have out-parameters"); } .)
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )                                             (. tokenWithTrailingDocString = t; .)
@@ -2127,7 +2128,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(ErrorId.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -2213,7 +2214,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   [ ":="        (. tok = t; .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
-         SemErr(ErrorId.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
+         SemErr(ErrorId.p_no_defaults_for_out_parameters, new RangeToken(tok,t), "out-parameters cannot have default-value expressions");
          defaultValue = null;
        }
     .)
@@ -2273,7 +2274,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_set_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "set type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
@@ -2281,7 +2282,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_iset_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "iset type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
@@ -2289,7 +2290,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_multiset_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "multiset type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
@@ -2297,7 +2298,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_seq_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "seq type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
@@ -2310,7 +2311,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr(ErrorId.p_map_needs_two_type_parameters, 
-                                           Errors.CodeAction(startToken.Next, t), "map type expects two type arguments");
+                                           new RangeToken(startToken.Next, t), "map type expects two type arguments");
                                          ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
@@ -2322,7 +2323,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr(ErrorId.p_imap_needs_two_type_parameters, 
-                                           Errors.CodeAction(startToken.Next, t), "imap type expects two type arguments");
+                                           new RangeToken(startToken.Next, t), "imap type expects two type arguments");
                                          ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);

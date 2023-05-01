@@ -91,6 +91,7 @@ The value of an options attribute cannot be a computed expression. It must be a 
 
 ## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
+// TODO - check that both errors are checked
 ```dafny
 const _myconst := 5
 function m(): (_: int) {0}
@@ -101,9 +102,6 @@ such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
 
-<!-- There are two instances of this message. An example of the other message is
-     function m(): (_: int) {0}
--->
 
 ## **Error: sorry, bitvectors that wide (_number_) are not supported** {#p_bitvector_too_large}
 
@@ -181,7 +179,6 @@ Rather, you may want the declaration to be a `const` declaration or you may want
 
 ## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
 
-<!-- TODO - still an error? -->
 ```dafny
 abstract module M { datatype D = A | B }
 module N refines M { datatype D = ... Y | Z }
@@ -206,7 +203,7 @@ classes, traits and iterators.
 const c: int = 5
 ```
 
-Dafny's syntax for initialization and assignment uses `:=`, not `=`.
+Dafny's syntax for initialization of const fields uses `:=`, not `=`.
 In Dafny `=` is used only in type definitions.
 
 ## **Error: a const declaration must have a type or a RHS value** {#p_const_is_missing_type_or_init}
@@ -218,7 +215,7 @@ const i
 A `const` declaration needs its type indicated by either an explicit type
 or a right-hand-side expression, whose type is then the type of the 
 declared identifier. 
-So use syntax either like `const i: int` or `const i:= 5` (or both together).
+So use syntax either like `const i: int` or `const i := 5` (or both together).
 
 ## **Error: in refining a newtype, the '...' replaces the '=' token and everything up to the left brace starting the declaration of the newtype body (if any); a newtype refinement may not change the base type of the newtype** {#p_misplaced_ellipsis_in_newtype}
 
@@ -228,6 +225,7 @@ module N refines M { newtype T = ... int }
 ```
 
 There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
+When refining a newtype by adding a body, the ... stands in place of both the '=' and the base type.
 
 ## **Error: formal cannot be declared 'ghost' in this context** {#p_output_of_function_not_ghost}
 
@@ -253,7 +251,7 @@ Any use of this construct will always be in ghost contexts.
 ## **Error: formal cannot be declared 'new' in this context** {#p_no_new_on_output_formals}
 
 ```dafny
-method m(i: int) returns (new r: int) {}
+method m(i: int) returns (new r: int) { r := 0; }
 ```
 
 The `new` modifier only applies to input parameters.
@@ -261,7 +259,7 @@ The `new` modifier only applies to input parameters.
 ## **Error: formal cannot be declared 'nameonly' in this context** {#p_no_nameonly_on_output_formals}
 
 ```dafny
-method m(i: int) returns (nameonly r: int) {}
+method m(i: int) returns (nameonly r: int) { r := 0; }
 ```
 
 The `nameonly` modifier only applies to input parameters.
@@ -269,7 +267,7 @@ The `nameonly` modifier only applies to input parameters.
 ## **Error: formal cannot be declared 'older' in this context** {#p_no_older_on_output_formals}
 
 ```dafny
-method m(i: int) returns (older r: int) {}
+method m(i: int) returns (older r: int) { r := 0; }
 ```
 
 The `older` modifier only applies to input parameters.
@@ -307,7 +305,7 @@ datatype D = Nil | D(int: uint8)
 
 Datatype constructors can have formal parameters, declared with the usual syntax: 'name: type'.
 In datatype constructors the 'name :' is optional; one can just state the type.
-However, if there is a name, it may not be a typename, as in the failing example above.
+However, if there is a name, it may not be a typename.
 The formal parameter name should be a simple identifier that is not a reserved word.
 
 
