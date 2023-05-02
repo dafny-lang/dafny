@@ -35,6 +35,9 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public IList<Uri> RootUris = new List<Uri>();
+
     public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }

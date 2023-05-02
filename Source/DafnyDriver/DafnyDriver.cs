@@ -386,6 +386,7 @@ namespace Microsoft.Dafny {
           foreach (var f in s) {
             snapshots.Add(new DafnyFile(options, f));
             options.AddFile(f);
+            options.RootUris.Add(new Uri(Path.GetFullPath(f)));
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), reporter, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {

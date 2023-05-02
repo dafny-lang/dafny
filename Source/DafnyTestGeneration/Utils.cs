@@ -76,6 +76,7 @@ namespace DafnyTestGeneration {
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
       options.AddFile(uri.LocalPath);
+      options.RootUris.Add(uri);
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       var builtIns = new BuiltIns(options);
       var reporter = new BatchErrorReporter(options);

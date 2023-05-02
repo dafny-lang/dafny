@@ -200,12 +200,13 @@ public static class TokenExtensions {
       return "Token has no URI" + tok;
     }
 
+    var currentDirectory = Directory.GetCurrentDirectory();
     string filename = tok.Uri.Scheme switch {
       "stdin" => "<stdin>",
       "transcript" => Path.GetFileName(tok.Filepath),
       _ => options.UseBaseNameForFileName
         ? Path.GetFileName(tok.Filepath)
-        : Path.GetRelativePath(Directory.GetCurrentDirectory(), tok.Filepath)
+        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
     };
 
     return $"{filename}({tok.line},{tok.col - 1})";

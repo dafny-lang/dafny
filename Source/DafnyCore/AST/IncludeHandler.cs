@@ -14,12 +14,8 @@ public static class IncludeHandler {
       return false;
     }
 
-    var files = program.Options.Files.Select(Path.GetFullPath);
-    if (files.Contains(token.ActualFilename)) { // TODO, use Uris?
-      return false;
-    }
-
-    if (token.Uri.Scheme == "stdin" || token.Uri.Scheme == "transcript") {
+    var files = program.Options.RootUris;
+    if (files.Contains(token.Uri)) {
       return false;
     }
 
