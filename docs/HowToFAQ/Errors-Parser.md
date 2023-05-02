@@ -14,8 +14,7 @@ Such repetition would be superfluous even if allowed.
 ## **Error: a _decl_ cannot be declared 'abstract'** {#p_abstract_not_allowed}
  
 ```dafny
-module M {
-  abstract const c := 4
+abstract const c := 4
 }
 ```
 
