@@ -1,4 +1,4 @@
-// RUN: %baredafny resolve %args "%S/dfyconfig.toml" > "%t"
+// RUN: %baredafny resolve --use-basename-for-filename "%S/dfyconfig.toml" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Consumer {
