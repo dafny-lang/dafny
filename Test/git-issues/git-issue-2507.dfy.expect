@@ -1,0 +1,2 @@
+git-issue-2507.dfy(5,14): Error: expected either 'by' or a semicolon following the assert expression
+1 parse errors detected in git-issue-2507.dfy

@@ -3657,6 +3657,9 @@ AssertStmt<out Statement/*!*/ s>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
+    | (.
+        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+      .)
     )
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
