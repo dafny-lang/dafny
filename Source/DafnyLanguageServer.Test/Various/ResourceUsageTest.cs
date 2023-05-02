@@ -20,7 +20,7 @@ public class ResourceUsageTest : ClientBasedLanguageServerTest {
       return processes.Length;
     }
   }
-  
+
   [Fact]
   public async Task SolverProcessCountDoesNotIncreaseOnEachVerification() {
     var source = @"
