@@ -140,15 +140,15 @@ method Test(x: int, y: int) returns (z: int) {
   [Fact]
   public void CompilableAssignSuchThat() {
     ShouldHaveImplicitCode(@"
-predicate P(x: int)
+predicate P(x: int, c: int)
  
 function Test(x: int, z: int): int
-  requires P(z) && x <= z
+  requires P(x, z) && x <= z
 {
-  var b, c :| x <= b && b <= c && P(c); // Here
+  var b, c :| x <= b && P(b, c); // Here
   b
 }
-", "forall b: int, c: int, b': int, c': int | x <= b && b <= c && P(c) && x <= b' && b' <= c' && P(c') :: b == b' && c == c'");
+", "forall b: int, c: int, b': int, c': int | x <= b && P(b, c) && x <= b' && P(b', c') :: b == b' && c == c'");
   }
 
   [Fact]
