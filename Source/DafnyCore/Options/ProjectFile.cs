@@ -83,8 +83,8 @@ public class ProjectFile {
     if (Options == null) {
       value = null;
       return false;
-    } 
-    
+    }
+
     if (!Options.TryGetValue(option.Name, out value)) {
       return false;
     }
@@ -92,7 +92,7 @@ public class ProjectFile {
     if (option.ValueType.IsAssignableFrom(typeof(IList<string>)) && value is TomlArray valueArray) {
       value = valueArray.Select(e => (string)e).ToList();
     }
-    
+
     if (!option.ValueType.IsInstanceOfType(value)) {
       errorWriter.WriteLine(
         $"Error: property '{option.Name}' is of type '{value.GetType()}' but should be of type '{option.ValueType}'");
