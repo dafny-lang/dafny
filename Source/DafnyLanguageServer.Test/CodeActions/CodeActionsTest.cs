@@ -132,6 +132,23 @@ const x := 1;
 }");
     }
 
+    // ParserError code action tests
+
+    [Fact]
+    public async Task CA_p_duplicate_modifier() {
+      await TestCodeAction(@"
+    abstract (>remove duplicate modifier->:::abstract <)module M {}
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_abstract_not_allowed() {
+      await TestCodeAction(@"
+    (>remove 'abstract'->:::abstract <)const c := 4
+    ");
+    }
+
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
