@@ -199,7 +199,7 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn" -o "$command" == "%check-build" -o "$command" == "%check-legacy" ]; then
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
@@ -218,6 +218,9 @@ do
         elif [ "$command" == "%check-translate" ]; then
           com=translate
           ec=3
+        elif [ "$command" == "%check-build" ]; then
+          com=build
+          ec=0
         elif [ "$command" == "%check-run" ]; then
           com=run
           ec=0

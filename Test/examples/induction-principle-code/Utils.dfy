@@ -7,7 +7,7 @@ module Utils {
     if x > y then x else y
   }
 
-  function {:opaque} MaxF<T>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
+  function {:opaque} MaxF<T(!new)>(f: T ~> int, ts: seq<T>, default: int) : (m: int)
     reads f.reads
     requires forall t | t in ts :: f.requires(t)
     requires forall t | t in ts :: default <= f(t)
