@@ -102,6 +102,7 @@ const (> remove underscore->myconst:::_myconst<) := 5
 ");
     }
 
+    [Fact]
     public async Task CA_p_no_leading_underscore__2() {
       await TestErrorCodeAction(@"
 function m(): ((> remove underscore->:::_<): int) {0}
