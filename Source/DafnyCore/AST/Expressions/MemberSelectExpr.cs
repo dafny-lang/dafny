@@ -18,7 +18,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
 
   /// <summary>
-  ///  PreTypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
+  /// PreTypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
   /// of Member.
   /// </summary>
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustMember;
@@ -30,7 +30,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
   [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
 
   /// <summary>
-  ///  TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
+  /// TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
   /// of Member.
   /// </summary>
   [FilledInDuringResolution] public List<Type> TypeApplication_JustMember;
