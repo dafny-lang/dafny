@@ -1,5 +1,7 @@
 
+excludes = ["wrappersLib.dfy"]
+
 [options]
 library = [
-  "../../libraries/src/Wrappers.dfy"
+  "wrappersLib.dfy"
 ]

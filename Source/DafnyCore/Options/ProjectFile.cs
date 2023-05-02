@@ -89,15 +89,13 @@ public class ProjectFile {
       return false;
     }
 
-    // TODO: Handle more generically
     if (option.ValueType.IsAssignableFrom(typeof(IList<string>)) && value is TomlArray valueArray) {
-      value = valueArray.Select(o => (string)o).ToList();
-      return true;
+      value = valueArray.Select(e => (string)e).ToList();
     }
     
-    if (value.GetType() != option.ValueType) {
+    if (!option.ValueType.IsInstanceOfType(value)) {
       errorWriter.WriteLine(
-        $"Error: property '{option.Name}' is of type '{value.GetType().Name}' but should be of type '{option.ValueType.Name}'");
+        $"Error: property '{option.Name}' is of type '{value.GetType()}' but should be of type '{option.ValueType}'");
       return false;
     }
 

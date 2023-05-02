@@ -5,8 +5,8 @@ module Consumer {
 
   import opened Wrappers
 
-  function MaybeInt(): Option<int>) {
-    42
+  function MaybeInt(): Option<int> {
+    Some(42)
   }
 
 }
