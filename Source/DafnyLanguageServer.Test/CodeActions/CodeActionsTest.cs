@@ -350,7 +350,7 @@ function Foo(i: int): int
           ");
         }
     */
-    /*
+
     [Fact]
     public async Task CA_p_no_leading_underscore__1() {
       await TestCodeAction(@"
@@ -358,13 +358,13 @@ function Foo(i: int): int
   ");
     }
 
-        [Fact]
-        public async Task CA_p_no_leading_underscore__2() {
-          await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_no_leading_underscore__2() {
+      await TestCodeAction(@"
       function m(): ((>remove underscore->:::_<): int) {0}
       ");
-        }
-    */
+    }
+
 
     [Fact] // OK
     public async Task CA_p_superfluous_export() {
@@ -373,22 +373,23 @@ function Foo(i: int): int
     method M() {}
     ");
     }
+    /* NOT OK
+        [Fact]
+        public async Task CA_p_bad_module_decl__1() {
+          await TestCodeAction(@"
+        module M {}
+        module N (>replace 'refine' with 'refines'->refines:::refine<) M {}
+        ");
+        }
 
-    [Fact]
-    public async Task CA_p_bad_module_decl__1() {
-      await TestCodeAction(@"
-    module M {}
-    module N (>replace 'refine' with 'refines'->refines:::refine<) M {}
-    ");
-    }
-
-    [Fact]
-    public async Task CA_p_bad_module_decl__2() {
-      await TestCodeAction(@"
-    module M {}
-    module N (>replace 'remove 'refine'->:::refine<) M {}
-    ");
-    }
+        [Fact]
+        public async Task CA_p_bad_module_decl__2() {
+          await TestCodeAction(@"
+        module M {}
+        module N (>remove 'refine'->:::refine<) M {}
+        ");
+        }
+        */
     /*
             [Fact]
             public async Task CA_p_extraneous_comma_in_export() {
@@ -464,6 +465,61 @@ method m(i: int) returns ((>remove 'nameonly'->:::nameonly <)r: int) { r := 0; }
         public async Task CA_p_no_older_on_output_formals() {
           await TestCodeAction(@"
 method m(i: int) returns ((>remove 'older'->:::older <)r: int) { r := 0; }
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_var_decl_must_have_type__1() {
+          await TestCodeAction(@"
+class A {
+  var (<insert 'f: bool'->: bool:::f<)
+  const g := 5
+}
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_var_decl_must_have_type__2() {
+          await TestCodeAction(@"
+class A {
+  var (<insert 'f: int'->: int:::f<)
+  const g := 5
+}
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_datatype_formal_is_not_id() {
+          await TestCodeAction(@"
+datatype D = Nil | D((>replace 'int' with '_'->_:::int<): uint8) 
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_nameonly_must_have_parameter_name__1() {
+          await TestCodeAction(@"
+datatype D = D (i: int, (>remove 'nameonly'->:::nameonly <)int) {}
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_nameonly_must_have_parameter_name__2() {
+          await TestCodeAction(@"
+datatype D = Nil | D((>insert '_ :'->_ ::::<)int) 
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_should_be_yields_instead_of_returns() {
+          await TestCodeAction(@"
+iterator Count(n: nat) (>replace 'returns' with 'yields'-->yields:::returns<) (x: nat) {
+  var i := 0;
+  while i < n {
+    x := i;
+    yield;
+    i := i + 1;
+  }
+}
         ");
         }
     */
