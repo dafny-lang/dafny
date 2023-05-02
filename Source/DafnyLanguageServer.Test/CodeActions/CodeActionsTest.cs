@@ -363,15 +363,15 @@ function Foo(i: int): int
       ");
         }
     */
-    /*
-        [Fact]
-        public async Task CA_p_superfluous_export() {
-          await TestCodeAction(@"
+
+    [Fact]
+    public async Task CA_p_superfluous_export() {
+      await TestCodeAction(@"
     (>remove export declaration->:::export M<)
     method M() {}
     ");
-        }
-
+    }
+    /*
         [Fact]
         public async Task CA_p_bad_module_decl__1() {
           await TestCodeAction(@"
@@ -429,14 +429,14 @@ function Foo(i: int): int
     ");
         }
     */
-
-    [Fact]
-    public async Task CA_p_const_is_missing_type_or_init() {
-      await TestCodeAction(@"
-    const (>add example->i:::i: int := 42=<)
-    ");
-    }
-
+    /*
+        [Fact]
+        public async Task CA_p_const_is_missing_type_or_init() {
+          await TestCodeAction(@"
+        const (>add example->i:::i: int := 42=<)
+        ");
+        }
+    */
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
