@@ -93,10 +93,43 @@ However, which files are verified, built, run, or processed by other
 dafny commands depends on the individual command. 
 These commands are described in [Section 13.5.1](#sec-dafny-commands).
 
-
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
+### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+
+As of Dafny 4.1, `dafny` now supports outputting a single file containing
+a fully-verified program along with metadata about how it was verified.
+Such files use the extension `.doo`, for Dafny Output Object,
+and can be used as input anywhere a `.dfy` file can be.
+
+`.doo` files are produced by an additional backend called the "Dafny Library" backend,
+identified with the name `lib` on the command line. For example, to build multiple
+Dafny files into a single build artifact for shared reuse, the command would look something like:
+
+```bash
+dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
+```
+
+The Dafny code contained in a `.doo` file is not re-verified when passed back to the `dafny` tool,
+just as included files and those passed with the `--library` option are not.
+Using `.doo` files provides a guarantee that the Dafny code was in fact verified,
+however, and therefore offers protection against build system mistakes.
+`.doo` files are therefore ideal for sharing Dafny libraries between projects.
+
+`.doo` files also contain metadata about the version of Dafny used to verify them
+and the values of relevant options that affect the sound separate verification and
+compilation of Dafny code, such as `--unicode-char`.
+This means attempting to use a library that was built with options
+that are not compatible with the currently executing command options
+will lead to errors.
+This also includes attempting to use a `.doo` file built with a different version of Dafny,
+although this restriction may be lifted in the future.
+
+A `.doo` file is a compressed archive of multiple files, similar to the `.jar` file format for Java packages.
+The exact file format is internal and may evolve over time to support additional features.
+
+Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
 
 ## 13.4. Dafny Code Style
 
@@ -434,7 +467,7 @@ errors or if --check is stipulated and at least one file is not the same as its 
 
 #### 13.5.1.10. `dafny test` {#sec-dafny-test}
  
-This command (verifies and compiles the program and) runs every method in the program that is annotated with the `{:test}` attribute.
+This command (verifies and compiles the program and) runs every method in the program that is annotated with the [`{:test}` attribute](#sec-test-attribute).
 Verification can be disabled using the `--no-verify` option. `dafny test` also accepts all other options of the `dafny build` command. 
 In particular, it accepts the `--target` option that specifies the programming language used in the build and execution phases.
 
@@ -1168,7 +1201,7 @@ There are many great options that control various aspects of verifying dafny pro
 
 You can search for them in [this file](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) as some of them are still documented in raw text format.
 
-### 13.6.5. Debugging unstable verification
+### 13.6.5. Debugging variable verification
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
@@ -1181,8 +1214,8 @@ a proof even when one exists (or continue searching forever).
 
 Dafny provides some features to mitigate this issue, primarily focused
 on early detection. The philosophy is that, if Dafny programmers are
-alerted to proofs that are starting to become unstable, before they are
-obviously so, they can refactor the proofs to make them more stable
+alerted to proofs that show early signs of variability, before they are
+obviously so, they can refactor the proofs to make them less variable
 before further development becomes difficult.
 
 The mechanism for early detection focuses on measuring the resources
@@ -1192,15 +1225,16 @@ proof attempt multiple times after automatically making minor changes to
 the structure of the input or to the random choices made by the solver.
 If the resources used during these attempts (or the ability to find a
 proof at all) vary widely, we say that the verification of the relevant
-properties is _unstable_.
+properties is _highly variable_.
 
-#### 13.6.5.1. Measuring stability
+#### 13.6.5.1. Measuring proof variability
 
-To measure the stability of your proofs, start by using the
+To measure the variability of your proofs, start by using the
 `-randomSeedIterations:N` flag to instruct Dafny to attempt each proof
 goal `N` times, using a different random seed each time. The random seed
 used for each attempt is derived from the global random seed `S`
-specified with `-randomSeed:S`, which defaults to `0`.
+specified with `-randomSeed:S`, which defaults to `0` (which means use
+an arbitrary -- e.g. clock-based -- seed).
 
 For most use cases, it also makes sense to specify the
 `-verificationLogger:csv` flag, to log verification cost statistics to a
@@ -1231,20 +1265,20 @@ than 20%, perhaps even as low as 5%. However, when beginning to analyze
 a new project, it may be necessary to set limits as high as a few
 hundred percent and incrementally ratchet down the limit over time.
 
-When first analyzing stability, you may also find that certain proof
+When first analyzing proof variability, you may also find that certain proof
 goals succeed on some iterations and fail on others. If your aim is
-first to ensure that instability doesn't worsen and then to start
+first to ensure that variability doesn't worsen and then to start
 improving it, integrating `dafny-reportgenerator` into CI and using the
 `--allow-different-outcomes` flag may be appropriate. Then, once you've
-improved stability sufficiently, you can likely remove that flag (and
-likely have significantly lower limits on other stability metrics).
+improved variability sufficiently, you can likely remove that flag (and
+likely have significantly lower limits on other variability metrics).
 
-#### 13.6.5.2. Improving stability
+#### 13.6.5.2. Improving proof variability
 
-Improving stability is typically closely related to improving
+Improving proof variability is typically closely related to improving
 performance overall. As such, [techniques for debugging slow
 verification](#sec-verification-debugging-slow) are typically useful for
-debugging unstable verification, as well.
+debugging highly variable verification, as well.
 
 ## 13.7. Compilation {#sec-compilation}
 
@@ -1922,13 +1956,13 @@ Legacy options:
 * `-mimicVerificationOf:<dafny version>` - let `dafny` attempt to mimic
   the verification behavior of a previous version of `dafny`. This can be
   useful during migration to a newer version of `dafny` when a Dafny
-  program has proofs, such as methods or lemmas, that are unstable in
+  program has proofs, such as methods or lemmas, that are highly variable in
   the sense that their verification may become slower or fail altogether
   after logically irrelevant changes are made in the verification input.
 
   Accepted versions are: `3.3`. Note that falling back on the behavior
   of version 3.3 turns off features that prevent certain classes of
-  verification instability.
+  verification variability.
 
 * `-noCheating:<n>` - control whether certain assumptions are allowed.
   The value of `<n>` can be one of the following.
@@ -2243,7 +2277,7 @@ Legacy options:
   passes to the SMT solver and turn on randomization in the SMT solver
   itself.
 
-  Certain Boogie inputs are unstable in the sense that changes to the
+  Certain Boogie inputs cause proof variability in the sense that changes to the
   input that preserve its meaning may cause the output to change. The
   `-randomSeed` option simulates meaning-preserving changes to the
   input without requiring the user to actually make those changes.
@@ -2257,7 +2291,7 @@ Legacy options:
   proof attempt will use a new random seed derived from this original
   seed. If not, it will implicitly use `-randomSeed:0` to ensure a
   difference between iterations. This option can be very useful for
-  identifying input programs for which verification is unstable. If the
+  identifying input programs for which verification is highly variable. If the
   verification times or solver resource counts associated with each
   proof attempt vary widely for a given procedure, small changes to that
   procedure might be more likely to cause proofs to fail in the future.

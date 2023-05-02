@@ -1,0 +1,2 @@
+Added a "Dafny Library" backend, which produces self-contained, pre-verified `.doo` files ideal for distributing shared libraries.
+`.doo` files are produced with commands of the form `dafny build -t:lib ...`.
