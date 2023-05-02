@@ -320,6 +320,8 @@ function Foo(i: int): int
   (>remove 'opaque'->:::opaque <)module M {}
   ");
     }
+
+    // OK to here
     /*
         [Fact]
         public async Task CA_p_literal_string_required__1() {
@@ -364,76 +366,104 @@ function Foo(i: int): int
         }
     */
 
-    [Fact]
+    [Fact] // OK
     public async Task CA_p_superfluous_export() {
       await TestCodeAction(@"
     (>remove export declaration->:::export M<)
     method M() {}
     ");
     }
-    /*
-        [Fact]
-        public async Task CA_p_bad_module_decl__1() {
-          await TestCodeAction(@"
+
+    [Fact]
+    public async Task CA_p_bad_module_decl__1() {
+      await TestCodeAction(@"
     module M {}
     module N (>replace 'refine' with 'refines'->refines:::refine<) M {}
     ");
-        }
+    }
 
-        [Fact]
-        public async Task CA_p_bad_module_decl__2() {
-          await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_bad_module_decl__2() {
+      await TestCodeAction(@"
     module M {}
     module N (>replace 'remove 'refine'->:::refine<) M {}
     ");
-        }
-
-        [Fact]
-        public async Task CA_p_extraneous_comma_in_export() {
-          await TestCodeAction(@"
-    module M {
-      export A reveals b, a(>remove comma->:::,<) reveals b
-      const a: int
-      const b: int
     }
-    ");
+    /*
+            [Fact]
+            public async Task CA_p_extraneous_comma_in_export() {
+              await TestCodeAction(@"
+        module M {
+          export A reveals b, a(>remove comma->:::,<) reveals b
+          const a: int
+          const b: int
         }
+        ");
+            }
+
+            [Fact]
+            public async Task CA_p_top_level_field() {
+              await TestCodeAction(@"
+        module M {
+          (>replace 'var' with 'const'->const:::var<) c: int
+        }
+        ");
+            }
+
+            [Fact]
+            public async Task CA_p_no_mutable_fields_in_value_types() {
+              await TestCodeAction(@"
+        datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
+        ");
+            }
 
         [Fact]
-        public async Task CA_p_top_level_field() {
-          await TestCodeAction(@"
-    module M {
-      (>replace 'var' with 'const'->const:::var<) c: int
-    }
-    ");
-        }
+    //    public async Task CA_p_const_decl_missing_identifier() {
+    //      await TestCodeAction(@"
+    //    const(>add example->i:::i: int := 42=<)
+    //    ");
+    //    }
 
-        [Fact]
-        public async Task CA_p_no_mutable_fields_in_value_types() {
-          await TestCodeAction(@"
-    datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
-    ");
-        }
-
-    [Fact]
-//    public async Task CA_p_const_decl_missing_identifier() {
-//      await TestCodeAction(@"
-//    const(>add example->i:::i: int := 42=<)
-//    ");
-//    }
-
-        [Fact]
-        public async Task CA_p_bad_const_initialize_op() {
-          await TestCodeAction(@"
-    const c: int (>replace '=' with ':='->:=:::=<) 5
-    ");
-        }
-    */
+            [Fact]
+            public async Task CA_p_bad_const_initialize_op() {
+              await TestCodeAction(@"
+        const c: int (>replace '=' with ':='->:=:::=<) 5
+        ");
+            }
+        */
     /*
         [Fact]
         public async Task CA_p_const_is_missing_type_or_init() {
           await TestCodeAction(@"
         const (>add example->i:::i: int := 42=<)
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_output_of_function_not_ghost() {
+          await TestCodeAction(@"
+twostate function p(i: int): ((>remove 'ghost'->:::ghost <)r: int) { true }
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_no_new_on_output_formals() {
+          await TestCodeAction(@"
+method m(i: int) returns ((>remove 'new'->:::new <)r: int) { r := 0; }
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_no_nameonly_on_output_formals() {
+          await TestCodeAction(@"
+method m(i: int) returns ((>remove 'nameonly'->:::nameonly <)r: int) { r := 0; }
+        ");
+        }
+
+       [Fact]
+        public async Task CA_p_no_older_on_output_formals() {
+          await TestCodeAction(@"
+method m(i: int) returns ((>remove 'older'->:::older <)r: int) { r := 0; }
         ");
         }
     */
