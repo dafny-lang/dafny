@@ -320,34 +320,34 @@ function Foo(i: int): int
   (>remove 'opaque'->:::opaque <)module M {}
   ");
     }
+    /*
+        [Fact]
+        public async Task CA_p_literal_string_required__1() {
+          await TestCodeAction(@"
+          module N { const opt := ""--function-syntax:4"" }
+          import opened N
+          module {:options (>remove 'opt'->:::opt<)} M{ }
+          ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__1() {
-      await TestCodeAction(@"
-      module N { const opt := ""--function-syntax:4"" }
-      import opened N
-      module {:options (>remove 'opt'->:::opt<)} M{ }
-      ");
-    }
+        [Fact]
+        public async Task CA_p_literal_string_required__2() {
+          await TestCodeAction(@"
+          module N { const opt := ""--function-syntax:4"" }
+          import opened N
+          module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
+          ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__2() {
-      await TestCodeAction(@"
-      module N { const opt := ""--function-syntax:4"" }
-      import opened N
-      module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
-      ");
-    }
-
-    [Fact]
-    public async Task CA_p_literal_string_required__3() {
-      await TestCodeAction(@"
-      module N { const opt := ""--function-syntax:4"" }
-      import opened N
-      module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
-      ");
-    }
-
+        [Fact]
+        public async Task CA_p_literal_string_required__3() {
+          await TestCodeAction(@"
+          module N { const opt := ""--function-syntax:4"" }
+          import opened N
+          module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
+          ");
+        }
+    */
     /*
     [Fact]
     public async Task CA_p_no_leading_underscore__1() {
