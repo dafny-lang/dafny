@@ -147,7 +147,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Options.OptionArguments[option] = value;
     }
 
-    public void AddFile(string file) => base.AddFile(file, null);
+    protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+      this.RootUris.Add(new Uri(Path.GetFullPath(file)));
+      base.AddFile(file, ps);
+    }
 
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {

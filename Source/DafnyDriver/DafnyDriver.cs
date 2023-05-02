@@ -231,6 +231,7 @@ namespace Microsoft.Dafny {
       }
 
       if (options.UseStdin) {
+        options.RootUris.Add(new Uri("stdin:///"));
         dafnyFiles.Add(new DafnyFile(options, "<stdin>", true));
       } else if (options.RootUris.Count == 0 && !options.Format) {
         options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");

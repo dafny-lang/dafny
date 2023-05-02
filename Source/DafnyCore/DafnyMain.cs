@@ -74,7 +74,6 @@ namespace Microsoft.Dafny {
     public DafnyFile(DafnyOptions options, string filePath, bool useStdin = false) {
       UseStdin = useStdin;
       Uri = useStdin ? new Uri("stdin:///") : new Uri(filePath);
-      options.RootUris.Add(Uri);
       BaseName = useStdin ? "<stdin>" : Path.GetFileName(filePath);
 
       var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
