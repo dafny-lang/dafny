@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
@@ -17,5 +18,5 @@ public interface IDafnyCodeActionInput {
   string Code { get; }
   Dafny.Program? Program { get; }
   IReadOnlyList<DafnyDiagnostic> Diagnostics { get; }
-  string Extract(Range range);
+  VerificationTree VerificationTree { get; }
 }
