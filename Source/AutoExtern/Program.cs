@@ -517,7 +517,7 @@ public static class Program {
     };
     rootCommand.AddOption(nameRewritesOption);
 
-    var skipInterfaceOption = new Option<IList<string>>(
+    var skipInterfaceOption = new Option<List<string>>(
       name: "--skip-interface",
       description: "An interface to ommit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
       ArgumentHelpName = "interfaceName",
@@ -526,7 +526,7 @@ public static class Program {
     };
     rootCommand.AddOption(skipInterfaceOption);
 
-    Action<string, string, List<(string, string)>, IList<string>, string, string, string, List<string>>
+    Action<string, string, List<(string, string)>, List<string>, string, string, string, List<string>>
       main = ParsedMain;
     rootCommand.SetHandler(main,
       projectPathArgument, rootModuleArgument, nameRewritesOption, skipInterfaceOption,
