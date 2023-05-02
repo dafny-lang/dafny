@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
       // errorWriter = new UndisposableTextWriter(errorWriter);
       // outputWriter = TextWriter.Synchronized(outputWriter);
       // errorWriter = TextWriter.Synchronized(errorWriter);
-      
+
 #pragma warning disable VSTHRD002
       return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
 #pragma warning restore VSTHRD002
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny {
     private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      
+
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
@@ -454,9 +454,8 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
-    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, 
-      ErrorReporter reporter, string programName, TextWriter errorWriter) 
-    {
+    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles,
+      ErrorReporter reporter, string programName, TextWriter errorWriter) {
       var exitValue = ExitValue.SUCCESS;
       var options = reporter.Options;
       Contract.Assert(dafnyFiles.Count > 0 || options.FoldersToFormat.Count > 0);

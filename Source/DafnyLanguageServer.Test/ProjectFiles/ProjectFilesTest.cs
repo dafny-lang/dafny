@@ -32,7 +32,6 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
     Assert.Empty(diagnostics);
   }
 
-  public ProjectFilesTest(ITestOutputHelper output) : base(output)
-  {
+  public ProjectFilesTest(ITestOutputHelper output) : base(output) {
   }
 }

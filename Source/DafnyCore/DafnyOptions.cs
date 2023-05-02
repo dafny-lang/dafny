@@ -35,8 +35,8 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
-  public TextWriter ErrorWriter { get; }
-  public TextReader Input { get; }
+    public TextWriter ErrorWriter { get; }
+    public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }

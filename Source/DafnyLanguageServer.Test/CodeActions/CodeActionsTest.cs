@@ -311,7 +311,7 @@ function Foo(i: int): int
 
     public CodeActionTest(ITestOutputHelper output) : base(output) {
     }
-    
+
     private static List<string> ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {
       var inversedEdits = textDocumentEdit.Edits.ToList()
         .OrderByDescending(x => x.Range.Start.Line)
