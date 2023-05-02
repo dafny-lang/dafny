@@ -322,34 +322,34 @@ function Foo(i: int): int
     }
 
     // OK to here
+    /*
+        [Fact]
+        public async Task CA_p_literal_string_required__1() {
+          await TestCodeAction(@"
+              module N { const opt := ""--function-syntax:4"" }
+              import opened N
+              module {:options (>remove 'opt'->:::opt<)} M{ }
+              ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__1() {
-      await TestCodeAction(@"
-          module N { const opt := ""--function-syntax:4"" }
-          import opened N
-          module {:options (>remove 'opt'->:::opt<)} M{ }
-          ");
-    }
+        [Fact]
+        public async Task CA_p_literal_string_required__2() {
+          await TestCodeAction(@"
+              module N { const opt := ""--function-syntax:4"" }
+              import opened N
+              module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
+              ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__2() {
-      await TestCodeAction(@"
-          module N { const opt := ""--function-syntax:4"" }
-          import opened N
-          module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
-          ");
-    }
-
-    [Fact]
-    public async Task CA_p_literal_string_required__3() {
-      await TestCodeAction(@"
-          module N { const opt := ""--function-syntax:4"" }
-          import opened N
-          module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
-          ");
-    }
-
+        [Fact]
+        public async Task CA_p_literal_string_required__3() {
+          await TestCodeAction(@"
+              module N { const opt := ""--function-syntax:4"" }
+              import opened N
+              module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
+              ");
+        }
+    */
 
     [Fact] // OK
     public async Task CA_p_no_leading_underscore__1() {
@@ -440,79 +440,79 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
             ");
         }
         */
-    /*
-           [Fact]
-            public async Task CA_p_output_of_function_not_ghost() {
-              await TestCodeAction(@"
+
+    [Fact]
+    public async Task CA_p_output_of_function_not_ghost() {
+      await TestCodeAction(@"
     twostate function p(i: int): ((>remove 'ghost'->:::ghost <)r: int) { true }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_no_new_on_output_formals() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_no_new_on_output_formals() {
+      await TestCodeAction(@"
     method m(i: int) returns ((>remove 'new'->:::new <)r: int) { r := 0; }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_no_nameonly_on_output_formals() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_no_nameonly_on_output_formals() {
+      await TestCodeAction(@"
     method m(i: int) returns ((>remove 'nameonly'->:::nameonly <)r: int) { r := 0; }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_no_older_on_output_formals() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_no_older_on_output_formals() {
+      await TestCodeAction(@"
     method m(i: int) returns ((>remove 'older'->:::older <)r: int) { r := 0; }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_var_decl_must_have_type__1() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_var_decl_must_have_type__1() {
+      await TestCodeAction(@"
     class A {
-      var (<insert 'f: bool'->: bool:::f<)
+      var (<insert ': bool'->f: bool:::f<)
       const g := 5
     }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_var_decl_must_have_type__2() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_var_decl_must_have_type__2() {
+      await TestCodeAction(@"
     class A {
-      var (<insert 'f: int'->: int:::f<)
+      var (<insert ': int'->f: int:::f<)
       const g := 5
     }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_datatype_formal_is_not_id() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_datatype_formal_is_not_id() {
+      await TestCodeAction(@"
     datatype D = Nil | D((>replace 'int' with '_'->_:::int<): uint8) 
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_nameonly_must_have_parameter_name__1() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_nameonly_must_have_parameter_name__1() {
+      await TestCodeAction(@"
     datatype D = D (i: int, (>remove 'nameonly'->:::nameonly <)int) {}
             ");
-            }
-
-           [Fact]
-            public async Task CA_p_nameonly_must_have_parameter_name__2() {
-              await TestCodeAction(@"
-    datatype D = Nil | D((>insert '_ :'->_ ::::<)int) 
-            ");
-            }
-
-           [Fact]
-            public async Task CA_p_should_be_yields_instead_of_returns() {
-              await TestCodeAction(@"
+    }
+    /*
+               [Fact]
+                public async Task CA_p_nameonly_must_have_parameter_name__2() {
+                  await TestCodeAction(@"
+        datatype D = Nil | D((>insert '_ :'->_ ::::<)int) 
+                ");
+                }
+    */
+    [Fact]
+    public async Task CA_p_should_be_yields_instead_of_returns() {
+      await TestCodeAction(@"
     iterator Count(n: nat) (>replace 'returns' with 'yields'-->yields:::returns<) (x: nat) {
       var i := 0;
       while i < n {
@@ -522,81 +522,81 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
       }
     }
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_type_parameter_variance_forbidden() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_type_parameter_variance_forbidden() {
+      await TestCodeAction(@"
     type List<T>
     method m<(>remove type parameter variance->:::+<)T>(i: int, list: List<T>) {}
             ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_unexpected_type_characteristic() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_unexpected_type_characteristic() {
+      await TestCodeAction(@"
     type T((>replace '000' with '=='->==:::000<))
             ");
-            }
+    }
 
-            // TODO - p_missing_type_characteristic
+    // TODO - p_missing_type_characteristic
 
-           [Fact]
-            public async Task CA_p_illegal_type_characteristic() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_illegal_type_characteristic() {
+      await TestCodeAction(@"
     type T((>replace 'X' with '=='->==:::X<))
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_deprecated_colemma() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_deprecated_colemma() {
+      await TestCodeAction(@"
     (>replace 'colemma' with 'greatest lemma'->greatest lemma:::colemma<) m() ensures true {}
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_deprecated_inductive_lemma() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_deprecated_inductive_lemma() {
+      await TestCodeAction(@"
     (>replace 'inductive' with 'least'->least:::inductive<) m() ensures true {}
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_constructor_not_in_class() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_constructor_not_in_class() {
+      await TestCodeAction(@"
     module M {
       (>replace 'constructor' with 'method'->method:::constructor<) M() {}
     }
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_method_missing_name() {
-              await TestCodeAction(@"
-    method {:extern "M"} (>insert 'M'->M(:::(<)i: int) {}
+    [Fact]
+    public async Task CA_p_method_missing_name() {
+      await TestCodeAction(@"
+    method {:extern ""M""} (>insert 'M'->M(:::(<)i: int) {}
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_extraneous_k() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_extraneous_k() {
+      await TestCodeAction(@"
     lemma b(>remove '[nat]'->:::[nat]<)(i: int) { }
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_constructors_have_no_out_parameters() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_constructors_have_no_out_parameters() {
+      await TestCodeAction(@"
     class C {
       constructor (i: int) (>remove out parameters->:::returns (j: int) <){}
     }
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_reads_star_must_be_alone() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_reads_star_must_be_alone() {
+      await TestCodeAction(@"
     const a: object;
     function f(): int
       reads a(>remove '*'->:::, *<)
@@ -604,14 +604,14 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
       0
     }
     ");
-            }
+    }
 
-           [Fact]
-            public async Task CA_p_no_defaults_for_out_parameters() {
-              await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_no_defaults_for_out_parameters() {
+      await TestCodeAction(@"
     method m(i: int) returns (j: int (>remove initializer->::::= 0<)) { return 42; }
     ");
-            }
+    }
 
 
         */

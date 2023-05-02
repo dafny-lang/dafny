@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
       var r = new Regex(@"(?<Position>><)|" +
                         @"(?<SpanStart>\[>)|(?<SpanEnd><\])" +
-                        @"|(?<NameSpanStart>\{>(?<Name>[-_.'""A-Za-z0-9\+]+)\:)|(?<NameSpanEnd><\})" +
+                        @"|(?<NameSpanStart>\{>(?<Name>[-_.'=(){}""A-Za-z0-9\*\+]+)\:)|(?<NameSpanEnd><\})" +
                         @"|(?<AnnotatedSpanStart>\(>(?<Annotation>(.|\n)+)\:\:\:)|(?<AnnotatedSpanEnd><\))" +
                         @"|(\(>(?<StandaloneAnnotation>(.|\n)+)<\))");
       var outputIndex = 0;
