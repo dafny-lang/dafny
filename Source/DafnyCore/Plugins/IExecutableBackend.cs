@@ -20,9 +20,9 @@ public abstract class IExecutableBackend {
   public abstract IReadOnlySet<string> SupportedExtensions { get; }
 
   /// <summary>
-  /// Human-readable string describing the language targeted by this compiler.
+  /// Human-readable string describing the target of this compiler.
   /// </summary>
-  public abstract string TargetLanguage { get; }
+  public abstract string TargetName { get; }
   /// <summary>
   /// Extension given to generated code files (e.g. <c>cs</c> for C#)
   /// </summary>
@@ -86,6 +86,11 @@ public abstract class IExecutableBackend {
   /// Dafny features this compiler is known to not support.
   /// </summary>
   public virtual IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature>();
+
+  /// <summary>
+  /// Marks backends that should not be documented in the reference manual.
+  /// </summary>
+  public virtual bool IsInternal => false;
 
   // The following two fields are not initialized until OnPreCompile
   protected ErrorReporter? Reporter;

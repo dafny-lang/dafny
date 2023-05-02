@@ -111,7 +111,7 @@ public class MultiBackendTest {
   }
 
   private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
-    output.WriteLine($"Executing on {backend.TargetLanguage}...");
+    output.WriteLine($"Executing on {backend.TargetName}...");
     var dafnyArgs = new List<string>() {
       "run",
       "--no-verify",
@@ -210,11 +210,15 @@ public class MultiBackendTest {
       return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
     }
 
+    var allCompilers = dafnyOptions.Plugins
+      .SelectMany(p => p.GetCompilers(dafnyOptions))
+      .Where(c => !c.IsInternal)
+      .ToList();
+
     // Header
     output.Write("| Feature |");
-    var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers(dafnyOptions)).ToList();
     foreach (var compiler in allCompilers) {
-      output.Write($" {compiler.TargetLanguage} |");
+      output.Write($" {compiler.TargetName} |");
     }
 
     output.WriteLine();

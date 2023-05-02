@@ -650,9 +650,13 @@ namespace Microsoft.Dafny {
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
         m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.Body.RangeToken.EndToken, p, builder));
+        if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
+          AssumeCanCallForByMethodDecl(m, builder);
+        }
         stmts = builder.Collect(m.Body.RangeToken.StartToken); // TODO should this be EndToken?  the parameter name suggests it should be the closing curly
         // tear down definite-assignment trackers
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
         // check well-formedness of any default-value expressions (before assuming preconditions)
@@ -1489,6 +1493,7 @@ namespace Microsoft.Dafny {
 
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuel, layer), null, null));
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(startFuelAssert, layerAssert), null, null));
+                AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null));
 
                 AddEnsures(ens, Ensures(m.tok, true, Boogie.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr), null, "Shortcut to LZ"));
               }

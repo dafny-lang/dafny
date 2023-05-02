@@ -1,4 +1,3 @@
-#define TI_DEBUG_PRINT
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -233,7 +232,7 @@ namespace Microsoft.Dafny {
       None
     } // note, these are ordered, so they can be used as indices into valuetypeDecls
 
-    readonly ValuetypeDecl[] valuetypeDecls;
+    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
@@ -282,29 +281,29 @@ namespace Microsoft.Dafny {
       builtIns.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
+
+      void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+        var enclosingType = valuetypeDecls[(int)valuetypeVariety];
+        member.EnclosingClass = enclosingType;
+        member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+        enclosingType.Members.Add(member.Name, member);
+      }
+
       var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
-      floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Real].Members.Add(floor.Name, floor);
+      AddMember(floor, ValuetypeVariety.Real);
 
-      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false,
-        Type.Bool, null);
-      isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
+      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+      AddMember(isLimit, ValuetypeVariety.BigOrdinal);
 
-      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false,
-        Type.Bool, null);
-      isSucc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
+      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+      AddMember(isSucc, ValuetypeVariety.BigOrdinal);
 
-      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false,
-        Type.Int, null);
-      limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
+      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+      AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
       builtIns.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
-      isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
+      AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
       // Add "Keys", "Values", and "Items" to map, imap
       foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -324,9 +323,7 @@ namespace Microsoft.Dafny {
         var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
         foreach (var memb in new[] { keys, values, items }) {
-          memb.EnclosingClass = vtd;
-          memb.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-          vtd.Members.Add(memb.Name, memb);
+          AddMember(memb, typeVariety);
         }
       }
 
@@ -447,7 +444,7 @@ namespace Microsoft.Dafny {
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));
-      rewriters.Add(new AutoReqFunctionRewriter(this.reporter));
+      rewriters.Add(new AutoReqFunctionRewriter(this.reporter, this.builtIns));
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
@@ -1828,6 +1825,7 @@ namespace Microsoft.Dafny {
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
             var formalsUsedInThisCtor = new HashSet<string>();
+            var duplicates = new HashSet<Formal>();
             foreach (var formal in ctor.Formals) {
               MemberDecl previousMember = null;
               var localDuplicate = false;
@@ -1837,6 +1835,7 @@ namespace Microsoft.Dafny {
                   if (localDuplicate) {
                     reporter.Error(MessageSource.Resolver, ctor,
                       "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                    duplicates.Add(formal);
                   } else if (previousMember is DatatypeDestructor) {
                     // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
                   } else {
@@ -1866,6 +1865,10 @@ namespace Microsoft.Dafny {
               }
 
               ctor.Destructors.Add(dtor);
+            }
+
+            foreach (var duplicate in duplicates) {
+              ctor.Formals.Remove(duplicate);
             }
           }
 
@@ -1997,6 +2000,7 @@ namespace Microsoft.Dafny {
         f.ByMethodBody, f.Attributes, null, true);
       Contract.Assert(f.ByMethodDecl == null);
       method.InheritVisibility(f);
+      method.FunctionFromWhichThisIsByMethodDecl = f;
       f.ByMethodDecl = method;
     }
 
@@ -2320,6 +2324,10 @@ namespace Microsoft.Dafny {
         var preTypeResolver = new PreTypeResolver(this);
         preTypeResolver.ResolveDeclarations(declarations, moduleName);
 
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
+        }
+
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
         // and type inference depends on having resolved names.
@@ -2344,6 +2352,7 @@ namespace Microsoft.Dafny {
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
       // * desugar functions used in reads clauses
+      // * compute .BodySurrogate for body-less loops
       // * discovers bounds
       // * builds the module's call graph.
       // * compute and checks ghosts (this makes use of bounds discovery, as done above)
@@ -2352,10 +2361,12 @@ namespace Microsoft.Dafny {
       // * for functions and methods, determine tail recursion
       // ----------------------------------------------------------------------------
 
-      // Discover bounds. These are needed later to determine if certain things are ghost or compiled, and thus this should
-      // be done before building the call graph.
+      // Discover bounds. These are needed later to determine if certain things are ghost or compiled,
+      // and thus this should be done before building the call graph.
       // The BoundsDiscoveryVisitor also desugars FrameExpressions, so that bounds discovery can
       // apply to the desugared versions.
+      // This pass also computes body surrogates for body-less loops, which is a bit like desugaring
+      // such loops.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
@@ -4625,7 +4636,7 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterestVisitor(codeContext, this, reporter, false);
+      var visitor = new GhostInterestVisitor(codeContext, this, reporter, false, codeContext is Method);
       visitor.Visit(stmt, mustBeErasable, proofContext);
     }
 
@@ -5949,15 +5960,19 @@ namespace Microsoft.Dafny {
         if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have functions 'IsFailure()', {1} 'Extract()'",
-            tp, expectExtract ? "and" : "but not");
+            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have function{1}", tp,
+            expectExtract
+              ? "s 'IsFailure()' and 'Extract()'"
+              : " 'IsFailure()', but not 'Extract()'");
         }
       } else {
         if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have functions 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
-            tp, expectExtract ? "and" : "but not");
+            "The right-hand side of ':-', which is of type '{0}', must have function{1}", tp,
+            expectExtract
+              ? "s 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
+              : "s 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'");
         }
       }
 

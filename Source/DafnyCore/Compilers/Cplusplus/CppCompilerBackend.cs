@@ -48,7 +48,7 @@ public class CppCompilerBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
-  public override string TargetLanguage => "C++";
+  public override string TargetName => "C++";
   public override string TargetExtension => "cpp";
 
   public override bool SupportsInMemoryCompilation => false;

@@ -11,7 +11,7 @@ public class GoBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".go" };
 
-  public override string TargetLanguage => "Go";
+  public override string TargetName => "Go";
   public override string TargetExtension => "go";
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-go/src";

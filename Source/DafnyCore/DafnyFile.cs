@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -11,6 +12,7 @@ public class DafnyFile {
   public string FilePath { get; private set; }
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
+  public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
   public string SourceFileName { get; private set; }
 
@@ -49,7 +51,7 @@ public class DafnyFile {
     }
     return sourceFiles;
   }
-  public DafnyFile(string filePath, bool useStdin = false) {
+  public DafnyFile(DafnyOptions options, string filePath, bool useStdin = false) {
     UseStdin = useStdin;
     FilePath = filePath;
     BaseName = Path.GetFileName(filePath);
@@ -65,9 +67,32 @@ public class DafnyFile {
     filePath = CanonicalPath;
 
     if (extension == ".dfy" || extension == ".dfyi") {
+      IsPreverified = false;
       IsPrecompiled = false;
       SourceFileName = filePath;
+    } else if (extension == ".doo") {
+      IsPreverified = true;
+      IsPrecompiled = false;
+
+      var dooFile = DooFile.Read(filePath);
+
+      var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+      if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
+        throw new IllegalDafnyFile(true);
+      }
+
+      // For now it's simpler to let the rest of the pipeline parse the
+      // program text back into the AST representation.
+      // At some point we'll likely want to serialize a program
+      // more efficiently inside a .doo file, at which point
+      // the DooFile class should encapsulate the serialization logic better
+      // and expose a Program instead of the program text.
+      SourceFileName = Path.GetTempFileName();
+      File.WriteAllText(SourceFileName, dooFile.ProgramText);
+
     } else if (extension == ".dll") {
+      IsPreverified = true;
+      // Technically only for C#, this is for backwards compatability
       IsPrecompiled = true;
 
       var sourceText = GetDafnySourceAttributeText(filePath);

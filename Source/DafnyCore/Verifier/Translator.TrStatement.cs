@@ -58,6 +58,11 @@ namespace Microsoft.Dafny {
           var method = (IMethodCodeContext)codeContext;
           method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
         }
+
+        if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
+          AssumeCanCallForByMethodDecl(method2, builder);
+        }
+
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -1513,7 +1518,7 @@ namespace Microsoft.Dafny {
       // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
       // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
       // Test/dafny0/DirtyLoops.dfy.)
-      var isBodyLessLoop = s is OneBodyLoopStmt && ((OneBodyLoopStmt)s).BodySurrogate != null;
+      var isBodyLessLoop = s is OneBodyLoopStmt { BodySurrogate: { } };
       var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this, options) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {

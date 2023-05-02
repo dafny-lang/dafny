@@ -11,6 +11,7 @@ namespace Microsoft.Dafny;
 public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
+  public PreType PreType;
   public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
@@ -20,6 +21,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
   public bool IsWildcardPattern =>
     Arguments == null && Id.StartsWith("_");
+
+  public bool IsWildcardExact =>
+    Arguments == null && Id == "_";
 
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();
@@ -67,57 +71,61 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public override IEnumerable<Node> Children => Arguments ?? Enumerable.Empty<Node>();
   public override IEnumerable<Node> PreResolveChildren => Children;
 
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (ResolvedLit != null) {
+        yield return ResolvedLit;
+      }
+      if (Arguments != null) {
+        foreach (var alternative in Arguments) {
+          foreach (var ee in alternative.SubExpressions) {
+            yield return ee;
+          }
+        }
+      }
+    }
+  }
+
   public override void Resolve(Resolver resolver, ResolutionContext resolutionContext,
-    Type sourceType, bool isGhost, bool mutable,
+    Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern) {
 
     if (inDisjunctivePattern && ResolvedLit == null && Arguments == null && !IsWildcardPattern) {
       resolver.reporter.Error(MessageSource.Resolver, Tok, "Disjunctive patterns may not bind variables");
     }
 
-    Debug.Assert(Arguments != null || Type is InferredTypeProxy);
+    resolver.ResolveType(Tok, Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-    if (Arguments == null) {
-      Type = sourceType; // Possible because we did a rewrite one level higher, which copied the syntactic type information to a let.
-      if (mutable) {
-        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost);
-        localVariable.type = sourceType;
+    if (ResolvedLit != null) {
+      // we're done
+    } else if (Arguments == null) {
+      // If the type was not given explicitly, set it to the sourceType
+      if (Type.Normalize() is TypeProxy proxy) {
+        proxy.T = sourceType;
+      }
+
+      if (inStatementContext) {
+        var localVariable = new LocalVariable(RangeToken, Id, null, isGhost) {
+          type = Type
+        };
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, sourceType);
+        var boundVar = new BoundVar(Tok, Id, Type);
         boundVar.IsGhost = isGhost;
         BoundVar = boundVar;
       }
 
+      resolver.ConstrainSubtypeRelation(Type, sourceType, Tok,
+        "match source type '{1}' not assignable to bound variable (of type '{0}')", Type, sourceType);
       resolver.scope.Push(Id, BoundVar);
-      resolver.ResolveType(Tok, BoundVar.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
 
-    } else {
-      if (Ctor != null) {
-        var subst = TypeParameter.SubstitutionMap(sourceType.AsDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
-        for (var index = 0; index < Arguments.Count; index++) {
-          var argument = Arguments[index];
-          var formal = Ctor.Formals[index];
-          argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst), formal.IsGhost, mutable, true, inDisjunctivePattern);
-        }
-      }
-    }
-  }
-
-  public override IEnumerable<(BoundVar var, Expression usage)> ReplaceTypesWithBoundVariables(Resolver resolver,
-    ResolutionContext resolutionContext) {
-    if (Arguments == null && Type is not InferredTypeProxy) {
-      var freshName = resolver.FreshTempVarName(Id, resolutionContext.CodeContext);
-      var boundVar = new BoundVar(Tok, Id, Type);
-      boundVar.IsGhost = IsGhost;
-      yield return (boundVar, new IdentifierExpr(Tok, freshName));
-      Id = freshName;
-      Type = new InferredTypeProxy();
-    }
-
-    if (Arguments != null) {
-      foreach (var childResult in Arguments.SelectMany(a => a.ReplaceTypesWithBoundVariables(resolver, resolutionContext))) {
-        yield return childResult;
+    } else if (Ctor != null) {
+      var subst = TypeParameter.SubstitutionMap(sourceType.AsDatatype.TypeArgs, sourceType.NormalizeExpand().TypeArgs);
+      for (var index = 0; index < Arguments.Count; index++) {
+        var argument = Arguments[index];
+        var formal = Ctor.Formals[index];
+        argument.Resolve(resolver, resolutionContext, formal.Type.Subst(subst),
+          isGhost || formal.IsGhost, inStatementContext, true, inDisjunctivePattern);
       }
     }
   }

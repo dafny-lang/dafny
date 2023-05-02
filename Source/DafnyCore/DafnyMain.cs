@@ -12,11 +12,18 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  public class IllegalDafnyFile : Exception { }
+  public class IllegalDafnyFile : Exception {
+    public bool ProcessingError { get; }
+
+    public IllegalDafnyFile(bool processingError = false) {
+      this.ProcessingError = processingError;
+    }
+  }
 
   public class DafnyMain {
 
@@ -62,7 +69,7 @@ namespace Microsoft.Dafny {
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
-        var err = ParseFile(stdIn, dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
+        var err = ParseFile(stdIn, dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -165,7 +172,7 @@ namespace Microsoft.Dafny {
 
           DafnyFile file;
           try {
-            file = new DafnyFile(include.IncludedFilename);
+            file = new DafnyFile(builtIns.Options, include.IncludedFilename);
           } catch (IllegalDafnyFile) {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }

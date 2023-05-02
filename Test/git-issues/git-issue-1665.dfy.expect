@@ -115,6 +115,8 @@ module ConcreteModule {
    * SCC at height 1:
    *   Status.PropagateFailure
    * SCC at height 0:
+   *   AdditionalWildcardTests
+   * SCC at height 0:
    *   Status
    * SCC at height 0:
    *   Status.IsFailure
@@ -162,10 +164,12 @@ module ConcreteModule {
         ---------- end desugared ----------*/;
       } else {
         return Success;
-      }      
+      }
+      
     } else {
       return Success;
-    }    ---------- end flattened ----------*/
+    }
+    ---------- end flattened ----------*/
     match n {
       case {:split false} 0 =>
         :- Func1()
@@ -177,21 +181,6 @@ module ConcreteModule {
           return;
         }
         ---------- end desugared ----------*/;
-        
-        /*---------- flattened ----------
-        if m == 1 {
-          :- Func1()
-          /*---------- desugared ----------
-          var valueOrError1: Status;
-          valueOrError1 := Func1();
-          if valueOrError1.IsFailure() {
-            r := valueOrError1.PropagateFailure();
-            return;
-          }
-          ---------- end desugared ----------*/;
-        } else {
-          return Success;
-        }        ---------- end flattened ----------*/
         match m {
           case {:split false} 1 =>
             :- Func1()
@@ -203,10 +192,10 @@ module ConcreteModule {
               return;
             }
             ---------- end desugared ----------*/;
-          case {:split false} _ =>
+          case {:split false} _ /* _v0 */: int =>
             return Success;
         }
-      case {:split false} _ =>
+      case {:split false} _ /* _v1 */: int =>
         return Success;
     }
   }
@@ -214,5 +203,81 @@ module ConcreteModule {
   method Func1() returns (r: Status)
   {
     return Success;
+  }
+
+  method AdditionalWildcardTests(n: nat)
+    decreases n
+  {
+    
+    /*---------- flattened ----------
+    {
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} _ /* _v2 */: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+      var _ /* _v3 */: int := n;
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} _ /* _v3 */: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+      var _ /* _v4 */: nat := n;
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} _ /* _v4 */: nat =>
+    }
+    
+    /*---------- flattened ----------
+    if n == 3 {
+    } else {
+      var _ /* _v5 */: int := n;
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} 3 =>
+      case {:split false} _ /* _v5 */: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} x: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} n: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+      var x: int := n;
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} x: int =>
+    }
+    
+    /*---------- flattened ----------
+    {
+      var n: int := n;
+    }
+    ---------- end flattened ----------*/
+    match n {
+      case {:split false} n: int =>
+    }
   }
 }

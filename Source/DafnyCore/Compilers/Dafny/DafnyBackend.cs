@@ -11,13 +11,14 @@ namespace Microsoft.Dafny.Compilers;
 public class DafnyBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
-  public override string TargetLanguage => "Dafny";
+  public override string TargetName => "Simple Dafny";
   public override string TargetExtension => "dfy";
   public override int TargetIndentSize => 4;
   public override string TargetBaseDir(string dafnyProgramName) =>
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-dfy";
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
+  public override bool IsInternal => true;
 
   protected override SinglePassCompiler CreateCompiler() {
     return new DafnyCompiler(Options, Reporter);
@@ -100,7 +101,6 @@ public class DafnyBackend : ExecutableBackend {
     }
 
     return true;
-
   }
 
   public DafnyBackend(DafnyOptions options) : base(options) {
