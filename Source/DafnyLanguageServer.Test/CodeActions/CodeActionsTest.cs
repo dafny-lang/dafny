@@ -279,6 +279,88 @@ function Foo(i: int): int
     ");
     }
 
+    [Fact]
+    public async Task CA_p_no_ghost_for_by_method() {
+      await TestCodeAction(@"
+    (>remove 'ghost'->:::ghost <)function f(): int
+    {
+      42
+    } by method {
+      return 42;
+    }
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_ghost_forbidden_default() {
+      await TestCodeAction(@"
+    module {:options ""--function-syntax:3""} M {
+      (>remove 'ghost'->:::ghost <)function f(): int { 42 }
+    }
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_ghost_forbidden() {
+      await TestCodeAction(@"
+    (>remove 'ghost'->:::ghost <)module M {}
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_no_static() {
+      await TestCodeAction(@"
+    (>remove 'static'->:::static <)module M {}
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_no_opaque() {
+      await TestCodeAction(@"
+    (>remove 'opaque'->:::opaque <)module M {}
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_literal_string_required__1() {
+      await TestCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>remove 'opt'->:::opt<)} M{ }
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_literal_string_required__2() {
+      await TestCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_literal_string_required__3() {
+      await TestCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_no_leading_underscore__1() {
+      await TestCodeAction(@"
+    const (> remove underscore->myconst:::_myconst<) := 5
+    ");
+    }
+
+    [Fact]
+    public async Task CA_p_no_leading_underscore__2() {
+      await TestCodeAction(@"
+    function m(): ((>remove underscore->:::_<): int) {0}
+    ");
+    }
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
