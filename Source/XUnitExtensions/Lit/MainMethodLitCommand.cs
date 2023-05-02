@@ -32,7 +32,8 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
-      var exitCode = (int)assembly.EntryPoint!.Invoke(null, new object[] { arguments })!;
+      var entry = assembly.EntryPoint!;
+      var exitCode = (int)entry.Invoke(null, new object[] { arguments })!;
 
       return (exitCode, "", "");
     }

@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns(Options);
-      var success = (Parser.Parse(source, new Uri("stdin:///"), module, builtIns, new Errors(reporter)) == 0 &&
+      var success = (Parser.Parse(source, new Uri("transcript:///" + fname), module, builtIns, new Errors(reporter)) == 0 &&
                      Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
         dafnyProgram = new Program(fname, module, builtIns, reporter);

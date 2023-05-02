@@ -19,7 +19,7 @@ public static class IncludeHandler {
       return false;
     }
 
-    if (token.Uri.Scheme == "stdin") {
+    if (token.Uri.Scheme == "stdin" || token.Uri.Scheme == "transcript") {
       return false;
     }
 

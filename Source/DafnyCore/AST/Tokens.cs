@@ -199,12 +199,15 @@ public static class TokenExtensions {
     if (tok.Uri == null) {
       return "Token has no URI" + tok;
     }
-    
-    var filename = tok.Uri.Scheme == "stdin"
-      ? "<stdin>"
-      : (options.UseBaseNameForFileName
+
+    string filename = tok.Uri.Scheme switch {
+      "stdin" => "<stdin>",
+      "transcript" => Path.GetFileName(tok.Filepath),
+      _ => options.UseBaseNameForFileName
         ? Path.GetFileName(tok.Filepath)
-        : Path.GetRelativePath(Directory.GetCurrentDirectory(), tok.Filepath));
+        : Path.GetRelativePath(Directory.GetCurrentDirectory(), tok.Filepath)
+    };
+
     return $"{filename}({tok.line},{tok.col - 1})";
   }
 
