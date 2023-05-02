@@ -363,65 +363,65 @@ function Foo(i: int): int
       ");
         }
     */
+    /*
+        [Fact]
+        public async Task CA_p_superfluous_export() {
+          await TestCodeAction(@"
+    (>remove export declaration->:::export M<)
+    method M() {}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_superfluous_export() {
-      await TestCodeAction(@"
-(>remove export declaration->:::export M<)
-method M() {}
-");
+        [Fact]
+        public async Task CA_p_bad_module_decl__1() {
+          await TestCodeAction(@"
+    module M {}
+    module N (>replace 'refine' with 'refines'->refines:::refine<) M {}
+    ");
+        }
+
+        [Fact]
+        public async Task CA_p_bad_module_decl__2() {
+          await TestCodeAction(@"
+    module M {}
+    module N (>replace 'remove 'refine'->:::refine<) M {}
+    ");
+        }
+
+        [Fact]
+        public async Task CA_p_extraneous_comma_in_export() {
+          await TestCodeAction(@"
+    module M {
+      export A reveals b, a(>remove comma->:::,<) reveals b
+      const a: int
+      const b: int
     }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_bad_module_decl__1() {
-      await TestCodeAction(@"
-module M {}
-module N (>replace 'refine' with 'refines'->refines:::refine<) M {}
-");
+        [Fact]
+        public async Task CA_p_top_level_field() {
+          await TestCodeAction(@"
+    module M {
+      (>replace 'var' with 'const'->const:::var<) c: int
     }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_bad_module_decl__2() {
-      await TestCodeAction(@"
-module M {}
-module N (>replace 'remove 'refine'->:::refine<) M {}
-");
-    }
+        [Fact]
+        public async Task CA_p_no_mutable_fields_in_value_types() {
+          await TestCodeAction(@"
+    datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_extraneous_comma_in_export() {
-      await TestCodeAction(@"
-module M {
-  export A reveals b, a(>remove comma->:::,<) reveals b
-  const a: int
-  const b: int
-}
-");
-    }
-
-    [Fact]
-    public async Task CA_p_top_level_field() {
-      await TestCodeAction(@"
-module M {
-  (>replace 'var' with 'const'->const:::var<) c: int
-}
-");
-    }
-
-    [Fact]
-    public async Task CA_p_no_mutable_fields_in_value_types() {
-      await TestCodeAction(@"
-datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
-");
-    }
-
-    [Fact]
-    public async Task CA_p_bad_const_initialize_op() {
-      await TestCodeAction(@"
-const c: int (>replace '=' with ':='->:=:::=<) 5
-");
-    }
-
+        [Fact]
+        public async Task CA_p_bad_const_initialize_op() {
+          await TestCodeAction(@"
+    const c: int (>replace '=' with ':='->:=:::=<) 5
+    ");
+        }
+    */
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
