@@ -14,6 +14,7 @@ public class GenerateTestsCommand : ICommandSpec {
       SequenceLengthLimit,
       Target,
       TestInlineDepth,
+      BoogieOptionBag.BoogieArguments,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverPath,

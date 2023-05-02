@@ -10,6 +10,7 @@ public class DeadCodeCommand : ICommandSpec {
     new Option[] {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
+      BoogieOptionBag.BoogieArguments,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverPath,
