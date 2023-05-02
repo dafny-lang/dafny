@@ -320,34 +320,34 @@ function Foo(i: int): int
   (>remove 'opaque'->:::opaque <)module M {}
   ");
     }
-    /*
-        [Fact]
-        public async Task CA_p_literal_string_required__1() {
-          await TestCodeAction(@"
+
+    [Fact]
+    public async Task CA_p_literal_string_required__1() {
+      await TestCodeAction(@"
       module N { const opt := ""--function-syntax:4"" }
       import opened N
       module {:options (>remove 'opt'->:::opt<)} M{ }
       ");
-        }
+    }
 
-        [Fact]
-        public async Task CA_p_literal_string_required__2() {
-          await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_literal_string_required__2() {
+      await TestCodeAction(@"
       module N { const opt := ""--function-syntax:4"" }
       import opened N
       module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
       ");
-        }
+    }
 
-        [Fact]
-        public async Task CA_p_literal_string_required__3() {
-          await TestCodeAction(@"
+    [Fact]
+    public async Task CA_p_literal_string_required__3() {
+      await TestCodeAction(@"
       module N { const opt := ""--function-syntax:4"" }
       import opened N
       module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
       ");
-        }
-    */
+    }
+
     /*
     [Fact]
     public async Task CA_p_no_leading_underscore__1() {
@@ -422,6 +422,15 @@ function Foo(i: int): int
     ");
         }
     */
+
+    [Fact]
+    public async Task CA_p_const_is_missing_type_or_init() {
+      await TestCodeAction(@"
+    const (>add example->i:::i: int := 42=<)
+    ");
+    }
+
+
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
     private async Task TestCodeAction(string source) {
