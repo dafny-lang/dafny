@@ -42,7 +42,7 @@ abstract (>remove duplicate modifier->:::abstract <)module M {}
     public async Task CA_p_ghost_forbidden_default() {
       await TestErrorCodeAction(@"
 module {:options ""--function-syntax:3""} M {
-  (> remove 'ghost'->:::ghost <)function f(): int { 42 }
+  (>remove 'ghost'->:::ghost <)function f(): int { 42 }
 }
 ");
     }
@@ -50,21 +50,21 @@ module {:options ""--function-syntax:3""} M {
     [Fact]
     public async Task CA_p_ghost_forbidden() {
       await TestErrorCodeAction(@"
-(> remove 'ghost'->:::ghost <)module M {}
+(>remove 'ghost'->:::ghost <)module M {}
 ");
     }
 
     [Fact]
     public async Task CA_p_no_static() {
       await TestErrorCodeAction(@"
-(> remove 'static'->:::static <)module M {}
+(>remove 'static'->:::static <)module M {}
 ");
     }
 
     [Fact]
     public async Task CA_p_no_opaque() {
       await TestErrorCodeAction(@"
-(> remove 'opaque'->:::opaque <)module M {}
+(>remove 'opaque'->:::opaque <)module M {}
 ");
     }
 
@@ -73,7 +73,7 @@ module {:options ""--function-syntax:3""} M {
       await TestErrorCodeAction(@"
 module N { const opt := ""--function-syntax:4"" }
 import opened N
-module {:options (> remove 'opt'->:::opt<)} M{ }
+module {:options (>remove 'opt'->:::opt<)} M{ }
 ");
     }
 
@@ -82,7 +82,7 @@ module {:options (> remove 'opt'->:::opt<)} M{ }
       await TestErrorCodeAction(@"
 module N { const opt := ""--function-syntax:4"" }
 import opened N
-module {:options (> replace with empty string 'opt'->"""":::opt<)} M{ }
+module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
 ");
     }
 
@@ -91,7 +91,7 @@ module {:options (> replace with empty string 'opt'->"""":::opt<)} M{ }
       await TestErrorCodeAction(@"
 module N { const opt := ""--function-syntax:4"" }
 import opened N
-module {:options (> enclose in quotes 'opt'->""opt"":::opt<)} M{ }
+module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
 ");
     }
 
@@ -105,7 +105,7 @@ const (> remove underscore->myconst:::_myconst<) := 5
     [Fact]
     public async Task CA_p_no_leading_underscore__2() {
       await TestErrorCodeAction(@"
-function m(): ((> remove underscore->:::_<): int) {0}
+function m(): ((>remove underscore->:::_<): int) {0}
 ");
     }
 
