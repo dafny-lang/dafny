@@ -3662,7 +3662,7 @@ AssertStmt<out Statement/*!*/ s>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     | (.
-        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
       .)
     )
   | ellipsis                                   (. dotdotdot = t; 

@@ -868,6 +868,18 @@ In loops it assures termination of the loop iteration.
 So it does not make sense to both list a metric and to list '*'.
 Use one or the other.
 
+## **Error: expected either 'by' or a semicolon following the assert expression** {#p_assert_needs_by_or_semicolon}
+
+```dafny
+method m() {
+  assert true
+}
+```
+
+Assert statements, like all statements, end in either a semicolon or a block. Most assert statements end in semicolons,
+but an assert-by statement has the form `assert expr by { ... }` where the by-block contains statements such as lemma calls
+that assist in proving the validity of the asserted expression.
+
 ## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
 
 <!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->

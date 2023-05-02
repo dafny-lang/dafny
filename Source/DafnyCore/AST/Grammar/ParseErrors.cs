@@ -81,6 +81,7 @@ public class ParseErrors {
     p_no_modifies_on_refining_loops, // refining loops are deprecated
     p_to_or_downto,
     p_no_decreases_expressions_with_star,
+    p_assert_needs_by_or_semicolon,
     p_forall_with_ensures_must_have_body,
     p_calc_operator_must_be_transitive,
     p_invalid_calc_op_combination,
