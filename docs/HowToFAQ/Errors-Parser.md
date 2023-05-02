@@ -196,6 +196,15 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
+## **Error: ** {#p_const_decl_missing_identifier}
+
+```dafny
+const
+```
+
+This error arises from a truncated declarations of a const field, namely just a const keyword.
+To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
+
 ## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
 
 ```dafny
