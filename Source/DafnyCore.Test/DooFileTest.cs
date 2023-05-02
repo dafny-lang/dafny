@@ -30,11 +30,11 @@ public class DooFileTest {
 
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
     var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-    const string fullFilePath = "foo";
+    const string fullFilePath = "untitled:foo";
     Microsoft.Dafny.Type.ResetScopes();
     var builtIns = new BuiltIns(options);
     var errorReporter = new ConsoleErrorReporter(options);
-    var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
+    var parseResult = Parser.Parse(dafnyProgramText, new Uri(fullFilePath), module, builtIns, errorReporter);
     Assert.Equal(0, parseResult);
     return new Program(fullFilePath, module, builtIns, errorReporter);
   }

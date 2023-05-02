@@ -63,7 +63,6 @@ public class ProjectFile {
     var files = result.Files.Select(f => Path.Combine(root, f.Path));
     foreach (var file in files) {
       options.RootUris.Add(new Uri(Path.GetFullPath(file)));
-      options.AddFile(file);
     }
   }
 
