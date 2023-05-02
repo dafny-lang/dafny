@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.IO;
 using System.Linq;
 using System.Transactions;
 using DafnyCore;
@@ -58,6 +59,32 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "seconds",
   };
 
+  public static readonly Option<int> VerificationErrorLimit =
+    new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
+
+  public static readonly Option<uint> SolverResourceLimit = new("--resource-limit",
+    @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic
+    alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof
+    effort, which you can use to determine an appropriate limit for your program. Multiplied by 1000 before
+    sending to Z3.");
+  public static readonly Option<string> SolverPlugin = new("--solver-plugin",
+    @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/v2.16.3/Source/Provers/SMTLib/ProverUtil.cs#L316");
+
+  public static readonly Option<string> SolverLog =
+    new("--solver-log", @"Specify a file to use to log the SMT-Lib text sent to the solver.") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> IsolateAssertions = new("--isolate-assertions", @"Verify each assertion in isolation.");
+
+  public static readonly Option<FileInfo> SolverPath = new("--solver-path",
+    "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
+  };
+  public static readonly Option<IList<string>> SolverOption = new("--solver-option",
+    "Specify an option to control how the solver works.") {
+  };
+
+
   static BoogieOptionBag() {
     Cores.SetDefaultValue((uint)((Environment.ProcessorCount + 1) / 2));
 
@@ -72,6 +99,27 @@ public static class BoogieOptionBag {
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
+    DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
+      if (value != null) {
+        options.ProverOptions.Add($"PROVER_PATH={value?.FullName}");
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(SolverPlugin, (o, v) => {
+      if (v is not null) {
+        o.ProverDllName = v;
+        o.TheProverFactory = ProverFactory.Load(o.ProverDllName);
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(SolverResourceLimit, (o, v) => o.ResourceLimit = v);
+    DafnyOptions.RegisterLegacyBinding(SolverLog, (o, v) => o.ProverLogFilePath = v);
+    DafnyOptions.RegisterLegacyBinding(SolverOption, (o, v) => {
+      if (v is not null) {
+        o.ProverOptions.AddRange(v);
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
+    DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
+
 
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck> {
@@ -82,7 +130,14 @@ public static class BoogieOptionBag {
     );
     DooFile.RegisterNoChecksNeeded(
       Cores,
-      VerificationTimeLimit
+      VerificationTimeLimit,
+      VerificationErrorLimit,
+      IsolateAssertions,
+      SolverLog,
+      SolverOption,
+      SolverPath,
+      SolverPlugin,
+      SolverResourceLimit
     );
   }
 
