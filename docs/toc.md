@@ -33,6 +33,7 @@ This page contains links to Dafny documentation.
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [FAQs](HowToFAQ/index)
    * [Explanations of Error and Warning messages](HowToFAQ/Errors)
+   * [Proof optimization guide](ProofOptimization/ProofOptimization)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
    * [Miscellaneous Examples of Dafny programs](examples/README)

@@ -798,6 +798,8 @@ This list is not exhaustive but can definitely be useful to provide the next ste
 
 In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or times out.
 
+Additional detail is available in the [proof optimization guide](../ProofOptimization/ProofOptimization).
+
 #### 13.6.2.1. `assume false;` {#sec-assume-false}
 
 Assuming `false` is an empirical way to short-circuit the verifier and usually stop verification at a given point,[^explainer-assume-false] and since the final compilation steps do not accept this command, it is safe to use it during development.
@@ -1278,7 +1280,8 @@ likely have significantly lower limits on other variability metrics).
 Improving proof variability is typically closely related to improving
 performance overall. As such, [techniques for debugging slow
 verification](#sec-verification-debugging-slow) are typically useful for
-debugging highly variable verification, as well.
+debugging highly variable verification, as well. See also the [proof
+optimization guide](../ProofOptimization/ProofOptimization).
 
 ## 13.7. Compilation {#sec-compilation}
 
