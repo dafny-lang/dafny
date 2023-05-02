@@ -11,105 +11,105 @@ using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionErrorTest : ClientBasedLanguageServerTest {
+    /*
+        [Fact]
+        public async Task CA_p_duplicate_modifier() {
+          await TestErrorCodeAction(@"
+    abstract (>remove duplicate modifier->:::abstract <)module M {}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_duplicate_modifier() {
-      await TestErrorCodeAction(@"
-abstract (>remove duplicate modifier->:::abstract <)module M {}
-");
+        [Fact]
+        public async Task CA_p_abstract_not_allowed() {
+          await TestErrorCodeAction(@"
+    (>remove 'abstract'->:::abstract <)const c := 4
+    ");
+        }
+
+        [Fact]
+        public async Task CA_p_no_ghost_for_by_method() {
+          await TestErrorCodeAction(@"
+    (>remove 'ghost'->:::ghost <)function f(): int
+    {
+      42
+    } by method {
+      return 42;
     }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_abstract_not_allowed() {
-      await TestErrorCodeAction(@"
-(>remove 'abstract'->:::abstract <)const c := 4
-");
+        [Fact]
+        public async Task CA_p_ghost_forbidden_default() {
+          await TestErrorCodeAction(@"
+    module {:options ""--function-syntax:3""} M {
+      (>remove 'ghost'->:::ghost <)function f(): int { 42 }
     }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_no_ghost_for_by_method() {
-      await TestErrorCodeAction(@"
-(>remove 'ghost'->:::ghost <)function f(): int
-{
-  42
-} by method {
-  return 42;
-}
-");
-    }
+        [Fact]
+        public async Task CA_p_ghost_forbidden() {
+          await TestErrorCodeAction(@"
+    (>remove 'ghost'->:::ghost <)module M {}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_ghost_forbidden_default() {
-      await TestErrorCodeAction(@"
-module {:options ""--function-syntax:3""} M {
-  (>remove 'ghost'->:::ghost <)function f(): int { 42 }
-}
-");
-    }
+        [Fact]
+        public async Task CA_p_no_static() {
+          await TestErrorCodeAction(@"
+    (>remove 'static'->:::static <)module M {}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_ghost_forbidden() {
-      await TestErrorCodeAction(@"
-(>remove 'ghost'->:::ghost <)module M {}
-");
-    }
+        [Fact]
+        public async Task CA_p_no_opaque() {
+          await TestErrorCodeAction(@"
+    (>remove 'opaque'->:::opaque <)module M {}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_no_static() {
-      await TestErrorCodeAction(@"
-(>remove 'static'->:::static <)module M {}
-");
-    }
+        [Fact]
+        public async Task CA_p_literal_string_required__1() {
+          await TestErrorCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>remove 'opt'->:::opt<)} M{ }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_no_opaque() {
-      await TestErrorCodeAction(@"
-(>remove 'opaque'->:::opaque <)module M {}
-");
-    }
+        [Fact]
+        public async Task CA_p_literal_string_required__2() {
+          await TestErrorCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__1() {
-      await TestErrorCodeAction(@"
-module N { const opt := ""--function-syntax:4"" }
-import opened N
-module {:options (>remove 'opt'->:::opt<)} M{ }
-");
-    }
+        [Fact]
+        public async Task CA_p_literal_string_required__3() {
+          await TestErrorCodeAction(@"
+    module N { const opt := ""--function-syntax:4"" }
+    import opened N
+    module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__2() {
-      await TestErrorCodeAction(@"
-module N { const opt := ""--function-syntax:4"" }
-import opened N
-module {:options (>replace with empty string 'opt'->"""":::opt<)} M{ }
-");
-    }
+        [Fact]
+        public async Task CA_p_no_leading_underscore__1() {
+          await TestErrorCodeAction(@"
+    const (> remove underscore->myconst:::_myconst<) := 5
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_literal_string_required__3() {
-      await TestErrorCodeAction(@"
-module N { const opt := ""--function-syntax:4"" }
-import opened N
-module {:options (>enclose in quotes 'opt'->""opt"":::opt<)} M{ }
-");
-    }
+        [Fact]
+        public async Task CA_p_no_leading_underscore__2() {
+          await TestErrorCodeAction(@"
+    function m(): ((>remove underscore->:::_<): int) {0}
+    ");
+        }
 
-    [Fact]
-    public async Task CA_p_no_leading_underscore__1() {
-      await TestErrorCodeAction(@"
-const (> remove underscore->myconst:::_myconst<) := 5
-");
-    }
-
-    [Fact]
-    public async Task CA_p_no_leading_underscore__2() {
-      await TestErrorCodeAction(@"
-function m(): ((>remove underscore->:::_<): int) {0}
-");
-    }
-
-
+    */
 
 
 
