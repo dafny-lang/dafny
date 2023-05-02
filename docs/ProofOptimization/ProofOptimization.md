@@ -6,7 +6,7 @@ In other cases, however, the prover can need help. It may be that it's unable to
 
 In all of these cases, the general solution strategy is the same. Although we hope that most Dafny users will not need to know much about the way Dafny's verification goals are constructed, or the way the SMT solver works, there are a few high-level concepts that can be very helpful in getting verification to succeed.
 
-The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevent facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to verification failures, timeouts, or an unpredictable combination of success, failure, and timeout.
+The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevant facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to Dafny being unable prove the goal, timing out, or exhibiting an unpredictable combination of verification success, timeout, and failure to prove the goal.
 
 The second key concept is that certain types of facts are more difficult to reason about. Isolating the reasoning about such facts to small portions of your program, and providing extra detail to help the prover when reasoning about those isolated instances, can help in these cases. A later section describes some of the more difficult types of reasoning and provides some techniques for dealing with each.
 
@@ -24,21 +24,23 @@ At a high level, understanding how to optimize proofs requires understanding a f
 
 To ensure that the verifier has exactly the right amount of information available, it'll help to review exactly what information is in scope at a particular point in a Dafny program, and what goals the verifier attempts to prove.
 
-First, Dafny attempts to prove that the following predicates are always true:
-
-* Every `ensures` clause of a `function`, `lemma`, or `method`, right before returning.
-
-* Every `invariant` clause, before the loop it is associated with it begins, and at the end of each iteration of the loop body.
+First, Dafny attempts to prove that several predicates are always true, including the following.
 
 * The expression in every `assert` statement, at the point where it occurs.
 
 * The well-formedness condition of any partial operation, including array indexing and division, at the point where it occurs.
 
-* TODO: more from DafnyRef
+* Every `invariant` clause, before the loop it is associated with it begins, and at the end of each iteration of the loop body.
+
+* Every `requires` clause of a `function`, `lemma`, or `method`, at the call site.
+
+* Every `ensures` clause of a `function`, `lemma`, or `method`, right before returning.
+
+A complete list is available [here](../DafnyRef/DafnyRef#sec-assertion-batches).
 
 Although only one of these uses the `assert` keyword, we use the term _assertion_ to describe each of these proof goals. A collection of assertions, taken together, is called an _assertion batch_.
 
-When trying to prove each of these statements, Dafny assumes the following predicates to be true, making them available as facts for the verifier to use:
+When trying to prove each of these statements, Dafny assumes several following predicates to be true, making them available as facts for the verifier to use. These include the following.
 
 * Every `requires` clause, throughout the whole body of a Dafny `function`, `lemma`, or `method`.
 
@@ -54,7 +56,7 @@ When trying to prove each of these statements, Dafny assumes the following predi
 
 * The well-formedness condition of any partial operation, including array indexing and division, in subsequent code.
 
-* TODO: more from DafnyRef
+* The branch condition for each branch, within the body of that branch.
 
 In all of the above cases, "subsequent code" extends to the end of the current definition, except in the case of the `assert P by S` construct where it extends to the end of the `by` block. More detail on this construct appears later.
 
@@ -70,11 +72,11 @@ However, when verification times out, Dafny will (by default) tell you only whic
 
 Dafny provides several attributes that tell it to verify certain assertions separately, rather than verifying everything about the correctness of a particular definition in one query to the solver.
 
-* The `{:split_here}` attribute on an `assert` statement tells Dafny to verify all assertions leading to this point in one batch and all assertions after this point (or up to the next `{:split_here}`, if there is one) in one batch.
+* The [`{:split_here}`](../DafnyRef/DafnyRef#sec-split_here) attribute on an `assert` statement tells Dafny to verify all assertions leading to this point in one batch and all assertions after this point (or up to the next `{:split_here}`, if there is one) in one batch.
 
-* The `{:focus}` attribute on an `assert` or `assume` statement tells Dafny to verify all assertions in the containing block, and everything that _always_ follows it, in one batch, and the rest of the definition in another batch (potentially subject to further splitting due to other occurrences of `{:focus}`).
+* The [`{:focus}`](../DafnyRef/DafnyRef#sec-focus) attribute on an `assert` or `assume` statement tells Dafny to verify all assertions in the containing block, and everything that _always_ follows it, in one batch, and the rest of the definition in another batch (potentially subject to further splitting due to other occurrences of `{:focus}`).
 
-* The `{:vcs_split_on_every_assert}` attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
+  * The [`{:vcs_split_on_every_assert}`](../DafnyRef/DafnyRef#sec-vcs_split_on_every_assert) attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
 
 This last attribute can also be specified globally, applying to all definitions, with `dafny verify --isolate-assertions` or the `/vcsSplitOnEveryAssert` flag.
 
@@ -242,7 +244,7 @@ lemma LemmaPow1(b: int)
 }
 ```
 
-All of these lemmas can be proved and used with the `--disable-nonlinear-arithmetic` flag enabled. These lemmas also demonstrate several techniques that we'll describe in more detail later: lots of small lemmas, opaque functions, and `calc` statements.
+All of these lemmas can be proved and used with the `--disable-nonlinear-arithmetic` flag enabled. These lemmas also demonstrate several techniques that we'll describe in more detail later: lots of small lemmas, opaque functions, and [`calc`](../DafnyRef/DafnyRef#sec-calc-statement) statements.
 
 If you have a difficult non-linear fact to prove, and proving it from the ground up is infeasible, it is possible, as a last resort, to adjust how Z3 attempts to prove arithmetic formulas. It contains a parameter, `smt.arith.solver`, that allows you to choose between one of six different arithmetic decision procedures. Dafny has historically used solver "2", and continues to do so by default. This peforms most effectively on the corpus of examples that we have experimented with. However, solver "6", which is the default for Z3 when not being invoked from Dafny, performs better at non-linear arithmetic. Currently, it's possible to choose this solver using the Dafny flag `--boogie /proverOpt:O:smt.arith.solver=6` (or just `/proverOpt:O:smt.arith.solver=6`, when not using top-level commands).
 
@@ -338,7 +340,7 @@ Here, `UnitIsUnique` couldn't be proved automatically (with a `{  }` body), but 
 
 ## Calculation statements
 
-When there are many intermediate assertions needed to get from `A` to `C`, it can become messy and difficult-to-ready if they exist only as a sequence of `assert` statements. Instead, it's possible to use a [`calc`](https://dafny.org/latest/DafnyRef/DafnyRef#sec-calc-statement) statement to chain together many implications, or other relationships, between a starting and ending fact. The version of `UnitIsUnique` that exists in the `libraries` repository is actually proved as follows.
+When there are many intermediate assertions needed to get from `A` to `C`, it can become messy and difficult-to-ready if they exist only as a sequence of `assert` statements. Instead, it's possible to use a [`calc`](../DafnyRef/DafnyRef#sec-calc-statement) statement to chain together many implications, or other relationships, between a starting and ending fact. The version of `UnitIsUnique` that exists in the `libraries` repository is actually proved as follows.
 
 <!-- %no-check -->
 ```dafny
@@ -386,10 +388,6 @@ As we'll describe in more detail later, however, it can sometimes be better to a
 # Hiding information
 
 There are several ways to structure a Dafny program to limit the number of facts that are available in scope at any particular point. First we'll go over a few that can be applied as small changes to existing programs, and then we'll cover some that are better applied early in the development process (though they can be applied to existing programs with more significant refactoring).
-
-## Subsumption
-
-The default behavior of an `assert` statement is to instruct the verifier to prove that a predicate is always true and then to assume that same predicate is true in later portions of the code, making it available to help prove other facts. This is called _subsumption_. On occasion, however, you may have an `assert` statement that exists to show a desired condition for its own sake, and that does not help prove later facts. In this case, you can disable subsumption, using `assert {:subsumption 0}`, to reduce the number of facts in scope in subsequent code.
 
 ## Local proofs
 
@@ -449,7 +447,7 @@ By default, the body of a `function` definition is available to the verifier in 
 
 * The body of a function (or predicate) declared with the `opaque` keyword is, by default, _not_ available to the verifier. Only its declared contract is visible. In any context where information about the body is necessary to complete a proof, it can be made available with `reveal F();` for a function named `F`.
 
-* The body of a recursive function is normally available to depth 2 (TODO: is this right?). That is, the body of the function and a second inlining of its body at each recursive call site are available to the verifier. The `{:fuel n}` annotation will increase the depth to which recursively-called bodies are exposed.
+* The body of a recursive function is normally available to depth 2 when it appears in an asserted predicate or depth 1 when it appears in an assumed predicate. That is, the body of the function and (in the assertion case) a second inlining of its body at each recursive call site are available to the verifier. The [`{:fuel n}`](../DafnyRef/DafnyRef#sec-fuel) annotation will increase the depth to which recursively-called bodies are exposed.
 
 Aggressive inlining is convenient in many cases. It can allow Dafny to prove quite complex properties completely automatically. However, it can also quickly lead to feeding an enormous amount of information to the verifier, most of it likely irrelevant to the goal it is trying to prove.
 
@@ -457,7 +455,7 @@ Therefore, it can be valuable to think carefully about which aspects of a functi
 
 * Add the `opaque` keyword to the function definition.
 
-* Reveal the definition only in the cases where its body is necessary.
+* [Reveal](../DafnyRef/DafnyRef#sec-reveal-statement) the definition only in the cases where its body is necessary.
 
 * Potentially prove additional lemmas about the function, each of which may reveal the function during its own proof but allow its callers to leave the function body hidden.
 
@@ -494,7 +492,7 @@ Although the difference is small in this simple case, we can already see a perfo
 
 In the context of larger programs, you can enforce opacity even more strongly by using export sets. If you write lemmas declaring the key properties of each of your functions that are relevant for client code, you put those functions and lemmas in the `provides` clause of your module, and very little if anything in the `reveals` clause. If you do this, it's important that you provide lemmas covering all the important behavior of your module. But, if you do, then it becomes easier for developers to write client code that uses your module, and easier for Dafny to prove things about that client code.
 
-Making definitions opaque can be particularly important when they are a) recursive, or b) involve quantifiers. Because of the considerations around quantifiers described earlier, hiding quantified formulas until they're needed can be very important for improving performance and reducing variability.
+Making definitions opaque can be particularly important when they are recursive or involve quantifiers. Because of the considerations around quantifiers described earlier, hiding quantified formulas until they're needed can be very important for improving performance and reducing variability.
 
 ## Opaque specification clauses
 
@@ -512,6 +510,10 @@ method OpaquePrecondition(x: int) returns (r: int)
   assert r > 0 by { reveal P; }
 }
 ```
+
+## Subsumption
+
+The default behavior of an `assert` statement is to instruct the verifier to prove that a predicate is always true and then to assume that same predicate is true in later portions of the code, making it available to help prove other facts. This is called _subsumption_. On occasion, however, you may have an `assert` statement that exists to show a desired condition for its own sake, and that does not help prove later facts. In this case, you can [disable subsumption](../DafnyRef/DafnyRef#1133-subsumption-n), using `assert {:subsumption 0} P`, to reduce the number of facts in scope in subsequent code. This is similar to `assert L: P`, except that in the case of a labeled assertion the predicate can be selectively revealed later. If you know you'll _never_ need `P`, rather than _usually_ not needing it, subsumption could be a better option.
 
 ## Avoiding quantifiers
 
@@ -584,7 +586,7 @@ lemma LemmaMulEqualityAuto()
 }
 ```
 
-The `{:trigger}` annotation tells it to only instantiate the formula in the postcondition when the solver sees two existing formulas, `x * z` and `y * z`. That is, if it sees two multiplications in which the right-hand sides are the same.
+The [`{:trigger}`](../DafnyRef/DafnyRef#sec-trigger) annotation tells it to only instantiate the formula in the postcondition when the solver sees two existing formulas, `x * z` and `y * z`. That is, if it sees two multiplications in which the right-hand sides are the same.
 
 ## Smaller, more isolated definitions
 
