@@ -27,7 +27,8 @@ public class ParseErrors {
     p_top_level_field,
     p_bad_datatype_refinement,
     p_no_mutable_fields_in_value_types,
-    p_bad_const_initialize_op, // TODO - check for new error near here
+    p_const_decl_missing_identifier,
+    p_bad_const_initialize_op,
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
     p_output_of_function_not_ghost,
@@ -261,6 +262,12 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 ", Replace("const"));
+
+    Add(ErrorId.p_const_decl_missing_identifier,
+    @"
+This error arises from a truncated declarations of a const field, namely just a const keyword.
+To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
+");
 
     Add(ErrorId.p_bad_const_initialize_op,
     @"

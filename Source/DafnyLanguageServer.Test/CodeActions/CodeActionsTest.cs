@@ -415,6 +415,13 @@ function Foo(i: int): int
     ");
         }
 
+    [Fact]
+//    public async Task CA_p_const_decl_missing_identifier() {
+//      await TestCodeAction(@"
+//    const(>add example->i:::i: int := 42=<)
+//    ");
+//    }
+
         [Fact]
         public async Task CA_p_bad_const_initialize_op() {
           await TestCodeAction(@"
