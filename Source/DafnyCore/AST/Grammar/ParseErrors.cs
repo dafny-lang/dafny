@@ -438,7 +438,7 @@ The type may be either `nat` or `ORDINAL`.
 But this type is specified only for `least` and `greatest` constructs.
 ", Remove(false));
 
-    Add(ErrorId.p_constructors_have_no_out_parameters, // TODO errorId is never used in parser
+    Add(ErrorId.p_constructors_have_no_out_parameters,
     @"
 Constructors are used to initalize the state of an instance of a class.
 Thus they typically set the values of the fields of the class instance.
@@ -508,6 +508,9 @@ A `imap` type has two type parameters: the type of the keys and the type of the 
 The error message states that the parser sees some number of type parameters different than two.
 ");
 
+    // TODO - need more
+
+
     Add(ErrorId.p_deprecating_function_method, // TODO errorId is never used in parser
     @"
     From Dafny 4 on, the phrases `function method` and `predicate method` are no
@@ -520,6 +523,7 @@ The error message states that the parser sees some number of type parameters dif
     @"
 Semicolons are required after statements and declarations in method bodies,  
 but are deprecated after declarations within modules and types.
-");
+", Remove(true, "remove semicolon"));
+
   }
 }

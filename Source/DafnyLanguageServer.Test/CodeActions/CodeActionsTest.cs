@@ -401,42 +401,42 @@ function Foo(i: int): int
         }
         ");
     }
-    /*
-               [Fact]
-               public async Task CA_p_top_level_field() {
-                 await TestCodeAction(@"
+
+    [Fact]
+    public async Task CA_p_top_level_field() {
+      await TestCodeAction(@"
            module M {
              (>replace 'var' with 'const'->const:::var<) c: int
            }
            ");
-               }
+    }
+    /*
+                   [Fact]
+                   public async Task CA_p_no_mutable_fields_in_value_types() {
+                     await TestCodeAction(@"
+               datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
+               ");
+                   }
 
                [Fact]
-               public async Task CA_p_no_mutable_fields_in_value_types() {
-                 await TestCodeAction(@"
-           datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
-           ");
-               }
-
-           [Fact]
-       //    public async Task CA_p_const_decl_missing_identifier() {
-       //      await TestCodeAction(@"
-       //    const(>add example->i:::i: int := 42=<)
-       //    ");
-       //    }
-
-               [Fact]
-               public async Task CA_p_bad_const_initialize_op() {
-                 await TestCodeAction(@"
+           //    public async Task CA_p_const_decl_missing_identifier() {
+           //      await TestCodeAction(@"
+           //    const(>add example->i:::i: int := 42=<)
+           //    ");
+           //    }
+               */
+    [Fact]
+    public async Task CA_p_bad_const_initialize_op() {
+      await TestCodeAction(@"
            const c: int (>replace '=' with ':='->:=:::=<) 5
            ");
-               }
-           */
+    }
+
 
     [Fact]
     public async Task CA_p_const_is_missing_type_or_init() {
       await TestCodeAction(@"
-        const (>add example->i:::i: int := 42=<)
+        const (>add example->:::: int := 42=<)
         ");
     }
     /*
