@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
@@ -794,7 +796,9 @@ public class ForallLHSUnique : ProofObligationDescriptionWithNoExpr {
   public override string ShortDescription => "forall bound unique";
 }
 
-public class ElementInDomain : ProofObligationDescriptionWithNoExpr {
+public class ElementInDomain : ProofObligationDescription {
+  private readonly Expression sequence;
+  private readonly Expression index;
   public override string SuccessDescription =>
     "element is in domain";
 
@@ -802,6 +806,17 @@ public class ElementInDomain : ProofObligationDescriptionWithNoExpr {
     "element might not be in domain";
 
   public override string ShortDescription => "element in domain";
+
+  public ElementInDomain(Expression sequence, Expression index) {
+    this.sequence = sequence;
+    this.index = index;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(sequence.tok, BinaryExpr.Opcode.In,
+      index,
+      sequence
+    );
+  }
 }
 
 public class DefiniteAssignment : ProofObligationDescriptionWithNoExpr {
@@ -822,21 +837,49 @@ public class DefiniteAssignment : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class InRange : ProofObligationDescriptionWithNoExpr {
+public class InRange : ProofObligationDescription {
+  private readonly Expression sequence;
+  private readonly Expression index;
+  private readonly bool upperExcluded;
+  private readonly string what;
+  private readonly int dimension;
   public override string SuccessDescription => $"{what} in range";
 
   public override string FailureDescription => $"{what} out of range";
 
   public override string ShortDescription => "in range";
 
-  private readonly string what;
-
-  public InRange(string what) {
+  public InRange(Expression sequence, Expression index, bool upperExcluded, string what, int dimension = -1) {
+    this.sequence = sequence;
+    this.index = index;
     this.what = what;
+    this.upperExcluded = upperExcluded;
+    this.dimension = dimension;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    if (sequence.Type is SeqType || sequence.Type.IsArrayType) {
+      Expression bound = sequence.Type.IsArrayType ?
+          new MemberSelectExpr(sequence.tok, sequence, "Length" + (dimension >= 0 ? "" + dimension : ""))
+        : new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence);
+      return new ChainingExpression(sequence.tok, new List<Expression>() {
+        new LiteralExpr(sequence.tok, 0),
+        index,
+        bound
+      }, new List<BinaryExpr.Opcode>() {
+        BinaryExpr.Opcode.Le,
+        upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
+      }, new List<IToken>() { Token.NoToken, Token.NoToken },
+        new List<Expression>() { null, null });
+    }
+
+    return new BinaryExpr(sequence.tok, BinaryExpr.Opcode.In,
+      index,
+      sequence
+    );
   }
 }
 
-public class SequenceSelectRangeValid : ProofObligationDescriptionWithNoExpr {
+public class SequenceSelectRangeValid : ProofObligationDescription {
   public override string SuccessDescription =>
     $"upper bound within range of {what}";
 
@@ -846,9 +889,26 @@ public class SequenceSelectRangeValid : ProofObligationDescriptionWithNoExpr {
   public override string ShortDescription => "sequence select range valid";
 
   private readonly string what;
+  private readonly Expression sequence;
+  private readonly Expression lowerBound;
+  private readonly Expression upperBound;
 
-  public SequenceSelectRangeValid(string what) {
+  public SequenceSelectRangeValid(Expression sequence, Expression lowerBound, Expression upperBound, string what) {
     this.what = what;
+    this.sequence = sequence;
+    this.lowerBound = lowerBound;
+    this.upperBound = upperBound;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ChainingExpression(sequence.tok, new List<Expression>() {
+      lowerBound,
+      upperBound,
+      new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence)
+    }, new List<BinaryExpr.Opcode>() {
+      BinaryExpr.Opcode.Le,
+      BinaryExpr.Opcode.Le
+    }, new List<IToken>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
   }
 }
 
@@ -918,7 +978,9 @@ public class ArrayInitEmpty : ProofObligationDescriptionWithNoExpr {
   }
 }
 
-public class LetSuchThanUnique : ProofObligationDescriptionWithNoExpr {
+public class LetSuchThatUnique : ProofObligationDescription {
+  private readonly Expression condition;
+  private readonly List<BoundVar> bvars;
   public override string SuccessDescription =>
     "the value of this let-such-that expression is uniquely determined";
 
@@ -926,9 +988,39 @@ public class LetSuchThanUnique : ProofObligationDescriptionWithNoExpr {
     "to be compilable, the value of a let-such-that expression must be uniquely determined";
 
   public override string ShortDescription => "let-such-that unique";
+
+  public LetSuchThatUnique(Expression condition, List<BoundVar> bvars) {
+    this.condition = condition;
+    this.bvars = bvars;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
+    var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
+    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
+    var subContract = new Substituter(null,
+      bvars.Zip(bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
+        item => item.Item1, item => item.Item2),
+      new Dictionary<TypeParameter, Type>()
+    );
+    var conditionSecondBoundVar = subContract.Substitute(condition);
+    var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]);
+    for (var i = 1; i < bvarsExprs.Count; i++) {
+      conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And,
+        conclusion,
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[i], bvarprimesExprs[i])
+        );
+    }
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, bvars.Concat(bvarprimes).ToList(),
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, condition, conditionSecondBoundVar),
+
+      conclusion, null);
+  }
 }
 
-public class LetSuchThatExists : ProofObligationDescriptionWithNoExpr {
+public class LetSuchThatExists : ProofObligationDescription {
+  private readonly Expression condition;
+  private readonly List<BoundVar> bvars;
+
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
@@ -936,6 +1028,15 @@ public class LetSuchThatExists : ProofObligationDescriptionWithNoExpr {
     "cannot establish the existence of LHS values that satisfy the such-that predicate";
 
   public override string ShortDescription => "let-such-that exists";
+
+  public LetSuchThatExists(List<BoundVar> bvars, Expression condition) {
+    this.condition = condition;
+    this.bvars = bvars;
+  }
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExistsExpr(bvars[0].tok, bvars[0].RangeToken, bvars,
+      null, condition, null);
+  }
 }
 
 public class AssignmentShrinks : ProofObligationDescriptionWithNoExpr {

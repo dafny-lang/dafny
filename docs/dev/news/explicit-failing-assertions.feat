@@ -1,0 +1,5 @@
+Code actions in editor to explicit failing assertions.
+In VSCode, place the cursor on a failing division by zero and either
+- Position the caret on a failing assertion, press CTRL+; and then ENTER
+- Hover over the failing division by zero, click "quick fix", press ENTER
+Both scenarios will explicit the failing assertion
