@@ -399,7 +399,7 @@ public class VerificationProgressReporter : IVerificationProgressReporter {
   /// <returns>The top-level verification tree</returns>
   private TopLevelDeclMemberVerificationTree? GetTargetMethodTree(Implementation implementation, out ImplementationVerificationTree? implementationTree, bool nameBased = false) {
     var targetMethodNode = document.VerificationTree.Children.OfType<TopLevelDeclMemberVerificationTree>().FirstOrDefault(
-      node => node?.Position == implementation.tok.GetLspPosition() && 
+      node => node?.Position == implementation.tok.GetLspPosition() &&
               node?.Uri == ((IToken)implementation.tok).Uri
       , null);
     if (nameBased) {

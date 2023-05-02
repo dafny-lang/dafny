@@ -13,17 +13,25 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-  public class IllegalDafnyFile : Exception { }
+  public class IllegalDafnyFile : Exception {
+    public bool ProcessingError { get; }
+
+    public IllegalDafnyFile(bool processingError = false) {
+      this.ProcessingError = processingError;
+    }
+  }
 
   public class DafnyFile {
     public bool UseStdin { get; private set; }
     public string FilePath => Uri.LocalPath;
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
+    public bool IsPreverified { get; set; }
     public bool IsPrecompiled { get; set; }
     public string SourceFileName { get; private set; }
     public Uri Uri { get; private set; }
@@ -63,7 +71,7 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-    public DafnyFile(string filePath, bool useStdin = false) {
+    public DafnyFile(DafnyOptions options, string filePath, bool useStdin = false) {
       UseStdin = useStdin;
       Uri = useStdin ? new Uri("stdin:///") : new Uri(filePath);
       BaseName = useStdin ? "<stdin>" : Path.GetFileName(filePath);
@@ -79,9 +87,32 @@ namespace Microsoft.Dafny {
       filePath = CanonicalPath;
 
       if (extension == ".dfy" || extension == ".dfyi") {
+        IsPreverified = false;
         IsPrecompiled = false;
         SourceFileName = filePath;
+      } else if (extension == ".doo") {
+        IsPreverified = true;
+        IsPrecompiled = false;
+
+        var dooFile = DooFile.Read(filePath);
+
+        var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+        if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
+          throw new IllegalDafnyFile(true);
+        }
+
+        // For now it's simpler to let the rest of the pipeline parse the
+        // program text back into the AST representation.
+        // At some point we'll likely want to serialize a program
+        // more efficiently inside a .doo file, at which point
+        // the DooFile class should encapsulate the serialization logic better
+        // and expose a Program instead of the program text.
+        SourceFileName = Path.GetTempFileName();
+        File.WriteAllText(SourceFileName, dooFile.ProgramText);
+
       } else if (extension == ".dll") {
+        IsPreverified = true;
+        // Technically only for C#, this is for backwards compatability
         IsPrecompiled = true;
 
         var sourceText = GetDafnySourceAttributeText(filePath);
@@ -202,7 +233,7 @@ namespace Microsoft.Dafny {
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
-        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPrecompiled, !dafnyFile.IsPrecompiled);
+        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
@@ -300,7 +331,7 @@ namespace Microsoft.Dafny {
 
           DafnyFile file;
           try {
-            file = new DafnyFile(include.IncludedFilename);
+            file = new DafnyFile(builtIns.Options, include.IncludedFilename);
           } catch (IllegalDafnyFile) {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }

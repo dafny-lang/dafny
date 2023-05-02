@@ -195,6 +195,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public List<VerificationTree> Children { get; set; } = new();
     public List<VerificationTree> NewChildren { get; set; } = new();
 
+    public void Visit(Action<VerificationTree> action) {
+      action(this);
+      foreach (var child in Children) {
+        child.Visit(action);
+      }
+    }
+
     public int GetNewChildrenCount() {
       return NewChildren.Count;
     }

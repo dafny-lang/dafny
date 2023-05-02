@@ -138,7 +138,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
-        var dafnyFile = new DafnyFile(include.IncludedFilename);
+        var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
           useStdin: false,
           dafnyFile.Uri,

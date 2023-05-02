@@ -13,9 +13,12 @@ namespace Microsoft.Dafny.Auditor;
 /// </summary>
 public class AuditReport {
   private DafnyOptions options;
+  private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
+
+  // All three fields below are filtered by AddAssumptions()
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
-  private Dictionary<Declaration, IEnumerable<AssumptionDescription>> assumptionsByDecl = new();
+  private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
 
   public AuditReport(DafnyOptions options) {
     this.options = options;
@@ -32,8 +35,8 @@ public class AuditReport {
         break;
     }
   }
-  public void AddAssumptions(Declaration decl, IEnumerable<AssumptionDescription> assumptions) {
-    var explicitAssumptions = assumptions.Where(a => a.isExplicit);
+  public void AddAssumptions(Declaration decl, IEnumerable<Assumption> assumptions) {
+    var explicitAssumptions = assumptions.Where(a => a.desc.isExplicit);
     var assumptionsToAdd = explicitAssumptions.Any() ? explicitAssumptions : assumptions;
     if (assumptionsToAdd.Any()) {
       assumptionsByDecl.Add(decl, assumptionsToAdd);
@@ -41,9 +44,13 @@ public class AuditReport {
     }
   }
 
-  public IEnumerable<Assumption> AllAssumptions() {
-    return assumptionsByDecl.Select((e, _) =>
-      new Assumption(e.Key, e.Value));
+  public IEnumerable<KeyValuePair<Declaration, IEnumerable<Assumption>>> AllAssumptions() {
+    return assumptionsByDecl;
+  }
+
+  public IEnumerable<Assumption> AllAssumptionsForDecl(Declaration decl) {
+    return allAssumptionsByDecl.TryGetValue(decl, out var assumptions)
+      ? assumptions : Enumerable.Empty<Assumption>();
   }
 
   private string RenderRow(string beg, string sep, string end, IEnumerable<string> cells) {
@@ -61,42 +68,38 @@ public class AuditReport {
       return decl.Name;
     }
   }
-  private IEnumerable<string> IssueRow(Assumption a, string issue, string mitigation, Func<string, string> targetFormatter) {
+  private IEnumerable<string> IssueRow(Declaration decl, Assumption a, string issue, string mitigation, Func<string, string> targetFormatter) {
     return new List<string>() {
-      GetFullName(a.decl),
-      (!(a.decl is ICallable c && c.IsGhost)).ToString(),
-      Attributes.Contains(a.decl.Attributes, "axiom").ToString(),
-      Attributes.Contains(a.decl.Attributes, "extern").ToString(),
+      GetFullName(decl),
+      (!(decl is ICallable c && c.IsGhost)).ToString(),
+      Attributes.Contains(decl.Attributes, "axiom").ToString(),
+      Attributes.Contains(decl.Attributes, "extern").ToString(),
       targetFormatter(issue),
       targetFormatter(mitigation)
     };
   }
 
-  private string RenderAssumptionRows(Assumption a, string beg, string sep, string end, Func<string, string> targetFormatter) {
-    var rows = a.assumptions
-      .Select((desc, _) => RenderRow(beg, sep, end, IssueRow(a, desc.issue, desc.mitigation, targetFormatter)));
-    return rows.Count() > 0 ? String.Concat(rows) : a.ToString();
+  private string RenderAssumptionRows(Declaration decl, IEnumerable<Assumption> assumptions, string beg, string sep, string end, Func<string, string> targetFormatter) {
+    var rows = assumptions
+      .Select(a => RenderRow(beg, sep, end, IssueRow(decl, a, a.desc.issue, a.desc.mitigation, targetFormatter)));
+    return String.Concat(rows);
   }
 
-  public static string UpdateVerbatim(string text, string beg, string end) {
-    return text.Replace("[", beg).Replace("]", end);
+  private string RenderAssumptionRowsMarkdown(Declaration decl, IEnumerable<Assumption> a) {
+    return RenderAssumptionRows(decl, a, "| ", " | ", " |",
+      s => Assumption.UpdateVerbatim(s, "`", "`"));
   }
 
-  private string RenderAssumptionRowsMarkdown(Assumption a) {
-    return RenderAssumptionRows(a, "| ", " | ", " |",
-      s => UpdateVerbatim(s, "`", "`"));
-  }
-
-  private string RenderAssumptionRowsHTML(Assumption a) {
-    return RenderAssumptionRows(a, "<tr><td>", "</td><td>", "</td></tr>",
-      s => UpdateVerbatim(s, "<code>", "</code>"));
+  private string RenderAssumptionRowsHTML(Declaration decl, IEnumerable<Assumption> a) {
+    return RenderAssumptionRows(decl, a, "<tr><td>", "</td><td>", "</td></tr>",
+      s => Assumption.UpdateVerbatim(s, "<code>", "</code>"));
   }
 
   public string RenderHTMLTable() {
     var header =
       "<tr><th>Name</th><th>Compiled</th><th>Explicit Assumption</th>" +
       "<th>Extern</th><th>Issue</th><th>Mitigation</th></tr>\n";
-    var rows = AllAssumptions().Select(RenderAssumptionRowsHTML);
+    var rows = assumptionsByDecl.Select(entry => RenderAssumptionRowsHTML(entry.Key, entry.Value));
     return header + String.Concat(rows);
   }
 
@@ -104,13 +107,13 @@ public class AuditReport {
     var header =
       "|Name|Compiled|Explicit Assumption|Extern|Issue|Mitigation|\n" +
       "|----|--------|-------------------|------|-----|----------|\n";
-    var rows = AllAssumptions().Select(RenderAssumptionRowsMarkdown);
+    var rows = assumptionsByDecl.Select(entry => RenderAssumptionRowsMarkdown(entry.Key, entry.Value));
     return header + String.Concat(rows);
   }
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
-    var issue = UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = UpdateVerbatim(desc.mitigation, "`", "`");
+    var issue = Assumption.UpdateVerbatim(desc.issue, "`", "`");
+    var mitigation = Assumption.UpdateVerbatim(desc.mitigation, "`", "`");
     var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
     text.AppendLine("");
     text.AppendLine($"* {issue} MUST {mustMitigation}");
@@ -136,8 +139,8 @@ public class AuditReport {
           text.AppendLine($"## Type `{topLevelDecl.Name}`");
         }
 
-        foreach (var desc in topLevelDecl.Assumptions()) {
-          AppendMarkdownIETFDescription(desc, text);
+        foreach (var a in AllAssumptionsForDecl(topLevelDecl)) {
+          AppendMarkdownIETFDescription(a.desc, text);
         }
 
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
@@ -150,8 +153,8 @@ public class AuditReport {
 
           text.AppendLine("");
           text.AppendLine($"### Member `{decl.Name}`");
-          foreach (var desc in decl.Assumptions()) {
-            AppendMarkdownIETFDescription(desc, text);
+          foreach (var a in AllAssumptionsForDecl(decl)) {
+            AppendMarkdownIETFDescription(a.desc, text);
           }
         }
       }
@@ -161,12 +164,11 @@ public class AuditReport {
   }
 
   public string RenderText() {
-    StringBuilder text = new StringBuilder();
+    var text = new StringBuilder();
 
-    foreach (var assumption in AllAssumptions()) {
-      foreach (var warning in assumption.Warnings()) {
-        var decl = assumption.decl;
-        text.AppendLine($"{decl.tok.TokenToString(options)}:{warning}");
+    foreach (var (decl, assumptions) in assumptionsByDecl) {
+      foreach (var assumption in assumptions) {
+        text.AppendLine($"{decl.tok.TokenToString(options)}:{assumption.Warning()}");
       }
     }
 
@@ -176,15 +178,21 @@ public class AuditReport {
   public static AuditReport BuildReport(Program program) {
     AuditReport report = new(program.Options);
 
+    report.allAssumptionsByDecl = program.Assumptions(null)
+      .GroupBy(a => a.decl)
+      .ToDictionary(g => g.Key,
+                    g => g.Select(a => a));
+
     foreach (var moduleDefinition in program.Modules()) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-        report.AddAssumptions(topLevelDecl, topLevelDecl.Assumptions());
+        report.AddAssumptions(topLevelDecl, report.AllAssumptionsForDecl(topLevelDecl));
+
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
 
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          report.AddAssumptions(decl, decl.Assumptions());
+          report.AddAssumptions(decl, report.AllAssumptionsForDecl(decl));
         }
       }
     }
