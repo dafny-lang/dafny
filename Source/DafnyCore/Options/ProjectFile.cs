@@ -85,21 +85,55 @@ public class ProjectFile {
       return false;
     }
 
-    if (!Options.TryGetValue(option.Name, out value)) {
+    if (!Options.TryGetValue(option.Name, out var tomlValue)) {
+      value = null;
       return false;
     }
 
-    if (option.ValueType.IsAssignableFrom(typeof(IList<string>)) && value is TomlArray valueArray) {
-      value = valueArray.Select(e => (string)e).ToList();
+    return TryGetValueFromToml(errorWriter, Path.GetDirectoryName(Uri.LocalPath), option.Name, option.ValueType, tomlValue, out value);
+  }
+
+  public static bool TryGetValueFromToml(TextWriter errorWriter, string sourceDir, string tomlPath, System.Type type, object tomlValue, out object value) {
+    if (tomlValue == null) {
+      value = null;
+      return false;
     }
 
-    if (!option.ValueType.IsInstanceOfType(value)) {
+    if (type.IsAssignableFrom(typeof(List<string>))) {
+      return TryGetListValueFromToml<string>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
+    }
+    if (type.IsAssignableFrom(typeof(List<FileInfo>))) {
+      return TryGetListValueFromToml<FileInfo>(errorWriter, sourceDir, tomlPath, (TomlArray)tomlValue, out value);
+    }
+
+    if (type == typeof(FileInfo) && tomlValue is string tomlString) {
+      // Need to make sure relative paths are interpreted relative to the source of the value,
+      // not the current directory.
+      var fullPath = sourceDir != null ? Path.GetFullPath(tomlString, sourceDir) : tomlString;
+      value = new FileInfo(fullPath);
+      return true;
+    }
+
+    if (!type.IsInstanceOfType(tomlValue)) {
       errorWriter.WriteLine(
-        $"Error: property '{option.Name}' is of type '{value.GetType()}' but should be of type '{option.ValueType}'");
+        $"Error: property '{tomlPath}' is of type '{tomlValue.GetType()}' but should be of type '{type}'");
+      value = null;
       return false;
     }
 
+    value = tomlValue;
     return true;
+  }
 
+  private static bool TryGetListValueFromToml<T>(TextWriter errorWriter, string sourceDir, string tomlPath, TomlArray tomlValue, out object value) {
+    var success = true;
+    value = tomlValue.Select((e, i) => {
+      if (TryGetValueFromToml(errorWriter, sourceDir, $"{tomlPath}[{i}]", typeof(T), e, out var elementValue)) {
+        return (T)elementValue;
+      }
+      success = false;
+      return default(T);
+    }).ToList();
+    return success;
   }
 }
