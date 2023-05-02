@@ -12,6 +12,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Plugins;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Newtonsoft.Json.Linq;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -86,6 +87,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
     return new List<DafnyCodeActionProvider>() {
       new VerificationDafnyCodeActionProvider()
     , new ErrorMessageDafnyCodeActionProvider()
+    , new ImplicitFailingAssertionCodeActionProvider(options)
     }
     .Concat(
       options.Plugins.SelectMany(plugin =>
@@ -152,6 +154,7 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public DocumentAfterParsing Document { get; }
 
   public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.Diagnostics.ToList();
+  public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
 
   public string Extract(Range range) {
     var buffer = Document.TextDocumentItem;
