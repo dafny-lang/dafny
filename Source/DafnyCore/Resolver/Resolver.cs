@@ -2325,6 +2325,11 @@ namespace Microsoft.Dafny {
         preTypeResolver.ResolveDeclarations(declarations, moduleName);
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          var u = new UnderspecificationDetector(this);
+          u.Check(declarations);
+        }
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           new PreTypeToTypeVisitor().VisitDeclarations(declarations);
         }
 
