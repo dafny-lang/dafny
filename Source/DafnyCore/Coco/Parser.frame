@@ -68,7 +68,7 @@ public class Parser {
 
   public void SemErr(string msg) {
     Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(null, t, msg);
+    if (errDist >= minErrDist) errors.SemErr(ErrorRegistry.NoneId, t, msg);
     errDist = 0;
   }
 
