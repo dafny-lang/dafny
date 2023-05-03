@@ -104,7 +104,7 @@ datatype Datatype = DX | DY(o: object)
 ghost function M<U>(dt: Datatype): int
   requires dt.DX?
 {
-  var n :| n == match dt case DX => 2 case DY(o: MyClx<U>) => 3;
+  var n :| n == match dt case DX => 2 case DY(o: object) => 3;
   n
 }
 

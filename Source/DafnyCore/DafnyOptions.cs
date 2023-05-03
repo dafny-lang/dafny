@@ -37,6 +37,7 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
     public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
+    public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
     public bool AlwaysUseHeap => Allocated == 2;
     public bool CommonHeapUse => Allocated >= 2;
@@ -82,7 +83,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
-      RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
+      RegisterLegacyUi(CommonOptionBag.Libraries, ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
       RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
       RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
 
@@ -111,7 +112,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
           } else if (ps.args[ps.i].Equals("NoGhost")) {
             options.Set(option, PrintModes.NoGhost);
           } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            options.Set(option, PrintModes.DllEmbed);
+            // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+            // but it is now used by the LibraryBackend when building .doo files as well. 
+            options.Set(option, PrintModes.Serialization);
           } else {
             ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
           }
@@ -151,6 +154,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
+    }
+
+    public static void ParseFileInfoElement(Option<IList<FileInfo>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = (IList<FileInfo>)options.Options.OptionArguments.GetOrCreate(option, () => new List<FileInfo>());
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(new FileInfo(ps.args[ps.i]));
       }
     }
 
@@ -333,6 +343,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";
+    // Not directly user-configurable, only recorded once we discover it
+    public string SolverIdentifier { get; private set; }
+    public Version SolverVersion { get; private set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
@@ -1161,6 +1174,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private void SetZ3Options(Version z3Version) {
+      // Don't allow changing this once set, just in case:
+      // a DooFile will record this and will get confused if it changes.
+      if ((SolverIdentifier != null && SolverIdentifier != "Z3")
+          || (SolverVersion != null && SolverVersion != z3Version)) {
+        throw new Exception("Attempted to set Z3 options more than once");
+      }
+      SolverIdentifier = "Z3";
+      SolverVersion = z3Version;
+
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false

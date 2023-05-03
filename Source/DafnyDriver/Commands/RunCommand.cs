@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -18,6 +19,10 @@ class RunCommand : ICommandSpec {
         options.AddFile(file);
       }
     });
+
+    DooFile.RegisterNoChecksNeeded(
+      Inputs
+    );
   }
 
   public IEnumerable<Option> Options =>
