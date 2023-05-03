@@ -614,7 +614,6 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     }
 
 
-        */
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
