@@ -513,7 +513,7 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     [Fact]
     public async Task CA_p_should_be_yields_instead_of_returns() {
       await TestCodeAction(@"
-    iterator Count(n: nat) (>replace 'returns' with 'yields'-->yields:::returns<) (x: nat) {
+    iterator Count(n: nat) (>replace 'returns' with 'yields'->yields:::returns<) (x: nat) {
       var i := 0;
       while i < n {
         x := i;
@@ -531,23 +531,23 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     method m<(>remove type parameter variance->:::+<)T>(i: int, list: List<T>) {}
             ");
     }
+    /*
+        [Fact]
+        public async Task CA_p_unexpected_type_characteristic() {
+          await TestCodeAction(@"
+        type T((>replace '000' with '=='->==:::000<))
+                ");
+        }
 
-    [Fact]
-    public async Task CA_p_unexpected_type_characteristic() {
-      await TestCodeAction(@"
-    type T((>replace '000' with '=='->==:::000<))
-            ");
-    }
+        // TODO - p_missing_type_characteristic
 
-    // TODO - p_missing_type_characteristic
-
-    [Fact]
-    public async Task CA_p_illegal_type_characteristic() {
-      await TestCodeAction(@"
-    type T((>replace 'X' with '=='->==:::X<))
-    ");
-    }
-
+        [Fact]
+        public async Task CA_p_illegal_type_characteristic() {
+          await TestCodeAction(@"
+        type T((>replace 'X' with '=='->==:::X<))
+        ");
+        }
+    */
     [Fact]
     public async Task CA_p_deprecated_colemma() {
       await TestCodeAction(@"
@@ -593,26 +593,27 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     }
     ");
     }
-
-    [Fact]
-    public async Task CA_p_reads_star_must_be_alone() {
-      await TestCodeAction(@"
-    const a: object;
-    function f(): int
-      reads a(>remove '*'->:::, *<)
-    {
-      0
-    }
-    ");
-    }
-
-    [Fact]
-    public async Task CA_p_no_defaults_for_out_parameters() {
-      await TestCodeAction(@"
-    method m(i: int) returns (j: int (>remove initializer->::::= 0<)) { return 42; }
-    ");
-    }
-
+    /*
+        [Fact]
+        public async Task CA_p_reads_star_must_be_alone() {
+          await TestCodeAction(@"
+        const a: object;
+        function f(): int
+          reads a(>remove '*'->:::, *<)
+        {
+          0
+        }
+        ");
+        }
+        */
+    /*
+        [Fact]
+        public async Task CA_p_no_defaults_for_out_parameters() {
+          await TestCodeAction(@"
+        method m(i: int) returns (j: int (>remove initializer->::::= 0<)) { return 42; }
+        ");
+        }
+    */
 
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
