@@ -706,29 +706,39 @@ public abstract class Expression : TokenNode {
   /// <summary>
   /// Create a resolved function-call expression. The returned expression will have syntactic scaffolding, which
   /// enables resolving a syntactic clone of this resolved expression.
-  /// Expects "receiver" to be a resolved expression.
-  /// Expects that "function" has no type parameters, but it's okay for the enclosing type to have type parameters.
+  /// Expects "receiver" and each of the "arguments" to be a resolved expression.
   /// </summary>
-  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, BuiltIns builtIns) {
-    Contract.Requires(function.TypeArgs.Count == 0);
+  public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, List<Expression> arguments,
+    List<Type> typeArguments, BuiltIns builtIns) {
+    Contract.Requires(function.Formals.Count == arguments.Count);
+    Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
-    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, new List<Expression>()) {
+    var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {
       Function = function,
-      Type = Type.Bool,
+      Type = function.ResultType,
       TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs,
-      TypeApplication_JustFunction = new List<Type>()
+      TypeApplication_JustFunction = typeArguments
     };
 
+    return WrapResolvedCall(call, builtIns);
+  }
+
+  /// <summary>
+  /// Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
+  /// </summary>
+  public static Expression WrapResolvedCall(FunctionCallExpr call, BuiltIns builtIns) {
     // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
-    var receiverType = (UserDefinedType)receiver.Type.NormalizeExpand();
+    var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
     subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
-    var exprDotName = new ExprDotName(tok, receiver, function.Name, null) {
-      Type = Resolver.SelectAppropriateArrowTypeForFunction(function, subst, builtIns)
+    var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, call.TypeApplication_JustFunction) {
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
     };
-    return new ApplySuffix(tok, null, exprDotName, new List<ActualBinding>(), tok) {
+
+    subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);
+    return new ApplySuffix(call.tok, null, exprDotName, new ActualBindings(call.Args).ArgumentBindings, call.tok) {
       ResolvedExpression = call,
-      Type = function.ResultType
+      Type = call.Function.ResultType.Subst(subst)
     };
   }
 
@@ -1759,6 +1769,12 @@ public class UnaryOpExpr : UnaryExpr {
     }
 
     return _ResolvedOp;
+  }
+
+  public void SetResolveOp(ResolvedOpcode resolvedOpcode) {
+    Contract.Assert(resolvedOpcode != ResolvedOpcode.YetUndetermined);
+    Contract.Assert(_ResolvedOp == ResolvedOpcode.YetUndetermined || _ResolvedOp == resolvedOpcode);
+    _ResolvedOp = resolvedOpcode;
   }
 
   public UnaryOpExpr(IToken tok, Opcode op, Expression e)
@@ -2858,13 +2874,18 @@ public class CasePattern<VT> : TokenNode
       Var = cloner.CloneIVariable(original.Var, false);
     }
 
+    if (original.Arguments != null) {
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
+    }
+
+    // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
+    // If we resolve the expression first, the references to variables declared in the case pattern
+    // will be cloned as references instead of declarations,
+    // and when we clone the declarations the cache in Cloner.clones will incorrectly return
+    // the original variable instead.
     if (cloner.CloneResolvedFields) {
       Expr = cloner.CloneExpr(original.Expr);
       Ctor = original.Ctor;
-    }
-
-    if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
   }
 

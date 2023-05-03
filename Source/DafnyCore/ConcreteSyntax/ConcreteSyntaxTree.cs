@@ -200,13 +200,17 @@ namespace Microsoft.Dafny {
     // ----- Collection ------------------------------
 
     public override string ToString() {
+      return MakeString();
+    }
+
+    public string MakeString(int indentSize = 2) {
       var sw = new StringWriter();
       var files = new Queue<FileSyntax>();
-      Render(sw, 0, new WriterState(), files);
+      Render(sw, 0, new WriterState(), files, indentSize);
       while (files.Count != 0) {
         var ftw = files.Dequeue();
         sw.WriteLine("#file {0}", ftw.Filename);
-        ftw.Render(sw, 0, new WriterState(), files);
+        ftw.Render(sw, 0, new WriterState(), files, indentSize);
       }
 
       return sw.ToString();

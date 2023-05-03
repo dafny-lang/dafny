@@ -124,8 +124,8 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           scope.PopMarker();
         }
       }
@@ -4010,6 +4010,17 @@ namespace Microsoft.Dafny {
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
+
+        if (assertStmt != null && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
+            "Assertion with {:only} temporarily transforms other assertions into assumptions");
+          if (attribute.Args.Count >= 1
+              && attribute.Args[0] is LiteralExpr { Value: string value }
+              && value != "before" && value != "after") {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+              "{:only} only accepts \"before\" or \"after\" as an optional argument");
+          }
+        }
         ResolveExpression(s.Expr, resolutionContext);
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
@@ -4229,19 +4240,6 @@ namespace Microsoft.Dafny {
         if (s.Update is AssignSuchThatStmt assignSuchThatStmt) {
           assignSuchThatStmt.Resolve(this, resolutionContext);
         }
-        // Check on "assumption" variables
-        foreach (var local in s.Locals) {
-          if (Attributes.Contains(local.Attributes, "assumption")) {
-            if (currentMethod != null) {
-              ConstrainSubtypeRelation(Type.Bool, local.type, local.Tok, "assumption variable must be of type 'bool'");
-              if (!local.IsGhost) {
-                reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
-              }
-            } else {
-              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
-            }
-          }
-        }
       } else if (stmt is VarDeclPattern) {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
@@ -4360,12 +4358,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
-        var fvs = new HashSet<IVariable>();
-        var usesHeap = false;
         if (s is WhileStmt whileS && whileS.Guard != null) {
           ResolveExpression(whileS.Guard, resolutionContext);
           Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          FreeVariablesUtil.ComputeFreeVariables(Options, whileS.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else if (s is ForLoopStmt forS) {
           var loopIndex = forS.LoopIndex;
@@ -4373,14 +4368,11 @@ namespace Microsoft.Dafny {
           ResolveType(loopIndex.Tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           var err = new TypeConstraint.ErrorMsgWithToken(loopIndex.Tok, "index variable is expected to be of an integer type (got {0})", loopIndex.Type);
           ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
-          fvs.Add(loopIndex);
 
           ResolveExpression(forS.Start, resolutionContext);
-          FreeVariablesUtil.ComputeFreeVariables(Options, forS.Start, fvs, ref usesHeap);
           AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.End != null) {
             ResolveExpression(forS.End, resolutionContext);
-            FreeVariablesUtil.ComputeFreeVariables(Options, forS.End, fvs, ref usesHeap);
             AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
             if (forS.Decreases.Expressions.Count != 0) {
               reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
@@ -4399,7 +4391,7 @@ namespace Microsoft.Dafny {
           ResolveAttributes(s, resolutionContext);
         }
 
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, fvs, ref usesHeap);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
@@ -4407,20 +4399,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           DominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
-        } else {
-          Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
-          var loopFrame = new List<IVariable>();
-          if (s is ForLoopStmt forLoopStmt) {
-            loopFrame.Add(forLoopStmt.LoopIndex);
-          }
-          loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
-          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
-          var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
-          if (s.BodySurrogate.UsesHeap) {
-            text += text.Length == 0 ? "$Heap" : ", $Heap";
-          }
-          text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, s.Tok, text);
         }
 
         if (s is ForLoopStmt) {
@@ -4430,8 +4408,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         ResolveAlternatives(s.Alternatives, s, resolutionContext);
-        var usesHeapDontCare = false;
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, null, ref usesHeapDontCare);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -4463,8 +4440,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
-        } else {
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 
@@ -4627,7 +4602,7 @@ namespace Microsoft.Dafny {
     }
 
     private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants, Specification<Expression> decreases,
-      Specification<FrameExpression> modifies, ResolutionContext resolutionContext, HashSet<IVariable> fvs, ref bool usesHeap) {
+      Specification<FrameExpression> modifies, ResolutionContext resolutionContext) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
@@ -4637,9 +4612,6 @@ namespace Microsoft.Dafny {
         ResolveAttributes(inv, resolutionContext);
         ResolveExpression(inv.E, resolutionContext);
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(Options, inv.E, fvs, ref usesHeap);
-        }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
 
@@ -4649,15 +4621,11 @@ namespace Microsoft.Dafny {
         if (e is WildcardExpr && !resolutionContext.CodeContext.AllowsNontermination) {
           reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(Options, e, fvs, ref usesHeap);
-        }
         // any type is fine
       }
 
       ResolveAttributes(modifies, resolutionContext);
       if (modifies.Expressions != null) {
-        usesHeap = true;  // bearing a modifies clause counts as using the heap
         foreach (FrameExpression fe in modifies.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext);
         }
@@ -4677,26 +4645,53 @@ namespace Microsoft.Dafny {
 
       Contract.Assume(AllTypeConstraints.Count == 0);
 
+      // Formal parameters have three ways to indicate how they are to be passed in:
+      //   * nameonly: the only way to give a specific argument value is to name the parameter
+      //   * positional only: these are nameless parameters (which are allowed only for datatype constructor parameters)
+      //   * either positional or by name: this is the most common parameter
+      // A parameter is either required or optional:
+      //   * required: a caller has to supply an argument
+      //   * optional: the parameter has a default value that is used if a caller omits passing a specific argument
+      //
+      // The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so
+      // a positional-only parameter is always required.
+      //
+      // At a call site, positional arguments are not allowed to follow named arguments. Therefore, if "x" is
+      // a nameonly parameter, then there is no way to supply the parameters after "x" by position. Thus, any
+      // parameter that follows "x" must either be passed by name or have a default value. That is, if a later
+      // parameter does not have a default value, it is _effectively_ nameonly. We impose the rule that
+      //   * an effectively nameonly parameter must be declared as nameonly
+      //
+      // For a positional-only parameter "x", every parameter preceding "x" is _effectively_ required. We impose
+      // the rule that
+      //   * an effectively required parameter must not have a default-value expression
       var dependencies = new Graph<IVariable>();
-      var allowMoreRequiredParameters = true;
-      var allowNamelessParameters = true;
+      string nameOfMostRecentNameonlyParameter = null;
+      var previousParametersWithDefaultValue = new HashSet<Formal>();
       foreach (var formal in formals) {
+        if (!formal.HasName) {
+          foreach (var previousFormal in previousParametersWithDefaultValue) {
+            reporter.Error(MessageSource.Resolver, previousFormal.DefaultValue.tok,
+              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+          }
+          previousParametersWithDefaultValue.Clear();
+        }
         var d = formal.DefaultValue;
         if (d != null) {
-          allowMoreRequiredParameters = false;
           ResolveExpression(d, resolutionContext);
           AddAssignableConstraint(d.tok, formal.Type, d.Type, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
-        } else if (!allowMoreRequiredParameters) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a required parameter must precede all optional parameters");
-        }
-        if (!allowNamelessParameters && !formal.HasName) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a nameless parameter must precede all nameonly parameters");
+          previousParametersWithDefaultValue.Add(formal);
+        } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
+          // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
+          reporter.Error(MessageSource.Resolver, formal.tok,
+            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
-          allowNamelessParameters = false;
+          nameOfMostRecentNameonlyParameter = formal.Name;
         }
       }
       SolveAllTypeConstraints();

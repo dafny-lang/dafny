@@ -14,6 +14,8 @@
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
+* Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+
 ### Member `MinusBv8Assume`
 
 * Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
@@ -24,9 +26,13 @@
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
+
 ### Member `GenerateBytesWithModel`
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
+
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
@@ -35,6 +41,8 @@
 * Definition has `assume` statement in body. SHOULD replace with `assert` and prove.
 
 ### Member `GenerateBytesNoGuarantee`
+
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
@@ -63,3 +71,15 @@
 ### Member `AxiomWithStuffInIt`
 
 * Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+* Definition has `assume` statement in body. SHOULD replace with `assert` and prove.
+
+* Definition contains `forall` statement with no body. MUST provide a body.
+
+* Definition contains loop with no body. MUST provide a body.
+
+### Member `AssertOnly`
+
+* Assertion has explicit temporary `{:only}` attribute. Must remove the `{:only}` attribute

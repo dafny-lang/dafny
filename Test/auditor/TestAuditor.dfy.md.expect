@@ -6,9 +6,12 @@
 | MinusBv8Assume | False | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove or add `{:axiom}`. |
 | GenerateBytes | True | False | True | Declaration with `{:extern}` has a ensures clause. | Test external callee (maybe with `/testContracts`). |
 | GenerateBytes | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
+| GenerateBytes | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
 | GenerateBytesWithModel | True | False | True | Declaration with `{:extern}` has a ensures clause. | Test external callee (maybe with `/testContracts`). |
 | GenerateBytesWithModel | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
+| GenerateBytesWithModel | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
 | GenerateBytesWrapper | True | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove. |
+| GenerateBytesNoGuarantee | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
 | GenerateBytesNoGuarantee | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
 | ExternFunction | True | False | True | Function with `{:extern}` attribute. | Turn into a `method` or test thoroughly for lack of side effects. |
 | ExternFunction | True | False | True | Declaration with `{:extern}` has a ensures clause. | Test external callee (maybe with `/testContracts`). |
@@ -17,3 +20,4 @@
 | LoopWithoutBody | True | False | False | Definition contains loop with no body. | Provide a body. |
 | ConcurrentMethod | True | False | False | Declaration has `{:concurrent}` attribute. | Manually review and test in a concurrent setting. |
 | AxiomWithStuffInIt | True | True | False | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
+| AssertOnly | True | False | False | Assertion has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute |

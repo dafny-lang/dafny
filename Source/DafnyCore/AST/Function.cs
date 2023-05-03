@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using DafnyCore;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -42,32 +43,32 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
   public bool HasPrecondition =>
     Req.Count > 0 || Formals.Any(f => f.Type.AsSubsetType is not null);
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
-    foreach (var a in base.Assumptions()) {
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
 
     if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
-      yield return AssumptionDescription.NoBody(IsGhost);
+      yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (Body is not null && HasConcurrentAttribute) {
-      yield return AssumptionDescription.HasConcurrentAttribute;
+      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
     }
 
     if (HasExternAttribute) {
-      yield return AssumptionDescription.ExternFunction;
+      yield return new Assumption(this, tok, AssumptionDescription.ExternFunction);
       if (HasPostcondition && !HasAxiomAttribute) {
-        yield return AssumptionDescription.ExternWithPostcondition;
+        yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
       }
     }
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
-      yield return AssumptionDescription.ExternWithPrecondition;
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions()) {
+      foreach (var a in c.Assumptions(this)) {
         yield return a;
       }
     }
@@ -314,6 +315,8 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
+
+    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
