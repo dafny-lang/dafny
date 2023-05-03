@@ -98,7 +98,6 @@ path - Prints path-coverage tests for the given program.");
       LoopUnroll,
       SequenceLengthLimit,
       Target,
-      TestInlineDepth,
       Verbose,
       PrintBpl,
       DisablePrune
