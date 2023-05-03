@@ -145,7 +145,7 @@ public class Parser {
 
 
 public class Errors {
-  readonly ErrorReporter Reporting;
+  public readonly ErrorReporter Reporting;
   public int ErrorCount;
 
   public Errors(ErrorReporter Reporting) {

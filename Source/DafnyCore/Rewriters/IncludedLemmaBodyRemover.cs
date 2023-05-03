@@ -27,7 +27,7 @@ public class IncludedLemmaBodyRemover : IRewriter {
     // }
     foreach (var method in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
                SelectMany(withMembers => withMembers.Members.OfType<Method>())) {
-      if (method.Body != null && method.IsLemmaLike && method.Tok.IsIncludeToken(program)) {
+      if (method.Body != null && method.IsLemmaLike && method.Tok.IsIncludeToken(program.Options)) {
         method.Body = EmptyBody;
       }
     }

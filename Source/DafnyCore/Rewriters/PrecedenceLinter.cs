@@ -243,7 +243,7 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken.IsIncludeToken(program)) {
+      if (expr is ParensExpression || errorToken.IsIncludeToken(program.Options)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -23,10 +24,14 @@ namespace Microsoft.Dafny {
 
   public abstract class ErrorReporter {
     public DafnyOptions Options { get; }
-    public Program Program { get; set; }
 
     protected ErrorReporter(DafnyOptions options) {
       this.Options = options;
+    }
+
+    public ModuleDefinition ModuleDefinition {
+      get;
+      set;
     }
 
     public bool ErrorsOnly { get; set; }
@@ -44,8 +49,8 @@ namespace Microsoft.Dafny {
     public void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (tok.IsIncludeToken(Program)) {
-        var include = Program.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
+      if (tok.IsIncludeToken(Options)) {
+        var include = ModuleDefinition.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;

@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (!options.VerifyAllModules && d.tok.IsIncludeToken(program)) {
+      if (!options.VerifyAllModules && d.tok.IsIncludeToken(options)) {
         return false;
       }
 

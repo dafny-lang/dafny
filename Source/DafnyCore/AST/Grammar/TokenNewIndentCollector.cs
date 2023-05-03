@@ -231,7 +231,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // 'inline' is the hypothetical indentation of this token if it was on its own line
   // 'below' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   public void SetIndentations(IToken token, int above = -1, int inline = -1, int below = -1) {
-    if (token.IsIncludeToken(program) || (token.line == 0 && token.col == 0)) {
+    if (token.IsIncludeToken(program.Options) || (token.line == 0 && token.col == 0)) {
       // Just ignore this token.
       return;
     }
@@ -401,7 +401,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    if (topLevelDecl.tok.IsIncludeToken(program)) {
+    if (topLevelDecl.tok.IsIncludeToken(program.Options)) {
       return;
     }
 
@@ -422,7 +422,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.PreResolveChildren) {
-        if (member.Tok.IsIncludeToken(program)) {
+        if (member.Tok.IsIncludeToken(program.Options)) {
           continue;
         }
 
