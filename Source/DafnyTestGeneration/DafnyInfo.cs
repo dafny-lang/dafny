@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
 using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
@@ -24,6 +25,7 @@ namespace DafnyTestGeneration {
     public readonly Dictionary<string, string> ToImportAs = new();
     private readonly Dictionary<string, (List<TypeParameter> args, Type superset)> subsetToSuperset = new();
     private readonly Dictionary<string, Expression> witnessForType = new();
+    private readonly Dictionary<string, MemberDecl> userDefinedConstructorForType = new();
     private readonly Dictionary<string, (IVariable variable, Expression expr)> conditionForType = new();
     // list of top level scopes accessible from the testing module
     private readonly List<VisibilityScope> scopes;
@@ -152,6 +154,14 @@ namespace DafnyTestGeneration {
 
       return Printer.ExprToString(Options, new ClonerWithSubstitution(this, new Dictionary<IVariable, string>(),
         "").CloneExpr(witnessForType[userDefinedType.Name]));
+    }
+
+    public string/*?*/ GetUserDefinedConstrutor(Type type) {
+      if (type is not UserDefinedType userDefinedType ||
+          !userDefinedConstructorForType.ContainsKey(userDefinedType.ToString())) {
+        return null;
+      }
+      return userDefinedConstructorForType[userDefinedType.ToString()].FullDafnyName + "()";
     }
 
     public Type/*?*/ GetSupersetType(Type type) {
@@ -463,8 +473,41 @@ namespace DafnyTestGeneration {
         }
       }
 
+      private static bool HasAttribute(Declaration d, string attribute) {
+        var curr = d.Attributes;
+        while (curr != null) {
+          if (curr.Name == attribute) {
+            return true;
+          }
+          curr = curr.Prev;
+        }
+        return false;
+      }
+
       private new void Visit(Method m) {
         info.methods[m.FullDafnyName] = m;
+        if (!HasAttribute(m, TestGenerationOptions.TestConstructorAttribute)) {
+          return;
+        }
+        if (m.Ins.Count != 1 && m.Req.Count != 0 && m.IsStatic) {
+          info.SetNonZeroExitCode = true;
+          info.Options.Printer.ErrorWriteLine(Console.Error,
+            $"*** Error: Methods annotated with " +
+            $"{TestGenerationOptions.TestConstructorAttribute} must be " +
+            $"static, have no preconditions, and have a single return " +
+            $"parameter. Method {m.FullDafnyName} violates these conditions.");
+          return;
+        }
+        var returnType = Utils.UseFullName(m.Outs[0].Type).ToString();
+        if (info.userDefinedConstructorForType.ContainsKey(returnType)) {
+          info.SetNonZeroExitCode = true;
+          info.Options.Printer.ErrorWriteLine(Console.Error,
+            $"*** Error: Found two methods annotated with " +
+            $"{TestGenerationOptions.TestConstructorAttribute}. Will use " +
+            $"{info.userDefinedConstructorForType[returnType].FullDafnyName}.");
+          return;
+        }
+        info.userDefinedConstructorForType[returnType] = m;
       }
 
       private new void Visit(Function f) {

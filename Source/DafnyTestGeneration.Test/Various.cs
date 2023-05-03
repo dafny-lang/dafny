@@ -423,6 +423,39 @@ module ShortCircuit {
       Assert.True(methods.Exists(m => m.ArgValues[0] == "false"));
     }
 
+    [Fact]
+    public async Task TestConstructorAttribute() {
+      var source = @"
+module M {
+  class String { 
+    var s:string;
+    var len:int;
+    constructor(s:string, len:int) 
+      requires |s| == len
+    {
+      this.s := s;
+      this.len := len;
+    }
+    static method {:testConstructor} getString() returns (s:String) {
+      s := new String(" + "\"example\"" + @", 7);
+    }
+  }
+  function ToTest(s:String?):bool { 
+    if s == null then false else true
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions();
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.ToTest";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Equal(2, methods.Count);
+      Assert.True(methods.All(m => m.MethodName == "M.ToTest"));
+      Assert.True(methods.All(m => m.DafnyInfo.IsStatic("M.ToTest")));
+      Assert.True(methods.Exists(m => m.ValueCreation.Count == 1));
+      Assert.True(methods.Exists(m => m.ValueCreation.Count == 0));
+    }
+
     /// <summary>
     /// If this fails, consider amending ProgramModifier.MergeBoogiePrograms
     /// </summary>

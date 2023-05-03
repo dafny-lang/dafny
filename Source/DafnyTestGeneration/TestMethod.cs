@@ -47,6 +47,9 @@ namespace DafnyTestGeneration {
     // similar to above but for objects
     private readonly HashSet<string> getClassTypeInstanceParams = new();
     private Dictionary<string, string> defaultValueForType = new();
+    // types for which values have already been created with the use of
+    // :testConstructor annotated methods
+    private readonly HashSet<string> typesAlreadyConstructed = new();
 
     public TestMethod(DafnyInfo dafnyInfo, string log) {
       DafnyInfo = dafnyInfo;
@@ -436,7 +439,23 @@ namespace DafnyTestGeneration {
       if ((asBasicType != null) && (asBasicType is not UserDefinedType)) {
         return GetDefaultValue(asType, asType);
       }
+      string varId;
       var dafnyType = DafnyModelTypeUtils.GetNonNullable(asBasicType ?? type) as UserDefinedType;
+      if ((variable == null || (variable.Children.Count == 0 &&
+                                !typesAlreadyConstructed.Contains(dafnyType.ToString())))) {
+        // this value is unconstrained by counterexample
+        var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(dafnyType);
+        if (variable != null) {
+          // constructor methods have no guarantee of returning a fresh value, 
+          // so one may only use it once to create a value constrained by
+          // the counterexample
+          typesAlreadyConstructed.Add(dafnyType.ToString());
+        }
+        if (constructorMethod != null) {
+          varId = AddValue(dafnyType, constructorMethod);
+          return varId;
+        }
+      }
       if (getClassTypeInstanceParams.Contains(dafnyType.ToString())) {
         errorMessages.Add(
           $"// Failed to find a non-recursive way of constructing value (type {dafnyType})");
@@ -451,7 +470,6 @@ namespace DafnyTestGeneration {
         }
         return tmp;
       }
-      string varId;
       if (DafnyInfo.IsExtern(dafnyType)) {
         var ctor = DafnyInfo.GetConstructor(dafnyType);
         if (ctor == null) {
