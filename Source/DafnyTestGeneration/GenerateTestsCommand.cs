@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Boogie.SMTLib;
 
 namespace Microsoft.Dafny;
 
@@ -14,11 +15,9 @@ public class GenerateTestsCommand : ICommandSpec {
       SequenceLengthLimit,
       Target,
       TestInlineDepth,
-      BoogieOptionBag.BoogieArguments,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverPath,
-      BoogieOptionBag.SolverPlugin,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       Verbose,

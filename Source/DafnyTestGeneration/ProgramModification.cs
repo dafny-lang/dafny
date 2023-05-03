@@ -77,8 +77,8 @@ namespace DafnyTestGeneration {
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      var proverOptions = new SMTLibSolverOptions(options);
-      proverOptions.Parse(options.ProverOptions);
+      var proverOptions = new SMTLibSolverOptions(original);
+      proverOptions.Parse(original.ProverOptions);
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
       options.ProverOptions = new List<string>() {
         "O:model_evaluator.completion=true",
@@ -89,7 +89,9 @@ namespace DafnyTestGeneration {
       } else {
         options.ProverOptions.Insert(0, "O:model.compact=false");
       }
-
+      options.ResourceLimit = original.ResourceLimit;
+      options.ProverLogFilePath = original.ProverLogFilePath;
+      options.ProverLogFileAppend = original.ProverLogFileAppend;
       options.Prune = !original.TestGenOptions.DisablePrune;
       options.ProverOptions.AddRange(original.ProverOptions);
       options.LoopUnrollCount = original.LoopUnrollCount;
