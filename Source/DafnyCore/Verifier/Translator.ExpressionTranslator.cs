@@ -1905,8 +1905,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             case BinaryExpr.ResolvedOpcode.Union:
             case BinaryExpr.ResolvedOpcode.Intersection:
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              //case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              //case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
               return true;
             default:
               break;

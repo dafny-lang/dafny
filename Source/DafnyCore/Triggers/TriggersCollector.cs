@@ -414,13 +414,13 @@ namespace Microsoft.Dafny.Triggers {
         } newSeqSelectExpr) {
         // Multiset triggers are of the form expression[index]
         var newTriggerTerm1 = new SeqSelectExpr(newExpr.tok, true, seq0, seqArg, null, newSeqSelectExpr.CloseParen) {
-          Type = Type.Int
+          Type = seq0.Type.AsMultiSetType.Arg
         };
         foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm1, originalExpr, newBoundVariables)) {
           yield return triggerTerm;
         }
         var newTriggerTerm2 = new SeqSelectExpr(newExpr.tok, true, seq1, seqArg, null, newSeqSelectExpr.CloseParen) {
-          Type = Type.Int
+          Type = seq1.Type.AsMultiSetType.Arg
         };
         foreach (var triggerTerm in CollectInSetOperations(newTriggerTerm2, originalExpr, newBoundVariables)) {
           yield return triggerTerm;
