@@ -307,7 +307,7 @@ do
             fi
             if [ `cat actual | wc -l ` != "2" ]; then
               echo ACTUAL ERROR OUTPUT BUT NONE EXPECTED
-              ../DafnyLanguageServer/MarkupTestFile.cscat actual
+              cat actual
               FAIL=1
             fi
           else
