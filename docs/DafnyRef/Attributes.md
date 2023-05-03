@@ -566,17 +566,17 @@ method Test() {
 Since it's meant to be a temporary construct, it always emits a warning.
 It also has two variants `assert {:only "before"}` and `assert {:only "after"}`.
 Here is precisely how Dafny determines what to verify or not.
-`{:only}` annotations define "verification interval" which are visual:
+Each `{:only}` annotation defines a "verification interval" which is visual:
 
 * `assert {:only} X [by {...} | ;]` sets a verification interval that starts at the keyword `assert` and ends either at the end of the proof `}` or the semicolon `;`, depending on which variant of `assert` is being used.
-* `assert {:only} ...` inside an other verification interval removes that verification interval and sets a new one.
-* `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside verification intervals, it sets a verification interval from the beginning of the declaration to the end of this assertion, but only if there were no other verification intervals before.
-* `assert {:only "after"} ...` inside another verification interval moves the start of that verification interval to the start of this new assert. Outside verification interval, it sets a verification interval from the beginning of this `assert` to the end of the declaration.
+* `assert {:only} ...` inside another verification interval removes that verification interval and sets a new one.
+* `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside a verification interval, it sets a verification interval from the beginning of the declaration to the end of this assertion, but only if there were no other verification intervals before.
+* `assert {:only "after"} ...` inside another verification interval moves the start of that verification interval to the start of this new assert. Outside a verification interval, it sets a verification interval from the beginning of this `assert` to the end of the declaration.
 
 The start of an asserted expression is used to determines if it's inside a verification interval or not.
 For example, in `assert B ==> (assert {:only "after"} true; C)`, `C` is actually the start of the asserted expression, so it is verified because it's after `assert {:only "after"} true`.
 
-As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to explicit them with assertions if you wanted to verify them at the same time.
+As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to make them explicit with assertions if you wanted to verify them at the same time.
 
 ### 11.3.2. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).

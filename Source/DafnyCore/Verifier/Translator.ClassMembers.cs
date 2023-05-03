@@ -1359,13 +1359,11 @@ namespace Microsoft.Dafny {
     private void SetAssertionOnlyFilter(Node m) {
       List<RangeToken> rangesOnly = new List<RangeToken>();
       m.Visit(node => {
-        if (node is AssertStmt assertStmt && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
-          var (isBefore, isAfter) = attribute.Args.Count == 1 && attribute.Args[0] is LiteralExpr { Value: var value } &&
-                                  value is "after" or "before" ? (value is "before", value is "after") : (false, false);
-
+        if (node is AssertStmt assertStmt &&
+            assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
           if (rangesOnly.FindIndex(r => r.Contains(node.StartToken.pos)) is var x && x >= 0) {
-            if (isBefore) {// Just shorten the previous range
+            if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
               rangesOnly[x] = new RangeToken(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
@@ -1375,12 +1373,12 @@ namespace Microsoft.Dafny {
           }
 
           var rangeToAdd =
-            isBefore ?
+            assertOnlyKind == AssertStmt.AssertOnlyKind.Before ?
               new RangeToken(m.StartToken, assertStmt.EndToken) :
-            isAfter ?
+              assertOnlyKind == AssertStmt.AssertOnlyKind.After ?
               new RangeToken(assertStmt.StartToken, ifAfterLastToken)
               : assertStmt.RangeToken;
-          if (isBefore && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
+          if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
             // There are more precise ranges so we don't add this one
             return true;
           }

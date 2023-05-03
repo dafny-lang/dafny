@@ -22,7 +22,7 @@ method TestOnly(i: int, k: int, o1: set<object>, o2: set<object>) returns (j :in
   {
     x := x + 1;
   }
-  assert {:only} i >= 4 by {   // Unchecked
+  assert {:only "Before"} i >= 4 by {  // Unchecked + raise warning because "Before" should be "before"
     assert {:only} i >= 5 by { // Checked (error)
       assert k >= 3;           // Checked (error)
     }

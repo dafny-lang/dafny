@@ -1,22 +1,23 @@
-git-issue-3095.dfy(18,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(19,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(25,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(26,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(32,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(40,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(49,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(51,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(62,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(71,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(73,11): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(83,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(85,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(93,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(95,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(103,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(105,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(114,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
-git-issue-3095.dfy(116,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+git-issue-3095.dfy(18,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(19,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(25,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(25,16): Warning: {:only} only accepts "before" or "after" as an optional argument
+git-issue-3095.dfy(26,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(32,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(40,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(49,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(51,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(62,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(71,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(73,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(83,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(85,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(93,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(95,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(103,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(105,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(114,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+git-issue-3095.dfy(116,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 git-issue-3095.dfy(19,19): Error: assertion might not hold
 git-issue-3095.dfy(26,21): Error: assertion might not hold
 git-issue-3095.dfy(27,15): Error: assertion might not hold

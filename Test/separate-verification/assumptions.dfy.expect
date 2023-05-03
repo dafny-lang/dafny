@@ -1,4 +1,4 @@
-TestAuditor.dfy(115,9): Warning: Assertion with {:only} temporarily transforms other assertions in assumptions
+TestAuditor.dfy(115,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(87,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(94,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(85,10): Warning: /!\ No terms found to trigger on.

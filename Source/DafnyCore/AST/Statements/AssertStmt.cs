@@ -65,4 +65,31 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
+
+  public bool HasAssertOnlyAttribute(out AssertOnlyKind assertOnlyKind) {
+
+    assertOnlyKind = AssertOnlyKind.Single;
+    if (Attributes.Find(Attributes, "only") is not UserSuppliedAttributes attribute) {
+      return false;
+    }
+
+    if (attribute.Args.Count != 1 || attribute.Args[0] is not LiteralExpr { Value: var value }) {
+      return true;
+    }
+
+    assertOnlyKind = value switch {
+      "before" => AssertOnlyKind.Before,
+      "after" => AssertOnlyKind.After,
+      _ => assertOnlyKind
+    };
+
+    return true;
+  }
+
+  public enum AssertOnlyKind {
+    Before,
+    After,
+    Single
+  }
 }
+

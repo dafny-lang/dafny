@@ -69,10 +69,10 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
   }
 
   public static AssumptionDescription AssertOnly = new(
-    "Assertion has explicit temporary [{:only}] attribute.",
-    "Remove the attribute [{:only}]",
-    true,
-    false
+    issue: "Assertion has explicit temporary [{:only}] attribute.",
+    mitigation: "Remove the attribute [{:only}]",
+    isExplicit: true,
+    allowedInLibraries: false
   );
 }
 public record Assumption(Declaration decl, IToken tok, AssumptionDescription desc) {
