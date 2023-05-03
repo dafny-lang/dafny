@@ -1,0 +1,18 @@
+// dafny 4.1.0.0
+// 
+// wrappers3.dfy
+
+
+module Wrappers {
+  datatype Option<T> = Some(value: T) | None {
+    function UnwrapOr(default: T): T
+      decreases this
+    {
+      match this
+      case Some(v) =>
+        v
+      case None() =>
+        default
+    }
+  }
+}

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.IO;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -96,15 +97,15 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
       foreach (var header in this.headers) {
-        wr.WriteLine("#include \"{0}\"", header);
+        wr.WriteLine("#include \"{0}\"", Path.GetFileName(header));
       }
 
       // For "..."s string literals, to avoid interpreting /0 as the C end of the string, cstring-style
       wr.WriteLine("using namespace std::literals;");
 
       var filenameNoExtension = program.Name.Substring(0, program.Name.Length - 4);
-      var headerFileName = String.Format("{0}.h", filenameNoExtension);
-      wr.WriteLine("#include \"{0}\"", headerFileName);
+      var headerFileName = $"{filenameNoExtension}.h";
+      wr.WriteLine("#include \"{0}\"", Path.GetFileName(headerFileName));
 
       var headerFileWr = wr.NewFile(headerFileName);
       headerFileWr.WriteLine("// Dafny program {0} compiled into a Cpp header file", program.Name);

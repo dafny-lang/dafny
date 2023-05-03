@@ -1,0 +1,11 @@
+doo_file_version = "1.0"
+dafny_version = "4.1.0.0"
+solver_identifier = "Z3"
+solver_version = "4.12.1"
+[options]
+unicode-char = true
+enforce-determinism = false
+relax-definite-assignment = false
+optimize-erasable-datatype-wrapper = true
+no-verify = false
+track-print-effects = false

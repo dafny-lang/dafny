@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
     public string BaseName { get; private set; }
     public bool IsPreverified { get; set; }
     public bool IsPrecompiled { get; set; }
-    public string SourceFileName { get; private set; }
+    public string SourceFilePath { get; private set; }
     public Uri Uri { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
       if (extension == ".dfy" || extension == ".dfyi") {
         IsPreverified = false;
         IsPrecompiled = false;
-        SourceFileName = filePath;
+        SourceFilePath = filePath;
       } else if (extension == ".doo") {
         IsPreverified = true;
         IsPrecompiled = false;
@@ -107,8 +107,8 @@ namespace Microsoft.Dafny {
         // more efficiently inside a .doo file, at which point
         // the DooFile class should encapsulate the serialization logic better
         // and expose a Program instead of the program text.
-        SourceFileName = Path.GetTempFileName();
-        File.WriteAllText(SourceFileName, dooFile.ProgramText);
+        SourceFilePath = Path.GetTempFileName();
+        File.WriteAllText(SourceFilePath, dooFile.ProgramText);
 
       } else if (extension == ".dll") {
         IsPreverified = true;
@@ -117,8 +117,8 @@ namespace Microsoft.Dafny {
 
         var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
-        SourceFileName = Path.GetTempFileName();
-        File.WriteAllText(SourceFileName, sourceText);
+        SourceFilePath = Path.GetTempFileName();
+        File.WriteAllText(SourceFilePath, sourceText);
 
       } else {
         throw new IllegalDafnyFile();
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
+        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFilePath, false) : null;
         var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
@@ -349,7 +349,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.Uri, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, new Uri(dafnyFile.SourceFilePath), module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }
