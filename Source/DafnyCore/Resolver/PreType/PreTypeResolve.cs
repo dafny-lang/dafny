@@ -857,7 +857,7 @@ namespace Microsoft.Dafny {
         if (d != null) {
           allowMoreRequiredParameters = false;
           ResolveExpression(d, new ResolutionContext(codeContext, codeContext is TwoStateFunction || codeContext is TwoStateLemma));
-          AddSubtypeConstraint(Type2PreType(formal.Type), Type2PreType(d.Type), d.tok, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
+          AddSubtypeConstraint(Type2PreType(formal.Type), d.PreType, d.tok, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in Resolver.FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
