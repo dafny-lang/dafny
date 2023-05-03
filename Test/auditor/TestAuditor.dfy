@@ -2,9 +2,9 @@
 // RUN: %baredafny audit --report-file "%t.md" --compare-report "%s"
 // RUN: %baredafny audit --report-file "%t.html" "%s"
 // RUN: %baredafny audit --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
-// RUN: %diff "%t.md" "%s.md.expect"
-// RUN: %diff "%t-ietf.md" "%s-ietf.md.expect"
-// RUN: %diff "%t.html" "%s.html.expect"
+// RUN: %diff "%s.md.expect" "%t.md"
+// RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
+// RUN: %diff "%s.html.expect" "%t.html"
 
 // Method or lemma with a failed proof (top priority, but shown only in reports from later versions of the tool)
 method BadMethod(i: nat) returns (res: nat)
@@ -109,4 +109,9 @@ opaque function f(): int {
 // heap.
 method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
   return x;
+}
+
+method AssertOnly() {
+  assert {:only} true;
+  assert false;
 }

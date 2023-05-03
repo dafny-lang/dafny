@@ -1850,11 +1850,11 @@ module DividedConstructors {
       Helper();  // error: not allowed to call instance method
       var mc := new MyClass();
       StaticHelper(mc);
-      this.StaticHelper(mc);  // "this" is benign here
+      this.StaticHelper(mc);  // error: "this" is benign here; yet, it seems consistent to disallow it
       StaticHelper(this);  // error: cannot use "this" here
       P(a);  // error: cannot use "this" here
       P(g);
-      P(this.g);  // "this" is benign here
+      P(this.g);  // error: "this" is benign here; yet, it seems consistent to disallow it
       modify this;  // error: cannot use "this" here
       modify this`c;  // error: cannot use "this" here
       modify `c;  // error: cannot use (implicit) "this" here

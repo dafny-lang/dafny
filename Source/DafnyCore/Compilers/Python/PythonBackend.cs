@@ -11,7 +11,7 @@ public class PythonBackend : ExecutableBackend {
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".py" };
 
-  public override string TargetLanguage => "Python";
+  public override string TargetName => "Python";
   public override string TargetExtension => "py";
   public override int TargetIndentSize => 4;
 
@@ -28,7 +28,7 @@ public class PythonBackend : ExecutableBackend {
     return new PythonCompiler(Options, Reporter);
   }
 
-  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
+  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)""\s*==\s*__name__\s*$");
 
   private static string FindModuleName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
@@ -40,7 +40,7 @@ public class PythonBackend : ExecutableBackend {
       }
     }
     rd.Close();
-    return externFilename.EndsWith(".py") ? externFilename[..^3] : null;
+    return Path.GetExtension(externFilename) == ".py" ? Path.GetFileNameWithoutExtension(externFilename) : null;
   }
 
   bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -52,8 +52,10 @@ public class PythonBackend : ExecutableBackend {
     }
     var mainDir = Path.GetDirectoryName(mainProgram);
     Contract.Assert(mainDir != null);
-    var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
+    var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
+    var tgtFilename = Path.Combine(mainDir, $"{modulePath}.py");
     var file = new FileInfo(externFilename);
+    Directory.CreateDirectory(Path.GetDirectoryName(tgtFilename)!);
     file.CopyTo(tgtFilename, true);
     if (Options.CompileVerbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");

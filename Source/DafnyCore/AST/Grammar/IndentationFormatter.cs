@@ -323,13 +323,8 @@ public class IndentationFormatter : IIndentationFormatter {
 
   private static readonly ConcurrentDictionary<int, string> WhitespaceCache = new();
 
-  private static string Whitespace(int characters) {
+  public static string Whitespace(int characters) {
     return WhitespaceCache.GetOrAdd(characters, _ => new string(' ', characters));
-  }
-
-  public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
-    _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, out newLeadingTrivia,
-      out newTrailingTrivia);
   }
 
   #endregion

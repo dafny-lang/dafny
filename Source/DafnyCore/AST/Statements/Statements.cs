@@ -845,7 +845,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   }
   public static string DisplayNameHelper(IVariable v) {
     Contract.Requires(v != null);
-    return HasWildcardName(v) ? "_" : v.Name;
+    return HasWildcardName(v) ? $"_ /* {v.Name} */" : v.Name;
   }
   public string DisplayName {
     get { return DisplayNameHelper(this); }

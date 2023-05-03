@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
@@ -8,10 +9,11 @@ using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -43,7 +45,19 @@ static class CommandRegistry {
     AddCommand(new DeadCodeCommand());
     AddCommand(new AuditCommand());
 
+    // Check that the .doo file format is aware of all options,
+    // and therefore which have to be saved to safely support separate verification/compilation.
+    DooFile.CheckOptions(AllOptions);
+
     FileArgument = new Argument<FileInfo>("file", "Dafny input file or Dafny project file");
+
+    // This SHOULD find the same method but returns null for some reason:
+    // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
+    foreach (var method in typeof(ParseResult).GetMethods()) {
+      if (method.Name == "GetValueForOption" && method.GetGenericArguments().Length == 1) {
+        GetValueForOptionMethod = method;
+      }
+    }
   }
 
   public static Argument<FileInfo> FileArgument { get; }
@@ -132,13 +146,35 @@ static class CommandRegistry {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
         var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, Console.Error, out projectFileValue) ?? false;
-        var value = result == null && hasProjectFileValue
-          ? projectFileValue
-          : context.ParseResult.GetValueForOption(option);
+        object value;
+        if (option.Arity.MaximumNumberOfValues <= 1) {
+          // If multiple values aren't allowed, CLI options take precedence over project file options
+          value = result == null && hasProjectFileValue
+            ? projectFileValue
+            : GetValueForOption(context.ParseResult, option);
+        } else {
+          // If multiple values ARE allowed, CLI options come after project file options
+          var elementType = option.ValueType.GetGenericArguments()[0];
+          var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+          if (hasProjectFileValue) {
+            foreach (var element in (IEnumerable)projectFileValue) {
+              valueAsList.Add(element);
+            }
+          }
+          if (result != null) {
+            foreach (var element in (IEnumerable)GetValueForOption(context.ParseResult, option)) {
+              valueAsList.Add(element);
+            }
+          }
+
+          value = valueAsList;
+        }
+
         options.OptionArguments[option] = value;
         dafnyOptions.ApplyBinding(option);
       }
 
+      dafnyOptions.CurrentCommand = command;
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       commandSpec.PostProcess(dafnyOptions, options, context);
     }
@@ -166,6 +202,21 @@ static class CommandRegistry {
     }
 
     return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
+  }
+
+  private static readonly MethodInfo GetValueForOptionMethod;
+
+  // This bit of reflective trickery is necessary because
+  // ParseResult.GetValueForOption<T>(Option<T>) will convert tokens to T as necessary,
+  // but ParseResult.GetValueForOption(Option) behaves like it was passed a Option<object> and doesn't.
+  // To work around this we use reflection to invoke the former, passing Option.ValueType as the T argument.
+  // This technique could also be used to fix the discrepancy between
+  // DafnyOptions.Get<T>(Option<T>) and DafnyOptions.Get(Option)
+  // (where in that case the latter doesn't set the default value).
+  private static object GetValueForOption(ParseResult result, Option option) {
+    // Use Reflection to invoke GetValueForOption<T> for the correct T
+    var generic = GetValueForOptionMethod.MakeGenericMethod(option.ValueType);
+    return generic.Invoke(result, new object[] { option });
   }
 
   private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {

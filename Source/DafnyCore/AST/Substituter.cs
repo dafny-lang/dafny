@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Boogie.Clustering;
 
 namespace Microsoft.Dafny {
@@ -16,16 +17,18 @@ namespace Microsoft.Dafny {
     protected readonly Dictionary<IVariable, Expression> substMap;
     protected readonly Dictionary<TypeParameter, Type> typeMap;
     protected readonly Label oldHeapLabel;
+    [CanBeNull] private readonly BuiltIns builtIns; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
     public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
-    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null) {
+    public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, Label oldHeapLabel = null, BuiltIns builtIns = null) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);
       this.receiverReplacement = receiverReplacement;
       this.substMap = substMap;
       this.typeMap = typeMap;
       this.oldHeapLabel = oldHeapLabel;
+      this.builtIns = builtIns;
     }
     public virtual Expression Substitute(Expression expr) {
       Contract.Requires(expr != null);
@@ -164,14 +167,20 @@ namespace Microsoft.Dafny {
         if (receiver != e.Receiver || newArgs != e.Args ||
             newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
             newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel);
-          newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
-          newFce.CoCall = e.CoCall;  // also copy the co-call status
-          newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
-          newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
-          newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
-          newFce.IsByMethodCall = e.IsByMethodCall;
-          newExpr = newFce;
+          var newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, e.CloseParen, newArgs, e.AtLabel ?? oldHeapLabel) {
+            Function = e.Function, // resolve on the fly (and set newFce.Type below, at end)
+            CoCall = e.CoCall, // also copy the co-call status
+            CoCallHint = e.CoCallHint, // and any co-call hint
+            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplication_JustFunction = newTypeApplicationJustFunction,
+            IsByMethodCall = e.IsByMethodCall
+          };
+          if (builtIns == null) {
+            newExpr = newFce;
+          } else {
+            newFce.Type = expr.Type.Subst(typeMap);
+            newExpr = Expression.WrapResolvedCall(newFce, builtIns);
+          }
         }
 
       } else if (expr is ApplyExpr) {

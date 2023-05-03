@@ -106,15 +106,15 @@ public class TestDafny {
   }
 
   private static int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
-    Console.Out.WriteLine($"Executing on {backend.TargetLanguage}...");
+    Console.Out.WriteLine($"Executing on {backend.TargetName}...");
     var dafnyArgs = new List<string>(options.OtherArgs) {
-      options.TestFile!,
       // Here we can pass /noVerify to save time since we already verified the program. 
       "/noVerify",
       // /noVerify is interpreted pessimistically as "did not get verification success",
       // so we have to force compiling and running despite this.
       "/compile:4",
-      $"/compileTarget:{backend.TargetId}"
+      $"/compileTarget:{backend.TargetId}",
+      options.TestFile!
     };
 
 
@@ -210,11 +210,15 @@ public class TestDafny {
       return (int)DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR;
     }
 
+    var allCompilers = dafnyOptions.Plugins
+      .SelectMany(p => p.GetCompilers(dafnyOptions))
+      .Where(c => !c.IsInternal)
+      .ToList();
+
     // Header
     Console.Out.Write("| Feature |");
-    var allCompilers = dafnyOptions.Plugins.SelectMany(p => p.GetCompilers(dafnyOptions)).ToList();
     foreach (var compiler in allCompilers) {
-      Console.Out.Write($" {compiler.TargetLanguage} |");
+      Console.Out.Write($" {compiler.TargetName} |");
     }
 
     Console.Out.WriteLine();
