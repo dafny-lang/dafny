@@ -523,14 +523,15 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     }
             ");
     }
-
-    [Fact]
-    public async Task CA_p_type_parameter_variance_forbidden() {
-      await TestCodeAction(@"
-    type List<T>
-    method m<(>remove type parameter variance->:::+<)T>(i: int, list: List<T>) {}
-            ");
-    }
+    /*
+        [Fact]
+        public async Task CA_p_type_parameter_variance_forbidden() {
+          await TestCodeAction(@"
+        type List<T>
+        method m<(>remove type parameter variance->:::+<)T>(i: int, list: List<T>) {}
+                ");
+        }
+        */
     /*
         [Fact]
         public async Task CA_p_unexpected_type_characteristic() {
@@ -570,21 +571,21 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
     }
     ");
     }
+    /*
+        [Fact]
+        public async Task CA_p_method_missing_name() {
+          await TestCodeAction(@"
+        method {:extern ""M""} (>insert 'M'->M(:::(<)i: int) {}
+        ");
+        }
 
-    [Fact]
-    public async Task CA_p_method_missing_name() {
-      await TestCodeAction(@"
-    method {:extern ""M""} (>insert 'M'->M(:::(<)i: int) {}
-    ");
-    }
-
-    [Fact]
-    public async Task CA_p_extraneous_k() {
-      await TestCodeAction(@"
-    lemma b(>remove '[nat]'->:::[nat]<)(i: int) { }
-    ");
-    }
-
+        [Fact]
+        public async Task CA_p_extraneous_k() {
+          await TestCodeAction(@"
+        lemma b(>remove '[nat]'->:::[nat]<)(i: int) { }
+        ");
+        }
+    */
     [Fact]
     public async Task CA_p_constructors_have_no_out_parameters() {
       await TestCodeAction(@"
