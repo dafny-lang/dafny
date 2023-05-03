@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
         // the DooFile class should encapsulate the serialization logic better
         // and expose a Program instead of the program text.
         SourceFilePath = Path.GetTempFileName();
+        Uri = new Uri(SourceFilePath);
         File.WriteAllText(SourceFilePath, dooFile.ProgramText);
 
       } else if (extension == ".dll") {
@@ -118,6 +119,7 @@ namespace Microsoft.Dafny {
         var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
         SourceFilePath = Path.GetTempFileName();
+        Uri = new Uri(SourceFilePath);
         File.WriteAllText(SourceFilePath, sourceText);
 
       } else {
@@ -235,7 +237,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+      LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns(reporter.Options);
 
       foreach (DafnyFile dafnyFile in files) {
@@ -248,6 +250,9 @@ namespace Microsoft.Dafny {
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFilePath, false) : null;
+        if (include != null) {
+          module.ModuleDef.Includes.Add(include);
+        }
         var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
@@ -364,7 +369,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, new Uri(dafnyFile.SourceFilePath), module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.Uri, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

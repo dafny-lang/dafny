@@ -46,10 +46,10 @@ namespace Microsoft.Dafny {
     public void Error(MessageSource source, IToken tok, string msg) {
       Error(source, null, tok, msg);
     }
-    public void Error(MessageSource source, string errorId, IToken tok, string msg) {
+    public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (tok.IsIncludeToken(Options)) {
+      if (tok.IsIncludeToken(Options) && ModuleDefinition != null) {
         var include = ModuleDefinition.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
@@ -229,6 +229,10 @@ namespace Microsoft.Dafny {
 
     public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
+    }
+
+    public override void Error(MessageSource source, string errorId, IToken tok, string msg) {
+
     }
 
     public override int Count(ErrorLevel level) {
