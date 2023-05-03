@@ -668,10 +668,11 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
         .OrderByDescending(x => x.Range.Start.Line)
         .ThenByDescending(x => x.Range.Start.Character);
       var modifiedOutput = ToLines(output);
+      System.Console.WriteLine(" MOD  INPUT: " + modifiedOutput);
       foreach (var textEdit in inversedEdits) {
         modifiedOutput = ApplySingleEdit(modifiedOutput, textEdit.Range, textEdit.NewText);
       }
-
+      System.Console.WriteLine(" MOD OUTPUT: " + modifiedOutput);
       return modifiedOutput;
     }
 
