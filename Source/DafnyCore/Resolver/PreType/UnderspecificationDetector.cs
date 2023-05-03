@@ -21,14 +21,9 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method
     ///     * checks that type inference was able to determine all types
-    ///     * check that shared destructors in datatypes are in agreement
+    ///     * checks that shared destructors in datatypes are in agreement
     ///     * fills in the .ResolvedOp field of binary expressions
     ///     * performs substitution for DefaultValueExpression's
-    ///     * figures out native types
-    /// TODO: These checks should be performed by the caller, upon successful return. They were previously done
-    /// in the Pass 1 CheckTypeInference method.
-    ///     * Claude Marche's
-    ///     * Check for useless comparisons with "null"
     /// </summary>
     public void Check(List<TopLevelDecl> declarations) {
       Contract.Requires(declarations != null);
@@ -56,11 +51,6 @@ namespace Microsoft.Dafny {
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
-#if SOON
-          if (!DetectUnderspecificationVisitor.IsDetermined(dd.Rhs)) {
-            ReportError(dd, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
-          }
-#endif
           CheckExpression(dd.Constraint, new CodeContextWrapper(dd, true));
           if (dd.Witness != null) {
             CheckExpression(dd.Witness, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -77,9 +67,6 @@ namespace Microsoft.Dafny {
               CheckExpression(dd.Witness, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
             }
           }
-#if SOON
-          resolver.FigureOutNativeType(dd);
-#endif
           CheckMembers(dd);
 
         } else if (d is DatatypeDecl) {
@@ -234,101 +221,6 @@ namespace Microsoft.Dafny {
   // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
   // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
   // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
-#if SOON
-    private void CheckTypeInference_Member(MemberDecl member) {
-      if (member is ConstantField) {
-        var field = (ConstantField)member;
-        if (field.Rhs != null) {
-          CheckTypeInference(field.Rhs, new NoContext(member.EnclosingClass.EnclosingModuleDefinition));
-        }
-        CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
-      } else if (member is Method) {
-        var m = (Method)member;
-        foreach (var formal in m.Ins) {
-          if (formal.DefaultValue != null) {
-            CheckTypeInference(formal.DefaultValue, m);
-          }
-        }
-        m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-        m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
-        CheckTypeInference_Specification_FrameExpr(m.Mod, m);
-        CheckTypeInference_Specification_Expr(m.Decreases, m);
-        if (m.Body != null) {
-          CheckTypeInference(m.Body, m);
-        }
-      } else if (member is Function) {
-        var f = (Function)member;
-        foreach (var formal in f.Formals) {
-          if (formal.DefaultValue != null) {
-            CheckTypeInference(formal.DefaultValue, f);
-          }
-        }
-        var errorCount = reporter.Count(ErrorLevel.Error);
-        f.Req.Iter(e => CheckTypeInference(e.E, f));
-        f.Ens.Iter(e => CheckTypeInference(e.E, f));
-        f.Reads.Iter(fe => CheckTypeInference(fe.E, f));
-        CheckTypeInference_Specification_Expr(f.Decreases, f);
-        if (f.Body != null) {
-          CheckTypeInference(f.Body, f);
-        }
-        if (errorCount == reporter.Count(ErrorLevel.Error)) {
-          if (f is ExtremePredicate cop) {
-            CheckTypeInference_Member(cop.PrefixPredicate);
-          } else if (f.ByMethodDecl != null) {
-            CheckTypeInference_Member(f.ByMethodDecl);
-          }
-        }
-      }
-    }
-
-    private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
-      Contract.Requires(mfe != null);
-      Contract.Requires(codeContext != null);
-      foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
-        CheckTypeInference(e, codeContext);
-      }
-      CheckTypeInference(mfe.E, codeContext);
-    }
-    private void CheckTypeInference_Specification_Expr(Specification<Expression> spec, ICodeContext codeContext) {
-      Contract.Requires(spec != null);
-      Contract.Requires(codeContext != null);
-      foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-        CheckTypeInference(e, codeContext);
-      }
-      spec.Expressions.Iter(e => CheckTypeInference(e, codeContext));
-    }
-    private void CheckTypeInference_Specification_FrameExpr(Specification<FrameExpression> spec, ICodeContext codeContext) {
-      Contract.Requires(spec != null);
-      Contract.Requires(codeContext != null);
-      foreach (var e in Attributes.SubExpressions(spec.Attributes)) {
-        CheckTypeInference(e, codeContext);
-      }
-      spec.Expressions.Iter(fe => CheckTypeInference(fe.E, codeContext));
-    }
-    void CheckTypeInference(Expression expr, ICodeContext codeContext) {
-      Contract.Requires(expr != null);
-      Contract.Requires(codeContext != null);
-      PartiallySolveTypeConstraints(true);
-      var c = new DetectUnderspecificationVisitor(this, codeContext);
-      c.Visit(expr);
-    }
-    void CheckTypeInference(Type type, ICodeContext codeContext, IToken tok, string what) {
-      Contract.Requires(type != null);
-      Contract.Requires(codeContext != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(what != null);
-      PartiallySolveTypeConstraints(true);
-      var c = new DetectUnderspecificationVisitor(this, codeContext);
-      c.CheckTypeIsDetermined(tok, type, what);
-    }
-    void CheckTypeInference(Statement stmt, ICodeContext codeContext) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(codeContext != null);
-      PartiallySolveTypeConstraints(true);
-      var c = new DetectUnderspecificationVisitor(this, codeContext);
-      c.Visit(stmt);
-    }
-#endif
   public class DetectUnderspecificationVisitor : BottomUpVisitor {
     private readonly UnderspecificationDetector cus;
     private readonly ICodeContext codeContext;
@@ -416,16 +308,6 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (e is ExistsExpr existsExpr && existsExpr.Range == null) {
-          // In the next line, check Op, not ResolvedOp, in order to distinguish ==> and <==.
-          if (existsExpr.Term is BinaryExpr binBody && binBody.Op == BinaryExpr.Opcode.Imp) {
-            // apply the wisdom of Claude Marché: issue a warning here
-            cus.ReportWarning(e.tok,
-              "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
-              "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
-          }
-        }
-
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         if (e.Member is Function || e.Member is Method) {
@@ -504,38 +386,6 @@ namespace Microsoft.Dafny {
           var e = (BinaryExpr)expr;
           e.ResolvedOp = ResolveOp(e.Op, e.E0.PreType, e.E1.PreType);
 
-        } else if (expr is NegationExpression) {
-#if SOON
-          var e = (NegationExpression)expr;
-          Expression resolved = null;
-          if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
-            // For real-based types and integer-based types (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
-            if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-              var d = (BaseTypes.BigDec)lit.Value;
-              Contract.Assert(!d.IsNegative);
-              resolved = new LiteralExpr(e.tok, -d);
-            } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-              var n = (BigInteger)lit.Value;
-              Contract.Assert(0 <= n);
-              resolved = new LiteralExpr(e.tok, -n);
-            }
-          }
-          if (resolved == null) {
-            // Treat all other expressions "-e" as "0 - e"
-            Expression zero;
-            if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-              zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
-            } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
-            }
-            zero.Type = expr.Type;
-            resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
-          }
-          resolved.Type = expr.Type;
-          resolved.PreType = expr.PreType;
-          e.ResolvedExpression = resolved;
-#endif
         }
       }
     }
