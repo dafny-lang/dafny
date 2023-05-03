@@ -15,4 +15,4 @@ GhostAllocations.dfy(82,9): Error: assertion might not hold
 GhostAllocations.dfy(93,9): Error: assertion might not hold
 GhostAllocations.dfy(105,9): Error: assertion might not hold
 
-Dafny program verifier finished with 5 verified, 14 errors
+Dafny program verifier finished with 6 verified, 14 errors

@@ -1273,9 +1273,11 @@ namespace Microsoft.Dafny {
         }
         if (dp.Decl.Name == "set" || dp.Decl.Name == "iset" || dp.Decl.Name == "seq" || dp.Decl.Name == "multiset") {
           hasCollectionType = true;
-          dp = dp.Arguments[0].Normalize() as DPreType;
+          var elementType = dp.Arguments[0].Normalize();
+          dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
+            AddDefaultAdvice(elementType, AdviceTarget.Object);
             return false;
           }
         }

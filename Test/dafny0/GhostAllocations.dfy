@@ -186,3 +186,17 @@ class GhostablePossibleEmpty {
   ghost constructor D() {
   } // error (x2): g and h are never assigned
 }
+
+method EmptyModifiesClause()
+  modifies {}, iset{}, [], multiset{}
+
+function EmptyReadsClause(): int
+  reads {}, iset{}, [], multiset{}
+
+method CallerOfEmpty() {
+  var x := EmptyReadsClause();
+  EmptyModifiesClause();
+  var cell := new Cell;
+  cell.data := cell.data + 10;
+  assert x == EmptyReadsClause();
+}
