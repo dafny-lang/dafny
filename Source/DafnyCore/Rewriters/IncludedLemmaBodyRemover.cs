@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// Lemma from included files do not need to be resolved and translated
+/// Lemma's from included files do not need to be resolved and translated
 /// so we return emptyBody. This is to speed up resolver and translator.
 /// </summary>
 public class IncludedLemmaBodyRemover : IRewriter {
@@ -20,10 +20,11 @@ public class IncludedLemmaBodyRemover : IRewriter {
   private static readonly BlockStmt EmptyBody = new(Token.NoToken.ToRange(), new List<Statement>());
 
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
-    var moduleFile = moduleDefinition.Tok.Uri;
-    if (moduleFile == null) {
-      return; // The default module doesn't refine any modules
-    }
+    // TODO
+    // var moduleFile = moduleDefinition.Tok.Uri;
+    // if (moduleFile == null) {
+    //   return; // The default module doesn't refine any modules
+    // }
     foreach (var method in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
                SelectMany(withMembers => withMembers.Members.OfType<Method>())) {
       if (method.Body != null && method.IsLemmaLike && method.Tok.IsIncludeToken(program)) {

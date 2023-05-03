@@ -21,10 +21,6 @@ public interface IToken : Microsoft.Boogie.IToken {
     get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
     set => throw new NotSupportedException();
   }
-  // string Boogie.IToken.filename {
-  //   get => Uri?.LocalPath;
-  //   set => Uri = new Uri(value);
-  // }
 
   public string ActualFilename => Uri.LocalPath;
   string Filepath => Uri.LocalPath;
@@ -123,7 +119,7 @@ public class Token : IToken {
   }
 
   public override string ToString() {
-    return $"{Filepath}@{pos} - @{line}:{col}";
+    return $"{val}: {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
 }
 
@@ -194,10 +190,17 @@ public abstract class TokenWrapper : IToken {
 
 public static class TokenExtensions {
 
+  public static string TokenToString(this Boogie.IToken tok, DafnyOptions options) {
+    if (tok is IToken dafnyToken) {
+      return dafnyToken.TokenToString(options);
+    }
+
+    return $"{tok.filename}({tok.line},{tok.col - 1})";
+  }
 
   public static string TokenToString(this IToken tok, DafnyOptions options) {
     if (tok.Uri == null) {
-      return "Token has no URI" + tok;
+      return $"({tok.line},{tok.col - 1})";
     }
 
     var currentDirectory = Directory.GetCurrentDirectory();

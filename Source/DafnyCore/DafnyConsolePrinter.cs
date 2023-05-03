@@ -82,9 +82,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       message = $"{category}: {message}";
     }
 
-    if (tok != null) {
-      message = $"{((IToken)tok).TokenToString(Options)}: {message}";
-    }
+    message = $"{tok.TokenToString(Options)}: {message}";
 
     if (error) {
       ErrorWriteLine(tw, message);

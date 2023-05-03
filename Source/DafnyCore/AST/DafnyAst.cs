@@ -65,6 +65,7 @@ namespace Microsoft.Dafny {
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
+      reporter.Program = this;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }

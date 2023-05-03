@@ -18,7 +18,7 @@ namespace IntegrationTests {
     // Change this to true in order to debug the execution of commands like %dafny.
     // This is false by default because the main dafny CLI implementation currently has shared static state, which
     // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
-    private const bool InvokeMainMethodsDirectly = true;
+    private const bool InvokeMainMethodsDirectly = false;
 
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.TestDafny).Assembly;
