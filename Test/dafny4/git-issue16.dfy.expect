@@ -1,2 +1,3 @@
+git-issue16.dfy(4,8): Error: the included file git-issue16.dfyi contains error(s)
 git-issue16.dfyi(2,5): Error: arguments must have comparable types (got int and bool)
-1 resolution/type errors detected in git-issue16.dfy
+2 resolution/type errors detected in git-issue16.dfy
