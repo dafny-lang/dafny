@@ -218,6 +218,63 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
+    /// <summary>
+    /// Returns the non-newtype ancestor of "cecl".
+    /// </summary>
+    public static TopLevelDecl AncestorDecl(TopLevelDecl decl) {
+      while (decl is NewtypeDecl newtypeDecl) {
+        var parent = newtypeDecl.BasePreType.Normalize();
+        decl = ((DPreType)parent).Decl;
+      }
+      return decl;
+    }
+
+    [CanBeNull]
+    public static string/*?*/ AncestorName(PreType preType) {
+      var dp = preType.Normalize() as DPreType;
+      return dp == null ? null : AncestorDecl(dp.Decl).Name;
+    }
+
+    /// <summary>
+    /// Returns the non-newtype ancestor of "preType".
+    /// </summary>
+    public DPreType NewTypeAncestor(DPreType preType) {
+      Contract.Requires(preType != null);
+      ISet<NewtypeDecl> visited = null;
+      while (preType.Decl is NewtypeDecl newtypeDecl) {
+        visited ??= new HashSet<NewtypeDecl>();
+        if (visited.Contains(newtypeDecl)) {
+          // The parents of the originally given "preType" are in a cycle; the error has been reported elsewhere, but here we just want to get out
+          break;
+        }
+        visited.Add(newtypeDecl);
+        var parent = newtypeDecl.BasePreType.Normalize() as DPreType;
+        if (parent == null) {
+          // The parent type of this newtype apparently hasn't been inferred yet, so stop traversal here
+          break;
+        }
+        var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
+        preType = (DPreType)parent.Substitute(subst);
+      }
+      return preType;
+    }
+
+    /// <summary>
+    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" is "decl" is a reference type.
+    /// </summary>
+    public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
+      foreach (var parentType in decl.ParentTraits) {
+        yield return parentType;
+      }
+      if (DPreType.IsReferenceTypeDecl(decl)) {
+        if (decl is TraitDecl trait && trait.IsObjectTrait) {
+          // don't return object itself
+        } else {
+          yield return resolver.builtIns.ObjectQ();
+        }
+      }
+    }
+
     public static bool HasTraitSupertypes(DPreType dp) {
       /*
        * When traits can be used as supertypes for non-reference types (and "object" is an implicit parent trait of every
@@ -235,6 +292,25 @@ namespace Microsoft.Dafny {
       }
       // any non-object reference type has "object" as an implicit parent trait
       return DPreType.IsReferenceTypeDecl(dp.Decl);
+    }
+
+    /// <summary>
+    /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
+    /// but not exploring past any TopLevelDecl that is already in "ancestors".
+    /// An ancestor
+    void ComputeAncestors(TopLevelDecl d, ISet<TopLevelDecl> ancestors) {
+      if (!ancestors.Contains(d)) {
+        ancestors.Add(d);
+        if (d is TopLevelDeclWithMembers dm) {
+          dm.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
+        }
+        if (d is ClassDecl cl && cl.IsObjectTrait) {
+          // we're done
+        } else if (DPreType.IsReferenceTypeDecl(d)) {
+          // object is also a parent type
+          ComputeAncestors(resolver.builtIns.ObjectDecl, ancestors);
+        }
+      }
     }
 
     public static bool IsBitvectorName(string name, out int width) {
