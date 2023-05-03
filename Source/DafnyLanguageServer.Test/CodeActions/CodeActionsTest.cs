@@ -628,7 +628,7 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.Equal(ranges.Count, diagnostics.Length);
-
+      System.Console.WriteLine("TEST " + output + " " + positions.Count + " " + positions + " " + ranges);
       if (positions.Count != ranges.Count) {
         positions = ranges.Select(r => r.Range.Start).ToList();
       }
@@ -642,6 +642,7 @@ datatype D = A | B  { (>replace 'var' with 'const'->const:::var<) c: D }
         var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
         var found = false;
         var otherTitles = new List<string>();
+        System.Console.WriteLine("  POS " + position + " #" + expectedTitle + "##" + expectedNewText + "##" + expectedRange + "#");
         foreach (var completion in completionList) {
           if (completion.CodeAction is { Title: var title } codeAction) {
             otherTitles.Add(title);
