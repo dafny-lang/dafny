@@ -22,6 +22,8 @@ namespace Microsoft.Dafny {
     /// This method
     ///     * checks that type inference was able to determine all types
     ///     * checks that shared destructors in datatypes are in agreement
+    ///     * checks that ORDINAL is used only where allowed
+    ///     * checks that bitvector literals are not too big for their type
     ///     * fills in the .ResolvedOp field of binary expressions
     ///     * performs substitution for DefaultValueExpression's
     /// </summary>
@@ -32,11 +34,6 @@ namespace Microsoft.Dafny {
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           var prevErrCnt = ErrorCount;
-          foreach (var formal in iter.Ins) {
-            if (formal.DefaultValue != null) {
-              CheckExpression(formal.DefaultValue, iter);
-            }
-          }
           iter.Members.Iter(CheckMember);
           if (prevErrCnt == ErrorCount) {
             iter.SubExpressions.Iter(e => CheckExpression(e, iter));
@@ -71,13 +68,6 @@ namespace Microsoft.Dafny {
 
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
-          foreach (var ctor in dd.Ctors) {
-            foreach (var formal in ctor.Formals) {
-              if (formal.DefaultValue != null) {
-                CheckExpression(formal.DefaultValue, dd);
-              }
-            }
-          }
           foreach (var member in resolver.classMembers[dd].Values) {
             var dtor = member as DatatypeDestructor;
             if (dtor != null) {
@@ -116,12 +106,10 @@ namespace Microsoft.Dafny {
         CheckMember(member);
         if (prevErrCnt == ErrorCount) {
           if (member is Method method) {
-            CheckParameterDefaultValues(method.Ins, method);
             if (method.Body != null) {
               CheckExpressions(method.Body, method);
             }
           } else if (member is Function function) {
-            CheckParameterDefaultValues(function.Formals, function);
             if (function.ByMethodBody != null) {
               var m = function.ByMethodDecl;
               CheckExpressions(m.Body, m);
@@ -142,11 +130,7 @@ namespace Microsoft.Dafny {
         CheckPreType(field.PreType, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
 
       } else if (member is Method method) {
-        foreach (var formal in method.Ins) {
-          if (formal.DefaultValue != null) {
-            CheckExpression(formal.DefaultValue, method);
-          }
-        }
+        CheckParameterDefaultValues(method.Ins, method);
         method.Req.Iter(mfe => CheckAttributedExpression(mfe, method));
         CheckSpecFrameExpression(method.Mod, method);
         method.Ens.Iter(mfe => CheckAttributedExpression(mfe, method));
@@ -157,11 +141,7 @@ namespace Microsoft.Dafny {
 
       } else if (member is Function) {
         var f = (Function)member;
-        foreach (var formal in f.Formals) {
-          if (formal.DefaultValue != null) {
-            CheckExpression(formal.DefaultValue, f);
-          }
-        }
+        CheckParameterDefaultValues(f.Formals, f);
         var errorCount = ErrorCount;
         f.Req.Iter(e => CheckExpression(e.E, f));
         f.Ens.Iter(e => CheckExpression(e.E, f));
@@ -211,16 +191,14 @@ namespace Microsoft.Dafny {
     }
 
     private void CheckParameterDefaultValues(List<Formal> formals, ICodeContext codeContext) {
-      // TODO
+      foreach (var formal in formals) {
+        if (formal.DefaultValue != null) {
+          CheckExpression(formal.DefaultValue, codeContext);
+        }
+      }
     }
   }
 
-  // ------------------------------------------------------------------------------------------------------
-  // ----- CheckTypeInference -----------------------------------------------------------------------------
-  // ------------------------------------------------------------------------------------------------------
-  // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
-  // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
-  // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
   public class DetectUnderspecificationVisitor : BottomUpVisitor {
     private readonly UnderspecificationDetector cus;
     private readonly ICodeContext codeContext;
