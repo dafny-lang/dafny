@@ -285,6 +285,9 @@ class MultiSet(Counter):
     def __eq__(self, other):
         return all(self[key] == other[key] for key in self.keys | other.keys)
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def __setattr__(self, key, value):
         raise TypeError("'Map' object is immutable")
 
