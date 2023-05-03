@@ -879,7 +879,7 @@ namespace Microsoft.Dafny {
         var callToMainTree = new ConcreteSyntaxTree();
         string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
         compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
-        callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main
+        callToMain = callToMainTree.MakeString(compiler.TargetIndentSize); // assume there aren't multiple files just to call main
       }
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;

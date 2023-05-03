@@ -1537,9 +1537,12 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
+  ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
+    (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
+  |
+    CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+    [ ellipsis ]
+    [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
@@ -1547,7 +1550,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+    OldSemi                                  (. c.TokenWithTrailingDocString = t; .)
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -3655,6 +3659,9 @@ AssertStmt<out Statement/*!*/ s>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
+    | (.
+        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+      .)
     )
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
