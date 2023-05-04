@@ -1130,14 +1130,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 }
 
 public class DefaultModuleDefinition : ModuleDefinition {
-  public DefaultModuleDefinition()
+
+  public IList<Uri> RootUris { get; }
+  public DefaultModuleDefinition(IList<Uri> rootUris)
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
+    RootUris = rootUris;
   }
-  public override bool IsDefaultModule {
-    get {
-      return true;
-    }
-  }
+
+  public override bool IsDefaultModule => true;
 }
 
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {

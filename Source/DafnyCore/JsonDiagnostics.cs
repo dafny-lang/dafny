@@ -117,6 +117,6 @@ public class JsonConsoleErrorReporter : BatchErrorReporter {
     return false;
   }
 
-  public JsonConsoleErrorReporter(DafnyOptions options) : base(options) {
+  public JsonConsoleErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
   }
 }

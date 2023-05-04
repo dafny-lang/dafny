@@ -75,7 +75,7 @@ namespace DafnyPipeline.Test {
         }
 
         // Formatting should work after resolution as well.
-        Main.Resolve(dafnyProgram, reporter);
+        Main.Resolve(dafnyProgram);
         reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))

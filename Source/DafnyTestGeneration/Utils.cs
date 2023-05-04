@@ -75,16 +75,16 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+      ModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
       var builtIns = new BuiltIns(options);
-      var reporter = new BatchErrorReporter(options);
-      var tempProgram = new Program(uri.LocalPath, new List<Uri>() { uri }, module, builtIns, reporter);
+      var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
       var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = tempProgram;
+        program = new Program(uri.LocalPath, module, builtIns, reporter);
       }
       if (program == null) {
         return null;
@@ -95,8 +95,8 @@ namespace DafnyTestGeneration {
       }
 
       // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
-      program.Reporter = new ErrorReporterSink(options);
+      new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
+      program.Reporter = new ErrorReporterSink(options, defaultModuleDefinition);
       new Resolver(program).ResolveProgram(program);
       return program;
     }

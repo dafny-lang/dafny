@@ -22,7 +22,7 @@ namespace DafnyPipeline.Test {
 
       var programString = @"trait Trait<A, B> { }";
       var dafnyProgram = Utils.Parse(options, programString, false);
-      Main.Resolve(dafnyProgram, dafnyProgram.Reporter);
+      Main.Resolve(dafnyProgram);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
         var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);

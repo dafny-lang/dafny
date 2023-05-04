@@ -47,15 +47,6 @@ public class PluginsTest {
     return assemblyPath;
   }
 
-  class CollectionErrorReporter : BatchErrorReporter {
-    public string GetLastErrorMessage() {
-      return AllMessages[ErrorLevel.Error][0].Message;
-    }
-
-    public CollectionErrorReporter(DafnyOptions options) : base(options) {
-    }
-  }
-
   [Fact]
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
@@ -66,7 +57,7 @@ public class PluginsTest {
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram, reporter);
+    Main.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
     Assert.Equal("Impossible to continue because whatever", reporter.AllMessages[ErrorLevel.Error][0].Message);
@@ -82,7 +73,7 @@ public class PluginsTest {
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram, reporter);
+    Main.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.AllMessages[ErrorLevel.Error][0].Message);
   }
@@ -97,7 +88,7 @@ public class PluginsTest {
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram, reporter);
+    Main.Resolve(dafnyProgram);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
   }

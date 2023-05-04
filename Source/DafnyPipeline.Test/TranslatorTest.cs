@@ -85,17 +85,18 @@ method Test(x: int, y: int) returns (z: int) {
     var expectedLine = program.Split("// Here")[0].Count(c => c == '\n') + 1;
     Microsoft.Dafny.Type.ResetScopes();
     options = options ?? new DafnyOptions();
-    BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var builtIns = new BuiltIns(options);
-    var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     var uri = new Uri("virtual:///virtual");
-    var dafnyProgram = new Program("programName", new List<Uri>() {uri}, module, builtIns, reporter);
+    var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+    var module = new LiteralModuleDecl(defaultModuleDefinition, null);
+    BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
+    var builtIns = new BuiltIns(options);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
     Parser.Parse(program, uri, module, builtIns, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
-    Main.Resolve(dafnyProgram, reporter);
+    Main.Resolve(dafnyProgram);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

@@ -222,31 +222,38 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
+    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, DafnyOptions options, out Program program)
     //modifies Bpl.options.XmlSink.*;
     {
-      string err = Parse(files, programName, reporter, out program);
+      string err = Parse(files, programName, options, out program);
       if (err != null) {
         return err;
       }
 
-      return Resolve(program, reporter);
+      return Resolve(program);
     }
 
-    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program) {
+    public static string Parse(IList<DafnyFile> files, string programName, DafnyOptions options, out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      BuiltIns builtIns = new BuiltIns(reporter.Options);
-      var tempProgram = new Program(programName, files.Select(f => f.Uri).ToList(), module, builtIns, reporter);
+
+      var defaultModuleDefinition = new DefaultModuleDefinition(files.Select(f => f.Uri).ToList());
+      ErrorReporter reporter = options.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
+      LiteralModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
+      BuiltIns builtIns = new BuiltIns(options);
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (reporter.Options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
-          reporter.Options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
+        if (options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
+          options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (reporter.Options.Trace) {
+        if (options.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -260,35 +267,35 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (!(reporter.Options.DisallowIncludes || reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
+      if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
         string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
       }
 
-      if (reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
+      if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
         dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
         dmap.PrintMap();
       }
 
-      program = tempProgram;
-      
-      MaybePrintProgram(program, reporter.Options.DafnyPrintFile, false);
+      program = new Program(programName, module, builtIns, reporter);
+
+      MaybePrintProgram(program, options.DafnyPrintFile, false);
 
       return null; // success
     }
 
-    public static string Resolve(Program program, ErrorReporter reporter) {
-      if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
+    public static string Resolve(Program program) {
+      if (program.Options.NoResolve || program.Options.NoTypecheck) { return null; }
 
       var r = new Resolver(program);
       r.ResolveProgram(program);
-      MaybePrintProgram(program, reporter.Options.DafnyPrintResolvedFile, true);
+      MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
+      if (program.Reporter.ErrorCountUntilResolver != 0) {
+        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error), program.Name);
       }
 
       return null;  // success

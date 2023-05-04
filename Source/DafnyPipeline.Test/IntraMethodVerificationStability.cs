@@ -239,7 +239,7 @@ module SomeModule {
       var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
       BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
       Assert.NotNull(dafnyProgram);
-      Main.Resolve(dafnyProgram, reporter);
+      Main.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
       return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }

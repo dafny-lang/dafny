@@ -16,19 +16,20 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private readonly DafnyOptions options;
     private readonly ExecutionEngine engine;
     private string[] args;
 
-    private readonly ErrorReporter reporter;
+    private ErrorReporter reporter;
     private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
 
     public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
+      this.options = options;
       this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
-      reporter = new ConsoleErrorReporter(options);
     }
 
     public bool Verify() {
@@ -39,14 +40,15 @@ namespace Microsoft.Dafny {
     private DafnyOptions Options => reporter.Options;
 
     private bool Parse() {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      BuiltIns builtIns = new BuiltIns(Options);
       var uri = new Uri("transcript:///" + fname);
-      var program = new Program(fname, new List<Uri>() { uri }, module, builtIns, reporter);
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+      ModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
+      reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
+      BuiltIns builtIns = new BuiltIns(Options);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
                      Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = program;
+        dafnyProgram = new Program(fname, module, builtIns, reporter);
       }
       return success;
     }

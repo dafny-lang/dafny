@@ -55,7 +55,7 @@ public class MatchFlattener : IRewriter {
     }
     foreach (var compileModule in program.CompileModules) {
       var reporter = Reporter;
-      Reporter = new ErrorReporterSink(program.Options);
+      Reporter = new ErrorReporterSink(program.Options, program.DefaultModuleDef);
       FlattenNode(compileModule);
       Reporter = reporter;
     }
