@@ -23,8 +23,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public void DocumentWithParserExceptionDisplaysIt() {
       var source = "function t() { / }";
-      var options = DafnyOptions.DefaultImmutableOptions;
+      var options = new DafnyOptions(DafnyOptions.DefaultImmutableOptions);
       var documentItem = CreateTestDocument(source, TestFilePath);
+      options.RootUris.Add(new Uri("file:///" + TestFilePath));
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
       parser.Parse(documentItem, errorReporter, default);
       Assert.Equal($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
