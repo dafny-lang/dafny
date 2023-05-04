@@ -919,9 +919,8 @@ namespace Microsoft.Dafny {
     }
 
     public override Expression CloneExpr(Expression expr) {
-      var me = expr as MatchExpr;
-      if (me != null && me.OrigUnresolved != null) {
-        return CloneExpr(me.OrigUnresolved);
+      if (expr is MatchExpr { OrigUnresolved: { } origUnresolved }) {
+        return CloneExpr(origUnresolved);
       }
       return base.CloneExpr(expr);
     }
