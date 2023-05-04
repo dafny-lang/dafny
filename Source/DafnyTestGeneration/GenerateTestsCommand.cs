@@ -18,6 +18,7 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverPath,
+      BoogieOptionBag.SolverPlugin,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       Verbose,
@@ -52,6 +53,8 @@ public class GenerateTestsCommand : ICommandSpec {
     copy.ProverOptions.AddRange(options.ProverOptions);
     copy.ResourceLimit = options.ResourceLimit;
     copy.TimeLimit = options.TimeLimit;
+    copy.ProverDllName = options.ProverDllName;
+    copy.TheProverFactory = options.TheProverFactory;
     copy.TestGenOptions.Verbose = options.TestGenOptions.Verbose;
     copy.TestGenOptions.PrintBpl = options.TestGenOptions.PrintBpl;
     copy.TestGenOptions.DisablePrune = options.TestGenOptions.DisablePrune;
