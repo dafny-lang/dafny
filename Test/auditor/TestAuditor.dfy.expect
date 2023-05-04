@@ -19,7 +19,7 @@ TestAuditor.dfy(50,17): Warning: GenerateBytesWithModel: Declaration with `{:ext
 TestAuditor.dfy(60,2): Warning: GenerateBytesWrapper: Definition has `assume` statement in body. Possible mitigation: Replace with `assert` and prove.
 TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
 TestAuditor.dfy(68,17): Warning: GenerateBytesNoGuarantee: Declaration with `{:extern}` has a requires clause. Possible mitigation: Test any external callers (maybe with `/testContracts`).
-TestAuditor.dfy(72,19): Warning: ExternFunction: Function with `{:extern}` attribute. Possible mitigation: Turn into a `method` or test thoroughly for lack of side effects.
+TestAuditor.dfy(72,19): Warning: ExternFunction: Function with `{:extern}` attribute. Possible mitigation: Turn into a `method` with `modifies *` or test thoroughly for lack of side effects.
 TestAuditor.dfy(72,19): Warning: ExternFunction: Declaration with `{:extern}` has a ensures clause. Possible mitigation: Test external callee (maybe with `/testContracts`).
 TestAuditor.dfy(83,7): Warning: DoesNotTerminate: Method may not terminate (uses `decreases *`). Possible mitigation: Provide a valid `decreases` clause.
 TestAuditor.dfy(95,4): Warning: ForallWithoutBody: Definition contains `forall` statement with no body. Possible mitigation: Provide a body.

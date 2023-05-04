@@ -13,7 +13,7 @@
 | GenerateBytesWrapper | True | False | False | Definition has `assume` statement in body. | Replace with `assert` and prove. |
 | GenerateBytesNoGuarantee | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
 | GenerateBytesNoGuarantee | True | False | True | Declaration with `{:extern}` has a requires clause. | Test any external callers (maybe with `/testContracts`). |
-| ExternFunction | True | False | True | Function with `{:extern}` attribute. | Turn into a `method` or test thoroughly for lack of side effects. |
+| ExternFunction | True | False | True | Function with `{:extern}` attribute. | Turn into a `method` with `modifies *` or test thoroughly for lack of side effects. |
 | ExternFunction | True | False | True | Declaration with `{:extern}` has a ensures clause. | Test external callee (maybe with `/testContracts`). |
 | DoesNotTerminate | True | False | False | Method may not terminate (uses `decreases *`). | Provide a valid `decreases` clause. |
 | ForallWithoutBody | False | False | False | Definition contains `forall` statement with no body. | Provide a body. |

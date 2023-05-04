@@ -46,7 +46,7 @@
 <tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove.</td></tr>
 <tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test any external callers (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test any external callers (maybe with <code>/testContracts</code>).</td></tr>
-<tr><td>ExternFunction</td><td>True</td><td>False</td><td>True</td><td>Function with <code>{:extern}</code> attribute.</td><td>Turn into a <code>method</code> or test thoroughly for lack of side effects.</td></tr>
+<tr><td>ExternFunction</td><td>True</td><td>False</td><td>True</td><td>Function with <code>{:extern}</code> attribute.</td><td>Turn into a <code>method</code> with <code>modifies *</code> or test thoroughly for lack of side effects.</td></tr>
 <tr><td>ExternFunction</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a ensures clause.</td><td>Test external callee (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>DoesNotTerminate</td><td>True</td><td>False</td><td>False</td><td>Method may not terminate (uses <code>decreases *</code>).</td><td>Provide a valid <code>decreases</code> clause.</td></tr>
 <tr><td>ForallWithoutBody</td><td>False</td><td>False</td><td>False</td><td>Definition contains <code>forall</code> statement with no body.</td><td>Provide a body.</td></tr>

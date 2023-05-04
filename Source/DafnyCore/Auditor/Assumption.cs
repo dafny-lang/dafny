@@ -25,8 +25,8 @@ public record AssumptionDescription(
     allowedInLibraries: false);
   public static AssumptionDescription ExternFunction = new(
     issue: "Function with [{:extern}] attribute.",
-    mitigation: "Turn into a [method] or test thoroughly for lack of side effects.",
-    mitigationIETF: "SHOULD use [method] instead.",
+    mitigation: "Turn into a [method] with [modifies *] or test thoroughly for lack of side effects.",
+    mitigationIETF: "SHOULD use [method] with [modifies *] instead.",
     isExplicit: false,
     allowedInLibraries: false);
   public static AssumptionDescription ExternWithPrecondition = new(
@@ -68,7 +68,7 @@ public record AssumptionDescription(
   public static AssumptionDescription HasTerminationFalseAttribute = new(
     issue: "Trait method calls may not terminate (uses [{:termination false}]).",
     mitigation: "Remove if possible.",
-    mitigationIETF: "MUST remove or justify.",
+    mitigationIETF: "MUST remove [{:termination false}] or justify.",
     isExplicit: false,
     allowedInLibraries: false);
   public static AssumptionDescription ForallWithoutBody = new(

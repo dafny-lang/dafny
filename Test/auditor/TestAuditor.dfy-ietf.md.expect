@@ -2,7 +2,7 @@
 
 ## Type `T`
 
-* Trait method calls may not terminate (uses `{:termination false}`). MUST remove or justify.
+* Trait method calls may not terminate (uses `{:termination false}`). MUST remove `{:termination false}` or justify.
 
 ## Top level
 
@@ -48,7 +48,7 @@
 
 ### Member `ExternFunction`
 
-* Function with `{:extern}` attribute. SHOULD use `method` instead.
+* Function with `{:extern}` attribute. SHOULD use `method` with `modifies *` instead.
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
