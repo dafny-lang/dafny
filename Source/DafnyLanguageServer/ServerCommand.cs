@@ -2,15 +2,27 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer;
 
 public class ServerCommand : ICommandSpec {
+  public static readonly ServerCommand Instance = new();
+
+  private ServerCommand() {
+  }
 
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
+
+    DooFile.RegisterNoChecksNeeded(
+      Verification,
+      GhostIndicators,
+      LineVerificationStatus,
+      VerifySnapshots
+    );
   }
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",
@@ -53,8 +65,7 @@ Send notifications about the verification status of each line in the program.
     Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
-    var command = new Command("server", "Start the Dafny language server");
-    return command;
+    return new Command("server", "Start the Dafny language server");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {

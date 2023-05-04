@@ -178,6 +178,7 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
+  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
@@ -1539,9 +1540,12 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
+  ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
+    (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
+  |
+    CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+    [ ellipsis ]
+    [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
@@ -1549,7 +1553,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+    OldSemi                                  (. c.TokenWithTrailingDocString = t; .)
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -2195,12 +2200,12 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
-                        { RangeToken = range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
     { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
-                        { RangeToken = range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
     }
   ]
@@ -2923,7 +2928,7 @@ OneStmt<out Statement/*!*/ s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | ForLoopStmt<out s>
-  | AssertStmt<out s, false>
+  | AssertStmt<out s>
   | AssumeStmt<out s>
   | BreakStmt<out s>
   | CalcStmt<out s>
@@ -3639,7 +3644,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
   .
 
 /*------------------------------------------------------------------------*/
-AssertStmt<out Statement/*!*/ s, bool inExprContext>
+AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
@@ -3650,13 +3655,16 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   .)
   "assert"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( [ IF(IsLabel(!inExprContext))
+  ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
+    | (.
+        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+      .)
     )
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
@@ -4677,7 +4685,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 /*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
-  ( AssertStmt<out s, true>
+  ( AssertStmt<out s>
   | ExpectStmt<out s>
   | AssumeStmt<out s>
   | RevealStmt<out s>

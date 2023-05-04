@@ -99,7 +99,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           case DatatypeDecl dataTypeDeclaration:
             return ProcessDataType(moduleSymbol, dataTypeDeclaration);
           default:
-            logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
+            logger.LogTrace("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
             return null;
         }
       }
@@ -276,7 +276,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void VisitUnknown(object node, IToken token) {
-        logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
+        logger.LogTrace("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
