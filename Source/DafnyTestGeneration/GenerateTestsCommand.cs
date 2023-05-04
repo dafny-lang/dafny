@@ -4,7 +4,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
 using DafnyCore;
-using Microsoft.Boogie.SMTLib;
 
 namespace Microsoft.Dafny;
 
