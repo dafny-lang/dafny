@@ -38,6 +38,8 @@ public class GenerateTestsCommand : ICommandSpec {
   /// parameter in everything except the value of the ProcsToCheck field that
   /// determines the procedures to be verified and should be set to the value of
   /// the <param name="procedureToVerify"></param> parameter.
+  /// Note that this cannot be refactored to yse the DafnyOptions.CopyTo method
+  /// because we have to modify ProcsToCheck list, which does not have a setter.
   /// </summary>
   internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
     var copy = DafnyOptions.Create(new[] { "/proc:" + procedureToVerify });
