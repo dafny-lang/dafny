@@ -43,7 +43,10 @@ public record AssumptionDescription(
     allowedInLibraries: false);
   public static AssumptionDescription AssumeStatement(bool hasAxiomAttribute) {
     return new(
-      issue: "Definition has [assume] statement in body.",
+      issue:
+      hasAxiomAttribute
+        ? "Definition has [assume {:axiom}] statement in body."
+        : "Definition has [assume] statement in body.",
       mitigation:
         hasAxiomAttribute
           ? "Replace with [assert] and prove."

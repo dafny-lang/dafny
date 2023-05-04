@@ -41,7 +41,7 @@
 <tr><td>GenerateBytes</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test any external callers (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a ensures clause.</td><td>Test external callee (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>GenerateBytesWithModel</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test any external callers (maybe with <code>/testContracts</code>).</td></tr>
-<tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume</code> statement in body.</td><td>Replace with <code>assert</code> and prove.</td></tr>
+<tr><td>GenerateBytesWrapper</td><td>True</td><td>False</td><td>False</td><td>Definition has <code>assume {:axiom}</code> statement in body.</td><td>Replace with <code>assert</code> and prove.</td></tr>
 <tr><td>GenerateBytesNoGuarantee</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a requires clause.</td><td>Test any external callers (maybe with <code>/testContracts</code>).</td></tr>
 <tr><td>ExternFunction</td><td>True</td><td>False</td><td>True</td><td>Function with <code>{:extern}</code> attribute.</td><td>Turn into a <code>method</code> with <code>modifies *</code> or test thoroughly for lack of side effects.</td></tr>
 <tr><td>ExternFunction</td><td>True</td><td>False</td><td>True</td><td>Declaration with <code>{:extern}</code> has a ensures clause.</td><td>Test external callee (maybe with <code>/testContracts</code>).</td></tr>

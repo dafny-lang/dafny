@@ -34,7 +34,7 @@
 
 ### Member `GenerateBytesWrapper`
 
-* Definition has `assume` statement in body. SHOULD replace with `assert` and prove.
+* Definition has `assume {:axiom}` statement in body. SHOULD replace with `assert` and prove.
 
 ### Member `GenerateBytesNoGuarantee`
 
@@ -68,7 +68,7 @@
 
 * Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
 
-* Definition has `assume` statement in body. SHOULD replace with `assert` and prove.
+* Definition has `assume {:axiom}` statement in body. SHOULD replace with `assert` and prove.
 
 * Definition contains `forall` statement with no body. MUST provide a body.
 
