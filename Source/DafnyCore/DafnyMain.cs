@@ -138,6 +138,7 @@ namespace Microsoft.Dafny {
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
         try {
+          // The cast to MemberReferenceHandle is an explicit operator that uses internal properties and throws a cast exception in some cases.
           var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
           var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
           if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
@@ -149,20 +150,6 @@ namespace Microsoft.Dafny {
           // and there's no way I can see to test if the cases will succeed ahead of time.
         }
       }
-      // TODO why doesn't this work?
-      // foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
-      //   var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-      //   if (((object)attr.Constructor) is not MemberReferenceHandle memberReferenceHandle) {
-      //     continue;
-      //   }
-      //
-      //   var constructor = dllMetadataReader.GetMemberReference(memberReferenceHandle);
-      //   var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-      //   if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-      //     var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-      //     return (string)decoded.FixedArguments[0].Value;
-      //   }
-      // }
 
       return null;
     }

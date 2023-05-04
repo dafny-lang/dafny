@@ -600,10 +600,27 @@ module ModC {
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Equal(2, diagnostics.Length);
-      Assert.Equal("Parser", diagnostics[1].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
-      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[1].Range);
+      Assert.Single(diagnostics);
+      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
+    }
+
+    [Fact]
+    public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
+      var source = "include \"semanticError.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(diagnostics);
+      Assert.Equal("Resolver", diagnostics[0].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.Equal(new Range((0, 8), (0, 27)), diagnostics[0].Range);
+      // Assert.Equal(2, diagnostics.Length);
+      // Assert.Equal("Parser", diagnostics[1].Source);
+      // Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
+      // Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[1].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

@@ -20,11 +20,6 @@ public class IncludedLemmaBodyRemover : IRewriter {
   private static readonly BlockStmt EmptyBody = new(Token.NoToken.ToRange(), new List<Statement>());
 
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
-    // TODO
-    // var moduleFile = moduleDefinition.Tok.Uri;
-    // if (moduleFile == null) {
-    //   return; // The default module doesn't refine any modules
-    // }
     foreach (var method in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
                SelectMany(withMembers => withMembers.Members.OfType<Method>())) {
       if (method.Body != null && method.IsLemmaLike && method.Tok.IsIncludeToken(program)) {

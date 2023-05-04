@@ -140,10 +140,7 @@ public abstract class TokenWrapper : IToken {
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
-  public virtual string Filepath {
-    get { return WrappedToken.Filepath; }
-    set { WrappedToken.filename = value; } // TODO fix?
-  }
+  public virtual string Filepath => WrappedToken.Filepath;
 
   public Uri Uri {
     get => WrappedToken.Uri;

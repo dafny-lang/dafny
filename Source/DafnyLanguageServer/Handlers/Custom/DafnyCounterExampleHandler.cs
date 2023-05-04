@@ -67,8 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           return new CounterExampleList();
         }
 
-        var models = GetLanguageSpecificModels(ideState.Counterexamples);
-        var counterExamples = models
+        var counterExamples = GetLanguageSpecificModels(ideState.Counterexamples)
           .SelectMany(GetCounterExamples)
           .WithCancellation(cancellationToken)
           .ToArray();

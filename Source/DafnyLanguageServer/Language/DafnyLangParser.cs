@@ -149,7 +149,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           compileThisFile: false
         );
         if (errorCount != 0) {
-          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.IncludedFilename}");
           return false;
         }
       } catch (IllegalDafnyFile e) {

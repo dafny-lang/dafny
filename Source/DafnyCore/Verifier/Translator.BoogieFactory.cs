@@ -884,18 +884,11 @@ namespace Microsoft.Dafny {
       } else if (exprTok == Boogie.Token.NoToken) {
         return Token.NoToken;
       } else {
-
-        Uri uri = null;
-        // try {
-        //   uri = new Uri(exprTok.filename);
-        // } catch (UriFormatException) {
-        //
-        // }
         // These boogie Tokens can be created by TokenTextWriter
         // This is defensive programming but we aren't expecting to hit this case
         return new Token {
           col = exprTok.col,
-          Uri = uri,
+          Uri = new Uri("untitled:" + exprTok.filename),
           kind = exprTok.kind,
           LeadingTrivia = "",
           line = exprTok.line,

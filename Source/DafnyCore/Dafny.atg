@@ -1042,9 +1042,6 @@ Dafny
     // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
 		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
-		   //var fileName = theOptions.UseBaseNameForFileName
-           //        ? Path.GetFileName(scanner.FullFilename) 
-           //        : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
 		   errors.Warning(new Token(1, 1) { Uri = la.Uri }, "File contains no code");
 		 }
      DefaultClassDecl defaultClass = null;

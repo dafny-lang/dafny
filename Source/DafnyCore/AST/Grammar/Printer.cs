@@ -974,7 +974,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     private bool PrintModeSkipGeneral(IToken tok, string fileBeingPrinted) {
       return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost)
-             && tok.Uri != null && fileBeingPrinted != null && tok.Uri.LocalPath != fileBeingPrinted; // fix comparison?
+             && tok.Uri != null && fileBeingPrinted != null && tok.Uri.LocalPath != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
