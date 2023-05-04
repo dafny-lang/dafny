@@ -57,7 +57,6 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
 
     if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
-      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     if (AllowsNontermination) {

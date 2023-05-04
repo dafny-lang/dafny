@@ -26,13 +26,9 @@
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
-* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
-
 ### Member `GenerateBytesWithModel`
 
 * Declaration with `{:extern}` has a ensures clause. MUST test external callee.
-
-* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
@@ -41,8 +37,6 @@
 * Definition has `assume` statement in body. SHOULD replace with `assert` and prove.
 
 ### Member `GenerateBytesNoGuarantee`
-
-* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 * Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
