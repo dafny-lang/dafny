@@ -33,12 +33,12 @@ public class GenerateTestsCommand : ICommandSpec {
   }
 
   /// <summary>
-  /// Return the copy of a given DafnyOption instance that (for the purposes
+  /// Return a copy of the given DafnyOption instance that (for the purposes
   /// of test generation) is identical to the <param name="options"></param>
   /// parameter in everything except the value of the ProcsToCheck field that
   /// determines the procedures to be verified and should be set to the value of
   /// the <param name="procedureToVerify"></param> parameter.
-  /// Note that this cannot be refactored to yse the DafnyOptions.CopyTo method
+  /// Note that this cannot be refactored to use the DafnyOptions.CopyTo method
   /// because we have to modify ProcsToCheck list, which does not have a setter.
   /// </summary>
   internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
