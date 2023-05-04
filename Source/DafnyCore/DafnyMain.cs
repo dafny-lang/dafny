@@ -225,7 +225,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(files != null);
       program = null;
 
-      var defaultModuleDefinition = new DefaultModuleDefinition(files.Select(f => f.Uri).ToList());
+      var defaultModuleDefinition = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
+        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }

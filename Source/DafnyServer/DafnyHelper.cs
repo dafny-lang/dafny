@@ -33,18 +33,16 @@ namespace Microsoft.Dafny {
     }
 
     public bool Verify() {
-      ServerUtils.ApplyArgs(args, Options);
+      ServerUtils.ApplyArgs(args, options);
       return Parse() && Resolve() && Translate() && Boogie();
     }
-
-    private DafnyOptions Options => reporter.Options;
 
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
       ModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
-      BuiltIns builtIns = new BuiltIns(Options);
+      BuiltIns builtIns = new BuiltIns(options);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
                      Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
@@ -61,12 +59,12 @@ namespace Microsoft.Dafny {
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags(Options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve(Options) == 0 && boogieProgram.Typecheck(Options) == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(options) == 0 && boogieProgram.Typecheck(options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
@@ -95,7 +93,7 @@ namespace Microsoft.Dafny {
     }
 
     public void Symbols() {
-      ServerUtils.ApplyArgs(args, Options);
+      ServerUtils.ApplyArgs(args, options);
       if (Parse() && Resolve()) {
         var symbolTable = new LegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
@@ -108,14 +106,14 @@ namespace Microsoft.Dafny {
     public void CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), Options);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
         if (Parse() && Resolve() && Translate()) {
           var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
-            var model = counterExampleProvider.LoadCounterModel(Options);
+            var model = counterExampleProvider.LoadCounterModel(options);
             Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
@@ -131,7 +129,7 @@ namespace Microsoft.Dafny {
     }
 
     public void DotGraph() {
-      ServerUtils.ApplyArgs(args, Options);
+      ServerUtils.ApplyArgs(args, options);
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
