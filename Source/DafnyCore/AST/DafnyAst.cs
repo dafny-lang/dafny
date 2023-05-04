@@ -39,6 +39,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    public IList<Uri> RootUris { get; }
+    
     public List<Include> Includes => DefaultModuleDef.Includes;
 
     public readonly string FullName;
@@ -55,11 +57,13 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, IList<Uri> rootUris, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(module is LiteralModuleDecl);
       Contract.Requires(reporter != null);
+      reporter.Program = this;
+      RootUris = rootUris;
       FullName = name;
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;

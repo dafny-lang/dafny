@@ -75,16 +75,16 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      options.RootUris.Add(uri);
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       var builtIns = new BuiltIns(options);
       var reporter = new BatchErrorReporter(options);
+      var tempProgram = new Program(uri.LocalPath, new List<Uri>() { uri }, module, builtIns, reporter);
       var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
       Program/*?*/ program = null;
       if (success) {
-        program = new Program(uri.LocalPath, module, builtIns, reporter);
+        program = tempProgram;
       }
       if (program == null) {
         return null;

@@ -42,11 +42,11 @@ namespace Microsoft.Dafny {
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns(Options);
       var uri = new Uri("transcript:///" + fname);
-      Options.RootUris.Add(uri);
+      var program = new Program(fname, new List<Uri>() { uri }, module, builtIns, reporter);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
                      Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Program(fname, module, builtIns, reporter);
+        dafnyProgram = program;
       }
       return success;
     }

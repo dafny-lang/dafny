@@ -29,17 +29,13 @@ namespace Microsoft.Dafny {
       this.Options = options;
     }
 
-    public ModuleDefinition ModuleDefinition {
-      get;
-      set;
-    }
-
     public bool ErrorsOnly { get; set; }
 
     public bool HasErrors => ErrorCount > 0;
     public int ErrorCount => Count(ErrorLevel.Error);
     public bool HasErrorsUntilResolver => ErrorCountUntilResolver > 0;
     public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
+    public Program Program { get; set; }
 
     public abstract bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
 
@@ -49,8 +45,8 @@ namespace Microsoft.Dafny {
     public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (tok.IsIncludeToken(Options) && ModuleDefinition != null) {
-        var include = ModuleDefinition.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
+      if (tok.IsIncludeToken(Program) && Program != null) {
+        var include = Program.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;

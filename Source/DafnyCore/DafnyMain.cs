@@ -239,6 +239,7 @@ namespace Microsoft.Dafny {
       program = null;
       LiteralModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
       BuiltIns builtIns = new BuiltIns(reporter.Options);
+      var tempProgram = new Program(programName, files.Select(f => f.Uri).ToList(), module, builtIns, reporter);
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
@@ -272,8 +273,8 @@ namespace Microsoft.Dafny {
         dmap.PrintMap();
       }
 
-      program = new Program(programName, module, builtIns, reporter);
-
+      program = tempProgram;
+      
       MaybePrintProgram(program, reporter.Options.DafnyPrintFile, false);
 
       return null; // success

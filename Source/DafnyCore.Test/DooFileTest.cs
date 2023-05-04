@@ -34,8 +34,10 @@ public class DooFileTest {
     Microsoft.Dafny.Type.ResetScopes();
     var builtIns = new BuiltIns(options);
     var errorReporter = new ConsoleErrorReporter(options);
-    var parseResult = Parser.Parse(dafnyProgramText, new Uri(fullFilePath), module, builtIns, errorReporter);
+    var rootUri = new Uri(fullFilePath);
+    var program = new Program(fullFilePath, new List<Uri> { rootUri }, module, builtIns, errorReporter);
+    var parseResult = Parser.Parse(dafnyProgramText, rootUri, module, builtIns, errorReporter);
     Assert.Equal(0, parseResult);
-    return new Program(fullFilePath, module, builtIns, errorReporter);
+    return program;
   }
 }

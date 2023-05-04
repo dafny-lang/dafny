@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public IList<Uri> RootUris = new List<Uri>();
+    public IList<Uri> CliRootUris = new List<Uri>();
 
     public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
@@ -148,7 +148,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.RootUris.Add(new Uri(Path.GetFullPath(file)));
+      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 

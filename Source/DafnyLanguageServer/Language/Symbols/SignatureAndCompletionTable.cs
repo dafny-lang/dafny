@@ -1,4 +1,5 @@
-﻿using IntervalTree;
+﻿using System;
+using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -7,6 +8,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -46,6 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
           textDocument.Uri.ToString(),
+          new List<Uri>() { textDocument.Uri.ToUri()},
           new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation

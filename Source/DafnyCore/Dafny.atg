@@ -187,7 +187,6 @@ public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
     firstToken = new Token(); // It's an included file
   }
   Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-  errors.Reporting.ModuleDefinition = ((LiteralModuleDecl)module).ModuleDef;
   return new Parser(scanner, errors, module, builtIns, verifyThisFile, compileThisFile);
 }
 

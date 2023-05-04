@@ -56,8 +56,6 @@ public class Compilation {
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
     this.options = options;
-    options.RootUris.Clear();
-    options.RootUris.Add(textBuffer.Uri.ToUri());
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();

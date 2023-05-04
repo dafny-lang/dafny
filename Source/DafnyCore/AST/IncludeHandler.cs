@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public static class IncludeHandler {
-  public static bool IsIncludeToken(this IToken token, DafnyOptions options) {
+  public static bool IsIncludeToken(this IToken token, Program program) {
     if (token is RefinementToken) {
       return false;
     }
@@ -14,7 +14,7 @@ public static class IncludeHandler {
       return false;
     }
 
-    var files = options.RootUris;
+    var files = program.RootUris;
     if (files.Contains(token.Uri)) {
       return false;
     }
