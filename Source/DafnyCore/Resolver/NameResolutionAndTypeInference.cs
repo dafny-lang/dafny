@@ -1633,7 +1633,11 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
           if (super.Equals(sub)) {
-            return new List<int>();
+            if (sub is UserDefinedType subUserDefinedType) {
+              return subUserDefinedType.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
+            } else {
+              return new List<int>();
+            }
           } else {
             return null;
           }
@@ -4008,6 +4012,17 @@ namespace Microsoft.Dafny {
           } else {
             var rr = DominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+          }
+        }
+
+        if (assertStmt != null && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
+            "Assertion with {:only} temporarily transforms other assertions into assumptions");
+          if (attribute.Args.Count >= 1
+              && attribute.Args[0] is LiteralExpr { Value: string value }
+              && value != "before" && value != "after") {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+              "{:only} only accepts \"before\" or \"after\" as an optional argument");
           }
         }
         ResolveExpression(s.Expr, resolutionContext);
