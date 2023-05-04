@@ -18,21 +18,6 @@ namespace DafnyTestGeneration {
 
   public static class Utils {
 
-    public static void SetProverOptionsBasedOnZ3Version(DafnyOptions options) {
-      var proverOptions = new SMTLibSolverOptions(options);
-      proverOptions.Parse(options.ProverOptions);
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      options.ProverOptions.AddRange(new List<string>() {
-        "O:model_evaluator.completion=true",
-        "O:model.completion=true"
-      });
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
-        options.ProverOptions.Insert(0, "O:model_compress=false");
-      } else {
-        options.ProverOptions.Insert(0, "O:model.compact=false");
-      }
-    }
-
     /// <summary>
     /// Call Translator with larger stack to prevent stack overflow
     /// </summary>

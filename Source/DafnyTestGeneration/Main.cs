@@ -25,7 +25,6 @@ namespace DafnyTestGeneration {
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
       var cache = new Modifications();
-      Utils.SetProverOptionsBasedOnZ3Version(program.Options);
       var modifications = GetModifications(cache, program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
@@ -116,7 +115,6 @@ namespace DafnyTestGeneration {
       // Generate tests based on counterexamples produced from modifications
 
       var cache = new Modifications();
-      Utils.SetProverOptionsBasedOnZ3Version(program.Options);
       var programModifications = GetModifications(cache, program).ToList();
       foreach (var modification in programModifications) {
 
