@@ -70,30 +70,18 @@ namespace DafnyTestGeneration {
     /// options.Parse() on a new DafnyObject.
     /// </summary>
     private static DafnyOptions SetupOptions(DafnyOptions original, string procedure) {
-      var options = DafnyOptions.Create();
-      options.Parse(new[] { "/proc:" + procedure });
+      var options = DafnyOptions.Create(new[] { "/proc:" + procedure });
+      options.ProverOptions.Clear();
+      options.ProverOptions.AddRange(original.ProverOptions);
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
       options.ErrorTrace = 1;
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
-      var proverOptions = new SMTLibSolverOptions(original);
-      proverOptions.Parse(original.ProverOptions);
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      options.ProverOptions = new List<string>() {
-        "O:model_evaluator.completion=true",
-        "O:model.completion=true"
-      };
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
-        options.ProverOptions.Insert(0, "O:model.compress=false");
-      } else {
-        options.ProverOptions.Insert(0, "O:model.compact=false");
-      }
       options.ResourceLimit = original.ResourceLimit;
       options.ProverLogFilePath = original.ProverLogFilePath;
       options.ProverLogFileAppend = original.ProverLogFileAppend;
       options.Prune = !original.TestGenOptions.DisablePrune;
-      options.ProverOptions.AddRange(original.ProverOptions);
       options.LoopUnrollCount = original.LoopUnrollCount;
       options.DefiniteAssignmentLevel = original.DefiniteAssignmentLevel;
       options.WarnShadowing = original.WarnShadowing;
