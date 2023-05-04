@@ -10,15 +10,15 @@ namespace Microsoft.Dafny;
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
+      // IMPORTANT: Before adding new options, make sure they are
+      // appropriately copied over in the CopyForProcedure method below
       LoopUnroll,
       SequenceLengthLimit,
       Target,
       TestInlineDepth,
-      BoogieOptionBag.BoogieArguments,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverPath,
-      BoogieOptionBag.SolverPlugin,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
       Verbose,
@@ -30,6 +30,48 @@ public class GenerateTestsCommand : ICommandSpec {
   private enum Mode {
     Path,
     Block
+  }
+
+  /// <summary>
+  /// Return a copy of the given DafnyOption instance that (for the purposes
+  /// of test generation) is identical to the <param name="options"></param>
+  /// parameter in everything except the value of the ProcsToCheck field that
+  /// determines the procedures to be verified and should be set to the value of
+  /// the <param name="procedureToVerify"></param> parameter.
+  /// Note that this cannot be refactored to use the DafnyOptions.CopyTo method
+  /// because we have to modify ProcsToCheck list, which does not have a setter.
+  /// </summary>
+  internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
+    var copy = DafnyOptions.Create(new[] { "/proc:" + procedureToVerify });
+    // Options set by the user:
+    copy.LoopUnrollCount = options.LoopUnrollCount;
+    copy.TestGenOptions.SeqLengthLimit = options.TestGenOptions.SeqLengthLimit;
+    copy.TestGenOptions.TargetMethod = options.TestGenOptions.TargetMethod;
+    copy.TestGenOptions.TestInlineDepth = options.TestGenOptions.TestInlineDepth;
+    copy.ProverLogFilePath = options.ProverLogFilePath;
+    copy.ProverLogFileAppend = options.ProverLogFileAppend;
+    copy.ProverOptions.Clear();
+    copy.ProverOptions.AddRange(options.ProverOptions);
+    copy.ResourceLimit = options.ResourceLimit;
+    copy.TimeLimit = options.TimeLimit;
+    copy.TestGenOptions.Verbose = options.TestGenOptions.Verbose;
+    copy.TestGenOptions.PrintBpl = options.TestGenOptions.PrintBpl;
+    copy.TestGenOptions.DisablePrune = options.TestGenOptions.DisablePrune;
+    copy.Prune = !options.TestGenOptions.DisablePrune;
+    // Options set by default in PostProcess:
+    copy.CompilerName = options.CompilerName;
+    copy.Compile = options.Compile;
+    copy.RunAfterCompile = options.RunAfterCompile;
+    copy.ForceCompile = options.ForceCompile;
+    copy.CompileVerbose = options.CompileVerbose;
+    copy.DeprecationNoise = options.DeprecationNoise;
+    copy.ForbidNondeterminism = options.ForbidNondeterminism;
+    copy.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
+    copy.TestGenOptions.Mode = options.TestGenOptions.Mode;
+    copy.TestGenOptions.WarnDeadCode = options.TestGenOptions.WarnDeadCode;
+    // Options that may be modified by Test Generation itself:
+    copy.VerifyAllModules = options.VerifyAllModules;
+    return copy;
   }
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
@@ -44,6 +86,8 @@ path - Prints path-coverage tests for the given program.");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    // IMPORTANT: Before adding new default options, make sure they are
+    // appropriately copied over in the CopyForProcedure method above
     dafnyOptions.CompilerName = "cs";
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
