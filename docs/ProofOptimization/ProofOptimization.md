@@ -76,9 +76,9 @@ Dafny provides several attributes that tell it to verify certain assertions sepa
 
 * The [`{:focus}`](../DafnyRef/DafnyRef#sec-focus) attribute on an `assert` or `assume` statement tells Dafny to verify all assertions in the containing block, and everything that _always_ follows it, in one batch, and the rest of the definition in another batch (potentially subject to further splitting due to other occurrences of `{:focus}`).
 
-  * The [`{:vcs_split_on_every_assert}`](../DafnyRef/DafnyRef#sec-vcs_split_on_every_assert) attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
+* The [`{:vcs_split_on_every_assert}`](../DafnyRef/DafnyRef#sec-vcs_split_on_every_assert) attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
 
-This last attribute can also be specified globally, applying to all definitions, with `dafny verify --isolate-assertions` or the `/vcsSplitOnEveryAssert` flag.
+We recommend using `{:vcs_split_on_every_assert}` over either of the other attributes under most circumstances.  It can also be specified globally, applying to all definitions, with `dafny verify --isolate-assertions`. If you're using the legacy options without top-level commands, use the `/vcsSplitOnEveryAssert` flag, instead.
 
 When Dafny verifies a definition in smaller batches, the VS Code plugin will display performance statistics for each batch when you hover over a particular definition.
 
