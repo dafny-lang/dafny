@@ -38,33 +38,33 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public bool HasPrecondition =>
     Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
-    foreach (var a in base.Assumptions()) {
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
 
     if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
-      yield return AssumptionDescription.NoBody(IsGhost);
+      yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (Body is not null && HasConcurrentAttribute) {
-      yield return AssumptionDescription.HasConcurrentAttribute;
+      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
     }
 
     if (HasExternAttribute && HasPostcondition) {
-      yield return AssumptionDescription.ExternWithPostcondition;
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
     }
 
     if (HasExternAttribute && HasPrecondition) {
-      yield return AssumptionDescription.ExternWithPrecondition;
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     if (AllowsNontermination) {
-      yield return AssumptionDescription.MayNotTerminate;
+      yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
 
     foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions()) {
+      foreach (var a in c.Assumptions(this)) {
         yield return a;
       }
     }

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -114,6 +115,10 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
     public override IEnumerable<Node> PreResolveChildren => Children;
+
+    public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+      return Modules().SelectMany(m => m.Assumptions(decl));
+    }
   }
 
   public class Include : TokenNode, IComparable {
@@ -646,6 +651,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -72,7 +73,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
     IsHidden = true
   };
 
-  public static readonly Option<IList<string>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -262,7 +263,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
         options.FileTimestamp);
     });
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.ToHashSet(); });
+      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
@@ -297,8 +298,55 @@ Functionality is still being expanded. Currently only checks contracts on every 
           options.DefiniteAssignmentLevel = value ? 1 : 4;
         }
       });
-  }
 
+    DooFile.RegisterLibraryChecks(
+      new Dictionary<Option, DooFile.OptionCheck>() {
+        { UnicodeCharacters, DooFile.CheckOptionMatches },
+        { EnforceDeterminism, DooFile.CheckOptionMatches },
+        { RelaxDefiniteAssignment, DooFile.CheckOptionMatches },
+        // Ideally this feature shouldn't affect separate compilation,
+        // because it's automatically disabled on {:extern} signatures.
+        // Realistically though, we don't have enough strong mechanisms to stop
+        // target language code from referencing compiled internal code,
+        // so to be conservative we flag this as not compatible in general.
+        { OptimizeErasableDatatypeWrapper, DooFile.CheckOptionMatches },
+      }
+    );
+    DooFile.RegisterNoChecksNeeded(
+      Check,
+      Libraries,
+      Output,
+      Plugin,
+      Prelude,
+      Target,
+      Verbose,
+      ErrorLimit,
+      FormatPrint,
+      IsolateAssertions,
+      JsonDiagnostics,
+      QuantifierSyntax,
+      SolverLog,
+      SolverPath,
+      SolverPlugin,
+      SpillTranslation,
+      StdIn,
+      TestAssumptions,
+      WarnShadowing,
+      ManualLemmaInduction,
+      SolverResourceLimit,
+      TypeInferenceDebug,
+      TypeSystemRefresh,
+      VerificationLogFormat,
+      VerifyIncludedFiles,
+      WarningAsErrors,
+      DisableNonLinearArithmetic,
+      NewTypeInferenceDebug,
+      UseBaseFileName,
+      WarnMissingConstructorParenthesis,
+      UseJavadocLikeDocstringRewriterOption,
+      IncludeRuntimeOption
+    );
+  }
 
   public static readonly Option<bool> FormatPrint = new("--print",
     @"Print Dafny program to stdout after formatting it instead of altering the files.") {

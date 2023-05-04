@@ -68,20 +68,23 @@
 
 dir=$(dirname "${BASH_SOURCE[0]}")
 dafny="$dir/../Scripts/dafny"
+outdir="$dir/../Test/docexamples"
 
 defaultCommand=
 defaultExit=
 defaultLang=
 useHeadings=0
+coverage=0
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
 
-while getopts 'md:x:l:' opt; do
+while getopts 'cmd:x:l:' opt; do
   case "$opt" in
     "d") defaultCommand="$OPTARG";;
     "x") defaultExit="$OPTARG";;
     "l") defaultLang="$OPTARG";;
-    "m") useHeadings=1
+    "m") useHeadings=1 ;;
+    "c") coverage=1; rm -rf $outdir; mkdir -p $outdir ;;
   esac
 done
 shift $(($OPTIND - 1))
@@ -147,6 +150,9 @@ do
         elif [ "${contents[0]}" == "%save" ]; then
           save=${contents[1]}
           contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%exit" ]; then
+          ex=${contents[1]}
+          contents=( ${contents[@]:2} )
         elif [ "${contents[0]}" == "%options" ]; then
           contents=${contents[@]:1}
           options=${contents[@]}
@@ -199,7 +205,7 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn" -o "$command" == "%check-build" -o "$command" == "%check-legacy" ]; then
         capture=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
@@ -218,6 +224,9 @@ do
         elif [ "$command" == "%check-translate" ]; then
           com=translate
           ec=3
+        elif [ "$command" == "%check-build" ]; then
+          com=build
+          ec=0
         elif [ "$command" == "%check-run" ]; then
           com=run
           ec=0
@@ -233,13 +242,27 @@ do
           if [ "$useHeadings" == "1" ]; then ec=3; fi
           if [ "$defaultCommand" == "%check-resolve" ]; then ec=2 ; fi
         fi
+        if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
+        elif [ "$coverage" == "1" ] ; then
+          f=$outdir/$(basename $file)_${n}.dfy
+          if  [ "$command" == "%check-legacy" ]; then
+            echo "// RUN: %exits-with" $ec "%baredafny" $com $dOptions ${options[@]} '"%s" > "%t"' > $f
+            ##echo '// RUN: %diff "%s.expect" "%t"' >> $f 
+            echo " " >> $f
+            cat $text >> $f
+          else
+            echo "// RUN: %exits-with" $ec "%baredafny" $com "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
+            ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
+            echo " " >> $f
+            cat $text >> $f
+          fi
         else
           if [ "$capture" == "2" ]; then
             "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
-          elif [ "$com" == "%check-legacy" ]; then
+          elif [ "$command" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
           else
             "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual

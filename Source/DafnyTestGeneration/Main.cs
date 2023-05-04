@@ -75,9 +75,7 @@ namespace DafnyTestGeneration {
       // Translate the Program to Boogie:
       var oldPrintInstrumented = options.PrintInstrumented;
       options.PrintInstrumented = true;
-      var boogiePrograms = Translator
-        .Translate(program, program.Reporter)
-        .ToList().ConvertAll(tuple => tuple.Item2);
+      var boogiePrograms = Utils.Translate(program);
       options.PrintInstrumented = oldPrintInstrumented;
 
       if (options.TestGenOptions.TargetMethod != null) {
@@ -144,6 +142,14 @@ namespace DafnyTestGeneration {
       var program = Utils.Parse(options, source, sourceFile);
       if (program == null) {
         yield break;
+      }
+      if (Utils.AttributeFinder.ProgramHasAttribute(program,
+            TestGenerationOptions.TestInlineAttribute)) {
+        options.VerifyAllModules = true;
+        program = Utils.Parse(options, source, sourceFile);
+        if (program == null) {
+          yield break;
+        }
       }
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
