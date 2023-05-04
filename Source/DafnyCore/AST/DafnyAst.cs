@@ -653,6 +653,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>

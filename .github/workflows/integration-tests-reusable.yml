@@ -132,6 +132,11 @@ jobs:
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" dafny/Source/IntegrationTests/IntegrationTests.csproj
+    - name: Generate tests (non-Windows)
+      if: runner.os != 'Windows'
+      run: |
+        cd dafny/docs/HowToFAQ
+        ../check-examples -c Errors-Parser.md
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:

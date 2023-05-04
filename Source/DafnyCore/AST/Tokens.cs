@@ -286,6 +286,15 @@ public class RangeToken : TokenWrapper {
   public BoogieRangeToken ToToken() {
     return new BoogieRangeToken(StartToken, EndToken);
   }
+
+  public bool Contains(int position) {
+    return StartToken.pos <= position && (EndToken == null || position <= EndToken.pos);
+  }
+
+  public bool Intersects(RangeToken other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= StartToken.pos
+             || EndToken.pos + EndToken.val.Length <= other.StartToken.pos);
+  }
 }
 
 public class BoogieRangeToken : TokenWrapper {

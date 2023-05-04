@@ -62,13 +62,17 @@ public class Parser {
   }
 
   void SynErr (int n) {
-    if (errDist >= minErrDist) errors.SynErr(la.Uri, la.line, la.col, n);
+    if (errDist >= minErrDist) {
+      errors.SynErr(la.Uri, la.line, la.col, n);
+    }
     errDist = 0;
   }
 
   public void SemErr(string msg) {
     Contract.Requires(msg != null);
-    if (errDist >= minErrDist) errors.SemErr(null, t, msg);
+    if (errDist >= minErrDist) {
+      errors.SemErr(ErrorRegistry.NoneId, t, msg);
+    }
     errDist = 0;
   }
 
@@ -91,14 +95,21 @@ public class Parser {
       tmp.Next = la;
       la.Prev = tmp;
       t = tmp;
-      if (la.kind <= maxT) { ++errDist; break; }
+      if (la.kind <= maxT) { 
+        ++errDist; 
+        break;
+      }
 -->pragmas
       la = t;
     }
   }
 
   void Expect (int n) {
-    if (la.kind==n) Get(); else { SynErr(n); }
+    if (la.kind==n) {
+      Get(); 
+    } else { 
+      SynErr(n); 
+    }
   }
 
   bool StartOf (int s) {
@@ -109,7 +120,9 @@ public class Parser {
     if (la.kind == n) Get();
     else {
       SynErr(n);
-      while (!StartOf(follow)) Get();
+      while (!StartOf(follow)) {
+        Get();
+      }
     }
   }
 

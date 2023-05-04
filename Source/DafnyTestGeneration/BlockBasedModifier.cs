@@ -32,7 +32,7 @@ namespace DafnyTestGeneration {
         return null;
       }
 
-      var procedureName = ImplementationToTarget?.VerboseName ??
+      var procedureName = TargetImplementationVerboseName ??
                           implementation.VerboseName;
       node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
       var record = modifications.GetProgramModification(DafnyInfo.Options, program, implementation,
