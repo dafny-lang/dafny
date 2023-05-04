@@ -1,11 +1,9 @@
 #nullable disable
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
-using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
 using Function = Microsoft.Dafny.Function;
