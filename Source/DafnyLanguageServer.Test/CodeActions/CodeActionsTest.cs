@@ -591,7 +591,7 @@ function Foo(i: int): int
         ");
         }
     */
-    /*
+
     [Fact]
     public async Task CA_p_constructors_have_no_out_parameters() {
       await TestCodeAction(@"
@@ -600,7 +600,7 @@ function Foo(i: int): int
     }
     ");
     }
-    */
+
     /*
         [Fact]
         public async Task CA_p_reads_star_must_be_alone() {
@@ -614,14 +614,14 @@ function Foo(i: int): int
         ");
         }
         */
-
-    [Fact]
-    public async Task CA_p_no_defaults_for_out_parameters() {
-      await TestCodeAction(@"
-        method m(i: int) returns (j: int (>remove initializer->::::= 0<)) { return 42; }
-        ");
-    }
-
+    /*
+        [Fact]
+        public async Task CA_p_no_defaults_for_out_parameters() {
+          await TestCodeAction(@"
+            method m(i: int) returns (j: int (>remove initializer->::::= 0<)) { return 42; }
+            ");
+        }
+    */
 
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
