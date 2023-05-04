@@ -67,7 +67,6 @@ public class GenerateTestsCommand : ICommandSpec {
     copy.DeprecationNoise = options.DeprecationNoise;
     copy.ForbidNondeterminism = options.ForbidNondeterminism;
     copy.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
-    copy.WarnShadowing = options.WarnShadowing;
     copy.TestGenOptions.Mode = options.TestGenOptions.Mode;
     copy.TestGenOptions.WarnDeadCode = options.TestGenOptions.WarnDeadCode;
     // Options that may be modified by Test Generation itself:
@@ -97,7 +96,6 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
-    dafnyOptions.WarnShadowing = true;
 
     var mode = context.ParseResult.GetValueForArgument(modeArgument);
     dafnyOptions.TestGenOptions.Mode = mode switch {
