@@ -1,23 +1,33 @@
-TestAuditor.dfy(115,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
-TestAuditor.dfy(87,4): Warning: note, this forall statement has no body
-TestAuditor.dfy(94,4): Warning: note, this loop has no body (loop frame: i)
-TestAuditor.dfy(85,10): Warning: /!\ No terms found to trigger on.
-TestAuditor.dfy(87,4): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(137,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
+TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
+TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(126,2): Warning: note, this forall statement has no body
+TestAuditor.dfy(130,2): Warning: note, this loop has no body (loop frame: i)
+TestAuditor.dfy(93,10): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(95,4): Warning: /!\ No terms found to trigger on.
+TestAuditor.dfy(126,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier did not attempt verification
 assumptions.dfy(6,8): Error: the included file TestAuditor.dfy contains error(s)
-TestAuditor.dfy(18,6): Error: Ghost declaration has no body and has an ensures clause.
-TestAuditor.dfy(23,15): Error: Ghost declaration has no body and has an ensures clause.
-TestAuditor.dfy(41,17): Error: Compiled declaration has no body and has an ensures clause.
-TestAuditor.dfy(41,17): Error: Declaration with [{:extern}] has a ensures clause.
-TestAuditor.dfy(41,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(46,17): Error: Declaration with [{:extern}] has a ensures clause.
-TestAuditor.dfy(46,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(56,2): Error: Definition has [assume] statement in body.
-TestAuditor.dfy(64,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(75,7): Error: Method may not terminate (uses [decreases *]).
-TestAuditor.dfy(94,4): Error: Definition contains loop with no body.
-TestAuditor.dfy(110,21): Error: Declaration has [{:concurrent}] attribute.
-TestAuditor.dfy(115,2): Error: Assertion has explicit temporary [{:only}] attribute.
-TestAuditor.dfy(81,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
+TestAuditor.dfy(22,6): Error: Ghost declaration has no body and has an ensures clause.
+TestAuditor.dfy(27,15): Error: Ghost declaration has no body and has an ensures clause.
+TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a ensures clause.
+TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a requires clause.
+TestAuditor.dfy(50,17): Error: Declaration with [{:extern}] has a ensures clause.
+TestAuditor.dfy(50,17): Error: Declaration with [{:extern}] has a requires clause.
+TestAuditor.dfy(60,2): Error: Definition has [assume {:axiom}] statement in body.
+TestAuditor.dfy(68,17): Error: Declaration with [{:extern}] has a requires clause.
+TestAuditor.dfy(72,19): Error: Function with [{:extern}] attribute.
+TestAuditor.dfy(72,19): Error: Declaration with [{:extern}] has a ensures clause.
+TestAuditor.dfy(83,7): Error: Method may not terminate (uses [decreases *]).
+TestAuditor.dfy(102,4): Error: Definition contains loop with no body.
+TestAuditor.dfy(118,21): Error: Declaration has [{:concurrent}] attribute.
+TestAuditor.dfy(123,2): Error: Definition has [assume] statement in body.
+TestAuditor.dfy(124,2): Error: Definition has [assume {:axiom}] statement in body.
+TestAuditor.dfy(126,2): Error: Definition contains [forall] statement with no body.
+TestAuditor.dfy(130,2): Error: Definition contains loop with no body.
+TestAuditor.dfy(137,2): Error: Assertion has explicit temporary [{:only}] attribute.
+TestAuditor.dfy(11,8): Error: the included file IgnoredAssumptions.dfy contains error(s)
+IgnoredAssumptions.dfy(2,15): Error: Ghost declaration has no body and has an ensures clause.
+TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 Wrote textual form of partial target program to assumptions-lib/assumptions.doo
