@@ -7,12 +7,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
+  // An expression that, if verified, would trigger a success for this ProofObligationDescription
+  // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
 }
 
-// When there is no way to translate the asserted constraint in Dafny
+// When there is no way to translate the asserted constraint in Dafny yet
 public abstract class ProofObligationDescriptionWithNoExpr : ProofObligationDescription {
-  public override Expression GetAssertedExpr(DafnyOptions options) {
+  public sealed override Expression GetAssertedExpr(DafnyOptions options) {
     return null;
   }
 }
