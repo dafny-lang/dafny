@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny.Compilers {
               // we're looking for).
               var tp = targetTypeIgnoringConstraints.AsTypeParameter;
               if (tp == null) {
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> ({targetTypeName}){d})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
               } else {
                 var td = FormatTypeDescriptorVariable(tp.GetCompileName(Options));
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
