@@ -1,3 +1,2 @@
-(0,-1): Error: the included file git-issue-3294.dfy contains error(s)
 git-issue-3294.dfy(7,4): Error: member IsFailure does not exist in FailureRestrictedType<?, ?>, in :- statement
-2 resolution/type errors detected in git-issue-3294.dfy
+1 resolution/type errors detected in git-issue-3294.dfy

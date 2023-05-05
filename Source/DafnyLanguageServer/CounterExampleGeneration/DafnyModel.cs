@@ -34,7 +34,6 @@ namespace DafnyServer.CounterexampleGeneration {
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake,
       fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int,
       fMapDomain, fMapElements, fMapBuild, fIs, fIsBox;
-    private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
 
     // maps a numeric type (int, real, bv4, etc.) to the set of integer
@@ -94,7 +93,7 @@ namespace DafnyServer.CounterexampleGeneration {
       fU2Int = model.MkFunc("U_2_int", 1);
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
-      InitArraysAndDataTypes();
+      InitDataTypes();
       RegisterReservedChars();
       RegisterReservedInts();
       RegisterReservedBools();
@@ -123,24 +122,14 @@ namespace DafnyServer.CounterexampleGeneration {
     /// Collect the array dimensions from the various array.Length functions,
     /// and collect all known datatype values
     /// </summary>
-    private void InitArraysAndDataTypes() {
-      var arrayLength = new Regex("^_System.array[0-9]*.Length[0-9]*$");
+    private void InitDataTypes() {
+      const string datatypeConstructorPrefix = "#";
+      const string reservedVariablePrefix = "##";
+      const string accessorString = ".";
       foreach (var fn in Model.Functions) {
-        if (arrayLength.IsMatch(fn.Name)) {
-          int j = fn.Name.IndexOf('.', 13);
-          int dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
-          int idx = j == 13 ? 0 : int.Parse(fn.Name[(j + 7)..]);
-          foreach (var tpl in fn.Apps) {
-            var elt = tpl.Args[0];
-            var len = tpl.Result;
-            if (!arrayLengths.TryGetValue(elt, out var ar)) {
-              ar = new Model.Element[dims];
-              arrayLengths.Add(elt, ar);
-            }
-            Contract.Assert(ar[idx] == null);
-            ar[idx] = len;
-          }
-        } else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
+        if (fn.Name.StartsWith(datatypeConstructorPrefix) &&
+            !fn.Name.StartsWith(reservedVariablePrefix) &&
+            fn.Name.Contains(accessorString)) {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
             datatypeValues[elt] = tpl;
@@ -850,25 +839,21 @@ namespace DafnyServer.CounterexampleGeneration {
         }
       }
 
-      if (arrayLengths.TryGetValue(var.Element, out var lengths)) {
-        // Elt is an array
-        int i = 0;
-        foreach (var len in lengths) {
-          var name = lengths.Length == 1 ? "Length" : "Length" + i;
-          result.Add(DafnyModelVariableFactory.Get(state, len, name, var));
-          i++;
-        }
-      }
       // Elt is an array or an object:
       var heap = state.State.TryGet("$Heap");
       if (heap == null) {
         return result;
       }
-      var instances = fSetSelect.AppsWithArgs(0, heap, 1, var.Element);
-      if (instances == null || !instances.Any()) {
+      var constantFields = GetDestructorFunctions(var.Element).OrderBy(f => f.Name).ToList();
+      foreach (var field in constantFields) {
+        result.Add(DafnyModelVariableFactory.Get(state, Unbox(field.OptEval(var.Element)),
+          field.Name.Split(".").Last(), var));
+      }
+      var fields = fSetSelect.AppsWithArgs(0, heap, 1, var.Element);
+      if (fields == null || !fields.Any()) {
         return result;
       }
-      foreach (var tpl in fSetSelect.AppsWithArg(0, instances.ToList()[0].Result)) {
+      foreach (var tpl in fSetSelect.AppsWithArg(0, fields.ToList()[0].Result)) {
         foreach (var fieldName in GetFieldNames(tpl.Args[1])) {
           if (fieldName != "alloc") {
             result.Add(DafnyModelVariableFactory.Get(state, Unbox(tpl.Result), fieldName, var));
@@ -879,17 +864,22 @@ namespace DafnyServer.CounterexampleGeneration {
     }
 
     /// <summary>
-    /// Return all functions that map the datatype object to a particular
-    /// destructor value.
+    /// Return all functions mapping an object to a destructor value.
     /// </summary>
-    private List<Model.Func> GetDestructorFunctions(Model.Element datatypeElement) {
-      var types = GetIsResults(datatypeElement).Select(isResult =>
-        new DafnyModelTypeUtils.DatatypeType(ReconstructType(isResult) as UserDefinedType ?? UnknownType).Name);
+    private List<Model.Func> GetDestructorFunctions(Model.Element element) {
+      var possibleTypeIdentifiers = GetIsResults(element);
+      if (fDtype.OptEval(element) != null) {
+        possibleTypeIdentifiers.Add(fDtype.OptEval(element));
+      }
+      var possiblyNullableTypes = possibleTypeIdentifiers
+        .Select(isResult => ReconstructType(isResult) as UserDefinedType)
+        .Where(type => type != null && type.Name != UnknownType.Name);
+      var types = possiblyNullableTypes.Select(type => DafnyModelTypeUtils.GetNonNullable(type) as UserDefinedType);
       List<Model.Func> result = new();
       var builtInDatatypeDestructor = new Regex("^.*[^_](__)*_q$");
-      foreach (var app in datatypeElement.References) {
-        if (app.Func.Arity != 1 || app.Args[0] != datatypeElement ||
-            !types.Any(type => app.Func.Name.StartsWith(type + ".")) ||
+      foreach (var app in element.References) {
+        if (app.Func.Arity != 1 || app.Args[0] != element ||
+            !types.Any(type => app.Func.Name.StartsWith(type.Name + ".")) ||
             builtInDatatypeDestructor.IsMatch(app.Func.Name.Split(".").Last())) {
           continue;
         }
