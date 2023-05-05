@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Util {
         return null;
       }
 
-      return Path.GetFileName(((IToken)token).Filepath);
+      return token.filename;
     }
   }
 }

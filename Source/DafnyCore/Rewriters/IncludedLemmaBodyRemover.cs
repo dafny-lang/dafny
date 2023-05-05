@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// Lemma's from included files do not need to be resolved and translated
+/// Lemmas from included files do not need to be resolved and translated
 /// so we return emptyBody. This is to speed up resolver and translator.
 /// </summary>
 public class IncludedLemmaBodyRemover : IRewriter {
@@ -28,5 +28,3 @@ public class IncludedLemmaBodyRemover : IRewriter {
     }
   }
 }
-
-// Different files that are all using the default module

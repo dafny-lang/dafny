@@ -33,6 +33,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
 
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
+      ["filename"] = tok.filename,
       ["uri"] = ((IToken)tok).Uri.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
