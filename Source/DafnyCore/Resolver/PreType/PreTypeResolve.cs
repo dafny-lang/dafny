@@ -1080,6 +1080,7 @@ namespace Microsoft.Dafny {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
       foreach (AttributedExpression e in f.Ens) {
+        ResolveAttributes(e, new ResolutionContext(f, f is TwoStateFunction), false);
         Expression r = e.E;
         if (f.Result != null) {
           scope.PushMarker();
