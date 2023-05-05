@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -141,7 +142,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     SinglePassCompiler.WriteFromStream(rd, outputWriter);
   }
 
-  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter) {
+  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -174,16 +175,24 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     var process = new Process();
     process.StartInfo = psi;
     var outputBuilder = new List<string>();
+    var errorBuilder = new List<string>();
     process.OutputDataReceived += (sender, args) => outputBuilder.Add(args.Data);
+    process.ErrorDataReceived += (sender, args) => errorBuilder.Add(args.Data);
 
     try {
       process.Start();
       process.BeginOutputReadLine();
+      process.BeginErrorReadLine();
       process.WaitForExit();
       process.CancelOutputRead();
+      process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
         outputWriter.WriteLine(outputBuilder[i]);
+      }
+      
+      for (int i = 0; i < errorBuilder.Count - 1; i++) {
+        errorWriter.WriteLine(errorBuilder[i]);
       }
 
       if (process.ExitCode != 0) {

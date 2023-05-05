@@ -46,7 +46,7 @@ public class DafnyBackend : ExecutableBackend {
     TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     
-    return RunTargetDafnyProgram(targetFilename, outputWriter);
+    return RunTargetDafnyProgram(targetFilename, outputWriter, errorWriter);
   }
 
   public DafnyBackend(DafnyOptions options) : base(options) {
