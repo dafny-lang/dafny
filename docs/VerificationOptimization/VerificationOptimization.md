@@ -6,19 +6,19 @@ In other cases, however, the prover can need help. It may be that it's unable to
 
 In all of these cases, the general solution strategy is the same. Although we hope that most Dafny users will not need to know much about the way Dafny's verification goals are constructed, or the way the SMT solver works, there are a few high-level concepts that can be very helpful in getting verification to succeed.
 
-The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevant facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to Dafny being unable prove the goal, timing out, or exhibiting an unpredictable combination of verification success, timeout, and failure to prove the goal.
+The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevant facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to Dafny being unable prove the goal, timing out, or exhibiting an combination of verification success, timeout, and failure to prove the goal as small changes occur.
 
 The second key concept is that certain types of facts are more difficult to reason about. Isolating the reasoning about such facts to small portions of your program, and providing extra detail to help the prover when reasoning about those isolated instances, can help in these cases. A later section describes some of the more difficult types of reasoning and provides some techniques for dealing with each.
 
 Overall, this document provides a conceptual framework and examples of a number of concrete techniques for making verification in Dafny more likely to succeed, and to predictably succeed over time as the program and the Dafny implementation evolve. Fortunately, most of these techniques are closely connected to good software engineering principles such as abstraction and information hiding, and are therefore likely to make it easier for you to fully understand your program, and why it's correct, as well.
 
-At a high level, understanding how to optimize proofs requires understanding a few things:
+At a high level, understanding how to optimize verification requires understanding a few things:
 
-* what Dafny is attempting to prove, and what information is available in constructing a particular proof;
+* what Dafny is attempting to prove, and what information is available in constructing a particular verification goal;
 * which individual goals in the verification of a definition are difficult;
-* what general types of proof tend to be difficult;
-* how to provide additional hints to expand the information available in a specific proof; and
-* how hide information to restrict the information available in a specific proof.
+* what general types of verification tend to be difficult;
+* how to provide additional hints to expand the information available in a specific goal; and
+* how hide information to restrict the information available in a specific goal.
 
 # The facts Dafny deals with
 
@@ -38,14 +38,14 @@ First, Dafny attempts to prove that several predicates are always true, includin
 
 A complete list is available [here](../DafnyRef/DafnyRef#sec-assertion-batches).
 
-Although only one of these uses the `assert` keyword, we use the term _assertion_ to describe each of these proof goals. A collection of assertions, taken together, is called an _assertion batch_.
+Although only one of these uses the `assert` keyword, we use the term _assertion_ to describe each of these verification goals. A collection of assertions, taken together, is called an _assertion batch_.
 
 When trying to prove each of these statements, Dafny assumes several following predicates to be true, making them available as facts for the verifier to use. These include the following.
 
 * Every `requires` clause, throughout the whole body of a Dafny `function`, `lemma`, or `method`.
 
 * Every `invariant` clause, in the body of the loop it is associated with and in subsequent code.
-  
+
 * Every `ensures` clause of a called `function`, `lemma`, or `method` in subsequent code.
 
 * Every `requires` clause of a called `function`, `lemma`, or `method` in subsequent code.
@@ -68,7 +68,7 @@ By default, whenever Dafny attempts to verify the correctness of a specific defi
 
 When Dafny fails to prove an assertion, it will point out the location of that assertion in the program and describe what it was trying to prove at that point.
 
-However, when verification times out, Dafny will (by default) tell you only which definition timed out. This is similarly true in the case where a proof takes longer to complete than is practical for your development cycle. To get more fine-grained information about exactly which assertion was difficult to prove, it's possible to tell Dafny to _split_ the verification process into several batches, each of which can succeed, fail, or time out independently. This also makes independent statistics about resource use available for each batch.
+However, when verification times out, Dafny will (by default) tell you only which definition timed out. This is similarly true in the case where verification takes longer to complete than is practical for your development cycle. To get more fine-grained information about exactly which assertion was difficult to prove, it's possible to tell Dafny to _split_ the verification process into several batches, each of which can succeed, fail, or time out independently. This also makes independent statistics about resource use available for each batch.
 
 Dafny provides several attributes that tell it to verify certain assertions separately, rather than verifying everything about the correctness of a particular definition in one query to the solver.
 
@@ -96,7 +96,7 @@ method {:vcs_split_on_every_assert} ProveSomeArithmetic(x: uint32) {
 }
 ```
 
-Hovering over the name of the definition will show you performance statistics for all proof batches.
+Hovering over the name of the definition will show you performance statistics for all assertion batches.
 
 ![image](hover-method.png)
 
@@ -154,17 +154,19 @@ ProveSomeArithmetic (correctness) (assertion batch 8),Passed,00:00:00.0644100,64
 ProveSomeArithmetic (correctness) (assertion batch 7),Passed,00:00:00.0622940,65952
 ```
 
-In all of these output formats, you can see that batch 5, corresponding to the assertion about conversion to and from bit vectors, is the most expensive to prove. Later sections will go into why this is the case, and how to make proofs involving bit vectors more straightforward.
+In all of these output formats, you can see that batch 5, corresponding to the assertion about conversion to and from bit vectors, is the most expensive to prove. Later sections will go into why this is the case, and how to make verification involving bit vectors more straightforward.
 
 # Identifying highly variable assertions
 
-Sometimes, verifying a particular assertion is fast, initially, but becomes very slow (or fails) after a small change. We refer to this phenomenon as _verification variability_. The techniques in this document can help to fix proofs when it occurs. However, sometimes it would be more helpful to predict when verification of your program is highly variable, and adapt it proactively, when you can intentionally set aside time, rather than needing to fix it retroactively.
+Sometimes, verifying a particular assertion succeeds initially but fails after a small change. We refer to this phenomenon as _verification variability_. The techniques in this document can help to fix verification when it occurs. However, sometimes it would be more helpful to predict when verification of your program is likely to be highly variable, and adapt it proactively, when you can intentionally set aside time, rather than needing to fix it retroactively.
 
 Fundamentally, one key source of this variability comes from the fact that SMT solvers must make a sequence of initially arbitrary decisions to search through the space of possible proofs. To help explore this large space more effectively, they often use randomness to help decide between the arbitrary choices. In other cases, choices that are fundamentally arbitrary are made deterministically but in a way that is dependent on factors such as ordering within a data structure. The ordering of these internal data structures can be influenced by things like the names of definitions, the order in which they occur in a file, and so on.
 
 Dafny can help you identify when the verification of a particular assertion may begin to fail after small modifications if you use the `measure-complexity` command. When using this command, Dafny attempts to verify each definition in your program multiple times, each time with a different random seed. This seed is used to permute the names and ordering used in formulas sent to the solver, and then is given to the solver to use in making its own random decisions internally.
 
-If the time or resource count taken to verify a given assertion batch varies widely depending on the random seed, this is frequently predictive of later failure after small modifications. To measure the variation in resource use for the method from the previous section, on 10 different random seeds, we could use the following command.
+If the time or resource count taken to verify a given assertion batch is higher than most, this is frequently predictive of later failure after small modifications. Similarly, if this cost varies widely depending on the random seed, it can also point to high underlying complexity.
+
+To measure the variation in resource use for the method from the previous section, on 10 different random seeds, we could use the following command.
 
 ```sh
 $ dafny measure-complexity ProveSomeArithmetic.dfy --log-format csv --iterations 10
@@ -172,10 +174,10 @@ $ dafny measure-complexity ProveSomeArithmetic.dfy --log-format csv --iterations
 
 This will produce a CSV file and print out its name, as in the previous `dafny verify` case. With the `measure-complexity` command, however, each assertion batch will appear multiple times in the file. Given a CSV report containing the results of multiple iterations of verification, the [`dafny-reportgenerator`](https://github.com/dafny-lang/dafny-reportgenerator) tool can perform statistical analysis on this data, and can even be used to fail a build if the statistics exceed specified bounds.
 
-We generally recommend keeping the coefficient of variation (a.k.a. normalized standard deviation) of the resource count under 20%. This can be enforced with the following command.
+We generally recommend keeping the coefficient of variation (a.k.a. normalized standard deviation) of the resource count under 20%, and setting some (generally project-dependent) limit on total resource count. This can be enforced with the following command.
 
 ```sh
-$ dafny-reportgenerator summarize-csv-results --max-resource-cv-pct 20 some-file.csv
+$ dafny-reportgenerator summarize-csv-results --max-resource-cv-pct 20 --max-resource-count 200000 some-file.csv
 ```
 
 On CSV file generated from the above example, you might get output like the following.
@@ -202,7 +204,7 @@ Non-linear arithmetic in Dafny generally takes the form of multiplication operat
 
 Fortunately, Dafny gives you the power to prove complex facts about non-linear arithmetic by building on slightly less complex facts, and so on, down to the point where the solver can prove the smallest building blocks automatically.
 
-There are a number of examples in the Dafny [`libraries`](https://github.com/dafny-lang/libraries) that do just this. For example, consider the following sequence of lemmas that builds up from basic properties about multiplication all the way to basic properties about exponentiation.
+There are a number of examples in the Dafny [`libraries`](https://github.com/dafny-lang/libraries) repository that do just this. For example, consider the following sequence of lemmas that builds up from basic properties about multiplication all the way to basic properties about exponentiation.
 
 <!-- %check-verify -->
 ```dafny
@@ -252,11 +254,11 @@ If you have a difficult non-linear fact to prove, and proving it from the ground
 
 Dafny contains two distinct ways to describe what might be stored in a machine word in other programming languages.
 
-* The `int` type denotes the unbounded mathematical integers.
+* The `int` type denotes the unbounded mathematical integers. A subtype of `int` can be used to represent the subset of integers that can be represented in a machine word of width _n_.
 
 * The `bv`_n_ type denotes bit vectors of width _n_, which can be used to represent a subset of $2^n$ of the integers.
 
-Mathematical operations such as addition and multiplication are available for both types. Bit-wise logical and shifting operations are only available for bit vectors. The `as` keyword can be used to convert between integers and bit vectors, assuming that Dafny can prove that all possible values of the original type can be represented in the new type. However, this conversion is described, at the logical level used for verification, as a complex non-linear equation. Therefore, reasoning in which Dafny must consider the relationship between facts about a value represented as an integer and other facts about that value represented as a bit vector will typically be harder than when reasoning purely about integers or purely about bit vectors. 
+Mathematical operations such as addition and multiplication are available for both types. Bit-wise logical and shifting operations are only available for bit vectors. The `as` keyword can be used to convert between integers and bit vectors, assuming that Dafny can prove that all possible values of the original type can be represented in the new type. However, this conversion is described, at the logical level used for verification, as a complex non-linear equation. Therefore, reasoning in which Dafny must consider the relationship between facts about a value represented as an integer and other facts about that value represented as a bit vector will typically be harder than when reasoning purely about integers or purely about bit vectors.
 
 For example, consider the following three lemmas.
 
@@ -282,7 +284,7 @@ lemma DropLSBLessIntBVLemma(x: uint32)
 
 These all show that clearing the least significant bit of a 32-bit word results in a value less than or equal to the original. The first lemma operates purely on bit vectors, whereas the second starts with an integer constrained to be in the range representable in a 32-bit integer. Although Dafny is able to prove both both, proving the latter, with Dafny 4.0.0 and Z3 4.12.1, takes around 7x the resource count of the former (and about twice as much time). The third requires reasoning about the relationship between the result of a bit vector operation and its value as an integer, and Dafny is unable to prove this variant at all (hence the `assume false` in the body of the lemma, to allow automatic checking of the examples in this document to succeed).
 
-A wiki page providing more detail on optimizing bit-vector proofs is available [here](https://github.com/dafny-lang/dafny/wiki/Bit-Vector-Cookbook).
+A wiki page providing more detail on optimizing bit-vector verification is available [here](https://github.com/dafny-lang/dafny/wiki/Bit-Vector-Cookbook).
 
 ## Quantified statements
 
@@ -308,10 +310,10 @@ We'll start by focusing on how to add information to allow verification to go th
 
 ## Inline assertions
 
-Sometimes, when you know `A` and want to prove `C`, Dafny is unable to make the logical leap directly. In these cases, it's often the case that there's some predicate `B` for which Dafny can prove both `A ==> B` and `B ==> C` automatically. When that's true, inserting an `assert B` statement in the right place can allow a proof to go through.
+Sometimes, when you know `A` and want to prove `C`, Dafny is unable to make the logical leap directly. In these cases, it's often the case that there's some predicate `B` for which Dafny can prove both `A ==> B` and `B ==> C` automatically. When that's true, inserting an `assert B` statement in the right place can allow verification to go through.
 
-This example, modified from some code in the `libraries` repository, illustrates the case.
- 
+This example, modified from some code in the `libraries` repository, illustrates the case. It shows that if a given binary operator (passed in as a function value) has a left unit value and a right unit value that those two unit values are equal to each other.
+
 <!-- %check-verify -->
 ```dafny
 ghost predicate IsLeftUnital<T(!new)>(bop: (T, T) -> T, unit: T) {
@@ -360,7 +362,7 @@ lemma UnitIsUnique<T(!new)>(bop: (T, T) -> T, unit1: T, unit2: T)
 
 ```
 
-Here, the `calc` block establishes a chain of equalities, `unit1 == bop(unit1, unit2) == unit2` by using an intermediate assertion to justify each step. This is more information than Dafny strictly needs, but can make the proof both more readable and less variable.
+Here, the `calc` block establishes a chain of equalities, `unit1 == bop(unit1, unit2) == unit2` by using an intermediate assertion to justify each step. This is more information than Dafny strictly needs, but can make the code more readable and the verification less variable.
 
 ## Instantiating universally quantified formulas
 
@@ -381,7 +383,7 @@ LemmaMulEqualityAuto();
 assert sum * pow == (z + cout * BASE()) * pow;
 ```
 
-The assertion helps Dafny figure out how to instantiate the postcondition of `LemmaMulEqualityAuto`, making the proof more efficient.
+The assertion helps Dafny figure out how to instantiate the postcondition of `LemmaMulEqualityAuto`, making the verification process more efficient.
 
 As we'll describe in more detail later, however, it can sometimes be better to avoid the quantifiers in the first place than to help Dafny instantiate them.
 
@@ -409,7 +411,7 @@ You can restructure this as follows.
 assert C by {
   assert A;
   assert B;
-} 
+}
 ```
 
 This makes `C` visible in subsequent code, but hides `A` and `B` except when proving `C`.
@@ -423,7 +425,7 @@ If you find yourself asserting many things in sequence, including in a calculati
 assert C by {
   assert A;
   assert B;
-} 
+}
 
 ```
 
@@ -445,7 +447,7 @@ Then `CIsTrue` can be called from any location where you need to know `C`. In pr
 
 By default, the body of a `function` definition is available to the verifier in any place where that function is called. The bodies of any functions called from this initial function are also available. Stated differently, Dafny inlines function bodies aggressively during verification. There are two exceptions to this.
 
-* The body of a function (or predicate) declared with the `opaque` keyword is, by default, _not_ available to the verifier. Only its declared contract is visible. In any context where information about the body is necessary to complete a proof, it can be made available with `reveal F();` for a function named `F`.
+* The body of a function (or predicate) declared with the `opaque` keyword is, by default, _not_ available to the verifier. Only its declared contract is visible. In any context where information about the body is necessary to allow verification to complete, it can be made available with `reveal F();` for a function named `F`.
 
 * The body of a recursive function is normally available to depth 2 when it appears in an asserted predicate or depth 1 when it appears in an assumed predicate. That is, the body of the function and (in the assertion case) a second inlining of its body at each recursive call site are available to the verifier. The [`{:fuel n}`](../DafnyRef/DafnyRef#sec-fuel) annotation will increase the depth to which recursively-called bodies are exposed.
 
@@ -513,7 +515,11 @@ method OpaquePrecondition(x: int) returns (r: int)
 
 ## Subsumption
 
-The default behavior of an `assert` statement is to instruct the verifier to prove that a predicate is always true and then to assume that same predicate is true in later portions of the code, making it available to help prove other facts. This is called _subsumption_. On occasion, however, you may have an `assert` statement that exists to show a desired condition for its own sake, and that does not help prove later facts. In this case, you can [disable subsumption](../DafnyRef/DafnyRef#1133-subsumption-n), using `assert {:subsumption 0} P`, to reduce the number of facts in scope in subsequent code. This is similar to `assert L: P`, except that in the case of a labeled assertion the predicate can be selectively revealed later. If you know you'll _never_ need `P`, rather than _usually_ not needing it, subsumption could be a better option.
+The default behavior of an `assert` statement is to instruct the verifier to prove that a predicate is always true and then to assume that same predicate is true in later portions of the code, making it available to help prove other facts. This is called _subsumption_.
+
+On occasion, however, you may have an `assert` statement that exists to show a desired condition for its own sake, and that does not help prove later facts. This might occur during the intermediate stages of the development of a verified program in which you want to establish some intermediate facts locally, which you believe to be indicative of correctness, but don't yet want to expand these into fully-fledged contracts on your definitions that could be used to establish a more global notion of correctness.
+
+In this case, you can [disable subsumption](../DafnyRef/DafnyRef#1133-subsumption-n), using `assert {:subsumption 0} P`, to reduce the number of facts in scope in subsequent code. This is similar to `assert L: P`, except that in the case of a labeled assertion the predicate can be selectively revealed later. If you know you'll _never_ need `P`, rather than _usually_ not needing it, subsumption could be a better option.
 
 ## Avoiding quantifiers
 
@@ -528,7 +534,7 @@ lemma LemmaMulAuto()
 {
 ...
 }
-  
+
 lemma LemmaMulIsDistributiveAddOtherWay(x: int, y: int, z: int)
   ensures (y + z) * x == y * x + z * x
 {
@@ -536,7 +542,7 @@ lemma LemmaMulIsDistributiveAddOtherWay(x: int, y: int, z: int)
 }
 ```
 
-However, although these proofs are very succinct, they require the verifier to do more work. If you encounter cases where this leads to verification failures, it can often help to prove more specific instances. 
+However, although these proofs are very succinct, they require the verifier to do more work. If you encounter cases where this leads to verification failures, it can often help to prove more specific instances.
 
 One particular pattern that works well when creating general-purpose lemmas proving universal properties is to prove a parameterized version first and then use that to prove the universal version. Then, clients of the lemma can choose one or the other.
 
@@ -560,13 +566,13 @@ lemma LemmaMulEqualityAuto()
 }
 ```
 
-There was another instance of code in the repository where a proof began to fail after upgrading the version of Z3 included with Dafny. That code originally used `LemmaMulEqualityAuto`. We [updated it](https://github.com/dafny-lang/libraries/blob/7c386fa0b4a267715f9bd49948d1af68e1631e6b/src/dafny/Collections/LittleEndianNat.dfy#L532) to call `LemmaMulEquality` with the appropriate parameters and the proof reliably succeeded.
+There was another instance of code in the repository where verification began to fail after upgrading the version of Z3 included with Dafny. That code originally used `LemmaMulEqualityAuto`. We [updated it](https://github.com/dafny-lang/libraries/blob/7c386fa0b4a267715f9bd49948d1af68e1631e6b/src/dafny/Collections/LittleEndianNat.dfy#L532) to call `LemmaMulEquality` with the appropriate parameters and verification reliably succeeded.
 
-In general, creating and using explicit lemmas like `LemmaMulEquality`, and skipping lemmas like `LemmaMulEqualityAuto` altogether, tends to lead to proofs with less variability. 
+In general, creating and using explicit lemmas like `LemmaMulEquality`, and skipping lemmas like `LemmaMulEqualityAuto` altogether, tends to lead to code with less verification variability.
 
 ## Adding triggers
 
-If you can't avoid the use of quantifiers, careful use of _triggers_ can help reduce the amount of work Dafny needs to do to benefit from the information in a quantified formula. The original version of the `LemmaMulEqualityAuto` lemma above looks like the following.
+If you can't avoid the use of quantifiers, careful use of _triggers_ can help reduce the amount of work Dafny needs to do to benefit from the information in a quantified formula. The original version of the `LemmaMulEqualityAuto` lemma in the above looks like the following.
 
 <!-- %check-verify -->
 ```dafny
@@ -588,6 +594,8 @@ lemma LemmaMulEqualityAuto()
 
 The [`{:trigger}`](../DafnyRef/DafnyRef#sec-trigger) annotation tells it to only instantiate the formula in the postcondition when the solver sees two existing formulas, `x * z` and `y * z`. That is, if it sees two multiplications in which the right-hand sides are the same.
 
+Adding an explicit annotation is generally a last resort, however, because Dafny attempts to infer what triggers would be useful and typically comes up with an effective set. The need for manually-specified triggers often suggests that code could be refactored into a larger number of small, separate definitions, for which Dafny will then infer exactly the triggers you need.
+
 ## Smaller, more isolated definitions
 
 As a general rule, designing a program from the start so that it can be broken into small pieces with clearly-defined interfaces is helpful for human understanding, flexibility, maintenance, and ease of verification. More specific instances of this include the following.
@@ -596,4 +604,22 @@ As a general rule, designing a program from the start so that it can be broken i
 
 * Prove lemmas about functions rather than having numerous or complex postconditions. The individual lemmas can then be invoked only when needed, and other facts that are true but irrelevant will not bog down the solver.
 
-* Break methods up into smaller pieces, as well. Because methods are always opaque, this will, in many cases, require adding a contract to each broken-out method. To make this more tractable, consider abstracting the concepts used in those contracts into separate functions, some of which may be opaque. 
+* Break methods up into smaller pieces, as well. Because methods are always opaque, this will, in many cases, require adding a contract to each broken-out method. To make this more tractable, consider abstracting the concepts used in those contracts into separate functions, some of which may be opaque.
+
+# Summary
+
+When you're dealing with a program that exhibits high verification variability, or simply slow or unsuccessful verification, careful encapsulation and information hiding combined with hints to add information in the context of difficult constructs is frequently the best solution. Breaking one large definition with extensive contracts down into several, smaller definitions, each with simpler contracts, can be very valuable. Within each smaller definition, a few internal, locally-encapsulated hints to help the prover make progress in a more limited context can be very valuable.
+
+Some of the the key concrete techniques to limit the scope of each verification goal include:
+* Making functions and predicates `opaque` when possible.
+* Moving a sequence of assertions that build on each other into an `assert P by { ... }` block, where `P` is the final conclusion you want to establish.
+* Making contract elements and assertions opaque, using labels, when you can't conveniently abstract their contents into separate definitions.
+* Avoiding quantifiers when possible, and encapsulating them in opaque definitions when they can't be avoided.
+* Using additional parameters to lemmas instead of quantified postconditions.
+* Separating reasoning about difficult-to-combine data types such as integers and bit vectors.
+
+Within each smaller definition, techniques for providing hints include:
+* Using inline assertions.
+* Instantiating any quantified statements by hand.
+* Providing detailed chains of reasoning for any statements about non-linear arithemetic.
+* Using `calc` statements instead of long chains of `assert` statements.
