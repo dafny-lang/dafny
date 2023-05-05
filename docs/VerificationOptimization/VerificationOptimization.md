@@ -254,7 +254,7 @@ If you have a difficult non-linear fact to prove, and proving it from the ground
 
 Dafny contains two distinct ways to describe what might be stored in a machine word in other programming languages.
 
-* The `int` type denotes the unbounded mathematical integers. A subtype of `int` can be used to represent the subset of integers that can be represented in a machine word of width _n_.
+* The `int` type denotes the unbounded mathematical integers. A newtype based on `int` can be used to represent the subset of integers that can be stored in a machine word of width _n_.
 
 * The `bv`_n_ type denotes bit vectors of width _n_, which can be used to represent a subset of $2^n$ of the integers.
 
@@ -608,7 +608,7 @@ As a general rule, designing a program from the start so that it can be broken i
 
 # Summary
 
-When you're dealing with a program that exhibits high verification variability, or simply slow or unsuccessful verification, careful encapsulation and information hiding combined with hints to add information in the context of difficult constructs is frequently the best solution. Breaking one large definition with extensive contracts down into several, smaller definitions, each with simpler contracts, can be very valuable. Within each smaller definition, a few internal, locally-encapsulated hints to help the prover make progress in a more limited context can be very valuable.
+When you're dealing with a program that exhibits high verification variability, or simply slow or unsuccessful verification, careful encapsulation and information hiding combined with hints to add information in the context of difficult constructs is frequently the best solution. Breaking one large definition with extensive contracts down into several, smaller definitions, each with simpler contracts, can be very valuable. Within each smaller definition, a few internal, locally-encapsulated hints can help the prover make effective progress on goals it might be unable to prove in conjunction with other code.
 
 Some of the the key concrete techniques to limit the scope of each verification goal include:
 * Making functions and predicates `opaque` when possible.
