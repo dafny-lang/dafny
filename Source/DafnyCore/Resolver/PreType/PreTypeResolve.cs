@@ -652,6 +652,10 @@ namespace Microsoft.Dafny {
         function.Formals.ForEach(ComputePreType);
         if (function.Result != null) {
           function.Result.PreType = Type2PreType(function.Result.Type);
+        } else if (function.ByMethodDecl != null) {
+          // The by-method out-parameter is not the same as the one given in the function declaration, since the
+          // function declaration didn't give one.
+          function.ByMethodDecl.Outs.ForEach(ComputePreType);
         }
         function.ResultPreType = Type2PreType(function.ResultType);
       }
@@ -1104,15 +1108,15 @@ namespace Microsoft.Dafny {
         ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
         AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.tok, "Function body type mismatch (expected {0}, got {1})");
         SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
-
-        if (f.ByMethodBody != null) {
-          var method = f.ByMethodDecl;
-          Contract.Assert(method != null); // this should have been filled in by now
-          ResolveMethod(method);
-        }
       }
 
       scope.PopMarker();
+
+      if (f.ByMethodBody != null) {
+        var method = f.ByMethodDecl;
+        Contract.Assert(method != null); // this should have been filled in by now
+        ResolveMethod(method);
+      }
 
       resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
     }

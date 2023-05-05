@@ -2002,8 +2002,15 @@ namespace Microsoft.Dafny {
       var tok = f.ByMethodTok;
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
-      var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
+      // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
+      // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
+      var isStatic = f.HasStaticKeyword || cl is ClassDecl { IsDefaultClass: true };
+      var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+      var fn = new ApplySuffix(tok, null,
+        new ExprDotName(tok, receiver, f.Name, null),
+        new ActualBindings(f.Formals.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
+        tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
