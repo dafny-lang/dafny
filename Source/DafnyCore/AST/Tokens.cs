@@ -119,7 +119,7 @@ public class Token : IToken {
   }
 
   public override string ToString() {
-    return $"{val}: {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
+    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
 }
 
