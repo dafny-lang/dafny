@@ -108,10 +108,9 @@ public class AuditReport {
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
     var issue = Assumption.UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = Assumption.UpdateVerbatim(desc.mitigation, "`", "`");
-    var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
+    var mitigation = Assumption.UpdateVerbatim(desc.mitigationIETF, "`", "`");
     text.AppendLine("");
-    text.AppendLine($"* {issue} MUST {mustMitigation}");
+    text.AppendLine($"* {issue} {mitigation}");
   }
 
   public string RenderMarkdownIETF() {
@@ -185,8 +184,12 @@ public class AuditReport {
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
-
         foreach (var decl in topLevelDeclWithMembers.Members) {
+          if (decl.tok is IncludeToken) {
+            // Don't audit included code
+            continue;
+          }
+
           report.AddAssumptions(decl, report.AllAssumptionsForDecl(decl));
         }
       }
