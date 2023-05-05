@@ -63,10 +63,7 @@ public static class BoogieOptionBag {
     new("--error-limit", () => 5, "Set the maximum number of errors to report (0 for unlimited).");
 
   public static readonly Option<uint> SolverResourceLimit = new("--resource-limit",
-    @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic
-    alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof
-    effort, which you can use to determine an appropriate limit for your program. Multiplied by 1000 before
-    sending to Z3.");
+    @"Specify the maximum resource limit (rlimit) value to pass to Z3. A resource limit is a deterministic alternative to a time limit. The output produced by `--log-format csv` includes the resource use of each proof effort, which you can use to determine an appropriate limit for your program. Multiplied by 1000 before sending to Z3.");
   public static readonly Option<string> SolverPlugin = new("--solver-plugin",
     @"Dafny uses Boogie as part of its verification process. This option allows customising that part using a Boogie plugin. More information about Boogie can be found at https://github.com/boogie-org/boogie. Information on how to construct Boogie plugins can be found by looking at the code in https://github.com/boogie-org/boogie/blob/v2.16.3/Source/Provers/SMTLib/ProverUtil.cs#L316");
 
