@@ -187,6 +187,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         PostVisitOneExpression(step, context);
       }
       PostVisitOneExpression(calcStmt.Result, context);
+    } else if (stmt is ForLoopStmt forLoopStmt) {
+      UpdateIfOmitted(forLoopStmt.LoopIndex.Type, forLoopStmt.LoopIndex.PreType);
     } else if (stmt is ForallStmt forallStmt) {
       UpdateTypeOfVariables(forallStmt.BoundVars);
     }
