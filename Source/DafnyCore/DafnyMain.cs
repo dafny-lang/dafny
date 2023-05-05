@@ -138,7 +138,9 @@ namespace Microsoft.Dafny {
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
         try {
-          // The cast to MemberReferenceHandle is an explicit operator that uses internal properties and throws a cast exception in some cases.
+          /* The cast from EntityHandle to MemberReferenceHandle is overriden, uses private members, and throws
+           * an InvalidCastException if it fails. We have no other option than to use it and catch the exception.
+           */
           var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
           var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
           if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
@@ -245,7 +247,7 @@ namespace Microsoft.Dafny {
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(new Token() {
-          Uri = dafnyFile.Uri, col = 1, line = 1
+          Uri = dafnyFile.Uri, col = 1, line = 0
         }, null, dafnyFile.SourceFilePath, false) : null;
         if (include != null) {
           module.ModuleDef.Includes.Add(include);

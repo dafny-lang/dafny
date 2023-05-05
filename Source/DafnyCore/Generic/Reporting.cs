@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       if (tok.WasIncluded(OuterModule) && OuterModule != null) {
         var include = OuterModule.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, null, include.tok, "the included file contains error(s)");
+          Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;
         }
       }
