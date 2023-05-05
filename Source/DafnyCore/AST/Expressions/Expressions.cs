@@ -846,10 +846,10 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.Tok, v.Name);
-    e.Var = v;  // resolve here
-    e.type = v.Type;  // resolve here
-    return e;
+    return new IdentifierExpr(v.Tok, v.Name) {
+      Var = v,
+      type = v.Type
+    };
   }
 
   public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e, Dictionary<TypeParameter, Type> typeMap = null) {

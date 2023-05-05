@@ -10,7 +10,7 @@ public abstract class MemberDecl : Declaration {
   public readonly bool HasStaticKeyword;
   public virtual bool IsStatic {
     get {
-      return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
+      return HasStaticKeyword || EnclosingClass is ClassDecl { IsDefaultClass: true };
     }
   }
 
