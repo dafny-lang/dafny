@@ -17,3 +17,13 @@ datatype B = B(
     a.Valid()
   }
 }
+
+class C {
+  var a: A
+  constructor()
+  opaque twostate predicate Valid()
+    reads this`a, a
+  {
+    a.Valid() && old(a.Valid())
+  }
+}
