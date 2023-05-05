@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public static class IncludeHandler {
-  public static bool IsIncludeToken(this IToken token, DefaultModuleDefinition outerModule) {
+  public static bool WasIncluded(this IToken token, DefaultModuleDefinition outerModule) {
     if (token is RefinementToken) {
       return false;
     }
@@ -22,7 +22,7 @@ public static class IncludeHandler {
     return true;
   }
 
-  public static bool IsIncludeToken(this IToken token, Program program) {
-    return token.IsIncludeToken(program.DefaultModuleDef);
+  public static bool WasIncluded(this IToken token, Program program) {
+    return token.WasIncluded(program.DefaultModuleDef);
   }
 }

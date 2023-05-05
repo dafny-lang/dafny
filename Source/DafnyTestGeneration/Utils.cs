@@ -82,7 +82,7 @@ namespace DafnyTestGeneration {
       var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      var /*?*/ program = new Program(uri.LocalPath, module, builtIns, reporter);
+      var program = new Program(uri.LocalPath, module, builtIns, reporter);
 
       if (!resolve) {
         return program;
