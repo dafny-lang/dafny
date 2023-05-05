@@ -861,6 +861,8 @@ namespace Microsoft.Dafny {
               : ancestorPt;
             return t != null && DPreType.IsReferenceTypeDecl(t.Decl);
           }
+        case "IsCoDatatype":
+          return ancestorDecl is CoDatatypeDecl;
 
         default:
           Contract.Assert(false); // unexpected case
