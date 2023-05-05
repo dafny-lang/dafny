@@ -11,9 +11,9 @@ lemma Lemma()
 {
   forall pd0: int
     | && true
-    && (true
-    && true)
-    && true
+      && (true
+          && true)
+      && true
     ensures true {
   }
 }");

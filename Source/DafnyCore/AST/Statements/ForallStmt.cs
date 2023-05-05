@@ -129,6 +129,14 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     }
   }
 
+  public override IEnumerable<Node> Children =>
+    BoundVars
+      .Concat(Range != null ? new List<Node>() { Range } : Enumerable.Empty<Node>())
+      .Concat(Ens)
+      .Concat(Body != null ? new List<Node>() { Body } : Enumerable.Empty<Node>());
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
+
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
       yield return new Assumption(decl, tok, AssumptionDescription.ForallWithoutBody);
@@ -143,6 +151,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    if (Range != null) {
+      formatter.Visit(Range, indentBefore + formatter.SpaceTab);
+    }
     foreach (var ens in Ens) {
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
     }
