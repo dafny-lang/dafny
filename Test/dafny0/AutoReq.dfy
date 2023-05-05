@@ -314,6 +314,26 @@ module OpaqueTest {
 
 }
 
+module {:autoReq} TypeParameterTest {
+  class MyClass<X> {
+    ghost function P<W>(s: seq<int>): bool
+    {
+      true
+    }
+
+    ghost function g<Z>(s: seq<int>): bool
+      requires P<(X, int, Z)>(s)
+    {
+      |s| > 2
+    }
+
+    ghost function h<Y>(s: seq<int>): bool
+    {
+      g<(X, Y)>(s)
+    }
+  }
+}
+
 // autoTriggers added because it causes an extra error message related to
 // violated preconditions to appear. That extra message is due to the extra
 // precondition involving a split quantifier: the user now gets two traces, one

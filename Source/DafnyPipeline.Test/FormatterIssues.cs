@@ -82,6 +82,19 @@ const sameLineOp :=
   }
 
   [Fact]
+  public void GitIssue3944FormatterArgumentsDefaultValue() {
+    FormatterWorksFor(@"
+function Example(
+  newNames : map<string, string> := map[],
+  a: int
+) : bool
+{
+  true
+}
+");
+  }
+
+  [Fact]
   public void GitIssue3790DafnyFormatterProducesIncorrectIndentation() {
     FormatterWorksFor(@"
 lemma Try(i: int)

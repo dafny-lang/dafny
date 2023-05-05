@@ -1,3 +1,4 @@
+TestAuditor.dfy(115,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(87,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(94,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(85,10): Warning: /!\ No terms found to trigger on.
@@ -17,5 +18,6 @@ TestAuditor.dfy(64,17): Error: Declaration with [{:extern}] has a requires claus
 TestAuditor.dfy(75,7): Error: Method may not terminate (uses [decreases *]).
 TestAuditor.dfy(94,4): Error: Definition contains loop with no body.
 TestAuditor.dfy(110,21): Error: Declaration has [{:concurrent}] attribute.
+TestAuditor.dfy(115,2): Error: Assertion has explicit temporary [{:only}] attribute.
 TestAuditor.dfy(81,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
 Wrote textual form of partial target program to assumptions-lib/assumptions.doo

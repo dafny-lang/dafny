@@ -38,8 +38,17 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     this.Attributes = attrs;
   }
 
-  public override IEnumerable<Expression> SubExpressions =>
-    new[] { Source }.Concat(Cases.Select(c => c.Body));
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      yield return Source;
+      foreach (var mc in Cases) {
+        foreach (var ee in mc.Pat.SubExpressions) {
+          yield return ee;
+        }
+        yield return mc.Body;
+      }
+    }
+  }
 
   public override IEnumerable<Node> Children => new[] { Source }.Concat<Node>(Cases);
 

@@ -57,3 +57,7 @@
 ### Member `ConcurrentMethod`
 
 * Declaration has `{:concurrent}` attribute. MUST manually review and test in a concurrent setting.
+
+### Member `AssertOnly`
+
+* Assertion has explicit temporary `{:only}` attribute. MUST remove the attribute `{:only}`

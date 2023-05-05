@@ -808,6 +808,7 @@ No other words are allowed here, including writing them with different case.
 
 These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
 That is, the code
+<!-- %check-resolve %exit 0 -->
 ```dafny
 method m() {
   var to: int := 6;
