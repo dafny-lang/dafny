@@ -38,6 +38,7 @@ public interface ICommandSpec {
     CommonOptionBag.VerificationLogFormat,
     BoogieOptionBag.SolverResourceLimit,
     BoogieOptionBag.SolverOption,
+    BoogieOptionBag.SolverOptionHelp,
     BoogieOptionBag.SolverPlugin,
     BoogieOptionBag.SolverLog,
     CommonOptionBag.JsonDiagnostics,

@@ -78,7 +78,13 @@ public static class BoogieOptionBag {
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
   };
   public static readonly Option<IList<string>> SolverOption = new("--solver-option",
-    "Specify an option to control how the solver works.") {
+    @"Specify an option to control how the solver works. Use --solver-option-help for details on possible parameters. Note that this directly changes the internal behavior of Boogie, and some option settings do not work well or at all with Dafny. More information about Boogie can be found at https://github.com/boogie-org/boogie.") {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> SolverOptionHelp = new("--solver-option-help",
+    @"Describe the possible parameters to --solver-option.") {
+    IsHidden = true
   };
 
 
@@ -114,6 +120,7 @@ public static class BoogieOptionBag {
         o.ProverOptions.AddRange(v);
       }
     });
+    DafnyOptions.RegisterLegacyBinding(SolverOptionHelp, (o, v) => o.ProverHelpRequested = v);
     DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
 
@@ -132,6 +139,7 @@ public static class BoogieOptionBag {
       IsolateAssertions,
       SolverLog,
       SolverOption,
+      SolverOptionHelp,
       SolverPath,
       SolverPlugin,
       SolverResourceLimit

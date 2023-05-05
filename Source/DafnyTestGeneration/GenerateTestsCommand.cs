@@ -17,6 +17,7 @@ public class GenerateTestsCommand : ICommandSpec {
       Target,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
+      BoogieOptionBag.SolverOptionHelp,
       BoogieOptionBag.SolverPath,
       BoogieOptionBag.SolverPlugin,
       BoogieOptionBag.SolverResourceLimit,
