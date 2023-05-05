@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -11,13 +12,13 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     /// Resulting operator "x op z" if "x this y" and "y other z".
     /// Returns null if this and other are incompatible.
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public abstract CalcOp ResultOp(CalcOp other);
 
     /// <summary>
     /// Returns an expression "line0 this line1".
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public abstract Expression StepExpr(Expression line0, Expression line1);
   }
 
@@ -32,7 +33,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     /// <summary>
     /// Is op a valid calculation operator?
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static bool ValidOp(BinaryExpr.Opcode op) {
       return
         op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq
@@ -44,7 +45,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     /// <summary>
     /// Is op a valid operator only for Boolean lines?
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static bool LogicOp(BinaryExpr.Opcode op) {
       return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
     }
@@ -151,6 +152,49 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       return "==#";
     }
 
+  }
+
+  /// <summary>
+  /// This method infers a default operator to be used between the steps.
+  /// Usually, we'd use == as the default operator.  However, if the calculation
+  /// begins or ends with a boolean literal, then we can do better by selecting ==>
+  /// or <==.  Also, if the calculation begins or ends with an empty set, then we can
+  /// do better by selecting <= or >=.
+  /// Note, these alternative operators are chosen only if they don't clash with something
+  /// supplied by the user.
+  /// If the rules come up with a good inferred default operator, then that default operator
+  /// is returned; otherwise, null is returned.
+  /// </summary>
+  [CanBeNull]
+  public CalcOp GetInferredDefaultOp() {
+    CalcStmt.CalcOp alternativeOp = null;
+    if (Lines.Count == 0) {
+      return null;
+    }
+
+    bool b;
+    if (Expression.IsBoolLiteral(Lines.First(), out b)) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+    } else if (Expression.IsBoolLiteral(Lines.Last(), out b)) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+    } else if (Expression.IsEmptySetOrMultiset(Lines.First())) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
+    } else if (Expression.IsEmptySetOrMultiset(Lines.Last())) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
+    } else {
+      return null;
+    }
+
+    // Check that the alternative operator is compatible with anything supplied by the user.
+    var resultOp = alternativeOp;
+    foreach (var stepOp in StepOps.Where(stepOp => stepOp != null)) {
+      resultOp = resultOp.ResultOp(stepOp);
+      if (resultOp == null) {
+        // no go
+        return null;
+      }
+    }
+    return alternativeOp;
   }
 
   public readonly List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
