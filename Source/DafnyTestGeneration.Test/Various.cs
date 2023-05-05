@@ -420,7 +420,7 @@ module M {
       var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.Contains("Code at (6,14) is potentially unreachable.", stats);
+      Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
       Assert.Equal(2, stats.Count); // second is line with stats
     }
 

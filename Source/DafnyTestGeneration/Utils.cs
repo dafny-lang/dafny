@@ -82,13 +82,7 @@ namespace DafnyTestGeneration {
       var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      Program/*?*/ program = null;
-      if (success) {
-        program = new Program(uri.LocalPath, module, builtIns, reporter);
-      }
-      if (program == null) {
-        return null;
-      }
+      var /*?*/ program = new Program(uri.LocalPath, module, builtIns, reporter);
 
       if (!resolve) {
         return program;
@@ -96,7 +90,6 @@ namespace DafnyTestGeneration {
 
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
-      program.Reporter = new ErrorReporterSink(options, defaultModuleDefinition);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
