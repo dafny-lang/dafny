@@ -3240,6 +3240,7 @@ namespace Microsoft.Dafny {
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
     readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string, Bpl.IdentifierExpr>();
     bool assertAsAssume = false; // generate assume statements instead of assert statements
+    Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
@@ -4009,6 +4010,11 @@ namespace Microsoft.Dafny {
       // This is the general case
       Bpl.Expr prevH = null;
       Bpl.BoundVariable prevHVar = null;
+      Bpl.Expr reveal = null;
+      Bpl.BoundVariable revealVar = null;
+      if (f.IsOpaque) {
+        revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
+      }
       if (f is TwoStateFunction) {
         // The previous-heap argument is the same for both function arguments.  That is,
         // the frame axiom says nothing about functions invoked with different previous heaps.
@@ -4047,6 +4053,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr s; var sV = BplBoundVar("$ly", predef.LayerType, out s);
         bvars.Add(sV);
         f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
+      }
+
+      if (reveal != null) {
+        bvars.Add(revealVar);
+        f0args.Add(reveal); f1args.Add(reveal);
       }
 
       if (prevH != null) {
@@ -7177,7 +7188,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+    public Bpl.Expr CondApplyBox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(fromType != null);
@@ -7205,7 +7216,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Bpl.Expr BoxIfNecessary(IToken tok, Bpl.Expr e, Type fromType) {
+    public Bpl.Expr BoxIfNecessary(Bpl.IToken tok, Bpl.Expr e, Type fromType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(fromType != null);
@@ -7296,7 +7307,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      if (assertAsAssume
+          || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
+          || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         return TrAssumeCmd(tok, condition, kv);
       } else {
@@ -7315,7 +7328,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if ((assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+          (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         return TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
@@ -9120,8 +9134,13 @@ namespace Microsoft.Dafny {
         return null;
       }
       targetType = targetType.NormalizeExpandKeepConstraints();
-      var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
+      Bpl.Expr cre;
+      if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl && ModeledAsBoxType(redirectingTypeDecl.Var.Type)) {
+        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+      } else {
+        cre = MkIs(bSource, targetType);
+      }
       if (udt != null && udt.IsRefType) {
         var s = sourceType.NormalizeExpandKeepConstraints();
         var certain = false;

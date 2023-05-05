@@ -1954,7 +1954,9 @@ namespace Microsoft.Dafny {
       // Make the call
       AddReferencedMember(callee);
       Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
-      if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if (
+        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
         // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
         // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
