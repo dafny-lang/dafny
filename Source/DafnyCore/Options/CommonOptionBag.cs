@@ -73,7 +73,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
     IsHidden = true
   };
 
-  public static readonly Option<IList<string>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -263,7 +263,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
         options.FileTimestamp);
     });
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.ToHashSet(); });
+      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
