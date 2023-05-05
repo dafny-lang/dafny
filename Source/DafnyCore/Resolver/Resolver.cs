@@ -2350,10 +2350,6 @@ namespace Microsoft.Dafny {
           new PreTypeToTypeVisitor().VisitDeclarations(declarations);
         }
 
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          new PreTypeToTypeVisitor().VisitDeclarations(declarations);
-        }
-
       } else {
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
         // and type inference depends on having resolved names.
