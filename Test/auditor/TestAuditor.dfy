@@ -110,3 +110,8 @@ opaque function f(): int {
 method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
   return x;
 }
+
+method AssertOnly() {
+  assert {:only} true;
+  assert false;
+}

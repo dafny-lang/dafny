@@ -177,5 +177,38 @@ namespace DafnyTestGeneration {
         func.ByMethodTok = Token.NoToken;
       }
     }
+
+    /// <summary>
+    /// Scan an unresolved dafny program to look for a specific attribute
+    /// </summary>
+    internal class AttributeFinder {
+
+      public static bool ProgramHasAttribute(Program program, string attribute) {
+        return DeclarationHasAttribute(program.DefaultModule, attribute);
+      }
+
+      private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
+        if (decl is LiteralModuleDecl moduleDecl) {
+          return moduleDecl.ModuleDef.TopLevelDecls
+            .Any(declaration => DeclarationHasAttribute(declaration, attribute));
+        }
+        if (decl is TopLevelDeclWithMembers withMembers) {
+          return withMembers.Members
+            .Any(member => MembersHasAttribute(member, attribute));
+        }
+        return false;
+      }
+
+      private static bool MembersHasAttribute(MemberDecl member, string attribute) {
+        var attributes = member.Attributes;
+        while (attributes != null) {
+          if (attributes.Name == attribute) {
+            return true;
+          }
+          attributes = attributes.Prev;
+        }
+        return false;
+      }
+    }
   }
 }

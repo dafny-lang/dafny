@@ -310,7 +310,7 @@ namespace Microsoft.Dafny.Compilers {
       if (enclosingTypeDecl is DatatypeDecl dtDecl) {
         typeDescriptorParams = UsedTypeParameters(dtDecl);
       } else {
-        typeDescriptorParams = enclosingTypeDecl.TypeArgs.Where(NeedsTypeDescriptor).ToList();
+        typeDescriptorParams = enclosingTypeDecl.TypeArgs;
       }
 
       var parameters = typeDescriptorParams.Comma(tp => $"{DafnyTypeDescriptor}<{tp.GetCompileName(Options)}> {FormatTypeDescriptorVariable(tp.GetCompileName(Options))}");
@@ -1656,17 +1656,10 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         List<Type> relevantTypeArgs;
-        if (type.IsBuiltinArrowType) {
-          relevantTypeArgs = type.TypeArgs;
-        } else if (cl is DatatypeDecl dt) {
+        if (cl is DatatypeDecl dt) {
           relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
         } else {
-          relevantTypeArgs = new List<Type>();
-          for (int i = 0; i < cl.TypeArgs.Count; i++) {
-            if (NeedsTypeDescriptor(cl.TypeArgs[i])) {
-              relevantTypeArgs.Add(udt.TypeArgs[i]);
-            }
-          }
+          relevantTypeArgs = type.TypeArgs;
         }
 
         return AddTypeDescriptorArgs(FullTypeName(udt, ignoreInterface: true), udt, relevantTypeArgs, wr, tok);

@@ -1,0 +1,1 @@
+Fixes several compilation issues, mostly related to subset types defined by one of its type parameter

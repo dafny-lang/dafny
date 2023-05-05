@@ -67,8 +67,14 @@ public record AssumptionDescription(string issue, string mitigation, bool isExpl
       isExplicit: false,
       allowedInLibraries: false);
   }
-}
 
+  public static AssumptionDescription AssertOnly = new(
+    issue: "Assertion has explicit temporary [{:only}] attribute.",
+    mitigation: "Remove the attribute [{:only}]",
+    isExplicit: true,
+    allowedInLibraries: false
+  );
+}
 public record Assumption(Declaration decl, IToken tok, AssumptionDescription desc) {
   public string Warning() {
     var tickIssue = UpdateVerbatim(desc.issue, "`", "`");
