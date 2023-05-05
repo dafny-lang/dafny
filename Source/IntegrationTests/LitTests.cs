@@ -188,7 +188,7 @@ namespace IntegrationTests {
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, inputReader, arguments);
+      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, arguments);
       return (exitCode, "", "");
     }
 

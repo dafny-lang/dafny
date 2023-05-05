@@ -24,13 +24,17 @@ public class StandaloneServerTest {
 
 public class WriterFromOutputHelper : TextWriter {
   private readonly ITestOutputHelper output;
+  private bool failed = false;
 
   public WriterFromOutputHelper(ITestOutputHelper output) {
     this.output = output;
   }
 
   public override void Write(char value) {
-
+    if (!failed) {
+      failed = true;
+      WriteLine("Error: tried to write a single character, which WriterFromOutputHelper does not support.");
+    }
   }
 
   public override Encoding Encoding => Encoding.Default;

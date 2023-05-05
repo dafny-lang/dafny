@@ -147,7 +147,7 @@ public class MultiBackendTest {
     var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = DafnyDriver.MainWithWriter(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);

@@ -100,10 +100,10 @@ namespace Microsoft.Dafny {
     };
 
     public static int Main(string[] args) {
-      return MainWithWriter(Console.Out, Console.Error, Console.In, args);
+      return MainWithWriters(Console.Out, Console.Error, Console.In, args);
     }
 
-    public static int MainWithWriter(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+    public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
       string[] args) {
 
       // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel

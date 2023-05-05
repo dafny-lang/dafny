@@ -16,7 +16,7 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public void Test() {
-      Assert.Equal(0, DafnyDriver.MainWithWriter(output, output,
+      Assert.Equal(0, DafnyDriver.MainWithWriters(output, output,
         TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
     }
 
