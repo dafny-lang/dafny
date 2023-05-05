@@ -129,14 +129,6 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     }
   }
 
-  public override IEnumerable<Node> Children =>
-    BoundVars
-      .Concat(Range != null ? new List<Node>() { Range } : Enumerable.Empty<Node>())
-      .Concat(Ens)
-      .Concat(Body != null ? new List<Node>() { Body } : Enumerable.Empty<Node>());
-
-  public override IEnumerable<Node> PreResolveChildren => Children;
-
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
       yield return new Assumption(decl, tok, AssumptionDescription.ForallWithoutBody);
