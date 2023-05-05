@@ -136,7 +136,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
         var a = Index;
         var b = ((TernaryCalcOp)other).Index;
         var minIndex = new ITEExpr(a.tok, false, new BinaryExpr(a.tok, BinaryExpr.Opcode.Le, a, b), a, b);
-        return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equalty, we could use this here to optimize
+        return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equality, we could use this here to optimize
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException();
@@ -243,6 +243,10 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
         if (calcop is TernaryCalcOp o3) {
           yield return o3.Index;
         }
+      }
+
+      if (Result != null) {
+        yield return Result;
       }
     }
   }
