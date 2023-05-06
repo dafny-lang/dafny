@@ -1006,7 +1006,7 @@ namespace Microsoft.Dafny.Compilers {
                 typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> ({targetTypeName}){d})";
               } else {
                 var td = FormatTypeDescriptorVariable(tp.GetCompileName(Options));
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> ({targetTypeName}){d})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
               }
             }
             break;
