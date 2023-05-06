@@ -32,6 +32,7 @@ class DafnyDocHtml {
       <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
       <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
       <meta name=""author"" content=""dafnydoc"">
+      <link rel=""stylesheet"" href=""styles.css"" />
       </head>
       ";
   }
@@ -140,8 +141,8 @@ class DafnyDocHtml {
     return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
-  public static readonly string style =
-  @"<style>
+  public static readonly string Style =
+  @"
 body {
   background-color: white;
 }
@@ -149,12 +150,12 @@ body {
 h1 {
   color: blue;
   text-align: center;
-  background-color: #fceb6c
+  background-color: #ffec50
 }
 h2 {
   color: blue;
   text-align: left;
-  background-color: #fceb6c
+  background-color: #ffec50
 }
 h3 {
   color: blue;
@@ -165,7 +166,6 @@ h3 {
 p {
   font-size: 16px
 }
-</style>
 ";
 
 

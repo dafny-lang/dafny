@@ -126,6 +126,7 @@ class DafnyDoc {
         WriteModule(m, dafnyFiles);
       }
       WriteIndex();
+      WriteStyle();
       return DafnyDriver.ExitValue.SUCCESS;
     } catch (Exception e) {
       // This is a fail-safe backstop so that dafny itself does not crash
@@ -161,7 +162,6 @@ class DafnyDoc {
     string filename = Outputdir + "/" + fullName + ".html";
     using StreamWriter file = new(filename);
     file.Write(HtmlStart($"Module {fullName} in program {DafnyProgram.Name}"));
-    file.Write(style);
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
     file.WriteLine(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}"));
     file.Write(BodyStart());
@@ -231,7 +231,6 @@ class DafnyDoc {
     string filename = Outputdir + "/" + fullName + ".html";
     using StreamWriter file = new(filename);
     file.Write(HtmlStart($"{decl.WhatKind} {fullName}"));
-    file.Write(style);
     var extends = "";
     if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
       extends = Smaller(" extends ...");
@@ -884,7 +883,6 @@ class DafnyDoc {
     string filename = Outputdir + "/index.html";
     using StreamWriter file = new(filename);
     file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
-    file.Write(style);
 
     file.Write(Heading1($"Modules{ProgramHeader()}{space4}{Smaller(indexlink)}"));
     file.Write(BodyStart());
@@ -911,6 +909,12 @@ class DafnyDoc {
     file.WriteLine(ListEnd());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
+  }
+
+  public void WriteStyle() {
+    string filename = Outputdir + "/styles.css";
+    using StreamWriter file = new(filename);
+    file.WriteLine(Style);
   }
 
   public string ProgramHeader() {
@@ -1109,7 +1113,6 @@ class DafnyDoc {
     string filename = Outputdir + "/nameindex.html";
     using StreamWriter file = new(filename);
     file.Write(HtmlStart($"Index for program {DafnyProgram.Name}"));
-    file.Write(style);
     file.Write(Heading1($"Index{ProgramHeader()}{space4}{Smaller(contentslink)}"));
     file.Write(BodyStart());
     foreach (var key in keys) {
