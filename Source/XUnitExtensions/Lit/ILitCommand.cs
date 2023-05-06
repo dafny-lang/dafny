@@ -66,7 +66,7 @@ namespace XUnitExtensions.Lit {
             kind = Kind.Verbatim;
           }
         } else {
-          if (c is '?' && inProgressArgument.Length > 0 && inProgressArgument[^1] == '-') {
+          if (c is '?' && inProgressArgument.Length == 1 && inProgressArgument[0] == '-') {
             kind = Kind.Verbatim;
           } else if (c is '*' or '?' && !singleQuoted) {
             kind = Kind.MustGlob;
