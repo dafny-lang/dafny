@@ -13,7 +13,6 @@ public class GenerateTestsCommand : ICommandSpec {
       LoopUnroll,
       SequenceLengthLimit,
       Target,
-      TestInlineDepth,
       BoogieOptionBag.VerificationTimeLimit,
       Verbose,
       PrintBpl,
@@ -59,9 +58,6 @@ path - Prints path-coverage tests for the given program.");
     "If specified, only this method will be tested.") {
     ArgumentHelpName = "name"
   };
-  public static readonly Option<uint> TestInlineDepth = new("--inline-depth",
-    "0 is the default. When used in conjunction with --target-method, this argument specifies the depth up to which all non-tested methods should be inlined.") {
-  };
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
@@ -85,9 +81,6 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(SequenceLengthLimit, (options, value) => {
       options.TestGenOptions.SeqLengthLimit = value;
     });
-    DafnyOptions.RegisterLegacyBinding(TestInlineDepth, (options, value) => {
-      options.TestGenOptions.TestInlineDepth = value;
-    });
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.TestGenOptions.TargetMethod = value;
     });
@@ -105,7 +98,6 @@ path - Prints path-coverage tests for the given program.");
       LoopUnroll,
       SequenceLengthLimit,
       Target,
-      TestInlineDepth,
       Verbose,
       PrintBpl,
       DisablePrune
