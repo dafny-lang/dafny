@@ -98,7 +98,7 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -122,7 +122,7 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -151,7 +151,7 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
@@ -180,7 +180,7 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.test";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
