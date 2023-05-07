@@ -190,7 +190,7 @@ public class AuditReport {
           continue;
         }
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          if (decl.tok is IncludeToken) {
+          if (decl.tok.WasIncluded(program)) {
             // Don't audit included code
             continue;
           }
