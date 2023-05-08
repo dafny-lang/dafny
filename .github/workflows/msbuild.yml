@@ -125,7 +125,10 @@ jobs:
             -reporttypes:Cobertura -targetdir:coverage-cobertura \
             -classfilters:-Microsoft.Dafny.*PreType* \
             -classfilters:-Microsoft.Dafny.ResolverPass \
-            -classfilters:-Microsoft.Dafny.*Underspecification*
+            -classfilters:-Microsoft.Dafny.*Underspecification* \
+            -classfilters:-Microsoft.Dafny.DetectUnderspecificationVisitor \
+            -classfilters:-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector \
+            -classfilters:-Microsoft.Dafny.ResolverPass
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \
