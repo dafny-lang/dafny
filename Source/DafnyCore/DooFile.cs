@@ -117,7 +117,7 @@ public class DooFile {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
       return false;
     }
-    
+
     if (options.VersionNumber != Manifest.DafnyVersion) {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;
