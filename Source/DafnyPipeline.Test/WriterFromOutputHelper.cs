@@ -20,11 +20,11 @@ public class WriterFromOutputHelper : TextWriter {
 
   public override Encoding Encoding => Encoding.Default;
 
-  public override void WriteLine(string value) {
+  public override void WriteLine(string? value) {
     output.WriteLine(value);
   }
 
-  public override void WriteLine(string format, params object[] arg) {
+  public override void WriteLine(string format, params object?[] arg) {
     output.WriteLine(format, arg);
   }
 }
