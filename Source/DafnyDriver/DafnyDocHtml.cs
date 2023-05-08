@@ -19,22 +19,22 @@ class DafnyDocHtml {
   public static string HtmlStart(string title) {
     return
       @"
-      <!doctype html>
-      <html lang=""en"">
-      <head>
-      <meta charset=""utf-8"">
-      <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-      <title>"
+<!doctype html>
+<html lang=""en"">
+<head>
+<meta charset=""utf-8"">
+<meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+<title>"
 
       + title +
 
-      @"</title>
-      <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
-      <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
-      <meta name=""author"" content=""dafnydoc"">
-      <link rel=""stylesheet"" href=""styles.css"" />
-      </head>
-      ";
+@"</title>
+<link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
+<meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
+<meta name=""author"" content=""dafnydoc"">
+<link rel=""stylesheet"" href=""styles.css"" />
+</head>
+";
   }
 
   public static string BodyStart() {
@@ -83,6 +83,13 @@ class DafnyDocHtml {
 
   public static string Italics(string text) {
     return $"<i>{text}</i>";
+  }
+
+  public static string Code(string text) {
+    return $"<span class=\"code\">{text}</span>";
+  }
+  public static string Keyword(string text) {
+    return Bold(text);
   }
 
   public static string TableStart() {
@@ -150,23 +157,30 @@ body {
 h1 {
   color: blue;
   text-align: center;
-  background-color: #ffec50
+  background-color: #ffec50;
 }
 h2 {
   color: blue;
   text-align: left;
-  background-color: #ffec50
+  background-color: #ffec50;
 }
 h3 {
   color: blue;
   text-align: left;
-  background-color: #fefdcc
+  background-color: #fefdcc;
 }
 
 p {
-  font-size: 16px
+  font-size: 16px;
+}
+
+span.doctext {
+   font-style: italic;
+}
+
+span.code {
+   font-family: 'Courier New', monospace;
 }
 ";
-
 
 }

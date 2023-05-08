@@ -26,6 +26,9 @@ Future Improvements:
 - ability to link to declarations in other documentation sets
 - possibly refactor to combine WriteModule and WriteDecl
 
+- Check formatting
+  - is list of imported names in monospace
+
 Questions
 - option to maintain source ordering?
 - have some options available as module scoped options?
@@ -375,46 +378,48 @@ class DafnyDoc {
       details.Append(Heading3("Export sets")).Append(eol);
       foreach (var ex in exports) {
         AddToIndex(ex.Name, module.FullDafnyName, "export set");
-        var text = $"export {module.Name}`{LinkToAnchor(ExportSetAnchor(ex.Name), Bold(ex.Name))}";
+        var text = $"{Keyword("export")} {Code(module.Name)}`{LinkToAnchor(ExportSetAnchor(ex.Name), Code(Bold(ex.Name)))}";
         summaries.Append(text).Append(DashShortDocstring(ex)).Append(br).Append(eol);
 
         details.Append(Anchor(ExportSetAnchor(ex.Name))).Append(eol);
         details.Append(RuleWithText(ex.Name)).Append(eol);
-        var extends = String.Join(", ", ex.Extends.Select(e => LinkToAnchor(ExportSetAnchor(e.val), e.val)).ToList());
+        var extends = String.Join(", ", ex.Extends.Select(e => LinkToAnchor(ExportSetAnchor(e.val), Code(e.val))).ToList());
         if (ex.Extends.Count > 0) {
-          extends = " extends " + extends;
+          extends = " " + Keyword("extends") + " " + extends;
         }
         details.Append(text).Append(extends).Append(br).Append(eol);
         var revealed = ex.Exports.Where(e => !e.Opaque).ToList();
         revealed.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
         var provided = ex.Exports.Where(e => e.Opaque).ToList();
         provided.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
-        details.Append(space4).Append("provides");
+        details.Append(space4).Append(Keyword("provides"));
         if (ex.ProvideAll) {
           details.Append(" * :");
         }
         foreach (var e in provided) {
           string link;
+          string id = Code(Bold(e.Id));
           if (HasOwnPage(e.Decl)) {
             var fn = (e.Decl as TopLevelDecl).FullDafnyName;
-            link = Link(fn, null, Bold(e.Id));
+            link = Link(fn, null, id);
           } else {
-            link = Link(null, e.Id, Bold(e.Id));
+            link = Link(null, e.Id, id);
           }
           details.Append(" ").Append(link);
         }
         details.Append(br).Append(eol);
-        details.Append(space4).Append("reveals");
+        details.Append(space4).Append(Keyword("reveals"));
         if (ex.RevealAll) {
           details.Append(" * :");
         }
         foreach (var e in revealed) {
           string link;
+          string id = Code(Bold(e.Id));
           if (HasOwnPage(e.Decl)) {
             var fn = (e.Decl as TopLevelDecl).FullDafnyName;
-            link = Link(fn, null, Bold(e.Id));
+            link = Link(fn, null, id);
           } else {
-            link = Link(null, e.Id, Bold(e.Id));
+            link = Link(null, e.Id, id);
           }
           details.Append(" ").Append(link);
         }
@@ -422,7 +427,7 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(docstring)) {
           details.Append(IndentedHtml(docstring));
         }
-        details.Append(br).Append(eol);
+        details.Append(eol);
       }
     }
   }
@@ -445,16 +450,17 @@ class DafnyDoc {
       details.Append(Heading3("Imports")).Append(eol);
       foreach (var imp in imports) {
         var name = imp.Name;
+        var styledName = Code(Bold(name));
         var target = imp.Dereference();
-        var exportsets = String.Join(", ", imp.Exports.Select(e => Link(target.FullDafnyName, ExportSetAnchor(e.val), e.val)));
+        var exportsets = String.Join(", ", imp.Exports.Select(e => Link(target.FullDafnyName, ExportSetAnchor(e.val), Code(e.val))));
         if (exportsets.Length == 0) {
-          exportsets = Link(target.FullDafnyName, ExportSetAnchor(target.Name), target.Name);
+          exportsets = Link(target.FullDafnyName, ExportSetAnchor(target.Name), Code(target.Name));
         }
-        summaries.Append($"import {LinkToAnchor(name, Bold(name))} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}").Append(br).Append(eol);
+        summaries.Append($"{Keyword("import")} {LinkToAnchor(name, styledName)} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}").Append(br).Append(eol);
 
         details.Append(Anchor(name)).Append(eol);
         details.Append(RuleWithText(imp.Name)).Append(eol);
-        details.Append("import ").Append(Bold(imp.Opened ? "IS " : "IS NOT ")).Append("opened").Append(br).Append(eol);
+        details.Append("import ").Append(Code(name)).Append(" ").Append(Bold(imp.Opened ? "IS " : "IS NOT ")).Append("opened").Append(br).Append(eol);
         details.Append("Names imported:");
         var list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
         list.Sort((a, b) => a.Name.CompareTo(b.Name));
@@ -462,7 +468,7 @@ class DafnyDoc {
         list.Sort((a, b) => a.Name.CompareTo(b.Name));
         string result = String.Join("", list.Select(d => " " + ImportLink(d)));
         result += String.Join("", list2.Select(d => " " + ImportLink(d)));
-        details.Append(result).Append(br).Append(eol);
+        details.Append(Code(result)).Append(br).Append(eol);
       }
       foreach (var imp in absimports) {
         var name = imp.Name;
@@ -513,7 +519,7 @@ class DafnyDoc {
     if (submods.Count() > 0) {
       summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
-        summaries.Append("module ").Append(QualifiedNameWithLinks(submod.FullDafnyName));
+        summaries.Append(Keyword("module")).Append(" ").Append(QualifiedNameWithLinks(submod.FullDafnyName));
         summaries.Append(DashShortDocstring(submod));
         summaries.Append(br).Append(eol);
       }
@@ -539,9 +545,9 @@ class DafnyDoc {
         var link = "";
         if (HasOwnPage(t)) {
           WriteDecl(t as TopLevelDeclWithMembers);
-          link = Link(t.FullDafnyName, Bold(t.Name));
+          link = Link(t.FullDafnyName, Code(Bold(t.Name)));
         } else {
-          link = LinkToAnchor(t.Name, Bold(t.Name));
+          link = LinkToAnchor(t.Name, Code(Bold(t.Name)));
         }
         AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
         var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
@@ -634,31 +640,34 @@ class DafnyDoc {
 
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
+
+        var styledName = Code(Bold(c.Name));
         var docstring = Docstring(c);
         var modifiers = c.ModifiersAsString();
-        summaries.Append(LinkToAnchor(c.Name, Bold(c.Name))).Append(": ").Append(TypeLink(c.Type));
+        var linkedName = Code(LinkToAnchor(c.Name, Bold(c.Name)));
+        var linkedType = TypeLink(c.Type);
 
-        if (!String.IsNullOrEmpty(docstring)) {
-          summaries.Append(DashShortDocstring(c));
-        }
-        summaries.Append(br).Append(eol);
+        summaries.Append(Row(LinkToAnchor(c.Name, styledName), ":", linkedType, DashShortDocstring(c))).Append(eol);
 
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
-        details.Append(Bold(c.Name)).Append(": ").Append(TypeLink(c.Type));
+        details.Append(styledName).Append(" : ").Append(linkedType);
+
+
         if (c.Rhs != null) {
-          details.Append(" := ").Append(c.Rhs.ToString());
+          details.Append(" := ").Append(Code(c.Rhs.ToString()));
         }
         details.Append(br).Append(eol);
         var attributes = c.Attributes?.ToString();
         if (!String.IsNullOrEmpty(attributes)) {
-          details.Append(space4).Append(attributes).Append(br).Append(eol);
+          details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
         }
         details.Append(IndentedHtml(docstring));
       }
+      summaries.Append(TableEnd()).Append(eol);
     }
   }
 
@@ -674,18 +683,21 @@ class DafnyDoc {
       foreach (var c in fields) {
         AddToIndex(c.Name, decl.FullDafnyName, "var");
 
-        summaries.Append(Row(LinkToAnchor(c.Name, Bold(c.Name)), ":", TypeLink(c.Type), DashShortDocstring(c))).Append(eol);
-
+        var linkedType = TypeLink(c.Type);
+        var styledName = Code(Bold(c.Name));
         var modifiers = c.ModifiersAsString();
+
+        summaries.Append(Row(LinkToAnchor(c.Name, styledName), ":", linkedType, DashShortDocstring(c))).Append(eol);
+
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
         if (!String.IsNullOrEmpty(modifiers)) {
           details.Append(modifiers).Append(br).Append(eol);
         }
-        details.Append(Bold(c.Name)).Append(": ").Append(TypeLink(c.Type)).Append(br).Append(eol);
+        details.Append(styledName).Append(" : ").Append(linkedType).Append(br).Append(eol);
         var attributes = c.Attributes?.ToString();
         if (!String.IsNullOrEmpty(attributes)) {
-          details.Append(space4).Append(attributes).Append(br).Append(eol);
+          details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
         }
         details.Append(IndentedHtml(Docstring(c)));
       }
@@ -727,16 +739,16 @@ class DafnyDoc {
     if (m is Method) {
       var mth = m as Method;
       var typeparams = TypeFormals(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => FormalAsString(f, false)));
+      var formals = String.Join(", ", mth.Ins.Select(f => Code(FormalAsString(f, false))));
       var outformals = mth.Outs.Count == 0 ? "" :
-        " returns (" + String.Join(", ", mth.Outs.Select(f => FormalAsString(f, false))) + ")";
-      return Bold(m.Name) + typeparams + "(" + formals + ")" + outformals;
+        " returns (" + String.Join(", ", mth.Outs.Select(f => Code(FormalAsString(f, false)))) + ")";
+      return Code(Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
       var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
-      return Bold(m.Name) + typeparams + "(" + formals + "): " + TypeLink(f.ResultType);
+      return Code(Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
     }
@@ -757,15 +769,15 @@ class DafnyDoc {
     if (ff.IsNameOnly) {
       ss += "nameonly ";
     }
-    string def = ff.DefaultValue == null ? "" : " := " + ff.DefaultValue.ToString();
-    return ss + ff.Name + ": " + TypeLink(ff.Type) + def;
+    string def = ff.DefaultValue == null ? "" : " := " + Code(ff.DefaultValue.ToString());
+    return (ss == "" ? "" : Keyword(ss)) + Code(ff.Name) + ": " + TypeLink(ff.Type) + def;
   }
 
   // For methods, lemmas, functions
   public void WriteMethodsList(List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details) {
     foreach (var m in members) {
       var md = m as IHasDocstring;
-      var ms = MethodSig(m);
+      var ms = MethodSig(m); // Wrapped as code
       var docstring = Docstring(md);
       var modifiers = m.ModifiersAsString();
       var name = m.Name;
@@ -782,7 +794,9 @@ class DafnyDoc {
       }
 
       String link = Link(null, name, name);
-      String mss = ReplaceFirst(ms, m.Name, link);
+      // Replacing the name with a link -- the angle brackets are to be sure we get the whole name and 
+      // not a portion of someother html tag. At this point the name is enclosed in some styling tag.
+      String mss = ReplaceFirst(ms, ">" + m.Name + "<", ">" + link + "<");
 
       summaries.Append(mss);
       if (!String.IsNullOrEmpty(docstring)) {
@@ -796,12 +810,11 @@ class DafnyDoc {
         details.Append(modifiers).Append(br).Append(eol);
       }
       details.Append(m.WhatKind).Append(br).Append(eol);
-      mss = ReplaceFirst(ms, m.Name, Bold(name));
-      details.Append(mss).Append(br).Append(eol);
+      details.Append(ms).Append(br).Append(eol);
 
       var attributes = m.Attributes?.ToString();
       if (!String.IsNullOrEmpty(attributes)) {
-        details.Append(space4).Append(attributes).Append(br).Append(eol);
+        details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
       }
       details.Append(IndentedHtml(docstring));
       AppendSpecs(details, m);
@@ -838,40 +851,41 @@ class DafnyDoc {
     if (d is Method) {
       var m = d as Method;
       foreach (var req in m.Req) {
-        details.Append(space4).Append("<b>requires</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+        details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
       if (m.Mod != null && m.Mod.Expressions.Count > 0) {
-        var list = String.Join(", ", m.Mod.Expressions.Select(e => e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : "")));
-        details.Append(space4).Append(Bold("modifies")).Append(" ").Append(list).Append(br).Append(eol);
+        var list = String.Join(", ", m.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+        details.Append(space4).Append(Keyword("modifies")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
       foreach (var en in m.Ens) {
-        details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
+        details.Append(space4).Append(Keyword("ensures")).Append(" ").Append(Code(en.E.ToString())).Append(br).Append(eol);
         some = true;
       }
       if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
-        details.Append(space4).Append("<b>decreases</b> ").Append(dec).Append(br).Append(eol);
+        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => Code(e.ToString())));
+        details.Append(space4).Append(Keyword("decreases")).Append(" ").Append(dec).Append(br).Append(eol);
         some = true;
       }
     } else if (d is Function) {
       var m = d as Function;
-      foreach (var req in m.Reads) {
-        details.Append(space4).Append("<b>reads</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+      if (m.Reads != null && m.Reads.Count > 0) {
+        var list = String.Join(", ", m.Reads.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+        details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
       foreach (var req in m.Req) {
-        details.Append(space4).Append("<b>requires</b> ").Append(req.E.ToString()).Append(br).Append(eol);
+        details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
       foreach (var en in m.Ens) {
-        details.Append(space4).Append("<b>ensures</b> ").Append(en.E.ToString()).Append(br).Append(eol);
+        details.Append(space4).Append(Keyword("ensures")).Append(" ").Append(Code(en.E.ToString())).Append(br).Append(eol);
         some = true;
       }
       if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => e.ToString()));
-        details.Append(space4).Append("<b>decreases</b> ").Append(dec).Append(br).Append(eol);
+        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => Code(e.ToString())));
+        details.Append(space4).Append(Keyword("decreases")).Append(" ").Append(dec).Append(br).Append(eol);
         some = true;
       }
     }
@@ -901,9 +915,9 @@ class DafnyDoc {
       }
       var ds = DashShortDocstringNoMore(module);
       if (module.ModuleDef.IsDefaultModule) {
-        file.WriteLine(ListItem("Module " + Link(RootName, RootNLName) + ds));
+        file.WriteLine(ListItem("Module " + Link(RootName, Code(RootNLName)) + ds));
       } else {
-        file.WriteLine(ListItem("Module " + Link(fullname, fullname) + ds));
+        file.WriteLine(ListItem("Module " + Link(fullname, Code(fullname)) + ds));
       }
     }
     file.WriteLine(ListEnd());
@@ -925,32 +939,36 @@ class DafnyDoc {
   public string TypeLink(Type tin) {
     Type t = tin is TypeProxy ? (tin as TypeProxy).T : tin;
     if (t is BasicType) {
-      return t.ToString();
+      Code(t.ToString());
     } else if (t is CollectionType ct) {
-      return ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs);
+      Code(ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs));
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
+      String s = null;
       if (tt is ClassDecl) {
-        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NonNullTypeDecl) {
-        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is SubsetTypeDecl) {
-        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NewtypeDecl) {
-        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is DatatypeDecl) {
-        return Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is TypeParameter) {
-        return tt.Name;
+        s = tt.Name;
+      }
+      if (s != null) {
+        return Code(s);
       }
     }
     Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
-    return t.ToString();
+    return Code(t.ToString());
   }
 
   public string ToHtml(string text) {
     // TODO: Needs full translation to HTML (escaping special characters, tranlating javadoc and markdown)
-    return "<i>" + text + "</i>";
+    return @"<span class=""doctext"">" + text + "</span>";
   }
 
   /** True for declarations that have their own page */
@@ -1073,12 +1091,12 @@ class DafnyDoc {
     if (inpage != null) {
       output += $".<a href=\"{fullName}.html#{inpage}\">{text}</a>";
     }
-    return output;
+    return Code(output);
   }
 
   public string TypeFormals(List<TypeParameter> args) {
     return (args.Count == 0) ? "" :
-      "&lt;" + String.Join(",", args.Select(a => TypeParameter.VarianceString(a.VarianceSyntax) + a + a.Characteristics)) + "&gt;";
+      "&lt;" + String.Join(",", args.Select(a => Code(TypeParameter.VarianceString(a.VarianceSyntax) + a + a.Characteristics))) + "&gt;";
   }
 
   public string TypeActualParameters(List<Type> args) {
