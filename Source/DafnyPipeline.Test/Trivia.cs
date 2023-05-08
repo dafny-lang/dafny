@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
 

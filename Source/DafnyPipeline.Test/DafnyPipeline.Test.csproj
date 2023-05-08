@@ -27,7 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
-    <ProjectReference Include="..\DafnyLanguageServer.Test\DafnyLanguageServer.Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>

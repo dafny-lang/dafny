@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;

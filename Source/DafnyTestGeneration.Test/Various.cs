@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -1,6 +1,5 @@
 using System.IO;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit;
 using Xunit.Abstractions;
 

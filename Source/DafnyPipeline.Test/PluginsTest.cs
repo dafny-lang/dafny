@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest;
 using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test;
