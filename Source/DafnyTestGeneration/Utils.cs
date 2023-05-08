@@ -174,7 +174,6 @@ namespace DafnyTestGeneration {
           new List<AssignmentRhs> { new ExprRhs(func.Body) });
         func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
-        func.ByMethodTok = Token.NoToken;
       }
     }
 

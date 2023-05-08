@@ -155,5 +155,8 @@ public class Auditor : IRewriter {
         }
       }
     }
+
+    var findingCount = report.AllAssumptions().SelectMany(d => d.Value).Count();
+    Console.WriteLine($"Dafny auditor completed with {findingCount} findings");
   }
 }
