@@ -83,6 +83,6 @@ public class LibraryBackend : ExecutableBackend {
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
 
     var dooPath = DooFilePath(dafnyProgramName);
-    return RunTargetDafnyProgram(dooPath, outputWriter);
+    return RunTargetDafnyProgram(dooPath, outputWriter, true);
   }
 }
