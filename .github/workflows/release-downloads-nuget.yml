@@ -98,7 +98,7 @@ jobs:
     - name: run quicktests
       run: |
         npm install bignumber.js
-        dafny-repo/Scripts/quicktest.sh > log.txt
+        dafny-repo/Scripts/quicktest.sh dafny > log.txt
         diff log.txt dafny-repo/Scripts/quicktest.out
 
   test-dafny-libraries:
