@@ -114,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
       var resolvedIncludes = new SortedSet<Include>();
-      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString(), false));
+      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString()));
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
@@ -144,9 +144,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           dafnyFile.Uri,
           module,
           builtIns,
-          errors,
-          verifyThisFile: false,
-          compileThisFile: false
+          errors
         );
         if (errorCount != 0) {
           return false;

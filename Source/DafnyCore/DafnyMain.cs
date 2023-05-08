@@ -93,6 +93,7 @@ namespace Microsoft.Dafny {
       } else if (extension == ".doo") {
         IsPreverified = true;
         IsPrecompiled = false;
+        options.VerifiedRoots.Add(Uri);
 
         var dooFile = DooFile.Read(filePath);
 

@@ -1126,10 +1126,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
 
-  public IList<Uri> RootUris { get; }
-  public DefaultModuleDefinition(IList<Uri> rootUris)
+  public IList<Uri> RootSourceUris { get; }
+  public DefaultModuleDefinition(IList<Uri> rootSourceUris)
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true) {
-    RootUris = rootUris;
+    RootSourceUris = rootSourceUris;
   }
 
   public override bool IsDefaultModule => true;

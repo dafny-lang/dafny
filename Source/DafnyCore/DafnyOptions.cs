@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
@@ -46,9 +47,11 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public IList<Uri> CliRootUris = new List<Uri>();
+    public IList<Uri> CliRootSourceUris = new List<Uri>();
+    public ISet<Uri> VerifiedRoots = new HashSet<Uri>();
+    public ISet<Uri> CompiledRoots = new HashSet<Uri>();
 
-    public static DafnyOptions Default = new DafnyOptions();
+    public static DafnyOptions Default = new();
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
@@ -158,7 +161,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
+      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 

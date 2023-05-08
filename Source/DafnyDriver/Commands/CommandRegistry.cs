@@ -238,7 +238,7 @@ static class CommandRegistry {
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
-      dafnyOptions.CliRootUris.Add(new Uri(singleFile.FullName));
+      dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }
     return true;
   }

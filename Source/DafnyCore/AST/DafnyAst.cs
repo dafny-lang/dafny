@@ -40,6 +40,10 @@ namespace Microsoft.Dafny {
     }
 
     public List<Include> Includes => DefaultModuleDef.Includes;
+    [FilledInDuringResolution]
+    public ISet<Uri> NotVerifiedFiles;
+    [FilledInDuringResolution]
+    public ISet<Uri> NotCompiledFiles;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;

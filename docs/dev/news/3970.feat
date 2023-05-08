@@ -1,0 +1,1 @@
+Enable finer options for deciding what to verify. Users can now choose to verify: only root set files; also files reached through include directives, or everything including files from libraries and .doo files. 

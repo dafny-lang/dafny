@@ -95,7 +95,7 @@ namespace DafnyTestGeneration {
       options.LoopUnrollCount = original.LoopUnrollCount;
       options.DefiniteAssignmentLevel = original.DefiniteAssignmentLevel;
       options.WarnShadowing = original.WarnShadowing;
-      options.VerifyAllModules = original.VerifyAllModules;
+      options.VerificationScope = original.VerificationScope;
       options.TimeLimit = original.TimeLimit;
       return options;
     }
