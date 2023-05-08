@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (d.tok is IncludeToken && !options.VerifyAllModules) {
+      if (!options.VerifyAllModules && d.tok.WasIncluded(program)) {
         return false;
       }
 
@@ -7446,7 +7446,7 @@ namespace Microsoft.Dafny {
         }
         w = BplOr(body, w);
       }
-      builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists()));
+      builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists(bvars, expr)));
     }
 
     private void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
@@ -8212,7 +8212,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
-      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filename, stmt.Tok.line, stmt.Tok.col)));
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filepath, stmt.Tok.line, stmt.Tok.col)));
     }
 
     /// <summary>
