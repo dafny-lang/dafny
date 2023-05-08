@@ -190,7 +190,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
         outputWriter.WriteLine(outputBuilder[i]);
       }
-      
+
       for (int i = 0; i < errorBuilder.Count - 1; i++) {
         errorWriter.WriteLine(errorBuilder[i]);
       }
