@@ -36,7 +36,7 @@ public class MultiBackendTest {
   }
 
   public static int Main(string[] args) {
-    return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args);
+    return new MultiBackendTest(Console.In, Console.Out, Console.Error).Start(args.ToList());
   }
 
   public int Start(IEnumerable<string> args) {
