@@ -43,7 +43,7 @@ public class LitPattern : ExtendedPattern {
           } else {
             var n = (BigInteger)lit.Value;
             var tok = new Token(neg.tok.line, neg.tok.col) {
-              Filename = neg.tok.Filename,
+              Uri = neg.tok.Uri,
               val = "-0"
             };
             optimisticallyDesugaredLit = new LiteralExpr(tok, -n);
