@@ -829,8 +829,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-  public readonly bool IsToBeVerified;
-  public readonly bool IsToBeCompiled;
 
   public int? ResolvedHash { get; set; }
 
@@ -841,8 +839,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
-    bool isToBeVerified, bool isToBeCompiled) : base(tok) {
+    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -854,8 +851,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsFacade = isFacade;
     this.Includes = new List<Include>();
     this.IsBuiltinName = isBuiltinName;
-    this.IsToBeVerified = isToBeVerified;
-    this.IsToBeCompiled = isToBeCompiled;
   }
 
   VisibilityScope visibilityScope;
@@ -1131,7 +1126,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
   public DefaultModuleDefinition()
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true) {
   }
   public override bool IsDefaultModule {
     get {

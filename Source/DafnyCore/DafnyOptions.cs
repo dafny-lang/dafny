@@ -18,6 +18,16 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Accumulating scope, each next one includes the previous one.
+  /// </summary>
+  public enum VerificationScope {
+    RootFiles, 
+    IncludeDirectives,
+    Libraries
+  }
+  
   public enum FunctionSyntaxOptions {
     Version3,
     Migration3To4,
@@ -318,7 +328,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
-    public bool VerifyAllModules = false;
+    public VerificationScope VerificationScope = VerificationScope.RootFiles;
     public bool SeparateModuleOutput = false;
 
     public enum IncludesModes {

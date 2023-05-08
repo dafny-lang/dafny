@@ -247,8 +247,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFilePath, false) : null;
-        var err = ParseFile(dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
+        var err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter));
         if (err != null) {
           return err;
         }
@@ -298,8 +297,9 @@ namespace Microsoft.Dafny {
     public static string ParseIncludesDepthFirstNotCompiledFirst(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
       var includesFound = new SortedSet<Include>(new IncludeComparer());
       var allIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
-      var notCompiledRoots = allIncludes.Where(include => !include.CompileIncludedCode).ToList();
-      var compiledRoots = allIncludes.Where(include => include.CompileIncludedCode).ToList();
+      // TODO simplify this method, since we don't need to distinguish between two types of includes
+      var notCompiledRoots = allIncludes.Where(include => true).ToList();
+      var compiledRoots = allIncludes.Where(include => false).ToList();
       allIncludes.Clear();
       allIncludes.AddRange(notCompiledRoots);
 
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }
 
-          string result = ParseFile(file, include, module, builtIns, errs, false, include.CompileIncludedCode);
+          string result = ParseFile(file, include, module, builtIns, errs);
           if (result != null) {
             return result;
           }
@@ -361,10 +361,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
+    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, new Uri(dafnyFile.SourceFilePath), module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, new Uri(dafnyFile.SourceFilePath), module, builtIns, errs);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

@@ -128,16 +128,14 @@ namespace Microsoft.Dafny {
     public Uri IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
-    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, Uri includer, string theFilename) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
       this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
       this.ErrorReported = false;
-      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {

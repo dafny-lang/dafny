@@ -839,8 +839,8 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(DafnyOptions options, ModuleDefinition m) {
-      if (!m.IsToBeVerified && !options.VerifyAllModules) {
+    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+      if (!m.ShouldVerify(program)) {
         return false;
       }
 
@@ -857,7 +857,7 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<ModuleDefinition> VerifiableModules(Program p) {
-      return p.RawModules().Where(m => ShouldVerifyModule(p.Options, m));
+      return p.RawModules().Where(m => ShouldVerifyModule(p, m));
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
