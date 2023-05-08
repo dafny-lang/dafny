@@ -172,11 +172,10 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       return null;
     }
 
-    bool b;
-    if (Expression.IsBoolLiteral(Lines.First(), out b)) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
-    } else if (Expression.IsBoolLiteral(Lines.Last(), out b)) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+    if (Expression.IsBoolLiteral(Lines.First(), out var firstOperatorIsBoolLiteral)) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(firstOperatorIsBoolLiteral ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+    } else if (Expression.IsBoolLiteral(Lines.Last(), out var lastOperatorIsBoolLiteral)) {
+      alternativeOp = new CalcStmt.BinaryCalcOp(lastOperatorIsBoolLiteral ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
     } else if (Expression.IsEmptySetOrMultiset(Lines.First())) {
       alternativeOp = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
     } else if (Expression.IsEmptySetOrMultiset(Lines.Last())) {
