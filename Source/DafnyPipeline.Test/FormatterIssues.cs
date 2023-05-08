@@ -81,6 +81,7 @@ const sameLineOp :=
 ");
   }
 
+  [Fact]
   public void GitIssue3960FormattingIssueForallStatements() {
     FormatterWorksFor(@"
 lemma Lemma()
