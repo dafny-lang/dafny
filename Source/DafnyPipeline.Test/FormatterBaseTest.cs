@@ -54,7 +54,7 @@ namespace DafnyPipeline.Test {
         var uri = new Uri("virtual:virtual");
         var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
         BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
-        ModuleDecl module = new LiteralModuleDecl(outerModule, null);
+        var module = new LiteralModuleDecl(outerModule, null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, uri, module, builtIns, reporter);

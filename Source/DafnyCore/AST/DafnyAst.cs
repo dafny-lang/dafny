@@ -49,16 +49,15 @@ namespace Microsoft.Dafny {
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly ModuleDecl DefaultModule;
+    public readonly LiteralModuleDecl DefaultModule;
     public readonly DefaultModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
-      Contract.Requires(module is LiteralModuleDecl);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
@@ -191,6 +190,16 @@ namespace Microsoft.Dafny {
       Name = name;
       Args = args;
       Prev = prev;
+    }
+
+    public override string ToString() {
+      string result = Prev?.ToString() + "{:" + Name;
+      if (Args == null || Args.Count() == 0) {
+        return result + "}";
+      } else {
+        var exprs = String.Join(", ", Args.Select(e => e.ToString()));
+        return result + " " + exprs + "}";
+      }
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
