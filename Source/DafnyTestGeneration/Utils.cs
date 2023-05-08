@@ -1,4 +1,5 @@
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -72,23 +73,23 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(DafnyOptions options, string source, string fileName = "") {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+    public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
+      uri ??= new Uri(Path.GetTempPath());
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+      ModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
       var builtIns = new BuiltIns(options);
-      var reporter = new ConsoleErrorReporter(options);
-      var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
+      var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
+      var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      Program/*?*/ program = null;
-      if (success) {
-        program = new Program(fileName, module, builtIns, reporter);
+      var program = new Program(uri.LocalPath, module, builtIns, reporter);
+
+      if (!resolve) {
+        return program;
       }
-      if (program == null) {
-        return null;
-      }
+
       // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
-      program.Reporter = new ErrorReporterSink(options);
+      new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
@@ -174,6 +175,39 @@ namespace DafnyTestGeneration {
           new List<AssignmentRhs> { new ExprRhs(func.Body) });
         func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
+      }
+    }
+
+    /// <summary>
+    /// Scan an unresolved dafny program to look for a specific attribute
+    /// </summary>
+    internal class AttributeFinder {
+
+      public static bool ProgramHasAttribute(Program program, string attribute) {
+        return DeclarationHasAttribute(program.DefaultModule, attribute);
+      }
+
+      private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
+        if (decl is LiteralModuleDecl moduleDecl) {
+          return moduleDecl.ModuleDef.TopLevelDecls
+            .Any(declaration => DeclarationHasAttribute(declaration, attribute));
+        }
+        if (decl is TopLevelDeclWithMembers withMembers) {
+          return withMembers.Members
+            .Any(member => MembersHasAttribute(member, attribute));
+        }
+        return false;
+      }
+
+      private static bool MembersHasAttribute(MemberDecl member, string attribute) {
+        var attributes = member.Attributes;
+        while (attributes != null) {
+          if (attributes.Name == attribute) {
+            return true;
+          }
+          attributes = attributes.Prev;
+        }
+        return false;
       }
     }
   }

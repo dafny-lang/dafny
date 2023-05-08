@@ -12,12 +12,17 @@ namespace Microsoft.Dafny.Auditor;
 /// of a set of assumptions that can be rendered in several formats.
 /// </summary>
 public class AuditReport {
+  private DafnyOptions options;
   private Dictionary<Declaration, IEnumerable<Assumption>> allAssumptionsByDecl = new();
 
   // All three fields below are filtered by AddAssumptions()
   private HashSet<Declaration> declsWithEntries = new();
   private HashSet<ModuleDefinition> modulesWithEntries = new();
   private Dictionary<Declaration, IEnumerable<Assumption>> assumptionsByDecl = new();
+
+  public AuditReport(DafnyOptions options) {
+    this.options = options;
+  }
 
   private void UseDecl(Declaration decl) {
     declsWithEntries.Add(decl);
@@ -108,10 +113,9 @@ public class AuditReport {
 
   private void AppendMarkdownIETFDescription(AssumptionDescription desc, StringBuilder text) {
     var issue = Assumption.UpdateVerbatim(desc.issue, "`", "`");
-    var mitigation = Assumption.UpdateVerbatim(desc.mitigation, "`", "`");
-    var mustMitigation = char.ToLower(mitigation[0]) + mitigation.Substring(1);
+    var mitigation = Assumption.UpdateVerbatim(desc.mitigationIETF, "`", "`");
     text.AppendLine("");
-    text.AppendLine($"* {issue} MUST {mustMitigation}");
+    text.AppendLine($"* {issue} {mitigation}");
   }
 
   public string RenderMarkdownIETF() {
@@ -159,11 +163,11 @@ public class AuditReport {
   }
 
   public string RenderText() {
-    StringBuilder text = new StringBuilder();
+    var text = new StringBuilder();
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{ErrorReporter.TokenToString(decl.tok)}:{assumption.Warning()}");
+        text.AppendLine($"{decl.tok.TokenToString(options)}:{assumption.Warning()}");
       }
     }
 
@@ -171,7 +175,7 @@ public class AuditReport {
   }
 
   public static AuditReport BuildReport(Program program) {
-    AuditReport report = new();
+    AuditReport report = new(program.Options);
 
     report.allAssumptionsByDecl = program.Assumptions(null)
       .GroupBy(a => a.decl)
@@ -185,8 +189,12 @@ public class AuditReport {
         if (topLevelDecl is not TopLevelDeclWithMembers topLevelDeclWithMembers) {
           continue;
         }
-
         foreach (var decl in topLevelDeclWithMembers.Members) {
+          if (decl.tok.WasIncluded(program)) {
+            // Don't audit included code
+            continue;
+          }
+
           report.AddAssumptions(decl, report.AllAssumptionsForDecl(decl));
         }
       }

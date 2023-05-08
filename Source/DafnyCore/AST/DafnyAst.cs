@@ -39,6 +39,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    public List<Include> Includes => DefaultModuleDef.Includes;
+
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
@@ -48,7 +50,7 @@ namespace Microsoft.Dafny {
 
     public Method MainMethod; // Method to be used as main if compiled
     public readonly ModuleDecl DefaultModule;
-    public readonly ModuleDefinition DefaultModuleDef;
+    public readonly DefaultModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
@@ -101,7 +103,7 @@ namespace Microsoft.Dafny {
 
       var firstToken = DefaultModule.RootToken.Next;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -122,13 +124,13 @@ namespace Microsoft.Dafny {
   }
 
   public class Include : TokenNode, IComparable {
-    public string IncluderFilename { get; }
+    public Uri IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
@@ -651,6 +653,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>

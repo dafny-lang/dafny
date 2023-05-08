@@ -45,7 +45,7 @@ public class DafnyBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-    return RunTargetDafnyProgram(targetFilename, outputWriter);
+    return RunTargetDafnyProgram(targetFilename, outputWriter, false);
   }
 
   public DafnyBackend(DafnyOptions options) : base(options) {
