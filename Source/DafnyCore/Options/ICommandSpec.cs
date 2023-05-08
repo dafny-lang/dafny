@@ -29,7 +29,7 @@ public interface ICommandSpec {
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
-    CommonOptionBag.VerifyIncludedFiles,
+    CommonOptionBag.VerificationScope,
     CommonOptionBag.ManualLemmaInduction,
     CommonOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,

@@ -18,7 +18,7 @@ class RunCommand : ICommandSpec {
   static RunCommand() {
     DafnyOptions.RegisterLegacyBinding(Inputs, (options, files) => {
       foreach (var file in files) {
-        options.RootUris.Add(new Uri(Path.GetFullPath(file)));
+        options.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
       }
     });
 
@@ -49,7 +49,7 @@ class RunCommand : ICommandSpec {
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.MainArgs = context.ParseResult.GetValueForArgument(userProgramArguments).ToList();
     var inputFile = context.ParseResult.GetValueForArgument(CommandRegistry.FileArgument);
-    dafnyOptions.RootUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
+    dafnyOptions.CliRootUris.Add(new Uri(Path.GetFullPath(inputFile.FullName)));
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);

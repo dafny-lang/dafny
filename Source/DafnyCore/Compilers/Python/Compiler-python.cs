@@ -89,7 +89,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern,
         string libraryName, ConcreteSyntaxTree wr) {
       moduleName = IdProtect(moduleName);
-      var file = wr.NewFile($"{moduleName}.py");
+      var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
+      var file = wr.NewFile($"{modulePath}.py");
       EmitImports(moduleName, file);
       return file;
     }
@@ -104,7 +105,9 @@ namespace Microsoft.Dafny.Compilers {
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"assert \"{moduleName}\" == __name__");
-        wr.WriteLine($"{moduleName} = sys.modules[__name__]");
+        if (!moduleName.Contains('.')) {
+          wr.WriteLine($"{moduleName} = sys.modules[__name__]");
+        }
 
         Imports.Add(moduleName);
       }

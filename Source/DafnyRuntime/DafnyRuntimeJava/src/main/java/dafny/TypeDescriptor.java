@@ -98,6 +98,11 @@ public abstract class TypeDescriptor<T> {
         return new ReferenceType<T>(javaClass, initializer);
     }
 
+    public static <T> TypeDescriptor<T> referenceWithInitializerAndTypeDescriptor(
+            TypeDescriptor<T> typeDescriptor, Initializer<T> initializer) {
+        return new ReferenceType<T>(typeDescriptor.boxedClass, initializer);
+    }
+
     public static TypeDescriptor<Byte> byteWithDefault(byte d) {
         return new ByteType(d);
     }

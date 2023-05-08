@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -22,10 +23,11 @@ namespace Microsoft.Dafny {
     IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public abstract class ErrorReporter {
+    public DefaultModuleDefinition OuterModule { get; }
     public DafnyOptions Options { get; }
-    public Program Program { get; set; }
 
-    protected ErrorReporter(DafnyOptions options) {
+    protected ErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) {
+      this.OuterModule = outerModule;
       this.Options = options;
     }
 
@@ -41,11 +43,11 @@ namespace Microsoft.Dafny {
     public void Error(MessageSource source, IToken tok, string msg) {
       Error(source, null, tok, msg);
     }
-    public void Error(MessageSource source, string errorId, IToken tok, string msg) {
+    public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (tok.IsIncludeToken(Program)) {
-        var include = Program.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
+      if (tok.WasIncluded(OuterModule) && OuterModule != null) {
+        var include = OuterModule.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;
@@ -215,15 +217,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ConsoleErrorReporter(DafnyOptions options) : base(options) {
+    public ConsoleErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
     }
   }
 
   public class ErrorReporterSink : ErrorReporter {
-    public ErrorReporterSink(DafnyOptions options) : base(options) { }
+    public ErrorReporterSink(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) { }
 
     public override bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
+    }
+
+    public override void Error(MessageSource source, string errorId, IToken tok, string msg) {
+
     }
 
     public override int Count(ErrorLevel level) {
@@ -240,7 +246,7 @@ namespace Microsoft.Dafny {
     private string msgPrefix;
     public readonly ErrorReporter WrappedReporter;
 
-    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) : base(reporter.Options) {
+    public ErrorReporterWrapper(ErrorReporter reporter, string msgPrefix) : base(reporter.Options, reporter.OuterModule) {
       this.msgPrefix = msgPrefix;
       this.WrappedReporter = reporter;
     }

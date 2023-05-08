@@ -439,7 +439,7 @@ namespace Microsoft.Dafny {
 
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
-      if (!Options.VerifyAllModules) {
+      if (Options.VerificationScope < VerificationScope.IncludeDirectives) {
         rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
@@ -5948,7 +5948,7 @@ namespace Microsoft.Dafny {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
-      this.reporter = new ErrorReporterSink(Options);
+      this.reporter = new ErrorReporterSink(Options, origReporter.OuterModule);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);

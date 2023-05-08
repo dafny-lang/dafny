@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
 
     public Method MainMethod; // Method to be used as main if compiled
     public readonly ModuleDecl DefaultModule;
-    public readonly ModuleDefinition DefaultModuleDef;
+    public readonly DefaultModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
@@ -65,7 +65,6 @@ namespace Microsoft.Dafny {
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
-      reporter.Program = this;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }
@@ -652,6 +651,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>

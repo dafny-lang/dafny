@@ -119,7 +119,7 @@ public class Token : IToken {
   }
 
   public override string ToString() {
-    return $"{val}: {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
+    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
 }
 
@@ -140,10 +140,7 @@ public abstract class TokenWrapper : IToken {
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
-  public virtual string Filepath {
-    get { return WrappedToken.Filepath; }
-    set { WrappedToken.filename = value; } // TODO fix?
-  }
+  public virtual string Filepath => WrappedToken.Filepath;
 
   public Uri Uri {
     get => WrappedToken.Uri;
@@ -285,6 +282,15 @@ public class RangeToken : TokenWrapper {
 
   public BoogieRangeToken ToToken() {
     return new BoogieRangeToken(StartToken, EndToken);
+  }
+
+  public bool Contains(int position) {
+    return StartToken.pos <= position && (EndToken == null || position <= EndToken.pos);
+  }
+
+  public bool Intersects(RangeToken other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= StartToken.pos
+             || EndToken.pos + EndToken.val.Length <= other.StartToken.pos);
   }
 }
 

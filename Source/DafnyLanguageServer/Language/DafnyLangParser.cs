@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       Type.ResetScopes();
       return new Dafny.Program(
         document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDefinition(), null),
+        new LiteralModuleDecl(errorReporter.OuterModule, null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(errorReporter.Options),
         errorReporter
@@ -149,7 +149,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           compileThisFile: false
         );
         if (errorCount != 0) {
-          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.IncludedFilename}");
           return false;
         }
       } catch (IllegalDafnyFile e) {

@@ -73,7 +73,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
     IsHidden = true
   };
 
-  public static readonly Option<IList<string>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -172,8 +172,9 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
   };
-  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
-    "Verify code in included files.");
+  public static readonly Option<VerificationScope> VerificationScope = new("--verify-scope", () => Dafny.VerificationScope.IncludeDirectives,
+    "Controls what is verified. 'Root files' will only verify files that are passed to the command line or specified in the project files includes property. 'Include directives' will also verify files referenced by include directives. 'Libraries' will verify everything, including files specified with --library and .doo files.");
+  
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
@@ -235,8 +236,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
     DafnyOptions.RegisterLegacyBinding(ErrorLimit, (options, value) => { options.ErrorLimit = value; });
-    DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
-      (options, value) => { options.VerifyAllModules = value; });
+    DafnyOptions.RegisterLegacyBinding(VerificationScope,
+      (options, value) => { options.VerificationScope = value; });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
@@ -263,7 +264,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
         options.FileTimestamp);
     });
     DafnyOptions.RegisterLegacyBinding(Libraries,
-      (options, value) => { options.LibraryFiles = value.ToHashSet(); });
+      (options, value) => { options.LibraryFiles = value.Select(fi => fi.FullName).ToHashSet(); });
     DafnyOptions.RegisterLegacyBinding(Output, (options, value) => { options.DafnyPrintCompiledFile = value?.FullName; });
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
@@ -337,7 +338,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       TypeInferenceDebug,
       TypeSystemRefresh,
       VerificationLogFormat,
-      VerifyIncludedFiles,
+      VerificationScope,
       WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,

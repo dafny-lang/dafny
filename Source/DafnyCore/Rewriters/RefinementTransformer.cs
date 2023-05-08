@@ -60,10 +60,7 @@ namespace Microsoft.Dafny {
       return rtok != null && rtok.InheritingModule == m;
     }
 
-    public override string Filepath {
-      get => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
-      set => throw new NotSupportedException();
-    }
+    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
   }
 
   /// <summary>

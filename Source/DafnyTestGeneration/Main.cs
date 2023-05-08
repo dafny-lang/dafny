@@ -139,9 +139,18 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, true, new Uri(sourceFile));
+      var uri = new Uri(sourceFile);
+      var program = Utils.Parse(options, source, true, uri);
       if (program == null) {
         yield break;
+      }
+      if (Utils.AttributeFinder.ProgramHasAttribute(program,
+            TestGenerationOptions.TestInlineAttribute)) {
+        options.VerifyAllModules = true;
+        program = Utils.Parse(options, source, true, uri);
+        if (program == null) {
+          yield break;
+        }
       }
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;

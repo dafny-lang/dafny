@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    public IList<Uri> RootUris = new List<Uri>();
+    public IList<Uri> CliRootUris = new List<Uri>();
 
     public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
@@ -96,7 +96,7 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
-      RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
+      RegisterLegacyUi(CommonOptionBag.Libraries, ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
       RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
       RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
 
@@ -158,7 +158,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.RootUris.Add(new Uri(Path.GetFullPath(file)));
+      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 
@@ -170,6 +170,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
+    }
+
+    public static void ParseFileInfoElement(Option<IList<FileInfo>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = (IList<FileInfo>)options.Options.OptionArguments.GetOrCreate(option, () => new List<FileInfo>());
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(new FileInfo(ps.args[ps.i]));
       }
     }
 
@@ -632,7 +639,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
 
         case "verifyAllModules":
-          VerifyAllModules = true;
+          VerificationScope = VerificationScope.Libraries;
           return true;
 
         case "separateModuleOutput":

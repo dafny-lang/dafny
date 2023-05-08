@@ -1,4 +1,5 @@
 The /allocated:<n> option is deprecated
+Allocated2.dfy(4,8): Error: the included file AllocatedCommon.dfyi contains error(s)
 AllocatedCommon.dfyi(23,26): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(24,26): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(25,26): Error: a function definition is not allowed to depend on the set of allocated references
@@ -37,4 +38,4 @@ AllocatedCommon.dfyi(214,11): Error: a function definition is not allowed to dep
 AllocatedCommon.dfyi(215,11): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(222,11): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(223,11): Error: a function definition is not allowed to depend on the set of allocated references
-38 resolution/type errors detected in Allocated2.dfy
+39 resolution/type errors detected in Allocated2.dfy

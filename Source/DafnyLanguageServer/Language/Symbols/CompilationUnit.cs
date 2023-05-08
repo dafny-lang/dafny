@@ -11,7 +11,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public bool IsPartOfEntryDocument(Boogie.IToken token) {
       // The token filename happens to be null if it's representing a default module or class.
-      return token.filename == null || ((IToken)token).Uri == EntryDocument;
+      return token.filename == null || (token is IToken dafnyToken && dafnyToken.Uri == EntryDocument);
     }
 
     public ISet<ModuleSymbol> Modules { get; } = new HashSet<ModuleSymbol>();

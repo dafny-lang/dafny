@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
         // the DooFile class should encapsulate the serialization logic better
         // and expose a Program instead of the program text.
         SourceFilePath = Path.GetTempFileName();
+        Uri = new Uri(SourceFilePath);
         File.WriteAllText(SourceFilePath, dooFile.ProgramText);
 
       } else if (extension == ".dll") {
@@ -118,6 +119,7 @@ namespace Microsoft.Dafny {
         var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
         SourceFilePath = Path.GetTempFileName();
+        Uri = new Uri(SourceFilePath);
         File.WriteAllText(SourceFilePath, sourceText);
 
       } else {
@@ -136,6 +138,9 @@ namespace Microsoft.Dafny {
       foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
         var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
         try {
+          /* The cast from EntityHandle to MemberReferenceHandle is overriden, uses private members, and throws
+           * an InvalidCastException if it fails. We have no other option than to use it and catch the exception.
+           */
           var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
           var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
           if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
@@ -147,20 +152,6 @@ namespace Microsoft.Dafny {
           // and there's no way I can see to test if the cases will succeed ahead of time.
         }
       }
-      // TODO why doesn't this work?
-      // foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
-      //   var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-      //   if (((object)attr.Constructor) is not MemberReferenceHandle memberReferenceHandle) {
-      //     continue;
-      //   }
-      //
-      //   var constructor = dllMetadataReader.GetMemberReference(memberReferenceHandle);
-      //   var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-      //   if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-      //     var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-      //     return (string)decoded.FixedArguments[0].Value;
-      //   }
-      // }
 
       return null;
     }
@@ -220,30 +211,38 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
+    public static string ParseCheck(IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, DafnyOptions options, out Program program)
     //modifies Bpl.options.XmlSink.*;
     {
-      string err = Parse(files, programName, reporter, out program);
+      string err = Parse(files, programName, options, out program);
       if (err != null) {
         return err;
       }
 
-      return Resolve(program, reporter);
+      return Resolve(program);
     }
 
-    public static string Parse(IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program) {
+    public static string Parse(IList<DafnyFile> files, string programName, DafnyOptions options, out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      BuiltIns builtIns = new BuiltIns(reporter.Options);
+
+      var defaultModuleDefinition = new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
+      ErrorReporter reporter = options.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
+      LiteralModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
+      BuiltIns builtIns = new BuiltIns(options);
 
       foreach (DafnyFile dafnyFile in files) {
         Contract.Assert(dafnyFile != null);
-        if (reporter.Options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
-          reporter.Options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
+        if (options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
+          options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
-        if (reporter.Options.Trace) {
+        if (options.Trace) {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
@@ -253,14 +252,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (!(reporter.Options.DisallowIncludes || reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
+      if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
+        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
       }
 
-      if (reporter.Options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
+      if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
         dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
         dmap.PrintMap();
@@ -268,20 +267,20 @@ namespace Microsoft.Dafny {
 
       program = new Program(programName, module, builtIns, reporter);
 
-      MaybePrintProgram(program, reporter.Options.DafnyPrintFile, false);
+      MaybePrintProgram(program, options.DafnyPrintFile, false);
 
       return null; // success
     }
 
-    public static string Resolve(Program program, ErrorReporter reporter) {
-      if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
+    public static string Resolve(Program program) {
+      if (program.Options.NoResolve || program.Options.NoTypecheck) { return null; }
 
       var r = new Resolver(program);
       r.ResolveProgram(program);
-      MaybePrintProgram(program, reporter.Options.DafnyPrintResolvedFile, true);
+      MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
+      if (program.Reporter.ErrorCountUntilResolver != 0) {
+        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error), program.Name);
       }
 
       return null;  // success

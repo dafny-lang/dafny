@@ -29,12 +29,14 @@ public class DooFileTest {
   }
 
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
-    var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
     const string fullFilePath = "untitled:foo";
+    var rootUri = new Uri(fullFilePath);
+    var outerModule = new DefaultModuleDefinition(new List<Uri> { rootUri });
+    var module = new LiteralModuleDecl(outerModule, null);
     Microsoft.Dafny.Type.ResetScopes();
     var builtIns = new BuiltIns(options);
-    var errorReporter = new ConsoleErrorReporter(options);
-    var parseResult = Parser.Parse(dafnyProgramText, new Uri(fullFilePath), module, builtIns, errorReporter);
+    var errorReporter = new ConsoleErrorReporter(options, outerModule);
+    var parseResult = Parser.Parse(dafnyProgramText, rootUri, module, builtIns, errorReporter);
     Assert.Equal(0, parseResult);
     return new Program(fullFilePath, module, builtIns, errorReporter);
   }
