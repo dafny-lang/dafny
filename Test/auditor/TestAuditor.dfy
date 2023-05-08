@@ -2,9 +2,13 @@
 // RUN: %baredafny audit --report-file "%t.md" --compare-report "%s"
 // RUN: %baredafny audit --report-file "%t.html" "%s"
 // RUN: %baredafny audit --report-file "%t-ietf.md" --report-format markdown-ietf "%s"
+// RUN: %baredafny audit --use-basename-for-filename "%s" > "%t.expect"
 // RUN: %diff "%s.md.expect" "%t.md"
 // RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
 // RUN: %diff "%s.html.expect" "%t.html"
+// RUN: %diff "%s.expect" %t.expect"
+
+include "IgnoredAssumptions.dfy"
 
 // Method or lemma with a failed proof (top priority, but shown only in reports from later versions of the tool)
 method BadMethod(i: nat) returns (res: nat)
@@ -64,6 +68,10 @@ ghost function WhoKnows(x: int): int
 method {:extern} GenerateBytesNoGuarantee(i: int32) returns (res: seq<uint8>)
     requires i >= 0
 
+// Extern function with postcondition. Should result in two findings.
+function {:extern} ExternFunction(i: int32): (res: int32)
+  ensures res != i
+
 // Successful proof of a function, method, or lemma (shown only in reports from later versions of the tool)
 method GoodMethod(i: nat) returns (res: nat)
   requires i < 64
@@ -108,6 +116,20 @@ opaque function f(): int {
 // A method that's safe for concurrent use because it doesn't touch the
 // heap.
 method {:concurrent} ConcurrentMethod(x: int) returns (r: int) {
+  return x;
+}
+
+method {:axiom} AxiomWithStuffInIt(x: int) returns (r: int) {
+  assume x > 0;
+  assume {:axiom} x > 10;
+
+  forall y : int
+    ensures y != y
+
+  var i := 0;
+  while i < x
+    decreases x - i
+
   return x;
 }
 
