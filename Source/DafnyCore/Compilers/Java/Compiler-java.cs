@@ -1003,10 +1003,10 @@ namespace Microsoft.Dafny.Compilers {
               // we're looking for).
               var tp = targetTypeIgnoringConstraints.AsTypeParameter;
               if (tp == null) {
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> ({targetTypeName}){d})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.<{targetTypeName}>referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
               } else {
                 var td = FormatTypeDescriptorVariable(tp.GetCompileName(Options));
-                typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
+                typeDescriptorExpr = $"{DafnyTypeDescriptor}.<{targetTypeName}>referenceWithInitializerAndTypeDescriptor({td}, () -> {d})";
               }
             }
             break;
@@ -1018,7 +1018,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (typeParams.Count == 0) {
         // a static context in Java does not see the enclosing type parameters
-        wr.WriteLine($"private static final {DafnyTypeDescriptor}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
+        wr.WriteLine($"private static final {DafnyTypeDescriptor}<{targetTypeName}> _TYPE = {typeDescriptorExpr};");
         typeDescriptorExpr = "_TYPE";
       }
       wr.Write($"public static {TypeParameters(typeParams, " ")}{DafnyTypeDescriptor}<{targetTypeName}> {TypeMethodName}(");
