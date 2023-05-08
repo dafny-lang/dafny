@@ -381,7 +381,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
               inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
-              builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(), wfOptions.AssertKv));
+              builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(e.Seq, e.E0), wfOptions.AssertKv));
             } else if (eSeqType is MultiSetType) {
               // cool
 
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
               if (e.E0 != null) {
                 e0 = etran.TrExpr(e.E0);
                 CheckWellformed(e.E0, wfOptions, locals, builder, etran);
-                var desc = new PODesc.InRange(e.SelectOne ? "index" : "lower bound");
+                var desc = new PODesc.InRange(e.Seq, e.E0, e.SelectOne, e.SelectOne ? "index" : "lower bound");
                 builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), desc, wfOptions.AssertKv));
               }
               if (e.E1 != null) {
@@ -400,7 +400,8 @@ namespace Microsoft.Dafny {
                 } else {
                   lowerBound = e0;
                 }
-                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), new PODesc.SequenceSelectRangeValid(isSequence ? "sequence" : "array"), wfOptions.AssertKv));
+                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true),
+                  new PODesc.SequenceSelectRangeValid(e.Seq, e.E0, e.E1, isSequence ? "sequence" : "array"), wfOptions.AssertKv));
               }
             }
             if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
@@ -450,7 +451,7 @@ namespace Microsoft.Dafny {
               var upper = Bpl.Expr.Lt(index, length);
               var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
 
-              var desc = new PODesc.InRange($"index {idxId}");
+              var desc = new PODesc.InRange(e.Array, e.Indices[idxId], true, $"index {idxId}", idxId);
               builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
             }
             if (wfOptions.DoReadsChecks) {
@@ -471,7 +472,7 @@ namespace Microsoft.Dafny {
             // validate index
             CheckWellformed(e.Index, wfOptions, locals, builder, etran);
             if (collectionType is SeqType) {
-              var desc = new PODesc.InRange("index");
+              var desc = new PODesc.InRange(e.Seq, e.Index, true, "index");
               builder.Add(Assert(GetToken(e.Index), InSeqRange(updateExpr.tok, index, e.Index.Type, seq, true, null, false), desc, wfOptions.AssertKv));
             } else {
               CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
@@ -1395,7 +1396,8 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
-          builder.Add(Assert(GetToken(e), etran.TrExpr(eq), new PODesc.LetSuchThanUnique()));
+          builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
+            new PODesc.LetSuchThatUnique(e.RHSs[0], e.BoundVars.ToList())));
         }
         // assume $let$canCall(g);
         LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
