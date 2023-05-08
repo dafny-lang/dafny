@@ -56,8 +56,8 @@ public class Compilation {
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
     this.options = options;
-    logger = services.GetRequiredService<ILogger<Compilation>>();
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -294,8 +294,8 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, document.Program.DefaultModuleDef, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }

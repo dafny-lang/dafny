@@ -7,6 +7,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
@@ -42,6 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     private static DocumentTextBuffer CreateTestDocument() {
       return new DocumentTextBuffer(new TextDocumentItem() {
+        Uri = DocumentUri.Parse("untitled:untitled1"),
         LanguageId = "dafny",
         Version = 1,
         Text = ""
@@ -51,7 +53,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
+      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(),
+          It.IsAny<ErrorReporter>(),
+          It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
       var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocument(), source.Token);
       try {
