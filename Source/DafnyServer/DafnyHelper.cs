@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      ModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
+      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
       BuiltIns builtIns = new BuiltIns(options);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
