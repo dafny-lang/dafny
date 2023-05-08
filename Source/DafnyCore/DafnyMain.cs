@@ -247,7 +247,9 @@ namespace Microsoft.Dafny {
         }
 
         var include = dafnyFile.IsPrecompiled ? new Include(new Token() {
-          Uri = dafnyFile.Uri, col = 1, line = 0
+          Uri = dafnyFile.Uri,
+          col = 1,
+          line = 0
         }, null, dafnyFile.SourceFilePath, false) : null;
         if (include != null) {
           module.ModuleDef.Includes.Add(include);
