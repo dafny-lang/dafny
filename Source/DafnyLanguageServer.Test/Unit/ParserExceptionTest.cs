@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -23,12 +24,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public void DocumentWithParserExceptionDisplaysIt() {
       var source = "function t() { / }";
-      var options = DafnyOptions.DefaultImmutableOptions;
+      var options = new DafnyOptions(DafnyOptions.DefaultImmutableOptions);
       var documentItem = CreateTestDocument(source, TestFilePath);
-      var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
+      var uri = new Uri("file:///" + TestFilePath);
+      var outerModule = new DefaultModuleDefinition(new List<Uri> { uri });
+      var errorReporter = new ParserExceptionSimulatingErrorReporter(options, outerModule);
       parser.Parse(documentItem, errorReporter, default);
-      Assert.Equal($"encountered an exception while parsing file:///{TestFilePath}", lastDebugLogger.LastDebugMessage);
-      Assert.Equal($"file:///{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
+      Assert.Equal($"encountered an exception while parsing {uri}", lastDebugLogger.LastDebugMessage);
+      Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
     /// <summary>
@@ -59,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         throw new NotImplementedException();
       }
 
-      public ParserExceptionSimulatingErrorReporter(DafnyOptions options) : base(options) {
+      public ParserExceptionSimulatingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
       }
     }
 
