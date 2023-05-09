@@ -1,0 +1,12 @@
+verificationScope.dfy(8,9): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 1 error
+verificationScope.dfy(8,9): Error: assertion might not hold
+includedByDirective.dfy(3,9): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 2 errors
+verificationScope.dfy(8,9): Error: assertion might not hold
+library.dfy(3,9): Error: assertion might not hold
+includedByDirective.dfy(3,9): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 3 errors
