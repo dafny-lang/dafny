@@ -41,9 +41,9 @@ namespace Microsoft.Dafny {
 
     public List<Include> Includes => DefaultModuleDef.Includes;
     [FilledInDuringResolution]
-    public ISet<Uri> NotVerifiedFiles;
+    public ISet<Uri> UrisToVerify;
     [FilledInDuringResolution]
-    public ISet<Uri> NotCompiledFiles;
+    public ISet<Uri> UrisToCompile;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;

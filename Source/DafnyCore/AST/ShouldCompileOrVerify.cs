@@ -8,14 +8,19 @@ namespace Microsoft.Dafny;
 public static class ShouldCompileOrVerify {
 
   public static bool ShouldCompile(this ModuleDefinition module, Program program) {
-    if (program.NotCompiledFiles == null) {
-      program.NotCompiledFiles = NonCompiledUris(program);
+    if (program.UrisToCompile == null) {
+      program.UrisToCompile = ComputeUrisToCompile(program);
     }
+
+    if (module.FullName == "_System") {
+      return true;
+    }
+    
     if (module is DefaultModuleDefinition) {
       // TODO Can there be things from precompiled files that live in the default module?
       return true;
     }
-    return program.NotCompiledFiles.Contains(module.Tok.Uri);
+    return program.UrisToCompile.Contains(module.Tok.Uri);
   }
 
   public static bool ShouldVerify(this INode declaration, Program program) {
@@ -27,10 +32,10 @@ public static class ShouldCompileOrVerify {
       // TODO required for DefaultModuleDefinition. Do we need it for other things or can be make the code more specific?
       return true;
     }
-    if (program.NotVerifiedFiles == null) {
-      program.NotVerifiedFiles = NonVerifiedUris(program);
+    if (program.UrisToVerify == null) {
+      program.UrisToVerify = ComputeUrisToVerify(program);
     }
-    if (!program.NotVerifiedFiles.Contains(declaration.Tok.Uri)) {
+    if (!program.UrisToVerify.Contains(declaration.Tok.Uri)) {
       return false;
     }
 
@@ -62,17 +67,17 @@ public static class ShouldCompileOrVerify {
     return token.FromIncludeDirective(program.DefaultModuleDef);
   }
 
-  private static ISet<Uri> NonCompiledUris(Program program) {
+  private static ISet<Uri> ComputeUrisToCompile(Program program) {
     var compiledRoots = program.Options.CompiledRoots;
     return GetReachableUris(program, compiledRoots);
   }
 
-  private static ISet<Uri> NonVerifiedUris(Program program) {
+  private static ISet<Uri> ComputeUrisToVerify(Program program) {
     var verifiedRoots = program.Options.VerifiedRoots;
     return GetReachableUris(program, verifiedRoots);
   }
 
-  private static ISet<Uri> GetReachableUris(Program program, ISet<Uri> verifiedRoots) {
+  private static ISet<Uri> GetReachableUris(Program program, ISet<Uri> stopUris) {
     var toVisit = new Stack<Uri>(program.DefaultModuleDef.RootSourceUris);
 
     var visited = new HashSet<Uri>();
@@ -80,7 +85,7 @@ public static class ShouldCompileOrVerify {
       .ToDictionary(g => g.Key, g => g.Select(i => new Uri(i.IncludedFilename)).ToList());
     while (toVisit.Any()) {
       var uri = toVisit.Pop();
-      if (verifiedRoots.Contains(uri)) {
+      if (stopUris.Contains(uri)) {
         continue;
       }
 
