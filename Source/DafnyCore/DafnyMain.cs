@@ -262,7 +262,7 @@ namespace Microsoft.Dafny {
 
       if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
-        dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
+        dmap.AddIncludes(module.ModuleDef.Includes);
         dmap.PrintMap();
       }
 
