@@ -345,16 +345,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         } else if (d is ClassDecl) {
           ClassDecl cl = (ClassDecl)d;
-          if (cl.Members.Count != 0) {
+          if (!cl.IsDefaultClass) {
             if (i++ != 0) { wr.WriteLine(); }
-            if (!cl.IsDefaultClass) {
-              PrintClass(cl, indent, fileBeingPrinted);
-            } else {
-              PrintMembers(cl.Members, indent, fileBeingPrinted);
-            }
-
+            PrintClass(cl, indent, fileBeingPrinted);
+          } else if (cl.Members.Count == 0) {
+            // Do nothing
+          } else {
+            if (i++ != 0) { wr.WriteLine(); }
+            PrintMembers(cl.Members, indent, fileBeingPrinted);
           }
-
         } else if (d is ValuetypeDecl) {
           var vtd = (ValuetypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
