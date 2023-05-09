@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         mutex.Release();
       }
     }
-
+    
     public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       var program = NewDafnyProgram(document, errorReporter);

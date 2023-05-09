@@ -93,7 +93,6 @@ namespace Microsoft.Dafny {
       } else if (extension == ".doo") {
         IsPreverified = true;
         IsPrecompiled = false;
-        options.VerifiedRoots.Add(Uri);
 
         var dooFile = DooFile.Read(filePath);
 
@@ -254,7 +253,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
+        string errString = ParseIncludes(module, builtIns, files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
@@ -294,26 +293,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludesDepthFirstNotCompiledFirst(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
+    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
       var includesFound = new SortedSet<Include>(new IncludeComparer());
       var allIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
-      // TODO simplify this method, since we don't need to distinguish between two types of includes
-      var notCompiledRoots = allIncludes.Where(include => true).ToList();
-      var compiledRoots = allIncludes.Where(include => false).ToList();
-      allIncludes.Clear();
-      allIncludes.AddRange(notCompiledRoots);
 
       var notCompiledResult = TraverseIncludesFrom(0);
       if (notCompiledResult != null) {
         return notCompiledResult;
-      }
-
-      var notCompiledIncludeCount = allIncludes.Count;
-      allIncludes.AddRange(compiledRoots);
-
-      var compiledResult = TraverseIncludesFrom(notCompiledIncludeCount);
-      if (compiledResult != null) {
-        return compiledResult;
       }
 
       if (builtIns.Options.PrintIncludesMode != DafnyOptions.IncludesModes.None) {

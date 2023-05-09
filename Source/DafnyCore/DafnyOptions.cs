@@ -24,11 +24,11 @@ namespace Microsoft.Dafny {
   /// Accumulating scope, each next one includes the previous one.
   /// </summary>
   public enum VerificationScope {
-    RootFiles, 
+    RootFiles,
     IncludeDirectives,
     Libraries
   }
-  
+
   public enum FunctionSyntaxOptions {
     Version3,
     Migration3To4,
@@ -48,8 +48,8 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public IList<Uri> CliRootSourceUris = new List<Uri>();
-    public ISet<Uri> VerifiedRoots = new HashSet<Uri>();
-    public ISet<Uri> CompiledRoots = new HashSet<Uri>();
+    public ISet<Uri> VerifiedRoots;
+    public ISet<Uri> CompiledRoots;
 
     public static DafnyOptions Default = new();
     public ProjectFile ProjectFile { get; set; }

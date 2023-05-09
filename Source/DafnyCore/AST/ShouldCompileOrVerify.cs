@@ -17,7 +17,7 @@ public static class ShouldCompileOrVerify {
     }
     return program.NotCompiledFiles.Contains(module.Tok.Uri);
   }
-  
+
   public static bool ShouldVerify(this INode declaration, Program program) {
     if (program.Options.VerificationScope == VerificationScope.Libraries) {
       return true;
@@ -40,7 +40,7 @@ public static class ShouldCompileOrVerify {
 
     return !declaration.Tok.FromIncludeDirective(program);
   }
-  
+
   public static bool FromIncludeDirective(this IToken token, DefaultModuleDefinition outerModule) {
     if (token is RefinementToken) {
       return false;
@@ -66,34 +66,29 @@ public static class ShouldCompileOrVerify {
     var compiledRoots = program.Options.CompiledRoots;
     return GetReachableUris(program, compiledRoots);
   }
-  
+
   private static ISet<Uri> NonVerifiedUris(Program program) {
     var verifiedRoots = program.Options.VerifiedRoots;
     return GetReachableUris(program, verifiedRoots);
   }
 
-  private static ISet<Uri> GetReachableUris(Program program, ISet<Uri> verifiedRoots)
-  {
+  private static ISet<Uri> GetReachableUris(Program program, ISet<Uri> verifiedRoots) {
     var toVisit = new Stack<Uri>(program.DefaultModuleDef.RootSourceUris);
 
     var visited = new HashSet<Uri>();
     var edges = program.Includes.GroupBy(i => i.IncluderFilename)
       .ToDictionary(g => g.Key, g => g.Select(i => new Uri(i.IncludedFilename)).ToList());
-    while (toVisit.Any())
-    {
+    while (toVisit.Any()) {
       var uri = toVisit.Pop();
-      if (verifiedRoots.Contains(uri))
-      {
+      if (verifiedRoots.Contains(uri)) {
         continue;
       }
 
-      if (!visited.Add(uri))
-      {
+      if (!visited.Add(uri)) {
         continue;
       }
 
-      foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>))
-      {
+      foreach (var included in edges.GetOrDefault(uri, Enumerable.Empty<Uri>)) {
         toVisit.Push(included);
       }
     }

@@ -344,7 +344,7 @@ namespace Microsoft.Dafny {
 
       options.VerifiedRoots = dafnyFiles.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
       options.CompiledRoots = dafnyFiles.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-      
+
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;

@@ -153,16 +153,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    // public static string ModuleDefinitionToString(DafnyOptions options, ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
-    //   Contract.Requires(m != null);
-    //   using (var wr = new System.IO.StringWriter()) {
-    //     var pr = new Printer(wr, options, printMode);
-    //     pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null, null);
-    //     return ToStringWithoutNewline(wr);
-    //   }
-    // }
-
-
     /// <summary>
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
@@ -362,7 +352,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             } else {
               PrintMembers(cl.Members, indent, fileBeingPrinted);
             }
-            
+
           }
 
         } else if (d is ValuetypeDecl) {
@@ -464,39 +454,30 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private void PrintSubsetTypeDecl(TopLevelDecl d, int indent)
-    {
+    private void PrintSubsetTypeDecl(TopLevelDecl d, int indent) {
       var dd = (SubsetTypeDecl)d;
       Indent(indent);
       PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
       wr.Write(" = ");
       wr.Write(dd.Var.DisplayName);
-      if (ShowType(dd.Var.Type))
-      {
+      if (ShowType(dd.Var.Type)) {
         wr.Write(": ");
         PrintType(dd.Rhs);
       }
 
-      if (dd is NonNullTypeDecl)
-      {
+      if (dd is NonNullTypeDecl) {
         wr.Write(" ");
-      }
-      else
-      {
+      } else {
         wr.WriteLine();
         Indent(indent + IndentAmount);
       }
 
       wr.Write("| ");
       PrintExpression(dd.Constraint, true);
-      if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero)
-      {
-        if (dd is NonNullTypeDecl)
-        {
+      if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
+        if (dd is NonNullTypeDecl) {
           wr.Write(" ");
-        }
-        else
-        {
+        } else {
           wr.WriteLine();
           Indent(indent + IndentAmount);
         }
