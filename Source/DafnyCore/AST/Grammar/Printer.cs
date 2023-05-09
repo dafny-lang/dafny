@@ -308,10 +308,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent);
             wr.WriteLine("}");
           }
-        } else if (d is SubsetTypeDecl) {
+        } else if (d is SubsetTypeDecl subsetTypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
 
-          PrintSubsetTypeDecl(d, indent);
+          PrintSubsetTypeDecl(subsetTypeDecl, indent);
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -453,8 +453,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private void PrintSubsetTypeDecl(TopLevelDecl d, int indent) {
-      var dd = (SubsetTypeDecl)d;
+    private void PrintSubsetTypeDecl(SubsetTypeDecl dd, int indent) {
       Indent(indent);
       PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
       wr.Write(" = ");
@@ -543,7 +542,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           for (int j = start; j < i; j++) {
             var id = m.Exports[j];
             if (id.Decl is TopLevelDecl) {
-              PrintSubsetTypeDecl((TopLevelDecl)id.Decl, indent + IndentAmount);
+              PrintTopLevelDecls(program, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
             } else if (id.Decl is MemberDecl) {
               PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
             }
