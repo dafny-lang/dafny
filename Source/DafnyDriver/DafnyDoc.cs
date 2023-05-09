@@ -638,6 +638,7 @@ class DafnyDoc {
       summaries.Append(Heading3("Constants\n"));
       details.Append(Heading3("Constants\n"));
 
+      summaries.Append(TableStart()).Append(eol);
       foreach (var c in constants) {
         AddToIndex(c.Name, decl.FullDafnyName, "const");
 
@@ -647,7 +648,7 @@ class DafnyDoc {
         var linkedName = Code(LinkToAnchor(c.Name, Bold(c.Name)));
         var linkedType = TypeLink(c.Type);
 
-        summaries.Append(Row(LinkToAnchor(c.Name, styledName), ":", linkedType, DashShortDocstring(c))).Append(eol);
+        summaries.Append(Row(LinkToAnchor(c.Name, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
 
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
@@ -687,7 +688,7 @@ class DafnyDoc {
         var styledName = Code(Bold(c.Name));
         var modifiers = c.ModifiersAsString();
 
-        summaries.Append(Row(LinkToAnchor(c.Name, styledName), ":", linkedType, DashShortDocstring(c))).Append(eol);
+        summaries.Append(Row(LinkToAnchor(c.Name, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
 
         details.Append(Anchor(c.Name)).Append(eol);
         details.Append(RuleWithText(c.Name)).Append(eol);
@@ -741,7 +742,7 @@ class DafnyDoc {
       var typeparams = TypeFormals(mth.TypeArgs);
       var formals = String.Join(", ", mth.Ins.Select(f => Code(FormalAsString(f, false))));
       var outformals = mth.Outs.Count == 0 ? "" :
-        " returns (" + String.Join(", ", mth.Outs.Select(f => Code(FormalAsString(f, false)))) + ")";
+        " " + Keyword("returns") + " (" + String.Join(", ", mth.Outs.Select(f => Code(FormalAsString(f, false)))) + ")";
       return Code(Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
@@ -929,6 +930,7 @@ class DafnyDoc {
     string filename = Outputdir + "/styles.css";
     using StreamWriter file = new(filename);
     file.WriteLine(Style);
+    AnnounceFile(filename);
   }
 
   public string ProgramHeader() {
@@ -939,9 +941,9 @@ class DafnyDoc {
   public string TypeLink(Type tin) {
     Type t = tin is TypeProxy ? (tin as TypeProxy).T : tin;
     if (t is BasicType) {
-      Code(t.ToString());
+      return Code(t.ToString());
     } else if (t is CollectionType ct) {
-      Code(ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs));
+      return Code(ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs));
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
       String s = null;
@@ -1100,8 +1102,9 @@ class DafnyDoc {
   }
 
   public string TypeActualParameters(List<Type> args) {
-    return (args.Count == 0) ? "" :
+    var s = (args.Count == 0) ? "" :
       "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
+    return s;
   }
 
   public void AnnounceFile(string filename) {

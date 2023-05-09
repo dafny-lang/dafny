@@ -58,10 +58,11 @@ From file: TestDafnyDoc.dfy<br>
 </table><div>
 <h3>Constants
 </h3>
-</div><tr><td><a href="#c"><span class="code"><b>c</b></span></a></td><td>:</td><td><span class="code">int</span></td><td> &mdash; <span class="doctext">Number of items.</span> <a href="#c">(more...)</a></td></tr>
-<tr><td><a href="#cc"><span class="code"><b>cc</b></span></a></td><td>:</td><td><span class="code">real</span></td><td> &mdash; <span class="doctext">The distance.</span></td></tr>
-<tr><td><a href="#ccc"><span class="code"><b>ccc</b></span></a></td><td>:</td><td><span class="code">bool</span></td><td> &mdash; <span class="doctext">Valid or not.</span></td></tr>
-<tr><td><a href="#cccc"><span class="code"><b>cccc</b></span></a></td><td>:</td><td><span class="code"><a href="TestModule.A.html">A</a></span></td><td> &mdash; <span class="doctext">The internal state.</span></td></tr>
+</div><table>
+<tr><td><a href="#c"><span class="code"><b>c</b></span></a></td><td> : </td><td><span class="code">int</span></td><td> &mdash; <span class="doctext">Number of items.</span> <a href="#c">(more...)</a></td></tr>
+<tr><td><a href="#cc"><span class="code"><b>cc</b></span></a></td><td> : </td><td><span class="code">real</span></td><td> &mdash; <span class="doctext">The distance.</span></td></tr>
+<tr><td><a href="#ccc"><span class="code"><b>ccc</b></span></a></td><td> : </td><td><span class="code">bool</span></td><td> &mdash; <span class="doctext">Valid or not.</span></td></tr>
+<tr><td><a href="#cccc"><span class="code"><b>cccc</b></span></a></td><td> : </td><td><span class="code"><a href="TestModule.A.html">A</a></span></td><td> &mdash; <span class="doctext">The internal state.</span></td></tr>
 </table>
 <div>
 <h3>Functions</h3>
@@ -72,14 +73,14 @@ From file: TestDafnyDoc.dfy<br>
 <span class="code"><b><a href="#p">p</a></b></span>(): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#p">(more...)</a><br>
 <span class="code"><b><a href="#pf">pf</a></b></span>(): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#pf">(more...)</a><br>
 <span class="code"><b><a href="#pp">pp</a></b></span>(<b>older </b><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>ghost nameonly </b><span class="code">x</span>: <span class="code">int</span>): <span class="code">bool</span><br>
-<span class="code"><b><a href="#ppp">ppp</a></b></span>(<span class="code">s</span>: <span class="code">seq<int></span>, <span class="code">ss</span>: <span class="code">set<A?></span>, <span class="code">mm</span>: <span class="code">map<set<A>, seq<set<A?>>></span>): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#ppp">(more...)</a><br>
+<span class="code"><b><a href="#ppp">ppp</a></b></span>(<span class="code">s</span>: <span class="code">seq&lt;<span class="code">int</span>&gt;</span>, <span class="code">ss</span>: <span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>, <span class="code">mm</span>: <span class="code">map&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>,<span class="code">seq&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>&gt;</span>&gt;</span>): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#ppp">(more...)</a><br>
 <span class="code"><b><a href="#tf">tf</a></b></span>(<span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>new </b><span class="code">b</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code">int</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">A two-state function</span><br>
 <div>
 <h3>Methods</h3>
 </div>
-<span class="code"><b><a href="#bump">bump</a></b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) returns (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">increments input</span><br>
+<span class="code"><b><a href="#bump">bump</a></b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) <b>returns</b> (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">increments input</span><br>
 <span class="code"><b><a href="#ModifyA">ModifyA</a></b></span>(<span class="code"><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span></span>)<br>
-<span class="code"><b><a href="#zero">zero</a></b></span>() returns (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Sets to zero.</span> <a href="#zero">(more...)</a><br>
+<span class="code"><b><a href="#zero">zero</a></b></span>() <b>returns</b> (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Sets to zero.</span> <a href="#zero">(more...)</a><br>
 <div>
 <h3>Lemmas</h3>
 </div>
@@ -236,7 +237,7 @@ predicate<br>
 <div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ppp</span></div><br>
 static <br>
 predicate<br>
-<span class="code"><b>ppp</b></span>(<span class="code">s</span>: <span class="code">seq<int></span>, <span class="code">ss</span>: <span class="code">set<A?></span>, <span class="code">mm</span>: <span class="code">map<set<A>, seq<set<A?>>></span>): <span class="code">bool</span><br>
+<span class="code"><b>ppp</b></span>(<span class="code">s</span>: <span class="code">seq&lt;<span class="code">int</span>&gt;</span>, <span class="code">ss</span>: <span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>, <span class="code">mm</span>: <span class="code">map&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>,<span class="code">seq&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>&gt;</span>&gt;</span>): <span class="code">bool</span><br>
 <p style="margin-left: 25px;"><span class="doctext">Always true. Every time.</span></p>
 &nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">s</span>, <span class="code">ss</span>, <span class="code">mm</span><br>
 <a id="tf"/>
@@ -253,7 +254,7 @@ twostate function<br>
 <div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">bump</span></div><br>
 static <br>
 method<br>
-<span class="code"><b>bump</b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) returns (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)<br>
+<span class="code"><b>bump</b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) <b>returns</b> (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)<br>
 <p style="margin-left: 25px;"><span class="doctext">increments input</span></p>
 &nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">i</span><br>
 <a id="ModifyA"/>
@@ -268,7 +269,7 @@ method<br>
 <div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">zero</span></div><br>
 ghost static <br>
 method<br>
-<span class="code"><b>zero</b></span>() returns (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)<br>
+<span class="code"><b>zero</b></span>() <b>returns</b> (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:iszero}</span><br>
 <p style="margin-left: 25px;"><span class="doctext">Sets to zero. Absolute zero.</span></p>
 &nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">z == 0</span><br>
