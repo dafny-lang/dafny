@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
     public string BaseName { get; private set; }
     public bool IsPreverified { get; set; }
     public bool IsPrecompiled { get; set; }
-    public string SourceFilePath { get; private set; }
+    public string SourceFilePath { get; }
     public Uri Uri { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -246,6 +246,15 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
+        var include = dafnyFile.IsPrecompiled ? new Include(new Token {
+          Uri = dafnyFile.Uri,
+          col = 1,
+          line = 0
+        }, null, dafnyFile.SourceFilePath) : null;
+        if (include != null) {
+          // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
+          module.ModuleDef.Includes.Add(include);
+        }
         var err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter));
         if (err != null) {
           return err;
@@ -352,7 +361,8 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, new Uri(dafnyFile.SourceFilePath), module, builtIns, errs);
+        // TODO If you do new Uri(dafnyFile.SourceFilePath), it crashes issue-1109 which uses <stdin> 
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.Uri, module, builtIns, errs);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

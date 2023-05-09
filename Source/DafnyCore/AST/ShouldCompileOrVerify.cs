@@ -29,7 +29,7 @@ public static class ShouldCompileOrVerify {
     }
 
     if (declaration.Tok == Token.NoToken) {
-      // TODO required for DefaultModuleDefinition. Do we need it for other things or can be make the code more specific?
+      // TODO required for DefaultModuleDefinition. Do we need it for other things or can we make the code more specific?
       return true;
     }
     if (program.UrisToVerify == null) {
