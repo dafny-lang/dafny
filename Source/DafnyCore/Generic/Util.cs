@@ -608,7 +608,7 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.IncluderFilename.LocalPath ?? "roots";
+      string key = include.IncluderFilename ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
         existingDependencies.Add(include.CanonicalPath);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
@@ -42,13 +41,13 @@ public class GhostStateDiagnosticCollectorTest {
       return this.AllMessages;
     }
 
-    public CollectingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
-    public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris), null) {
+    public DummyModuleDecl() : base(
+      new DefaultModuleDefinition(), null) {
     }
     public override object Dereference() {
       return this;
@@ -59,13 +58,10 @@ public class GhostStateDiagnosticCollectorTest {
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
     var options = DafnyOptions.DefaultImmutableOptions;
-    var rootUri = new Uri(Directory.GetCurrentDirectory());
-    var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
-    var reporter = new CollectingErrorReporter(options, (DefaultModuleDefinition)dummyModuleDecl.ModuleDef);
-    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter);
+    var reporter = new CollectingErrorReporter(options);
+    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
-        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);
     Assert.Empty(ghostDiagnostics);
   }

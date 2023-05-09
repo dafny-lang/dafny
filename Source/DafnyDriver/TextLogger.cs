@@ -36,7 +36,7 @@ public class TextLogger {
         tw.WriteLine("    Assertions:");
         foreach (var cmd in vcResult.asserts) {
           tw.WriteLine(
-            $"      {((IToken)cmd.tok).Filepath}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
+            $"      {cmd.tok.filename}({cmd.tok.line},{cmd.tok.col}): {cmd.Description.SuccessDescription}");
         }
 
       }
