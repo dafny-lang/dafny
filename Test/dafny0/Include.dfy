@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %baredafny verify %args "%s" > "%t"
-// RUN: %exits-with 4 %baredafny verify %args --verify-included-files "%s" >> "%t"
+// RUN: %exits-with 4 %baredafny verify %args --verify-scope=RootFiles "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Includee.dfy"
