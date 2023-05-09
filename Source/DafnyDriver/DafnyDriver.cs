@@ -381,8 +381,8 @@ namespace Microsoft.Dafny {
 
       if (options.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
-          options.OutputWriter.WriteLine();
-          options.OutputWriter.WriteLine("-------------------- {0} --------------------", f);
+          await options.OutputWriter.WriteLineAsync();
+          await options.OutputWriter.WriteLineAsync($"-------------------- {f} --------------------");
           var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), options, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
