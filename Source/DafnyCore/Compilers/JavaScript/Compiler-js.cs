@@ -968,7 +968,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
+      } else if (cl is ClassDecl or ArrowTypeDecl) {
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";

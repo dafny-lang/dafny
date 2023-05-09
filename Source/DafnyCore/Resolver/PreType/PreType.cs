@@ -251,7 +251,7 @@ namespace Microsoft.Dafny {
 
     public static bool IsReferenceTypeDecl(TopLevelDecl decl) {
       Contract.Requires(decl != null);
-      return decl is ClassDecl && !(decl is ArrowTypeDecl);
+      return decl is ClassDecl;
     }
 
     public static bool IsArrowType(TopLevelDecl decl) {

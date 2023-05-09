@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
 
       if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
         PreTypeResolver.ResolveDeclarations(
-          prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ArrowTypeDecl || d is not ClassDecl).ToList(),
+          prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is not ClassDecl).ToList(),
           this, true);
       }
 
@@ -5463,6 +5463,8 @@ namespace Microsoft.Dafny {
         }
       } else if (cl is ClassDecl) {
         // null is a value for this possibly-null type
+        return true;
+      } else if (cl is ArrowTypeDecl) {
         return true;
       } else if (cl is CoDatatypeDecl) {
         // may depend on type parameters

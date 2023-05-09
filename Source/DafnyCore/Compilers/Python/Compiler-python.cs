@@ -734,6 +734,7 @@ namespace Microsoft.Dafny.Compilers {
                 return FormatDefaultTypeParameterValue(opaque);
 
               case ClassDecl:
+              case ArrowTypeDecl:
                 return "None";
             }
             break;

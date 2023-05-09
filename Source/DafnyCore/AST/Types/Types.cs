@@ -410,6 +410,8 @@ public abstract class Type : TokenNode {
       }
     } else if (cl is ClassDecl) {
       return AutoInitInfo.CompilableValue; // null is a value of this type
+    } else if (cl is ArrowTypeDecl) {
+      return AutoInitInfo.CompilableValue;
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
       var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
@@ -478,7 +480,7 @@ public abstract class Type : TokenNode {
   public bool IsRefType {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      return udt != null && udt.ResolvedClass is ClassDecl && !(udt.ResolvedClass is ArrowTypeDecl);
+      return udt != null && udt.ResolvedClass is ClassDecl;
     }
   }
 

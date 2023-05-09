@@ -58,10 +58,10 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         break;
     }
     var arguments = pt.Arguments.ConvertAll(PreType2Type);
-    if (pt.Decl is ValuetypeDecl valuetypeDecl) {
-      return valuetypeDecl.CreateType(arguments);
-    } else if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
+    if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
+    } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
+      return valuetypeDecl.CreateType(arguments);
     } else {
       return new UserDefinedType(pt.Decl.tok, pt.Decl.Name, pt.Decl, arguments);
     }

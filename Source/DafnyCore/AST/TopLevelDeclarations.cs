@@ -1422,27 +1422,10 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
-    Contract.Assume(!(this is ArrowTypeDecl));  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor; ArrowTypeDecl should use the next constructor
     if (!IsDefaultClass) {
       NonNullTypeDecl = new NonNullTypeDecl(this);
     }
     this.NewSelfSynonym();
-  }
-  /// <summary>
-  /// The following constructor is supposed to be called by the ArrowTypeDecl subtype, in order to avoid
-  /// the call to this.NewSelfSynonym() (because NewSelfSynonym() depends on the .Arity field having been
-  /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
-  /// constructor will do that call.
-  /// </summary>
-  protected ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, null) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
-    Contract.Assume(this is ArrowTypeDecl);  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor
   }
   public virtual bool IsDefaultClass {
     get {
@@ -1574,15 +1557,18 @@ public class ArrayClassDecl : ClassDecl {
   }
 }
 
-public class ArrowTypeDecl : ClassDecl {
+public class ArrowTypeDecl : ValuetypeDecl {
   public override string WhatKind { get { return "function type"; } }
   public readonly int Arity;
   public readonly Function Requires;
   public readonly Function Reads;
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(ArrowType.ArrowTypeName(tps.Count - 1)), module, tps,
-      new List<MemberDecl> { req, reads }, attributes, false) {
+    : base(ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
+      new List<MemberDecl> { req, reads }, attributes,
+      ty =>
+        ty.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: ArrowTypeDecl arrowTypeDecl} && arrowTypeDecl.Arity == tps.Count - 1,
+      null) {
     Contract.Requires(tps != null && 1 <= tps.Count);
     Contract.Requires(req != null);
     Contract.Requires(reads != null);
@@ -1592,7 +1578,6 @@ public class ArrowTypeDecl : ClassDecl {
     Reads = reads;
     Requires.EnclosingClass = this;
     Reads.EnclosingClass = this;
-    this.NewSelfSynonym();
   }
 }
 
@@ -1841,7 +1826,7 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
 
   public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
     Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
+    : this(name, module, typeTester, typeCreator) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
@@ -1856,6 +1841,11 @@ public class ValuetypeDecl : TopLevelDeclWithMembers {
         TypeArgs.Add(tp);
       }
     }
+  }
+
+  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter> typeParameters,
+    List<MemberDecl> members, Attributes attributes, Func<Type, bool> typeTester, Func<List<Type>, Type> /*?*/ typeCreator)
+    : base(RangeToken.NoToken, new Name(name), module, typeParameters, members, attributes, false) {
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
   }
