@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.IO;
 using System.Text;
 
 namespace Microsoft.Dafny;
@@ -18,14 +17,12 @@ public interface IToken : Microsoft.Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
   string Boogie.IToken.filename {
-    get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
-    set => throw new NotSupportedException();
+    get => Filename;
+    set => Filename = value;
   }
 
-  public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri.LocalPath;
-
-  Uri Uri { get; set; }
+  public string ActualFilename { get; }
+  string Filename { get; set; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,
@@ -73,9 +70,8 @@ public class Token : IToken {
 
   public int kind { get; set; } // Used by coco, so we can't rename it to Kind
 
-  public string ActualFilename => Filepath;
-  public string Filepath => Uri?.LocalPath;
-  public Uri Uri { get; set; }
+  public string ActualFilename => Filename;
+  public string Filename { get; set; }
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 
@@ -108,7 +104,7 @@ public class Token : IToken {
       line = line,
       Prev = Prev,
       Next = Next,
-      Uri = Uri,
+      Filename = Filename,
       kind = kind,
       val = newVal
     };
@@ -119,7 +115,7 @@ public class Token : IToken {
   }
 
   public override string ToString() {
-    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
+    return $"{Filename}@{pos} - @{line}:{col}";
   }
 }
 
@@ -140,11 +136,9 @@ public abstract class TokenWrapper : IToken {
 
   public string ActualFilename => WrappedToken.ActualFilename;
 
-  public virtual string Filepath => WrappedToken.Filepath;
-
-  public Uri Uri {
-    get => WrappedToken.Uri;
-    set => WrappedToken.Uri = value;
+  public virtual string Filename {
+    get { return WrappedToken.Filename; }
+    set { WrappedToken.filename = value; }
   }
 
   public bool IsValid {
@@ -186,32 +180,6 @@ public abstract class TokenWrapper : IToken {
 }
 
 public static class TokenExtensions {
-
-  public static string TokenToString(this Boogie.IToken tok, DafnyOptions options) {
-    if (tok is IToken dafnyToken) {
-      return dafnyToken.TokenToString(options);
-    }
-
-    return $"{tok.filename}({tok.line},{tok.col - 1})";
-  }
-
-  public static string TokenToString(this IToken tok, DafnyOptions options) {
-    if (tok.Uri == null) {
-      return $"({tok.line},{tok.col - 1})";
-    }
-
-    var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = tok.Uri.Scheme switch {
-      "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(tok.Filepath),
-      _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(tok.Filepath)
-        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
-    };
-
-    return $"{filename}({tok.line},{tok.col - 1})";
-  }
-
   public static RangeToken ToRange(this IToken token) {
     if (token is BoogieRangeToken boogieRangeToken) {
       return new RangeToken(boogieRangeToken.StartToken, boogieRangeToken.EndToken);
@@ -330,6 +298,54 @@ public class NestedToken : TokenWrapper {
 
   public override IToken WithVal(string newVal) {
     return this;
+  }
+}
+
+/// <summary>
+/// An IncludeToken is a wrapper that indicates that the function/method was
+/// declared in a file that was included. Any proof obligations from such an
+/// included file are to be ignored.
+/// </summary>
+public class IncludeToken : TokenWrapper {
+  public Include Include;
+  public IncludeToken(Include include, IToken wrappedToken)
+    : base(wrappedToken) {
+    Contract.Requires(wrappedToken != null);
+    this.Include = include;
+  }
+
+  public override string val {
+    get { return WrappedToken.val; }
+    set { WrappedToken.val = value; }
+  }
+
+  public override int pos {
+    get { return WrappedToken.pos; }
+    set { WrappedToken.pos = value; }
+  }
+
+  public override int line {
+    get { return WrappedToken.line; }
+    set { WrappedToken.line = value; }
+  }
+
+  public override int col {
+    get { return WrappedToken.col; }
+    set { WrappedToken.col = value; }
+  }
+
+  public override IToken Prev {
+    get { return WrappedToken.Prev; }
+    set { WrappedToken.Prev = value; }
+  }
+
+  public override IToken Next {
+    get { return WrappedToken.Next; }
+    set { WrappedToken.Next = value; }
+  }
+
+  public override IToken WithVal(string newVal) {
+    return new IncludeToken(Include, WrappedToken.WithVal(newVal));
   }
 }
 

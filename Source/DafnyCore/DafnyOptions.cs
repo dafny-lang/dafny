@@ -35,9 +35,6 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
-
-    public IList<Uri> CliRootUris = new List<Uri>();
-
     public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
@@ -147,10 +144,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Options.OptionArguments[option] = value;
     }
 
-    protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
-      base.AddFile(file, ps);
-    }
+    public void AddFile(string file) => base.AddFile(file, null);
 
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {

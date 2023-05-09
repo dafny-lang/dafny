@@ -2,12 +2,10 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using DafnyTestGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
-using Main = Microsoft.Dafny.Main;
 
 namespace DafnyPipeline.Test;
 
@@ -47,20 +45,33 @@ public class PluginsTest {
     return assemblyPath;
   }
 
+  class CollectionErrorReporter : BatchErrorReporter {
+    public string GetLastErrorMessage() {
+      return AllMessages[ErrorLevel.Error][0].Message;
+    }
+
+    public CollectionErrorReporter(DafnyOptions options) : base(options) {
+    }
+  }
+
   [Fact]
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram);
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+    Microsoft.Dafny.Type.ResetScopes();
+    BuiltIns builtIns = new BuiltIns(options);
+    Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    Main.Resolve(dafnyProgram, reporter);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
-    Assert.Equal("Impossible to continue because whatever", reporter.AllMessages[ErrorLevel.Error][0].Message);
+    Assert.Equal("Impossible to continue because whatever", reporter.GetLastErrorMessage());
   }
 
   [Fact]
@@ -68,14 +79,14 @@ public class PluginsTest {
     var library = GetLibrary("rewriterPreventingVerification");
 
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
+    Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(1, reporter.ErrorCount);
-    Assert.Equal("Impossible to continue", reporter.AllMessages[ErrorLevel.Error][0].Message);
+    Assert.Equal("Impossible to continue", reporter.GetLastErrorMessage());
   }
 
   [Fact]
@@ -83,13 +94,22 @@ public class PluginsTest {
     var library = GetLibrary("rewriterAllowingVerification");
 
     var options = DafnyOptions.Create();
+    var reporter = new CollectionErrorReporter(options);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
-    var dafnyProgram = Utils.Parse(options, programString, false);
-    BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    Main.Resolve(dafnyProgram);
+    var dafnyProgram = CreateProgram(options, programString, reporter);
+    Main.Resolve(dafnyProgram, reporter);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
+  }
+
+  private static Program CreateProgram(DafnyOptions options, string programString, CollectionErrorReporter reporter) {
+    ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+    Type.ResetScopes();
+    BuiltIns builtIns = new BuiltIns(options);
+    Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    return dafnyProgram;
   }
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
-using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -20,6 +19,7 @@ namespace DafnyPipeline.Test {
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
       var options = DafnyOptions.Create();
+      ErrorReporter reporter = new ConsoleErrorReporter(options);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
@@ -71,8 +71,11 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        var dafnyProgram = Utils.Parse(options, programString, false);
-        var reporter = dafnyProgram.Reporter;
+        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+        Microsoft.Dafny.Type.ResetScopes();
+        BuiltIns builtIns = new BuiltIns(options);
+        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter);
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
