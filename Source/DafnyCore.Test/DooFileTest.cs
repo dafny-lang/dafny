@@ -38,6 +38,6 @@ public class DooFileTest {
     var errorReporter = new ConsoleErrorReporter(options, outerModule);
     var parseResult = Parser.Parse(dafnyProgramText, rootUri, module, builtIns, errorReporter);
     Assert.Equal(0, parseResult);
-    return new Program(fullFilePath, module, builtIns, errorReporter);
+    return new Program(fullFilePath, module, builtIns, errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
   }
 }

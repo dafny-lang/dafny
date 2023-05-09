@@ -15,7 +15,7 @@ public static class ShouldCompileOrVerify {
     if (module.FullName == "_System") {
       return true;
     }
-    
+
     if (module is DefaultModuleDefinition) {
       // TODO Can there be things from precompiled files that live in the default module?
       return true;
@@ -68,12 +68,12 @@ public static class ShouldCompileOrVerify {
   }
 
   private static ISet<Uri> ComputeUrisToCompile(Program program) {
-    var compiledRoots = program.Options.CompiledRoots;
+    var compiledRoots = program.AlreadyCompiledRoots;
     return GetReachableUris(program, compiledRoots);
   }
 
   private static ISet<Uri> ComputeUrisToVerify(Program program) {
-    var verifiedRoots = program.Options.VerifiedRoots;
+    var verifiedRoots = program.AlreadyVerifiedRoots;
     return GetReachableUris(program, verifiedRoots);
   }
 

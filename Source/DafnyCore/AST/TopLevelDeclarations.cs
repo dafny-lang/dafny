@@ -849,6 +849,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
+  // TODO move to Program once this list is no longer mutated by parsing.
   public List<Include> Includes;
 
   [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver

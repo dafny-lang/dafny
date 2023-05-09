@@ -58,7 +58,7 @@ namespace DafnyPipeline.Test {
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
         Parser.Parse(programNotIndented, uri, module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
@@ -97,7 +97,7 @@ namespace DafnyPipeline.Test {
         Microsoft.Dafny.Type.ResetScopes();
         builtIns = new BuiltIns(options);
         Parser.Parse(reprinted, uri, module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
         var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
         Assert.Equal(initErrorCount, newReporter.ErrorCount);

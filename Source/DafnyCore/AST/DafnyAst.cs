@@ -39,6 +39,9 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    public ISet<Uri> AlreadyVerifiedRoots;
+    public ISet<Uri> AlreadyCompiledRoots;
+
     public List<Include> Includes => DefaultModuleDef.Includes;
     [FilledInDuringResolution]
     public ISet<Uri> UrisToVerify;
@@ -59,7 +62,8 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
@@ -68,6 +72,8 @@ namespace Microsoft.Dafny {
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
+      AlreadyVerifiedRoots = alreadyVerifiedRoots;
+      AlreadyCompiledRoots = alreadyCompiledRoots;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }

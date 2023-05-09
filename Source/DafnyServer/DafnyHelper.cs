@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
                      Main.ParseIncludes(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Program(fname, module, builtIns, reporter);
+        dafnyProgram = new Program(fname, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
       }
       return success;
     }

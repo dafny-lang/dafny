@@ -342,9 +342,6 @@ namespace Microsoft.Dafny {
       DafnyOptions options, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
 
-      options.VerifiedRoots = dafnyFiles.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
-      options.CompiledRoots = dafnyFiles.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;

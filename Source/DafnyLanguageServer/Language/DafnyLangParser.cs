@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         mutex.Release();
       }
     }
-    
+
     public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       var program = NewDafnyProgram(document, errorReporter);
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         new LiteralModuleDecl(errorReporter.OuterModule, null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(errorReporter.Options),
-        errorReporter
+        errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
       );
     }
 

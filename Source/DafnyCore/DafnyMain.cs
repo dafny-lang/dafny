@@ -265,7 +265,9 @@ namespace Microsoft.Dafny {
         dmap.PrintMap();
       }
 
-      program = new Program(programName, module, builtIns, reporter);
+      var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
+      var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
+      program = new Program(programName, module, builtIns, reporter, verifiedRoots, compiledRoots);
 
       MaybePrintProgram(program, options.DafnyPrintFile, false);
 

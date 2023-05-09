@@ -62,7 +62,7 @@ public class GhostStateDiagnosticCollectorTest {
     var rootUri = new Uri(Directory.GetCurrentDirectory());
     var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
     var reporter = new CollectingErrorReporter(options, (DefaultModuleDefinition)dummyModuleDecl.ModuleDef);
-    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter);
+    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
         null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)

@@ -48,8 +48,6 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public IList<Uri> CliRootSourceUris = new List<Uri>();
-    public ISet<Uri> VerifiedRoots;
-    public ISet<Uri> CompiledRoots;
 
     public static DafnyOptions Default = new();
     public ProjectFile ProjectFile { get; set; }
