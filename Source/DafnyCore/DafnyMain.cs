@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static string ParseCheck(TextReader stdIn, IList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
         DafnyOptions options, out Program program)
-      //modifies Bpl.options.XmlSink.*;
+    //modifies Bpl.options.XmlSink.*;
     {
       string err = Parse(stdIn, files, programName, options, out program);
       if (err != null) {

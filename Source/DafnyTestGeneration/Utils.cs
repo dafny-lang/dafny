@@ -78,15 +78,9 @@ namespace DafnyTestGeneration {
       var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
       var module = new LiteralModuleDecl(defaultModuleDefinition, null);
       var builtIns = new BuiltIns(options);
-// <<<<<<< HEAD
-//       var reporter = new ConsoleErrorReporter(options);
-//       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
-//         new Errors(reporter)) == 0 && Microsoft.Dafny.DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
-// =======
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
       var success = Parser.Parse(source, uri, module, builtIns,
         new Errors(reporter)) == 0 && DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
-// >>>>>>> origin/master
         new HashSet<string>(), new Errors(reporter)) == null;
       var program = new Program(uri.LocalPath, module, builtIns, reporter);
 

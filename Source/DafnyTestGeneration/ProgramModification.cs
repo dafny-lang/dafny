@@ -66,19 +66,8 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Setup DafnyOptions to prepare for counterexample extraction
     /// </summary>
-// <<<<<<< HEAD
-//     private static DafnyOptions SetupOptions(DafnyOptions original, string procedure) {
-//       var options = DafnyOptions.Create(original.OutputWriter);
-//       options.Parse(new[] { "/proc:" + procedure });
-//       options.NormalizeNames = false;
-//       options.EmitDebugInformation = true;
-//       options.ErrorTrace = 1;
-//       options.EnhancedErrorMessages = 1;
-//       options.ModelViewFile = "-";
-// =======
     private static void SetupForCounterexamples(DafnyOptions options) {
       // Figure out the Z3 version in use:
-// >>>>>>> origin/master
       var proverOptions = new SMTLibSolverOptions(options);
       proverOptions.Parse(options.ProverOptions);
       var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);

@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
     public IList<Uri> CliRootUris = new List<Uri>();
-    
+
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
