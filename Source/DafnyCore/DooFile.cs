@@ -113,6 +113,11 @@ public class DooFile {
   }
 
   public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
+    if (currentCommand == null) {
+      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+      return false;
+    }
+
     if (options.VersionNumber != Manifest.DafnyVersion) {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;
@@ -130,8 +135,12 @@ public class DooFile {
 
       var localValue = options.Get(option);
 
-      if (Manifest.Options.TryGetValue(option.Name, out var libraryValue)) {
-        libraryValue = FromTomlValue(option, libraryValue);
+      object libraryValue = null;
+      if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
+        if (!ProjectFile.TryGetValueFromToml(Console.Out, null,
+              option.Name, option.ValueType, manifestValue, out libraryValue)) {
+          return false;
+        }
       } else if (option.ValueType == typeof(IEnumerable<string>)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
         libraryValue = Array.Empty<string>();
@@ -158,14 +167,6 @@ public class DooFile {
     }
 
     throw new ArgumentException();
-  }
-
-  private static object FromTomlValue(Option option, object tomlValue) {
-    if (option.ValueType == typeof(IEnumerable<string>)) {
-      return ((TomlArray)tomlValue).Select(o => (string)o).ToList();
-    }
-
-    return tomlValue;
   }
 
   public void Write(ConcreteSyntaxTree wr) {

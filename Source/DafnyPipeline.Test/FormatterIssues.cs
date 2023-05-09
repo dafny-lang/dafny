@@ -5,6 +5,34 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
 public class FormatterIssues : FormatterBaseTest {
   [Fact]
+  public void GitIssue3960FormattingIssueForallStatements() {
+    FormatterWorksFor(@"
+lemma Lemma()
+{
+  forall pd0: int
+    | && true
+      && (true
+          && true)
+      && true
+    ensures true {
+  }
+}");
+  }
+
+  [Fact]
+  public void GitIssue3944FormatterArgumentsDefaultValue() {
+    FormatterWorksFor(@"
+function Example(
+  newNames : map<string, string> := map[],
+  a: int
+) : bool
+{
+  true
+}
+");
+  }
+
+  [Fact]
   public void GitIssue3790DafnyFormatterProducesIncorrectIndentation() {
     FormatterWorksFor(@"
 lemma Try(i: int)

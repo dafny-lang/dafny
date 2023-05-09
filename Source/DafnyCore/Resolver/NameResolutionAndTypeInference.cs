@@ -1633,7 +1633,11 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
           if (super.Equals(sub)) {
-            return new List<int>();
+            if (sub is UserDefinedType subUserDefinedType) {
+              return subUserDefinedType.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
+            } else {
+              return new List<int>();
+            }
           } else {
             return null;
           }
@@ -4010,6 +4014,17 @@ namespace Microsoft.Dafny {
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
+
+        if (assertStmt != null && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
+            "Assertion with {:only} temporarily transforms other assertions into assumptions");
+          if (attribute.Args.Count >= 1
+              && attribute.Args[0] is LiteralExpr { Value: string value }
+              && value != "before" && value != "after") {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+              "{:only} only accepts \"before\" or \"after\" as an optional argument");
+          }
+        }
         ResolveExpression(s.Expr, resolutionContext);
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
@@ -4506,26 +4521,7 @@ namespace Microsoft.Dafny {
         if (s.UserSuppliedOp != null) {
           s.Op = s.UserSuppliedOp;
         } else {
-          // Usually, we'd use == as the default main operator.  However, if the calculation
-          // begins or ends with a boolean literal, then we can do better by selecting ==>
-          // or <==.  Also, if the calculation begins or ends with an empty set, then we can
-          // do better by selecting <= or >=.
-          if (s.Lines.Count == 0) {
-            s.Op = CalcStmt.DefaultOp;
-          } else {
-            bool b;
-            if (Expression.IsBoolLiteral(s.Lines.First(), out b)) {
-              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
-            } else if (Expression.IsBoolLiteral(s.Lines.Last(), out b)) {
-              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
-            } else if (Expression.IsEmptySetOrMultiset(s.Lines.First())) {
-              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
-            } else if (Expression.IsEmptySetOrMultiset(s.Lines.Last())) {
-              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
-            } else {
-              s.Op = CalcStmt.DefaultOp;
-            }
-          }
+          s.Op = s.GetInferredDefaultOp() ?? CalcStmt.DefaultOp;
           reporter.Info(MessageSource.Resolver, s.Tok, s.Op.ToString());
         }
 
@@ -5788,7 +5784,7 @@ namespace Microsoft.Dafny {
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.line, tok.col) {
-            Filename = tok.Filename,
+            Uri = tok.Uri,
             val = f.Name
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));

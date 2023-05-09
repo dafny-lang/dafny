@@ -2,11 +2,11 @@
 // RUN: %exits-with 4 %baredafny verify %args --json-diagnostics "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -printTooltips "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -showSnippets:1 "%s" >> "%t".raw
+// RUN: %sed 's#%S##g' "%t".raw > "%t.raw2"
 // The "pos" field contains a different value on Windows and Linux (because of
 // line ending differences), so we strip it out:
-// RUN: %sed 's/"pos":[0-9]+,//g' "%t".raw > "%t"
+// RUN: %sed 's/"pos":[0-9]+,//g' "%t".raw2 > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 newtype byte = i: int | 0 <= i < 256 // Info
 static const x := 1; // Warning
 const y: byte := 257; // Error
