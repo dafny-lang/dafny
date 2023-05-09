@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyTestGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
-using Parser = Microsoft.Dafny.Parser;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -233,17 +233,12 @@ module SomeModule {
     }
 
     IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
-      var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      var fullFilePath = "foo";
-      Microsoft.Dafny.Type.ResetScopes();
-      var builtIns = new BuiltIns(options);
-      var errorReporter = new ConsoleErrorReporter(options);
-      var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
-      Assert.Equal(0, parseResult);
-      var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
-      DafnyMain.Resolve(dafnyProgram, errorReporter);
-      Assert.Equal(0, errorReporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
+      var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
+      BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
+      Assert.NotNull(dafnyProgram);
+      DafnyMain.Resolve(dafnyProgram);
+      Assert.Equal(0, reporter.ErrorCount);
+      return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
 }

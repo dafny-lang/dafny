@@ -80,9 +80,8 @@ public class LibraryBackend : ExecutableBackend {
   }
 
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
-    throw new UnsupportedFeatureException(Token.NoToken, Feature.LegacyCLI);
-    // var dooPath = DooFilePath(dafnyProgramName);
-    // return RunTargetDafnyProgram(dooPath, outputWriter);
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) { 
+    var dooPath = DooFilePath(dafnyProgramName);
+    return RunTargetDafnyProgram(dooPath, outputWriter, errorWriter, true);
   }
 }

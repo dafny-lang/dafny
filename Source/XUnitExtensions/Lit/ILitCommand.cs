@@ -77,7 +77,9 @@ namespace XUnitExtensions.Lit {
             kind = Kind.Verbatim;
           }
         } else {
-          if (c is '*' or '?' && !singleQuoted) {
+          if (c is '?' && inProgressArgument.Length == 1 && inProgressArgument[0] == '-') {
+            kind = Kind.Verbatim;
+          } else if (c is '*' or '?' && !singleQuoted) {
             kind = Kind.MustGlob;
           }
           inProgressArgument.Append(c);

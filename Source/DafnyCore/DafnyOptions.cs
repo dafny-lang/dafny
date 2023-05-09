@@ -38,6 +38,9 @@ namespace Microsoft.Dafny {
     public TextWriter ErrorWriter { get; }
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
+
+    public IList<Uri> CliRootUris = new List<Uri>();
+    
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
@@ -146,7 +149,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Options.OptionArguments[option] = value;
     }
 
-    public void AddFile(string file) => base.AddFile(file, null);
+    protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
+      base.AddFile(file, ps);
+    }
 
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {

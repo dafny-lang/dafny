@@ -51,7 +51,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   private void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.filename, tok.line - 1);
+    string line = GetFileLine(((IToken)tok).Filepath, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
@@ -84,7 +84,23 @@ public class DafnyConsolePrinter : ConsolePrinter {
     realigned_tok.pos = tok.pos;
     realigned_tok.val = tok.val;
     realigned_tok.filename = tok.filename;
-    base.ReportBplError(realigned_tok, message, error, tw, category);
+
+    if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
+      return;
+    }
+
+    if (category != null) {
+      message = $"{category}: {message}";
+    }
+
+    message = $"{tok.TokenToString(Options)}: {message}";
+
+    if (error) {
+      ErrorWriteLine(tw, message);
+    } else {
+      tw.WriteLine(message);
+    }
+
     if (Options.Get(ShowSnippets)) {
       WriteSourceCodeSnippet(tok, tw);
     }

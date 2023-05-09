@@ -142,7 +142,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     SinglePassCompiler.WriteFromStream(rd, outputWriter);
   }
 
-  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter) {
+  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -154,15 +154,17 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     var dafny = where + "/Dafny.dll";
 
     var opt = Options;
-    var psi = PrepareProcessStartInfo("dotnet", opt.MainArgs
-      .Prepend("/compileTarget:cs")
-      .Prepend("/compile:4")
-      .Prepend("/compileVerbose:0")
-      .Prepend("/printVerifiedProceduresCount:0")
-      .Prepend("/noVerify")
-      .Prepend(targetFilename)
-      .Prepend(dafny));
-
+    var args = opt.MainArgs
+      .Prepend(targetFilename);
+    if (!verify) {
+      args = args.Prepend("--no-verify");
+    }
+    args = args
+      .Prepend("--target:cs")
+      .Prepend("run")
+      .Prepend(dafny);
+    var psi = PrepareProcessStartInfo("dotnet", args);
+    Console.Out.WriteLine(string.Join(", ", psi.ArgumentList));
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
      * This is a problem for this specific compiler and the integration tests because the second

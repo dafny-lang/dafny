@@ -1,4 +1,5 @@
 using System.IO;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
@@ -19,16 +20,11 @@ namespace DafnyPipeline.Test {
     [Fact]
     public void Test() {
       var options = DafnyOptions.Create(output);
-      ErrorReporter reporter = new ConsoleErrorReporter(options);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      Microsoft.Dafny.Type.ResetScopes();
-      BuiltIns builtIns = new BuiltIns(options);
-      Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-      var dafnyProgram = new Program("programName", module, builtIns, reporter);
-      DafnyMain.Resolve(dafnyProgram, reporter);
+      var dafnyProgram = Utils.Parse(options, programString, false);
+      DafnyMain.Resolve(dafnyProgram);
       foreach (var prog in Translator.Translate(dafnyProgram, dafnyProgram.Reporter)) {
         var writer = new StringWriter();
         var tokenWriter = new Bpl.TokenTextWriter("virtual", writer, true, options);

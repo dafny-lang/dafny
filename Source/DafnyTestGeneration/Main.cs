@@ -58,7 +58,7 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, sourceFile);
+      var program = Utils.Parse(options, source, true, new Uri(sourceFile));
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
@@ -138,14 +138,15 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, sourceFile);
+      var uri = new Uri(sourceFile);
+      var program = Utils.Parse(options, source, true, uri);
       if (program == null) {
         yield break;
       }
       if (Utils.AttributeFinder.ProgramHasAttribute(program,
             TestGenerationOptions.TestInlineAttribute)) {
         options.VerifyAllModules = true;
-        program = Utils.Parse(options, source, sourceFile);
+        program = Utils.Parse(options, source, true, uri);
         if (program == null) {
           yield break;
         }

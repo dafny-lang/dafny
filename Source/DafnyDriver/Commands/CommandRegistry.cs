@@ -116,7 +116,7 @@ public static class CommandRegistry {
       var keywordForNewMode = commandToSpec.Keys.Select(c => c.Name).
         Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
-        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !System.IO.File.Exists(first) && first.IndexOf('.') == -1) {
+        if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
           dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
@@ -255,7 +255,7 @@ public static class CommandRegistry {
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
-      dafnyOptions.AddFile(singleFile.FullName);
+      dafnyOptions.CliRootUris.Add(new Uri(singleFile.FullName));
     }
     return true;
   }

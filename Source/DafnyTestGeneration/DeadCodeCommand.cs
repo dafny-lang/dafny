@@ -8,9 +8,16 @@ namespace Microsoft.Dafny;
 public class DeadCodeCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
+      // IMPORTANT: Before adding new options, make sure they are
+      // appropriately copied over in the GenerateTestCommand.CopyForProcedure method 
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
-      BoogieOptionBag.VerificationTimeLimit,
+      BoogieOptionBag.SolverLog,
+      BoogieOptionBag.SolverOption,
+      BoogieOptionBag.SolverOptionHelp,
+      BoogieOptionBag.SolverPath,
+      BoogieOptionBag.SolverResourceLimit,
+      BoogieOptionBag.VerificationTimeLimit
     }.Concat(ICommandSpec.ConsoleOutputOptions).
       Concat(ICommandSpec.ResolverOptions);
 
@@ -21,6 +28,8 @@ public class DeadCodeCommand : ICommandSpec {
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    // IMPORTANT: Before adding new default options, make sure they are
+    // appropriately copied over in the GenerateTestCommand.CopyForProcedure method 
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;

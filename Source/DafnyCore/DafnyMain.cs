@@ -40,23 +40,33 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(TextReader stdIn, IList<DafnyFile/*!*/>/*!*/ files, string/*!*/ programName, ErrorReporter reporter, out Program program)
-    //modifies Bpl.options.XmlSink.*;
+    public static string ParseCheck(TextReader stdIn, IList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
+        DafnyOptions options, out Program program)
+      //modifies Bpl.options.XmlSink.*;
     {
-      string err = Parse(stdIn, files, programName, reporter, out program);
+      string err = Parse(stdIn, files, programName, options, out program);
       if (err != null) {
         return err;
       }
 
-      return Resolve(program, reporter);
+      return Resolve(program);
     }
 
-    public static string Parse(TextReader stdIn, IList<DafnyFile> files, string programName, ErrorReporter reporter, out Program program) {
+    public static string Parse(TextReader stdIn, IList<DafnyFile> files, string programName, DafnyOptions options,
+      out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
       program = null;
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      var options = reporter.Options;
+
+      var defaultModuleDefinition =
+        new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
+      ErrorReporter reporter = options.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
+      LiteralModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
       BuiltIns builtIns = new BuiltIns(options);
 
       foreach (DafnyFile dafnyFile in files) {
@@ -64,19 +74,32 @@ namespace Microsoft.Dafny {
         if (options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
           options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
+
         if (options.Trace) {
           options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        var include = dafnyFile.IsPrecompiled ? new Include(Token.NoToken, null, dafnyFile.SourceFileName, false) : null;
-        var err = ParseFile(stdIn, dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified, !dafnyFile.IsPrecompiled);
+        var include = dafnyFile.IsPrecompiled
+          ? new Include(new Token() {
+            Uri = dafnyFile.Uri,
+            col = 1,
+            line = 0
+          }, null, dafnyFile.SourceFilePath, false)
+          : null;
+        if (include != null) {
+          module.ModuleDef.Includes.Add(include);
+        }
+
+        var err = ParseFile(stdIn, dafnyFile, include, module, builtIns, new Errors(reporter), !dafnyFile.IsPreverified,
+          !dafnyFile.IsPrecompiled);
         if (err != null) {
           return err;
         }
       }
 
       if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludesDepthFirstNotCompiledFirst(stdIn, module, builtIns, files.Select(f => f.CanonicalPath).ToHashSet(), new Errors(reporter));
+        string errString = ParseIncludesDepthFirstNotCompiledFirst(stdIn, module, builtIns,
+          files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
@@ -84,7 +107,7 @@ namespace Microsoft.Dafny {
 
       if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
-        dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
+        dmap.AddIncludes(module.ModuleDef.Includes);
         dmap.PrintMap(options);
       }
 
@@ -98,20 +121,24 @@ namespace Microsoft.Dafny {
     private static readonly TaskScheduler largeThreadScheduler =
       CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
 
-    public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
+    public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None,
+      TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
 
-    public static string Resolve(Program program, ErrorReporter reporter) {
-      if (reporter.Options.NoResolve || reporter.Options.NoTypecheck) { return null; }
+    public static string Resolve(Program program) {
+      if (program.Options.NoResolve || program.Options.NoTypecheck) {
+        return null;
+      }
 
       var r = new Resolver(program);
       LargeStackFactory.StartNew(() => r.ResolveProgram(program)).Wait();
-      MaybePrintProgram(program, reporter.Options.DafnyPrintResolvedFile, true);
+      MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
-      if (reporter.ErrorCountUntilResolver != 0) {
-        return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
+      if (program.Reporter.ErrorCountUntilResolver != 0) {
+        return string.Format("{0} resolution/type errors detected in {1}", program.Reporter.Count(ErrorLevel.Error),
+          program.Name);
       }
 
-      return null;  // success
+      return null; // success
     }
 
     // Lower-case file names before comparing them, since Windows uses case-insensitive file names
@@ -121,7 +148,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static string ParseIncludesDepthFirstNotCompiledFirst(TextReader stdIn, ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
+    public static string ParseIncludesDepthFirstNotCompiledFirst(TextReader stdIn, ModuleDecl module,
+      BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
       var includesFound = new SortedSet<Include>(new IncludeComparer());
       var allIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
       var notCompiledRoots = allIncludes.Where(include => !include.CompileIncludedCode).ToList();
@@ -159,6 +187,7 @@ namespace Microsoft.Dafny {
           foreach (var addedItem in addedItems.Reverse()) {
             stack.Push(addedItem);
           }
+
           includeIndex = allIncludes.Count;
 
           if (stack.Count == 0) {
@@ -187,10 +216,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string ParseFile(TextReader stdIn, DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
+    private static string ParseFile(TextReader stdIn, DafnyFile dafnyFile, Include include, ModuleDecl module,
+      BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin ? stdIn : null, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin ? stdIn : null, dafnyFile.Uri, module, builtIns, errs,
+          verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }
@@ -199,6 +230,7 @@ namespace Microsoft.Dafny {
         errs.SemErr(tok, "Unable to open included file");
         return $"Error opening file \"{fn}\": {e.Message}";
       }
+
       return null; // Success
     }
 
@@ -249,11 +281,11 @@ to also include a directory containing the `z3` executable.
 
     public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
       return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
-         && statistics.ErrorCount == 0
-         && statistics.InconclusiveCount == 0
-         && statistics.TimeoutCount == 0
-         && statistics.OutOfResourceCount == 0
-         && statistics.OutOfMemoryCount == 0;
+             && statistics.ErrorCount == 0
+             && statistics.InconclusiveCount == 0
+             && statistics.TimeoutCount == 0
+             && statistics.OutOfResourceCount == 0
+             && statistics.OutOfMemoryCount == 0;
     }
 
     /// <summary>
@@ -266,8 +298,8 @@ to also include a directory containing the `z3` executable.
     /// </summary>
     private static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogiePipelineWithRerun(
       DafnyOptions options,
-      TextWriter output, ExecutionEngine engine, Microsoft.Boogie.Program/*!*/ program, string/*!*/ bplFileName,
-        string programId) {
+      TextWriter output, ExecutionEngine engine, Microsoft.Boogie.Program /*!*/ program, string /*!*/ bplFileName,
+      string programId) {
       Contract.Requires(program != null);
       Contract.Requires(bplFileName != null);
 
@@ -285,7 +317,8 @@ to also include a directory containing the `z3` executable.
             "*** Encountered internal translation error - re-running Boogie to get better debug information");
           await options.OutputWriter.WriteLineAsync();
 
-          var /*!*/ fileNames = new List<string /*!*/> { bplFileName };
+          var /*!*/
+            fileNames = new List<string /*!*/> { bplFileName };
           var reparsedProgram = engine.ParseBoogieProgram(fileNames, true);
           if (reparsedProgram != null) {
             engine.ResolveAndTypecheck(reparsedProgram, bplFileName, out _);
@@ -302,7 +335,8 @@ to also include a directory containing the `z3` executable.
           return (inferAndVerifyOutcome, stats);
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected outcome
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected outcome
       }
     }
 
