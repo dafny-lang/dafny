@@ -14,9 +14,9 @@ module Client {
 
   // The mention of the export-provided Cl below (in the case where
   // its parent type, Tr, is not exported) once generated malformed
-  // Boogie. In particular, Cl should be treated as an abstract type in
+  // Boogie. In particular, Cl should be treated as an opaque type in
   // this Client module, but in some places in the translation to Boogie,
-  // the type was still treated as a non-abstract type.
+  // the type was still treated as a non-opaque type.
   method Test(cl: Library.Cl) {
   }
 }

@@ -272,8 +272,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
         if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
-        if (d is OpaqueTypeDecl) {
-          var at = (OpaqueTypeDecl)d;
+        if (d is AbstractTypeDecl) {
+          var at = (AbstractTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
