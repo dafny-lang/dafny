@@ -18,9 +18,9 @@ TODO:
 - mark experimental
 - sidebar - compare to other documentation -- TOC or contents of modules or contents of file -- perhaps openable
 -  more modern fonts
-- sans serif font
 - add bodies of non-opaque functions
 - use project file
+- 
 
 Future Improvements:
 - identify members from refinement parent; link to them
@@ -124,12 +124,19 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
+  public string sidebar;
+
+  public int ModuleLevel(string moduleName) {
+    return moduleName.Count(c => c == '.');
+  }
+
   public DafnyDriver.ExitValue GenerateDocs(IList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
       var decls = rootModule.ModuleDef.TopLevelDecls.Select(d => !(d is LiteralModuleDecl));
       CollectDecls(rootModule, modDecls);
+      sidebar = Size(Bold("Modules"), "20px") + "<br>" + String.Join("<br>\n", modDecls.Select(m => Spaces(ModuleLevel(m.FullDafnyName)) + Link(m.FullDafnyName, m.Name)));
       WriteTOC(modDecls);
       foreach (var m in modDecls) {
         WriteModule(m, dafnyFiles);
@@ -174,6 +181,8 @@ class DafnyDoc {
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
     file.WriteLine(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}{Smaller(contentslink + indexlink)}"));
     file.Write(BodyStart());
+    file.Write(SideBar(sidebar));
+    file.Write(MainStart());
 
     var docstring = Docstring(module);
     if (!String.IsNullOrEmpty(docstring)) {
@@ -222,6 +231,7 @@ class DafnyDoc {
       file.WriteLine("Attributes: " + attributes + br);
     }
     file.WriteLine(details.ToString());
+    file.Write(MainEnd());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
     var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
@@ -247,6 +257,8 @@ class DafnyDoc {
     var typeparams = TypeFormals(decl.TypeArgs);
     file.WriteLine(Heading1($"{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}{Smaller(contentslink + indexlink)}"));
     file.Write(BodyStart());
+    file.Write(SideBar(sidebar));
+    file.Write(MainStart());
 
     var docstring = Docstring(decl as IHasDocstring);
     if (!String.IsNullOrEmpty(docstring)) {
@@ -332,6 +344,7 @@ class DafnyDoc {
       file.WriteLine("Attributes: " + attributes + br);
     }
     file.WriteLine(details.ToString());
+    file.Write(MainEnd());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }
@@ -907,6 +920,7 @@ class DafnyDoc {
 
     file.Write(Heading1($"Modules{ProgramHeader()}{space4}{Smaller(indexlink)}"));
     file.Write(BodyStart());
+    file.Write(MainStart());
     file.WriteLine(ListStart());
     int currentIndent = 0;
     foreach (var module in modules) {
@@ -928,6 +942,8 @@ class DafnyDoc {
       }
     }
     file.WriteLine(ListEnd());
+    file.WriteLine(MainEnd());
+    file.Write(SideBar(sidebar));
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }
@@ -1168,6 +1184,8 @@ class DafnyDoc {
     file.Write(HtmlStart($"Index for program {DafnyProgram.Name}"));
     file.Write(Heading1($"Index{ProgramHeader()}{space4}{Smaller(contentslink)}"));
     file.Write(BodyStart());
+    file.Write(SideBar(sidebar));
+    file.Write(MainStart());
     foreach (var key in keys) {
       var k = key.IndexOf(' ');
       var value = nameIndex[key]; // Already rewritten as a bunch of links
@@ -1185,6 +1203,7 @@ class DafnyDoc {
       }
       file.WriteLine(mdash + value + br);
     }
+    file.Write(MainEnd());
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }

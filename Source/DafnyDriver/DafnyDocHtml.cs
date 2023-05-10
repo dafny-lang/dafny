@@ -23,7 +23,7 @@ class DafnyDocHtml {
 <html lang=""en"">
 <head>
 <meta charset=""utf-8"">
-<meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+<meta name=""viewport"" content=""width=1000px, initial-scale=1"">
 <title>"
 
       + title +
@@ -45,8 +45,27 @@ class DafnyDocHtml {
     return "</body>\n</html>\n";
   }
 
+  public static string MainStart() {
+    return "<div class=\"main\">\n";
+  }
+
+  public static string MainEnd() {
+    return "</div>\n";
+  }
+
+
+  public static string SideBar(string text) {
+    return "<div class=\"sidenav\">\n"
+    + text +
+    "</div>";
+  }
+
   public static string Indent(string text) {
     return $"<p style=\"margin-left: 25px;\">{text}</p>";
+  }
+
+  public static string Spaces(int n) {
+    return new StringBuilder(6 * n).Insert(0, "&nbsp;", n).ToString();
   }
 
   public static string Link(string fullName, string text) {
@@ -79,6 +98,10 @@ class DafnyDocHtml {
   }
   public static string Bold(string text) {
     return $"<b>{text}</b>";
+  }
+
+  public static string Size(string text, string value) {
+    return $"<span style=\"font-size:{value};\">{text}</span>";
   }
 
   public static string Italics(string text) {
@@ -150,9 +173,42 @@ class DafnyDocHtml {
 
   public static readonly string Style =
   @"
+.sidenav {
+  height: 100%;
+  width: 160px;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  background-color: #ffffff;
+  overflow-x: hidden;
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.sidenav a {
+  padding: 6px 8px 6px 16px;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.sidenav a:hover {
+  color: #0000ff;
+}
+
+.main {
+  margin-left: 160px; /* Same as the width of the sidenav */
+}
+
+@media screen and (max-height: 450px) {
+  .sidenav {padding-top: 15px;}
+  .sidenav a {font-size: 18px;}
+}
+
 body {
   background-color: white;
-  font-family: 'Arial'
+  font-family: 'Arial';
+  width: 1000;
 }
 
 h1 {
