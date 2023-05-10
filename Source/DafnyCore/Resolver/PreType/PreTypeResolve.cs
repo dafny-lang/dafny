@@ -219,7 +219,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns the non-newtype ancestor of "cecl".
+    /// Returns the non-newtype ancestor of "decl".
     /// </summary>
     public static TopLevelDecl AncestorDecl(TopLevelDecl decl) {
       while (decl is NewtypeDecl newtypeDecl) {
