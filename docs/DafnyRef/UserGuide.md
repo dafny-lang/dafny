@@ -1375,7 +1375,7 @@ would in turn need to be changed to `charseq.UnicodeFromString` to
 return the correct type.
 
 Most declarations, including those for modules, classes, traits, member
-variables, constructors, methods, function methods, and opaque types,
+variables, constructors, methods, function methods, and abstract types,
 can be marked with `{:extern}`.
 
 Marking a module with `{:extern}` indicates that the declarations

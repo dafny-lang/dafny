@@ -772,7 +772,7 @@ the instantiation `Result<int>` satisfies `(!new)`, whereas
 
 Note that this characteristic of a type parameter is operative for both
 verification and compilation.
-Also, opaque types at the topmost scope are always implicitly `(!new)`.
+Also, abstract types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
 <!-- %check-resolve Types.9.expect -->
@@ -1366,7 +1366,7 @@ It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
 
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
-* ([Section 5.6.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
+* ([Section 5.6.2](#sec-opaque-types)) An _abstract type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 * ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
@@ -1439,7 +1439,7 @@ type T
 type Q { function toString(t: T): string }
 ```
 
-An opaque type is a special case of a type synonym that is underspecified.  Such
+An abstract type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
 <!-- %check-resolve -->
 ```dafny
@@ -1466,7 +1466,7 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-Even as an opaque type, the type
+Even as an abstract type, the type
 may be given members such as constants, methods or functions.
 For example,
 <!-- %check-resolve -->
