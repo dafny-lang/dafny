@@ -7,16 +7,16 @@ namespace Microsoft.Dafny;
 
 class DocCommand : ICommandSpec {
 
-  public static readonly Option<string> DocProgramNameOption = new("--doc-program-name",
-    "The text to use as program name in generated documentation"
+  public static readonly Option<string> DocProgramNameOption = new("--program-name",
+    "[doc] The text to use as program name in generated documentation"
   );
 
-  public static readonly Option<string> DocFilenameFormat = new("--doc-file-name",
-    "Form of file references in documentation: none, absolute, name (the default), relative=<prefix>"
+  public static readonly Option<string> DocFilenameFormat = new("--file-name",
+    "[doc] Form of file references in documentation: none, absolute, name (the default), relative=<prefix>"
   );
 
-  public static readonly Option<bool> DocShowModifyTime = new("--doc-modify-time",
-    "If enabled, includes the last modified time of source files in the output"
+  public static readonly Option<bool> DocShowModifyTime = new("--modify-time",
+    "[doc] If enabled, includes the last modified time of source files in the generated documentation"
   );
 
 

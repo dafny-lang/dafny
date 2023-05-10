@@ -15,6 +15,12 @@ namespace Microsoft.Dafny;
 TODO:
 
 - translate markdown to html
+- mark experimental
+- sidebar - compare to other documentation -- TOC or contents of modules or contents of file -- perhaps openable
+-  more modern fonts
+- sans serif font
+- add bodies of non-opaque functions
+- use project file
 
 Future Improvements:
 - identify members from refinement parent; link to them
@@ -193,7 +199,7 @@ class DafnyDoc {
       file.Write(FileInfo(module.Tok));
     }
 
-    StringBuilder summaries = new StringBuilder(1000);
+    StringBuilder summaries = new StringBuilder(1000); // 1000 is arbitrary; defalt of 16 seems unnecessariloy low
     StringBuilder details = new StringBuilder(1000);
     WriteExports(moduleDef, summaries, details);
     WriteImports(moduleDef, summaries, details);
@@ -253,19 +259,19 @@ class DafnyDoc {
     // Find all traits, transitively
     if (decl.ParentTraits != null && decl.ParentTraits.Count() > 0) {
       extends = String.Join(", ", decl.ParentTraits.Select(t => TypeLink(t)));
-      List<Type> todo = new List<Type>();
+      List<Type> typesToProcess = new List<Type>();
       List<Type> traits = new List<Type>();
       foreach (var t in decl.ParentTraits) {
-        todo.Add(t);
+        typesToProcess.Add(t);
       }
-      while (todo.Count != 0) {
-        var tt = todo.First();
-        todo.RemoveAt(0);
+      while (typesToProcess.Count != 0) {
+        var tt = typesToProcess.First();
+        typesToProcess.RemoveAt(0);
         var tr = ((tt as UserDefinedType).ResolvedClass as NonNullTypeDecl).Class;
         if (!traits.Any(q => q.ToString() == tt.ToString())) {
           if (tr != null && tr.ParentTraits != null) {
             foreach (var t in tr.ParentTraits) {
-              todo.Add(t);
+              typesToProcess.Add(t);
             }
           }
           if (!decl.ParentTraits.Any(q => q.ToString() == tt.ToString()) && !traits.Any(q => q.ToString() == tt.ToString())) {
@@ -940,10 +946,22 @@ class DafnyDoc {
 
   public string TypeLink(Type tin) {
     Type t = tin is TypeProxy ? (tin as TypeProxy).T : tin;
+    //System.Console.WriteLine("ARROWP " + t + " " + t.GetType());
+
     if (t is BasicType) {
       return Code(t.ToString());
     } else if (t is CollectionType ct) {
       return Code(ct.CollectionTypeName + TypeActualParameters(ct.TypeArgs));
+    } else if (t.IsArrowType) {
+      var arrow = t.AsArrowType;
+      if (t is UserDefinedType udt) {
+        var arrowString = ArrowType.IsTotalArrowTypeName(udt.Name) ? ArrowType.TOTAL_ARROW :
+                          ArrowType.IsPartialArrowTypeName(udt.Name) ? ArrowType.PARTIAL_ARROW :
+                          ArrowType.ANY_ARROW;
+        return TypeLinkArrow(arrow.Args, Code(arrowString), arrow.Result);
+      } else {
+        return TypeLinkArrow(arrow.Args, Code(ArrowType.ANY_ARROW), arrow.Result);
+      }
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
       String s = null;
@@ -951,14 +969,23 @@ class DafnyDoc {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NonNullTypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
-      } else if (tt is SubsetTypeDecl) {
+      } else if (tt is SubsetTypeDecl sst) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NewtypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is DatatypeDecl) {
-        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        if (BuiltIns.IsTupleTypeName(udt.Name)) {
+          //System.Console.WriteLine("DT " + udt + " " + udt.Name + " " + tt.GetType() + " " + udt.GetType());
+          s = "(" + TypeActualParameters(t.TypeArgs, false) + ")";
+        } else {
+          s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        }
       } else if (tt is TypeParameter) {
         s = tt.Name;
+      } else if (tt is OpaqueTypeDecl) {
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else {
+        System.Console.WriteLine("TUP " + udt + " " + udt.Name + " " + tt.GetType() + " " + udt.GetType());
       }
       if (s != null) {
         return Code(s);
@@ -966,6 +993,11 @@ class DafnyDoc {
     }
     Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
+  }
+
+  public string TypeLinkArrow(List<Type> args, string arrow, Type result) {
+    return String.Join(", ", args.Select(arg => TypeLink(arg)))
+           + " " + arrow + " " + TypeLink(result);
   }
 
   public string ToHtml(string text) {
@@ -1101,9 +1133,9 @@ class DafnyDoc {
       "&lt;" + String.Join(",", args.Select(a => Code(TypeParameter.VarianceString(a.VarianceSyntax) + a + a.Characteristics))) + "&gt;";
   }
 
-  public string TypeActualParameters(List<Type> args) {
+  public string TypeActualParameters(List<Type> args, bool enclose = true) {
     var s = (args.Count == 0) ? "" :
-      "&lt;" + String.Join(",", args.Select(a => TypeLink(a))) + "&gt;";
+        (enclose ? "&lt;" : "") + String.Join(",", args.Select(a => TypeLink(a))) + (enclose ? "&gt;" : "");
     return s;
   }
 

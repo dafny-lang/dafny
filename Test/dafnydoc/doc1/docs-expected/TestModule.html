@@ -63,6 +63,11 @@ From file: TestDafnyDoc.dfy<br>
 <tr><td><a href="#cc"><span class="code"><b>cc</b></span></a></td><td> : </td><td><span class="code">real</span></td><td> &mdash; <span class="doctext">The distance.</span></td></tr>
 <tr><td><a href="#ccc"><span class="code"><b>ccc</b></span></a></td><td> : </td><td><span class="code">bool</span></td><td> &mdash; <span class="doctext">Valid or not.</span></td></tr>
 <tr><td><a href="#cccc"><span class="code"><b>cccc</b></span></a></td><td> : </td><td><span class="code"><a href="TestModule.A.html">A</a></span></td><td> &mdash; <span class="doctext">The internal state.</span></td></tr>
+<tr><td><a href="#f1"><span class="code"><b>f1</b></span></a></td><td> : </td><td><span class="code">int</span> <span class="code">-></span> <span class="code">int</span></td><td></td></tr>
+<tr><td><a href="#f2"><span class="code"><b>f2</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code">int</span>&gt;</span> <span class="code">~></span> <span class="code">seq&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
+<tr><td><a href="#f3"><span class="code"><b>f3</b></span></a></td><td> : </td><td><span class="code">bool</span> <span class="code">--></span> <span class="code"><a href="TestModule.TQ.html">TQ</a>&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
+<tr><td><a href="#tup0"><span class="code"><b>tup0</b></span></a></td><td> : </td><td><span class="code">()</span></td><td></td></tr>
+<tr><td><a href="#tup2"><span class="code"><b>tup2</b></span></a></td><td> : </td><td><span class="code">(<span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">real</span>&gt;</span>,<span class="code">set&lt;<span class="code">int</span>&gt;</span>)</span></td><td></td></tr>
 </table>
 <div>
 <h3>Functions</h3>
@@ -188,6 +193,31 @@ static <br>
 <span class="code"><b>cccc</b></span> : <span class="code"><a href="TestModule.A.html">A</a></span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:myattribute}{:otherattribute 5, 6}</span><br>
 <p style="margin-left: 25px;"><span class="doctext">The internal state.</span></p>
+<a id="f1"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f1</span></div><br>
+static <br>
+<span class="code"><b>f1</b></span> : <span class="code">int</span> <span class="code">-></span> <span class="code">int</span><br>
+<br>
+<a id="f2"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f2</span></div><br>
+static <br>
+<span class="code"><b>f2</b></span> : <span class="code">set&lt;<span class="code">int</span>&gt;</span> <span class="code">~></span> <span class="code">seq&lt;<span class="code">int</span>&gt;</span><br>
+<br>
+<a id="f3"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f3</span></div><br>
+static <br>
+<span class="code"><b>f3</b></span> : <span class="code">bool</span> <span class="code">--></span> <span class="code"><a href="TestModule.TQ.html">TQ</a>&lt;<span class="code">int</span>&gt;</span><br>
+<br>
+<a id="tup0"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tup0</span></div><br>
+static <br>
+<span class="code"><b>tup0</b></span> : <span class="code">()</span><br>
+<br>
+<a id="tup2"/>
+<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tup2</span></div><br>
+static <br>
+<span class="code"><b>tup2</b></span> : <span class="code">(<span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">real</span>&gt;</span>,<span class="code">set&lt;<span class="code">int</span>&gt;</span>)</span> := <span class="code">(null, {})</span><br>
+<br>
 <div>
 <h3>Functions</h3>
 </div>

@@ -152,6 +152,7 @@ class DafnyDocHtml {
   @"
 body {
   background-color: white;
+  font-family: 'Arial'
 }
 
 h1 {

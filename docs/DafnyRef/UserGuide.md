@@ -511,13 +511,14 @@ The default location is `./docs`. The folder is created if it does not already e
 Any existing content of the folder is overwritten.
 * If `--verbose` is enabled, a list of the generated files is emitted to stdout.
 * The output files contain information stating the source .dfy file in which the module is
-declared. The `--doc-file-name` option controls the form of the filename in that information:
-   * --doc-file-name:none -- no source file information is emitted
-   * --doc-file-name:name -- (default) just the file name is emitted (e.g., `Test.dfy`)
-   * --doc-file-name:absolute -- an absolute full path is emitted
-   * --doc-file-name:relative=<prefix> -- a file name relative to the given prefix is emitted
-* If `--doc-modify-time` is enabled, then the generated files contain information stating the
+declared. The `--file-name` option controls the form of the filename in that information:
+   * --file-name:none -- no source file information is emitted
+   * --file-name:name -- (default) just the file name is emitted (e.g., `Test.dfy`)
+   * --file-name:absolute -- an absolute full path is emitted
+   * --file-name:relative=<prefix> -- a file name relative to the given prefix is emitted
+* If `--modify-time` is enabled, then the generated files contain information stating the
 last modified time of the source of the module being documented.
+* The `--program-name` option states text that will be included in the heading of the TOC and index pages
 
 The output files are HTML files, all contained in the given folder, one per module plus an 
 `index.html` file giving an overall table of contents and a `nameindex.html` file containing
