@@ -76,18 +76,16 @@ public class TranslatorTest {
     var expectedLine = program.Split("// Here")[0].Count(c => c == '\n') + 1;
     Microsoft.Dafny.Type.ResetScopes();
     options = options ?? new DafnyOptions();
-    var uri = new Uri("virtual:///virtual");
-    var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-    var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-    BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
+    BatchErrorReporter reporter = new BatchErrorReporter(options);
     var builtIns = new BuiltIns(options);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
-    Parser.Parse(program, uri, module, builtIns, reporter);
+    var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
+    Parser.Parse(program, "virtual", "virtual", module, builtIns, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
-    Main.Resolve(dafnyProgram);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    Main.Resolve(dafnyProgram, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

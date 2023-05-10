@@ -50,8 +50,6 @@ namespace Microsoft.Dafny;
  * ```
  */
 public class TokenNewIndentCollector : TopDownVisitor<int> {
-  private readonly Program program;
-
   /* If true, the indentation will be
    * var name := method(
    *   x,
@@ -83,8 +81,8 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   public int binOpIndent = -1;
   public int binOpArgIndent = -1;
 
-  internal TokenNewIndentCollector(Program program) {
-    this.program = program;
+
+  internal TokenNewIndentCollector() {
     preResolve = true;
   }
 
@@ -231,7 +229,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // 'inline' is the hypothetical indentation of this token if it was on its own line
   // 'below' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   public void SetIndentations(IToken token, int above = -1, int inline = -1, int below = -1) {
-    if (token.WasIncluded(program) || (token.line == 0 && token.col == 0)) {
+    if (token is IncludeToken || (token.line == 0 && token.col == 0)) {
       // Just ignore this token.
       return;
     }
@@ -401,7 +399,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    if (topLevelDecl.tok.WasIncluded(program)) {
+    if (topLevelDecl.tok is IncludeToken) {
       return;
     }
 
@@ -422,7 +420,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
       foreach (var member in declWithMembers.PreResolveChildren) {
-        if (member.Tok.WasIncluded(program)) {
+        if (member.Tok is IncludeToken) {
           continue;
         }
 

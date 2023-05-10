@@ -13,7 +13,6 @@ using XUnitExtensions.Lit;
 [assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
 
 namespace IntegrationTests {
-
   public class LitTests {
 
     // Change this to true in order to debug the execution of commands like %dafny.

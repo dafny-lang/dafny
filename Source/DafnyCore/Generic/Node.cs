@@ -164,7 +164,7 @@ public abstract class Node : INode {
         while (tmpToken != null && tmpToken != EndToken.Next) {
           if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
-          } else if (tmpToken.Uri != null) {
+          } else if (tmpToken.filename != null) {
             result.Add(tmpToken);
           }
 
@@ -302,7 +302,7 @@ public abstract class TokenNode : Node {
         var endTok = tok;
 
         void UpdateStartEndToken(IToken token1) {
-          if (token1.Filepath != tok.Filepath) {
+          if (token1.Filename != tok.Filename) {
             return;
           }
 
@@ -320,7 +320,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
+          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

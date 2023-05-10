@@ -39,8 +39,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
-    public List<Include> Includes => DefaultModuleDef.Includes;
-
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
@@ -49,16 +47,15 @@ namespace Microsoft.Dafny {
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly ModuleDecl DefaultModule;
-    public readonly DefaultModuleDefinition DefaultModuleDef;
+    public readonly LiteralModuleDecl DefaultModule;
+    public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
-      Contract.Requires(module is LiteralModuleDecl);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
@@ -103,7 +100,7 @@ namespace Microsoft.Dafny {
 
       var firstToken = DefaultModule.RootToken.Next;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
         firstToken = firstToken.Next;
       }
 
@@ -124,13 +121,13 @@ namespace Microsoft.Dafny {
   }
 
   public class Include : TokenNode, IComparable {
-    public Uri IncluderFilename { get; }
+    public string IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
@@ -191,6 +188,16 @@ namespace Microsoft.Dafny {
       Name = name;
       Args = args;
       Prev = prev;
+    }
+
+    public override string ToString() {
+      string result = Prev?.ToString() + "{:" + Name;
+      if (Args == null || Args.Count() == 0) {
+        return result + "}";
+      } else {
+        var exprs = String.Join(", ", Args.Select(e => e.ToString()));
+        return result + " " + exprs + "}";
+      }
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {

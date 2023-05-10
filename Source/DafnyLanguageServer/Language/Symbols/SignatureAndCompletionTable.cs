@@ -1,5 +1,4 @@
-﻿using System;
-using IntervalTree;
+﻿using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +7,6 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AstElement = System.Object;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
@@ -43,13 +41,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly DafnyLangTypeResolver typeResolver;
 
     public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
-      var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
+        new CompilationUnit(new Dafny.Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null),
+          new LiteralModuleDecl(new DefaultModuleDefinition(), null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
           errorReporter
