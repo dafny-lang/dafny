@@ -13,13 +13,14 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Recognize the `{:only}` attribute on `assert` statements to temporarily transform other assertions into assumptions (https://github.com/dafny-lang/dafny/pull/3095)
 
-- * Exposes the --output and --spill-translation options for the dafny test command (https://github.com/dafny-lang/dafny/pull/3612)
+- Exposes the --output and --spill-translation options for the dafny test command (https://github.com/dafny-lang/dafny/pull/3612)
 
 - The `dafny audit` command now reports instances of the `{:concurrent}` attribute, intended to flag code that is intended, but can't be proven, to be safe for use in a concurrent setting. (https://github.com/dafny-lang/dafny/pull/3660)
 
 - Added option --no-verify for language server (https://github.com/dafny-lang/dafny/pull/3732)
 
-- * Added `.GetDocstring(DafnyOptions)` to every AST node
+- Documenting Dafny Entities
+  * Added `.GetDocstring(DafnyOptions)` to every AST node
   * Plugin support for custom Docstring formatter, 
   * Activatable plugin to support a subset of Javadoc through `--javadoclike-docstring-plugin`
   * Support for displaying docstring in VSCode
@@ -54,11 +55,11 @@ See [docs/dev/news/](docs/dev/news/).
 
 ## Bug fixes
 
-- * dafny test accepts a --methods-to-test option whose value is a regular expression selecting which tests to include in the test run (https://github.com/dafny-lang/dafny/pull/3221)
+- dafny test accepts a --methods-to-test option whose value is a regular expression selecting which tests to include in the test run (https://github.com/dafny-lang/dafny/pull/3221)
 
-- * The deprecated attributes :dllimport, :handle, and :heapQuantifier are no longer recognized. (https://github.com/dafny-lang/dafny/pull/3398)
+- The deprecated attributes :dllimport, :handle, and :heapQuantifier are no longer recognized. (https://github.com/dafny-lang/dafny/pull/3398)
 
-- While using `dafny translate --target=java`, the `--include-sources` option works as intended, while before it had no affect. (https://github.com/dafny-lang/dafny/pull/3611)
+- While using `dafny translate --target=java`, the `--include-runtime` option works as intended, while before it had no affect. (https://github.com/dafny-lang/dafny/pull/3611)
 
 - Tested support for paths with spaces in them (https://github.com/dafny-lang/dafny/pull/3683)
 
@@ -70,7 +71,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Right shift on native byte has the same consistent semantics even in Java (https://github.com/dafny-lang/dafny/pull/3734)
 
-- * Main and {:test} methods may now be in the same program (https://github.com/dafny-lang/dafny/pull/3744)
+- Main and {:test} methods may now be in the same program (https://github.com/dafny-lang/dafny/pull/3744)
 
 - The formatter now produces the same output whether invoked on the command-line or from VSCode (https://github.com/dafny-lang/dafny/pull/3790)
 
