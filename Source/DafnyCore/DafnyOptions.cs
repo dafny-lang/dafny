@@ -233,6 +233,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
