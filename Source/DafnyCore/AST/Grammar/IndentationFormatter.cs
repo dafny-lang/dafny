@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -24,7 +23,7 @@ public class IndentationFormatter : IIndentationFormatter {
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
   public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var tokenNewIndentCollector = new TokenNewIndentCollector(program) {
+    var tokenNewIndentCollector = new TokenNewIndentCollector {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -16,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     DafnyDiagnostic diagnostic, Range selection) {
-    var uri = new Uri(input.Uri);
+    var uri = input.Uri;
     if (diagnostic.Source != MessageSource.Verifier) {
       return null;
     }
@@ -25,7 +24,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    if (relatedInformation.Token.Uri != uri) {
+    if (relatedInformation.Token.filename != uri) {
       return null;
     }
 

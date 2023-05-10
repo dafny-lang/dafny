@@ -12,6 +12,7 @@ namespace XUnitExtensions.Lit {
     private readonly string replaceBy;
     private readonly string file;
 
+    const string SupportedRegexReplace = @"s/((?:\\/|[^/])+)/((?:[^/]|\\/)*)/";
 
     private SedCommand(string regexp, string replaceBy, string file) {
       this.regexp = regexp;
@@ -24,14 +25,12 @@ namespace XUnitExtensions.Lit {
         throw new ArgumentException($"Wrong number of arguments for sed: {args.Length}");
       }
       var regexpReplace = args[0];
-      var delimitCharacter = regexpReplace[1];
-      var part = $@"(?:\\{delimitCharacter}|[^{delimitCharacter}])";
-      string supportedRegexReplace = @$"s{delimitCharacter}({part}+){delimitCharacter}({part}*){delimitCharacter}";
-      var parseRegex = new Regex(supportedRegexReplace);
+
+      var parseRegex = new Regex(SupportedRegexReplace);
       var match = parseRegex.Match(regexpReplace);
       if (match == null) {
         throw new NotImplementedException("No support for sed " + regexpReplace + ". Only support for " +
-                                          supportedRegexReplace);
+                                          SupportedRegexReplace);
       }
       var regexp = match.Groups[1].Value;
       var replaceBy = match.Groups[2].Value;
