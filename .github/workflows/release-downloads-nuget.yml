@@ -88,7 +88,7 @@ jobs:
       run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
       shell: bash
     ## Check that a simple program compiles and runs on each supported platform
-    ## Not that the dotnet tool distribution doesn't include the Scripts,
+    ## Now that the dotnet tool distribution doesn't include the Scripts,
     ## so we need to clone the repository to get them.
     - name: Checkout Dafny
       uses: actions/checkout@v3
