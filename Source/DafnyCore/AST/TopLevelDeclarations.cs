@@ -2082,7 +2082,7 @@ public class NoContext : ICodeContext {
 }
 
 public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
-  public override string WhatKind { get { return "opaque type"; } }
+  public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {

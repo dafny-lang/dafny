@@ -415,7 +415,7 @@ module TopLevelAttributes {
     Iterator(x: int, arr: array<int>) yields (y: int)
     requires arr.Length != 0
 
-  // ---- opaque type
+  // ---- abstract type
 
   type
     {:myAttr this} // error: this is not allowed here

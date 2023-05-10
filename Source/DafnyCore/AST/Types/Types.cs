@@ -1423,7 +1423,7 @@ public abstract class Type : TokenNode {
       var udtA = (UserDefinedType)a;
       return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1647,7 +1647,7 @@ public abstract class Type : TokenNode {
     } else if (a.IsObjectQ) {
       return b.IsRefType ? b : null;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -2371,7 +2371,7 @@ public class UserDefinedType : NonProxyType {
 
   /// <summary>
   /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
+  /// the .TheType of an abstract type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
   /// constructor for that).
   /// </summary>
   public UserDefinedType(IToken tok, TypeParameter tp) {

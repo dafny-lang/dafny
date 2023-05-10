@@ -11,7 +11,7 @@ opaque predicate p() { true } // OK
 opaque class A {} // NO
 opaque datatype D = D // NO
 opaque newtype N = int // NO
-opaque type P = i | i >= 0 // NO
+abstract type P = i | i >= 0 // NO
 
 method z() {
   opaque var j: int // NO

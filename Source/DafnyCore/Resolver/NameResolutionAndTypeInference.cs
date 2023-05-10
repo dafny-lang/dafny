@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny {
       } else if (super.IsObjectQ) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
-        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
+        // The only remaining cases are that "super" is a (co)datatype, abstract type, or non-object trait/class.
         // In each of these cases, "super" is a UserDefinedType.
         var udfSuper = (UserDefinedType)super;
         var clSuper = udfSuper.ResolvedClass;
@@ -4817,7 +4817,7 @@ namespace Microsoft.Dafny {
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              // resolve like a type parameter, and it may have type parameters if it's an opaque type
+              // resolve like a type parameter, and it may have type parameters if it's an abstract type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;

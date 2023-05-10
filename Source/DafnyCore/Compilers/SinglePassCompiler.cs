@@ -1731,7 +1731,7 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       }
       if (cl is OpaqueTypeDecl) {
-        reason = "the enclosing type is an opaque type";
+        reason = "the enclosing type is an abstract type";
         return false;
       }
       if (!m.IsStatic) {
