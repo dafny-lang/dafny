@@ -21,11 +21,15 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method
     ///     * checks that type inference was able to determine all types
+    ///         -- in calls to CheckPreTypeIsDetermined
     ///     * checks that shared destructors in datatypes are in agreement
+    ///         -- in DatatypeDecl case of method Check
     ///     * checks that ORDINAL is used only where allowed
+    ///         -- CheckContainsNoOrdinal, CheckTypeArgsContainNoOrdinal
     ///     * checks that bitvector literals are not too big for their type
+    ///         -- in LiteralExpr case of VisitOneExpr
     ///     * fills in the .ResolvedOp field of binary expressions
-    ///     * performs substitution for DefaultValueExpression's
+    ///         -- in VisitOneExpr and BinaryExpr cases of VisitOneExpr
     /// </summary>
     public void Check(List<TopLevelDecl> declarations) {
       Contract.Requires(declarations != null);
@@ -40,9 +44,9 @@ namespace Microsoft.Dafny {
           }
           CheckParameterDefaultValues(iter.Ins, iter);
           if (iter.Body != null) {
-            CheckExpressions(iter.Body, iter);
+            CheckStatement(iter.Body, iter);
             if (prevErrCnt == ErrorCount) {
-              CheckExpressions(iter.Body, iter);
+              CheckStatement(iter.Body, iter);
             }
           }
 
@@ -107,12 +111,12 @@ namespace Microsoft.Dafny {
         if (prevErrCnt == ErrorCount) {
           if (member is Method method) {
             if (method.Body != null) {
-              CheckExpressions(method.Body, method);
+              CheckStatement(method.Body, method);
             }
           } else if (member is Function function) {
             if (function.ByMethodBody != null) {
               var m = function.ByMethodDecl;
-              CheckExpressions(m.Body, m);
+              CheckStatement(m.Body, m);
             }
           }
           if (prevErrCnt == ErrorCount && member is ICodeContext) {
@@ -136,7 +140,7 @@ namespace Microsoft.Dafny {
         method.Ens.Iter(mfe => CheckAttributedExpression(mfe, method));
         CheckSpecExpression(method.Decreases, method);
         if (method.Body != null) {
-          CheckExpressions(method.Body, method);
+          CheckStatement(method.Body, method);
         }
 
       } else if (member is Function) {
@@ -160,17 +164,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckPreType(PreType preType, ICodeContext codeContext, IToken tok, string what) {
+    private void CheckPreType(PreType preType, ICodeContext codeContext, IToken tok, string whatIsBeingChecked) {
       var visitor = new DetectUnderspecificationVisitor(this, codeContext);
-      visitor.CheckPreTypeIsDetermined(tok, preType, what);
+      visitor.CheckPreTypeIsDetermined(tok, preType, whatIsBeingChecked);
     }
 
-    private void CheckExpressions(Statement stmt, ICodeContext codeContext) {
+    private void CheckStatement(Statement stmt, ICodeContext codeContext) {
+      Contract.Requires(stmt != null);
       var visitor = new DetectUnderspecificationVisitor(this, codeContext);
       visitor.Visit(stmt);
     }
 
     private void CheckExpression(Expression expr, ICodeContext codeContext) {
+      Contract.Requires(expr != null);
       var visitor = new DetectUnderspecificationVisitor(this, codeContext);
       visitor.Visit(expr);
     }
@@ -237,7 +243,6 @@ namespace Microsoft.Dafny {
           }
         }
         foreach (var lhs in s.Lhss) {
-          var what = lhs is IdentifierExpr ? string.Format("variable '{0}'", ((IdentifierExpr)lhs).Name) : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.PreType);
         }
 
@@ -504,9 +509,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckVariable(IVariable v, string what) {
+    void CheckVariable(IVariable v, string whatIsBeingChecked) {
       if (!IsDetermined(v.PreType)) {
-        cus.ReportError(v.Tok, $"type of {what} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
+        cus.ReportError(v.Tok, $"type of {whatIsBeingChecked} '{v.Name}' could not be determined{UndeterminedPreTypeToString(v.PreType)}; please specify the type explicitly");
       }
     }
 
@@ -537,17 +542,17 @@ namespace Microsoft.Dafny {
     /// Check if "pt" is fully determined. If it is, return "true". If it is not, then
     /// report an error and return "false".
     /// </summary>
-    public bool CheckPreTypeIsDetermined(IToken tok, PreType pt, string what, PreType origPreType = null) {
+    public bool CheckPreTypeIsDetermined(IToken tok, PreType pt, string whatIsBeingChecked, PreType origPreType = null) {
       Contract.Requires(tok != null);
       Contract.Requires(pt != null);
-      Contract.Requires(what != null);
+      Contract.Requires(whatIsBeingChecked != null);
       origPreType ??= pt;
       pt = pt.Normalize();
 
       if (pt is PreTypeProxy proxy) {
         if (!underspecifiedTypeProxies.Contains(proxy)) {
           // report an error for this TypeProxy only once
-          cus.ReportError(tok, $"the type{UndeterminedPreTypeToString(origPreType)} of this {what} is underspecified");
+          cus.ReportError(tok, $"the type{UndeterminedPreTypeToString(origPreType)} of this {whatIsBeingChecked} is underspecified");
           underspecifiedTypeProxies.Add(proxy);
         }
         return false;
@@ -558,7 +563,7 @@ namespace Microsoft.Dafny {
         dp = dp.PrintablePreType;
       }
       // Recurse on type arguments:
-      return dp.Arguments.TrueForAll(tt => CheckPreTypeIsDetermined(tok, tt, what, origPreType));
+      return dp.Arguments.TrueForAll(tt => CheckPreTypeIsDetermined(tok, tt, whatIsBeingChecked, origPreType));
     }
 
     public void CheckTypeArgsContainNoOrdinal(IToken tok, PreType preType) {
