@@ -260,7 +260,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" is "decl" is a reference type.
+    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
     /// </summary>
     public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
       foreach (var parentType in decl.ParentTraits) {
