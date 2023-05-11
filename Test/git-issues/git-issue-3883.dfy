@@ -46,14 +46,14 @@ type ST0<T, U(0)> = x: int | x % 5 == 1 witness 16
 type ST1<T, U(0)> = x: int | (if var m: map<T,U> := map[]; m == map[] then 0 else 8) <= x
 
 method DoIt<X(0)>() {
-  var t0: ST0<int, X> := *;
-  var t1: ST1<int, X> := *;
+  var t0: ST0<int, X>;
+  var t1: ST1<int, X>;
   Print(t0, " "); // 16-16
   Print(t1, "\n"); // 0-0
 }
 
 method Print<X(0)>(x: X, suffix: string) {
-  var y: X := *;
+  var y: X;
   print x, "-", y, suffix;
 }
 

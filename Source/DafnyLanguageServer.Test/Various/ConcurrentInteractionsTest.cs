@@ -9,7 +9,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -178,9 +177,6 @@ method Multiply(x: int, y: int) returns (product: int)
         await Documents.CloseDocumentAsync(loadingDocument);
       }
       await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-    }
-
-    public ConcurrentInteractionsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

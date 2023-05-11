@@ -1,6 +1,4 @@
-﻿using JetBrains.Annotations;
-using Xunit;
-using Xunit.Abstractions;
+﻿using Xunit;
 
 namespace DafnyPipeline.Test;
 
@@ -264,6 +262,6 @@ method Main() {
   }
 
 
-  public FormatterForMembers([NotNull] ITestOutputHelper output) : base(output) {
-  }
+
+
 }

@@ -21,8 +21,7 @@ namespace XUnitExtensions.Lit {
       return invokeDirectly ? result : result.ToShellCommand(config);
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter, TextWriter errorWriter) {
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
       if (inputReader != null) {
         Console.SetIn(inputReader);
       }
@@ -33,8 +32,8 @@ namespace XUnitExtensions.Lit {
         Console.SetError(errorWriter);
       }
 
-      var result = assembly.EntryPoint!.Invoke(null, new object[] { arguments });
-      var exitCode = result == null ? 0 : (int)result;
+      var entry = assembly.EntryPoint!;
+      var exitCode = (int)entry.Invoke(null, new object[] { arguments })!;
 
       return (exitCode, "", "");
     }

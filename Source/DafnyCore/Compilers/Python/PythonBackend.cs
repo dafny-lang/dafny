@@ -63,14 +63,6 @@ public class PythonBackend : ExecutableBackend {
     return true;
   }
 
-  public override void CleanSourceDirectory(string sourceDirectory) {
-    var cacheDirectory = Path.Combine(sourceDirectory, "__pycache__");
-    try {
-      Directory.Delete(cacheDirectory, true);
-    } catch (DirectoryNotFoundException) {
-    }
-  }
-
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
@@ -87,13 +79,12 @@ public class PythonBackend : ExecutableBackend {
     return true;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, /*?*/
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == RunProcess(psi, outputWriter);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {

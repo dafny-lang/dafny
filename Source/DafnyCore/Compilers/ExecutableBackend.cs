@@ -5,9 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Win32;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -54,7 +51,6 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     var psi = new ProcessStartInfo(programName) {
       UseShellExecute = false,
       CreateNoWindow = false, // https://github.com/dotnet/runtime/issues/68259
-      RedirectStandardOutput = true,
     };
     foreach (var arg in args ?? Enumerable.Empty<string>()) {
       psi.ArgumentList.Add(arg);
@@ -62,44 +58,23 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return psi;
   }
 
-  public int RunProcess(ProcessStartInfo psi,
-    TextWriter outputWriter,
-    TextWriter errorWriter,
-    string errorMessage = null) {
+  public int RunProcess(ProcessStartInfo psi, TextWriter outputWriter, string errorMessage = null) {
     return StartProcess(psi, outputWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorWriter, errorMessage) : -1;
+      WaitForExit(process, outputWriter, errorMessage) : -1;
   }
 
-  public int WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
-
-    var errorProcessing = Task.Run(() => {
-      PassthroughBuffer(process.StandardError, errorWriter);
-    });
-    PassthroughBuffer(process.StandardOutput, outputWriter);
+  public int WaitForExit(Process process, TextWriter outputWriter, string errorMessage = null) {
     process.WaitForExit();
     if (process.ExitCode != 0 && errorMessage != null) {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
-
-    errorProcessing.Wait();
     return process.ExitCode;
-  }
-
-
-  // We read character by character because we did not find a way to ensure
-  // final newlines are kept when reading line by line
-  protected static void PassthroughBuffer(TextReader input, TextWriter output) {
-    int current;
-    while ((current = input.Read()) != -1) {
-      output.Write((char)current);
-    }
   }
 
   public Process StartProcess(ProcessStartInfo psi, TextWriter outputWriter) {
     string additionalInfo = "";
 
     try {
-      psi.RedirectStandardError = true;
       if (Process.Start(psi) is { } process) {
         return process;
       }
@@ -126,9 +101,8 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     return true;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
-    string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
@@ -142,7 +116,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     SinglePassCompiler.WriteFromStream(rd, outputWriter);
   }
 
-  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
+  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -150,7 +124,7 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
      */
 
     var where = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    where = Path.GetDirectoryName(where);
+    where = System.IO.Path.GetDirectoryName(where);
     var dafny = where + "/Dafny.dll";
 
     var opt = Options;
@@ -177,24 +151,16 @@ public abstract class ExecutableBackend : Plugins.IExecutableBackend {
     var process = new Process();
     process.StartInfo = psi;
     var outputBuilder = new List<string>();
-    var errorBuilder = new List<string>();
     process.OutputDataReceived += (sender, args) => outputBuilder.Add(args.Data);
-    process.ErrorDataReceived += (sender, args) => errorBuilder.Add(args.Data);
 
     try {
       process.Start();
       process.BeginOutputReadLine();
-      process.BeginErrorReadLine();
       process.WaitForExit();
       process.CancelOutputRead();
-      process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        outputWriter.WriteLine(outputBuilder[i]);
-      }
-
-      for (int i = 0; i < errorBuilder.Count - 1; i++) {
-        errorWriter.WriteLine(errorBuilder[i]);
+        Console.WriteLine(outputBuilder[i]);
       }
 
       if (process.ExitCode != 0) {
