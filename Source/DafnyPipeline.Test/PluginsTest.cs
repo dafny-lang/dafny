@@ -7,18 +7,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Microsoft.Dafny;
-using Xunit.Abstractions;
+using Main = Microsoft.Dafny.Main;
 
 namespace DafnyPipeline.Test;
 
 [Collection("Dafny plug-ins tests")]
 public class PluginsTest {
-  private readonly TextWriter output;
-
-  public PluginsTest(ITestOutputHelper output) {
-    this.output = new WriterFromOutputHelper(output);
-  }
-
   /// <summary>
   /// This method creates a library and returns the path to that library.
   /// The library extends a Rewriter so that we can verify that Dafny invokes it if provided in argument.
@@ -57,13 +51,13 @@ public class PluginsTest {
   public void EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.Create();
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    DafnyMain.Resolve(dafnyProgram);
+    Main.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
     Assert.Equal("Impossible to continue because whatever", reporter.AllMessages[ErrorLevel.Error][0].Message);
@@ -73,13 +67,13 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.Create();
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    DafnyMain.Resolve(dafnyProgram);
+    Main.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
     Assert.Equal("Impossible to continue", reporter.AllMessages[ErrorLevel.Error][0].Message);
   }
@@ -88,13 +82,13 @@ public class PluginsTest {
   public void EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.Create();
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
     var dafnyProgram = Utils.Parse(options, programString, false);
     BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
-    DafnyMain.Resolve(dafnyProgram);
+    Main.Resolve(dafnyProgram);
     Assert.Equal(0, reporter.ErrorCountUntilResolver);
     Assert.Equal(1, reporter.ErrorCount);
   }

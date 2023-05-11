@@ -4,7 +4,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   /// <summary>
@@ -57,9 +56,6 @@ method NestedExpression() {
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.NotNull(await Documents.GetResolvedDocumentAsync(documentItem.Uri));
-    }
-
-    public StabilityTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

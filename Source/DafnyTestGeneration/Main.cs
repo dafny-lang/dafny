@@ -85,7 +85,7 @@ namespace DafnyTestGeneration {
             i.VerboseName.Split(" ")[0]
             == options.TestGenOptions.TargetMethod));
         if (!targetFound) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter,
+          options.Printer.ErrorWriteLine(Console.Error,
             "Error: Cannot find method " +
             options.TestGenOptions.TargetMethod +
             " (is this name fully-qualified?)");
@@ -135,6 +135,7 @@ namespace DafnyTestGeneration {
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options) {
+
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
@@ -179,7 +180,7 @@ namespace DafnyTestGeneration {
       yield return "}";
 
       if (methodsGenerated == 0) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
+        options.Printer.ErrorWriteLine(Console.Error,
           "Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         setNonZeroExitCode = true;
