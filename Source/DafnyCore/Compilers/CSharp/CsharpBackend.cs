@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -45,6 +44,7 @@ public class CsharpBackend : ExecutableBackend {
         MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
+    var inMemory = runAfterCompile;
     compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
     var tempCompilationResult = new CSharpCompilationResult();
@@ -93,40 +93,54 @@ public class CsharpBackend : ExecutableBackend {
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
     var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
-    var emitResult = compilation.Emit(outputPath);
-
-    if (emitResult.Success) {
-      tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-      if (Options.CompileVerbose) {
-        outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
-      }
-
-      try {
-        var configuration = JsonSerializer.Serialize(
-          new {
-            runtimeOptions = new {
-              tfm = "net6.0",
-              framework = new {
-                name = "Microsoft.NETCore.App",
-                version = "6.0.0",
-                rollForward = "LatestMinor"
-              }
-            }
-          }, new JsonSerializerOptions() { WriteIndented = true });
-        File.WriteAllText(outputJson, configuration + Environment.NewLine);
-      } catch (Exception e) {
-        outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
+    if (inMemory) {
+      using var stream = new MemoryStream();
+      var emitResult = compilation.Emit(stream);
+      if (emitResult.Success) {
+        tempCompilationResult.CompiledAssembly = Assembly.Load(stream.GetBuffer());
+      } else {
+        outputWriter.WriteLine("Errors compiling program:");
+        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        foreach (var ce in errors) {
+          outputWriter.WriteLine(ce.ToString());
+          outputWriter.WriteLine();
+        }
         return false;
       }
     } else {
-      outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
-      var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-      foreach (var ce in errors) {
-        outputWriter.WriteLine(ce.ToString());
-        outputWriter.WriteLine();
-      }
+      var emitResult = compilation.Emit(outputPath);
 
-      return false;
+      if (emitResult.Success) {
+        tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
+        if (Options.CompileVerbose) {
+          outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
+        }
+        try {
+          var configuration = JsonSerializer.Serialize(
+            new {
+              runtimeOptions = new {
+                tfm = "net6.0",
+                framework = new {
+                  name = "Microsoft.NETCore.App",
+                  version = "6.0.0",
+                  rollForward = "LatestMinor"
+                }
+              }
+            }, new JsonSerializerOptions() { WriteIndented = true });
+          File.WriteAllText(outputJson, configuration + Environment.NewLine);
+        } catch (Exception e) {
+          outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
+          return false;
+        }
+      } else {
+        outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
+        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        foreach (var ce in errors) {
+          outputWriter.WriteLine(ce.ToString());
+          outputWriter.WriteLine();
+        }
+        return false;
+      }
     }
 
     compilationResult = tempCompilationResult;
@@ -137,24 +151,37 @@ public class CsharpBackend : ExecutableBackend {
     public Assembly CompiledAssembly;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
-    string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter) {
 
     var crx = (CSharpCompilationResult)compilationResult;
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) == ".dll") {
-        var targetDirectory = Path.GetDirectoryName(crx.CompiledAssembly.Location);
-        File.Copy(otherFileName, Path.Combine(targetDirectory!, Path.GetFileName(otherFileName)), true);
+        AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(otherFileName));
       }
     }
 
     if (crx.CompiledAssembly == null) {
       throw new Exception("Cannot call run target program on a compilation that failed");
     }
-    var psi = PrepareProcessStartInfo("dotnet", new[] { crx.CompiledAssembly.Location }.Concat(Options.MainArgs));
-    return RunProcess(psi, outputWriter, errorWriter) == 0;
+    var entry = crx.CompiledAssembly.EntryPoint;
+    if (entry == null) {
+      throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
+    }
+    try {
+      Console.OutputEncoding = System.Text.Encoding.UTF8; // Force UTF-8 output in dafny run (#2999)
+      object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { Options.MainArgs.ToArray() };
+      entry.Invoke(null, parameters);
+      return true;
+    } catch (System.Reflection.TargetInvocationException e) {
+      outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+      outputWriter.WriteLine(e.InnerException.ToString());
+    } catch (System.Exception e) {
+      outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+      outputWriter.WriteLine(e.ToString());
+    }
+    return false;
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {

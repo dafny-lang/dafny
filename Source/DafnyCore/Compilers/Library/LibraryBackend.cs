@@ -80,8 +80,9 @@ public class LibraryBackend : ExecutableBackend {
   }
 
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+
     var dooPath = DooFilePath(dafnyProgramName);
-    return RunTargetDafnyProgram(dooPath, outputWriter, errorWriter, true);
+    return RunTargetDafnyProgram(dooPath, outputWriter, true);
   }
 }

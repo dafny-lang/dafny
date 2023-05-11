@@ -43,7 +43,7 @@ public class GenerateTestsCommand : ICommandSpec {
   /// because we have to modify ProcsToCheck list, which does not have a setter.
   /// </summary>
   internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
-    var copy = DafnyOptions.Create(options.OutputWriter, options.Input, new[] { "/proc:" + procedureToVerify });
+    var copy = DafnyOptions.Create(new[] { "/proc:" + procedureToVerify });
     // Options set by the user:
     copy.LoopUnrollCount = options.LoopUnrollCount;
     copy.TestGenOptions.SeqLengthLimit = options.TestGenOptions.SeqLengthLimit;

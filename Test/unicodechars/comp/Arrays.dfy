@@ -1,2 +1,2 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char
+// RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
 include "../../comp/Arrays.dfy"

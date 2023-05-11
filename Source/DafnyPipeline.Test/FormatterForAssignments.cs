@@ -1,6 +1,4 @@
-﻿using JetBrains.Annotations;
-using Xunit;
-using Xunit.Abstractions;
+﻿using Xunit;
 
 namespace DafnyPipeline.Test;
 
@@ -180,8 +178,5 @@ method Test() {
     );
 }
 ", reduceBlockiness: false);
-  }
-
-  public FormatterForAssignments([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

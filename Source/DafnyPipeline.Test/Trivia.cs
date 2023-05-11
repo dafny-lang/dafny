@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using DafnyTestGeneration;
@@ -7,25 +9,17 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
   public class Trivia {
-
-    private readonly TextWriter output;
-
-    public Trivia(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
-
     enum Newlines { LF, CR, CRLF };
 
     private Newlines currentNewlines;
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      var options = DafnyOptions.Create(output);
+      var options = DafnyOptions.Create();
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"

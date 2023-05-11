@@ -6,7 +6,6 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -158,8 +157,5 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Equal(verificationDiagnostics[0].Message, verificationDiagnostics2[0].Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
-  }
-
-  public DiagnosticMigrationTest(ITestOutputHelper output) : base(output) {
   }
 }
