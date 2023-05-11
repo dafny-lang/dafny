@@ -8,9 +8,14 @@ namespace Microsoft.Dafny;
 
 public class TextLogger {
   private TextWriter tw;
+  private TextWriter outWriter;
+
+  public TextLogger(TextWriter outWriter) {
+    this.outWriter = outWriter;
+  }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : Console.Out;
+    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
   }
 
   public void LogResults(List<(Implementation, VerificationResult)> verificationResults) {

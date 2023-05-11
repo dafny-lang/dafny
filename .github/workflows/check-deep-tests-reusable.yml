@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: dafny
-        submodules: true
+        submodules: recursive
     - uses: actions/github-script@v6
       if: github.repository_owner == 'dafny-lang'
       with:

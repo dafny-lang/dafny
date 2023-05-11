@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
@@ -306,6 +307,9 @@ function Foo(i: int): int
         Assert.True(found,
           $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
       }
+    }
+
+    public CodeActionTest(ITestOutputHelper output) : base(output) {
     }
 
     private static List<string> ApplyEdits(TextDocumentEdit textDocumentEdit, string output) {

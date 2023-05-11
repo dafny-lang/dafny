@@ -17,13 +17,13 @@ using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
 
-internal interface ParseArgumentResult {
+public interface ParseArgumentResult {
 }
 
-record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
+public record ParseArgumentSuccess(DafnyOptions DafnyOptions) : ParseArgumentResult;
 record ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult ExitResult) : ParseArgumentResult;
 
-static class CommandRegistry {
+public static class CommandRegistry {
   private const string ToolchainDebuggingHelpName = "--help-internal";
   private static readonly HashSet<ICommandSpec> Commands = new();
 
@@ -62,12 +62,29 @@ static class CommandRegistry {
 
   public static Argument<FileInfo> FileArgument { get; }
 
-  [CanBeNull]
-  public static ParseArgumentResult Create(string[] arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+  class WritersConsole : IConsole {
+    private readonly TextWriter errWriter;
+    private readonly TextWriter outWriter;
 
+    public WritersConsole(TextWriter outWriter, TextWriter errWriter) {
+      this.errWriter = errWriter;
+      this.outWriter = outWriter;
+    }
+
+    public IStandardStreamWriter Out => StandardStreamWriter.Create(outWriter ?? TextWriter.Null);
+
+    public bool IsOutputRedirected => outWriter != null;
+    public IStandardStreamWriter Error => StandardStreamWriter.Create(errWriter ?? TextWriter.Null);
+    public bool IsErrorRedirected => errWriter != null;
+    public bool IsInputRedirected => false;
+  }
+
+  [CanBeNull]
+  public static ParseArgumentResult Create(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] arguments) {
+    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
+    var console = new WritersConsole(outputWriter, errorWriter);
     var wasInvoked = false;
-    var dafnyOptions = new DafnyOptions();
+    var dafnyOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
     var optionValues = new Dictionary<Option, object>();
     var options = new Options(optionValues);
     dafnyOptions.ShowEnv = ExecutionEngineOptions.ShowEnvironment.Never;
@@ -100,11 +117,11 @@ static class CommandRegistry {
         Union(new[] { "--version", "-h", ToolchainDebuggingHelpName, "--help", "[parse]", "[suggest]" });
       if (!keywordForNewMode.Contains(first)) {
         if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) && first.IndexOf('.') == -1) {
-          dafnyOptions.Printer.ErrorWriteLine(Console.Out,
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
             "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension", first);
           return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
         }
-        var oldOptions = new DafnyOptions();
+        var oldOptions = new DafnyOptions(inputReader, outputWriter, errorWriter);
         if (oldOptions.Parse(arguments)) {
           return new ParseArgumentSuccess(oldOptions);
         }
@@ -183,7 +200,7 @@ static class CommandRegistry {
     builder = AddDeveloperHelp(rootCommand, builder);
 
 #pragma warning disable VSTHRD002
-    var exitCode = builder.Build().InvokeAsync(arguments).Result;
+    var exitCode = builder.Build().InvokeAsync(arguments, console).Result;
 #pragma warning restore VSTHRD002
 
     if (failedToProcessFile) {

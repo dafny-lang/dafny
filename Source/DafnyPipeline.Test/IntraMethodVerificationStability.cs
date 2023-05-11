@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using DafnyTestGeneration;
 using Microsoft.Boogie;
@@ -10,14 +8,13 @@ using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
-using Main = Microsoft.Dafny.Main;
-using Parser = Microsoft.Dafny.Parser;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
   public class IntraMethodVerificationStability {
+
     private readonly ITestOutputHelper testOutputHelper;
 
     // All types of top level declarations.
@@ -151,7 +148,7 @@ module SomeModule {
 
     [Fact]
     public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
 
       var regularBoogie = GetBoogie(options, originalProgram).ToList();
       var renamedBoogie = GetBoogie(options, renamedProgram).ToList();
@@ -167,7 +164,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
       var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, reorderedProgram));
@@ -177,7 +174,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod*");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram));
@@ -188,7 +185,7 @@ module SomeModule {
     [Fact]
     public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod *");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, renamedProgram + originalProgram));
@@ -211,7 +208,7 @@ module SomeModule {
       options.ProverLogFilePath = temp1;
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await Main.BoogieOnce(options, Console.Out, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }
@@ -239,7 +236,7 @@ module SomeModule {
       var dafnyProgram = Utils.Parse(options, dafnyProgramText, false);
       BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
       Assert.NotNull(dafnyProgram);
-      Main.Resolve(dafnyProgram);
+      DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
       return Translator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }

@@ -10,6 +10,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -283,5 +284,8 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
 
     var toReplaceRegex = new Regex(pattern);
     return toReplaceRegex.Replace(traceObtained, "?");
+  }
+
+  protected LinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }
