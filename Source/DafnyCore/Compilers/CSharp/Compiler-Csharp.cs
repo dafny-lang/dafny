@@ -110,7 +110,7 @@ namespace Microsoft.Dafny.Compilers {
       stringWriter.NewLine = Environment.NewLine;
       var oldValue = Options.ShowEnv;
       Options.ShowEnv = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
-      new Printer(stringWriter, Options, PrintModes.Serialization).PrintProgram(program, true);
+      new Printer(stringWriter, Options, PrintModes.Serialization).PrintProgramLargeStack(program, true);
       Options.ShowEnv = oldValue;
       var programString = stringWriter.GetStringBuilder().Replace("\"", "\"\"").ToString();
 
@@ -1850,7 +1850,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(ErrorReporter.TokenToString(tok) + ": ", true) + " + "));
+        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(tok.TokenToString(Options) + ": ", true) + " + "));
       }
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         exceptionMessage.Write(".ToVerbatimString(false)");

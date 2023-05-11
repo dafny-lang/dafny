@@ -10,8 +10,9 @@ public class NotCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-    var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+  public (int, string, string) Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
+    var (exitCode, output, error) = operand.Execute(inputReader, outputWriter, errorWriter);
     return (exitCode == 0 ? 1 : 0, output, error);
   }
 

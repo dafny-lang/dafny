@@ -6,6 +6,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -99,6 +100,9 @@ method {:timeLimit 10} test() {
 
         status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       }
+    }
+
+    public CancelVerificationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

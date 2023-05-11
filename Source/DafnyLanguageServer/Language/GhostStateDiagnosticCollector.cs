@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       try {
-        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit.Program, cancellationToken);
+        var visitor = new GhostStateSyntaxTreeVisitor(signatureAndCompletionTable.CompilationUnit, cancellationToken);
         visitor.Visit(signatureAndCompletionTable.CompilationUnit.Program);
         return visitor.GhostDiagnostics;
       } catch (Exception e) {
@@ -44,13 +44,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private class GhostStateSyntaxTreeVisitor : SyntaxTreeVisitor {
-      private readonly Dafny.Program program;
+      private readonly CompilationUnit compilationUnit;
       private readonly CancellationToken cancellationToken;
 
       public List<Diagnostic> GhostDiagnostics { get; } = new();
 
-      public GhostStateSyntaxTreeVisitor(Dafny.Program program, CancellationToken cancellationToken) {
-        this.program = program;
+      public GhostStateSyntaxTreeVisitor(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+        this.compilationUnit = compilationUnit;
         this.cancellationToken = cancellationToken;
       }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
 
       private bool IsPartOfEntryDocumentAndNoMetadata(IToken token) {
-        return token.line > 0 && program.IsPartOfEntryDocument(token);
+        return token.line > 0 && compilationUnit.IsPartOfEntryDocument(token);
       }
 
       private static Range GetRange(Statement statement) {
