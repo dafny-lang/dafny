@@ -239,7 +239,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns the non-newtype ancestor of "preType".
-    /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method stops ends the traversal
+    /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method ends the traversal
     /// early (and returns the last ancestor traversed). This method does not return any error; that's assumed to be done elsewhere.
     /// </summary>
     public DPreType NewTypeAncestor(DPreType preType) {
