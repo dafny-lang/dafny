@@ -245,7 +245,7 @@ namespace Microsoft.Dafny {
         options.CliRootSourceUris.Add(new Uri("stdin:///"));
         dafnyFiles.Add(new DafnyFile(options, "<stdin>", inputReader));
       } else if (options.CliRootSourceUris.Count == 0 && !options.Format) {
-        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
@@ -276,10 +276,10 @@ namespace Microsoft.Dafny {
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
             if (!df.IsPreverified) {
-              if (options.VerificationScope == VerificationScope.Everything) {
+              if (!options.Verify || options.VerificationScope == VerificationScope.Everything) {
                 df.IsPreverified = true;
               } else {
-                options.Printer.ErrorWriteLine(Console.Error, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything is used.");
+                options.Printer.ErrorWriteLine(errorWriter, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything is used.");
                 return CommandLineArgumentsResult.PREPROCESSING_ERROR;
               }
             }

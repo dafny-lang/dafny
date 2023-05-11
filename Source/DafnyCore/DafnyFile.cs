@@ -32,13 +32,23 @@ public class DafnyFile {
     filePath = CanonicalPath;
 
     if (contentOverride != null) {
-      Content = contentOverride;
-    }
-
-    if (extension == ".dfy" || extension == ".dfyi") {
       IsPreverified = false;
       IsPrecompiled = false;
-      Content = new StreamReader(filePath);
+      Content = contentOverride;
+    } else if (extension == ".dfy" || extension == ".dfyi") {
+      IsPreverified = false;
+      IsPrecompiled = false;
+      if (!File.Exists(filePath)) {
+        if (0 > options.VerifySnapshots) {
+          // For snapshots, we first create broken DafnyFile without content,
+          // then look for the real files and create DafnuFiles for them.
+          // TODO prevent creating the broken DafnyFiles for snapshots
+          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
+          throw new IllegalDafnyFile(true);
+        }
+      } else {
+        Content = new StreamReader(filePath);
+      }
     } else if (extension == ".doo") {
       IsPreverified = true;
       IsPrecompiled = false;
