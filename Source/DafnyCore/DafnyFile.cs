@@ -15,43 +15,7 @@ public class DafnyFile {
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
   public TextReader Content { get; }
-  public Uri Uri { get; private set; }
-
-  // Returns a canonical string for the given file path, namely one which is the same
-  // for all paths to a given file and different otherwise. The best we can do is to
-  // make the path absolute -- detecting case and canonicalizing symbolic and hard
-  // links are difficult across file systems (which may mount parts of other filesystems,
-  // with different characteristics) and is not supported by .Net libraries
-  public static Uri Canonicalize(string filePath) {
-    if (filePath == null || !filePath.StartsWith("file:")) {
-      return new Uri(Path.GetFullPath(filePath));
-    }
-
-    if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
-      return new Uri(filePath);
-    }
-
-    var potentialPrefixes = new List<string>() { "file:\\", "file:/", "file:" };
-    foreach (var potentialPrefix in potentialPrefixes) {
-      if (filePath.StartsWith(potentialPrefix)) {
-        var withoutPrefix = filePath.Substring(potentialPrefix.Length);
-        var tentativeURI = "file:///" + withoutPrefix.Replace("\\", "/");
-        if (Uri.IsWellFormedUriString(tentativeURI, UriKind.RelativeOrAbsolute)) {
-          return new Uri(tentativeURI);
-        }
-        // Recovery mechanisms for the language server
-        return new Uri(filePath.Substring(potentialPrefix.Length));
-      }
-    }
-    return new Uri(filePath.Substring("file:".Length));
-  }
-  public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
-    var sourceFiles = new List<string>();
-    foreach (DafnyFile f in dafnyFiles) {
-      sourceFiles.Add(f.FilePath);
-    }
-    return sourceFiles;
-  }
+  public Uri Uri { get; }
   public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) {
     UseStdin = contentOverride != null;
     Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
@@ -104,6 +68,42 @@ public class DafnyFile {
     } else {
       throw new IllegalDafnyFile();
     }
+  }
+
+  // Returns a canonical string for the given file path, namely one which is the same
+  // for all paths to a given file and different otherwise. The best we can do is to
+  // make the path absolute -- detecting case and canonicalizing symbolic and hard
+  // links are difficult across file systems (which may mount parts of other filesystems,
+  // with different characteristics) and is not supported by .Net libraries
+  public static Uri Canonicalize(string filePath) {
+    if (filePath == null || !filePath.StartsWith("file:")) {
+      return new Uri(Path.GetFullPath(filePath));
+    }
+
+    if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
+      return new Uri(filePath);
+    }
+
+    var potentialPrefixes = new List<string>() { "file:\\", "file:/", "file:" };
+    foreach (var potentialPrefix in potentialPrefixes) {
+      if (filePath.StartsWith(potentialPrefix)) {
+        var withoutPrefix = filePath.Substring(potentialPrefix.Length);
+        var tentativeURI = "file:///" + withoutPrefix.Replace("\\", "/");
+        if (Uri.IsWellFormedUriString(tentativeURI, UriKind.RelativeOrAbsolute)) {
+          return new Uri(tentativeURI);
+        }
+        // Recovery mechanisms for the language server
+        return new Uri(filePath.Substring(potentialPrefix.Length));
+      }
+    }
+    return new Uri(filePath.Substring("file:".Length));
+  }
+  public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
+    var sourceFiles = new List<string>();
+    foreach (DafnyFile f in dafnyFiles) {
+      sourceFiles.Add(f.FilePath);
+    }
+    return sourceFiles;
   }
 
   private static string GetDafnySourceAttributeText(string dllPath) {
