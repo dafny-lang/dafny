@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    public static FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
+    public FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
     public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
@@ -440,7 +440,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
       if (!Options.VerifyAllModules) {
-        rewriters.Add(new IncludedLemmaBodyRemover(reporter));
+        rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
       rewriters.Add(new OpaqueMemberRewriter(this.reporter));
@@ -448,7 +448,7 @@ namespace Microsoft.Dafny {
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
-      rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
+      rewriters.Add(new MatchFlattener(this.reporter, defaultTempVarIdGenerator));
 
       if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
@@ -1192,7 +1192,7 @@ namespace Microsoft.Dafny {
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
-          var wr = Console.Out;
+          var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
@@ -5955,7 +5955,7 @@ namespace Microsoft.Dafny {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
-      this.reporter = new ErrorReporterSink(Options);
+      this.reporter = new ErrorReporterSink(Options, origReporter.OuterModule);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);

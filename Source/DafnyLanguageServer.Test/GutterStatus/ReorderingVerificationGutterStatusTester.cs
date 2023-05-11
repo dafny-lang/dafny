@@ -10,6 +10,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using Xunit.Abstractions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -138,7 +139,7 @@ method m5() { assert false; } //Remove4:
           $"Expected {string.Join(", ", expectedSymbols)} but got {string.Join(", ", orderAfterChangeSymbols)}." +
           $"\nOld to new history was: {verificationStatusReceiver.History.Stringify()}");
       } catch (OperationCanceledException) {
-        Console.WriteLine($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
+        await output.WriteLineAsync($"Operation cancelled for index {index} when expecting: {string.Join(", ", expectedSymbols)}");
         throw;
       }
 
@@ -230,5 +231,8 @@ method m5() { assert false; } //Remove4:
 
       yield return newlyReported.ToList();
     } while (!started || foundStatus.NamedVerifiables.Any(v => v.Status < PublishedVerificationStatus.Error));
+  }
+
+  public ReorderingVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }
