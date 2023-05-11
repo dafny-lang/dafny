@@ -1287,7 +1287,7 @@ public abstract class Type : TokenNode {
     Contract.Requires(builtIns != null);
     var j = JoinX(a, b, builtIns);
     if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+      builtIns.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }
@@ -1508,7 +1508,7 @@ public abstract class Type : TokenNode {
       }
     }
     if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+      builtIns.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }

@@ -245,7 +245,9 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns the non-newtype ancestor of "cecl".
+    /// Returns the non-newtype ancestor of "decl".
+    /// This method assumes that the ancestors of "decl" do not form any cycles. That is, any such cycle detection must already
+    /// have been done.
     /// </summary>
     public static TopLevelDecl AncestorDecl(TopLevelDecl decl) {
       while (decl is NewtypeDecl newtypeDecl) {
@@ -263,6 +265,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns the non-newtype ancestor of "preType".
+    /// If the ancestor chain has a cycle or if some part of the chain hasn't yet been resolved, this method ends the traversal
+    /// early (and returns the last ancestor traversed). This method does not return any error; that's assumed to be done elsewhere.
     /// </summary>
     public DPreType NewTypeAncestor(DPreType preType) {
       Contract.Requires(preType != null);
@@ -286,7 +290,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" is "decl" is a reference type.
+    /// AllParentTraits(decl) is like decl.ParentTraits, but also returns "object" if "decl" is a reference type.
     /// </summary>
     public IEnumerable<Type> AllParentTraits(TopLevelDeclWithMembers decl) {
       foreach (var parentType in decl.ParentTraits) {
@@ -323,16 +327,15 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Add to "ancestors" every TopLevelDecl that is a reflexive, transitive parent of "d",
     /// but not exploring past any TopLevelDecl that is already in "ancestors".
-    /// An ancestor
-    void ComputeAncestors(TopLevelDecl d, ISet<TopLevelDecl> ancestors) {
-      if (!ancestors.Contains(d)) {
-        ancestors.Add(d);
-        if (d is TopLevelDeclWithMembers dm) {
-          dm.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
+    void ComputeAncestors(TopLevelDecl decl, ISet<TopLevelDecl> ancestors) {
+      if (!ancestors.Contains(decl)) {
+        ancestors.Add(decl);
+        if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
         }
-        if (d is ClassDecl cl && cl.IsObjectTrait) {
+        if (decl is ClassDecl { IsObjectTrait: true }) {
           // we're done
-        } else if (DPreType.IsReferenceTypeDecl(d)) {
+        } else if (DPreType.IsReferenceTypeDecl(decl)) {
           // object is also a parent type
           ComputeAncestors(resolver.builtIns.ObjectDecl, ancestors);
         }

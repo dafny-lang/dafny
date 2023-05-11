@@ -194,6 +194,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return sb.ToString(0, len);
     }
 
+    public void PrintProgramLargeStack(Program prog, bool afterResolver) {
+      DafnyMain.LargeStackFactory.StartNew(() => PrintProgram(prog, afterResolver)).Wait();
+    }
+
     public void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
@@ -972,9 +976,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return false;
     }
 
-    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
+    private bool PrintModeSkipGeneral(IToken tok, string fileBeingPrinted) {
       return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost)
-             && tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted;
+             && tok.Uri != null && fileBeingPrinted != null && tok.Uri.LocalPath != fileBeingPrinted;
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {

@@ -3,6 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
@@ -52,6 +53,9 @@ method Test() {
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Single(document.Diagnostics);
+    }
+
+    public MultiFileTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

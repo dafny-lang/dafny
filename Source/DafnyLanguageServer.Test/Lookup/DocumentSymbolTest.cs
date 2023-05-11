@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
@@ -149,6 +150,9 @@ class Y {
       Assert.Equal(new Range((0, 0), (0, 21)), methodSymbol.Range);
       Assert.Equal(new Range((0, 9), (0, 17)), methodSymbol.SelectionRange);
       Assert.Equal(SymbolKind.Function, methodSymbol.Kind);
+    }
+
+    public DocumentSymbolTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -39,5 +40,8 @@ public class CachedLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [=][=][-][~][=][=]:  assert false;
  .  S [S][ ][I][S][S][ ]:  //Next: 
  .  S [S][ ][I][S][S][ ]:}");
+  }
+
+  public CachedLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

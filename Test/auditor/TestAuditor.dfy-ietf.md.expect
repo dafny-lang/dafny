@@ -2,7 +2,7 @@
 
 ## Type `T`
 
-* Trait method calls may not terminate (uses `{:termination false}`). MUST remove if possible.
+* Trait method calls may not terminate (uses `{:termination false}`). MUST remove `{:termination false}` or justify.
 
 ## Top level
 
@@ -12,7 +12,7 @@
 
 ### Member `LeftShiftBV128`
 
-* Declaration has explicit `{:axiom}` attribute. MUST provide a proof or test.
+* Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
 
 * Ghost declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
 
@@ -22,29 +22,33 @@
 
 ### Member `GenerateBytes`
 
-* Compiled declaration has no body and has an ensures clause. MUST provide a body or add `{:axiom}`.
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
-* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`).
-
-* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 ### Member `GenerateBytesWithModel`
 
-* Declaration with `{:extern}` has a ensures clause. MUST test external callee (maybe with `/testContracts`).
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
-* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
 
 ### Member `GenerateBytesWrapper`
 
-* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+* Definition has `assume {:axiom}` statement in body. SHOULD replace with `assert` and prove.
 
 ### Member `GenerateBytesNoGuarantee`
 
-* Declaration with `{:extern}` has a requires clause. MUST test external caller (maybe with `/testContracts`).
+* Declaration with `{:extern}` has a requires clause. MUST test any external callers.
+
+### Member `ExternFunction`
+
+* Function with `{:extern}` attribute. SHOULD use `method` with `modifies *` instead.
+
+* Declaration with `{:extern}` has a ensures clause. MUST test external callee.
 
 ### Member `DoesNotTerminate`
 
-* Method may not terminate (uses `decreases *`). MUST provide a valid `decreases` clause.
+* Method may not terminate (uses `decreases *`). SHOULD provide a valid `decreases` clause.
 
 ### Member `ForallWithoutBody`
 
@@ -58,6 +62,18 @@
 
 * Declaration has `{:concurrent}` attribute. MUST manually review and test in a concurrent setting.
 
+### Member `AxiomWithStuffInIt`
+
+* Declaration has explicit `{:axiom}` attribute. SHOULD provide a proof or test.
+
+* Definition has `assume` statement in body. MUST replace with `assert` and prove or add `{:axiom}`.
+
+* Definition has `assume {:axiom}` statement in body. SHOULD replace with `assert` and prove.
+
+* Definition contains `forall` statement with no body. MUST provide a body.
+
+* Definition contains loop with no body. MUST provide a body.
+
 ### Member `AssertOnly`
 
-* Assertion has explicit temporary `{:only}` attribute. MUST remove the attribute `{:only}`
+* Assertion has explicit temporary `{:only}` attribute. Must remove the `{:only}` attribute

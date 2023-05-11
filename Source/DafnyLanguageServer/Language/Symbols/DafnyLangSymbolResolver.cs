@@ -34,14 +34,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           // unresolved type represented by null. However, the contract prohibits the use of the type property
           // because it must not be null.
           canDoVerification = false;
-          return new CompilationUnit(program);
+          return new CompilationUnit(textDocument.Uri.ToUri(), program);
         }
       }
       finally {
         resolverMutex.Release();
       }
       canDoVerification = true;
-      return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(program);
+      return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(textDocument.Uri.ToUri(), program);
     }
 
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
@@ -64,15 +64,15 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         this.cancellationToken = cancellationToken;
       }
 
-      public CompilationUnit ProcessProgram(Dafny.Program program) {
-        var compilationUnit = new CompilationUnit(program);
+      public CompilationUnit ProcessProgram(Uri entryDocument, Dafny.Program program) {
+        var compilationUnit = new CompilationUnit(entryDocument, program);
         // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
         // However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
-        foreach (var module in program.Modules()) {
+        foreach (var module in compilationUnit.Program.Modules()) {
           cancellationToken.ThrowIfCancellationRequested();
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
-        compilationUnit.Modules.Add(ProcessModule(compilationUnit, program.BuiltIns.SystemModule));
+        compilationUnit.Modules.Add(ProcessModule(compilationUnit, compilationUnit.Program.BuiltIns.SystemModule));
         return compilationUnit;
       }
 

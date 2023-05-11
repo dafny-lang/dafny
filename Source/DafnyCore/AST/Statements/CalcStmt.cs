@@ -85,7 +85,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     public override CalcOp ResultOp(CalcOp other) {
       if (other is BinaryCalcOp) {
         var o = (BinaryCalcOp)other;
-        if (this.Subsumes(o)) {
+        if (Subsumes(o)) {
           return this;
         } else if (o.Subsumes(this)) {
           return other;
@@ -167,20 +167,19 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   /// </summary>
   [CanBeNull]
   public CalcOp GetInferredDefaultOp() {
-    CalcStmt.CalcOp alternativeOp = null;
+    CalcOp alternativeOp = null;
     if (Lines.Count == 0) {
       return null;
     }
 
-    bool b;
-    if (Expression.IsBoolLiteral(Lines.First(), out b)) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
-    } else if (Expression.IsBoolLiteral(Lines.Last(), out b)) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+    if (Expression.IsBoolLiteral(Lines.First(), out var firstOperatorIsBoolLiteral)) {
+      alternativeOp = new BinaryCalcOp(firstOperatorIsBoolLiteral ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+    } else if (Expression.IsBoolLiteral(Lines.Last(), out var lastOperatorIsBoolLiteral)) {
+      alternativeOp = new BinaryCalcOp(lastOperatorIsBoolLiteral ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
     } else if (Expression.IsEmptySetOrMultiset(Lines.First())) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
+      alternativeOp = new BinaryCalcOp(BinaryExpr.Opcode.Ge);
     } else if (Expression.IsEmptySetOrMultiset(Lines.Last())) {
-      alternativeOp = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
+      alternativeOp = new BinaryCalcOp(BinaryExpr.Opcode.Le);
     } else {
       return null;
     }
@@ -233,13 +232,13 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     Contract.Requires(cce.NonNullElements(hints));
     Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
     Contract.Requires(stepOps.Count == hints.Count);
-    this.UserSuppliedOp = userSuppliedOp;
-    this.Lines = lines;
-    this.Hints = hints;
+    UserSuppliedOp = userSuppliedOp;
+    Lines = lines;
+    Hints = hints;
     Steps = new List<Expression>();
-    this.StepOps = stepOps;
-    this.Result = null;
-    this.Attributes = attrs;
+    StepOps = stepOps;
+    Result = null;
+    Attributes = attrs;
   }
 
   public CalcStmt Clone(Cloner cloner) {
@@ -339,7 +338,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     var inOrdinal = false;
     var innerCalcIndent = indentBefore + formatter.SpaceTab;
     var extraHintIndent = 0;
-    var ownedTokens = this.OwnedTokens;
+    var ownedTokens = OwnedTokens;
     // First phase: We get the alignment
     foreach (var token in ownedTokens) {
       if (formatter.SetIndentLabelTokens(token, indentBefore)) {
@@ -414,7 +413,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       }
     }
 
-    foreach (var hint in this.Hints) {
+    foreach (var hint in Hints) {
       // This block
       if (hint.Tok.pos != hint.EndToken.pos) {
         foreach (var hintStep in hint.Body) {
@@ -423,7 +422,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       }
     }
 
-    foreach (var expression in this.Lines) {
+    foreach (var expression in Lines) {
       formatter.SetIndentations(expression.StartToken, innerCalcIndent, innerCalcIndent, innerCalcIndent);
     }
 
