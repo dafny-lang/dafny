@@ -76,6 +76,23 @@ namespace Microsoft.Dafny {
       enclosingStatementLabels.PopMarker();
     }
 
+    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expressionDescription != null);
+      Contract.Requires(resolutionContext != null);
+
+      Label label = null;
+      if (!resolutionContext.IsTwoState) {
+        ReportError(tok, $"{expressionDescription} expressions are not allowed in this context");
+      } else if (labelName != null) {
+        label = dominatingStatementLabels.Find(labelName);
+        if (label == null) {
+          ReportError(tok, $"no label '{labelName}' in scope at this time");
+        }
+      }
+      return label;
+    }
+
     public void ResolveStatement(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);

@@ -408,13 +408,13 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        e.AtLabel = resolver.ResolveDominatingLabelInExpr(expr.tok, e.At, "old", resolutionContext);
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "old", resolutionContext);
         ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
         expr.PreType = e.E.PreType;
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
-        e.AtLabel = resolver.ResolveDominatingLabelInExpr(expr.tok, e.At, "unchanged", resolutionContext);
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "unchanged", resolutionContext);
         foreach (var fe in e.Frame) {
           ResolveFrameExpression(fe, FrameExpressionUse.Unchanged, resolutionContext.CodeContext);
         }
@@ -423,7 +423,7 @@ namespace Microsoft.Dafny {
       } else if (expr is FreshExpr) {
         var e = (FreshExpr)expr;
         ResolveExpression(e.E, resolutionContext);
-        e.AtLabel = resolver.ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", resolutionContext);
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", resolutionContext);
         // the type of e.E must be either an object or a set/seq of objects
         AddConfirmation("Freshable", e.E.PreType, e.E.tok, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
         ConstrainTypeExprBool(e, "result of 'fresh' is boolean, but is used as if it had type {0}");
