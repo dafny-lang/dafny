@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer {
       var dafnyOptions = DafnyOptions.Create();
 
       var verifierOptions = new VerifierOptions();
-      dafnyOptions.VerificationScope = VerificationScope.RootFiles;
+      dafnyOptions.VerificationScope = VerificationScope.RootSources;
       configuration.Bind(VerifierOptions.Section, verifierOptions);
       dafnyOptions.Set(ServerCommand.LineVerificationStatus, verifierOptions.GutterStatus);
       dafnyOptions.Set(BoogieOptionBag.VerificationTimeLimit, verifierOptions.TimeLimit);

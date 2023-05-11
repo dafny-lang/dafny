@@ -259,7 +259,14 @@ namespace Microsoft.Dafny {
         try {
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
-            df.IsPreverified = true;
+            if (!df.IsPreverified) {
+              if (options.VerificationScope == VerificationScope.Everything) {
+                df.IsPreverified = true;
+              } else {
+                options.Printer.ErrorWriteLine(Console.Error, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything is used.");
+                return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+              }
+            }
             df.IsPrecompiled = true;
           }
           if (!filesSeen.Add(df.CanonicalPath)) {

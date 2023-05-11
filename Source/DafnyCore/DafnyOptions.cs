@@ -24,9 +24,9 @@ namespace Microsoft.Dafny {
   /// Accumulating scope, each next one includes the previous one.
   /// </summary>
   public enum VerificationScope {
-    RootFiles,
-    IncludeDirectives,
-    Libraries
+    RootSources,
+    RootSourcesAndIncludes,
+    Everything
   }
 
   public enum FunctionSyntaxOptions {
@@ -336,7 +336,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
-    public VerificationScope VerificationScope = VerificationScope.RootFiles;
+    public VerificationScope VerificationScope = VerificationScope.RootSources;
     public bool SeparateModuleOutput = false;
 
     public enum IncludesModes {
@@ -640,7 +640,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
 
         case "verifyAllModules":
-          VerificationScope = VerificationScope.Libraries;
+          VerificationScope = VerificationScope.Everything;
           return true;
 
         case "separateModuleOutput":

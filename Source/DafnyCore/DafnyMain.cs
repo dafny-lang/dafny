@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
     public string BaseName { get; private set; }
     public bool IsPreverified { get; set; }
     public bool IsPrecompiled { get; set; }
-    public string SourceFilePath { get; }
+    public TextReader Content { get; }
     public Uri Uri { get; private set; }
 
     // Returns a canonical string for the given file path, namely one which is the same
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
       if (extension == ".dfy" || extension == ".dfyi") {
         IsPreverified = false;
         IsPrecompiled = false;
-        SourceFilePath = filePath;
+        Content = new StreamReader(filePath);
       } else if (extension == ".doo") {
         IsPreverified = true;
         IsPrecompiled = false;
@@ -107,10 +107,7 @@ namespace Microsoft.Dafny {
         // more efficiently inside a .doo file, at which point
         // the DooFile class should encapsulate the serialization logic better
         // and expose a Program instead of the program text.
-        SourceFilePath = Path.GetTempFileName();
-        Uri = new Uri(SourceFilePath);
-        File.WriteAllText(SourceFilePath, dooFile.ProgramText);
-
+        Content = new StringReader(dooFile.ProgramText);
       } else if (extension == ".dll") {
         IsPreverified = true;
         // Technically only for C#, this is for backwards compatability
@@ -118,10 +115,7 @@ namespace Microsoft.Dafny {
 
         var sourceText = GetDafnySourceAttributeText(filePath);
         if (sourceText == null) { throw new IllegalDafnyFile(); }
-        SourceFilePath = Path.GetTempFileName();
-        Uri = new Uri(SourceFilePath);
-        File.WriteAllText(SourceFilePath, sourceText);
-
+        Content = new StringReader(sourceText);
       } else {
         throw new IllegalDafnyFile();
       }
@@ -246,11 +240,12 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
+        // We model a precompiled file, a library, as an include
         var include = dafnyFile.IsPrecompiled ? new Include(new Token {
           Uri = dafnyFile.Uri,
           col = 1,
           line = 0
-        }, null, dafnyFile.SourceFilePath) : null;
+        }, new Uri("cli://"), dafnyFile.FilePath) : null;
         if (include != null) {
           // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
           module.ModuleDef.Includes.Add(include);
@@ -262,7 +257,7 @@ namespace Microsoft.Dafny {
       }
 
       if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludes(module, builtIns, files.Select(f => f.SourceFilePath).ToHashSet(), new Errors(reporter));
+        string errString = ParseIncludes(module, builtIns, files.Select(f => f.FilePath).ToHashSet(), new Errors(reporter));
         if (errString != null) {
           return errString;
         }
@@ -362,7 +357,7 @@ namespace Microsoft.Dafny {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
         // TODO If you do new Uri(dafnyFile.SourceFilePath), it crashes issue-1109 which uses <stdin> 
-        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.Uri, module, builtIns, errs);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.Content, dafnyFile.Uri, module, builtIns, errs);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

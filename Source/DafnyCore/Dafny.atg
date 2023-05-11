@@ -139,21 +139,13 @@ bool IsAssumeTypeKeyword(IToken la) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (bool useStdin, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
+public static int Parse(TextReader reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
-  string s;
-  if (useStdin) {
-    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
-    return Parse(s, uri, module, builtIns, errors);
-  } else {
-    var newline = SourcePreprocessor.GetNewlineStyle(uri.LocalPath);
-    using (System.IO.StreamReader reader = new System.IO.StreamReader(uri.LocalPath)) {
-      s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
-      return Parse(s, uri, module, builtIns, errors);
-    }
-  }
+  var text = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+  return Parse(text, uri, module, builtIns, errors);
 }
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".

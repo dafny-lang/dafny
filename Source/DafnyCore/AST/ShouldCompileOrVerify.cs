@@ -24,7 +24,7 @@ public static class ShouldCompileOrVerify {
   }
 
   public static bool ShouldVerify(this INode declaration, Program program) {
-    if (program.Options.VerificationScope == VerificationScope.Libraries) {
+    if (program.Options.VerificationScope == VerificationScope.Everything) {
       return true;
     }
 
@@ -39,7 +39,7 @@ public static class ShouldCompileOrVerify {
       return false;
     }
 
-    if (program.Options.VerificationScope == VerificationScope.IncludeDirectives) {
+    if (program.Options.VerificationScope == VerificationScope.RootSourcesAndIncludes) {
       return true;
     }
 
