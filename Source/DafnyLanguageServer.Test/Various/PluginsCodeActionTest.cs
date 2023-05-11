@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -32,8 +31,5 @@ method firstMethod() {
     Assert.NotNull(codeAction);
     Assert.Equal("Insert file header", codeAction.Title);
     // The rest is tested elsewhere
-  }
-
-  public PluginsDafnyCodeActionTest(ITestOutputHelper output) : base(output) {
   }
 }

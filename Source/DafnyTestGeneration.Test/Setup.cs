@@ -1,4 +1,3 @@
-using System.IO;
 using Microsoft.Dafny;
 
 namespace DafnyTestGeneration.Test {
@@ -6,8 +5,8 @@ namespace DafnyTestGeneration.Test {
   public class Setup {
 
 
-    public static DafnyOptions GetDafnyOptions(TextWriter writer, params string[] arguments) {
-      var options = DafnyOptions.Create(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
+    public static DafnyOptions GetDafnyOptions(params string[] arguments) {
+      var options = DafnyOptions.Create(arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
@@ -73,7 +75,7 @@ public class TranslatorTest {
     }
     var expectedLine = program.Split("// Here")[0].Count(c => c == '\n') + 1;
     Microsoft.Dafny.Type.ResetScopes();
-    options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
+    options = options ?? new DafnyOptions();
     var uri = new Uri("virtual:///virtual");
     var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
     var module = new LiteralModuleDecl(defaultModuleDefinition, null);
@@ -85,7 +87,7 @@ public class TranslatorTest {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
-    DafnyMain.Resolve(dafnyProgram);
+    Main.Resolve(dafnyProgram);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

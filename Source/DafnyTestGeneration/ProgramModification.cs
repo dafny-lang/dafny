@@ -123,7 +123,7 @@ namespace DafnyTestGeneration {
       counterexampleLog = null;
       if (result is not Task<PipelineOutcome>) {
         if (Options.TestGenOptions.Verbose) {
-          await options.OutputWriter.WriteLineAsync(
+          Console.WriteLine(
             $"// No test can be generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -140,22 +140,22 @@ namespace DafnyTestGeneration {
           coversBlocks.Add(blockId);
           if (Options.TestGenOptions.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
-            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
+            Console.WriteLine($"// Test targeting block {uniqueId} also covers block {blockId}");
           }
         }
       }
       if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
-          await options.OutputWriter.WriteLineAsync(
+          Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
             "because the verifier proved that no inputs could cause this block to be visited.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
-          await options.OutputWriter.WriteLineAsync(
+          Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
             "because there is no enhanced error trace. This can be caused " +
             "by a bug in boogie counterexample model parsing.");
         } else {
-          await options.OutputWriter.WriteLineAsync(
+          Console.WriteLine(
             $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -165,7 +165,7 @@ namespace DafnyTestGeneration {
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.TestGenOptions.Verbose) {
-        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
+        Console.WriteLine(
           $"// Extracting the test for {uniqueId} from the counterexample...");
       }
       var log = await GetCounterExampleLog(cache);
@@ -183,7 +183,7 @@ namespace DafnyTestGeneration {
         return testMethod;
       }
       if (Options.TestGenOptions.Verbose) {
-        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
+        Console.WriteLine(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId}. This happens when test generation tool " +
           $"does not know how to differentiate between counterexamples, " +

@@ -35,12 +35,10 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
-    public TextWriter ErrorWriter { get; }
-    public TextReader Input { get; }
-    public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
     public IList<Uri> CliRootUris = new List<Uri>();
 
+    public static DafnyOptions Default = new DafnyOptions();
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
@@ -208,11 +206,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create();
 
-    public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
-      input ??= TextReader.Null;
-      var result = new DafnyOptions(input, outputWriter, outputWriter);
+    public static DafnyOptions Create(params string[] arguments) {
+      var result = new DafnyOptions();
       result.Parse(arguments);
       return result;
     }
@@ -232,10 +229,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
-      : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
-      Input = inputReader;
-      ErrorWriter = errorWriter;
+    public DafnyOptions()
+      : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -403,7 +398,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this(src.Input, src.OutputWriter, src.ErrorWriter) {
+    public DafnyOptions(DafnyOptions src) : this() {
       src.CopyTo(this);
     }
 
@@ -718,7 +713,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "allocated": {
             ps.GetIntArgument(ref Allocated, 5);
             if (Allocated != 4) {
-              Printer.AdvisoryWriteLine(OutputWriter, "The /allocated:<n> option is deprecated");
+              Printer.AdvisoryWriteLine(Console.Out, "The /allocated:<n> option is deprecated");
             }
             return true;
           }
@@ -1622,6 +1617,7 @@ Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
   }
+
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
