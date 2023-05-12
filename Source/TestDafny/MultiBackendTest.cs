@@ -18,7 +18,7 @@ public class ForEachCompilerOptions {
 
   [Option("dafny", HelpText = "The dafny CLI to test with. Defaults to the locally built DafnyDriver project.")]
   public string? DafnyCliPath { get; set; } = null;
-  
+
   [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
@@ -168,7 +168,7 @@ public class MultiBackendTest {
     if (dafnyCLIPath == null) {
       return RunDafny(arguments);
     }
-    
+
     var argumentsWithDefaults = arguments.Concat(DafnyDriver.DefaultArgumentsForTesting);
     ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
 
