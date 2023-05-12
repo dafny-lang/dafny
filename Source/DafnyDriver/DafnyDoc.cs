@@ -272,7 +272,7 @@ class DafnyDoc {
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
     file.WriteLine(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}"));
     file.Write(BodyStart());
-    file.Write(MainStart());
+    file.Write(MainStart("full"));
 
     if (!String.IsNullOrEmpty(docstring)) {
       file.Write(ShortAndMoreForDecl(module));
@@ -321,7 +321,7 @@ class DafnyDoc {
     }
     file.WriteLine(details.ToString());
     file.Write(MainEnd());
-    file.Write(SideBar(sidebar));
+    //file.Write(SideBar(sidebar));
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
     // var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
@@ -348,7 +348,7 @@ class DafnyDoc {
     string filename = info.FileName = Outputdir + "/" + info.Link;
     info.RawLongDoc = docstring;
     info.RawShortDoc = Shorten(docstring);
-    info.Contents = new List<Info>();
+    info.Contents = decl.Members.Count == 0 ? null : new List<Info>();
     ownersList.Add(info);
     AllInfo.Add(fullName, info);
 
@@ -729,15 +729,15 @@ class DafnyDoc {
               sig += "(" + String.Join(", ", ctor.Formals.Select(ff => FormalAsString(ff, false))) + ")";
             }
             var ds = Docstring(ctor);
-            string info;
+            string sinfo;
             if (String.IsNullOrEmpty(ds)) {
-              info = "";
+              sinfo = "";
             } else if (ds == Shorten(ds)) {
-              info = ToHtml(ShortDocstring(ctor));
+              sinfo = ToHtml(ShortDocstring(ctor));
             } else {
-              info = IndentedHtml(ds, true);
+              sinfo = IndentedHtml(ds, true);
             }
-            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, info == "" ? "" : mdash, info));
+            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, sinfo == "" ? "" : mdash, sinfo));
           }
           details.Append(TableEnd());
         }
@@ -749,6 +749,23 @@ class DafnyDoc {
         if (!String.IsNullOrEmpty(docstring)) {
           details.Append(IndentedHtml(docstring));
         }
+
+        var info = new Info();
+        info.Kind = t.WhatKind;
+        info.Name = t.Name;
+        info.FullName = t.FullDafnyName;
+        info.Link = info.FullName + ".html";
+        string filename = info.FileName = Outputdir + "/" + info.Link;
+        info.RawLongDoc = docstring;
+        info.RawShortDoc = Shorten(docstring);
+        if (t is TopLevelDeclWithMembers tm) {
+          info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
+        }
+        if (!AllInfo.ContainsKey(info.FullName)) {
+          owner.Contents.Add(info);
+          AllInfo.Add(info.FullName, info);
+        }
+        script.Append(ScriptEntry(info.FullName));
       }
       summaries.Append(TableEnd());
     }
