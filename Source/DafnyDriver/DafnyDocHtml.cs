@@ -52,12 +52,12 @@ class DafnyDocHtml {
     return
 @"
     document.getElementById(""{id}"").onclick = function() {
-      document.getElementById(""main"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000px"" style=""border:none; scrolling:no;"" src=""{id}.html""></iframe>';
+      document.getElementById(""rightside"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000"" style=""border:none; scrolling:no;"" src=""{id}.html""></iframe>';
       return false;
     }
 ".Replace("{id}", id);
   }
-  // TODO: The CSS for 'frame' does not seem to work.
+  // TODO: The CSS for 'frame' does not seem to work. Setting height ot 100% makes the frame have a scrollbar and a small vertical height
 
   public static string ScriptEnd() {
     return
@@ -75,7 +75,7 @@ class DafnyDocHtml {
     return "</body>\n</html>\n";
   }
 
-  public static string MainStart(string label = "main") {
+  public static string MainStart(string label = "rightside") {
     return $"<div id=\"{label}\" class=\"{label}\">\n";
   }
 
@@ -98,20 +98,18 @@ class DafnyDocHtml {
     return new StringBuilder(6 * n).Insert(0, "&nbsp;", n).ToString();
   }
 
-  public static string Link(string fullName, string text) {
-    return $"<a href=\"{fullName}.html\">{text}</a>";
+  public static string Link(string fullname, string text) {
+    return $"<a href=\"{LinkTarget(fullname)}\">{text}</a>";
   }
 
-  public static string Link(string fullName, string inpage, string text) {
-    if (fullName == null) {
-      return $"<a href=\"#{inpage}\">{text}</a>";
-    } else {
-      return $"<a href=\"{fullName}.html#{inpage}\">{text}</a>";
-    }
+  // Encodes a fully qualified Dafny name as a file name. 
+  // Dafny names are case-sensitive; filenames are not necessarily case-sensitive.
+  public static string LinkTarget(string fullname) {
+    return fullname + ".html"; // TODO - needs encoding for case
   }
 
   public static string Heading1(string text) {
-    return "<div>\n<h1>" + text + "</h1>\n</div>";
+    return "<div class=\"topheading\">\n<h1>" + text + "</h1>\n</div>";
   }
 
   public static string Heading2(string text) {
@@ -152,6 +150,11 @@ class DafnyDocHtml {
   public static string Row() {
     return $"<tr></tr>";
   }
+
+  public static string Row(string s1) {
+    return $"<tr><td>{s1}</td></tr>";
+  }
+
 
   public static string Row(string s1, string s2) {
     return $"<tr><td>{s1}</td><td>{s2}</td></tr>";
@@ -201,18 +204,36 @@ class DafnyDocHtml {
     return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
+  public static string LocalHeaderSize = "24px";
+
   public static readonly string Style =
   @"
+
+.topheading {
+  width: 100%;
+  height: 50px;
+  left: 0;
+}
+
+.rightside {
+  top: 50px; /* Same as the height of topheading */
+  padding-top: 0;
+  margin-top: 20px;
+  margin-left: 300px; /* Same as the width of the sidenav */
+  height: 100%;
+  overflow-y: hidden;
+}
+
 .sidenav {
   height: 100%;
   width: 300px;
   position: fixed;
   z-index: 1;
-  top: 0;
+  top: 50px; /* Same as the height of topheading */
   left: 0;
   background-color: #ffffff;
   overflow-x: hidden;
-  padding-top: 20px;
+  padding-top: 30px;
   margin-top: 20px;
   margin-left: 6px;
 }
@@ -227,10 +248,6 @@ class DafnyDocHtml {
   color: #0000ff;
 }
 
-.main {
-  margin-left: 300px; /* Same as the width of the sidenav */
-  height: 100%;
-}
 
 @media screen and (max-height: 450px) {
   .sidenav {padding-top: 15px;}
@@ -239,8 +256,7 @@ class DafnyDocHtml {
 
 body {
   background-color: white;
-  font-family: 'Arial';
-  width: 1000;
+  font-family: 'Arial', sanserif;
 }
 
 h1 {
@@ -249,12 +265,12 @@ h1 {
   text-align: center;
 }
 h2 {
-  color: blue;
+  color: black;
   font-weight: bold;
   text-align: left;
 }
 h3 {
-  color: blue;
+  color: black;
   text-align: left;
 }
 
@@ -270,7 +286,7 @@ p {
 }
 
 span.doctext {
-   font-style: italic;
+   font-family: 'Arial';
 }
 
 span.code {

@@ -14,10 +14,13 @@ namespace Microsoft.Dafny;
 /* 
 TODO:
 
+- when lengthy content is crolled down and then short content is displayed, the user has to manually scroll back up. Should
+implement some mechanism to always or when needed scroll back up automatically.
+- Better way to set the indentation in the sidebar
+
 - translate markdown to html
 - mark experimental
 - sidebar - compare to other documentation -- TOC or contents of modules or contents of file -- perhaps openable
--  more modern fonts
 - add bodies of non-opaque functions
 - use project file
 - 
@@ -61,7 +64,6 @@ class Info {
   public string Name;
   public string FullName;
   public string Link;
-  public string FileName;
   public string RawShortDoc;
   public string RawLongDoc;
   public string HtmlSummary;
@@ -140,7 +142,7 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
-  public string sidebar;
+  public StringBuilder sidebar = new StringBuilder();
 
   public StringBuilder script = new StringBuilder().Append(ScriptStart());
 
@@ -148,32 +150,20 @@ class DafnyDoc {
     return moduleName.Count(c => c == '.');
   }
 
-  public string SideBarEntry(LiteralModuleDecl module, Info info) {
-    var sb = new StringBuilder();
+  public void AddSideBarEntry(Info info, StringBuilder sb, bool open = false) {
+    int level = ModuleLevel(info.FullName);
     if (info.Contents != null) {
-      sb.Append($"<details><summary>{Spaces(ModuleLevel(module.FullDafnyName)) + Link(module.FullDafnyName, module.Name)}</summary>\n");
+      var openstring = open ? "open " : "";
+      sb.Append($"<details {openstring}style=\"margin-left: {level * 6}px;\"><summary><a id=\"{info.FullName}\" href=\"{info.Link}\">{info.Name}</a></summary>\n");
       foreach (var d in info.Contents) {
-        SideBarEntry(d, sb);
+        AddSideBarEntry(d, sb);
       }
       sb.Append("</details>\n");
     } else {
-      sb.Append(Spaces(ModuleLevel(module.FullDafnyName)) + Link(module.FullDafnyName, module.Name));
-      sb.Append(br);
-      sb.Append("\n");
-    }
-    return sb.ToString();
-  }
-
-  public void SideBarEntry(Info info, StringBuilder sb) {
-    if (info.Contents != null) {
-      int level = ModuleLevel(info.FullName);
-      sb.Append($"<details style=\"margin-left: {level * 4}px;\"><summary><a id =\"{info.FullName}\" href=\"{info.Link}\">{info.Name}</a></summary>\n");
-      foreach (var d in info.Contents) {
-        SideBarEntry(d, sb);
-      }
-      sb.Append("</details>\n");
-    } else {
-      sb.Append($"<a id=\"{info.FullName}\" href=\"{info.Link}\">{info.Name}</a>");
+      // TODO: The settings o Spaces here and margin-left above are meant to (1) ccreate some visible indentation for different
+      // levels of nesting the in sidebar and (2) have items without a twistie line up with their openable siblings
+      // There likely is a much better and more principled way to do this aligning.
+      sb.Append(Spaces(level * 2 + 3) + $"<a id=\"{info.FullName}\" href=\"{info.Link}\">{info.Name}</a>");
       sb.Append(br);
       sb.Append("\n");
     }
@@ -184,14 +174,9 @@ class DafnyDoc {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
       var decls = rootModule.ModuleDef.TopLevelDecls.Select(d => !(d is LiteralModuleDecl));
-      CollectModules(rootModule, modDecls);
-      sidebar = Size(Bold("Declarations"), "20px") + br + "\n" + Smaller(indexlink) + br + "\n";
-      foreach (var m in modDecls) {
-        System.Console.WriteLine("SIDEBAR " + m.FullName);
-        var info = WriteModule(m, dafnyFiles);
-        sidebar = sidebar + SideBarEntry(m, info);
-        //script.Append(ScriptEntry(info.FullName));
-      }
+      sidebar.Append(Size(Bold("Declarations"), LocalHeaderSize) + br + "\n" + Smaller(indexlink) + br + br + "\n");
+      var info = ModuleInfo(rootModule, dafnyFiles);
+      AddSideBarEntry(info, sidebar, true);
       WriteTOC(modDecls);
       WritePages();
       WriteIndex();
@@ -207,30 +192,19 @@ class DafnyDoc {
   public void WritePages() {
     for (int i = 0; i < AllInfo.Count; i++) {
       var info = AllInfo.ElementAt(i).Value;
-      if (info.Contents == null) {
-        using StreamWriter file = new(info.FileName);
-        file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
+      var filename = Outputdir + "/" + info.Link;
+      using StreamWriter file = new(filename);
+      file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
 
-        file.Write(BodyStart());
-        file.Write(Size(Bold($"{info.Kind} {info.FullName}"), "24px"));
-        file.Write(MainStart("full"));
-        file.WriteLine(br);
-        file.Write(info.HtmlDetail);
-        file.WriteLine(MainEnd());
-        //file.Write(SideBar(sidebar));
-        file.Write(BodyAndHtmlEnd());
-        AnnounceFile(info.FileName);
-      }
-    }
-  }
-
-  /** Recursively computes a list of all the LiteralModuleDecls declared in the program */
-  public void CollectModules(LiteralModuleDecl mod, List<LiteralModuleDecl> modDecls) {
-    modDecls.Add(mod);
-    foreach (var d in mod.ModuleDef.TopLevelDecls) {
-      if (d is LiteralModuleDecl litmod) {
-        CollectModules(litmod, modDecls);
-      }
+      file.Write(BodyStart());
+      file.Write(LocalHeading(info.Kind, info.FullName));
+      file.Write(MainStart("full"));
+      file.WriteLine(br);
+      file.Write(info.HtmlDetail);
+      file.WriteLine(MainEnd());
+      //file.Write(SideBar(sidebar));
+      file.Write(BodyAndHtmlEnd());
+      AnnounceFile(filename);
     }
   }
 
@@ -242,94 +216,122 @@ class DafnyDoc {
     var fullNLName = fullName;
     var parent = module.EnclosingModuleDefinition;
     if (moduleDef.IsDefaultModule) {
-      nameIndex.Add(RootNLName + " " + nameIndex.Count + " " + RootName, "module " + Link(RootName, RootNLName));
+      nameIndex.Add(RootName + " " + nameIndex.Count + " " + RootName, "module " + Link(RootName, RootName));
       fullName = RootName;
-      fullNLName = RootNLName;
       parent = null;
     } else {
       AddToIndexF(module.Name, fullName, "module");
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
 
-    string filename = Outputdir + "/" + fullName + ".html";
+    var info = new Info();
+    info.Contents = new List<Info>();
+    info.Kind = "module";
+    info.Name = moduleDef.IsDefaultModule ? "_" : moduleDef.Name;
+    info.FullName = fullName;
+    info.Link = LinkTarget(fullName);
+
+    var docstring = Docstring(module);
+    info.RawLongDoc = docstring;
+    info.RawShortDoc = Shorten(docstring);
+    AllInfo.Add(fullNLName, info);
+
+    return info;
+  }
+
+  public static string LocalHeading(String kind, string fullname) {
+    return Size(Bold(kind + " " + QualifiedNameWithLinks(fullname, false)), LocalHeaderSize);
+  }
+
+
+  public Info ModuleInfo(LiteralModuleDecl module, IList<DafnyFile> dafnyFiles) {
+    var moduleDef = module.ModuleDef;
+    var fullName = moduleDef.FullDafnyName;
+    var parent = module.EnclosingModuleDefinition;
+    if (moduleDef.IsDefaultModule) {
+      fullName = RootName;
+      parent = null;
+    }
+    var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
 
     var info = new Info();
     info.Contents = new List<Info>();
     info.Kind = "module";
     info.Name = moduleDef.IsDefaultModule ? "_" : moduleDef.Name;
-    info.FullName = fullNLName;
-    info.FileName = filename;
-    info.Link = fullName + ".html";
+    info.FullName = fullName;
+    info.Link = LinkTarget(fullName);
 
     var docstring = Docstring(module);
     info.RawLongDoc = docstring;
     info.RawShortDoc = Shorten(docstring);
-    System.Console.WriteLine("SAVING " + fullNLName);
-    AllInfo.Add(fullNLName, info);
+    AllInfo.Add(fullName, info);
 
-    using StreamWriter file = new(filename);
-    file.Write(HtmlStart($"Module {fullName} in program {DafnyProgram.Name}"));
+    info.HtmlSummary = $"{Keyword("module")} {QualifiedNameWithLinks(module.FullDafnyName)} {DashShortDocstring(module)}";
+
+    var details = new StringBuilder();
+    //details.Append(HtmlStart($"Module {fullName} in program {DafnyProgram.Name}"));
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
-    file.WriteLine(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}"));
-    file.Write(BodyStart());
-    file.Write(MainStart("full"));
+
+    string refineText = "";
+    if (moduleDef.RefinementQId != null) {
+      refineText = (" refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName));
+    }
+    //details.Append(Heading1($"{abs}module {QualifiedNameWithLinks(fullNLName, false)}{space4}"));
+    //details.Append(eol);
+    details.Append(BodyStart());
+    details.Append(MainStart("full"));
+
+    // TODO - ToString ought to put out a full declaration, as in the source code, so we don't ahve to reconstruct it here
+    // but it doesn't
+    var decl = module.ToString();
+    var pos = decl.IndexOf('{');
+    if (pos > 0) {
+      decl = decl[0..(pos - 1)];
+    }
+
+    details.Append(Code(abs + "module " + decl + refineText));
+    details.Append(br);
+    details.Append(br);
+    details.Append(eol);
 
     if (!String.IsNullOrEmpty(docstring)) {
-      file.Write(ShortAndMoreForDecl(module));
-      file.Write(br);
-      file.WriteLine(br);
-    }
-    if (moduleDef.RefinementQId != null) {
-      file.WriteLine("refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName) + br);
+      details.Append(ToHtml(docstring));
+      details.Append(br);
+      details.Append(br);
+      details.Append(eol);
     }
     var attributes = module.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
-      file.WriteLine("Attributes: " + attributes + br);
+      details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
     }
 
     if (moduleDef.IsDefaultModule) {
-      if (dafnyFiles.Count != 1) {
-        file.WriteLine("From multiple files<br>\n");
+      if (dafnyFiles == null) {
+        // write nothing
+      } else if (dafnyFiles.Count != 1) {
+        details.Append("From multiple files<br>\n");
       } else {
-        file.WriteLine(FileInfo(dafnyFiles[0].CanonicalPath));
+        details.Append(FileInfo(dafnyFiles[0].CanonicalPath));
       }
     } else {
-      file.Write(FileInfo(module.Tok));
+      details.Append(FileInfo(module.Tok));
     }
 
-    StringBuilder summaries = new StringBuilder(1000); // 1000 is arbitrary; defalt of 16 seems unnecessariloy low
-    StringBuilder details = new StringBuilder(1000);
-    WriteExports(moduleDef, summaries, details);
-    WriteImports(moduleDef, summaries, details);
-    WriteSubModules(moduleDef, summaries, details);
-    WriteTypes(moduleDef, summaries, details, info);
-    WriteConstants(defaultClass, summaries, details, info.Contents);
-    WriteFunctions(defaultClass, summaries, details, info.Contents);
-    WriteMethods(defaultClass, summaries, details, info.Contents);
-    WriteLemmas(defaultClass, summaries, details, info.Contents);
+    //StringBuilder summaries = new StringBuilder(1000); // 1000 is arbitrary; defalt of 16 seems unnecessariloy low
+    StringBuilder _details = new StringBuilder(1000);
+    WriteExports(moduleDef, details, _details);
+    WriteImports(moduleDef, details, _details);
+    WriteSubModules(moduleDef, details, _details, info);
+    AddTypeSummaries(moduleDef, details, info);
+    AddConstantSummaries(defaultClass, details, info.Contents);
+    WriteFunctions(defaultClass, details, _details, info.Contents);
+    WriteMethods(defaultClass, details, _details, info.Contents);
+    WriteLemmas(defaultClass, details, _details, info.Contents);
 
-    file.WriteLine(Heading2("module summary"));
-    file.WriteLine(summaries.ToString());
-    file.WriteLine(Anchor("decl-detail"));
-    file.WriteLine(Heading2("module details"));
-    if (!String.IsNullOrEmpty(docstring)) {
-      file.WriteLine(ToHtml(docstring));
-      file.WriteLine(br);
-    }
-    if (!String.IsNullOrEmpty(attributes)) {
-      file.WriteLine("Attributes: " + attributes + br);
-    }
-    file.WriteLine(details.ToString());
-    file.Write(MainEnd());
-    //file.Write(SideBar(sidebar));
-    file.Write(BodyAndHtmlEnd());
-    AnnounceFile(filename);
-    // var declsWithMembers = moduleDef.TopLevelDecls.Where(c => c is TopLevelDeclWithMembers).Select(c => c as TopLevelDeclWithMembers).ToList();
-    // foreach (var c in declsWithMembers) {
-    //   if (c is ClassDecl cl && !cl.IsDefaultClass) {
-    //     WriteDecl(c);
-    //   }
-    // }
+    details.Append(MainEnd());
+    details.Append(BodyAndHtmlEnd());
+    info.HtmlDetail = details.ToString();
+    script.Append(ScriptEntry(info.FullName));
     return info;
   }
 
@@ -344,8 +346,8 @@ class DafnyDoc {
     info.Kind = decl.WhatKind;
     info.Name = decl.Name;
     info.FullName = fullName;
-    info.Link = info.FullName + ".html";
-    string filename = info.FileName = Outputdir + "/" + info.Link;
+    info.Link = LinkTarget(fullName);
+    string filename = Outputdir + "/" + info.Link;
     info.RawLongDoc = docstring;
     info.RawShortDoc = Shorten(docstring);
     info.Contents = decl.Members.Count == 0 ? null : new List<Info>();
@@ -361,12 +363,12 @@ class DafnyDoc {
     var typeparams = TypeFormals(decl.TypeArgs);
     //file.WriteLine(Heading1($"{decl.WhatKind} {QualifiedNameWithLinks(fullName, false)}{typeparams}{extends}{space4}"));
     file.Write(BodyStart());
-    file.Write(Size(Bold($"{info.Kind} {info.FullName}"), "24px"));
+    file.Write(LocalHeading(info.Kind, info.FullName));
     file.Write(MainStart("full"));
     file.WriteLine(br);
 
     if (!String.IsNullOrEmpty(docstring)) {
-      file.Write(ShortAndMoreForDecl(decl));
+      file.Write(docstring);
       file.Write(br);
       file.Write(br);
       file.Write(eol);
@@ -409,6 +411,8 @@ class DafnyDoc {
     var attributes = decl.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
       file.WriteLine("Attributes: " + attributes + br);
+      //      details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
+
     }
     file.Write(FileInfo(decl.Tok));
 
@@ -417,8 +421,8 @@ class DafnyDoc {
     if (decl is ClassDecl) {
       WriteConstructors(decl, summaries, details, info.Contents);
     }
-    WriteConstants(decl, summaries, details, info.Contents);
-    WriteMutableFields(decl, summaries, details, info.Contents);
+    AddConstantSummaries(decl, details, info.Contents);
+    AddFieldSummaries(decl, details, info.Contents);
     WriteFunctions(decl, summaries, details, info.Contents);
     WriteMethods(decl, summaries, details, info.Contents);
     WriteLemmas(decl, summaries, details, info.Contents);
@@ -426,7 +430,7 @@ class DafnyDoc {
     if (decl is ClassDecl cd && cd.InheritedMembers.Count > 0) {
       var sb = new StringBuilder();
       foreach (var member in cd.InheritedMembers) {
-        var link = QualifiedNameWithLinks(member.EnclosingClass.FullDafnyName, member.Name, Bold(member.Name));
+        var link = QualifiedNameWithLinks(member.EnclosingClass.FullDafnyName, Bold(member.Name));
         sb.Append(Row(member.WhatKind, link));
       }
       var ss = sb.ToString();
@@ -447,6 +451,8 @@ class DafnyDoc {
     }
     if (!String.IsNullOrEmpty(attributes)) {
       file.WriteLine("Attributes: " + attributes + br);
+      //details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
+
     }
     file.WriteLine(details.ToString());
     file.Write(MainEnd());
@@ -520,33 +526,25 @@ class DafnyDoc {
         if (ex.ProvideAll) {
           details.Append(" * :");
         }
-        foreach (var e in provided) {
-          string link;
-          string id = Code(Bold(e.Id));
-          if (HasOwnPage(e.Decl)) {
-            var fn = (e.Decl as TopLevelDecl).FullDafnyName;
-            link = Link(fn, null, id);
-          } else {
-            link = Link(null, e.Id, id);
-          }
-          details.Append(" ").Append(link);
-        }
+        // foreach (var e in provided) {
+        //   string link;
+        //   string id = Code(Bold(e.Id));
+        //   var fn = (e.Decl as TopLevelDecl).FullDafnyName;
+        //   link = Link(fn, id);
+        //   details.Append(" ").Append(link);
+        // }
         details.Append(br).Append(eol);
         details.Append(space4).Append(Keyword("reveals"));
         if (ex.RevealAll) {
           details.Append(" * :");
         }
-        foreach (var e in revealed) {
-          string link;
-          string id = Code(Bold(e.Id));
-          if (HasOwnPage(e.Decl)) {
-            var fn = (e.Decl as TopLevelDecl).FullDafnyName;
-            link = Link(fn, null, id);
-          } else {
-            link = Link(null, e.Id, id);
-          }
-          details.Append(" ").Append(link);
-        }
+        // foreach (var e in revealed) {
+        //   string link;
+        //   string id = Code(Bold(e.Id));
+        //   var fn = (e.Decl as TopLevelDecl).FullDafnyName;
+        //   link = Link(fn, id);
+        //   details.Append(" ").Append(link);
+        // }
         var docstring = Docstring(ex);
         if (!String.IsNullOrEmpty(docstring)) {
           details.Append(IndentedHtml(docstring));
@@ -576,9 +574,9 @@ class DafnyDoc {
         var name = imp.Name;
         var styledName = Code(Bold(name));
         var target = imp.Dereference();
-        var exportsets = String.Join(", ", imp.Exports.Select(e => Link(target.FullDafnyName, ExportSetAnchor(e.val), Code(e.val))));
+        var exportsets = String.Join(", ", imp.Exports.Select(e => Link(target.FullDafnyName, Code(e.val))));
         if (exportsets.Length == 0) {
-          exportsets = Link(target.FullDafnyName, ExportSetAnchor(target.Name), Code(target.Name));
+          exportsets = Link(target.FullDafnyName, Code(target.Name)); // TODO - needs cleanup
         }
         summaries.Append($"{Keyword("import")} {LinkToAnchor(name, styledName)} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}").Append(br).Append(eol);
 
@@ -602,50 +600,29 @@ class DafnyDoc {
     }
   }
 
-  public string ImportLink(MemberDecl d) {
+  public string ImportLink(MemberDecl d) {  // TODO -- this needs cleanup
     string link;
-    if (HasOwnPage(d)) {
-      link = Link(d.FullDafnyName, d.Name, d.Name);
-    } else {
-      string fullname = d.FullDafnyName;
-      var k = fullname.LastIndexOf('.');
-      if (k < 0) {
-        // If there is no parent segment, this should be its own page
-        link = Link(d.FullDafnyName, d.Name, d.Name);
-      } else {
-        link = Link(fullname.Substring(0, k), d.Name, d.Name);
-      }
-    }
+    link = Link(d.FullDafnyName, d.Name);
     return link;
   }
-  public string ImportLink(TopLevelDecl d) {
+  public string ImportLink(TopLevelDecl d) {  // TODO -- this needs cleanup
     string link;
-    if (HasOwnPage(d)) {
-      link = Link(d.FullDafnyName, d.Name, d.Name);
-    } else {
-      string fullname = d.FullDafnyName;
-      var k = fullname.LastIndexOf('.');
-      if (k < 0) {
-        // If there is no parent segment, this should be its own page
-        link = Link(d.FullDafnyName, d.Name, d.Name);
-      } else {
-        link = Link(fullname.Substring(0, k), d.Name, d.Name);
-      }
-    }
+    link = Link(d.FullDafnyName, d.Name);
     return link;
   }
 
   /** Append the summary information about nested module declarations to the string builders;
       the detail information is on a different html page. */
-  public void WriteSubModules(ModuleDefinition module, StringBuilder summaries, StringBuilder details) {
+  public void WriteSubModules(ModuleDefinition module, StringBuilder summaries, StringBuilder details, Info info) {
     var submods = module.TopLevelDecls.Where(d => d is LiteralModuleDecl).Select(d => d as LiteralModuleDecl).ToList();
     submods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (submods.Count() > 0) {
       summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
-        summaries.Append(Keyword("module")).Append(" ").Append(QualifiedNameWithLinks(submod.FullDafnyName));
-        summaries.Append(DashShortDocstring(submod));
+        var subinfo = ModuleInfo(submod, null);
+        summaries.Append(subinfo.HtmlSummary);
         summaries.Append(br).Append(eol);
+        info.Contents.Add(subinfo);
       }
     }
   }
@@ -655,117 +632,19 @@ class DafnyDoc {
   }
 
   /** Append the summary and detail information about type declarations to the string builders */
-  public void WriteTypes(ModuleDefinition module, StringBuilder summaries, StringBuilder details, Info owner) {
-    var types = module.TopLevelDecls.Where(c => IsType(c)).ToList();
+  public void AddTypeSummaries(ModuleDefinition module, StringBuilder summaries, Info owner) {
+    var types = module.TopLevelDecls.Where(c => IsType(c) && !IsGeneratedName(c.Name)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass)) {
       summaries.Append(Heading3("Types")).Append(eol);
-      details.Append(Heading3("Types")).Append(eol);
       summaries.Append(TableStart());
       foreach (var t in types) {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
           continue;
         }
-        var link = "";
-        if (HasOwnPage(t)) {
-          WriteDecl(t as TopLevelDeclWithMembers, owner.Contents);
-          link = Link(t.FullDafnyName, Code(Bold(t.Name)));
-        } else {
-          link = LinkToAnchor(t.Name, Code(Bold(t.Name)));
-        }
-        AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
-        var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
-        // Note: Types do not have modifiers (at least at present)
-        var modifiers = "";
-        var typeparams = TypeFormals(t.TypeArgs);
-        summaries.Append(Row(t.WhatKind, link + typeparams, DashShortDocstring(t as IHasDocstring))).Append(eol);
-
-        details.Append(Anchor(t.Name)).Append(eol);
-        details.Append(RuleWithText(t.Name)).Append(eol);
-        if (!String.IsNullOrEmpty(modifiers)) {
-          details.Append(modifiers).Append(br).Append(eol);
-        }
-        details.Append(t.WhatKind).Append(" ").Append(Bold(t.Name)).Append(TypeFormals(t.TypeArgs));
-        if (t is ClassDecl) { // Class, Trait
-          // nothing more here
-        } else if (t is SubsetTypeDecl ts) {
-          details.Append(ts.Characteristics.ToString());
-          details.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
-          if (ts.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
-            details.Append(" witness *");
-          } else if (ts.Witness != null) {
-            details.Append(" witness ").Append(ts.Witness.ToString());
-          }
-        } else if (t is TypeSynonymDecl tsy) {
-          details.Append(tsy.Characteristics.ToString());
-          details.Append(" = ").Append(TypeLink(tsy.Rhs));
-        } else if (t is NewtypeDecl tnt) {
-          if (tnt.Var != null) {
-            details.Append(" = ").Append(tnt.Var.Name).Append(": ").Append(TypeLink(tnt.Var.Type)).Append(" | ").Append(tnt.Constraint.ToString());
-          } else {
-            details.Append(" = ").Append(TypeLink(tnt.BaseType));
-          }
-          if (tnt.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
-            details.Append(" witness *");
-          } else if (tnt.Witness != null) {
-            details.Append(" witness ").Append(tnt.Witness.ToString());
-          }
-        } else if (t is OpaqueTypeDecl otd) {
-          details.Append(otd.Characteristics.ToString());
-        } else if (t is DatatypeDecl) {
-          // datatype constructors are written out several lines down
-        } else {
-          Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
-        }
-        if (HasOwnPage(t)) {
-          details.Append(mdash).Append("see ").Append(Link(t.FullDafnyName, "separate page here"));
-        }
-        if (t is DatatypeDecl dt) {
-          details.Append(br).Append(eol);
-          details.Append(TableStart());
-          foreach (var ctor in dt.Ctors) {
-            string sig = ctor.Name;
-            if (ctor.Formals.Count > 0) {
-              sig += "(" + String.Join(", ", ctor.Formals.Select(ff => FormalAsString(ff, false))) + ")";
-            }
-            var ds = Docstring(ctor);
-            string sinfo;
-            if (String.IsNullOrEmpty(ds)) {
-              sinfo = "";
-            } else if (ds == Shorten(ds)) {
-              sinfo = ToHtml(ShortDocstring(ctor));
-            } else {
-              sinfo = IndentedHtml(ds, true);
-            }
-            details.Append(Row(space4, ctor.IsGhost ? "[ghost]" : "", sig, sinfo == "" ? "" : mdash, sinfo));
-          }
-          details.Append(TableEnd());
-        }
-        var attributes = t.Attributes?.ToString();
-        if (!String.IsNullOrEmpty(attributes)) {
-          details.Append(br).Append(eol);
-          details.Append(space4).Append(attributes);
-        }
-        if (!String.IsNullOrEmpty(docstring)) {
-          details.Append(IndentedHtml(docstring));
-        }
-
-        var info = new Info();
-        info.Kind = t.WhatKind;
-        info.Name = t.Name;
-        info.FullName = t.FullDafnyName;
-        info.Link = info.FullName + ".html";
-        string filename = info.FileName = Outputdir + "/" + info.Link;
-        info.RawLongDoc = docstring;
-        info.RawShortDoc = Shorten(docstring);
-        if (t is TopLevelDeclWithMembers tm) {
-          info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
-        }
-        if (!AllInfo.ContainsKey(info.FullName)) {
-          owner.Contents.Add(info);
-          AllInfo.Add(info.FullName, info);
-        }
-        script.Append(ScriptEntry(info.FullName));
+        var info = TypeInfo(t, module, owner);
+        var styledName = Code(Bold(t.Name));
+        summaries.Append(Row(t.WhatKind, Link(info.FullName, styledName), DashShortDocstring(t as IHasDocstring))).Append(eol); // TODO - typeparameters?
       }
       summaries.Append(TableEnd());
     }
@@ -777,34 +656,26 @@ class DafnyDoc {
     info.Kind = "const";
     info.Name = c.Name;
     info.FullName = c.FullDafnyName;
-    info.Link = c.FullDafnyName + ".html";
-    info.FileName = this.Outputdir + "/" + info.Link;
+    info.Link = LinkTarget(c.FullDafnyName);
 
     info.RawLongDoc = Docstring(c);
     info.RawShortDoc = Shorten(info.RawLongDoc);
 
-    var styledName = Code(Bold(c.Name)) + "\n";
     var docstring = Docstring(c);
     var modifiers = c.ModifiersAsString();
-    var linkedName = Code(LinkToAnchor(c.Name, Bold(c.Name)));
+    var linkedName = Code(Link(c.FullDafnyName, Bold(c.Name)));
     var linkedType = TypeLink(c.Type);
+    var rhsstring = c.Rhs == null ? "" : (" := " + c.Rhs.ToString());
 
-    info.HtmlSummary = Code(c.Name + " : ") + linkedType;
+    info.HtmlSummary = linkedName + " : " + linkedType + DashShortDocstring(c);
 
     var details = new StringBuilder();
-    if (!String.IsNullOrEmpty(modifiers)) {
-      details.Append(modifiers).Append(br).Append(eol);
-    }
-    details.Append(styledName).Append(" : ").Append(linkedType);
-
-
-    if (c.Rhs != null) {
-      details.Append(" := ").Append(Code(c.Rhs.ToString()));
-    }
+    var decl = modifiers + "const " + c.Name + ": " + linkedType + rhsstring;
+    details.Append(Code(decl));
     details.Append(br).Append(eol);
     var attributes = c.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
-      details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
+      details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
     }
     details.Append(IndentedHtml(docstring));
     info.HtmlDetail = details.ToString();
@@ -818,30 +689,25 @@ class DafnyDoc {
     info.Kind = "var";
     info.Name = f.Name;
     info.FullName = f.FullDafnyName;
-    info.Link = f.FullDafnyName + ".html";
-    info.FileName = this.Outputdir + "/" + info.Link;
+    info.Link = LinkTarget(f.FullDafnyName);
 
     info.RawLongDoc = Docstring(f);
     info.RawShortDoc = Shorten(info.RawLongDoc);
 
-    var styledName = Code(Bold(f.Name));
     var docstring = Docstring(f);
+    var linkedName = Code(Link(f.FullDafnyName, Bold(f.Name)));
     var modifiers = f.ModifiersAsString();
-    var linkedName = Code(LinkToAnchor(f.Name, Bold(f.Name)));
     var linkedType = TypeLink(f.Type);
 
-    info.HtmlSummary = Code(f.Name + " : ") + linkedType;
+    info.HtmlSummary = linkedName + " : " + linkedType + DashShortDocstring(f); ;
 
     var details = new StringBuilder();
-    if (!String.IsNullOrEmpty(modifiers)) {
-      details.Append(modifiers).Append(br).Append(eol);
-    }
-    details.Append(styledName).Append(" : ").Append(linkedType);
-
+    var decl = modifiers + "var " + f.Name + ": " + linkedType;
+    details.Append(Code(decl));
     details.Append(br).Append(eol);
     var attributes = f.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
-      details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
+      details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
     }
     details.Append(IndentedHtml(docstring));
     info.HtmlDetail = details.ToString();
@@ -867,41 +733,35 @@ class DafnyDoc {
     info.Kind = m.WhatKind;
     info.Name = name;
     info.FullName = m.FullDafnyName;
-    info.Link = m.FullDafnyName + ".html";
-    info.FileName = this.Outputdir + "/" + info.Link;
+    info.Link = LinkTarget(m.FullDafnyName);
 
     var md = m as IHasDocstring;
     var docstring = Docstring(md);
     info.RawLongDoc = docstring;
     info.RawShortDoc = Shorten(docstring);
 
-    var ms = MethodSig(m); // Wrapped as code
     var modifiers = m.ModifiersAsString();
+    var ms = MethodSig(m);
 
-    String link = Link(null, name, name);
+    String link = Link(info.FullName, name);
     // Replacing the name with a link -- the angle brackets are to be sure we get the whole name and 
     // not a portion of someother html tag. At this point the name is enclosed in some styling tag.
     String mss = ReplaceFirst(ms, ">" + m.Name + "<", ">" + link + "<");
 
     var summaries = new StringBuilder();
     var details = new StringBuilder();
-    summaries.Append(mss);
+    summaries.Append(Code(mss));
     if (!String.IsNullOrEmpty(docstring)) {
       summaries.Append(space4).Append(DashShortDocstring(md));
     }
     summaries.Append(br).Append(eol);
 
-    //details.Append(Anchor(name)).Append(eol);
-    //details.Append(RuleWithText(name)).Append(eol);
-    if (!String.IsNullOrEmpty(modifiers)) {
-      details.Append(modifiers).Append(br).Append(eol);
-    }
-    details.Append(m.WhatKind).Append(br).Append(eol);
-    details.Append(ms).Append(br).Append(eol);
+    var decl = modifiers + m.WhatKind + " " + ms;
+    details.Append(Code(decl)).Append(br).Append(eol);
 
     var attributes = m.Attributes?.ToString();
     if (!String.IsNullOrEmpty(attributes)) {
-      details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
+      details.Append("Attributes: ").Append(Code(attributes)).Append(br).Append(eol);
     }
     details.Append(IndentedHtml(docstring));
     AppendSpecs(details, m);
@@ -912,93 +772,154 @@ class DafnyDoc {
     return info;
   }
 
+  public Info TypeInfo(TopLevelDecl t, ModuleDefinition module, Info owner) {
+    var link = "";
+    if (HasOwnPage(t)) {
+      WriteDecl(t as TopLevelDeclWithMembers, owner.Contents);
+      link = Link(t.FullDafnyName, Code(Bold(t.Name)));
+    } else {
+      link = Link(t.FullDafnyName, Code(Bold(t.Name)));
+    }
+    AddToIndex(t.Name, module.FullDafnyName, t.WhatKind);
+    var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
+    // Note: Types do not have modifiers (at least at present)
+    var modifiers = "";
+    var typeparams = TypeFormals(t.TypeArgs);
+
+    var summaries = new StringBuilder();
+    var details = new StringBuilder();
+
+    summaries.Append($"{t.WhatKind} {Code(link + typeparams)} {DashShortDocstring(t as IHasDocstring)}");
+
+    string kind = t.WhatKind.Replace("abstract", "").Replace("opaque", "");
+    var decl = new StringBuilder();
+    decl.Append(modifiers + kind + " " + t.Name + TypeFormals(t.TypeArgs));
+
+    if (t is ClassDecl) { // Class, Trait
+                          // nothing more here
+    } else if (t is SubsetTypeDecl ts) {
+      decl.Append(ts.Characteristics.ToString());
+      decl.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
+      if (ts.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
+        decl.Append(" witness *");
+      } else if (ts.Witness != null) {
+        decl.Append(" witness ").Append(ts.Witness.ToString());
+      }
+    } else if (t is TypeSynonymDecl tsy) {
+      decl.Append(tsy.Characteristics.ToString());
+      decl.Append(" = ").Append(TypeLink(tsy.Rhs));
+    } else if (t is NewtypeDecl tnt) {
+      if (tnt.Var != null) {
+        decl.Append(" = ").Append(tnt.Var.Name).Append(": ").Append(TypeLink(tnt.Var.Type)).Append(" | ").Append(tnt.Constraint.ToString());
+      } else {
+        decl.Append(" = ").Append(TypeLink(tnt.BaseType));
+      }
+      if (tnt.WitnessKind == SubsetTypeDecl.WKind.OptOut) {
+        decl.Append(" witness *");
+      } else if (tnt.Witness != null) {
+        decl.Append(" witness ").Append(tnt.Witness.ToString());
+      }
+    } else if (t is OpaqueTypeDecl otd) {
+      decl.Append(otd.Characteristics.ToString());
+    } else if (t is DatatypeDecl) {
+      // datatype constructors are written out several lines down
+    } else {
+      Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
+    }
+    if (t is DatatypeDecl dt) {
+      details.Append(Code(decl.ToString()));
+      details.Append(br).Append(eol);
+      details.Append(TableStart());
+      foreach (var ctor in dt.Ctors) {
+        string sig = ctor.Name;
+        if (ctor.Formals.Count > 0) {
+          sig += "(" + String.Join(", ", ctor.Formals.Select(ff => FormalAsString(ff, false))) + ")";
+        }
+        string sinfo = ToHtml(Docstring(ctor)); // TODO - does this wrap OK in a table
+        details.Append(Row(ctor.IsGhost ? Code("ghost") : "", Code(sig), sinfo));
+      }
+      details.Append(TableEnd());
+    } else {
+      details.Append(Code(decl.ToString()));
+    }
+    var attributes = t.Attributes?.ToString();
+    if (!String.IsNullOrEmpty(attributes)) {
+      details.Append(br).Append(eol);
+      details.Append(space4).Append(Code(attributes)); // TODO - make like others
+    }
+    if (!String.IsNullOrEmpty(docstring)) {
+      details.Append(IndentedHtml(docstring));
+    }
+
+    var info = new Info();
+    info.Kind = t.WhatKind;
+    info.Name = t.Name;
+    info.FullName = t.FullDafnyName;
+    info.Link = LinkTarget(info.FullName);
+    info.RawLongDoc = docstring;
+    info.RawShortDoc = Shorten(docstring);
+    info.HtmlSummary = summaries.ToString();
+    info.HtmlDetail = details.ToString();
+
+    if (t is TopLevelDeclWithMembers tm) {
+      info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
+    }
+    if (!AllInfo.ContainsKey(info.FullName)) {
+      owner.Contents.Add(info);
+      AllInfo.Add(info.FullName, info);
+    }
+    script.Append(ScriptEntry(info.FullName));
+    return info;
+  }
+
+
   /** Append the summary and detail information about const declarations to the string builders */
-  public void WriteConstants(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var constants = decl.Members.Where(c => c is ConstantField).Select(c => c as ConstantField).ToList();
+  public void AddConstantSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+    var constants = decl.Members.Where(c => c is ConstantField && !IsGeneratedName(c.Name)).Select(c => c as ConstantField).ToList();
     constants.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (constants.Count() > 0) {
       summaries.Append(Heading3("Constants\n"));
-      details.Append(Heading3("Constants\n"));
-
       summaries.Append(TableStart()).Append(eol);
       foreach (var c in constants) {
         var info = ConstantInfo(c, decl);
         ownerInfoList.Add(info);
-        System.Console.WriteLine("SAVING " + info.Kind + " " + info.FullName);
         this.AllInfo.Add(info.FullName, info);
         AddToIndex(c.Name, decl.FullDafnyName, "const");
-        //if (info.FullName == "TestModule.A.c") throw new System.Exception();
 
         var styledName = Code(Bold(c.Name));
-        var docstring = Docstring(c);
-        var modifiers = c.ModifiersAsString();
-        var linkedName = Code(LinkToAnchor(c.Name, Bold(c.Name)));
         var linkedType = TypeLink(c.Type);
 
-        summaries.Append(Row(LinkToAnchor(c.Name, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
+        summaries.Append(Row(Link(info.FullName, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
 
-        details.Append(Anchor(c.Name)).Append(eol);
-        details.Append(RuleWithText(c.Name)).Append(eol);
-        if (!String.IsNullOrEmpty(modifiers)) {
-          details.Append(modifiers).Append(br).Append(eol);
-        }
-        details.Append(styledName).Append(" : ").Append(linkedType);
-
-
-        if (c.Rhs != null) {
-          details.Append(" := ").Append(Code(c.Rhs.ToString()));
-        }
-        details.Append(br).Append(eol);
-        var attributes = c.Attributes?.ToString();
-        if (!String.IsNullOrEmpty(attributes)) {
-          details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
-        }
-        details.Append(IndentedHtml(docstring));
       }
       summaries.Append(TableEnd()).Append(eol);
     }
   }
 
   /** Append the summary and detail information about field declarations to the string builders */
-  public void WriteMutableFields(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var fields = decl.Members.Where(c => c is Field && c is not ConstantField && (c as Field).Name[0] != '_').Select(c => c as Field).ToList();
+  public void AddFieldSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+    var fields = decl.Members.Where(c => c is Field && c is not ConstantField && !IsGeneratedName(c.Name)).Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
       summaries.Append(Heading3("Mutable Fields\n"));
-      details.Append(Heading3("Mutable Fields\n"));
-
       summaries.Append(TableStart()).Append(eol);
       foreach (var c in fields) {
         var info = VarInfo(c, decl);
         ownerInfoList.Add(info);
-        System.Console.WriteLine("SAVING " + info.Kind + " " + info.FullName);
         this.AllInfo.Add(info.FullName, info);
         AddToIndex(c.Name, decl.FullDafnyName, "var");
 
         var linkedType = TypeLink(c.Type);
         var styledName = Code(Bold(c.Name));
-        var modifiers = c.ModifiersAsString();
 
-        summaries.Append(Row(LinkToAnchor(c.Name, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
-
-        details.Append(Anchor(c.Name)).Append(eol);
-        details.Append(RuleWithText(c.Name)).Append(eol);
-        if (!String.IsNullOrEmpty(modifiers)) {
-          details.Append(modifiers).Append(br).Append(eol);
-        }
-        details.Append(styledName).Append(" : ").Append(linkedType).Append(br).Append(eol);
-        var attributes = c.Attributes?.ToString();
-        if (!String.IsNullOrEmpty(attributes)) {
-          details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
-        }
-        details.Append(IndentedHtml(Docstring(c)));
+        summaries.Append(Row(Link(info.FullName, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
       }
       summaries.Append(TableEnd()).Append(eol);
     }
   }
 
   public void WriteFunctions(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var functions = decl.Members.Where(m => m is Function).Select(m => m as MemberDecl).ToList();
+    var functions = decl.Members.Where(m => m is Function && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (functions.Count > 0) {
       WriteMethodsList("Functions", functions, decl, summaries, details, ownerInfoList);
@@ -1014,7 +935,7 @@ class DafnyDoc {
   }
 
   public void WriteConstructors(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var methods = decl.Members.Where(m => m is Constructor).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Constructor && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
       WriteMethodsList("Constructors", methods, decl, summaries, details, ownerInfoList);
@@ -1025,16 +946,16 @@ class DafnyDoc {
     if (m is Method) {
       var mth = m as Method;
       var typeparams = TypeFormals(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => Code(FormalAsString(f, false))));
+      var formals = String.Join(", ", mth.Ins.Select(f => (FormalAsString(f, false))));
       var outformals = mth.Outs.Count == 0 ? "" :
-        " " + Keyword("returns") + " (" + String.Join(", ", mth.Outs.Select(f => Code(FormalAsString(f, false)))) + ")";
-      return Code(Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
+        " " + Keyword("returns") + " (" + String.Join(", ", mth.Outs.Select(f => (FormalAsString(f, false)))) + ")";
+      return (Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
       var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
-      return Code(Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
+      return (Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
     }
@@ -1061,27 +982,27 @@ class DafnyDoc {
 
   // For methods, lemmas, functions
   public void WriteMethodsList(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
+    if (members.Count == 0) return;
     summaries.Append(Heading3(kind)).Append(eol);
     details.Append(Heading3(kind)).Append(eol);
+    summaries.Append(TableStart());
     foreach (var m in members) {
-      var md = m as IHasDocstring;
-      var ms = MethodSig(m); // Wrapped as code
-      var docstring = Docstring(md);
-      var modifiers = m.ModifiersAsString();
-      var name = m.Name;
-
       var info = ExecutableInfo(m, decl);
       ownerInfoList.Add(info);
-      System.Console.WriteLine("SAVING " + info.Kind + " " + info.FullName);
       this.AllInfo.Add(info.FullName, info);
 
-      summaries.Append(info.HtmlSummary);
+      summaries.Append(Row(info.HtmlSummary));
       details.Append(info.HtmlDetail);
     }
+    summaries.Append(TableEnd());
+  }
+
+  public static bool IsGeneratedName(string name) {
+    return (name.Length > 1 && name[0] == '_') || name.StartsWith("reveal_");
   }
 
   public void WriteLemmas(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
       WriteMethodsList("Lemmas", methods, decl, summaries, details, ownerInfoList);
@@ -1171,16 +1092,16 @@ class DafnyDoc {
         file.WriteLine(ListEnd());
         currentIndent--;
       }
-      var ds = DashShortDocstringNoMore(module);
+      var ds = DashShortDocstring(module);
       if (module.ModuleDef.IsDefaultModule) {
-        file.WriteLine(ListItem("Module " + Link(RootName, Code(RootNLName)) + ds));
+        file.WriteLine(ListItem("Module " + Link(RootName, Code(RootName)) + ds));
       } else {
         file.WriteLine(ListItem("Module " + Link(fullname, Code(fullname)) + ds));
       }
     }
     file.WriteLine(ListEnd());
     file.WriteLine(MainEnd());
-    file.Write(SideBar(sidebar));
+    file.Write(SideBar(sidebar.ToString()));
     file.Write(BodyAndHtmlEnd());
     AnnounceFile(filename);
   }
@@ -1288,16 +1209,7 @@ class DafnyDoc {
   public string DashShortDocstring(IHasDocstring d) {
     var docstring = Docstring(d);
     if (!String.IsNullOrEmpty(docstring)) {
-      return mdash + ShortAndMore(d, (d as Declaration).Name);
-    }
-    return "";
-  }
-
-  /** If there is a docstring, returns a dash + the abbreviated docstring (without the more... link) */
-  public string DashShortDocstringNoMore(IHasDocstring d) {
-    var docstring = ShortDocstring(d);
-    if (!String.IsNullOrEmpty(docstring)) {
-      return mdash + ToHtml(docstring);
+      return mdash + ToHtml(Shorten(docstring));
     }
     return "";
   }
@@ -1317,31 +1229,31 @@ class DafnyDoc {
   }
 
   // Used for declarations that merit their own page (modules, classes, traits, types with members, ...)
-  public String ShortAndMoreForDecl(TopLevelDecl d) {
-    var docstring = Docstring(d as IHasDocstring);
-    var shortstring = Shorten(docstring);
-    String result = "";
-    if (!String.IsNullOrEmpty(docstring)) {
-      result = ToHtml(shortstring);
-      if (shortstring != docstring) {
-        result += " " + LinkToAnchor("decl-detail", "(more...)");
-      }
-    }
-    return result;
-  }
+  // public String ShortAndMoreForDecl(TopLevelDecl d) {
+  //   var docstring = Docstring(d as IHasDocstring);
+  //   var shortstring = Shorten(docstring);
+  //   String result = "";
+  //   if (!String.IsNullOrEmpty(docstring)) {
+  //     result = ToHtml(shortstring);
+  //     if (shortstring != docstring) {
+  //       result += " " + LinkToAnchor("decl-detail", "(more...)");
+  //     }
+  //   }
+  //   return result;
+  // }
 
-  public String ShortAndMore(IHasDocstring d, String target) {
-    var docstring = Docstring(d);
-    var shortstring = Shorten(docstring);
-    String result = "";
-    if (!String.IsNullOrEmpty(docstring)) {
-      result = ToHtml(shortstring);
-      if (shortstring != docstring) {
-        result += $" <a href=\"#{target}\">(more...)</a>";
-      }
-    }
-    return result;
-  }
+  // public String ShortAndMore(IHasDocstring d, String target) {
+  //   var docstring = Docstring(d);
+  //   var shortstring = Shorten(docstring);
+  //   String result = "";
+  //   if (!String.IsNullOrEmpty(docstring)) {
+  //     result = ToHtml(shortstring);
+  //     if (shortstring != docstring) {
+  //       result += $" <a href=\"#{target}\">(more...)</a>";
+  //     }
+  //   }
+  //   return result;
+  // }
 
   public String ReplaceFirst(string text, string old, string replacement) {
     var k = text.IndexOf(old);
@@ -1358,10 +1270,10 @@ class DafnyDoc {
       fullName = fullName.Substring(0, hash);
       tail = fullName.Substring(hash + 1);
     }
-    return QualifiedNameWithLinks(fullName, tail, tail, alsoLast);
+    return QualifiedNameWithLinks(fullName, tail, alsoLast);
   }
 
-  public static string QualifiedNameWithLinks(string fullName, string inpage, string text, bool alsoLast = true) {
+  public static string QualifiedNameWithLinks(string fullName, string text, bool alsoLast = true) {
     var names = fullName.Split('.');
     string nameSoFar = "";
     string output = "";
@@ -1374,9 +1286,6 @@ class DafnyDoc {
       k--;
       nameSoFar += name;
       output += (k == 0 && !alsoLast ? name : Link(nameSoFar, name));
-    }
-    if (inpage != null) {
-      output += $".<a href=\"{fullName}.html#{inpage}\">{text}</a>";
     }
     return Code(output);
   }
@@ -1400,16 +1309,16 @@ class DafnyDoc {
 
   /** Adds (a request for) an index entry, with a link to a file */
   public void AddToIndexF(string name, string target, string kind) {
-    nameIndex.Add(name + " " + nameIndex.Count + " " + target, kind + " " + QualifiedNameWithLinks(target, null, name));
+    nameIndex.Add(name + " " + nameIndex.Count + " " + target, kind + " " + QualifiedNameWithLinks(target, name));
   }
 
   /** Adds (a request for) an index entry, with a link to a location in a file */
   public void AddToIndex(string inpageID, string owner, string kind) {
-    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, inpageID, inpageID));
+    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, inpageID));
   }
 
   public void AddToIndexC(string inpageID, string text, string owner, string kind) {
-    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, inpageID, text));
+    nameIndex.Add(inpageID + " " + nameIndex.Count + " " + owner, kind + " " + QualifiedNameWithLinks(owner, text));
   }
 
   public void WriteIndex() {
@@ -1446,8 +1355,6 @@ class DafnyDoc {
 
   public static string DefaultOutputDir = "./docs";
   public static readonly string RootName = "_"; // Name of file for root module
-  public static readonly string RootNLName = " (root module)"; // Name of root module to display
-
   static string contentslink = Link("index", "[table of contents]");
   static string indexlink = Link("nameindex", "[index]");
 }
