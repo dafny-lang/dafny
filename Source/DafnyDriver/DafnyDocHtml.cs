@@ -16,7 +16,7 @@ class DafnyDocHtml {
   public static readonly string mdash = " &mdash; ";
   public static readonly string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
 
-  public static string HtmlStart(string title) {
+  public static string HtmlStart(string title, string script = "") {
     return
       @"
 <!doctype html>
@@ -32,8 +32,47 @@ class DafnyDocHtml {
 <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
 <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
 <meta name=""author"" content=""dafnydoc"">
-<link rel=""stylesheet"" href=""styles.css"" />
-</head>
+<link rel=""stylesheet"" href=""styles.css""/>
+"
+
++ script +
+
+@"</head>
+";
+  }
+
+  public static string Script =
+@"<script type=""text/javascript"">
+  window.onload = function() {
+      document.getElementById(""TestModule.ccc"").onclick = function() {
+        document.getElementById(""main"").innerHTML = '<iframe  width=""100%""  height=""100%"" style=""border:none;"" src=""TestModule.ccc.html"" ></iframe>';
+        return false;
+      }
+    }
+</script >
+";
+  public static string ScriptStart() {
+    return
+@"<script type=""text/javascript"">
+  window.onload = function() {
+";
+  }
+
+  public static string ScriptEntry(string id) {
+    return
+@"
+    document.getElementById(""{id}"").onclick = function() {
+      document.getElementById(""main"").innerHTML = '<iframe width=""100%"" height=""100%"" style=""border:none;"" src=""{id}.html""></iframe>';
+      return false;
+    }
+".Replace("{id}", id);
+  }
+
+  public static string ScriptEnd() {
+    return
+@"
+  }
+</script>
 ";
   }
 
@@ -45,8 +84,8 @@ class DafnyDocHtml {
     return "</body>\n</html>\n";
   }
 
-  public static string MainStart() {
-    return "<div class=\"main\">\n";
+  public static string MainStart(string label = "main") {
+    return $"<div id=\"{label}\" class=\"{label}\">\n";
   }
 
   public static string MainEnd() {
@@ -57,7 +96,7 @@ class DafnyDocHtml {
   public static string SideBar(string text) {
     return "<div class=\"sidenav\">\n"
     + text +
-    "</div>";
+    "</div>\n";
   }
 
   public static string Indent(string text) {
@@ -175,7 +214,7 @@ class DafnyDocHtml {
   @"
 .sidenav {
   height: 100%;
-  width: 160px;
+  width: 300px;
   position: fixed;
   z-index: 1;
   top: 0;
@@ -184,6 +223,7 @@ class DafnyDocHtml {
   overflow-x: hidden;
   padding-top: 20px;
   margin-top: 20px;
+  margin-left: 6px;
 }
 
 .sidenav a {
@@ -197,7 +237,7 @@ class DafnyDocHtml {
 }
 
 .main {
-  margin-left: 160px; /* Same as the width of the sidenav */
+  margin-left: 300px; /* Same as the width of the sidenav */
 }
 
 @media screen and (max-height: 450px) {
@@ -212,19 +252,18 @@ body {
 }
 
 h1 {
-  color: blue;
+  color: black;
+  font-weight: bold;
   text-align: center;
-  background-color: #ffec50;
 }
 h2 {
   color: blue;
+  font-weight: bold;
   text-align: left;
-  background-color: #ffec50;
 }
 h3 {
   color: blue;
   text-align: left;
-  background-color: #fefdcc;
 }
 
 p {
