@@ -61,7 +61,7 @@ namespace XUnitExtensions.Lit {
       this.expectFailure = expectFailure;
     }
 
-    public void Execute(ITestOutputHelper outputHelper) {
+    public void Execute(ITestOutputHelper? outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
@@ -70,11 +70,9 @@ namespace XUnitExtensions.Lit {
         int exitCode;
         string output;
         string error;
-        var outputWriter = new StringWriter();
-        var errorWriter = new StringWriter();
         try {
-          outputHelper.WriteLine($"Executing command: {command}");
-          (exitCode, output, error) = command.Execute(TextReader.Null, outputWriter, errorWriter);
+          outputHelper?.WriteLine($"Executing command: {command}");
+          (exitCode, output, error) = command.Execute(outputHelper, null, null, null);
         } catch (Exception e) {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
@@ -82,7 +80,7 @@ namespace XUnitExtensions.Lit {
         if (expectFailure) {
           if (exitCode != 0) {
             throw new SkipException(
-              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
+              $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
           }
         }
 
@@ -94,7 +92,7 @@ namespace XUnitExtensions.Lit {
           }
 
           throw new Exception(
-            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
+            $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output}\nError:\n{error}");
         }
 
         results.Add((output, error));

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SaveDocumentTest : ClientBasedLanguageServerTest {
@@ -93,9 +92,6 @@ method DoIt() {
       Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
       Assert.Equal(MessageSource.Verifier.ToString(), message.Source);
-    }
-
-    public SaveDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
-using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -136,9 +135,6 @@ method Recurse(x: int) returns (r: int) {
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(!document.Diagnostics.Any());
-    }
-
-    public OpenDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

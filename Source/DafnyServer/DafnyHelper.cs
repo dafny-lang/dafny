@@ -23,7 +23,6 @@ namespace Microsoft.Dafny {
     private ErrorReporter reporter;
     private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
-    private readonly CounterExampleProvider counterExampleProvider = new();
 
     public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
       this.options = options;
@@ -45,7 +44,7 @@ namespace Microsoft.Dafny {
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
       BuiltIns builtIns = new BuiltIns(options);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
-                     DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(Console.In, module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
+                     Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
         dafnyProgram = new Program(fname, module, builtIns, reporter);
       }
@@ -72,7 +71,7 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(options.OutputWriter, boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
 #pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
 #pragma warning restore VSTHRD002
@@ -106,10 +105,11 @@ namespace Microsoft.Dafny {
 
     public void CounterExample() {
       var listArgs = args.ToList();
-      listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);
+      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
       ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
         if (Parse() && Resolve() && Translate()) {
+          var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
@@ -123,8 +123,8 @@ namespace Microsoft.Dafny {
     }
 
     private void RemoveExistingModel() {
-      if (File.Exists(counterExampleProvider.ModelBvd)) {
-        File.Delete(counterExampleProvider.ModelBvd);
+      if (File.Exists(CounterExampleProvider.ModelBvd)) {
+        File.Delete(CounterExampleProvider.ModelBvd);
       }
     }
 

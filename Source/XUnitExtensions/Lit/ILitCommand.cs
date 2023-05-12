@@ -16,26 +16,15 @@ namespace XUnitExtensions.Lit {
 
   class DelayedLitCommand : ILitCommand {
     private readonly Func<ILitCommand> factory;
-    private ILitCommand? command;
 
     public DelayedLitCommand(Func<ILitCommand> factory) {
       this.factory = factory;
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter,
-      TextWriter errorWriter) {
-      if (command == null) {
-        command = factory();
-      }
-      return command.Execute(inputReader, outputWriter, errorWriter);
-    }
-
-    public override string? ToString() {
-      if (command == null) {
-        command = factory();
-      }
-      return command!.ToString();
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter,
+      TextWriter? errorWriter) {
+      var command = factory();
+      return command.Execute(outputHelper, inputReader, outputWriter, errorWriter);
     }
   }
   public interface ILitCommand {
@@ -91,6 +80,6 @@ namespace XUnitExtensions.Lit {
       return result.ToArray();
     }
 
-    public (int, string, string) Execute(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter);
   }
 }

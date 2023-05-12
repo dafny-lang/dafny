@@ -916,14 +916,14 @@ namespace DafnyServer.CounterexampleGeneration {
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);
           if (dimTuple == null) {
-            options.OutputWriter.WriteLine(PleaseEnableModelCompressFalse);
+            Console.Out.WriteLine(PleaseEnableModelCompressFalse);
             continue;
           }
           indices[i] = dimTuple.Args[0];
         } else {
           dimTuple = fMultiIndexField.AppWithResult(elt);
           if (dimTuple == null) {
-            options.OutputWriter.WriteLine(PleaseEnableModelCompressFalse);
+            Console.Out.WriteLine(PleaseEnableModelCompressFalse);
             continue;
           }
           indices[i] = dimTuple.Args[1];

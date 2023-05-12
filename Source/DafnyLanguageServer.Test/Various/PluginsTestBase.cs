@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
@@ -73,8 +72,5 @@ public abstract class PluginsTestBase : ClientBasedLanguageServerTest {
       modifyOptions?.Invoke(options);
     }
     return base.SetUp(ModifyOptions);
-  }
-
-  protected PluginsTestBase(ITestOutputHelper output) : base(output) {
   }
 }

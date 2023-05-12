@@ -1,14 +1,18 @@
 #nullable enable
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using DafnyTestGeneration;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
-using Xunit.Abstractions;
+using Main = Microsoft.Dafny.Main;
 
 namespace DafnyPipeline.Test {
 
@@ -21,12 +25,6 @@ namespace DafnyPipeline.Test {
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
   public class FormatterBaseTest {
-    private readonly TextWriter output;
-
-    public FormatterBaseTest(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
-    }
-
     enum Newlines {
       LF,
       CR,
@@ -41,7 +39,7 @@ namespace DafnyPipeline.Test {
 
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      var options = DafnyOptions.Create(output);
+      var options = DafnyOptions.Create();
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -83,13 +81,13 @@ namespace DafnyPipeline.Test {
         }
 
         // Formatting should work after resolution as well.
-        DafnyMain.Resolve(dafnyProgram);
+        Main.Resolve(dafnyProgram);
         reprinted = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
             IndentationFormatter.ForProgram(dafnyProgram, reduceBlockiness))
           : programString;
         if (expectedProgram != reprinted) {
-          options.ErrorWriter.WriteLine("Formatting after resolution generates an error:");
+          Console.Error.WriteLine("Formatting after resolution generates an error:");
           Assert.Equal(expectedProgram, reprinted);
         }
         var initErrorCount = reporter.ErrorCount;
