@@ -268,6 +268,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public string DafnyPrintFile = null;
     public List<string> FoldersToFormat { get; } = new();
 
+    // Not exposed to users
+    public bool TestMakingAssertionsExplicit = false;
+
     public enum ContractTestingMode {
       None,
       Externs,

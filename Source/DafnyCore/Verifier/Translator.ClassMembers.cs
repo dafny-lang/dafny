@@ -666,13 +666,13 @@ namespace Microsoft.Dafny {
           var e = formal.DefaultValue;
           CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
           builder.Add(new Boogie.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
-          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder, etran);
 
           if (formal.IsOld) {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
-              builder.Add(Assert(e.tok, wh, desc));
+              builder.Add(Assert(e.tok, wh, desc), etran);
             }
           }
         }
@@ -1219,7 +1219,7 @@ namespace Microsoft.Dafny {
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassDecl)m.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()));
+          builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()), etran);
         }
       }
     }
@@ -1239,7 +1239,7 @@ namespace Microsoft.Dafny {
       }
       //generating class pre-conditions
       foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(m.tok, s.E, new PODesc.RequiresWeaker()));
+        builder.Add(Assert(m.tok, s.E, new PODesc.RequiresWeaker()), etran);
       }
     }
 
@@ -1307,7 +1307,7 @@ namespace Microsoft.Dafny {
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
-      builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
+      builder.Add(Assert(original.Tok, decrChk, new PODesc.TraitDecreases(original.WhatKind)), etran);
     }
 
     private void AddMethodOverrideSubsetChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
@@ -1352,7 +1352,7 @@ namespace Microsoft.Dafny {
       Boogie.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Boogie.Expr q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv), etran);
     }
 
     // Return a way to know if an assertion should be converted to an assumptions

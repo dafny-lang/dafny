@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny.ProofObligationDescription;
 
@@ -10,6 +9,8 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public abstract Expression GetAssertedExpr(DafnyOptions options);
+
+  public virtual bool AssertedExprOnlyImplies => false;
 }
 
 // When there is no way to translate the asserted constraint in Dafny yet
@@ -37,7 +38,12 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new BinaryExpr(divisor.tok, BinaryExpr.Opcode.Neq, divisor, new LiteralExpr(divisor.tok, 0));
+    return new BinaryExpr(divisor.tok, BinaryExpr.Opcode.Neq, divisor, new LiteralExpr(divisor.tok, 0) {
+      Type = Type.Int
+    }) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.NeqCommon,
+      Type = Type.Bool
+    };
   }
 }
 
@@ -860,11 +866,19 @@ public class InRange : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     if (sequence.Type is SeqType || sequence.Type.IsArrayType) {
+      var lengthDimension = "Length" + (dimension >= 0 ? "" + dimension : "");
       Expression bound = sequence.Type.IsArrayType ?
-          new MemberSelectExpr(sequence.tok, sequence, "Length" + (dimension >= 0 ? "" + dimension : ""))
-        : new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence);
-      return new ChainingExpression(sequence.tok, new List<Expression>() {
-        new LiteralExpr(sequence.tok, 0),
+          new MemberSelectExpr(sequence.tok, sequence, lengthDimension) {
+            Type = Type.Int,
+            Member = new SpecialField(RangeToken.NoToken, lengthDimension, SpecialField.ID.ArrayLengthInt, null, false, false, false, Type.Int, null) {
+              EnclosingClass = new ArrayClassDecl(dimension + 1, null, null)
+            }
+          }
+        : new UnaryOpExpr(sequence.tok, UnaryOpExpr.Opcode.Cardinality, sequence) {
+          Type = Type.Int
+        };
+      var finalExpr = new ChainingExpression(sequence.tok, new List<Expression>() {
+        new LiteralExpr(sequence.tok, 0) { Type = Type.Int },
         index,
         bound
       }, new List<BinaryExpr.Opcode>() {
@@ -872,12 +886,34 @@ public class InRange : ProofObligationDescription {
         upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
       }, new List<IToken>() { Token.NoToken, Token.NoToken },
         new List<Expression>() { null, null });
+      QuickResolveChainingExpression(finalExpr);
+      return finalExpr;
     }
 
     return new BinaryExpr(sequence.tok, BinaryExpr.Opcode.In,
       index,
       sequence
     );
+  }
+
+  private static void QuickResolveChainingExpression(ChainingExpression finalExpr) {
+    finalExpr.E.Visit((Node node) => {
+      if (node is BinaryExpr binaryExpr) {
+        if (binaryExpr.Op is BinaryExpr.Opcode.Lt) {
+          binaryExpr.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;
+          binaryExpr.Type = Type.Bool;
+        } else if (binaryExpr.Op is BinaryExpr.Opcode.Le) {
+          binaryExpr.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;
+          binaryExpr.Type = Type.Bool;
+        } else if (binaryExpr.Op is BinaryExpr.Opcode.And) {
+          binaryExpr.ResolvedOp = BinaryExpr.ResolvedOpcode.And;
+          binaryExpr.Type = Type.Bool;
+        }
+      }
+
+      return true;
+    });
+    finalExpr.ResolvedExpression = finalExpr.E;
   }
 }
 
@@ -995,27 +1031,44 @@ public class LetSuchThatUnique : ProofObligationDescription {
     this.condition = condition;
     this.bvars = bvars;
   }
+
+  public override bool AssertedExprOnlyImplies => true;
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
+    var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar) { Type = bvar.Type }).ToList();
     var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
+    var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) { Type = bvar.Type } as Expression).ToList();
     var subContract = new Substituter(null,
       bvars.Zip(bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
         item => item.Item1, item => item.Item2),
       new Dictionary<TypeParameter, Type>()
     );
     var conditionSecondBoundVar = subContract.Substitute(condition);
-    var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]);
+    var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]) {
+      Type = Type.Bool,
+      ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon
+    };
     for (var i = 1; i < bvarsExprs.Count; i++) {
       conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And,
         conclusion,
-        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[i], bvarprimesExprs[i])
-        );
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[i], bvarprimesExprs[i]) {
+          Type = Type.Bool,
+          ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon
+        }
+        ) {
+        Type = Type.Bool,
+        ResolvedOp = BinaryExpr.ResolvedOpcode.And
+      };
     }
-    return new ForallExpr(Token.NoToken, RangeToken.NoToken, bvars.Concat(bvarprimes).ToList(),
-      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, condition, conditionSecondBoundVar),
 
-      conclusion, null);
+    var range = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, condition, conditionSecondBoundVar) {
+      Type = Type.Bool,
+      ResolvedOp = BinaryExpr.ResolvedOpcode.And
+    };
+    var allVars = bvars.Concat(bvarprimes).ToList();
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, allVars,
+      range, conclusion, null) {
+      Bounds = options.TestMakingAssertionsExplicit ? Resolver.DiscoverBestBounds_MultipleVars(allVars, range, true) : null
+    };
   }
 }
 
@@ -1037,7 +1090,10 @@ public class LetSuchThatExists : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new ExistsExpr(bvars[0].tok, bvars[0].RangeToken, bvars,
-      null, condition, null);
+      null, condition, null) {
+      Type = Type.Bool,
+      Bounds = options.TestMakingAssertionsExplicit ? Resolver.DiscoverBestBounds_MultipleVars(bvars, condition, true) : null
+    };
   }
 }
 
@@ -1070,4 +1126,14 @@ public class BoilerplateTriple : ProofObligationDescriptionWithNoExpr {
   public BoilerplateTriple(string msg) {
     this.msg = msg;
   }
+}
+
+public class GetAssertedExprNotEquivalentToBoogieExpr : ProofObligationDescriptionWithNoExpr {
+  public override string SuccessDescription =>
+    "Suggested dafny expr is equivalent to asserted boogie expr";
+
+  public override string FailureDescription =>
+    "Suggested dafny expr could not be proven to be equivalent to asserted boogie expr";
+
+  public override string ShortDescription => "implicit assertion check";
 }

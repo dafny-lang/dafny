@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Bpl = Microsoft.Boogie;
 using Xunit;
@@ -69,13 +70,14 @@ public class TranslatorTest {
 
   // Test of embedding code into proof obligation descriptions
 
-  private void ShouldHaveImplicitCode(string program, string expected, DafnyOptions options = null) {
+  private async Task ShouldHaveImplicitCode(string program, string expected, DafnyOptions options = null) {
     if (program.IndexOf("// Here", StringComparison.Ordinal) == -1) {
       Assert.Fail("Test is missing // Here");
     }
     var expectedLine = program.Split("// Here")[0].Count(c => c == '\n') + 1;
     Microsoft.Dafny.Type.ResetScopes();
     options = options ?? new DafnyOptions();
+    options.ApplyDefaultOptionsWithoutSettingsDefault();
     BatchErrorReporter reporter = new BatchErrorReporter(options);
     var builtIns = new BuiltIns(options);
     var module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
@@ -90,7 +92,6 @@ public class TranslatorTest {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
-
     var engine = Bpl.ExecutionEngine.CreateWithoutSharedCache(options);
     var boogiePrograms = DafnyDriver.Translate(engine.Options, dafnyProgram).ToList();
     Assert.Single(boogiePrograms);
@@ -124,13 +125,22 @@ public class TranslatorTest {
         Assert.Fail($"Did not find {expected}");
       }
     }
+    // If it found it, now prove that it was equivalent
+    options.TestMakingAssertionsExplicit = true;
+    options.PrintFile = "compilableAssignSuchThat.bpl";
+    engine = Bpl.ExecutionEngine.CreateWithoutSharedCache(options);
+    boogiePrograms = DafnyDriver.Translate(engine.Options, dafnyProgram).ToList();
+    var driver = new DafnyDriver(options);
+    var (verified, outcome, moduleStats) = await driver.BoogieAsync(options, "basename", boogiePrograms, "dummy");
+    Assert.Equal(Bpl.PipelineOutcome.VerificationCompleted, outcome);
+    Assert.True(verified);
   }
 
   // Test of embedding code into proof obligation descriptions
 
   [Fact]
-  public void DivisionByZero() {
-    ShouldHaveImplicitCode(@"
+  public async Task DivisionByZero() {
+    await ShouldHaveImplicitCode(@"
 method Test(x: int, y: int) returns (z: int) {
   z := 2 / (x + y); // Here
 }
@@ -138,8 +148,8 @@ method Test(x: int, y: int) returns (z: int) {
   }
 
   [Fact]
-  public void CompilableAssignSuchThat() {
-    ShouldHaveImplicitCode(@"
+  public async Task CompilableAssignSuchThat() {
+    await ShouldHaveImplicitCode(@"
 predicate P(x: int, c: int)
  
 function Test(x: int, z: int): int
@@ -152,8 +162,8 @@ function Test(x: int, z: int): int
   }
 
   [Fact]
-  public void AssignmentSuchThatShouldExist() {
-    ShouldHaveImplicitCode(@"
+  public async Task AssignmentSuchThatShouldExist() {
+    await ShouldHaveImplicitCode(@"
 predicate P(x: int)
  
 lemma PUnique(a: int)
@@ -169,8 +179,8 @@ function Test(x: int): int
   }
 
   [Fact]
-  public void SeqIndexOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqIndexOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3]; // Here
 }
@@ -178,8 +188,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqIndexOutOfRangeUpdate() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqIndexOutOfRangeUpdate() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3 := 1]; // Here
 }
@@ -187,8 +197,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqSliceLowerOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqSliceLowerOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int) {
   var b := a(2)[i + 3..]; // Here
 }
@@ -196,8 +206,8 @@ method Test(a: int -> seq<int>, i: int) {
   }
 
   [Fact]
-  public void SeqUpperOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task SeqUpperOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> seq<int>, i: int, j: int) {
   var b := a(2)[j..i + 3]; // Here
 }
@@ -205,8 +215,8 @@ method Test(a: int -> seq<int>, i: int, j: int) {
   }
 
   [Fact]
-  public void ArrayIndexOutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndexOutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array<int>, i: int) {
   var b := a(2)[i + 3]; // Here
 }
@@ -214,8 +224,8 @@ method Test(a: int -> array<int>, i: int) {
   }
 
   [Fact]
-  public void ArrayIndex0OutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndex0OutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array2<int>, i: int) {
   var b := a(2)[i + 3, i + 4]; // Here
 }
@@ -223,8 +233,8 @@ method Test(a: int -> array2<int>, i: int) {
   }
 
   [Fact]
-  public void ArrayIndex1OutOfRange() {
-    ShouldHaveImplicitCode(@"
+  public async Task ArrayIndex1OutOfRange() {
+    await ShouldHaveImplicitCode(@"
 method Test(a: int -> array2<int>, i: int) {
   var b := a(2)[i + 3, i + 4]; // Here
 }
@@ -232,8 +242,8 @@ method Test(a: int -> array2<int>, i: int) {
   }
 
   [Fact]
-  public void ElementNotInDomain() {
-    ShouldHaveImplicitCode(@"
+  public async Task ElementNotInDomain() {
+    await ShouldHaveImplicitCode(@"
 method Test(m: map<int, int>, x: int) {
   var b := m[x + 2]; // Here
 }

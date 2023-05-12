@@ -87,14 +87,14 @@ namespace Microsoft.Dafny {
         AssertKv = options.AssertKv;
       }
 
-      public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder) {
+      public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(Translator tran, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
         return (t, e, d, qk) => {
           if (Locals != null) {
             var b = BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
             Asserts.Add(tran.Assert(t, b, d, qk));
             builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
           } else {
-            builder.Add(tran.Assert(t, e, d, qk));
+            builder.Add(tran.Assert(t, e, d, qk), etran);
           }
         };
       }
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public void ProcessSavedReadsChecks(List<Variable> locals, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
+      public void ProcessSavedReadsChecks(List<Variable> locals, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
         Contract.Requires(locals != null);
         Contract.Requires(builderInitializationArea != null);
         Contract.Requires(builder != null);
@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
         }
         // assert b$reads_guards#0;  ...
         foreach (var a in Asserts) {
-          builder.Add(a);
+          builder.Add(a, etran);
         }
       }
     }
@@ -291,7 +291,7 @@ namespace Microsoft.Dafny {
             var elementType = ((CollectionType)e.Type).Arg;
             foreach (Expression el in e.Elements) {
               CheckWellformed(el, wfOptions, locals, builder, etran);
-              CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
+              CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder, etran);
             }
 
             break;
@@ -303,9 +303,9 @@ namespace Microsoft.Dafny {
             var valType = ((MapType)e.Type).Range;
             foreach (ExpressionPair p in e.Elements) {
               CheckWellformed(p.A, wfOptions, locals, builder, etran);
-              CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
+              CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder, etran);
               CheckWellformed(p.B, wfOptions, locals, builder, etran);
-              CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
+              CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder, etran);
             }
 
             break;
@@ -332,7 +332,7 @@ namespace Microsoft.Dafny {
                 builder.Add(TrAssumeCmd(selectExpr.tok, correctConstructor));
               } else {
                 builder.Add(Assert(GetToken(expr), correctConstructor,
-                  new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
+                  new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))), etran);
               }
               CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
             } else if (e.Member is DatatypeDiscriminator discriminator) {
@@ -343,19 +343,19 @@ namespace Microsoft.Dafny {
                 Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
                   var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
-                  builder.Add(Assert(GetToken(expr), wh, desc));
+                  builder.Add(Assert(GetToken(expr), wh, desc), etran);
                 }
               } else if (etran.UsesOldHeap) {
                 Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
                 if (wh != null) {
                   var desc = new PODesc.IsAllocated("receiver",
                     $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed");
-                  builder.Add(Assert(GetToken(expr), wh, desc));
+                  builder.Add(Assert(GetToken(expr), wh, desc), etran);
                 }
               }
             }
             if (wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
+              wfOptions.AssertSink(this, builder, etran)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
             }
 
@@ -368,9 +368,9 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
             Bpl.Expr seq = etran.TrExpr(e.Seq);
             if (eSeqType.IsArrayType) {
-              builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array")));
+              builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array")), etran);
               if (!options.CommonHeapUse || etran.UsesOldHeap) {
-                builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+                builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)), etran);
               }
             }
             Bpl.Expr e0 = null;
@@ -381,7 +381,7 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
               Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), seq);
               inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
-              builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(e.Seq, e.E0), wfOptions.AssertKv));
+              builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(e.Seq, e.E0), wfOptions.AssertKv), etran);
             } else if (eSeqType is MultiSetType) {
               // cool
 
@@ -390,7 +390,7 @@ namespace Microsoft.Dafny {
                 e0 = etran.TrExpr(e.E0);
                 CheckWellformed(e.E0, wfOptions, locals, builder, etran);
                 var desc = new PODesc.InRange(e.Seq, e.E0, e.SelectOne, e.SelectOne ? "index" : "lower bound");
-                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), desc, wfOptions.AssertKv));
+                builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), desc, wfOptions.AssertKv), etran);
               }
               if (e.E1 != null) {
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
                   lowerBound = e0;
                 }
                 builder.Add(Assert(GetToken(expr), InSeqRange(selectExpr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true),
-                  new PODesc.SequenceSelectRangeValid(e.Seq, e.E0, e.E1, isSequence ? "sequence" : "array"), wfOptions.AssertKv));
+                  new PODesc.SequenceSelectRangeValid(e.Seq, e.E0, e.E1, isSequence ? "sequence" : "array"), wfOptions.AssertKv), etran);
               }
             }
             if (wfOptions.DoReadsChecks && eSeqType.IsArrayType) {
@@ -410,7 +410,7 @@ namespace Microsoft.Dafny {
                 var i = etran.TrExpr(e.E0);
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
-                wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), seq, fieldName),
+                wfOptions.AssertSink(this, builder, etran)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), seq, fieldName),
                   new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny {
                 var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
-                wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
+                wfOptions.AssertSink(this, builder, etran)(selectExpr.tok, qq,
                   new PODesc.FrameSubset("read the indicated range of array elements", false),
                   wfOptions.AssertKv);
               }
@@ -436,9 +436,9 @@ namespace Microsoft.Dafny {
             MultiSelectExpr e = selectExpr;
             CheckWellformed(e.Array, wfOptions, locals, builder, etran);
             Bpl.Expr array = etran.TrExpr(e.Array);
-            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array")));
+            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array")), etran);
             if (!options.CommonHeapUse || etran.UsesOldHeap) {
-              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)), etran);
             }
             for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
               var idx = e.Indices[idxId];
@@ -452,11 +452,11 @@ namespace Microsoft.Dafny {
               var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
 
               var desc = new PODesc.InRange(e.Array, e.Indices[idxId], true, $"index {idxId}", idxId);
-              builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
+              builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv), etran);
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-              wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), array, fieldName),
+              wfOptions.AssertSink(this, builder, etran)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.TheFrame(selectExpr.tok), array, fieldName),
                 new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
             }
 
@@ -473,19 +473,19 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Index, wfOptions, locals, builder, etran);
             if (collectionType is SeqType) {
               var desc = new PODesc.InRange(e.Seq, e.Index, true, "index");
-              builder.Add(Assert(GetToken(e.Index), InSeqRange(updateExpr.tok, index, e.Index.Type, seq, true, null, false), desc, wfOptions.AssertKv));
+              builder.Add(Assert(GetToken(e.Index), InSeqRange(updateExpr.tok, index, e.Index.Type, seq, true, null, false), desc, wfOptions.AssertKv), etran);
             } else {
-              CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+              CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder, etran);
             }
             // validate value
             CheckWellformed(e.Value, wfOptions, locals, builder, etran);
             if (collectionType is SeqType) {
-              CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+              CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder, etran);
             } else if (collectionType is MapType mapType) {
-              CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+              CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder, etran);
             } else if (collectionType is MultiSetType) {
               var desc = new PODesc.NonNegative("new number of occurrences");
-              builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, wfOptions.AssertKv));
+              builder.Add(Assert(GetToken(e.Value), Bpl.Expr.Le(Bpl.Expr.Literal(0), value), desc, wfOptions.AssertKv), etran);
             } else {
               Contract.Assert(false);
             }
@@ -507,7 +507,7 @@ namespace Microsoft.Dafny {
 
             // check subranges of arguments
             for (int i = 0; i < arity; ++i) {
-              CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder);
+              CheckSubrange(e.Args[i].tok, etran.TrExpr(e.Args[i]), e.Args[i].Type, tt.Args[i], builder, etran);
             }
 
             // check parameter availability
@@ -515,14 +515,14 @@ namespace Microsoft.Dafny {
               Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
               if (wh != null) {
                 var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked");
-                builder.Add(Assert(GetToken(e.Function), wh, desc));
+                builder.Add(Assert(GetToken(e.Function), wh, desc), etran);
               }
               for (int i = 0; i < e.Args.Count; i++) {
                 Expression ee = e.Args[i];
                 wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
                 if (wh != null) {
                   var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
-                  builder.Add(Assert(GetToken(ee), wh, desc));
+                  builder.Add(Assert(GetToken(ee), wh, desc), etran);
                 }
               }
             }
@@ -567,7 +567,7 @@ namespace Microsoft.Dafny {
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               // check precond
               var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)));
+              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null)), etran);
             }
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
@@ -578,7 +578,7 @@ namespace Microsoft.Dafny {
                 objset);
               var reads = new FrameExpression(e.tok, wrap, null);
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
-                etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                etran, wfOptions.AssertSink(this, builder, etran), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
             }
 
             break;
@@ -597,7 +597,7 @@ namespace Microsoft.Dafny {
                 su[p.Item1] = p.Item2;
               }
               Type ty = formal.Type.Subst(su);
-              CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
+              CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder, etran);
             }
 
             break;
@@ -642,7 +642,7 @@ namespace Microsoft.Dafny {
                 locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
-                CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
+                CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder, etran);
                 Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (options.CommonHeapUse && !etran.UsesOldHeap) {
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
                   Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
                   if (wh != null) {
                     var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked");
-                    builder.Add(Assert(GetToken(e.Receiver), wh, desc));
+                    builder.Add(Assert(GetToken(e.Receiver), wh, desc), etran);
                   }
                 }
                 for (int i = 0; i < e.Args.Count; i++) {
@@ -670,7 +670,7 @@ namespace Microsoft.Dafny {
                   Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
                   if (wh != null) {
                     var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
-                    builder.Add(Assert(GetToken(ee), wh, desc));
+                    builder.Add(Assert(GetToken(ee), wh, desc), etran);
                   }
                 }
               } else if (e.Function is TwoStateFunction) {
@@ -678,7 +678,7 @@ namespace Microsoft.Dafny {
                   Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                   if (wh != null) {
                     var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
-                    builder.Add(Assert(GetToken(e.Receiver), wh, desc));
+                    builder.Add(Assert(GetToken(e.Receiver), wh, desc), etran);
                   }
                 }
                 Contract.Assert(e.Function.Formals.Count == e.Args.Count);
@@ -690,7 +690,7 @@ namespace Microsoft.Dafny {
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
                       var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
-                      builder.Add(Assert(GetToken(ee), wh, desc));
+                      builder.Add(Assert(GetToken(ee), wh, desc), etran);
                     }
                   }
                 }
@@ -706,9 +706,9 @@ namespace Microsoft.Dafny {
                     var desc = new PODesc.PreconditionSatisfied(errorMessage);
                     if (wfOptions.AssertKv != null) {
                       // use the given assert attribute only
-                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv));
+                      builder.Add(Assert(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage), wfOptions.AssertKv), etran);
                     } else {
-                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)));
+                      builder.Add(AssertNS(tok, ss.E, new PODesc.PreconditionSatisfied(errorMessage)), etran);
                     }
                   }
                 }
@@ -722,7 +722,7 @@ namespace Microsoft.Dafny {
                 var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                 CheckFrameSubset(callExpr.tok,
                   e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-                  e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                  e.Receiver, substMap, etran, wfOptions.AssertSink(this, builder, etran), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
               }
 
               Bpl.Expr allowance = null;
@@ -732,7 +732,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(calleeSCCLookup != null);
                 if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
                   if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
-                    builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new PODesc.IsNonRecursive()));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new PODesc.IsNonRecursive()), etran);
                   } else {
                     List<Expression> contextDecreases = codeContext.Decreases.Expressions;
                     List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
@@ -801,7 +801,7 @@ namespace Microsoft.Dafny {
             var e = constructionExpr;
             CheckWellformed(e.N, wfOptions, locals, builder, etran);
             var desc = new PODesc.NonNegative("sequence size");
-            builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
+            builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc), etran);
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.AsSeqType.Arg;
@@ -833,20 +833,20 @@ namespace Microsoft.Dafny {
               } else {
                 Contract.Assert(ty.IsRefType);
                 nonNull = Bpl.Expr.Neq(r, predef.Null);
-                builder.Add(Assert(GetToken(fe.E), BplImp(ante, nonNull), new PODesc.NonNull(description, description != "object")));
+                builder.Add(Assert(GetToken(fe.E), BplImp(ante, nonNull), new PODesc.NonNull(description, description != "object")), etran);
               }
               // check that "r" was allocated in the "e.AtLabel" state
               Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
               if (wh != null) {
                 var desc = new PODesc.IsAllocated(description, "in the old-state of the 'unchanged' predicate",
                   description != "object");
-                builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
+                builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc), etran);
               }
               // check that the 'unchanged' argument reads only what the context is allowed to read
               if (wfOptions.DoReadsChecks) {
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
-                  null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder),
+                  null, new Dictionary<IVariable, Expression>(), etran, wfOptions.AssertSink(this, builder, etran),
                   new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
               }
             }
@@ -886,22 +886,22 @@ namespace Microsoft.Dafny {
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
                   var rhsIsNat = FunctionCall(binaryExpr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
-                  builder.Add(Assert(GetToken(expr), rhsIsNat, new PODesc.OrdinalSubtractionIsNatural()));
+                  builder.Add(Assert(GetToken(expr), rhsIsNat, new PODesc.OrdinalSubtractionIsNatural()), etran);
                   var offset0 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
                   var offset1 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
-                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(offset1, offset0), new PODesc.OrdinalSubtractionUnderflow()));
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(offset1, offset0), new PODesc.OrdinalSubtractionUnderflow()), etran);
                 } else if (e.Type.IsCharType) {
                   var e0 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
                   var e1 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
                   if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
                     builder.Add(Assert(GetToken(expr),
                       FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
-                        Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()));
+                        Bpl.Expr.Binary(BinaryOperator.Opcode.Add, e0, e1)), new PODesc.CharOverflow()), etran);
                   } else {
                     Contract.Assert(e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub);  // .Mul is not supported for char
                     builder.Add(Assert(GetToken(expr),
                       FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null,
-                        Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()));
+                        Bpl.Expr.Binary(BinaryOperator.Opcode.Sub, e0, e1)), new PODesc.CharUnderflow()), etran);
                   }
                 }
                 CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
@@ -917,7 +917,7 @@ namespace Microsoft.Dafny {
                     zero = Bpl.Expr.Literal(0);
                   }
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(e.E1), wfOptions.AssertKv));
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero), new PODesc.DivisorNonZero(e.E1), wfOptions.AssertKv), etran);
                   CheckResultToBeInType(binaryExpr.tok, binaryExpr, binaryExpr.Type, locals, builder, etran);
                 }
                 break;
@@ -934,7 +934,7 @@ namespace Microsoft.Dafny {
                       // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
                       var bound = BplBvLiteralExpr(e.tok, BaseTypes.BigNum.FromInt(w), e1Width);
                       var cmp = etran.TrToFunctionCall(binaryExpr.tok, "le_bv" + e1Width, Bpl.Type.Bool, etran.TrExpr(e.E1), bound, false);
-                      builder.Add(Assert(GetToken(expr), cmp, upperDesc, wfOptions.AssertKv));
+                      builder.Add(Assert(GetToken(expr), cmp, upperDesc, wfOptions.AssertKv), etran);
                     } else {
                       // In the previous branch, we had:
                       //     w < 2^e1Width               (*)
@@ -948,8 +948,8 @@ namespace Microsoft.Dafny {
                     }
                   } else {
                     var positiveDesc = new PODesc.ShiftLowerBound();
-                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, wfOptions.AssertKv));
-                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, wfOptions.AssertKv));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), positiveDesc, wfOptions.AssertKv), etran);
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperDesc, wfOptions.AssertKv), etran);
                   }
                 }
                 break;
@@ -977,7 +977,7 @@ namespace Microsoft.Dafny {
                       var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
                         ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
                       builder.Add(Assert(GetToken(expr), notGhostCtor,
-                        new PODesc.NotGhostVariant("equality", ghostConstructors)));
+                        new PODesc.NotGhostVariant("equality", ghostConstructors)), etran);
                     }
 
                     CheckOperand(e.E0);
@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny {
               case TernaryExpr.Opcode.PrefixEqOp:
               case TernaryExpr.Opcode.PrefixNeqOp:
                 if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), new PODesc.PrefixEqualityLimit(), wfOptions.AssertKv));
+                  builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), new PODesc.PrefixEqualityLimit(), wfOptions.AssertKv), etran);
                 }
                 break;
               default:
@@ -1063,7 +1063,7 @@ namespace Microsoft.Dafny {
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
                   CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
                   // new options now contains the delayed reads checks
-                  newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
+                  newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder, etran);
 
                   // continue doing reads checks, but don't delay them
                   newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
                     var different = BplOr(
                       Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                       Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias()));
+                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias()), etran);
                   });
                 }
               });
@@ -1158,7 +1158,7 @@ namespace Microsoft.Dafny {
               // Every constructor has this destructor; no need to check anything
             } else {
               builder.Add(Assert(GetToken(expr), correctConstructor,
-                new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
+                new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))), etran);
             }
 
             CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
@@ -1193,7 +1193,7 @@ namespace Microsoft.Dafny {
       if (result != null) {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
-        CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
+        CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder, etran);
         builder.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
@@ -1231,7 +1231,7 @@ namespace Microsoft.Dafny {
         }
 
         String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-        b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
+        b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)), etran);
 
         Bpl.Expr guard = Bpl.Expr.Eq(src, r);
         ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
@@ -1314,7 +1314,7 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(GetToken(exprUsedForToken), notGhostCtor,
             new PODesc.NotGhostVariant(whatKind,
               Util.PrintableNameList(members.ConvertAll(member => member.Name), "and"),
-              enclosingGhostConstructors)));
+              enclosingGhostConstructors)), etran);
         }
       }
     }
@@ -1328,8 +1328,8 @@ namespace Microsoft.Dafny {
       if (name == "RotateLeft" || name == "RotateRight") {
         var w = expr.Type.AsBitVectorType.Width;
         Expression arg = expr.Args[0];
-        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new PODesc.ShiftLowerBound(), options.AssertKv));
-        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new PODesc.ShiftUpperBound(w), options.AssertKv));
+        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), new PODesc.ShiftLowerBound(), options.AssertKv), etran);
+        builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)), new PODesc.ShiftUpperBound(w), options.AssertKv), etran);
       }
     }
 
@@ -1348,7 +1348,7 @@ namespace Microsoft.Dafny {
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
           CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran);
-          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
+          CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder, etran);
           builder.Add(TrAssumeCmd(pat.tok, Bpl.Expr.Eq(etran.TrExpr(Substitute(pat.Expr, null, substMap)), rIe)));
         }
         CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran);
@@ -1397,7 +1397,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
-            new PODesc.LetSuchThatUnique(e.RHSs[0], e.BoundVars.ToList())));
+            new PODesc.LetSuchThatUnique(e.RHSs[0], e.BoundVars.ToList())), etran);
         }
         // assume $let$canCall(g);
         LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
@@ -1407,7 +1407,7 @@ namespace Microsoft.Dafny {
         if (result != null) {
           Contract.Assert(resultType != null);
           var bResult = etran.TrExpr(letBody);
-          CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder);
+          CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, builder, etran);
           builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
@@ -1427,7 +1427,7 @@ namespace Microsoft.Dafny {
       foreach (var fe in fes) {
         CheckWellformed(fe.E, wfo, locals, builder, etran);
         if (fe.Field != null && fe.E.Type.IsRefType) {
-          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), new PODesc.FrameDereferenceNonNull()));
+          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), new PODesc.FrameDereferenceNonNull()), etran);
         }
       }
     }

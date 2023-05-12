@@ -11,6 +11,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
