@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Xunit;
-using Xunit.Abstractions;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -131,8 +130,5 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       }
       return loader.LoadAsync(options, textDocument, cancellationToken);
     }
-  }
-
-  public ExceptionTests(ITestOutputHelper output) : base(output) {
   }
 }

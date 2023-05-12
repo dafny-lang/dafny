@@ -11,14 +11,13 @@ namespace XUnitExtensions.Lit {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(TextReader inputReader,
-      TextWriter outputWriter, TextWriter errorWriter) {
-      var (leftExitCode, leftOutput, leftError) = lhs.Execute(inputReader, outputWriter, errorWriter);
+    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+      var (leftExitCode, leftOutput, leftError) = lhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       if (leftExitCode == 0) {
         return (leftExitCode, leftOutput, leftError);
       }
 
-      var (rightExitCode, rightOutput, rightError) = rhs.Execute(inputReader, outputWriter, errorWriter);
+      var (rightExitCode, rightOutput, rightError) = rhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
       return (rightExitCode, leftOutput + rightOutput, leftError + rightError);
     }
 

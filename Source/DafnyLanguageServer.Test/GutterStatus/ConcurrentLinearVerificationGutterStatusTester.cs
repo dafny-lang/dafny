@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
-using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -59,6 +58,4 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
-  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
-  }
 }

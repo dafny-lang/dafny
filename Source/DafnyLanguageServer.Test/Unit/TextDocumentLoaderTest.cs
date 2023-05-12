@@ -4,18 +4,14 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
   public class TextDocumentLoaderTest {
-    private readonly TextWriter output;
-
     private Mock<IDafnyParser> parser;
     private Mock<ISymbolResolver> symbolResolver;
     private Mock<ISymbolTableFactory> symbolTableFactory;
@@ -25,8 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private Mock<ILoggerFactory> logger;
     private Mock<INotificationPublisher> diagnosticPublisher;
 
-    public TextDocumentLoaderTest(ITestOutputHelper output) {
-      this.output = new WriterFromOutputHelper(output);
+    public TextDocumentLoaderTest() {
       parser = new();
       symbolResolver = new();
       symbolTableFactory = new();
@@ -35,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       logger = new Mock<ILoggerFactory>();
       diagnosticPublisher = new Mock<INotificationPublisher>();
       textDocumentLoader = TextDocumentLoader.Create(
-        DafnyOptions.Create(this.output, TextReader.Null),
+        DafnyOptions.Create(),
         parser.Object,
         symbolResolver.Object,
         symbolTableFactory.Object,

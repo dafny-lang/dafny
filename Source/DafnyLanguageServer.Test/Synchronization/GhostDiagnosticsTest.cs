@@ -4,7 +4,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class GhostDiagnosticsTest : ClientBasedLanguageServerTest {
@@ -192,9 +191,6 @@ class C {
       Assert.Equal(new Range((13, 4), (13, 11)), diagnostics[2].Range);
       Assert.Equal("Ghost statement", diagnostics[3].Message);
       Assert.Equal(new Range((15, 4), (15, 14)), diagnostics[3].Range);
-    }
-
-    public GhostDiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

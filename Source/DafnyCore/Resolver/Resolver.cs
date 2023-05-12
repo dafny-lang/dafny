@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    public FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
+    public static FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
 
     public string FreshTempVarName(string prefix, ICodeContext context) {
       var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
@@ -448,7 +448,7 @@ namespace Microsoft.Dafny {
       rewriters.Add(new TimeLimitRewriter(reporter));
       rewriters.Add(new ForallStmtRewriter(reporter));
       rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
-      rewriters.Add(new MatchFlattener(this.reporter, defaultTempVarIdGenerator));
+      rewriters.Add(new MatchFlattener(this.reporter, Resolver.defaultTempVarIdGenerator));
 
       if (Options.AutoTriggers) {
         rewriters.Add(new QuantifierSplittingRewriter(reporter));
@@ -1192,7 +1192,7 @@ namespace Microsoft.Dafny {
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
-          var wr = Options.OutputWriter;
+          var wr = Console.Out;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);

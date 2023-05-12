@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
-          (TextReader)null!,
+          useStdin: false,
           dafnyFile.Uri,
           module,
           builtIns,
