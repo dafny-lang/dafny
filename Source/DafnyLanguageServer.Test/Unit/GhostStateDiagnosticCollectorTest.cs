@@ -9,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
@@ -29,8 +30,8 @@ public class GhostStateDiagnosticCollectorTest {
     }
   }
 
-  public GhostStateDiagnosticCollectorTest() {
-    var options = new DafnyOptions();
+  public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
+    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,

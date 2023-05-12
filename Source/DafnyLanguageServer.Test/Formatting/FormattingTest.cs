@@ -9,6 +9,7 @@ using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.Formatting;
 public class FormattingTest : ClientBasedLanguageServerTest {
@@ -161,5 +162,8 @@ module A {
                   codeActionInput.Extract(new Range(edit.Range.End, document.TextDocumentItem.Range.End));
     }
     Assert.Equal(target, finalText);
+  }
+
+  public FormattingTest(ITestOutputHelper output) : base(output) {
   }
 }
