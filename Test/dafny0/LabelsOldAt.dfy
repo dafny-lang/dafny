@@ -290,3 +290,143 @@ twostate predicate N3(new u: C?, new s: set<C?>, new t: seq<C?>)
 {
   && unchanged(t) // error (x2): may be null, may not be allocated in old
 }
+
+module FreeVariableRegressionTests {
+  class C {
+    var x: int
+  }
+
+  datatype Color = Red | Blue
+  {
+    lemma DatatypeSaysEight(c: C)
+      ensures c.x == 8
+  }
+
+  lemma ModuleLevelSaysEight(c: C)
+    ensures c.x == 8
+
+  class D {
+    lemma ClassSaysEight(c: C)
+      ensures c.x == 8
+    static lemma StaticMethodSaysEight(c: C)
+      ensures c.x == 8
+  }
+
+  method M0(c: C, color: Color)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := (color.DatatypeSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method M1(c: C)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := (ModuleLevelSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method M2(c: C, d: D)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := (d.ClassSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method M3(c: C)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := (D.StaticMethodSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method P0(c: C, color: Color)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    // in the past, the following line had incorrectly given a "old is useless" warning (see also method Q0 below)
+    var y := old(color.DatatypeSaysEight(c); 3);
+    assert false; // error
+  }
+
+  method P1(c: C)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := old(ModuleLevelSaysEight(c); 3);
+    assert false; // error
+  }
+
+  method P2(c: C, d: D)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := old(d.ClassSaysEight(c); 3);
+    assert false; // error
+  }
+
+  method P3(c: C)
+    requires c.x == 8
+    modifies c
+  {
+    c.x := 7;
+    var y := old(D.StaticMethodSaysEight(c); 3);
+    assert false; // error
+  }
+
+  method Q0(c: C, color: Color)
+    requires c.x == 80
+    modifies c
+  {
+    c.x := 8;
+    // in the past, the following line had incorrectly given a "old is useless" warning
+    var y := old(color.DatatypeSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method Q1(c: C)
+    requires c.x == 80
+    modifies c
+  {
+    c.x := 8;
+    var y := old(ModuleLevelSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method Q2(c: C, d: D)
+    requires c.x == 80
+    modifies c
+  {
+    c.x := 8;
+    var y := old(d.ClassSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method Q3(c: C)
+    requires c.x == 80
+    modifies c
+  {
+    c.x := 8;
+    var y := old(D.StaticMethodSaysEight(c); 3); // lemma gives contradiction
+    assert false;
+  }
+
+  method R(arr: array<int>, matrix: array2<int>)
+    modifies arr
+  {
+    ghost var b;
+    b := old(arr.Length); // warning: old has no effect
+    b := old(matrix.Length0 + matrix.Length1); // warning: old has no effect
+  }
+}
