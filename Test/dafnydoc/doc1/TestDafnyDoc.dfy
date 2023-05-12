@@ -43,7 +43,7 @@ module {:options "--function-syntax:4"} TestModule {
   import     opened MInner`E1
   import L = MInner`E2
 
-  /** A very opaque type. 100% dark. */
+  /** A very abstract type. 100% dark. */
   type T  { method m() /* Special method. */ {} }
   type TQ<Y>
 
@@ -55,19 +55,19 @@ module {:options "--function-syntax:4"} TestModule {
     | Z /* A Z */
     | ghost G // A ghost constructor. Very cool.
 
-  /** Type synonym. */
+  /** A type synonym. */
   type Tint(==) = B<int>
 
   type TTT<!Q(0)> = B<Q>
 
   type WW(==,0,!new,00)
 
-  /** Subset type */
+  /** A small subset type */
   type Small = x: nat | x < 100
   type SmallW(==) = x: nat | x < 100 witness 99
   type SmallS = x: nat | x < 100 witness *
 
-  /** New type */
+  /** A brand new type */
   newtype {:native "uint8"} Smaller = x: nat | x < 10 witness 9
 
   newtype Dup = int { predicate IsEven() { true } }
