@@ -258,7 +258,7 @@ namespace Microsoft.Dafny.Compilers {
       var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
 
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
-      if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
+      if (cls is ClassLikeDecl cl) {
         if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(Options, out var _, out var _))) {
           // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
           var wTypeFields = wBody.Fork();
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl or ArrowTypeDecl) {
+      } else if (cl is ClassDecl or TraitDecl or ArrowTypeDecl) {
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
@@ -2015,7 +2015,7 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         return td.WitnessKind == SubsetTypeDecl.WKind.CompiledZero;
-      } else if (cl is ClassDecl) {
+      } else if (cl is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         return true; // null is a value of this type
       } else {
         return false;

@@ -333,7 +333,7 @@ namespace Microsoft.Dafny {
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors));
         }
-        if (decl is ClassDecl { IsObjectTrait: true }) {
+        if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
           // object is also a parent type
@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
     int Height(TopLevelDecl d) {
       if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
         return md.ParentTraitHeads.Max(Height) + 1;
-      } else if (d is ClassDecl cl && cl.IsObjectTrait) {
+      } else if (d is TraitDecl { IsObjectTrait: true }) {
         // object is at height 0
         return 0;
       } else if (DPreType.IsReferenceTypeDecl(d)) {
@@ -490,12 +490,12 @@ namespace Microsoft.Dafny {
     public void PostResolveChecks(List<TopLevelDecl> declarations) {
       Contract.Requires(declarations != null);
       foreach (TopLevelDecl topd in declarations) {
-        TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
+        TopLevelDecl d = topd is ClassLikeDecl ? ((ClassLikeDecl)topd).NonNullTypeDecl : topd;
 
         if (ErrorCount == prevErrorCount) {
           // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
           foreach (TopLevelDecl topd in declarations) {
-            TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
+            TopLevelDecl d = topd is ClassLikeDecl ? ((ClassLikeDecl)topd).NonNullTypeDecl : topd;
             if (topd is TopLevelDeclWithMembers cl) {
               foreach (var member in cl.Members) {
                 if (member is ConstantField field && field.Rhs != null) {
@@ -590,7 +590,7 @@ namespace Microsoft.Dafny {
       foreach (var d in declarations) {
         yield return d;
         /*
-        if (d is ClassDecl { IsDefaultClass: false, NonNullTypeDecl: { } nonNullTypeDecl }) {
+        if (d is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl }) {
           yield return nonNullTypeDecl;
         }
         */

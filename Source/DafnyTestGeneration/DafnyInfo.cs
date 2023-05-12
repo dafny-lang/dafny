@@ -20,7 +20,7 @@ namespace DafnyTestGeneration {
     private readonly Dictionary<string, Method> methods = new();
     private readonly Dictionary<string, Function> functions = new();
     public readonly Dictionary<string, IndDatatypeDecl> Datatypes = new();
-    private readonly Dictionary<string, ClassDecl> classes = new();
+    private readonly Dictionary<string, ClassLikeDecl> classes = new();
     // import required to access the code contained in the program
     public readonly Dictionary<string, string> ToImportAs = new();
     private readonly Dictionary<string, (List<TypeParameter> args, Type superset)> subsetToSuperset = new();
@@ -409,7 +409,7 @@ namespace DafnyTestGeneration {
       private void Visit(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
           Visit(moduleDecl);
-        } else if (d is ClassDecl classDecl) {
+        } else if (d is ClassLikeDecl classDecl) {
           Visit(classDecl);
         } else if (d is IndDatatypeDecl datatypeDecl) {
           Visit(datatypeDecl);
@@ -493,7 +493,7 @@ which may not match the associated condition, if any".TrimStart();
         d.Members.ForEach(Visit);
       }
 
-      private void Visit(ClassDecl d) {
+      private void Visit(ClassLikeDecl d) {
         info.classes[d.FullDafnyName] = d;
         info.classes[d.FullSanitizedName] = d;
         d.Members.ForEach(Visit);

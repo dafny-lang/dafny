@@ -491,9 +491,9 @@ namespace Microsoft.Dafny {
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes =
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassDecl)?.NonNullTypeDecl != null).ToList();
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
-        var d = ((ClassDecl)cl).NonNullTypeDecl;
+        var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
@@ -883,8 +883,8 @@ namespace Microsoft.Dafny {
       TopLevelDecl defaultClass;
 
       sig.TopLevels.TryGetValue("_default", out defaultClass);
-      Contract.Assert(defaultClass is ClassDecl);
-      Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+      Contract.Assert(defaultClass is DefaultClassDecl);
+      Contract.Assert(((DefaultClassDecl)defaultClass).IsDefaultClass);
       defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var d in sortedExportDecls) {
@@ -906,7 +906,7 @@ namespace Microsoft.Dafny {
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
+          if (classMembers.TryGetValue((DefaultClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
               continue;
             }
 
-            if (cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl != null) {
+            if (cldecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members",
                 export.ClassId);
@@ -959,9 +959,9 @@ namespace Microsoft.Dafny {
 
             decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
-            if (tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+              var nn = ((ClassLikeDecl)tdecl).NonNullTypeDecl;
               Contract.Assert(nn != null);
               reporter.Error(MessageSource.Resolver, export.Tok,
                 export.Opaque
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny {
         foreach (var export in exportDecl.Exports) {
           if (export.Decl is MemberDecl member) {
             // For classes and traits, the visibility test is performed on the corresponding non-null type
-            var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null
+            var enclosingType = member.EnclosingClass is ClassLikeDecl cl && cl.NonNullTypeDecl != null
               ? cl.NonNullTypeDecl
               : member.EnclosingClass;
             if (!enclosingType.IsVisibleInScope(exportDecl.Signature.VisibilityScope)) {
@@ -1529,8 +1529,8 @@ namespace Microsoft.Dafny {
             // (because it reveals C and C?). The merge output will contain the non-null type decl
             // for the key (and we expect the mapping "C? -> class C" to be placed in the
             // merge output as well, by the end of this loop).
-            if (infoValue is ClassDecl) {
-              var cd = (ClassDecl)infoValue;
+            if (infoValue is ClassLikeDecl) {
+              var cd = (ClassLikeDecl)infoValue;
               Contract.Assert(cd.NonNullTypeDecl == kv.Value);
               info.TopLevels[kv.Key] = kv.Value;
             } else if (kv.Value is ClassDecl) {
@@ -1734,8 +1734,8 @@ namespace Microsoft.Dafny {
             anonymousImportCount++;
           } else if (toplevels.ContainsKey(d.Name)) {
             reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-          } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
-            registerThisDecl = cl.NonNullTypeDecl;
+          } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+            registerThisDecl = nntd;
             registerUnderThisName = d.Name;
           } else {
             registerThisDecl = d;
@@ -1761,8 +1761,8 @@ namespace Microsoft.Dafny {
           var iter = (IteratorDecl)d;
 
           iter.Resolve(this);
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
           var preMemberErrs = reporter.Count(ErrorLevel.Error);
 
           // register the names of the class members
@@ -1892,7 +1892,7 @@ namespace Microsoft.Dafny {
 
       // Now, for each class, register its possibly-null type
       foreach (TopLevelDecl d in declarations) {
-        if ((d as ClassDecl)?.NonNullTypeDecl != null) {
+        if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
           var name = d.Name + "?";
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
@@ -1919,7 +1919,7 @@ namespace Microsoft.Dafny {
         if (!members.ContainsKey(m.Name)) {
           members.Add(m.Name, m);
           if (m is Constructor) {
-            Contract.Assert(cl is ClassDecl); // the parser ensures this condition
+            Contract.Assert(cl is ClassLikeDecl); // the parser ensures this condition
             if (cl is TraitDecl) {
               reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
             } else {
@@ -2005,7 +2005,7 @@ namespace Microsoft.Dafny {
       // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
       // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
       // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
-      var isStatic = f.HasStaticKeyword || cl is ClassDecl { IsDefaultClass: true };
+      var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
       var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
       var fn = new ApplySuffix(tok, null,
         new ExprDotName(tok, receiver, f.Name, null),
@@ -2201,7 +2201,7 @@ namespace Microsoft.Dafny {
               mem.AddVisibilityScope(scope, false);
             }
           }
-          var nnd = (cl as ClassDecl)?.NonNullTypeDecl;
+          var nnd = (cl as ClassLikeDecl)?.NonNullTypeDecl;
           if (nnd != null) {
             nnd.AddVisibilityScope(scope, false);
           }
@@ -2637,8 +2637,8 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
+          } else if (d is ClassLikeDecl) {
+            var cl = (ClassLikeDecl)d;
             foreach (var member in cl.Members) {
               if (!member.IsGhost) {
                 if (member is Function) {
@@ -2711,8 +2711,8 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeCharacteristics_Stmt(iter.Body, false);
             }
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
+          } else if (d is ClassDecl or TraitDecl) {
+            var cl = (TopLevelDeclWithMembers)d;
             foreach (var parentTrait in cl.ParentTraits) {
               CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);
             }
@@ -2856,7 +2856,7 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type-parameter variance is respected in type definitions
         foreach (TopLevelDecl d in declarations) {
-          if (d is IteratorDecl || d is ClassDecl) {
+          if (d is ClassLikeDecl) {
             foreach (var tp in d.TypeArgs) {
               if (tp.Variance != TypeParameter.TPVariance.Non) {
                 reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
@@ -2883,7 +2883,7 @@ namespace Microsoft.Dafny {
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
-          if (!(cl is ClassDecl)) {
+          if (cl is not ClassDecl and not TraitDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
               // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
@@ -5466,6 +5466,8 @@ namespace Microsoft.Dafny {
         } else {
           return CheckCanBeConstructed(td.RhsWithArgument(udt.TypeArgs), typeParametersUsed);
         }
+      } else if (cl is TraitDecl traitDecl) {
+        return traitDecl.IsReferenceTypeDecl; // null is a value for reference types
       } else if (cl is ClassDecl) {
         // null is a value for this possibly-null type
         return true;
@@ -5620,7 +5622,7 @@ namespace Microsoft.Dafny {
         case "tailrecursive":
           return host is Method && !((Method)host).IsGhost;
         case "autocontracts":
-          return host is ClassDecl;
+          return host is ClassLikeDecl { IsReferenceTypeDecl: true };
         case "autoreq":
           return host is Function;
         case "abstemious":
@@ -6101,7 +6103,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void FindAllMembers(ClassDecl cl, string memberName, ISet<MemberDecl> foundSoFar) {
+    void FindAllMembers(ClassLikeDecl cl, string memberName, ISet<MemberDecl> foundSoFar) {
       Contract.Requires(cl != null);
       Contract.Requires(memberName != null);
       Contract.Requires(foundSoFar != null);
@@ -6118,7 +6120,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      if (cl is ClassDecl cls && cls.NonNullTypeDecl != null) {
+      if (cl is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
         return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
       } else {
         return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);

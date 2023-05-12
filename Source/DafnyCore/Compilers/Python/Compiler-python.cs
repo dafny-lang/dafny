@@ -567,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
+          ClassDecl or TraitDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
-        if ((thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
+        if ((thisContext != null && typeParameter.Parent is ClassDecl) || typeParameter.Parent is IteratorDecl) {
           return $"self.{typeParameter.GetCompileName(Options)}";
         }
         if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(typeParameter, out var instantiatedTypeParameter)) {
@@ -734,6 +734,7 @@ namespace Microsoft.Dafny.Compilers {
                 return FormatDefaultTypeParameterValue(opaque);
 
               case ClassDecl:
+              case TraitDecl:
               case ArrowTypeDecl:
                 return "None";
             }

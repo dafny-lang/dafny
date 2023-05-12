@@ -115,15 +115,16 @@ namespace Microsoft.Dafny {
         var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
         var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
+      } else if (d is DefaultClassDecl) {
+        var dd = (DefaultClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
+        return new DefaultClassDecl(m, mm);
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
-        if (d is DefaultClassDecl) {
-          return new DefaultClassDecl(m, mm);
-        } else {
-          return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
-        }
+        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
@@ -800,14 +801,14 @@ namespace Microsoft.Dafny {
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var based = base.CloneDeclaration(d, m);
-      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
+      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassLikeDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
         var otd = new OpaqueTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
         based = otd;
-        if (d is ClassDecl) {
-          reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
+        if (d is ClassLikeDecl { IsReferenceTypeDecl: true } cl) {
+          reverseMap.Add(based, cl.NonNullTypeDecl);
           return based;
         }
       }

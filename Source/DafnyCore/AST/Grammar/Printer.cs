@@ -382,17 +382,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent); wr.WriteLine("---------- iterator members ----------*/");
           }
 
-        } else if (d is ClassDecl) {
-          ClassDecl cl = (ClassDecl)d;
-          if (!cl.IsDefaultClass) {
-            if (i++ != 0) { wr.WriteLine(); }
-            PrintClass(cl, indent, fileBeingPrinted);
-          } else if (cl.Members.Count == 0) {
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          if (defaultClassDecl.Members.Count == 0) {
             // print nothing
           } else {
             if (i++ != 0) { wr.WriteLine(); }
-            PrintMembers(cl.Members, indent, fileBeingPrinted);
+            PrintMembers(defaultClassDecl.Members, indent, fileBeingPrinted);
           }
+
+        } else if (d is ClassDecl or TraitDecl) {
+          var cl = (ClassLikeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          PrintClass(cl, indent, fileBeingPrinted);
 
         } else if (d is ValuetypeDecl) {
           var vtd = (ValuetypeDecl)d;
@@ -657,7 +658,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, null, fileBeingPrinted);
     }
 
-    public void PrintClass(ClassDecl c, int indent, string fileBeingPrinted) {
+    public void PrintClass(ClassLikeDecl c, int indent, string fileBeingPrinted) {
       Contract.Requires(c != null);
 
       Indent(indent);

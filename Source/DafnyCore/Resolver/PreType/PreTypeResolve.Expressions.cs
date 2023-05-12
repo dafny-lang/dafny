@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
         if (!scope.AllowInstance) {
           ReportError(expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
+        if (currentClass is DefaultClassDecl) {
           // there's no type
         } else if (currentClass == null) {
           Contract.Assert(resolver.reporter.HasErrors);
@@ -1189,7 +1189,7 @@ namespace Microsoft.Dafny {
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
           if (!isLastNameSegment) {
-            if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+            if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
               if (complain) {
@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass, true);
           receiver.PreType = Type2PreType(receiver.Type);
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
@@ -1411,7 +1411,7 @@ namespace Microsoft.Dafny {
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
             if (!isLastNameSegment) {
-              if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+              if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
                 // the name of the class, C. Report an error and continue.
                 ReportError(expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (Resolver.AmbiguousMemberDecl)member;
             ReportError(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass, true);
             receiver.PreType = Type2PreType(receiver.Type);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }

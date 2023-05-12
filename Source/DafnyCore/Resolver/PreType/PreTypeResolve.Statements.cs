@@ -1304,10 +1304,11 @@ namespace Microsoft.Dafny {
         if (rr.EType.IsRefType) {
           var udt = rr.EType.NormalizeExpand() as UserDefinedType;
           if (udt != null) {
-            var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-            if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType && (cl.HasConstructor || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
+            var cl = (ClassLikeDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+            if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType &&
+                (cl is ClassDecl { HasConstructor: true } || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
               ReportError(stmt, "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
-                cl.HasConstructor ? "" : "imported ");
+                cl is ClassDecl { HasConstructor: true } ? "" : "imported ");
             }
           }
         }

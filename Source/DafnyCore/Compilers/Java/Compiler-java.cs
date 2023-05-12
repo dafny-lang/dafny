@@ -935,7 +935,9 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
+      if (cls is not DefaultClassDecl) {
+        EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
+      }
 
       if (fullPrintName != null) {
         // By emitting a toString() method, printing an object will give the same output as with other target languages.
@@ -3129,7 +3131,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl or ArrowTypeDecl) {
+      } else if (cl is ClassDecl or TraitDecl or ArrowTypeDecl) {
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
