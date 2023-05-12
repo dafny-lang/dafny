@@ -849,6 +849,69 @@ class DafnyDoc {
     return info;
   }
 
+  public Info ExecutableInfo(MemberDecl m, TopLevelDeclWithMembers owner) {
+    var name = m.Name;
+    if (m is Constructor) {
+      if (name == "_ctor") {
+        name = owner.Name;
+        AddToIndexC(name, "_", owner.FullDafnyName, m.WhatKind);
+      } else {
+        name = owner.Name + "." + m.Name;
+        AddToIndexC(name, m.Name, owner.FullDafnyName, m.WhatKind);
+      }
+      AddToIndex(name, owner.FullDafnyName, m.WhatKind);
+    }
+
+    var info = new Info();
+    info.Contents = null;
+    info.Kind = m.WhatKind;
+    info.Name = name;
+    info.FullName = m.FullDafnyName;
+    info.Link = m.FullDafnyName + ".html";
+    info.FileName = this.Outputdir + "/" + info.Link;
+
+    var md = m as IHasDocstring;
+    var docstring = Docstring(md);
+    info.RawLongDoc = docstring;
+    info.RawShortDoc = Shorten(docstring);
+
+    var ms = MethodSig(m); // Wrapped as code
+    var modifiers = m.ModifiersAsString();
+
+    String link = Link(null, name, name);
+    // Replacing the name with a link -- the angle brackets are to be sure we get the whole name and 
+    // not a portion of someother html tag. At this point the name is enclosed in some styling tag.
+    String mss = ReplaceFirst(ms, ">" + m.Name + "<", ">" + link + "<");
+
+    var summaries = new StringBuilder();
+    var details = new StringBuilder();
+    summaries.Append(mss);
+    if (!String.IsNullOrEmpty(docstring)) {
+      summaries.Append(space4).Append(DashShortDocstring(md));
+    }
+    summaries.Append(br).Append(eol);
+
+    //details.Append(Anchor(name)).Append(eol);
+    //details.Append(RuleWithText(name)).Append(eol);
+    if (!String.IsNullOrEmpty(modifiers)) {
+      details.Append(modifiers).Append(br).Append(eol);
+    }
+    details.Append(m.WhatKind).Append(br).Append(eol);
+    details.Append(ms).Append(br).Append(eol);
+
+    var attributes = m.Attributes?.ToString();
+    if (!String.IsNullOrEmpty(attributes)) {
+      details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
+    }
+    details.Append(IndentedHtml(docstring));
+    AppendSpecs(details, m);
+
+    info.HtmlSummary = summaries.ToString();
+    info.HtmlDetail = details.ToString();
+    script.Append(ScriptEntry(info.FullName));
+    return info;
+  }
+
   /** Append the summary and detail information about const declarations to the string builders */
   public void WriteConstants(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
     var constants = decl.Members.Where(c => c is ConstantField).Select(c => c as ConstantField).ToList();
@@ -898,7 +961,7 @@ class DafnyDoc {
 
   /** Append the summary and detail information about field declarations to the string builders */
   public void WriteMutableFields(TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
-    var fields = decl.Members.Where(c => c is Field && c is not ConstantField).Select(c => c as Field).ToList();
+    var fields = decl.Members.Where(c => c is Field && c is not ConstantField && (c as Field).Name[0] != '_').Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
       summaries.Append(Heading3("Mutable Fields\n"));
@@ -938,9 +1001,7 @@ class DafnyDoc {
     var functions = decl.Members.Where(m => m is Function).Select(m => m as MemberDecl).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (functions.Count > 0) {
-      summaries.Append(Heading3("Functions")).Append(eol);
-      details.Append(Heading3("Functions")).Append(eol);
-      WriteMethodsList(functions, decl, summaries, details, ownerInfoList);
+      WriteMethodsList("Functions", functions, decl, summaries, details, ownerInfoList);
     }
   }
 
@@ -948,9 +1009,7 @@ class DafnyDoc {
     var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike && !(m is Constructor)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      summaries.Append(Heading3("Methods")).Append(eol);
-      details.Append(Heading3("Methods")).Append(eol);
-      WriteMethodsList(methods, decl, summaries, details, ownerInfoList);
+      WriteMethodsList("Methods", methods, decl, summaries, details, ownerInfoList);
     }
   }
 
@@ -958,9 +1017,7 @@ class DafnyDoc {
     var methods = decl.Members.Where(m => m is Constructor).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      summaries.Append(Heading3("Constructors")).Append(eol);
-      details.Append(Heading3("Constructors")).Append(eol);
-      WriteMethodsList(methods, decl, summaries, details, ownerInfoList);
+      WriteMethodsList("Constructors", methods, decl, summaries, details, ownerInfoList);
     }
   }
 
@@ -1003,54 +1060,23 @@ class DafnyDoc {
   }
 
   // For methods, lemmas, functions
-  public void WriteMethodsList(List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
+  public void WriteMethodsList(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, StringBuilder details, List<Info> ownerInfoList) {
+    summaries.Append(Heading3(kind)).Append(eol);
+    details.Append(Heading3(kind)).Append(eol);
     foreach (var m in members) {
       var md = m as IHasDocstring;
       var ms = MethodSig(m); // Wrapped as code
       var docstring = Docstring(md);
       var modifiers = m.ModifiersAsString();
       var name = m.Name;
-      if (m is Constructor) {
-        if (name == "_ctor") {
-          name = decl.Name;
-          AddToIndexC(name, "_", decl.FullDafnyName, m.WhatKind);
-        } else {
-          name = decl.Name + "." + m.Name;
-          AddToIndexC(name, m.Name, decl.FullDafnyName, m.WhatKind);
-        }
-      } else {
-        //        var info = ExecutableInfo(m, decl);
-        //        ownerInfoList.Add(info);
-        //        System.Console.WriteLine("SAVING " + info.Kind + " " + info.FullName);
-        //        this.AllInfo.Add(info.FullName, info);
-        AddToIndex(name, decl.FullDafnyName, m.WhatKind);
-      }
 
-      String link = Link(null, name, name);
-      // Replacing the name with a link -- the angle brackets are to be sure we get the whole name and 
-      // not a portion of someother html tag. At this point the name is enclosed in some styling tag.
-      String mss = ReplaceFirst(ms, ">" + m.Name + "<", ">" + link + "<");
+      var info = ExecutableInfo(m, decl);
+      ownerInfoList.Add(info);
+      System.Console.WriteLine("SAVING " + info.Kind + " " + info.FullName);
+      this.AllInfo.Add(info.FullName, info);
 
-      summaries.Append(mss);
-      if (!String.IsNullOrEmpty(docstring)) {
-        summaries.Append(space4).Append(DashShortDocstring(md));
-      }
-      summaries.Append(br).Append(eol);
-
-      details.Append(Anchor(name)).Append(eol);
-      details.Append(RuleWithText(name)).Append(eol);
-      if (!String.IsNullOrEmpty(modifiers)) {
-        details.Append(modifiers).Append(br).Append(eol);
-      }
-      details.Append(m.WhatKind).Append(br).Append(eol);
-      details.Append(ms).Append(br).Append(eol);
-
-      var attributes = m.Attributes?.ToString();
-      if (!String.IsNullOrEmpty(attributes)) {
-        details.Append(space4).Append(Code(attributes)).Append(br).Append(eol);
-      }
-      details.Append(IndentedHtml(docstring));
-      AppendSpecs(details, m);
+      summaries.Append(info.HtmlSummary);
+      details.Append(info.HtmlDetail);
     }
   }
 
@@ -1058,9 +1084,7 @@ class DafnyDoc {
     var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (methods.Count() > 0) {
-      summaries.Append(Heading3("Lemmas")).Append(eol);
-      details.Append(Heading3("Lemmas")).Append(eol);
-      WriteMethodsList(methods, decl, summaries, details, ownerInfoList);
+      WriteMethodsList("Lemmas", methods, decl, summaries, details, ownerInfoList);
     }
   }
 

@@ -41,16 +41,6 @@ class DafnyDocHtml {
 ";
   }
 
-  public static string Script =
-@"<script type=""text/javascript"">
-  window.onload = function() {
-      document.getElementById(""TestModule.ccc"").onclick = function() {
-        document.getElementById(""main"").innerHTML = '<iframe  width=""100%""  height=""100%"" style=""border:none;"" src=""TestModule.ccc.html"" ></iframe>';
-        return false;
-      }
-    }
-</script >
-";
   public static string ScriptStart() {
     return
 @"<script type=""text/javascript"">
@@ -62,11 +52,12 @@ class DafnyDocHtml {
     return
 @"
     document.getElementById(""{id}"").onclick = function() {
-      document.getElementById(""main"").innerHTML = '<iframe width=""100%"" height=""100%"" style=""border:none;"" src=""{id}.html""></iframe>';
+      document.getElementById(""main"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000px"" style=""border:none; scrolling:no;"" src=""{id}.html""></iframe>';
       return false;
     }
 ".Replace("{id}", id);
   }
+  // TODO: The CSS for 'frame' does not seem to work.
 
   public static string ScriptEnd() {
     return
@@ -238,6 +229,7 @@ class DafnyDocHtml {
 
 .main {
   margin-left: 300px; /* Same as the width of the sidenav */
+  height: 100%;
 }
 
 @media screen and (max-height: 450px) {
@@ -264,6 +256,13 @@ h2 {
 h3 {
   color: blue;
   text-align: left;
+}
+
+frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #ffffa0;
 }
 
 p {
