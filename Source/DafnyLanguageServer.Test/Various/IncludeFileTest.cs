@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -40,8 +39,5 @@ ensures Foo(x) {{
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
     Assert.Single(verificationDiagnostics);
     await AssertNoDiagnosticsAreComing(CancellationToken);
-  }
-
-  public IncludeFileTest(ITestOutputHelper output) : base(output) {
   }
 }

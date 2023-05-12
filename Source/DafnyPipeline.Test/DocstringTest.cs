@@ -8,7 +8,6 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
 
@@ -21,17 +20,11 @@ namespace DafnyPipeline.Test {
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
   public class DocstringTest {
-    private readonly ITestOutputHelper output;
-
     enum Newlines {
       LF,
       CR,
       CRLF
     };
-
-    public DocstringTest(ITestOutputHelper output) {
-      this.output = output;
-    }
 
     private Newlines currentNewlines;
 
@@ -426,7 +419,7 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(output));
+      var options = DafnyOptions.Create();
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;

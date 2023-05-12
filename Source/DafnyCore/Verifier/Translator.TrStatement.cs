@@ -1577,7 +1577,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
-      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {

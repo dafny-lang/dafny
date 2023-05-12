@@ -1,6 +1,4 @@
-﻿using JetBrains.Annotations;
-using Xunit;
-using Xunit.Abstractions;
+﻿using Xunit;
 
 namespace DafnyPipeline.Test;
 
@@ -146,6 +144,4 @@ datatype C = C(
 ", reduceBlockiness: false);
   }
 
-  public FormatterForDatatypeDeclarationTest([NotNull] ITestOutputHelper output) : base(output) {
-  }
 }

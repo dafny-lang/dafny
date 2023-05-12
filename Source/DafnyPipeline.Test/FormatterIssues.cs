@@ -1,6 +1,4 @@
-﻿using JetBrains.Annotations;
-using Xunit;
-using Xunit.Abstractions;
+﻿using Xunit;
 
 namespace DafnyPipeline.Test;
 
@@ -128,8 +126,5 @@ lemma Try(i: int)
   public void FormatterWorksForEmptyDocument() {
     FormatterWorksFor(@"
 ", null, true);
-  }
-
-  public FormatterIssues([NotNull] ITestOutputHelper output) : base(output) {
   }
 }

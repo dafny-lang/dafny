@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
@@ -210,8 +209,5 @@ method Foo() ensures false { } ";
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
  .  |  |  | :}");
-  }
-
-  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

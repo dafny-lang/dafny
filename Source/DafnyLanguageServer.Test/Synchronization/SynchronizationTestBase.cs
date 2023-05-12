@@ -4,13 +4,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SynchronizationTestBase : DafnyLanguageServerTestBase, IAsyncLifetime {
     protected ILanguageClient Client { get; set; }
 
-    public virtual async Task InitializeAsync() {
+    public async virtual Task InitializeAsync() {
       Client = await InitializeClient();
     }
 
@@ -37,9 +36,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
         ContentChanges = changes
       });
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    }
-
-    public SynchronizationTestBase(ITestOutputHelper output) : base(output) {
     }
   }
 }
