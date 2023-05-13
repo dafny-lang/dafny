@@ -4,7 +4,9 @@ using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
+using Microsoft.Extensions.Logging.Abstractions;
 using XUnitExtensions;
+using XUnitExtensions.Lit;
 
 namespace TestDafny;
 
@@ -13,6 +15,9 @@ public class ForEachCompilerOptions {
 
   [Value(0, Required = true, MetaName = "Test file", HelpText = "The *.dfy file to test.")]
   public string? TestFile { get; set; } = null;
+
+  [Option("dafny", HelpText = "The dafny CLI to test with. Defaults to the locally built DafnyDriver project.")]
+  public string? DafnyCliPath { get; set; } = null;
 
   [Value(1, MetaName = "Dafny CLI arguments", HelpText = "Any arguments following '--' will be passed to the dafny CLI unaltered.")]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
@@ -76,7 +81,7 @@ public class MultiBackendTest {
 
     output.WriteLine("Verifying...");
 
-    var (exitCode, outputString, error) = RunDafny(dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
     if (exitCode != 0) {
       output.WriteLine("Verification failed. Output:");
       output.WriteLine(outputString);
@@ -124,7 +129,7 @@ public class MultiBackendTest {
       options.TestFile!,
     }.Concat(options.OtherArgs);
 
-    var (exitCode, outputString, error) = RunDafny(dafnyArgs);
+    var (exitCode, outputString, error) = RunDafny(options.DafnyCliPath, dafnyArgs);
 
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
@@ -156,6 +161,18 @@ public class MultiBackendTest {
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
+  }
+
+
+  private static (int, string, string) RunDafny(string? dafnyCLIPath, IEnumerable<string> arguments) {
+    if (dafnyCLIPath == null) {
+      return RunDafny(arguments);
+    }
+
+    var argumentsWithDefaults = arguments.Concat(DafnyDriver.DefaultArgumentsForTesting);
+    ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
+
+    return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);
   }
 
   private static bool OnlyUnsupportedFeaturesErrors(IExecutableBackend backend, string output) {
