@@ -1456,8 +1456,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public virtual bool IsDefaultClass => false;
-
   public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
@@ -1580,7 +1578,6 @@ public class ClassDecl : ClassLikeDecl, IHasDocstring {
 
 public class DefaultClassDecl : ClassLikeDecl {
   public override string WhatKind => "top-level module declaration";
-  public override bool IsDefaultClass => true;
   public override bool IsReferenceTypeDecl => false;
   public override bool AcceptThis => false;
 

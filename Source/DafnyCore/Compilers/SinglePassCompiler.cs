@@ -1429,20 +1429,22 @@ namespace Microsoft.Dafny.Compilers {
             CompileClassMembers(program, trait, w);
           } else if (d is ClassLikeDecl cl) {
             var include = true;
-            if (cl.IsDefaultClass) {
+            if (cl is DefaultClassDecl) {
               Predicate<MemberDecl> compilationMaterial = x =>
                 !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
               include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = (!Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
+              classIsExtern =
+                (!Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) ||
+                (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
             }
             if (Options.ForbidNondeterminism &&
-                !cl.IsDefaultClass &&
+                cl is not DefaultClassDecl &&
                 !classIsExtern &&
                 !cl.Members.Exists(member => member is Constructor) &&
                 cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {

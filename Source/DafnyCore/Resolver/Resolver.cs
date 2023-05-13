@@ -884,7 +884,6 @@ namespace Microsoft.Dafny {
 
       sig.TopLevels.TryGetValue("_default", out defaultClass);
       Contract.Assert(defaultClass is DefaultClassDecl);
-      Contract.Assert(((DefaultClassDecl)defaultClass).IsDefaultClass);
       defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var d in sortedExportDecls) {
@@ -1773,7 +1772,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) ||
                           !cl.Members.Except(members.Values).Any());
 
-          if (cl.IsDefaultClass) {
+          if (cl is DefaultClassDecl) {
             foreach (MemberDecl m in members.Values) {
               Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
                               Options
