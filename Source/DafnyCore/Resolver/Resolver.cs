@@ -1758,8 +1758,29 @@ namespace Microsoft.Dafny {
           RegisterMembers(moduleDef, cl, members);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-
           iter.Resolve(this);
+
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          var preMemberErrs = reporter.Count(ErrorLevel.Error);
+
+          // register the names of the class members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(defaultClassDecl, members);
+          RegisterMembers(moduleDef, defaultClassDecl, members);
+
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
+
+          foreach (MemberDecl m in members.Values) {
+            Contract.Assert(!m.HasStaticKeyword);
+            if (m is Function or Method or ConstantField) {
+              sig.StaticMembers[m.Name] = m;
+            }
+
+            if (toplevels.ContainsKey(m.Name)) {
+              reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+            }
+          }
+
         } else if (d is ClassLikeDecl) {
           var cl = (ClassLikeDecl)d;
           var preMemberErrs = reporter.Count(ErrorLevel.Error);
@@ -1769,24 +1790,7 @@ namespace Microsoft.Dafny {
           classMembers.Add(cl, members);
           RegisterMembers(moduleDef, cl, members);
 
-          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) ||
-                          !cl.Members.Except(members.Values).Any());
-
-          if (cl is DefaultClassDecl) {
-            foreach (MemberDecl m in members.Values) {
-              Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              Options
-                                .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
-              if (m is Function || m is Method || m is ConstantField) {
-                sig.StaticMembers[m.Name] = m;
-              }
-
-              if (toplevels.ContainsKey(m.Name)) {
-                reporter.Error(MessageSource.Resolver, m.tok,
-                  $"duplicate declaration for name {m.Name}");
-              }
-            }
-          }
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
 
         } else if (d is DatatypeDecl) {
           var dt = (DatatypeDecl)d;
@@ -1880,6 +1884,7 @@ namespace Microsoft.Dafny {
 
           // finally, add any additional user-defined members
           RegisterMembers(moduleDef, dt, members);
+
         } else {
           var cl = (ValuetypeDecl)d;
           // register the names of the type members

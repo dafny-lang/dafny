@@ -1562,16 +1562,14 @@ public class ClassDecl : ClassLikeDecl, IHasDocstring {
   }
 }
 
-public class DefaultClassDecl : ClassLikeDecl {
+public class DefaultClassDecl : TopLevelDeclWithMembers {
   public override string WhatKind => "top-level module declaration";
-  public override bool IsReferenceTypeDecl => false;
   public override bool AcceptThis => false;
 
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
     : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
-    this.NewSelfSynonym();
   }
 }
 
