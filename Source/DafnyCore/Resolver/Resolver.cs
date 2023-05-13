@@ -2568,130 +2568,9 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        // Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
-        // First, do datatypes and type synonyms until a fixpoint is reached.
-        bool inferredSomething;
-        do {
-          inferredSomething = false;
-          foreach (var d in declarations) {
-            if (Attributes.Contains(d.Attributes, "_provided")) {
-              // Don't infer required-equality-support for the type parameters, since there are
-              // scopes that see the name of the declaration but not its body.
-            } else if (d is DatatypeDecl) {
-              var dt = (DatatypeDecl)d;
-              foreach (var tp in dt.TypeArgs) {
-                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                  // here's our chance to infer the need for equality support
-                  foreach (var ctor in dt.Ctors) {
-                    foreach (var arg in ctor.Formals) {
-                      if (InferRequiredEqualitySupport(tp, arg.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                        inferredSomething = true;
-                        goto DONE_DT;  // break out of the doubly-nested loop
-                      }
-                    }
-                  }
-                DONE_DT:;
-                }
-              }
-            } else if (d is TypeSynonymDecl) {
-              var syn = (TypeSynonymDecl)d;
-              foreach (var tp in syn.TypeArgs) {
-                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                  // here's our chance to infer the need for equality support
-                  if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    inferredSomething = true;
-                  }
-                }
-              }
-            }
-          }
-        } while (inferredSomething);
-        // Now do it for Function and Method signatures.
-        foreach (var d in declarations) {
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            var done = false;
-            var nonnullIter = iter.NonNullTypeDecl;
-            Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
-            for (var i = 0; i < iter.TypeArgs.Count; i++) {
-              var tp = iter.TypeArgs[i];
-              var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
-              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                foreach (var p in iter.Ins) {
-                  if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    done = true;
-                    break;
-                  }
-                }
-                foreach (var p in iter.Outs) {
-                  if (done) {
-                    break;
-                  }
 
-                  if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    break;
-                  }
-                }
-              }
-            }
-          } else if (d is ClassLikeDecl or DefaultClassDecl) {
-            var cl = (TopLevelDeclWithMembers)d;
-            foreach (var member in cl.Members) {
-              if (!member.IsGhost) {
-                if (member is Function) {
-                  var f = (Function)member;
-                  foreach (var tp in f.TypeArgs) {
-                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                      // here's our chance to infer the need for equality support
-                      if (InferRequiredEqualitySupport(tp, f.ResultType)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                      } else {
-                        foreach (var p in f.Formals) {
-                          if (InferRequiredEqualitySupport(tp, p.Type)) {
-                            tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                  }
-                } else if (member is Method) {
-                  var m = (Method)member;
-                  bool done = false;
-                  foreach (var tp in m.TypeArgs) {
-                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                      // here's our chance to infer the need for equality support
-                      foreach (var p in m.Ins) {
-                        if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                          done = true;
-                          break;
-                        }
-                      }
-                      foreach (var p in m.Outs) {
-                        if (done) {
-                          break;
-                        }
+        InferEqualitySupport(declarations);
 
-                        if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
         // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
           new Abstemious(reporter).Check(fn);
@@ -2957,6 +2836,139 @@ namespace Microsoft.Dafny {
       }
       // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
       new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+    }
+
+    /// <summary>
+    /// Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
+    /// </summary>
+    /// <param name="declarations"></param>
+    private void InferEqualitySupport(List<TopLevelDecl> declarations) {
+      /// First, do datatypes and type synonyms until a fixpoint is reached.
+      bool inferredSomething;
+      do {
+        inferredSomething = false;
+        foreach (var d in declarations) {
+          if (Attributes.Contains(d.Attributes, "_provided")) {
+            // Don't infer required-equality-support for the type parameters, since there are
+            // scopes that see the name of the declaration but not its body.
+          } else if (d is DatatypeDecl) {
+            var dt = (DatatypeDecl)d;
+            foreach (var tp in dt.TypeArgs) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                foreach (var ctor in dt.Ctors) {
+                  foreach (var arg in ctor.Formals) {
+                    if (InferRequiredEqualitySupport(tp, arg.Type)) {
+                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                      inferredSomething = true;
+                      goto DONE_DT; // break out of the doubly-nested loop
+                    }
+                  }
+                }
+                DONE_DT: ;
+              }
+            }
+          } else if (d is TypeSynonymDecl) {
+            var syn = (TypeSynonymDecl)d;
+            foreach (var tp in syn.TypeArgs) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  inferredSomething = true;
+                }
+              }
+            }
+          }
+        }
+      } while (inferredSomething);
+
+      // Now do it for Function and Method signatures.
+      foreach (var d in declarations) {
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          var done = false;
+          var nonnullIter = iter.NonNullTypeDecl;
+          Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
+          for (var i = 0; i < iter.TypeArgs.Count; i++) {
+            var tp = iter.TypeArgs[i];
+            var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
+            if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+              // here's our chance to infer the need for equality support
+              foreach (var p in iter.Ins) {
+                if (InferRequiredEqualitySupport(tp, p.Type)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
+                    TypeParameter.EqualitySupportValue.InferredRequired;
+                  done = true;
+                  break;
+                }
+              }
+              foreach (var p in iter.Outs) {
+                if (done) {
+                  break;
+                }
+
+                if (InferRequiredEqualitySupport(tp, p.Type)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
+                    TypeParameter.EqualitySupportValue.InferredRequired;
+                  break;
+                }
+              }
+            }
+          }
+        } else if (d is ClassLikeDecl or DefaultClassDecl) {
+          var cl = (TopLevelDeclWithMembers)d;
+          foreach (var member in cl.Members) {
+            if (!member.IsGhost) {
+              if (member is Function) {
+                var f = (Function)member;
+                foreach (var tp in f.TypeArgs) {
+                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    // here's our chance to infer the need for equality support
+                    if (InferRequiredEqualitySupport(tp, f.ResultType)) {
+                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    } else {
+                      foreach (var p in f.Formals) {
+                        if (InferRequiredEqualitySupport(tp, p.Type)) {
+                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              } else if (member is Method) {
+                var m = (Method)member;
+                bool done = false;
+                foreach (var tp in m.TypeArgs) {
+                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    // here's our chance to infer the need for equality support
+                    foreach (var p in m.Ins) {
+                      if (InferRequiredEqualitySupport(tp, p.Type)) {
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        done = true;
+                        break;
+                      }
+                    }
+                    foreach (var p in m.Outs) {
+                      if (done) {
+                        break;
+                      }
+
+                      if (InferRequiredEqualitySupport(tp, p.Type)) {
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     private void FillInPostConditionsAndBodiesOfPrefixLemmas(List<TopLevelDecl> declarations) {
