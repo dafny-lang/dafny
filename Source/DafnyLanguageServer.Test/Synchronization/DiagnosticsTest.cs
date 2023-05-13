@@ -17,9 +17,6 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class DiagnosticsTest : ClientBasedLanguageServerTest {
 
-    public DiagnosticsTest(ITestOutputHelper output) : base(output) {
-    }
-    
     [Fact]
     public async Task GitIssue3155ItemWithSameKeyAlreadyBeenAdded() {
       var source = @"
@@ -33,7 +30,7 @@ predicate updateTest(test: Test, test': Test)
     test' == test.(field := 1)
 }
 ".TrimStart();
-      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
@@ -1133,6 +1130,9 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.True(diagnostics2.Any());
+    }
+    
+    public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

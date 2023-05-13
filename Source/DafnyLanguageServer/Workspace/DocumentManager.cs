@@ -68,9 +68,8 @@ public class DocumentManager {
       null);
 
     observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
-    stableChangeReceived.Throttle(TimeSpan.FromMilliseconds(20)).ObserveOn(updateScheduler)
+    changeReceived.Throttle(TimeSpan.FromMilliseconds(20)).ObserveOn(updateScheduler)
       .Subscribe(_ => ProcessChanges());
-    logger.LogError($"OpenDocument1 at {DateTime.Now.DebugTime()}");
     var _ = Task.Run(() => {
 
       if (VerifyOnOpen) {
@@ -79,10 +78,9 @@ public class DocumentManager {
         // logger.LogDebug("Setting result for workCompletedForCurrentVersion");
         workCompletedForCurrentVersion.Release();
       }
-      
+
       Compilation.Start();
     });
-    logger.LogError($"OpenDocument2 at {DateTime.Now.DebugTime()}");
   }
 
   private const int MaxRememberedChanges = 100;
@@ -113,28 +111,19 @@ public class DocumentManager {
     }
   }
 
-  private static int count = 0;
-  private readonly Subject<Unit> stableChangeReceived = new();
+  private readonly Subject<Unit> changeReceived = new();
   /// <summary>
   /// In this method it's important to reach oldCompilation.CancelPendingUpdates soon, to prevent doing stale work.
   /// </summary>
   /// <param name="documentChange"></param>
   /// <exception cref="InvalidOperationException"></exception>
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    count++;
-    logger.LogError($"UpdateDocument at {DateTime.Now.DebugTime()}");
-    if (count % 100 == 0) {
-      logger.LogError($"Entering UpdateDocument at {DateTime.Now.DebugTime()} count {count}");
-    }
-
-    Compilation.CancelPendingUpdates(); 
+    Compilation.CancelPendingUpdates();
     changeRequests.Enqueue(documentChange);
-    stableChangeReceived.OnNext(Unit.Value);
+    changeReceived.OnNext(Unit.Value);
   }
-  
+
   private void ProcessDocumentChange(DidChangeTextDocumentParams documentChange) {
-    var start = DateTime.Now;
-    logger.LogError($"Entering ProcessDocumentChange at {start}");
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
     var oldVer = Compilation.TextBuffer.Version;
@@ -145,27 +134,19 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    // logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
     var _1 = workCompletedForCurrentVersion.WaitAsync();
 
     var before = DateTime.Now;
     var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
     logger.LogError($"Applying text change took {(DateTime.Now - before).Milliseconds}ms");
 
-    var beforeMigrateVerificationTree = DateTime.Now;    
     var lastPublishedState = observer.LastPublishedState;
 
     var changeProcessor = relocator.GetChangeProcessor(documentChange, CancellationToken.None);
     var migratedVerificationTree =
       changeProcessor.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines);
-    logger.LogError($"migratedVerificationTree took {(DateTime.Now - beforeMigrateVerificationTree).Milliseconds}ms");
 
-    var beforeDetermineDocumentOptions = DateTime.Now;
-    // TODO cache determining document options for a small amount of time.
     var dafnyOptions = GetDocumentOptions(documentChange);
-    // logger.LogError($"DetermineDocumentOptions took {(DateTime.Now - beforeDetermineDocumentOptions).Milliseconds}ms");
-    var beforeNewCompilation = DateTime.Now;
-    var oldCompilation = Compilation;
     Compilation = new Compilation(
       services,
       dafnyOptions,
@@ -174,12 +155,7 @@ public class DocumentManager {
       // This will improve cancellation hits since UpdateDocument will complete faster since it does less migration
       migratedVerificationTree
     );
-    oldCompilation.CancelPendingUpdates();
     var afterCancel = DateTime.Now;
-    // logger.LogError($"Start to before took {(before - start).Milliseconds}ms");
-    // logger.LogError($"Cancel took {(afterCancel - beforeCancel).Milliseconds}ms");
-    // logger.LogError($"New compilation took {(DateTime.Now - beforeNewCompilation).Milliseconds}ms");
-    // logger.LogError($"Time until cancel oldCompilation took {(DateTime.Now - start).Milliseconds}ms");
 
     lock (ChangedRanges) {
       ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
@@ -189,36 +165,28 @@ public class DocumentManager {
     if (VerifyOnChange) {
       var _ = VerifyEverythingAsync();
     } else {
-      // logger.LogDebug("Setting result for workCompletedForCurrentVersion");
       workCompletedForCurrentVersion.Release();
     }
 
     observerSubscription.Dispose();
-    var beforeMigratedLastPublishedState = DateTime.Now;
     var migratedLastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(changeProcessor, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = changeProcessor.MigrateSymbolTable(lastPublishedState.SignatureAndCompletionTable),
       VerificationTree = migratedVerificationTree
     };
-    logger.LogError($"migratedLastPublishedState took {(DateTime.Now - beforeMigratedLastPublishedState).Milliseconds}ms");
-    var migratedUpdates = Compilation.DocumentUpdates.Select(document => 
+    var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
       document.ToIdeState(migratedLastPublishedState));
     observerSubscription = migratedUpdates.Subscribe(observer);
-    // logger.LogDebug($"After cancel activities took {(DateTime.Now - afterCancel).Milliseconds}ms");
-    // logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
-    //
-    // logger.LogError($"Starting compilation at {DateTime.Now}, UpdateDocument took {(DateTime.Now - start).Milliseconds}ms");
     Compilation.Start();
   }
 
-  private DafnyOptions GetDocumentOptions(DidChangeTextDocumentParams documentChange)
-  {
+  private DafnyOptions GetDocumentOptions(DidChangeTextDocumentParams documentChange) {
     var cacheKey = documentChange.TextDocument.Uri.ToUri().AbsoluteUri;
     var result = memoryCache.Get(cacheKey) as DafnyOptions;
     if (result == null) {
       result = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
       memoryCache.Set(new CacheItem(cacheKey, result), new CacheItemPolicy {
-        SlidingExpiration = new TimeSpan(0,0,5)
+        SlidingExpiration = new TimeSpan(0, 0, 5)
       });
     }
     return result;

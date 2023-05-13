@@ -69,12 +69,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
 
         return program;
-      } 
-      catch (OperationCanceledException) {
-        logger.LogError($"Cancelling while handling includes {cancelIncludeIndex++}");
+      } catch (OperationCanceledException) {
         throw;
-      } 
-      catch (Exception e) {
+      } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
           Uri = document.Uri.ToUri(),
@@ -145,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
       try {
         var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
-        int errorCount = parser.Parse(
+        int errorCount = Parser.Parse(
           new StreamReader(dafnyFile.Uri.LocalPath),
           dafnyFile.Uri,
           module,

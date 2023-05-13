@@ -314,11 +314,11 @@ public class ChangeProcessor {
       StatusCurrent = CurrentStatus.Obsolete
     };
   }
-  
+
   private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> originalDiagnostics) {
     return contentChanges.Aggregate(originalDiagnostics, MigrateVerificationTrees);
   }
-    
+
   private IEnumerable<VerificationTree> MigrateVerificationTrees(IEnumerable<VerificationTree> verificationTrees, TextDocumentContentChangeEvent change) {
     if (change.Range == null) {
       yield break;

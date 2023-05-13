@@ -162,26 +162,21 @@ public static class SourcePreprocessor {
   }
 
   public static string ReadLineAndDetermineNewline(TextReader reader, out string newline) {
-    
+
     StringBuilder sb = new StringBuilder();
     newline = null;
-    while (true)
-    {
+    while (true) {
       int ch = reader.Read();
       if (ch == -1) {
         break;
       }
 
-      if (ch == '\r' || ch == '\n')
-      {
-        if (ch == '\r')
-        {
+      if (ch == '\r' || ch == '\n') {
+        if (ch == '\r') {
           if (reader.Peek() == '\n') {
             newline = "\r\n";
             reader.Read();
-          }
-          else
-          {
+          } else {
             newline = "\r";
           }
         } else {
