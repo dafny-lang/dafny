@@ -801,7 +801,7 @@ namespace Microsoft.Dafny {
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var based = base.CloneDeclaration(d, m);
-      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassLikeDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
+      if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
