@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -62,12 +63,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
 
-        if (!TryParseIncludesOfModule(document.Uri, program.DefaultModule, program.BuiltIns, errorReporter, cancellationToken)) {
+        if (!TryParseIncludesOfModule(document.Uri, program.DefaultModule, program.BuiltIns, errorReporter,
+              cancellationToken)) {
           logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
 
         return program;
-      } catch (Exception e) {
+      } 
+      catch (OperationCanceledException) {
+        logger.LogError($"Cancelling while handling includes {cancelIncludeIndex++}");
+        throw;
+      } 
+      catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
           Uri = document.Uri.ToUri(),
@@ -109,7 +116,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ErrorReporter errorReporter,
       CancellationToken cancellationToken
     ) {
-      var errors = new Errors(errorReporter);
       // Issue #40:
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
@@ -126,7 +132,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           bool isNewInclude = resolvedIncludes.Add(include);
           if (isNewInclude) {
             newIncludeParsed = true;
-            if (!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
+            if (!TryParseInclude(include, module, builtIns, errorReporter)) {
               return false;
             }
           }
@@ -136,15 +142,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return true;
     }
 
-    private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
+    private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
       try {
         var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
-        int errorCount = Parser.Parse(
-          (TextReader)null!,
+        int errorCount = parser.Parse(
+          new StreamReader(dafnyFile.Uri.LocalPath),
           dafnyFile.Uri,
           module,
           builtIns,
-          errors,
+          errorReporter,
           verifyThisFile: false,
           compileThisFile: false
         );

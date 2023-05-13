@@ -83,6 +83,12 @@
     <None Update="ProjectFiles\TestFiles\Nesting\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Performance\TestFiles\veryLarge.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Performance\TestFiles\veryLargeAndIncludesAnotherLarge.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
