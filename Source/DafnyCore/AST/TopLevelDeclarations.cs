@@ -999,10 +999,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  public static IEnumerable<ClassLikeDecl> AllClasses(List<TopLevelDecl> declarations) {
+  /// <summary>
+  /// Return every ClassDecl (including ArrayClassDecl and IteratorDecl), TraitDecl, and DefaultClassDecl
+  /// among the given "declarations".
+  /// </summary>
+  public static IEnumerable<TopLevelDeclWithMembers> AllClasses(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      if (d is ClassLikeDecl cl ) {
-        yield return cl;
+      if (d is ClassLikeDecl or DefaultClassDecl) {
+        yield return (TopLevelDeclWithMembers)d;
       }
     }
   }
