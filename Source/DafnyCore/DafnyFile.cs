@@ -39,7 +39,7 @@ public class DafnyFile {
       IsPreverified = false;
       IsPrecompiled = false;
       if (!File.Exists(filePath)) {
-        if (0 > options.VerifySnapshots) {
+        if (0 == options.VerifySnapshots) {
           // For snapshots, we first create broken DafnyFile without content,
           // then look for the real files and create DafnuFiles for them.
           // TODO prevent creating the broken DafnyFiles for snapshots

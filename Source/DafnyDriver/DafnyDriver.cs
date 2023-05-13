@@ -399,7 +399,7 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
 
-      if (0 <= options.VerifySnapshots && lookForSnapshots) {
+      if (0 < options.VerifySnapshots && lookForSnapshots) {
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(dafnyFileNames);
         foreach (var s in snapshotsByVersion) {
           var snapshots = new List<DafnyFile>();
