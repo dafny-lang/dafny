@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass, true);
+          var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
           receiver.PreType = Type2PreType(receiver.Type);
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (Resolver.AmbiguousMemberDecl)member;
             ReportError(expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass, true);
+            var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
             receiver.PreType = Type2PreType(receiver.Type);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }

@@ -1231,6 +1231,8 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          AddClassMembers(defaultClassDecl, options.OptimizeResolution < 1, true);
         } else if (d is ClassLikeDecl) {
           var cl = (ClassLikeDecl)d;
           AddClassMembers(cl, options.OptimizeResolution < 1, true);

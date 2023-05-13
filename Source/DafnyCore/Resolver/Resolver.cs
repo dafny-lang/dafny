@@ -2641,8 +2641,8 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-          } else if (d is ClassLikeDecl) {
-            var cl = (ClassLikeDecl)d;
+          } else if (d is ClassLikeDecl or DefaultClassDecl) {
+            var cl = (TopLevelDeclWithMembers)d;
             foreach (var member in cl.Members) {
               if (!member.IsGhost) {
                 if (member is Function) {
