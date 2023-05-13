@@ -1505,20 +1505,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     return true;
   }
 
-  public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-
-    // Instantiate with the actual type arguments
-    if (typeArgs.Count == 0) {
-      // this optimization seems worthwhile
-      return ParentTraits;
-    } else {
-      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-      return ParentTraits.ConvertAll(traitType => traitType.Subst(subst));
-    }
-  }
-
   public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
