@@ -26,7 +26,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         var e = (FunctionCallExpr)expr;
 #if DEBUG_PRINT
           if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
-            Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
+            Options.Writer.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
           }
 #endif
         // Note, we don't actually ever get here, because all calls will have been parsed as ApplySuffix.
@@ -37,7 +37,7 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
         if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
             var r = CloneCallAndAddK(e);
-            Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
+            Options.Writer.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(r));
             return r;
 #else
           return CloneCallAndAddK(e);
@@ -58,14 +58,14 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
           if (fce != null) {
 #if DEBUG_PRINT
               if (fce.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => fce.Function.Name == p.Name + "#")) {
-                Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
+                Options.Writer.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
               }
 #endif
             var f = fce.Function as ExtremePredicate;
             if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
                 var r = CloneCallAndAddK(fce);
-                Console.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
+                Options.Writer.WriteLine("{0}({1},{2}): DEBUG: Rewrote extreme predicate into prefix predicate: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(r));
                 return r;
 #else
               return CloneCallAndAddK(fce);
