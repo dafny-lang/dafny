@@ -142,6 +142,13 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
+  public static readonly Option<bool> TraitsAreReferences = new("--traits-references", () => true,
+    @"
+false - A trait is a reference type only if it or one of its ancestor traits is 'object'.
+true - Every trait implicitly extends 'object', and so is a reference type.".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> TypeInferenceDebug = new("--type-inference-trace", () => false,
     @"
 false - Don't print type-inference debug information.

@@ -1,0 +1,5 @@
+NonReferenceTraits.dfy(26,12): Error: module 'M' does not declare a type 'MX?'
+NonReferenceTraits.dfy(30,9): Error: Type or type parameter is not declared in this scope: Z? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+NonReferenceTraits.dfy(31,9): Error: Type or type parameter is not declared in this scope: Q? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+NonReferenceTraits.dfy(37,9): Error: Type or type parameter is not declared in this scope: E? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+4 resolution/type errors detected in NonReferenceTraits.dfy

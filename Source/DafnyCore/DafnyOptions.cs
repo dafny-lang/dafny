@@ -79,6 +79,9 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.TraitsAreReferences, ParseBoolean, "Language feature selection", "traitsReferences", @"
+0 - A trait is a reference type only if it or one of its ancestor traits is 'object'.
+1 (default) - Every trait implicitly extends 'object', and so is a reference type.".TrimStart(), true);
       RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
