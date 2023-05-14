@@ -27,7 +27,8 @@ module {:options "--function-syntax:4"} TestModule {
   {
     export // something
       reveals p  provides MII
-    export E1 reveals ic /** one thing */
+    export E1 /** one thing */
+      reveals ic
     export E2 /** everything */ reveals *
 
     /** An extending example */
@@ -39,8 +40,8 @@ module {:options "--function-syntax:4"} TestModule {
     module MII { export Nothing }
   }
 
-  import opened J = MInner
-  import     opened MInner`E1
+  import opened MInner
+  import     opened J = MInner`E1
   import L = MInner`E2
 
   /** A very abstract type. 100% dark. */
