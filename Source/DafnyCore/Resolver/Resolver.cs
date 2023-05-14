@@ -1995,7 +1995,7 @@ namespace Microsoft.Dafny {
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
             reporter.Error(MessageSource.Resolver, d,
-              "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
+              "a module that already contains a top-level declaration '{0}' is not allowed to declare a reference type ({1}) '{2}'",
               name, d.WhatKind, d.Name);
           } else {
             // change the mapping of d.Name to d.NonNullTypeDecl
