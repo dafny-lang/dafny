@@ -1426,14 +1426,25 @@ public class TraitDecl : ClassLikeDecl {
   public bool IsParent { set; get; }
   public override bool AcceptThis => true;
 
-  public override bool IsReferenceTypeDecl => true; // SOON: IsObjectTrait || ParentTraits.Any(parent => parent.IsRefType);
+  internal void SetUpAsReferenceType(bool isReferenceType) {
+    // Note, it's important to set .NonNullTypeDecl first, before calling NewSelfSynonym(), since the latter will look at the former.
+    Contract.Assert(NonNullTypeDecl == null); // SetUpAsReferenceType should be called only once
+    if (isReferenceType) {
+      NonNullTypeDecl = new NonNullTypeDecl(this);
+    }
 
+    this.NewSelfSynonym();
+  }
+
+  public override bool IsReferenceTypeDecl => NonNullTypeDecl != null;
+
+  /// <summary>
+  /// This constructor creates a TraitDecl object. However, before the object really functions as a TraitDecl, it is necessary
+  /// to call SetUpAsReferenceType, which sets .NonNullTypeDecl (if necessary) and calls NewSelfSynonym().
+  /// </summary>
   public TraitDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type> /*?*/ traits)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
-
-    NonNullTypeDecl = new NonNullTypeDecl(this); // SOON: this should be done only if the trait is a reference type
-    this.NewSelfSynonym();
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
@@ -1455,6 +1466,12 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public bool IsObjectTrait {
     get => Name == "object";
   }
+  /// <summary>
+  /// The IsReferenceTypeDecl getter must not be called before this information is available.
+  /// For most types, this information is known immediately, but for a TraitDecl, the information is not known until
+  /// SetUpAsReferenceType has been called. The SetUpAsReferenceType method is called very early during resolution,
+  /// namely during name registration of the enclosing module.
+  /// </summary>
   public abstract bool IsReferenceTypeDecl { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
