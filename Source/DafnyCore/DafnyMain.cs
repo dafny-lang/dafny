@@ -205,8 +205,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        // TODO If you do new Uri(dafnyFile.SourceFilePath), it crashes issue-1109 which uses <stdin> 
-        int errorCount = Dafny.Parser.Parse(dafnyFile.Content, dafnyFile.Uri, module, builtIns, errs);
+        int errorCount = Parser.Parse(dafnyFile.Content, dafnyFile.Uri, module, builtIns, errs);
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }
