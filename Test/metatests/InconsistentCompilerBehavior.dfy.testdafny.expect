@@ -6,8 +6,8 @@ Diff (changing expected into actual):
  
  Dafny program verifier did not attempt verification
 -System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
-+function (_1_x) {
-+        return _1_x;
++function (_3_x) {
++        return _3_x;
 +      }
  
 
