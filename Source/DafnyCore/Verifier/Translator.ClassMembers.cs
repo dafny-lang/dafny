@@ -464,7 +464,8 @@ namespace Microsoft.Dafny {
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
       foreach (var parent in c.ParentTraits) {
-        var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
+        var trait = ((UserDefinedType)parent).AsParentTraitDecl();
+        Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
         var args = new List<Bpl.Expr> { arg };
         foreach (var targ in parent.TypeArgs) {

@@ -5040,14 +5040,7 @@ namespace Microsoft.Dafny {
         ResolveType(cl.tok, tt, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
           var udt = tt as UserDefinedType;
-          TraitDecl trait = null;
-          if (udt != null) {
-            if (udt.ResolvedClass is NonNullTypeDecl { ViewAsClass: TraitDecl trait0 }) {
-              trait = trait0;
-            } else if (udt.ResolvedClass is TraitDecl trait1 && trait1.Name == udt.Name) {
-              trait = trait1;
-            }
-          }
+          var trait = udt?.AsParentTraitDecl();
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
