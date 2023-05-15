@@ -1,6 +1,5 @@
 // RUN: %baredafny doc --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%S"/docs/index.html "%S"/docs-expected/index.html
-// RUN: %diff "%S"/docs/nameindex.html "%S"/docs-expected/nameindex.html
 // RUN: %diff "%S"/docs/TestModule.html "%S"/docs-expected/TestModule.html
 // RUN: %diff "%S"/docs/TestModule.A.html "%S"/docs-expected/TestModule.A.html
 

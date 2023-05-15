@@ -3,326 +3,98 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Module TestModule in program TestDafnyDoc.dfy</title>
+<meta name="viewport" content="width=1000px, initial-scale=1">
+<title>Dafny Documentation</title>
 <link rel="icon" type="image/png" href="dafny-favicon.png">
 <meta name="description" content="Documentation for Dafny code produced by dafnydoc">
 <meta name="author" content="dafnydoc">
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css"/>
 </head>
-<div>
-<h1>module <span class="code">TestModule</span>&nbsp;&nbsp;&nbsp;&nbsp;<font size="-1"><a href="index.html">[table of contents]</a><a href="nameindex.html">[index]</a></font></h1>
-</div>
 <body>
-<span class="doctext">Test module.</span> <a href="#decl-detail">(more...)</a><br><br>
+<span style="font-size:24px;"><b>module <span class="code">TestModule</span></b></span><div id="full" class="full">
+<br>
+<body>
+<div id="full" class="full">
+<span class="code">module TestModule</span><br><br>
+<p style="margin-left: 25px;"><span class="doctext">Test module. More about this test module.</span></p>
+<br>
 From file: TestDafnyDoc.dfy<br>
-<div>
-<h2>module summary</h2>
-</div>
 <div>
 <h3>Imports</h3>
 </div>
-<b>import</b> <a href="#J"><span class="code"><b>J</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.html#MInner+"><span class="code">MInner</span></a><br>
-<b>import</b> <a href="#L"><span class="code"><b>L</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.html#E2+"><span class="code">E2</span></a><br>
-<b>import</b> <a href="#MInner"><span class="code"><b>MInner</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.html#E1+"><span class="code">E1</span></a><br>
+import <a href="TestModule.J__import.html"><span class="code"><b>J</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.E1__export.html"><span class="code">E1</span></a><br>
+import <a href="TestModule.L__import.html"><span class="code"><b>L</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.E2__export.html"><span class="code">E2</span></a><br>
+import <a href="TestModule.MInner__import.html"><span class="code"><b>MInner</b></span></a> = <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>`<a href="TestModule.MInner.MInner__export.html"><span class="code">MInner</span></a><br>
 <div>
 <h3>Submodules</h3>
 </div>
-<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span> &mdash; <span class="doctext">Hidden stuff</span><br>
-<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.P.html">P</a></span><br>
-<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.Q.html">Q</a></span><br>
-<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.S.html">S</a></span><br>
+<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.MInner.html">MInner</a></span>  &mdash; <span class="doctext">Hidden stuff</span><br>
+<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.P.html">P</a></span> <br>
+<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.Q.html">Q</a></span> <br>
+<b>module</b> <span class="code"><a href="TestModule.html">TestModule</a>.<a href="TestModule.S.html">S</a></span> <br>
 <div>
 <h3>Types</h3>
 </div>
-<table><tr><td>class</td><td><a href="TestModule.A.html"><span class="code"><b>A</b></span></a></td><td> &mdash; <span class="doctext">Holds all the state.</span> <a href="#A">(more...)</a></td></tr>
-<tr><td>class</td><td><a href="TestModule.B.html"><span class="code"><b>B</b></span></a>&lt;<span class="code">Z(0)</span>&gt;</td><td></td></tr>
-<tr><td>datatype</td><td><a href="#BB"><span class="code"><b>BB</b></span></a>&lt;<span class="code">*Q</span>&gt;</td><td></td></tr>
-<tr><td>codatatype</td><td><a href="#CD"><span class="code"><b>CD</b></span></a>&lt;<span class="code">Q</span>&gt;</td><td></td></tr>
-<tr><td>datatype</td><td><a href="#D"><span class="code"><b>D</b></span></a>&lt;<span class="code">Q</span>&gt;</td><td> &mdash; <span class="doctext">Enumeration.</span> <a href="#D">(more...)</a></td></tr>
+<table><tr><td>class</td><td><a href="TestModule.A.html"><span class="code"><b>A</b></span></a></td><td> &mdash; <span class="doctext">Holds all the state.</span></td></tr>
+<tr><td>class</td><td><a href="TestModule.B.html"><span class="code"><b>B</b></span></a></td><td></td></tr>
+<tr><td>datatype</td><td><a href="TestModule.BB.html"><span class="code"><b>BB</b></span></a></td><td></td></tr>
+<tr><td>codatatype</td><td><a href="TestModule.CD.html"><span class="code"><b>CD</b></span></a></td><td></td></tr>
+<tr><td>datatype</td><td><a href="TestModule.D.html"><span class="code"><b>D</b></span></a></td><td> &mdash; <span class="doctext">Enumeration.</span></td></tr>
 <tr><td>newtype</td><td><a href="TestModule.Dup.html"><span class="code"><b>Dup</b></span></a></td><td></td></tr>
 <tr><td>iterator</td><td><a href="TestModule.Gen.html"><span class="code"><b>Gen</b></span></a></td><td></td></tr>
-<tr><td>newtype</td><td><a href="#Size"><span class="code"><b>Size</b></span></a></td><td></td></tr>
-<tr><td>subset type</td><td><a href="#Small"><span class="code"><b>Small</b></span></a></td><td> &mdash; <span class="doctext">Subset type</span></td></tr>
-<tr><td>newtype</td><td><a href="#Smaller"><span class="code"><b>Smaller</b></span></a></td><td> &mdash; <span class="doctext">New type</span></td></tr>
-<tr><td>subset type</td><td><a href="#SmallS"><span class="code"><b>SmallS</b></span></a></td><td></td></tr>
-<tr><td>subset type</td><td><a href="#SmallW"><span class="code"><b>SmallW</b></span></a></td><td></td></tr>
-<tr><td>opaque type</td><td><a href="TestModule.T.html"><span class="code"><b>T</b></span></a></td><td> &mdash; <span class="doctext">A very opaque type.</span> <a href="#T">(more...)</a></td></tr>
-<tr><td>trait</td><td><a href="TestModule.T1.html"><span class="code"><b>T1</b></span></a>&lt;<span class="code">TR</span>&gt;</td><td> &mdash; <span class="doctext">A special trait</span></td></tr>
+<tr><td>newtype</td><td><a href="TestModule.Size.html"><span class="code"><b>Size</b></span></a></td><td></td></tr>
+<tr><td>subset type</td><td><a href="TestModule.Small.html"><span class="code"><b>Small</b></span></a></td><td> &mdash; <span class="doctext">A small subset type</span></td></tr>
+<tr><td>newtype</td><td><a href="TestModule.Smaller.html"><span class="code"><b>Smaller</b></span></a></td><td> &mdash; <span class="doctext">A brand new type</span></td></tr>
+<tr><td>subset type</td><td><a href="TestModule.SmallS.html"><span class="code"><b>SmallS</b></span></a></td><td></td></tr>
+<tr><td>subset type</td><td><a href="TestModule.SmallW.html"><span class="code"><b>SmallW</b></span></a></td><td></td></tr>
+<tr><td>opaque type</td><td><a href="TestModule.T.html"><span class="code"><b>T</b></span></a></td><td> &mdash; <span class="doctext">A very abstract type.</span></td></tr>
+<tr><td>trait</td><td><a href="TestModule.T1.html"><span class="code"><b>T1</b></span></a></td><td> &mdash; <span class="doctext">A special trait</span></td></tr>
 <tr><td>trait</td><td><a href="TestModule.T2.html"><span class="code"><b>T2</b></span></a></td><td></td></tr>
 <tr><td>trait</td><td><a href="TestModule.T3.html"><span class="code"><b>T3</b></span></a></td><td></td></tr>
-<tr><td>type synonym</td><td><a href="#Tint"><span class="code"><b>Tint</b></span></a></td><td> &mdash; <span class="doctext">Type synonym.</span></td></tr>
-<tr><td>opaque type</td><td><a href="#TQ"><span class="code"><b>TQ</b></span></a>&lt;<span class="code">Y</span>&gt;</td><td></td></tr>
-<tr><td>type synonym</td><td><a href="#TTT"><span class="code"><b>TTT</b></span></a>&lt;<span class="code">!Q(0)</span>&gt;</td><td></td></tr>
-<tr><td>opaque type</td><td><a href="#WW"><span class="code"><b>WW</b></span></a></td><td></td></tr>
+<tr><td>type synonym</td><td><a href="TestModule.Tint.html"><span class="code"><b>Tint</b></span></a></td><td> &mdash; <span class="doctext">A type synonym.</span></td></tr>
+<tr><td>opaque type</td><td><a href="TestModule.TQ.html"><span class="code"><b>TQ</b></span></a></td><td></td></tr>
+<tr><td>type synonym</td><td><a href="TestModule.TTT.html"><span class="code"><b>TTT</b></span></a></td><td></td></tr>
+<tr><td>opaque type</td><td><a href="TestModule.WW.html"><span class="code"><b>WW</b></span></a></td><td></td></tr>
 </table><div>
 <h3>Constants
 </h3>
 </div><table>
-<tr><td><a href="#c"><span class="code"><b>c</b></span></a></td><td> : </td><td><span class="code">int</span></td><td> &mdash; <span class="doctext">Number of items.</span> <a href="#c">(more...)</a></td></tr>
-<tr><td><a href="#cc"><span class="code"><b>cc</b></span></a></td><td> : </td><td><span class="code">real</span></td><td> &mdash; <span class="doctext">The distance.</span></td></tr>
-<tr><td><a href="#ccc"><span class="code"><b>ccc</b></span></a></td><td> : </td><td><span class="code">bool</span></td><td> &mdash; <span class="doctext">Valid or not.</span></td></tr>
-<tr><td><a href="#cccc"><span class="code"><b>cccc</b></span></a></td><td> : </td><td><span class="code"><a href="TestModule.A.html">A</a></span></td><td> &mdash; <span class="doctext">The internal state.</span></td></tr>
-<tr><td><a href="#f1"><span class="code"><b>f1</b></span></a></td><td> : </td><td><span class="code">int</span> <span class="code">-></span> <span class="code">int</span></td><td></td></tr>
-<tr><td><a href="#f2"><span class="code"><b>f2</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code">int</span>&gt;</span> <span class="code">~></span> <span class="code">seq&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
-<tr><td><a href="#f3"><span class="code"><b>f3</b></span></a></td><td> : </td><td><span class="code">bool</span> <span class="code">--></span> <span class="code"><a href="TestModule.TQ.html">TQ</a>&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
-<tr><td><a href="#tup0"><span class="code"><b>tup0</b></span></a></td><td> : </td><td><span class="code">()</span></td><td></td></tr>
-<tr><td><a href="#tup2"><span class="code"><b>tup2</b></span></a></td><td> : </td><td><span class="code">(<span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">real</span>&gt;</span>,<span class="code">set&lt;<span class="code">int</span>&gt;</span>)</span></td><td></td></tr>
+<tr><td><a href="TestModule.c.html"><span class="code"><b>c</b></span></a></td><td> : </td><td><span class="code">int</span></td><td> &mdash; <span class="doctext">Number of items.</span></td></tr>
+<tr><td><a href="TestModule.cc.html"><span class="code"><b>cc</b></span></a></td><td> : </td><td><span class="code">real</span></td><td> &mdash; <span class="doctext">The distance.</span></td></tr>
+<tr><td><a href="TestModule.ccc.html"><span class="code"><b>ccc</b></span></a></td><td> : </td><td><span class="code">bool</span></td><td> &mdash; <span class="doctext">Valid or not.</span></td></tr>
+<tr><td><a href="TestModule.cccc.html"><span class="code"><b>cccc</b></span></a></td><td> : </td><td><span class="code"><a href="TestModule.A.html">A</a></span></td><td> &mdash; <span class="doctext">The internal state.</span></td></tr>
+<tr><td><a href="TestModule.f1.html"><span class="code"><b>f1</b></span></a></td><td> : </td><td><span class="code">int</span> <span class="code">-></span> <span class="code">int</span></td><td></td></tr>
+<tr><td><a href="TestModule.f2.html"><span class="code"><b>f2</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code">int</span>&gt;</span> <span class="code">~></span> <span class="code">seq&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
+<tr><td><a href="TestModule.f3.html"><span class="code"><b>f3</b></span></a></td><td> : </td><td><span class="code">bool</span> <span class="code">--></span> <span class="code"><a href="TestModule.TQ.html">TQ</a>&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
+<tr><td><a href="TestModule.tup0.html"><span class="code"><b>tup0</b></span></a></td><td> : </td><td><span class="code">()</span></td><td></td></tr>
+<tr><td><a href="TestModule.tup2.html"><span class="code"><b>tup2</b></span></a></td><td> : </td><td><span class="code">(<span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">real</span>&gt;</span>,<span class="code">set&lt;<span class="code">int</span>&gt;</span>)</span></td><td></td></tr>
 </table>
 <div>
 <h3>Functions</h3>
-</div>
-<span class="code"><b><a href="#f">f</a></b></span>(<span class="code">r</span>: <span class="code">real</span>, <span class="code">x</span>: <span class="code">int</span> := <span class="code">0</span>): <span class="code">int</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Returns a constant.</span> <a href="#f">(more...)</a><br>
-<span class="code"><b><a href="#fif">fif</a></b></span>(<b>nameonly </b><span class="code">z</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code"><a href="TestModule.A.html">A</a></span><br>
-<span class="code"><b><a href="#lp">lp</a></b></span>(): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">A copredicate</span><br>
-<span class="code"><b><a href="#p">p</a></b></span>(): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#p">(more...)</a><br>
-<span class="code"><b><a href="#pf">pf</a></b></span>(): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#pf">(more...)</a><br>
-<span class="code"><b><a href="#pp">pp</a></b></span>(<b>older </b><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>ghost nameonly </b><span class="code">x</span>: <span class="code">int</span>): <span class="code">bool</span><br>
-<span class="code"><b><a href="#ppp">ppp</a></b></span>(<span class="code">s</span>: <span class="code">seq&lt;<span class="code">int</span>&gt;</span>, <span class="code">ss</span>: <span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>, <span class="code">mm</span>: <span class="code">map&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>,<span class="code">seq&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>&gt;</span>&gt;</span>): <span class="code">bool</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span> <a href="#ppp">(more...)</a><br>
-<span class="code"><b><a href="#tf">tf</a></b></span>(<span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>new </b><span class="code">b</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code">int</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">A two-state function</span><br>
-<div>
+</div><table>
+<tr><td><span class="code"><b><a href="TestModule.f.html">f</a></b>(<span class="code">r</span>: <span class="code">real</span>, <span class="code">x</span>: <span class="code">int</span> := <span class="code">0</span>): <span class="code">int</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Returns a constant.</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.fif.html">fif</a></b>(<b>nameonly </b><span class="code">z</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code"><a href="TestModule.A.html">A</a></span></span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.lp.html">lp</a></b>(): <span class="code">bool</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">A copredicate</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.p.html">p</a></b>(): <span class="code">bool</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.pf.html">pf</a></b>(): <span class="code">bool</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.pp.html">pp</a></b>(<b>older </b><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>ghost nameonly </b><span class="code">x</span>: <span class="code">int</span>): <span class="code">bool</span></span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.ppp.html">ppp</a></b>(<span class="code">s</span>: <span class="code">seq&lt;<span class="code">int</span>&gt;</span>, <span class="code">ss</span>: <span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>, <span class="code">mm</span>: <span class="code">map&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>,<span class="code">seq&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>&gt;</span>&gt;</span>): <span class="code">bool</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Always true.</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.tf.html">tf</a></b>(<span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>new </b><span class="code">b</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code">int</span></span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">A two-state function</span><br>
+</td></tr></table><div>
 <h3>Methods</h3>
-</div>
-<span class="code"><b><a href="#bump">bump</a></b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) <b>returns</b> (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">increments input</span><br>
-<span class="code"><b><a href="#ModifyA">ModifyA</a></b></span>(<span class="code"><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span></span>)<br>
-<span class="code"><b><a href="#zero">zero</a></b></span>() <b>returns</b> (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Sets to zero.</span> <a href="#zero">(more...)</a><br>
-<div>
+</div><table>
+<tr><td><span class="code"><b><a href="TestModule.bump.html">bump</a></b>(<span class="code">i</span>: <span class="code">int</span>) <b>returns</b> (<span class="code">j</span>: <span class="code">int</span>)</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">increments input</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.ModifyA.html">ModifyA</a></b>(<span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>)</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.zero.html">zero</a></b>() <b>returns</b> (<span class="code">z</span>: <span class="code">int</span>)</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">Sets to zero.</span><br>
+</td></tr></table><div>
 <h3>Lemmas</h3>
+</div><table>
+<tr><td><span class="code"><b><a href="TestModule.IsX.html">IsX</a></b>()</span>&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">always true</span><br>
+</td></tr><tr><td><span class="code"><b><a href="TestModule.TS.html">TS</a></b>()</span><br>
+</td></tr></table></div>
+</body>
+</html>
 </div>
-<span class="code"><b><a href="#IsX">IsX</a></b></span>()&nbsp;&nbsp;&nbsp;&nbsp; &mdash; <span class="doctext">always true</span><br>
-<span class="code"><b><a href="#TS">TS</a></b></span>()<br>
-
-<a id="decl-detail"/>
-<div>
-<h2>module details</h2>
-</div>
-<span class="doctext">Test module. More about this test module.</span>
-<br>
-<div>
-<h3>Imports</h3>
-</div>
-<a id="J"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">J</span></div><br>
-import <span class="code">J</span> <b>IS </b>opened<br>
-Names imported:<span class="code"> <a href="TestModule.MInner.html#p">p</a> <a href="TestModule.MInner.MII.html#MII">MII</a></span><br>
-<a id="L"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">L</span></div><br>
-import <span class="code">L</span> <b>IS NOT </b>opened<br>
-Names imported:<span class="code"> <a href="TestModule.MInner.html#f">f</a> <a href="TestModule.MInner.html#ic">ic</a> <a href="TestModule.MInner.html#p">p</a> <a href="TestModule.MInner.MII.html#MII">MII</a></span><br>
-<a id="MInner"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">MInner</span></div><br>
-import <span class="code">MInner</span> <b>IS </b>opened<br>
-Names imported:<span class="code"> <a href="TestModule.MInner.html#ic">ic</a></span><br>
-<div>
-<h3>Types</h3>
-</div>
-<a id="A"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">A</span></div><br>
-class <b>A</b> &mdash; see <a href="TestModule.A.html">separate page here</a><p style="margin-left: 25px;"><span class="doctext">Holds all the state. Every bit.</span></p>
-<a id="B"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">B</span></div><br>
-class <b>B</b>&lt;<span class="code">Z(0)</span>&gt; &mdash; see <a href="TestModule.B.html">separate page here</a><a id="BB"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">BB</span></div><br>
-datatype <b>BB</b>&lt;<span class="code">*Q</span>&gt;<br>
-<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>R(<span class="code">q</span>: <span class="code">Q</span>)</td><td></td><td></td></tr></table><a id="CD"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">CD</span></div><br>
-codatatype <b>CD</b>&lt;<span class="code">Q</span>&gt;<br>
-<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>Y</td><td> &mdash; </td><td><span class="doctext">A Y</span></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>Z</td><td> &mdash; </td><td><span class="doctext">A Z</span></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td>[ghost]</td><td>G</td><td> &mdash; </td><td><p style="margin-left: 25px;"><span class="doctext">A ghost constructor. Very cool.</span></p>
-</td></tr></table><a id="D"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">D</span></div><br>
-datatype <b>D</b>&lt;<span class="code">Q</span>&gt;<br>
-<table><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>A(<span class="code">q</span>: <span class="code">Q</span>)</td><td></td><td></td></tr><tr><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td></td><td>B</td><td></td><td></td></tr></table><p style="margin-left: 25px;"><span class="doctext">Enumeration. Various options.</span></p>
-<a id="Dup"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Dup</span></div><br>
-newtype <b>Dup</b> = <span class="code">int</span> &mdash; see <a href="TestModule.Dup.html">separate page here</a><a id="Gen"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Gen</span></div><br>
-iterator <b>Gen</b> &mdash; see <a href="TestModule.Gen.html">separate page here</a><a id="Size"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Size</span></div><br>
-newtype <b>Size</b> = x: <span class="code">int</span> | 0 <= x < 1000<a id="Small"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Small</span></div><br>
-subset type <b>Small</b> = x: <span class="code"><a href="nat.html">nat</a></span> | x < 100<p style="margin-left: 25px;"><span class="doctext">Subset type</span></p>
-<a id="Smaller"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Smaller</span></div><br>
-newtype <b>Smaller</b> = x: <span class="code"><a href="nat.html">nat</a></span> | x < 10 witness 9<br>
-&nbsp;&nbsp;&nbsp;&nbsp;{:native "uint8"}<p style="margin-left: 25px;"><span class="doctext">New type</span></p>
-<a id="SmallS"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">SmallS</span></div><br>
-subset type <b>SmallS</b> = x: <span class="code"><a href="nat.html">nat</a></span> | x < 100 witness *<a id="SmallW"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">SmallW</span></div><br>
-subset type <b>SmallW</b>(==) = x: <span class="code"><a href="nat.html">nat</a></span> | x < 100 witness 99<a id="T"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T</span></div><br>
-opaque type <b>T</b> &mdash; see <a href="TestModule.T.html">separate page here</a><p style="margin-left: 25px;"><span class="doctext">A very opaque type. 100% dark.</span></p>
-<a id="T1"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T1</span></div><br>
-trait <b>T1</b>&lt;<span class="code">TR</span>&gt; &mdash; see <a href="TestModule.T1.html">separate page here</a><p style="margin-left: 25px;"><span class="doctext">A special trait</span></p>
-<a id="T2"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T2</span></div><br>
-trait <b>T2</b> &mdash; see <a href="TestModule.T2.html">separate page here</a><a id="T3"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">T3</span></div><br>
-trait <b>T3</b> &mdash; see <a href="TestModule.T3.html">separate page here</a><a id="Tint"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Tint</span></div><br>
-type synonym <b>Tint</b>(==) = <span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">int</span>&gt;</span><p style="margin-left: 25px;"><span class="doctext">Type synonym.</span></p>
-<a id="TQ"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TQ</span></div><br>
-opaque type <b>TQ</b>&lt;<span class="code">Y</span>&gt;<a id="TTT"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TTT</span></div><br>
-type synonym <b>TTT</b>&lt;<span class="code">!Q(0)</span>&gt; = <span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">Q</span>&gt;</span><a id="WW"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">WW</span></div><br>
-opaque type <b>WW</b>(==,0,!new)<div>
-<h3>Constants
-</h3>
-</div><a id="c"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">c</span></div><br>
-static <br>
-<span class="code"><b>c</b></span> : <span class="code">int</span> := <span class="code">7 + if true then 8 else 9 * 1</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Number of items. All of them.</span></p>
-<a id="cc"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">cc</span></div><br>
-static <br>
-<span class="code"><b>cc</b></span> : <span class="code">real</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:myattribute}</span><br>
-<p style="margin-left: 25px;"><span class="doctext">The distance.</span></p>
-<a id="ccc"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ccc</span></div><br>
-static <br>
-<span class="code"><b>ccc</b></span> : <span class="code">bool</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Valid or not.</span></p>
-<a id="cccc"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">cccc</span></div><br>
-static <br>
-<span class="code"><b>cccc</b></span> : <span class="code"><a href="TestModule.A.html">A</a></span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:myattribute}{:otherattribute 5, 6}</span><br>
-<p style="margin-left: 25px;"><span class="doctext">The internal state.</span></p>
-<a id="f1"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f1</span></div><br>
-static <br>
-<span class="code"><b>f1</b></span> : <span class="code">int</span> <span class="code">-></span> <span class="code">int</span><br>
-<br>
-<a id="f2"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f2</span></div><br>
-static <br>
-<span class="code"><b>f2</b></span> : <span class="code">set&lt;<span class="code">int</span>&gt;</span> <span class="code">~></span> <span class="code">seq&lt;<span class="code">int</span>&gt;</span><br>
-<br>
-<a id="f3"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f3</span></div><br>
-static <br>
-<span class="code"><b>f3</b></span> : <span class="code">bool</span> <span class="code">--></span> <span class="code"><a href="TestModule.TQ.html">TQ</a>&lt;<span class="code">int</span>&gt;</span><br>
-<br>
-<a id="tup0"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tup0</span></div><br>
-static <br>
-<span class="code"><b>tup0</b></span> : <span class="code">()</span><br>
-<br>
-<a id="tup2"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tup2</span></div><br>
-static <br>
-<span class="code"><b>tup2</b></span> : <span class="code">(<span class="code"><a href="TestModule.B.html">B</a>&lt;<span class="code">real</span>&gt;</span>,<span class="code">set&lt;<span class="code">int</span>&gt;</span>)</span> := <span class="code">(null, {})</span><br>
-<br>
-<div>
-<h3>Functions</h3>
-</div>
-<a id="f"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">f</span></div><br>
-static <br>
-function<br>
-<span class="code"><b>f</b></span>(<span class="code">r</span>: <span class="code">real</span>, <span class="code">x</span>: <span class="code">int</span> := <span class="code">0</span>): <span class="code">int</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Returns a constant. A special constant.</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">f(r, x) == 42</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">r</span>, <span class="code">x</span><br>
-<a id="fif"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">fif</span></div><br>
-static <br>
-function<br>
-<span class="code"><b>fif</b></span>(<b>nameonly </b><span class="code">z</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code"><a href="TestModule.A.html">A</a></span><br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">z</span><br>
-<a id="lp"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">lp</span></div><br>
-ghost static <br>
-least predicate<br>
-<span class="code"><b>lp</b></span>(): <span class="code">bool</span><br>
-<p style="margin-left: 25px;"><span class="doctext">A copredicate</span></p>
-<a id="p"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">p</span></div><br>
-static <br>
-predicate<br>
-<span class="code"><b>p</b></span>(): <span class="code">bool</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Always true. Every time.</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">p() == true</span><br>
-<a id="pf"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">pf</span></div><br>
-static <br>
-predicate<br>
-<span class="code"><b>pf</b></span>(): <span class="code">bool</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Always true. Every time.</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">pp(null, x := 1) == true</span><br>
-<a id="pp"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">pp</span></div><br>
-static <br>
-predicate<br>
-<span class="code"><b>pp</b></span>(<b>older </b><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>ghost nameonly </b><span class="code">x</span>: <span class="code">int</span>): <span class="code">bool</span><br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">a</span>, <span class="code">x</span><br>
-<a id="ppp"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ppp</span></div><br>
-static <br>
-predicate<br>
-<span class="code"><b>ppp</b></span>(<span class="code">s</span>: <span class="code">seq&lt;<span class="code">int</span>&gt;</span>, <span class="code">ss</span>: <span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>, <span class="code">mm</span>: <span class="code">map&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>,<span class="code">seq&lt;<span class="code">set&lt;<span class="code"><a href="TestModule.A.html">A</a></span>&gt;</span>&gt;</span>&gt;</span>): <span class="code">bool</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Always true. Every time.</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">s</span>, <span class="code">ss</span>, <span class="code">mm</span><br>
-<a id="tf"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">tf</span></div><br>
-ghost static <br>
-twostate function<br>
-<span class="code"><b>tf</b></span>(<span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span>, <b>new </b><span class="code">b</span>: <span class="code"><a href="TestModule.A.html">A</a></span>): <span class="code">int</span><br>
-<p style="margin-left: 25px;"><span class="doctext">A two-state function</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">a</span>, <span class="code">b</span><br>
-<div>
-<h3>Methods</h3>
-</div>
-<a id="bump"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">bump</span></div><br>
-static <br>
-method<br>
-<span class="code"><b>bump</b></span>(<span class="code"><span class="code">i</span>: <span class="code">int</span></span>) <b>returns</b> (<span class="code"><span class="code">j</span>: <span class="code">int</span></span>)<br>
-<p style="margin-left: 25px;"><span class="doctext">increments input</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">i</span><br>
-<a id="ModifyA"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">ModifyA</span></div><br>
-static <br>
-method<br>
-<span class="code"><b>ModifyA</b></span>(<span class="code"><span class="code">a</span>: <span class="code"><a href="TestModule.A.html">A</a></span></span>)<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>modifies</b> <span class="code">a</span>, <span class="code">a`j</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">a</span><br>
-<a id="zero"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">zero</span></div><br>
-ghost static <br>
-method<br>
-<span class="code"><b>zero</b></span>() <b>returns</b> (<span class="code"><span class="code">z</span>: <span class="code">int</span></span>)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:iszero}</span><br>
-<p style="margin-left: 25px;"><span class="doctext">Sets to zero. Absolute zero.</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">z == 0</span><br>
-<div>
-<h3>Lemmas</h3>
-</div>
-<a id="IsX"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">IsX</span></div><br>
-ghost static <br>
-lemma<br>
-<span class="code"><b>IsX</b></span>()<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="code">{:myattribute}</span><br>
-<p style="margin-left: 25px;"><span class="doctext">always true</span></p>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> <span class="code">true</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">true</span><br>
-<a id="TS"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">TS</span></div><br>
-ghost static <br>
-twostate lemma<br>
-<span class="code"><b>TS</b></span>()<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> <span class="code">true</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">true</span><br>
 
 </body>
 </html>

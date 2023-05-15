@@ -3,129 +3,36 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>iterator TestModule.Gen</title>
+<meta name="viewport" content="width=1000px, initial-scale=1">
+<title>Dafny Documentation</title>
 <link rel="icon" type="image/png" href="dafny-favicon.png">
 <meta name="description" content="Documentation for Dafny code produced by dafnydoc">
 <meta name="author" content="dafnydoc">
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css"/>
 </head>
-<div>
-<h1>iterator <span class="code"><a href="TestModule.html">TestModule</a>.Gen</span>&nbsp;&nbsp;&nbsp;&nbsp;<font size="-1"><a href="index.html">[table of contents]</a><a href="nameindex.html">[index]</a></font></h1>
-</div>
 <body>
+<span style="font-size:24px;"><b>iterator <span class="code"><a href="TestModule.html">TestModule</a>.Gen</span></b></span><div id="full" class="full">
+<br>
+<span class="code">iterator <b>Gen</b><br>
+</span><br>
 From file: TestDafnyDoc.dfy<br>
-<div>
-<h2>iterator summary</h2>
-</div>
-<div>
-<h3>Constructors</h3>
-</div>
-<span class="code"><b><a href="#Gen">Gen</a></b></span>(<span class="code"><span class="code">start</span>: <span class="code">int</span></span>)<br>
 <div>
 <h3>Mutable Fields
 </h3>
 </div><table>
-<tr><td><a href="#_decreases0"><span class="code"><b>_decreases0</b></span></a></td><td> : </td><td><span class="code">int</span></td><td></td></tr>
-<tr><td><a href="#_modifies"><span class="code"><b>_modifies</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span></td><td></td></tr>
-<tr><td><a href="#_new"><span class="code"><b>_new</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span></td><td></td></tr>
-<tr><td><a href="#_reads"><span class="code"><b>_reads</b></span></a></td><td> : </td><td><span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span></td><td></td></tr>
-<tr><td><a href="#start"><span class="code"><b>start</b></span></a></td><td> : </td><td><span class="code">int</span></td><td></td></tr>
-<tr><td><a href="#x"><span class="code"><b>x</b></span></a></td><td> : </td><td><span class="code">int</span></td><td></td></tr>
-<tr><td><a href="#xs"><span class="code"><b>xs</b></span></a></td><td> : </td><td><span class="code">seq&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
+<tr><td><a href="TestModule.Gen.start.html"><span class="code"><b>start</b></span></a></td><td> : </td><td><span class="code">int</span></td><td></td></tr>
+<tr><td><a href="TestModule.Gen.x.html"><span class="code"><b>x</b></span></a></td><td> : </td><td><span class="code">int</span></td><td></td></tr>
+<tr><td><a href="TestModule.Gen.xs.html"><span class="code"><b>xs</b></span></a></td><td> : </td><td><span class="code">seq&lt;<span class="code">int</span>&gt;</span></td><td></td></tr>
 </table>
 <div>
 <h3>Functions</h3>
-</div>
-<span class="code"><b><a href="#Valid">Valid</a></b></span>(): <span class="code">bool</span><br>
-<div>
+</div><table>
+<tr><td><span class="code"><b><a href="TestModule.Gen.Valid.html">Valid</a></b>(): <span class="code">bool</span></span><br>
+</td></tr></table><div>
 <h3>Methods</h3>
-</div>
-<span class="code"><b><a href="#MoveNext">MoveNext</a></b></span>() <b>returns</b> (<span class="code"><span class="code">more</span>: <span class="code">bool</span></span>)<br>
-
-<a id="decl-detail"/>
-<div>
-<h2>iterator details</h2>
-</div>
-<div>
-<h3>Constructors</h3>
-</div>
-<a id="Gen"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Gen</span></div><br>
-constructor<br>
-<span class="code"><b>_ctor</b></span>(<span class="code"><span class="code">start</span>: <span class="code">int</span></span>)<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this.start == start</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this.xs == []</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this.Valid()</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this._reads == old({})</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this._modifies == old({})</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this._new == {}</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this._decreases0 == old(start)</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">start</span><br>
-<div>
-<h3>Mutable Fields
-</h3>
-</div><a id="_decreases0"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">_decreases0</span></div><br>
-ghost <br>
-<span class="code"><b>_decreases0</b></span> : <span class="code">int</span><br>
-<br>
-<a id="_modifies"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">_modifies</span></div><br>
-ghost <br>
-<span class="code"><b>_modifies</b></span> : <span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span><br>
-<br>
-<a id="_new"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">_new</span></div><br>
-ghost <br>
-<span class="code"><b>_new</b></span> : <span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span><br>
-<br>
-<a id="_reads"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">_reads</span></div><br>
-ghost <br>
-<span class="code"><b>_reads</b></span> : <span class="code">set&lt;<span class="code"><a href="object.html">object</a></span>&gt;</span><br>
-<br>
-<a id="start"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">start</span></div><br>
-<span class="code"><b>start</b></span> : <span class="code">int</span><br>
-<br>
-<a id="x"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">x</span></div><br>
-<span class="code"><b>x</b></span> : <span class="code">int</span><br>
-<br>
-<a id="xs"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">xs</span></div><br>
-ghost <br>
-<span class="code"><b>xs</b></span> : <span class="code">seq&lt;<span class="code">int</span>&gt;</span><br>
-<br>
-<div>
-<h3>Functions</h3>
-</div>
-<a id="Valid"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">Valid</span></div><br>
-ghost <br>
-predicate<br>
-<span class="code"><b>Valid</b></span>(): <span class="code">bool</span><br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>reads</b> <span class="code">this</span>, <span class="code">this._reads</span>, <span class="code">this._new</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">this._reads + this._new + {this}</span><br>
-<div>
-<h3>Methods</h3>
-</div>
-<a id="MoveNext"/>
-<div style="width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center"><span style="font-size: 20px; background-color: #F3F5F6; padding: 0 10px;">MoveNext</span></div><br>
-method<br>
-<span class="code"><b>MoveNext</b></span>() <b>returns</b> (<span class="code"><span class="code">more</span>: <span class="code">bool</span></span>)<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>requires</b> <span class="code">this.Valid()</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>modifies</b> <span class="code">this</span>, <span class="code">this._modifies</span>, <span class="code">this._new</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">fresh(this._new - old(this._new))</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">null !in this._new</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">more ==> this.Valid()</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">this.xs == if more then old(this.xs) + [this.x] else old(this.xs)</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>ensures</b> <span class="code">more ==> |xs| <= 10 && x == start + |xs| - 1</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>decreases</b> <span class="code">this._decreases0</span><br>
+</div><table>
+<tr><td><span class="code"><b><a href="TestModule.Gen.MoveNext.html">MoveNext</a></b>() <b>returns</b> (<span class="code">more</span>: <span class="code">bool</span>)</span><br>
+</td></tr></table></div>
 
 </body>
 </html>
