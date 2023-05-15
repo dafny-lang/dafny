@@ -273,7 +273,7 @@ class MultiSet(Counter):
         return all(self[key] <= other[key] for key in frozenset(self).union(frozenset(other)))
 
     def ispropersubset(self, other):
-        return self.issubset(other) and len(self) < len(other)
+        return self.issubset(other) and self.cardinality < other.cardinality
 
     def set(self, key, value):
         set = Counter(self)
