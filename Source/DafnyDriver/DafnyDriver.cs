@@ -120,13 +120,20 @@ namespace Microsoft.Dafny {
     private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
+
+          if (dafnyOptions.RunLanguageServer) {
+#pragma warning disable VSTHRD002
+            LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+            return 0;
+          }
+
           var driver = new DafnyDriver(dafnyOptions);
 #pragma warning disable VSTHRD002
           exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
@@ -138,13 +145,6 @@ namespace Microsoft.Dafny {
           return (int)ExitValue.SUCCESS;
         default:
           throw new ArgumentOutOfRangeException();
-      }
-
-      if (dafnyOptions.RunLanguageServer) {
-#pragma warning disable VSTHRD002
-        LanguageServer.Server.Start(dafnyOptions).Wait();
-#pragma warning restore VSTHRD002
-        return 0;
       }
 
       dafnyOptions.XmlSink?.Close();

@@ -39,13 +39,15 @@ public class DafnyFile {
       IsPreverified = false;
       IsPrecompiled = false;
       if (!File.Exists(filePath)) {
-        if (0 == options.VerifySnapshots) {
+        if (0 < options.VerifySnapshots) {
           // For snapshots, we first create broken DafnyFile without content,
           // then look for the real files and create DafnuFiles for them.
           // TODO prevent creating the broken DafnyFiles for snapshots
-          options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
-          throw new IllegalDafnyFile(true);
+          return;
         }
+
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
+        throw new IllegalDafnyFile(true);
       } else {
         Content = new StreamReader(filePath);
       }
