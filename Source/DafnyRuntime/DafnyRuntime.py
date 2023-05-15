@@ -238,7 +238,8 @@ class MultiSet(Counter):
     def __dafnystr__(self) -> str:
         return 'multiset{' + ', '.join(map(string_of, self.elements())) + '}'
 
-    def __len__(self):
+    @property
+    def cardinality(self):
         return reduce(lambda acc, key: acc + self[key], self, 0)
 
     def union(self, other):
