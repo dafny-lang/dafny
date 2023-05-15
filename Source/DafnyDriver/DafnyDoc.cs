@@ -789,15 +789,16 @@ class DafnyDoc {
 
   // For methods, lemmas, functions
   public void AddExecutableSummaries(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
-    if (members.Count == 0) return;
-    summaries.Append(Heading3(kind));
-    summaries.Append(TableStart()).Append(eol);
-    foreach (var m in members) {
-      var info = ExecutableInfo(m, decl);
-      ownerInfoList.Add(info);
-      summaries.Append(Row(info.HtmlSummary));
+    if (members.Count != 0) {
+      summaries.Append(Heading3(kind));
+      summaries.Append(TableStart()).Append(eol);
+      foreach (var m in members) {
+        var info = ExecutableInfo(m, decl);
+        ownerInfoList.Add(info);
+        summaries.Append(Row(info.HtmlSummary));
+      }
+      summaries.Append(TableEnd());
     }
-    summaries.Append(TableEnd());
   }
 
   public static string AttrString(Attributes attr) {
