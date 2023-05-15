@@ -209,7 +209,6 @@ namespace Microsoft.Dafny {
       public Bpl.Type BigOrdinalType {
         get { return BoxType; }
       }
-      public readonly Bpl.Type TickType;
       private readonly Bpl.TypeSynonymDecl setTypeCtor;
       private readonly Bpl.TypeSynonymDecl isetTypeCtor;
       private readonly Bpl.TypeSynonymDecl multiSetTypeCtor;
@@ -253,7 +252,6 @@ namespace Microsoft.Dafny {
         Contract.Invariant(CharType != null);
         Contract.Invariant(RefType != null);
         Contract.Invariant(BoxType != null);
-        Contract.Invariant(TickType != null);
         Contract.Invariant(setTypeCtor != null);
         Contract.Invariant(multiSetTypeCtor != null);
         Contract.Invariant(ArrayLength != null);
@@ -332,7 +330,7 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(tok, AllocField);
       }
 
-      public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType, Bpl.TypeCtorDecl tickType,
+      public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
                              Bpl.TypeSynonymDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeSynonymDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
                              Bpl.Function arrayLength, Bpl.Function realFloor,
@@ -350,7 +348,6 @@ namespace Microsoft.Dafny {
         Contract.Requires(charType != null);
         Contract.Requires(refType != null);
         Contract.Requires(boxType != null);
-        Contract.Requires(tickType != null);
         Contract.Requires(setTypeCtor != null);
         Contract.Requires(isetTypeCtor != null);
         Contract.Requires(multiSetTypeCtor != null);
@@ -389,7 +386,6 @@ namespace Microsoft.Dafny {
         Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
         this.RefType = refT;
         this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.TickType = new Bpl.CtorType(Token.NoToken, tickType, new List<Bpl.Type>());
         this.setTypeCtor = setTypeCtor;
         this.isetTypeCtor = isetTypeCtor;
         this.multiSetTypeCtor = multiSetTypeCtor;
@@ -473,7 +469,6 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl layerType = null;
       Bpl.TypeCtorDecl dtCtorId = null;
       Bpl.TypeCtorDecl boxType = null;
-      Bpl.TypeCtorDecl tickType = null;
       Bpl.TypeCtorDecl mapTypeCtor = null;
       Bpl.TypeCtorDecl imapTypeCtor = null;
       Bpl.GlobalVariable heap = null;
@@ -509,8 +504,6 @@ namespace Microsoft.Dafny {
             nameFamilyType = dt;
           } else if (dt.Name == "Box") {
             boxType = dt;
-          } else if (dt.Name == "TickType") {
-            tickType = dt;
           } else if (dt.Name == "Map") {
             mapTypeCtor = dt;
           } else if (dt.Name == "IMap") {
@@ -646,8 +639,6 @@ namespace Microsoft.Dafny {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Box");
-      } else if (tickType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
       } else if (heap == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
@@ -657,7 +648,7 @@ namespace Microsoft.Dafny {
       } else if (objectTypeConstructor == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
-        return new PredefinedDecls(charType, refType, boxType, tickType,
+        return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
                                    arrayLength, realFloor,
@@ -1629,7 +1620,6 @@ namespace Microsoft.Dafny {
         req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
-      mod.Add(etran.Tick());
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS
@@ -4282,10 +4272,9 @@ namespace Microsoft.Dafny {
         req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
       }
 
-      // modifies $Heap, $Tick
+      // modifies $Heap
       var mod = new List<Bpl.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
-        etran.Tick()
       };
       // check that postconditions hold
       var ens = new List<Bpl.Ensures>();
@@ -4530,10 +4519,9 @@ namespace Microsoft.Dafny {
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
-      // modifies $Heap, $Tick
+      // modifies $Heap
       var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,
-        etran.Tick()
       };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
@@ -4687,7 +4675,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
@@ -4759,7 +4747,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));

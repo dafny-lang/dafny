@@ -896,10 +896,9 @@ namespace Microsoft.Dafny {
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
         req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null));
       }
-      // modifies $Heap, $Tick
+      // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
-        etran.Tick()
       };
       var ens = new List<Boogie.Ensures>();
 
@@ -1465,7 +1464,6 @@ namespace Microsoft.Dafny {
         }
       }
       mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
-      mod.Add(etran.Tick());
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
 

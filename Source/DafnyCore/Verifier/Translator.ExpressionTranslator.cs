@@ -235,12 +235,6 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(tok, this.modifiesFrame, ty);
       }
 
-      public Boogie.IdentifierExpr Tick() {
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
-        return new Boogie.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
-      }
-
       public Boogie.IdentifierExpr ArbitraryBoxValue() {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         return new Boogie.IdentifierExpr(Token.NoToken, "$ArbitraryBoxValue", predef.BoxType);
