@@ -4,14 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using IntervalTree;
 using MediatR;
+using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +37,8 @@ public class DocumentManager {
 
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
-  public Compilation Compilation { get; private set; }
+  private TaskCompletionSource<Compilation> compilationSource = new();
+  public Task<Compilation> Compilation => compilationSource.Task;
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
 
@@ -43,9 +48,11 @@ public class DocumentManager {
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
-  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(0);
+  private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly IScheduler updateScheduler = new EventLoopScheduler();
+  private CancellationTokenSource cancellationTokenSource;
+  private DocumentTextBuffer document;
 
   public DocumentManager(
     IServiceProvider services,
@@ -56,44 +63,69 @@ public class DocumentManager {
     this.relocator = services.GetRequiredService<IRelocator>();
     this.textChangeProcessor = services.GetRequiredService<ITextChangeProcessor>();
 
+    this.document = document;
     observer = new IdeStateObserver(services.GetRequiredService<ILogger<IdeStateObserver>>(),
       services.GetRequiredService<ITelemetryPublisher>(),
       services.GetRequiredService<INotificationPublisher>(),
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
-    Compilation = new Compilation(
-      services,
-      DetermineDocumentOptions(options, document.Uri),
-      document,
-      null);
-
-    observerSubscription = Compilation.DocumentUpdates.Select(d => d.InitialIdeState(options)).Subscribe(observer);
+    cancellationTokenSource = new();
+    
     changeReceived.Throttle(TimeSpan.FromMilliseconds(20)).ObserveOn(updateScheduler)
       .Subscribe(_ => ProcessChanges());
+
+    var initialIdeState = new IdeState(document, Array.Empty<Diagnostic>(),
+      SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, document),
+      new Dictionary<ImplementationId, IdeImplementationView>(),
+      Array.Empty<Counterexample>(),
+      false, Array.Empty<Diagnostic>(),
+      new DocumentVerificationTree(document));
+
+    observerSubscription = Disposable.Empty;
     var _ = Task.Run(() => {
-
-      if (VerifyOnOpen) {
-        var _ = VerifyEverythingAsync();
-      } else {
-        // logger.LogDebug("Setting result for workCompletedForCurrentVersion");
-        workCompletedForCurrentVersion.Release();
-      }
-
-      Compilation.Start();
+      CreateAndStartCompilation(compilationSource, initialIdeState, VerifyOnOpen);
     });
+  }
+
+  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource, IdeState lastIdeState,
+    bool verifyEverything)
+  {
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
+    var compilation = new Compilation(
+      services,
+      GetDocumentOptions(document.Uri),
+      document,
+      null, cancellationTokenSource.Token);
+    
+    compilationSource.SetResult(compilation);
+
+    observerSubscription = compilation.DocumentUpdates.Select(d => d.ToIdeState(lastIdeState)).Subscribe(observer);
+
+    if (verifyEverything)
+    {
+      var _ = VerifyEverythingAsync();
+    }
+    else
+    {
+      workCompletedForCurrentVersion.Release();
+    }
+
+    compilation.Start();
   }
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
 
-  private readonly ConcurrentQueue<DidChangeTextDocumentParams> changeRequests = new();
+  private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
   private readonly object changeLock = new();
   void ProcessChanges() {
     lock (changeLock) {
       var items = new List<DidChangeTextDocumentParams>(changeRequests.Count);
+      TaskCompletionSource<Compilation> compilationSource = null!;
       while (!changeRequests.IsEmpty) {
         if (changeRequests.TryDequeue(out var change)) {
-          items.Add(change);
+          items.Add(change.Item1);
+          compilationSource = change.Item2;
         }
       }
 
@@ -101,13 +133,13 @@ public class DocumentManager {
         return;
       }
       var changes = items.SelectMany(cr => cr.ContentChanges).ToList();
-      var document = items[^1].TextDocument;
+      var documentIdentifier = items[^1].TextDocument;
       logger.LogError($"Merged {items.Count} items");
-      var merged = new DidChangeTextDocumentParams() {
-        TextDocument = document,
+      var merged = new DidChangeTextDocumentParams {
+        TextDocument = documentIdentifier,
         ContentChanges = changes
       };
-      ProcessDocumentChange(merged);
+      ProcessDocumentChange(compilationSource!, merged);
     }
   }
 
@@ -118,15 +150,18 @@ public class DocumentManager {
   /// <param name="documentChange"></param>
   /// <exception cref="InvalidOperationException"></exception>
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    Compilation.CancelPendingUpdates();
-    changeRequests.Enqueue(documentChange);
+    cancellationTokenSource.Cancel();
+    cancellationTokenSource = new();
+    // There's a race condition here with ProcessDocumentChange. Should add a lock
+    compilationSource = new();
+    changeRequests.Enqueue((documentChange, compilationSource));
     changeReceived.OnNext(Unit.Value);
   }
 
-  private void ProcessDocumentChange(DidChangeTextDocumentParams documentChange) {
+  private void ProcessDocumentChange(TaskCompletionSource<Compilation> compilationSource, DidChangeTextDocumentParams documentChange) {
     // According to the LSP specification, document versions should increase monotonically but may be non-consecutive.
     // See: https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1195
-    var oldVer = Compilation.TextBuffer.Version;
+    var oldVer = document.Version;
     var newVer = documentChange.TextDocument.Version;
     var documentUri = documentChange.TextDocument.Uri;
     if (oldVer >= newVer) {
@@ -134,57 +169,35 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
-
     var before = DateTime.Now;
-    var updatedText = textChangeProcessor.ApplyChange(Compilation.TextBuffer, documentChange, CancellationToken.None);
+    document = textChangeProcessor.ApplyChange(document, documentChange, CancellationToken.None);
     logger.LogError($"Applying text change took {(DateTime.Now - before).Milliseconds}ms");
 
     var lastPublishedState = observer.LastPublishedState;
 
     var changeProcessor = relocator.GetChangeProcessor(documentChange, CancellationToken.None);
     var migratedVerificationTree =
-      changeProcessor.RelocateVerificationTree(lastPublishedState.VerificationTree, updatedText.NumberOfLines);
-
-    var dafnyOptions = GetDocumentOptions(documentChange);
-    Compilation = new Compilation(
-      services,
-      dafnyOptions,
-      updatedText,
-      // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
-      // This will improve cancellation hits since UpdateDocument will complete faster since it does less migration
-      migratedVerificationTree
-    );
-    var afterCancel = DateTime.Now;
+      changeProcessor.RelocateVerificationTree(lastPublishedState.VerificationTree, document.NumberOfLines);
 
     lock (ChangedRanges) {
       ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
           ChangedRanges.Select(range => changeProcessor.MigrateRange(range))).Where(r => r != null)
         .Take(MaxRememberedChanges).ToList()!;
     }
-    if (VerifyOnChange) {
-      var _ = VerifyEverythingAsync();
-    } else {
-      workCompletedForCurrentVersion.Release();
-    }
-
     observerSubscription.Dispose();
     var migratedLastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(changeProcessor, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = changeProcessor.MigrateSymbolTable(lastPublishedState.SignatureAndCompletionTable),
       VerificationTree = migratedVerificationTree
     };
-    var migratedUpdates = Compilation.DocumentUpdates.Select(document =>
-      document.ToIdeState(migratedLastPublishedState));
-    observerSubscription = migratedUpdates.Subscribe(observer);
-    Compilation.Start();
+    CreateAndStartCompilation(compilationSource, migratedLastPublishedState, VerifyOnChange);
   }
 
-  private DafnyOptions GetDocumentOptions(DidChangeTextDocumentParams documentChange) {
-    var cacheKey = documentChange.TextDocument.Uri.ToUri().AbsoluteUri;
+  private DafnyOptions GetDocumentOptions(TextDocumentIdentifier textDocument) {
+    var cacheKey = textDocument.Uri.ToUri().AbsoluteUri;
     var result = memoryCache.Get(cacheKey) as DafnyOptions;
     if (result == null) {
-      result = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
+      result = DetermineDocumentOptions(options, textDocument.Uri);
       memoryCache.Set(new CacheItem(cacheKey, result), new CacheItemPolicy {
         SlidingExpiration = new TimeSpan(0, 0, 5)
       });
@@ -252,9 +265,10 @@ public class DocumentManager {
   }
 
   public async Task CloseAsync() {
-    Compilation.CancelPendingUpdates();
+    cancellationTokenSource.Cancel();
     try {
-      await Compilation.LastDocument;
+      var compilation = await Compilation;
+      await compilation.LastDocument;
     } catch (TaskCanceledException) {
     }
   }
@@ -262,12 +276,14 @@ public class DocumentManager {
   public async Task<DocumentAfterParsing> GetLastDocumentAsync() {
     await workCompletedForCurrentVersion.WaitAsync();
     workCompletedForCurrentVersion.Release();
-    return await Compilation.LastDocument;
+    var compilation = await Compilation;
+    return await compilation.LastDocument;
   }
 
   public async Task<IdeState> GetSnapshotAfterResolutionAsync() {
     try {
-      var resolvedDocument = await Compilation.ResolvedDocument;
+      var compilation = await Compilation;
+      var resolvedDocument = await compilation.ResolvedDocument;
       logger.LogDebug($"GetSnapshotAfterResolutionAsync, resolvedDocument.Version = {resolvedDocument.Version}, " +
                       $"observer.LastPublishedState.Version = {observer.LastPublishedState.Version}, threadId: {Thread.CurrentThread.ManagedThreadId}");
     } catch (OperationCanceledException) {
@@ -286,14 +302,18 @@ public class DocumentManager {
     return observer.LastPublishedState;
   }
 
+  private int counter = 0;
   private async Task VerifyEverythingAsync() {
+    var count = counter++;
     try {
-      var translatedDocument = await Compilation.TranslatedDocument;
+      // Will this compilation always include the latest received edits? I think so, because compilationSource is cleared when an edit is received 
+      var compilation = await Compilation;
+      var translatedDocument = await compilation.TranslatedDocument;
 
       var implementationTasks = translatedDocument.VerificationTasks;
 
       if (!implementationTasks.Any()) {
-        Compilation.FinishedNotifications(translatedDocument);
+        compilation.FinishedNotifications(translatedDocument);
       }
 
       lock (ChangedRanges) {
@@ -309,7 +329,7 @@ public class DocumentManager {
         null, false).ToList();
 
       foreach (var implementationTask in orderedTasks) {
-        Compilation.VerifyTask(translatedDocument, implementationTask);
+        compilation.VerifyTask(translatedDocument, implementationTask);
       }
     }
     finally {

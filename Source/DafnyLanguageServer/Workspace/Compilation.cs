@@ -41,10 +41,10 @@ public class Compilation {
 
   // TODO CompilationManager shouldn't be aware of migration
   private readonly VerificationTree? migratedVerificationTree;
+  private readonly CancellationToken cancellationToken;
 
   private TaskCompletionSource started = new();
   private readonly IScheduler verificationUpdateScheduler = new EventLoopScheduler();
-  private readonly CancellationTokenSource cancellationSource;
   private readonly Subject<Document> documentUpdates = new();
   public IObservable<Document> DocumentUpdates => documentUpdates;
 
@@ -54,7 +54,8 @@ public class Compilation {
   public Compilation(IServiceProvider services,
     DafnyOptions options,
     DocumentTextBuffer textBuffer,
-    VerificationTree? migratedVerificationTree) {
+    VerificationTree? migratedVerificationTree,
+    CancellationToken cancellationToken) {
     this.options = options;
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
     logger = services.GetRequiredService<ILogger<Compilation>>();
@@ -65,7 +66,7 @@ public class Compilation {
     TextBuffer = textBuffer;
     this.services = services;
     this.migratedVerificationTree = migratedVerificationTree;
-    cancellationSource = new();
+    this.cancellationToken = cancellationToken;
 
     MarkVerificationFinished();
 
@@ -80,7 +81,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationToken);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -110,10 +111,10 @@ public class Compilation {
     }
 
     try {
-      var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
+      var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationToken);
       documentUpdates.OnNext(translatedDocument);
       foreach (var task in translatedDocument.VerificationTasks!) {
-        cancellationSource.Token.Register(task.Cancel);
+        cancellationToken.Register(task.Cancel);
       }
 
       return translatedDocument;
@@ -242,7 +243,7 @@ public class Compilation {
     MarkVerificationFinished();
     if (ReportGutterStatus) {
       // All unvisited trees need to set them as "verified"
-      if (!cancellationSource.IsCancellationRequested) {
+      if (!cancellationToken.IsCancellationRequested) {
         SetAllUnvisitedMethodsAsVerified(document);
       }
 
@@ -328,10 +329,6 @@ public class Compilation {
       default:
         throw new ArgumentOutOfRangeException();
     }
-  }
-
-  public void CancelPendingUpdates() {
-    cancellationSource.Cancel();
   }
 
   private TaskCompletionSource verificationCompleted = new();

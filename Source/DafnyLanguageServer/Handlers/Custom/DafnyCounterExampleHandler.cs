@@ -25,10 +25,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       try {
         var documentManager = documents.GetDocumentManager(request.TextDocument);
         if (documentManager != null) {
-          var translatedDocument = await documentManager.Compilation.TranslatedDocument;
+          var compilation = await documentManager.Compilation;
+          var translatedDocument = await compilation.TranslatedDocument;
           var verificationTasks = translatedDocument.VerificationTasks;
           foreach (var task in verificationTasks) {
-            documentManager.Compilation.VerifyTask(translatedDocument, task);
+            compilation.VerifyTask(translatedDocument, task);
           }
 
           var state = await documentManager.GetIdeStateAfterVerificationAsync();
