@@ -53,7 +53,7 @@ module {:options "--function-syntax:4"} TestModule {
 
   codatatype CD<Q> =
     | Y // A Y
-    | Z /* A Z */
+    | Z /* A Z, with a very long description so that it overflows a line to check that line wrapping happens sensibly for data type constructors, which are laid out in table cells.  */
     | ghost G // A ghost constructor. Very cool.
 
   /** A type synonym. */

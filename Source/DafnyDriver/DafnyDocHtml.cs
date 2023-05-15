@@ -15,6 +15,7 @@ class DafnyDocHtml {
   public static readonly string br = "<br>";
   public static readonly string mdash = " &mdash; ";
   public static readonly string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
+  public static readonly string initialbar = Code("&nbsp;&nbsp;|");
 
   public static string HtmlStart(string title, string script = "") {
     return
@@ -98,18 +99,18 @@ class DafnyDocHtml {
     return new StringBuilder(6 * n).Insert(0, "&nbsp;", n).ToString();
   }
 
-  public static string Link(string fullname, string text) {
-    return $"<a href=\"{LinkTarget(fullname)}\">{text}</a>";
+  public static string Link(string id, string text) {
+    return $"<a href=\"{LinkTarget(id)}\">{text}</a>";
   }
 
   // Encodes a fully qualified Dafny name as a file name. 
   // Dafny names are case-sensitive; filenames are not necessarily case-sensitive.
-  public static string LinkTarget(string fullname) {
-    return fullname + ".html"; // TODO - needs encoding for case
+  public static string LinkTarget(string id) {
+    return id + ".html"; // TODO - needs encoding for case
   }
 
   public static string Heading1(string text) {
-    return "<div class=\"topheading\">\n<h1>" + text + "</h1>\n</div>";
+    return "<div class=\"topheading\">\n<h1>" + text + "</h1>\n</div>\n";
   }
 
   public static string Heading2(string text) {
@@ -178,30 +179,6 @@ class DafnyDocHtml {
 
   public static String TableEnd() {
     return "</table>";
-  }
-
-  public static String ListStart() {
-    return "<ul>";
-  }
-
-  public static String ListItem(String text) {
-    return "<li>" + text + "</li>";
-  }
-
-  public static String ListEnd() {
-    return "</ul>";
-  }
-
-  public static String Anchor(string name) {
-    return $"<a id=\"{name}\"/>";
-  }
-
-  public static String LinkToAnchor(string name, string text) {
-    return $"<a href=\"#{name}\">{text}</a>";
-  }
-
-  public static String RuleWithText(String text) {
-    return $"<div style=\"width: 100%; height: 10px; border-bottom: 1px solid black; text-align: center\"><span style=\"font-size: 20px; background-color: #F3F5F6; padding: 0 10px;\">{text}</span></div><br>";
   }
 
   public static string LocalHeaderSize = "24px";
