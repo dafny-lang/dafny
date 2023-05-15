@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- /unicodeChar:1
+// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char
 
 method AssertAndExpect(p: bool) 
   requires p

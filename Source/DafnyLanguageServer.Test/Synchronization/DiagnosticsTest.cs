@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
+using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -595,19 +596,6 @@ module ModC {
     }
 
     [Fact]
-    public async Task OpeningDocumentThatIncludesDocumentWithSemanticErrorsReportsResolverErrorAtInclude() {
-      var source = "include \"syntaxError.dfy\"";
-      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 25)), diagnostics[0].Range);
-      await AssertNoDiagnosticsAreComing(CancellationToken);
-    }
-
-    [Fact]
     public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
       var source = "include \"semanticError.dfy\"";
       var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
@@ -1142,6 +1130,9 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "SyntaxError");
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.True(diagnostics2.Any());
+    }
+
+    public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

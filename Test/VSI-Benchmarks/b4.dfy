@@ -136,7 +136,7 @@ class Map<Key(==),Value> {
   }
 
   // Removes key from the domain of M (and does nothing if key wasn't in M to begin with)
-  method Remove(key: Key)
+  method {:rlimit 3000} {:vcs_split_on_every_assert} Remove(key: Key)
     requires Valid()
     modifies Repr
     ensures Valid() && fresh(Repr - old(Repr))

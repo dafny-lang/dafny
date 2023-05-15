@@ -52,11 +52,12 @@ public class Compilation {
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
+    DafnyOptions options,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    options = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<Compilation>>();
+    this.options = options;
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -79,7 +80,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -293,8 +294,8 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, document.Program.DefaultModuleDef, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -337,14 +338,14 @@ public class Compilation {
   private readonly DafnyOptions options;
 
   public void MarkVerificationStarted() {
-    logger.LogDebug("MarkVerificationStarted called");
+    logger.LogTrace("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogDebug("MarkVerificationFinished called");
+    logger.LogTrace("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 

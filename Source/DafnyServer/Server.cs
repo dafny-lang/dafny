@@ -12,8 +12,8 @@ namespace Microsoft.Dafny {
     private bool running;
     private readonly ExecutionEngine engine;
 
-    static void Main(string[] args) {
-      var options = DafnyOptions.Create();
+    public static void Main(string[] args) {
+      var options = DafnyOptions.Create(Console.Out);
       ServerUtils.ApplyArgs(args, options);
       var engine = ExecutionEngine.CreateWithoutSharedCache(options);
       Server server = new Server(engine);

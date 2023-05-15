@@ -18,7 +18,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<DocumentUri, DocumentManager> documents = new();
 
     public DocumentManagerDatabase(IServiceProvider services) {
-
       this.services = services;
     }
 

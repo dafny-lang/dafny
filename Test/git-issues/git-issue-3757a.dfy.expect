@@ -1,0 +1,4 @@
+git-issue-3757a.dfy(4,6): Error: expected an identifier after 'const' and any attributes
+git-issue-3757a.dfy(1,0): Warning: File contains no code
+git-issue-3757a.dfy(4,6): Error: this symbol not expected in Dafny
+2 parse errors detected in git-issue-3757a.dfy

@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SymbolMigrationTest : SynchronizationTestBase {
@@ -98,6 +99,9 @@ method GetIt(x: int) returns (y: int) {
       Assert.NotNull(document);
       Assert.True(document.SignatureAndCompletionTable.Resolved);
       Assert.Single(document.SignatureAndCompletionTable.Locations.Keys.OfType<MethodSymbol>());
+    }
+
+    public SymbolMigrationTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

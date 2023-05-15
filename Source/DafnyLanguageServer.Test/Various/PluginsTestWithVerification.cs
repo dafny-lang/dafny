@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
+using Xunit.Abstractions;
 using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -31,5 +32,8 @@ public class PluginsTestWithVerification : PluginsTestBase {
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
     Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
     Assert.Equal(new Range((0, 23), (0, 24)), diagnostics[1].Range);
+  }
+
+  public PluginsTestWithVerification(ITestOutputHelper output) : base(output) {
   }
 }

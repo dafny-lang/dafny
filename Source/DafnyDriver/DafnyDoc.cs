@@ -69,7 +69,7 @@ class Info {
 }
 class DafnyDoc {
   public static DafnyDriver.ExitValue DoDocumenting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
-    ErrorReporter reporter, string programName, DafnyOptions options) {
+    string programName, DafnyOptions options) {
 
     string outputdir = options.DafnyPrintCompiledFile;
     if (outputdir == null) {
@@ -80,7 +80,7 @@ class DafnyDoc {
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(name)).ToList();
+          .Select(name => new DafnyFile(options, name)).ToList();
     })).ToList();
     Console.Out.Write($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
@@ -93,7 +93,7 @@ class DafnyDoc {
     string err = null;
     Program dafnyProgram = null;
     try {
-      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
+      err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out dafnyProgram);
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.CompileVerbose) {
@@ -102,7 +102,7 @@ class DafnyDoc {
     }
     if (err != null) {
       exitValue = DafnyDriver.ExitValue.DAFNY_ERROR;
-      Console.Error.WriteLine(err);
+      Console.Out.WriteLine(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -115,11 +115,11 @@ class DafnyDoc {
       try {
         File.Create(outputdir + "/index.html").Dispose();
       } catch (Exception) {
-        reporter.Error(MessageSource.Documentation, Token.NoToken, "Insufficient permission to create output files in " + outputdir);
+        Console.Out.WriteLine("Insufficient permission to create output files in " + outputdir);
         return DafnyDriver.ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
-      exitValue = new DafnyDoc(dafnyProgram, reporter, options, outputdir).GenerateDocs(dafnyFiles);
+      exitValue = new DafnyDoc(dafnyProgram, options, outputdir).GenerateDocs(dafnyFiles);
     }
     return exitValue;
   }
@@ -138,9 +138,9 @@ class DafnyDoc {
   public StringBuilder sidebar = new StringBuilder();
   public StringBuilder script = new StringBuilder().Append(ScriptStart());
 
-  public DafnyDoc(Program dafnyProgram, ErrorReporter reporter, DafnyOptions options, string outputdir) {
+  public DafnyDoc(Program dafnyProgram, DafnyOptions options, string outputdir) {
     this.DafnyProgram = dafnyProgram;
-    this.Reporter = reporter;
+    this.Reporter = dafnyProgram.Reporter;
     this.Options = options;
     this.Outputdir = outputdir;
   }
@@ -287,7 +287,7 @@ class DafnyDoc {
   /** Returns printable info about the file containing the given token and the last modification time of the file */
   public string FileInfo(IToken tok) {
     if (tok != null) {
-      return FileInfo(tok.Filename);
+      return FileInfo(tok.Filepath);
     }
     return "";
   }

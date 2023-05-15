@@ -204,7 +204,7 @@ It assigns an arbitrary but type-correct value to the corresponding left-hand-si
 It can be mixed with other assignments of computed values.
 <!-- %no-check -->
 ```dafny
-a := *'
+a := *;
 a, b, c := 4, *, 5;
 ```
 
