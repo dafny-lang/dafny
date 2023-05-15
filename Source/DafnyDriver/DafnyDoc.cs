@@ -14,13 +14,30 @@ namespace Microsoft.Dafny;
 /* 
 TODO:
 
+- show inherited members in classes
+- show members obtained from refinement parents
+- show effective module declaration for an export set
+- for a file named in a From file: notation, link to the actual file, where possible (may require a command-line option to say where the files are)
+  - similarly for links to modules and module contents from libraries
+- don't show full module path always for import declarations
+- show function bodies when functions are not opaque
+
+Comments from Mikael that are not yet addressed:
+    Click on a module should not only open the page, but unfold the menu  -- I'd vote against this behavior -- I prefer separating the opening and the display
+    Export set should provide a view of the module with all definitions refined + revealed functions should have their bodies in the documentation somewhere.
+    Import X = A.B.C clicking on A.B.C should link to C directly. -- As elsewhere, each section of a qualified name links to the declaration for that name segment
+    Slight border for tables -- I'd vote not
+    Class order: Constants, mutable fields, constructors and then methods -- I think we agreed to leave this as is.
+    Add inherited constants and field in same list
+    Add a TODO to print expressions with formatting.
+    constants definitions can be in the same list -- definition is in the details; do we really want it in the summary list as well?
+
 - when lengthy content is scrolled down and then short content is displayed, the user has to manually scroll back up. Should
 implement some mechanism to always or when needed scroll back up automatically.
 - Better way to set the indentation in the sidebar
 
 - translate markdown to html
 - mark experimental
-- add bodies of non-opaque functions
 - use project file
 
 - need to revise so that names that differ only in case do not resolve to the same html file on case-insenstive OSes
@@ -32,9 +49,6 @@ Future Improvements:
 - retain source layout of expressions
 - add Dafny favicon
 - ability to link to declarations in other documentation sets
-
-- Check formatting
-  - is list of imported names in monospace
 
 Questions
 - Should functions show body?
@@ -54,16 +68,21 @@ class Info {
   public string HtmlSummary;
   public string HtmlDetail;
 
-  public Info(DafnyDoc dd, string kind, string name, string fullname) : this(dd, kind, name, fullname, fullname) {
+  public string Source; // information on where the entity is declared
+
+  public Info(DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(dd, kind, tok, name, fullname, fullname) {
   }
 
-  public Info(DafnyDoc dd, string kind, string name, string fullname, string id) {
+  public Info(DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
     this.Contents = null;
     this.Kind = kind;
     this.Name = name;
     this.FullName = fullname;
     this.Id = id;
     this.Link = LinkTarget(id);
+    if (tok != null) {
+      this.Source = dd.FileInfo(tok);
+    }
     dd.Register(this);
   }
 }
@@ -76,7 +95,7 @@ class DafnyDoc {
       outputdir = DefaultOutputDir;
     }
 
-    // Collect all the dafny files
+    // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
@@ -86,8 +105,6 @@ class DafnyDoc {
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
-
-    // TODO - adjust this to handle project files
 
     // Do parsing and resolution, obtaining a dafnyProgram
     string err = null;
@@ -196,8 +213,12 @@ class DafnyDoc {
       file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
       file.Write(BodyStart());
       file.Write(LocalHeading(info.Kind, info.FullName));
-      file.Write(MainStart("full"));
+      if (!String.IsNullOrEmpty(info.Source)) {
+        file.WriteLine(br);
+        file.Write(info.Source);
+      }
       file.WriteLine(br);
+      file.Write(MainStart("full"));
       file.Write(info.HtmlDetail);
       file.WriteLine(MainEnd());
       file.Write(BodyAndHtmlEnd());
@@ -206,7 +227,14 @@ class DafnyDoc {
   }
 
   public static string LocalHeading(String kind, string fullname) {
-    return Size(Bold(kind + " " + QualifiedNameWithLinks(fullname, false)), LocalHeaderSize);
+    var q = QualifiedNameWithLinks(fullname, false);
+    if (kind == "export") {
+      int k = q.LastIndexOf('.');
+      var a = q.ToCharArray();
+      a[k] = '`';
+      q = new string(a);
+    }
+    return Size(Bold(kind + " " + q), LocalHeaderSize);
   }
 
   public Info ModuleInfo(LiteralModuleDecl module, IList<DafnyFile> dafnyFiles) {
@@ -219,12 +247,24 @@ class DafnyDoc {
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
 
-    var info = new Info(this, "module", moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
+    var info = new Info(this, "module", null, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
+
+    if (moduleDef.IsDefaultModule) {
+      if (dafnyFiles == null) {
+        // write nothing
+      } else if (dafnyFiles.Count != 1) {
+        info.Source = "From multiple files<br>\n";
+      } else {
+        info.Source = FileInfo(dafnyFiles[0].CanonicalPath);
+      }
+    } else {
+      info.Source = FileInfo(module.Tok);
+    }
 
     var docstring = Docstring(module);
 
-    info.HtmlSummary = $"{Keyword("module")} {QualifiedNameWithLinks(module.FullDafnyName)} {DashShortDocstring(module)}";
+    info.HtmlSummary = $"{Link(module.FullName, module.Name)} {DashShortDocstring(module)}";
 
     var details = new StringBuilder();
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
@@ -233,7 +273,6 @@ class DafnyDoc {
     if (moduleDef.RefinementQId != null) {
       refineText = (" refines " + QualifiedNameWithLinks(moduleDef.RefinementQId.Decl.FullDafnyName));
     }
-    details.Append(BodyStart());
     details.Append(MainStart("full"));
 
     // TODO - ToString ought to put out a full declaration, as in the source code, so we don't ahve to reconstruct it here
@@ -247,25 +286,11 @@ class DafnyDoc {
     details.Append(AttrString(module.Attributes));
     details.Append(Code(abs + "module " + decl + refineText));
     details.Append(br);
-    details.Append(br);
     details.Append(eol);
 
     if (!String.IsNullOrEmpty(docstring)) {
       details.Append(IndentedHtml(docstring));
-      details.Append(br);
       details.Append(eol);
-    }
-
-    if (moduleDef.IsDefaultModule) {
-      if (dafnyFiles == null) {
-        // write nothing
-      } else if (dafnyFiles.Count != 1) {
-        details.Append("From multiple files<br>\n");
-      } else {
-        details.Append(FileInfo(dafnyFiles[0].CanonicalPath));
-      }
-    } else {
-      details.Append(FileInfo(module.Tok));
     }
 
     AddExportSummaries(moduleDef, details, info);
@@ -296,11 +321,11 @@ class DafnyDoc {
     string declFilename = GetFileReference(filename);
     if (declFilename != null) {
       var modifyTime = File.GetLastWriteTime(filename);
-      var result = $"From file: {declFilename}{br}\n";
+      var result = $"From file: {declFilename}{br}";
       if (Options.Get(DocCommand.DocShowModifyTime)) {
-        result += $"Last modified: {modifyTime}{br}\n";
+        result += $"Last modified: {modifyTime}{br}";
       }
-      return result;
+      return "<span class=\"from-file\">" + result + "\n</span>";
     }
     return "";
   }
@@ -332,7 +357,7 @@ class DafnyDoc {
   public Info ExportInfo(ModuleExportDecl ex) {
     var name = ex.Name;
     var docstring = Docstring(ex);
-    var info = new Info(this, "export", name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
+    var info = new Info(this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
     info.HtmlSummary = $"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}"
      + DashShortDocstring(ex);
@@ -397,7 +422,7 @@ class DafnyDoc {
   public Info ImportInfo(ModuleDecl md) {
     var name = md.Name;
     var docstring = Docstring(md);
-    var info = new Info(this, "import", name, md.FullDafnyName, md.FullDafnyName + "__import");
+    var info = new Info(this, "import", md.Tok, name, md.FullDafnyName, md.FullDafnyName + "__import");
 
     var styledName = Code(Bold(name));
     var details = new StringBuilder();
@@ -496,7 +521,7 @@ class DafnyDoc {
   }
 
   public Info ConstantInfo(ConstantField c, TopLevelDeclWithMembers owner) {
-    var info = new Info(this, "const", c.Name, c.FullDafnyName);
+    var info = new Info(this, "const", c.Tok, c.Name, c.FullDafnyName);
 
     var docstring = Docstring(c);
     var modifiers = c.ModifiersAsString();
@@ -517,7 +542,7 @@ class DafnyDoc {
   }
 
   public Info VarInfo(Field f, TopLevelDeclWithMembers owner) {
-    var info = new Info(this, "var", f.Name, f.FullDafnyName);
+    var info = new Info(this, "var", f.Tok, f.Name, f.FullDafnyName);
 
     var docstring = Docstring(f);
     var linkedName = Code(Link(f.FullDafnyName, Bold(f.Name)));
@@ -546,7 +571,7 @@ class DafnyDoc {
       }
     }
 
-    var info = new Info(this, m.WhatKind, name, m.FullDafnyName);
+    var info = new Info(this, m.WhatKind, m.Tok, name, m.FullDafnyName);
 
     var md = m as IHasDocstring;
     var docstring = Docstring(md);
@@ -569,9 +594,8 @@ class DafnyDoc {
     details.Append(AttrString(m.Attributes));
     var decl = modifiers + m.WhatKind + " " + ms;
     details.Append(Code(decl)).Append(br).Append(eol);
-
-    details.Append(IndentedHtml(docstring));
     AppendSpecs(details, m);
+    details.Append(IndentedHtml(docstring));
 
     info.HtmlSummary = summaries.ToString();
     info.HtmlDetail = details.ToString();
@@ -585,9 +609,9 @@ class DafnyDoc {
     // Note: Types do not have modifiers (at least at present)
     var modifiers = "";
     var typeparams = TypeFormals(t.TypeArgs);
-    string kind = t.WhatKind.Replace("abstract", "").Replace("opaque", "");
+    string kind = t.WhatKind.Replace("abstract ", "").Replace("opaque ", "").Replace("subset ", "").Replace(" synonym", "");
 
-    var info = new Info(this, t.WhatKind, t.Name, t.FullDafnyName);
+    var info = new Info(this, t.WhatKind, t.Tok, t.Name, t.FullDafnyName);
 
     var details = new StringBuilder();
 
@@ -608,7 +632,9 @@ class DafnyDoc {
     if (t is ClassDecl cd) { // Class, Trait, Iterator
       if (cd.ParentTraits.Count > 0) {
         var extends = String.Join(", ", cd.ParentTraits.Select(t => TypeLink(t)));
-        decl.Append(" ").Append(extends);
+        if (!String.IsNullOrEmpty(extends)) {
+          decl.Append(" ").Append(Keyword("extends")).Append(extends);
+        }
       }
     } else if (t is SubsetTypeDecl ts) {
       decl.Append(" = ").Append(ts.Var.Name).Append(": ").Append(TypeLink(ts.Var.Type)).Append(" | ").Append(ts.Constraint.ToString());
@@ -667,7 +693,6 @@ class DafnyDoc {
 
     if (t is TopLevelDeclWithMembers tm) {
       info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
-      details.Append(FileInfo(tm.Tok));
 
       if (tm is ClassDecl) {
         AddConstructorSummaries(tm, details, info.Contents);
@@ -803,7 +828,7 @@ class DafnyDoc {
 
   public static string AttrString(Attributes attr) {
     if (attr != null) {
-      return Code(space4 + attr.ToString()) + br + eol;
+      return Code(attr.ToString()) + br + eol;
     } else {
       return "";
     }
@@ -923,7 +948,11 @@ class DafnyDoc {
       } else if (tt is NonNullTypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is SubsetTypeDecl sst) {
-        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        if (tt.FullDafnyName == "nat") {
+          s = tt.FullDafnyName;
+        } else {
+          s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+        }
       } else if (tt is NewtypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is DatatypeDecl) {

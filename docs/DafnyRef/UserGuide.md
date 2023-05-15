@@ -535,7 +535,8 @@ module in a set of files, using the documentation comments in the source files.
 
 * The format of the documentation comments is described [here](TODO).
 * The `dafny doc` command accepts either files or folders as command-line arguments. A folder
-represents all the `.dfy` files contained recursively in that folder.
+represents all the `.dfy` files contained recursively in that folder. A file that is a `.toml`
+[project file](#sec-project-files) represents all the files and options listed in the project file.
 * The command first parses and resolves the given files; it only proceeds to produce documentation
 if type resolution is successful (on all files). All the command-line options relevant to 
 `dafny resolve` are available for `dafny doc`.
@@ -634,7 +635,7 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 - Dafny `expect` statements (when they fail) send a message to **standard-out**.
 - Dafny I/O libraries send output explicitly to either **standard-out or standard-error**
 
-### 13.5.5. Project files
+### 13.5.5. Project files {#sec-project-files}
 
 Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. Here's an example of a Dafny project file:
 
@@ -647,11 +648,14 @@ enforce-determinism = true
 warn-shadowing = true
 ```
 
-Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored.
+Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored. Options in legacy option form are also ignored.
 
 When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file it can find. Options from the project file will override options passed to `dafny server`.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
+
+The command-line may contain at most one project file. Files listed on the command-line are combined with any files listed in any project file on the command-line.  Options listed on the command-line supersede those in
+a project file, whether the command-line option cmoes before or after the project file.
 
 ## 13.6. Verification {#sec-verification}
 

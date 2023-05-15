@@ -269,6 +269,12 @@ span.doctext {
 span.code {
    font-family: 'Courier New', monospace;
 }
+
+span.from-file {
+  font-style: italic;
+  opacity: 50%;
+}
+
 ";
 
 }
