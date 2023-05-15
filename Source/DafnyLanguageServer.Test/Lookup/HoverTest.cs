@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
 
@@ -498,6 +499,9 @@ method test(opt: int) {
 //      ^[```dafny\ns: int\n```]
 }
 ");
+    }
+
+    public HoverTest(ITestOutputHelper output) : base(output) {
     }
 
     [Fact]

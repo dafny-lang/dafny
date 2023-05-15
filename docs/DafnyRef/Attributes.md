@@ -543,8 +543,42 @@ Only a small subset of Dafny's command line options is supported.  Use the
 
 ## 11.3. Attributes on assertions, preconditions and postconditions {#sec-verification-attributes-on-assertions}
 
+### 11.3.1. `{:only}` {#sec-only}
 
-### 11.3.1. `{:focus}` {#sec-focus}
+`assert {:only} X;` temporarily transforms all other non-`{:only}` assertions in the surrounding declaration into assumptions.
+
+<!-- %no-check -->
+```dafny
+method Test() {
+  assert true;                  // Unchecked
+  assert {:only} true by {      // Checked
+    assert true;                // Checked
+  }
+  assert true;                  // Unchecked
+  assert {:only "after"} true;  // Checked
+  assert true;                  // Checked
+  assert {:only "before"} true; // Checked
+  assert true;                  // Unchecked
+}
+```
+
+`{:only}` can help focusing on a particular proof or a particular branch, as it transforms not only other explicit assertions, but also other implicit assertions, and call requirements, into assumptions.
+Since it's meant to be a temporary construct, it always emits a warning.
+It also has two variants `assert {:only "before"}` and `assert {:only "after"}`.
+Here is precisely how Dafny determines what to verify or not.
+Each `{:only}` annotation defines a "verification interval" which is visual:
+
+* `assert {:only} X [by {...} | ;]` sets a verification interval that starts at the keyword `assert` and ends either at the end of the proof `}` or the semicolon `;`, depending on which variant of `assert` is being used.
+* `assert {:only} ...` inside another verification interval removes that verification interval and sets a new one.
+* `assert {:only "before"} ...` inside another verification interval finishes that verification interval earlier at the end of this assertion. Outside a verification interval, it sets a verification interval from the beginning of the declaration to the end of this assertion, but only if there were no other verification intervals before.
+* `assert {:only "after"} ...` inside another verification interval moves the start of that verification interval to the start of this new assert. Outside a verification interval, it sets a verification interval from the beginning of this `assert` to the end of the declaration.
+
+The start of an asserted expression is used to determines if it's inside a verification interval or not.
+For example, in `assert B ==> (assert {:only "after"} true; C)`, `C` is actually the start of the asserted expression, so it is verified because it's after `assert {:only "after"} true`.
+
+As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to make them explicit with assertions if you wanted to verify them at the same time.
+
+### 11.3.2. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 The first batch considers all assertions that are not on the block containing the `assert {:focus} X;`
 The second batch considers all assertions that are on the block containing the `assert {:focus} X;` and those that will _always_ follow afterwards.
@@ -601,7 +635,7 @@ method doFocus2(x: bool) returns (y: int) {
 }
 ```
 
-### 11.3.2. `{:split_here}` {#sec-split_here}
+### 11.3.3. `{:split_here}` {#sec-split_here}
 `assert {:split_here} X;` splits verification into two [assertion batches](#sec-assertion-batches).
 It verifies the code leading to this point (excluded) in a first assertion batch,
 and the code leading from this point (included) to the next `{:split_here}` or until the end in a second assertion batch.
@@ -630,8 +664,10 @@ method doSplitHere(x: bool) returns (y: int) {
 }
 ```
 
-### 11.3.3. `{:subsumption n}`
+### 11.3.4. `{:subsumption n}`
 Overrides the `/subsumption` command-line setting for this assertion.
+`{:subsumption 0}` checks an assertion but does not assume it after proving it.
+You can achieve the same effect using [labelled assertions](#sec-labeling-revealing-assertions).
 
 ## 11.4. Attributes on variable declarations
 
