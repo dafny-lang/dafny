@@ -109,9 +109,9 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  public override bool Message(MessageSource source, ErrorLevel level, string errorId, Dafny.IToken tok, string msg) {
-    if (base.Message(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Console.Out);
+  public override bool Message(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
+    if (base.Message(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+      new DiagnosticMessageData(source, level, tok, null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;
     }
 

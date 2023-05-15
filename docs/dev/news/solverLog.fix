@@ -1,1 +1,0 @@
-The --solver-log option is now hidden from help unless --help-internal is used.

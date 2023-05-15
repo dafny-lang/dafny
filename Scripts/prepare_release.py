@@ -166,50 +166,27 @@ class NewsFragments:
 class Version(NamedTuple):
     """Support functions for version numbers.
 
-    >>> v = Version.from_string("3.8.2-xyz", datetime.date(2022, 8, 1))
-    >>> v.short
+    >>> v = Version.from_string("3.8.2-xyz")
+    >>> v.string
     '3.8.2-xyz'
-    >>> v.full
-    '3.8.2.40801-xyz'
-    >>> v.comment
-    'Version 3.8.2, year 2018+4, month 8, day 1.'
     """
 
     VERSION_NUMBER_PATTERN = re.compile("^(?P<prefix>[0-9]+[.][0-9]+[.][0-9]+)(?P<identifier>-.+)?$")
 
     main: str # Main version number (1.2.3)
-    date: datetime.date # Release date
     identifier: str # Optional marker ("alpha")
 
     @classmethod
-    def from_string(cls, vernum: str, date: Optional[datetime.date]=None) -> Optional["Version"]:
+    def from_string(cls, vernum: str) -> Optional["Version"]:
         """Parse a short version string into a `Version` object."""
         if m := cls.VERSION_NUMBER_PATTERN.match(vernum):
             prefix, identifier = m.group("prefix", "identifier")
-            date = date or datetime.date.today()
-            return Version(prefix, date, identifier or "")
+            return Version(prefix, identifier or "")
         return None
 
     @property
-    def year_delta(self):
-        return self.date.year - 2018
-
-    @property
-    def short(self):
+    def string(self):
         return f"{self.main}{self.identifier}"
-
-    @property
-    def timestamp(self):
-        return str((self.year_delta * 100 + self.date.month) * 100 + self.date.day)
-
-    @property
-    def full(self):
-        return f"{self.main}.{self.timestamp}{self.identifier}"
-
-    @property
-    def comment(self):
-        return (f"Version {self.main}, year 2018+{self.year_delta}, " +
-                f"month {self.date.month}, day {self.date.day}.")
 
 class Release:
     REMOTE = "origin"
@@ -316,9 +293,7 @@ class Release:
             tail = version_element.tail
             version_element.clear()
             version_element.tail = tail
-            version_element.text = vernum.full
-            comment = ElementTree.Comment(vernum.comment)
-            version_element.append(comment)
+            version_element.text = vernum.string
         xml.write(self.build_props_path, encoding="utf-8")
 
     def _create_release_branch(self):

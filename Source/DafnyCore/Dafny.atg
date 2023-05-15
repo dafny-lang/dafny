@@ -148,12 +148,12 @@ bool IsAssumeTypeKeyword(IToken la) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (bool useStdin, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (TextReader fileReaderOverride, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
   string s;
-  if (useStdin) {
-    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
+  if (fileReaderOverride != null) {
+    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(fileReaderOverride, new List<string>(), Environment.NewLine);
     return Parse(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
   } else {
     var newline = SourcePreprocessor.GetNewlineStyle(uri.LocalPath);
