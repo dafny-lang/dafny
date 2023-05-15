@@ -17,7 +17,8 @@ public static class ShouldCompileOrVerify {
     }
 
     if (module is DefaultModuleDefinition) {
-      // TODO Can there be things from precompiled files that live in the default module?
+      // If things from precompiled files live in the default module, that can cause downstream compilation issues:
+      // https://github.com/dafny-lang/dafny/issues/4009
       return true;
     }
     return program.UrisToCompile.Contains(module.Tok.Uri);
@@ -29,7 +30,7 @@ public static class ShouldCompileOrVerify {
     }
 
     if (declaration.Tok == Token.NoToken) {
-      // TODO required for DefaultModuleDefinition. Do we need it for other things or can we make the code more specific?
+      // Required for DefaultModuleDefinition.
       return true;
     }
     if (program.UrisToVerify == null) {
