@@ -1,0 +1,18 @@
+TypeInferenceRefresh.dfy(102,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(102,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(102,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(107,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(107,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(107,31): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(476,16): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(477,14): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(477,21): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(477,21): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(477,14): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(475,4): Warning: sanity check WARNING: no pre-type was computed
+TypeInferenceRefresh.dfy(102,31): Error: value does not satisfy the subset constraints of 'SubsetType'
+TypeInferenceRefresh.dfy(107,31): Error: value does not satisfy the subset constraints of 'SubsetType'
+TypeInferenceRefresh.dfy(145,30): Error: element might not be in domain
+TypeInferenceRefresh.dfy(217,15): Error: result of operation might violate newtype constraint for 'int8'
+
+Dafny program verifier finished with 56 verified, 4 errors
