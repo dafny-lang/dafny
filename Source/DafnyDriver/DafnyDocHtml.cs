@@ -13,6 +13,7 @@ class DafnyDocHtml {
 
   public static readonly string eol = "\n";
   public static readonly string br = "<br>";
+  public static readonly string spaceTab = "&nbsp; ";
   public static readonly string mdash = " &mdash; ";
   public static readonly string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
   public static readonly string initialbar = Code("&nbsp;&nbsp;|");
@@ -51,19 +52,28 @@ class DafnyDocHtml {
 
   public static string ScriptEntry(string id) {
     return
-@"
-    document.getElementById(""{id}"").onclick = function() {
+$@"
+    document.getElementById(""{id}"").onclick = function() {{
       document.getElementById(""rightside"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000"" style=""border:none; scrolling:no;"" src=""{id}.html""></iframe>';
+      window.scrollTo(0, 0);
+      location.hash = ""{id}"";
       return false;
-    }
-".Replace("{id}", id);
+    }}
+";
   }
   // TODO: The CSS for 'frame' does not seem to work. Setting height ot 100% makes the frame have a scrollbar and a small vertical height
 
   public static string ScriptEnd() {
     return
 @"
+    if(location.hash != """") {
+      var x = document.getElementById(location.hash.replace(""#"", """"));
+      if(x != undefined && x.tagName == ""A"") {
+        x.click();
+      }
+    }
   }
+
 </script>
 ";
   }
@@ -156,6 +166,9 @@ class DafnyDocHtml {
     return $"<tr><td>{s1}</td></tr>";
   }
 
+  public static string Row(IEnumerable<string> cells) {
+    return $"<tr>{string.Join("", cells.Select(cell => $"<td>{cell}</td>"))}</tr>";
+  }
 
   public static string Row(string s1, string s2) {
     return $"<tr><td>{s1}</td><td>{s2}</td></tr>";
@@ -185,6 +198,24 @@ class DafnyDocHtml {
 
   public static readonly string Style =
   @"
+
+table {
+  border: 1px solid #d2d2d2;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: .875rem;
+  margin-top: 1rem;
+}
+
+td {
+  word-wrap: break-word;
+  border-top: 1px solid #d2d2d2;
+  vertical-align: top;
+  padding: 1rem 1.25rem;
+  line-height: 1.5;
+  display: table-cell;
+}
 
 .topheading {
   width: 100%;
