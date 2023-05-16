@@ -35,7 +35,7 @@ module {:options "--function-syntax:4"} TestModule {
 
     const ic := 0
     predicate p() { true }
-    function f(): int { 42 }
+    function f(): int { 42 - 6*7 }
     module MII { export Nothing }
   }
 
@@ -70,7 +70,7 @@ module {:options "--function-syntax:4"} TestModule {
   /** A brand new type */
   newtype {:native "uint8"} Smaller = x: nat | x < 10 witness 9
 
-  newtype Dup = int { predicate IsEven() { true } }
+  newtype Dup = int { predicate IsEven() { this %2 == 0 } }
 
   newtype Size = x | 0 <= x < 1000
 
@@ -79,7 +79,7 @@ module {:options "--function-syntax:4"} TestModule {
     ensures f(r,x) == 42
   { 42 }
 
-  predicate pp(older a: A?, ghost nameonly x: int ) { true }
+  opaque predicate pp(older a: A?, ghost nameonly x: int ) { true }
 
   function fif(nameonly z: A): A?
     // return a constant. A special constant.
@@ -87,7 +87,11 @@ module {:options "--function-syntax:4"} TestModule {
 
   twostate function tf(a: A, new b: A): int
     /** A two-state function */
-  { 42 }
+  { 42  // some comment
+    -
+    6 /* another comment */ *
+    7 // the final comment
+  }
 
   predicate p()
     // Always true. Every time.

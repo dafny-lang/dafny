@@ -20,7 +20,7 @@ TODO:
 - for a file named in a From file: notation, link to the actual file, where possible (may require a command-line option to say where the files are)
   - similarly for links to modules and module contents from libraries
 - don't show full module path always for import declarations
-- show function bodies when functions are not opaque
+- function bodies are shown as source expressions, but not expressions elsewhere (subset & newtypes, constants) -- these will need handling of indentation properly
 
 Comments from Mikael that are not yet addressed:
     Click on a module should not only open the page, but unfold the menu  -- I'd vote against this behavior -- I prefer separating the opening and the display
@@ -29,7 +29,6 @@ Comments from Mikael that are not yet addressed:
     Slight border for tables -- I'd vote not
     Class order: Constants, mutable fields, constructors and then methods -- I think we agreed to leave this as is.
     Add inherited constants and field in same list
-    Add a TODO to print expressions with formatting.
     constants definitions can be in the same list -- definition is in the details; do we really want it in the summary list as well?
 
 - when lengthy content is scrolled down and then short content is displayed, the user has to manually scroll back up. Should
@@ -51,7 +50,6 @@ Future Improvements:
 - ability to link to declarations in other documentation sets
 
 Questions
-- Should functions show body?
 - list known subtypes of traits?
 - omit default decreases?
 - mark members that override declarations in traits?
@@ -312,7 +310,7 @@ class DafnyDoc {
   /** Returns printable info about the file containing the given token and the last modification time of the file */
   public string FileInfo(IToken tok) {
     if (tok != null) {
-      return FileInfo(tok.Filepath);
+      return FileInfo(tok.ActualFilename);
     }
     return "";
   }
@@ -595,11 +593,36 @@ class DafnyDoc {
     var decl = modifiers + m.WhatKind + " " + ms;
     details.Append(Code(decl)).Append(br).Append(eol);
     AppendSpecs(details, m);
+    if (m is Function f) {
+      Expression body = f.Body;
+      if (body != null) {
+        if (f.IsOpaque) {
+          details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
+        }
+        details.Append(Code("{")).Append(br).Append(eol);
+        details.Append(Indent(Code(ExpressionAsSource(body))));
+        details.Append(Code("}")).Append(br).Append(eol);
+      }
+    }
+
     details.Append(IndentedHtml(docstring));
 
     info.HtmlSummary = summaries.ToString();
     info.HtmlDetail = details.ToString();
     return info;
+  }
+
+  public string ExpressionAsSource(Expression e) {
+    StringBuilder sb = new StringBuilder();
+    var rtoken = e.RangeToken;
+    var t = rtoken.StartToken;
+    while (t != null) {
+      sb.Append(t.val).Append(t.TrailingTrivia);
+      if (t == rtoken.EndToken) break;
+      if (t.Next != null && t.line != t.Next.line) sb.Append(br).Append(eol);
+      t = t.Next;
+    }
+    return sb.ToString();
   }
 
   public Info TypeInfo(TopLevelDecl t, ModuleDefinition module, Info owner) {
