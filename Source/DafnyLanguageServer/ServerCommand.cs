@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -15,6 +16,13 @@ public class ServerCommand : ICommandSpec {
 
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
+
+    DooFile.RegisterNoChecksNeeded(
+      Verification,
+      GhostIndicators,
+      LineVerificationStatus,
+      VerifySnapshots
+    );
   }
 
   public static readonly Option<bool> GhostIndicators = new("--notify-ghostness",

@@ -26,6 +26,7 @@ public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits
 
 public static class ErrorRegistry {
 
+  // Replace any NoneId by ParseErrors.p_... or ResolutionErrors.r_
   public static string NoneId => "none";
 #nullable enable
   public static List<ActionSignature>? GetAction(string? errorId) {

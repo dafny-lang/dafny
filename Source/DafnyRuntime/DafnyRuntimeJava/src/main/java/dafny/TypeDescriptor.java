@@ -11,14 +11,14 @@ import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class TypeDescriptor<T> {
-    final Class<T> boxedClass;
+    final Class<?> boxedClass;
     final Class<?> unboxedClass;
 
-    TypeDescriptor(Class<T> javaClass) {
+    TypeDescriptor(Class<?> javaClass) {
         this(javaClass, javaClass);
     }
 
-    TypeDescriptor(Class<T> boxedClass, Class<?> unboxedClass) {
+    TypeDescriptor(Class<?> boxedClass, Class<?> unboxedClass) {
         this.boxedClass = boxedClass;
         this.unboxedClass = unboxedClass;
     }
@@ -94,8 +94,13 @@ public abstract class TypeDescriptor<T> {
     }
 
     public static <T> TypeDescriptor<T> referenceWithInitializer(
-            Class<T> javaClass, Initializer<T> initializer) {
+            Class<?> javaClass, Initializer<T> initializer) {
         return new ReferenceType<T>(javaClass, initializer);
+    }
+
+    public static <T> TypeDescriptor<T> referenceWithInitializerAndTypeDescriptor(
+            TypeDescriptor<T> typeDescriptor, Initializer<T> initializer) {
+        return new ReferenceType<T>(typeDescriptor.boxedClass, initializer);
     }
 
     public static TypeDescriptor<Byte> byteWithDefault(byte d) {
@@ -195,7 +200,7 @@ public abstract class TypeDescriptor<T> {
         private final Initializer<T> initializer;
         private TypeDescriptor<?> arrayType;
 
-        public ReferenceType(Class<T> javaClass, Initializer<T> initializer) {
+        public ReferenceType(Class<?> javaClass, Initializer<T> initializer) {
             super(javaClass);
 
             assert !javaClass.isPrimitive();
