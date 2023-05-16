@@ -188,7 +188,14 @@ public static class CommandRegistry {
         }
 
         options.OptionArguments[option] = value;
-        dafnyOptions.ApplyBinding(option);
+        try {
+          dafnyOptions.ApplyBinding(option);
+        } catch (Exception e) {
+          failedToProcessFile = true;
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+            $"Invalid value for option {option.Name}: {e.Message}");
+          return;
+        }
       }
 
       dafnyOptions.CurrentCommand = command;
