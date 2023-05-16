@@ -87,32 +87,6 @@ public class DocumentManager {
     });
   }
 
-  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource, IdeState lastIdeState,
-    bool verifyEverything)
-  {
-    var _1 = workCompletedForCurrentVersion.WaitAsync();
-    var compilation = new Compilation(
-      services,
-      GetDocumentOptions(document.Uri),
-      document,
-      null, cancellationTokenSource.Token);
-    
-    compilationSource.SetResult(compilation);
-
-    observerSubscription = compilation.DocumentUpdates.Select(d => d.ToIdeState(lastIdeState)).Subscribe(observer);
-
-    if (verifyEverything)
-    {
-      var _ = VerifyEverythingAsync();
-    }
-    else
-    {
-      workCompletedForCurrentVersion.Release();
-    }
-
-    compilation.Start();
-  }
-
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
 
@@ -185,12 +159,43 @@ public class DocumentManager {
         .Take(MaxRememberedChanges).ToList()!;
     }
     observerSubscription.Dispose();
-    var migratedLastPublishedState = lastPublishedState with {
+    
+    observer.LastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(changeProcessor, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = changeProcessor.MigrateSymbolTable(lastPublishedState.SignatureAndCompletionTable),
       VerificationTree = migratedVerificationTree
     };
-    CreateAndStartCompilation(compilationSource, migratedLastPublishedState, VerifyOnChange);
+    CreateAndStartCompilation(compilationSource, observer.LastPublishedState, VerifyOnChange);
+  }
+
+  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource, 
+    IdeState lastIdeState,
+    bool verifyEverything)
+  {
+    
+    var _1 = workCompletedForCurrentVersion.WaitAsync();
+    var compilation = new Compilation(
+      services,
+      GetDocumentOptions(document.Uri),
+      document,
+      lastIdeState.VerificationTree, cancellationTokenSource.Token);
+
+    if (!compilationSource.TrySetResult(compilation)) {
+      return;
+    }
+
+    observerSubscription = compilation.DocumentUpdates.Select(d => d.ToIdeState(lastIdeState)).Subscribe(observer);
+
+    if (verifyEverything)
+    {
+      var _ = VerifyEverythingAsync();
+    }
+    else
+    {
+      workCompletedForCurrentVersion.Release();
+    }
+
+    compilation.Start();
   }
 
   private DafnyOptions GetDocumentOptions(TextDocumentIdentifier textDocument) {

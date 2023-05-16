@@ -15,7 +15,7 @@ class IdeStateObserver : IObserver<IdeState> {
 
   private readonly object lastPublishedStateLock = new();
 
-  public IdeState LastPublishedState { get; private set; }
+  public IdeState LastPublishedState { get; set; }
 
   public IdeStateObserver(ILogger logger,
     ITelemetryPublisher telemetryPublisher,
