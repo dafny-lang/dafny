@@ -358,11 +358,11 @@ class DafnyDoc {
     var details = new StringBuilder();
     var text = Code("export " + ex.Name);
 
-    var extends = String.Join(", ", ex.Extends.Select(e => Link(info.Id, Code(e.val))).ToList());
+    var extends = String.Join(", ", ex.Extends.Select(e => Link(info.Id, e.val)).ToList());
     if (ex.Extends.Count > 0) {
-      extends = " " + Keyword("extends") + " " + extends;
+      extends = " extends " + extends;
     }
-    details.Append(text).Append(extends).Append(br).Append(eol);
+    details.Append(text).Append(Code(extends)).Append(br).Append(eol);
     var revealed = ex.Exports.Where(e => !e.Opaque).ToList();
     revealed.Sort((e1, e2) => e1.Id.CompareTo(e2.Id));
     var provided = ex.Exports.Where(e => e.Opaque).ToList();
@@ -654,7 +654,7 @@ class DafnyDoc {
       if (cd.ParentTraits.Count > 0) {
         var extends = String.Join(", ", cd.ParentTraits.Select(t => TypeLink(t)));
         if (!String.IsNullOrEmpty(extends)) {
-          decl.Append(" ").Append(Keyword("extends")).Append(extends);
+          decl.Append(" ").Append("extends").Append(" ").Append(extends);
         }
       }
     } else if (t is SubsetTypeDecl ts) {
