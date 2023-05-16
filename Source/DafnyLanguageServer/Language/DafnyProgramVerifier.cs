@@ -37,7 +37,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-    static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
       CancellationToken cancellationToken) {
@@ -46,10 +45,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
+      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
         InsertChecksums = true,
         ReportRanges = true
-      }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
+      }).ToList(), cancellationToken);
 
       cancellationToken.ThrowIfCancellationRequested();
 

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Xunit.Abstractions;
 using Xunit;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -26,5 +27,8 @@ public class PluginsTest : PluginsTestBase {
     Assert.Single(diagnostics);
     Assert.Equal("Impossible to continue because\\ \"whatever", diagnostics[0].Message);
     Assert.Equal(new Range((0, 0), (0, 8)), diagnostics[0].Range);
+  }
+
+  public PluginsTest(ITestOutputHelper output) : base(output) {
   }
 }
