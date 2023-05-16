@@ -28,7 +28,7 @@ public class PythonBackend : ExecutableBackend {
     return new PythonCompiler(Options, Reporter);
   }
 
-  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+)""\s*==\s*__name__\s*$");
+  private static readonly Regex ModuleLine = new(@"^\s*assert\s+""([a-zA-Z0-9_]+(.[a-zA-Z0-9_]+)*)""\s*==\s*__name__\s*$");
 
   private static string FindModuleName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
@@ -40,7 +40,7 @@ public class PythonBackend : ExecutableBackend {
       }
     }
     rd.Close();
-    return externFilename.EndsWith(".py") ? externFilename[..^3] : null;
+    return Path.GetExtension(externFilename) == ".py" ? Path.GetFileNameWithoutExtension(externFilename) : null;
   }
 
   bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -52,13 +52,23 @@ public class PythonBackend : ExecutableBackend {
     }
     var mainDir = Path.GetDirectoryName(mainProgram);
     Contract.Assert(mainDir != null);
-    var tgtFilename = Path.Combine(mainDir, moduleName + ".py");
+    var modulePath = moduleName.Replace('.', Path.DirectorySeparatorChar);
+    var tgtFilename = Path.Combine(mainDir, $"{modulePath}.py");
     var file = new FileInfo(externFilename);
+    Directory.CreateDirectory(Path.GetDirectoryName(tgtFilename)!);
     file.CopyTo(tgtFilename, true);
     if (Options.CompileVerbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;
+  }
+
+  public override void CleanSourceDirectory(string sourceDirectory) {
+    var cacheDirectory = Path.Combine(sourceDirectory, "__pycache__");
+    try {
+      Directory.Delete(cacheDirectory, true);
+    } catch (DirectoryNotFoundException) {
+    }
   }
 
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
@@ -77,12 +87,13 @@ public class PythonBackend : ExecutableBackend {
     return true;
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, /*?*/
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo("python3", Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {
