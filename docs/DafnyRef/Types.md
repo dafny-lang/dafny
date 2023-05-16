@@ -1416,6 +1416,20 @@ type string_(==,0,!new) = seq<char>
 ```
 If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
+Note that although a type synonym can be declared and used in place of a type name, 
+that does not affect the names of datatype or class constructors.
+For example, consider
+<!-- %check-resolve Types.22.expect -->
+```dafny
+datatype Pair<T> = Pair(first: T, second: T)
+type IntPair = Pair<int>
+
+const p: IntPair := Pair(1,2) // OK
+const q: IntPair := IntPair(3,4) // Error
+```
+
+In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
+
 ### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
 
 Examples:
@@ -1504,7 +1518,10 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 [Section 9.10](#sec-as-is-expression).)
 
-The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare default values that the compiler can use to initialize variables of the subset type, or to assert the non-emptiness of the subset type.
+The declaration of a subset type permits an optional [`witness` clause](#sec-witness), to declare that there is
+a value that satisfies the subset type's predicate; that is, the witness clause establishes that the defined
+type is not empty. The compiler may, but is not obligated to, use this value when auto-initializing a
+newly declared variable of the subset type.
 
 Dafny builds in three families of subset types, as described next.
 
@@ -1670,11 +1687,15 @@ The declaration of a subset type permits an optional `witness` clause.
 Types in Dafny are generally expected to be non-empty, in part because
 variables of any type are expected to have some value when they are used.
 In many cases, Dafny can determine that a newly declared type has 
-some value. For example, a numeric type that includes 0 is known by Dafny
-to be non-empty. However, Dafny cannot always make this determination.
+some value. 
+For example, in the absence of a witness clause,
+a numeric type that includes 0 is known by Dafny
+to be non-empty.
+However, Dafny cannot always make this determination.
 If it cannot, a `witness` clause is required. The value given in
 the `witness` clause must be a valid value for the type and assures Dafny
-that the type is non-empty.
+that the type is non-empty. (The variation `witness *` is described below.)
+
 
 For example, 
 <!-- %check-verify Types.10.expect -->
@@ -1810,6 +1831,14 @@ code fragment can be rewritten as
 var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
+
+An additional point with respect to arithmetic overflow is that for (signed)
+`int32` values `hi` and `lo` constrained only by `lo <= hi`, the difference `hi - lo`
+can also overflow the bounds of the `int32` type. So you could also write:
+<!-- %no-check -->
+```dafny
+var mid := lo + (hi/2 - lo/2);
+```
 
 Since a newtype is incompatible with its base type and since all
 results of the newtype's operations are members of the newtype, a

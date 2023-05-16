@@ -3,7 +3,7 @@
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class VariableSymbol : Symbol, ILocalizableSymbol {
     public IVariable Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
       Declaration = variable;

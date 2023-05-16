@@ -7,7 +7,7 @@ module UsageTests {
     ghost var {:assumption} a0 := false;  // error
     ghost var a1, {:assumption} a2 := true, false;  // error
     ghost var {:assumption} a3: bool;
-    ghost var {:assumption} a4;  // type of "a4" inferred to be bool
+    ghost var {:assumption} a4: bool;  // note, type of :assumption variables used to be inferred to be bool, but no more
 
     a0 := a0 && (0 < x);
 
@@ -103,13 +103,15 @@ module TypingTests {
 
           if (false)
           {
-            ghost var {:assumption} a0 := 1;  // error: bad type
+            ghost var {:assumption} a0: bool := 1;  // error: bad type
           }
         }
       }
     }
   }
+}
 
+module GhostTests {
   method test3() {
     ghost var {:assumption} a5: int;  // error: type must be bool
     var {:assumption} a: bool;  // error: assumption variable must be ghost

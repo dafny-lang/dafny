@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -20,6 +21,17 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private readonly ConcurrentDictionary<string, List<string>> fsCache = new();
   private DafnyOptions options;
   public ConcurrentBag<(Implementation, VerificationResult)> VerificationResults { get; } = new();
+
+  public override void AdvisoryWriteLine(TextWriter output, string format, params object[] args) {
+    if (output == Console.Out) {
+      int foregroundColor = (int)Console.ForegroundColor;
+      Console.ForegroundColor = ConsoleColor.Yellow;
+      output.WriteLine(format, args);
+      Console.ForegroundColor = (ConsoleColor)foregroundColor;
+    } else {
+      output.WriteLine(format, args);
+    }
+  }
 
   private string GetFileLine(string filename, int lineIndex) {
     List<string> lines = fsCache.GetOrAdd(filename, key => {
@@ -39,7 +51,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   private void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
-    string line = GetFileLine(tok.filename, tok.line - 1);
+    string line = GetFileLine(((IToken)tok).Filepath, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
     string columnSpaces = new string(' ', tok.col - 1);
@@ -49,13 +61,17 @@ public class DafnyConsolePrinter : ConsolePrinter {
     var underlineLength = Math.Max(1, Math.Min(tokEndPos - tok.pos, lineEndPos - tok.pos));
     string underline = new string('^', underlineLength);
     tw.WriteLine($"{lineNumberSpaces} |");
-    tw.WriteLine($"{lineNumber      } | {line}");
+    tw.WriteLine($"{lineNumber} | {line}");
     tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
     tw.WriteLine("");
   }
 
   public static readonly Option<bool> ShowSnippets = new("--show-snippets",
     "Show a source code snippet for each Dafny message.");
+
+  static DafnyConsolePrinter() {
+    DooFile.RegisterNoChecksNeeded(ShowSnippets);
+  }
 
   public DafnyConsolePrinter(DafnyOptions options) {
     Options = options;
@@ -68,7 +84,23 @@ public class DafnyConsolePrinter : ConsolePrinter {
     realigned_tok.pos = tok.pos;
     realigned_tok.val = tok.val;
     realigned_tok.filename = tok.filename;
-    base.ReportBplError(realigned_tok, message, error, tw, category);
+
+    if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
+      return;
+    }
+
+    if (category != null) {
+      message = $"{category}: {message}";
+    }
+
+    message = $"{tok.TokenToString(Options)}: {message}";
+
+    if (error) {
+      ErrorWriteLine(tw, message);
+    } else {
+      tw.WriteLine(message);
+    }
+
     if (Options.Get(ShowSnippets)) {
       WriteSourceCodeSnippet(tok, tw);
     }

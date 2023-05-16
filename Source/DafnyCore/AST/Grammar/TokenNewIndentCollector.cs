@@ -50,6 +50,8 @@ namespace Microsoft.Dafny;
  * ```
  */
 public class TokenNewIndentCollector : TopDownVisitor<int> {
+  private readonly Program program;
+
   /* If true, the indentation will be
    * var name := method(
    *   x,
@@ -81,8 +83,8 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   public int binOpIndent = -1;
   public int binOpArgIndent = -1;
 
-
-  internal TokenNewIndentCollector() {
+  internal TokenNewIndentCollector(Program program) {
+    this.program = program;
     preResolve = true;
   }
 
@@ -229,7 +231,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // 'inline' is the hypothetical indentation of this token if it was on its own line
   // 'below' is the hypothetical indentation of a comment after that token, and of the next token if it does not have a set indentation
   public void SetIndentations(IToken token, int above = -1, int inline = -1, int below = -1) {
-    if (token is IncludeToken || (token.line == 0 && token.col == 0)) {
+    if (token.WasIncluded(program) || (token.line == 0 && token.col == 0)) {
       // Just ignore this token.
       return;
     }
@@ -318,19 +320,9 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
   }
 
-  public void SetTypeIndentation(Type type) {
-    var tokens = type.OwnedTokens.ToList();
-    if (!tokens.Any()) {
-      return;
-    }
-
-    var indent = GetIndentInlineOrAbove(tokens[0]);
-    if (tokens.Count > 1) {
-      SetIndentations(tokens[0], below: indent + 2);
-    }
-
-    var commaIndent = indent + 2;
-    var rightIndent = indent + 2;
+  public void SetTypeLikeIndentation(int indent, IEnumerable<IToken> tokens) {
+    var commaIndent = indent + SpaceTab;
+    var rightIndent = indent + SpaceTab;
     foreach (var token in tokens) {
       switch (token.val) {
         case "<": {
@@ -352,10 +344,27 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
           }
       }
     }
+  }
+
+  public void SetTypeIndentation(Type type) {
+    var tokens = type.OwnedTokens.ToList();
+    if (tokens.Any()) {
+
+      var indent = GetIndentInlineOrAbove(tokens[0]);
+      if (tokens.Count > 1) {
+        SetIndentations(tokens[0], below: indent + 2);
+      }
+
+      SetTypeLikeIndentation(indent, tokens);
+    }
 
     if (type is UserDefinedType userDefinedType) {
-      foreach (var subtype in userDefinedType.TypeArgs) {
-        SetTypeIndentation(subtype);
+      foreach (var subtype in userDefinedType.PreResolveChildren) {
+        if (subtype is Type subType2) {
+          SetTypeIndentation(subType2);
+        } else if (subtype is Expression expr) {
+          Visit(expr, 0);
+        }
       }
     }
   }
@@ -392,7 +401,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   }
 
   public void SetDeclIndentation(TopLevelDecl topLevelDecl, int indent) {
-    if (topLevelDecl.tok is IncludeToken) {
+    if (topLevelDecl.tok.WasIncluded(program)) {
       return;
     }
 
@@ -412,12 +421,14 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       }
 
       var initialMemberIndent = declWithMembers.tok.line == 0 ? indent : indent2;
-      foreach (var member in declWithMembers.Members) {
-        if (member.tok is IncludeToken) {
+      foreach (var member in declWithMembers.PreResolveChildren) {
+        if (member.Tok.WasIncluded(program)) {
           continue;
         }
 
-        SetMemberIndentation(member, initialMemberIndent);
+        if (member is MemberDecl memberDecl) {
+          SetMemberIndentation(memberDecl, initialMemberIndent);
+        }
       }
     } else if (topLevelDecl is SubsetTypeDecl subsetTypeDecl) {
       SetRedirectingTypeDeclDeclIndentation(indent, subsetTypeDecl);
@@ -660,7 +671,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
                   commaIndent = indent;
                 } else {
                   rightIndent = indent + SpaceTab;
-                  commaIndent = indent = SpaceTab;
+                  commaIndent = indent + SpaceTab;
                 }
 
                 SetIndentations(assignmentOperator, afterStartIndent, opIndentDefault, rightIndent);
@@ -690,6 +701,10 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       foreach (var node in rhs.PreResolveSubExpressions) {
         Visit(node, rightIndent);
       }
+    }
+
+    if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
+      Visit(assignSuchThatStmt.Expr, rightIndent);
     }
 
     return false;

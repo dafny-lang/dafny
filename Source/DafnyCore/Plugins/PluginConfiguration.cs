@@ -39,4 +39,13 @@ public abstract class PluginConfiguration {
   public virtual IExecutableBackend[] GetCompilers(DafnyOptions options) {
     return Array.Empty<IExecutableBackend>();
   }
+
+  /// <summary>
+  /// Override this method to provide docstring converters
+  /// </summary>
+  /// <param name="options"></param>
+  /// <returns>A list of docstring converters implemented by this plugin, applied from left to right</returns>
+  public virtual DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
+    return Array.Empty<DocstringRewriter>();
+  }
 }

@@ -13,7 +13,7 @@ namespace DafnyTestGeneration {
     private readonly Modifications modifications;
 
     // prefix given to variables indicating whether or not a block was visited
-    private const string BlockVarNamePrefix = "notYetVisited";
+    private const string BlockVarNamePrefix = "block";
     private List<Path> paths = new();
 
     public PathBasedModifier(Modifications modifications) {
@@ -25,10 +25,10 @@ namespace DafnyTestGeneration {
       VisitProgram(p); // populates paths
       foreach (var path in paths) {
         path.AssertPath();
-        var name = ImplementationToTarget?.VerboseName ?? path.Impl.VerboseName;
+        var name = TargetImplementationVerboseName ?? path.Impl.VerboseName;
         yield return modifications.GetProgramModification(DafnyInfo.Options, p, path.Impl,
           new HashSet<int>(), new HashSet<string>(), name,
-          $"{name.Split(" ")[0]}(path through{string.Join(",", path.path)})");
+          $"{name.Split(" ")[0]}(path through {string.Join(",", path.path)})");
         path.NoAssertPath();
       }
     }

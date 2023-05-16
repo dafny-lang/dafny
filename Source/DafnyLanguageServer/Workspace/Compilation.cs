@@ -52,11 +52,12 @@ public class Compilation {
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
+    DafnyOptions options,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    options = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<Compilation>>();
+    this.options = options;
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -79,7 +80,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -167,12 +168,6 @@ public class Compilation {
     }
     translated.GutterProgressReporter.ReportImplementationsBeforeVerification(
       verificationTasks.Select(t => t.Implementation).ToArray());
-
-    var implementations = verificationTasks.Select(t => t.Implementation).ToHashSet();
-
-    var subscription = verifier.BatchCompletions.ObserveOn(verificationUpdateScheduler).Where(c =>
-      implementations.Contains(c.Implementation)).Subscribe(translated.GutterProgressReporter.ReportAssertionBatchResult);
-    cancellationToken.Register(() => subscription.Dispose());
     return translated;
   }
 
@@ -200,6 +195,7 @@ public class Compilation {
     if (statusUpdates == null) {
       if (implementationTask.CacheStatus is Completed completedCache) {
         foreach (var result in completedCache.Result.VCResults) {
+          document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
           document.GutterProgressReporter.ReportAssertionBatchResult(
             new AssertionBatchResult(implementationTask.Implementation, result));
         }
@@ -263,6 +259,11 @@ public class Compilation {
       document.GutterProgressReporter.ReportVerifyImplementationRunning(implementationTask.Implementation);
     }
 
+    if (boogieStatus is BatchCompleted batchCompleted) {
+      document.GutterProgressReporter.ReportAssertionBatchResult(
+        new AssertionBatchResult(implementationTask.Implementation, batchCompleted.VcResult));
+    }
+
     if (boogieStatus is Completed completed) {
       var verificationResult = completed.Result;
       foreach (var counterExample in verificationResult.Errors) {
@@ -293,8 +294,8 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
-    var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
+    var errorReporter = new DiagnosticErrorReporter(options, document.Program.DefaultModuleDef, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
     }
@@ -320,6 +321,10 @@ public class Compilation {
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
+      case BatchCompleted batchCompleted:
+        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
+          ? PublishedVerificationStatus.Correct
+          : PublishedVerificationStatus.Error;
       default:
         throw new ArgumentOutOfRangeException();
     }
@@ -333,14 +338,14 @@ public class Compilation {
   private readonly DafnyOptions options;
 
   public void MarkVerificationStarted() {
-    logger.LogDebug("MarkVerificationStarted called");
+    logger.LogTrace("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogDebug("MarkVerificationFinished called");
+    logger.LogTrace("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 

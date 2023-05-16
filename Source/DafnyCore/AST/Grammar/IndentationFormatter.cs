@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -23,7 +24,7 @@ public class IndentationFormatter : IIndentationFormatter {
   /// by immediately processing all nodes and assigning indentations to most structural tokens 
   /// </summary>
   public static IndentationFormatter ForProgram(Program program, bool reduceBlockiness = true) {
-    var tokenNewIndentCollector = new TokenNewIndentCollector {
+    var tokenNewIndentCollector = new TokenNewIndentCollector(program) {
       ReduceBlockiness = reduceBlockiness
     };
     foreach (var child in program.DefaultModuleDef.PreResolveChildren) {
@@ -323,13 +324,8 @@ public class IndentationFormatter : IIndentationFormatter {
 
   private static readonly ConcurrentDictionary<int, string> WhitespaceCache = new();
 
-  private static string Whitespace(int characters) {
+  public static string Whitespace(int characters) {
     return WhitespaceCache.GetOrAdd(characters, _ => new string(' ', characters));
-  }
-
-  public void GetNewLeadingTrailingTrivia(IToken token, out string newLeadingTrivia, out string newTrailingTrivia) {
-    _Companion_IIndentationFormatter.GetNewLeadingTrailingTrivia(this, token, out newLeadingTrivia,
-      out newTrailingTrivia);
   }
 
   #endregion

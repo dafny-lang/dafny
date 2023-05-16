@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;

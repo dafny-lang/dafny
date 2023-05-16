@@ -4,7 +4,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ModuleSymbol : Symbol, ILocalizableSymbol {
     public ModuleDefinition Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public ISet<ISymbol> Declarations { get; } = new HashSet<ISymbol>();
 

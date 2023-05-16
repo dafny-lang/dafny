@@ -100,10 +100,10 @@ reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" |
-    "const" | "constructor" |
+    "const" | "constructor" | "continue" |
     "datatype" | "decreases" |
-    "else" | "ensures" | "exists" | "export" | "extends" |
-    "false" | "forall" | "fresh" | "function" | "ghost" |
+    "else" | "ensures" | "exists" | "expect" | "export" | "extends" |
+    "false" | "for" | "forall" | "fresh" | "function" | "ghost" |
     "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |

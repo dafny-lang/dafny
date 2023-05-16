@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Xunit;
+using Xunit.Abstractions;
 using LanguageServerExtensions = Microsoft.Dafny.LanguageServer.Workspace.LanguageServerExtensions;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -105,8 +106,6 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return verifier.GetVerificationTasksAsync(document, cancellationToken);
     }
 
-    public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
-
     public void Dispose() {
       verifier?.Dispose();
     }
@@ -125,11 +124,15 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
       return loader.CreateUnloaded(textDocument, cancellationToken);
     }
 
-    public Task<DocumentAfterParsing> LoadAsync(DocumentTextBuffer textDocument, CancellationToken cancellationToken) {
+    public Task<DocumentAfterParsing> LoadAsync(DafnyOptions options, DocumentTextBuffer textDocument,
+      CancellationToken cancellationToken) {
       if (tests.CrashOnLoad) {
         throw new IOException("crash");
       }
-      return loader.LoadAsync(textDocument, cancellationToken);
+      return loader.LoadAsync(options, textDocument, cancellationToken);
     }
+  }
+
+  public ExceptionTests(ITestOutputHelper output) : base(output) {
   }
 }

@@ -27,6 +27,5 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
       CancellationToken cancellationToken);
-    public IObservable<AssertionBatchResult> BatchCompletions { get; }
   }
 }

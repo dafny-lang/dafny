@@ -92,7 +92,6 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     IToken firstEffectfulRhs = null;
     MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
-    var j = 0;
     foreach (var rhs in Rhss) {
       bool isEffectful;
       if (rhs is TypeRhs) {
@@ -118,7 +117,6 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
       }
 
       resolver.ResolveAttributes(rhs, resolutionContext);
-      j++;
     }
 
     // figure out what kind of UpdateStmt this is

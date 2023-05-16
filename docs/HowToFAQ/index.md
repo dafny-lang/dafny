@@ -84,6 +84,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["Why can't I write `forall t: Test :: t.i == 1` for an object t?"](FAQForallTricks)
 - ["How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'."](FAQThisFrameField)
 - ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
+- ["How do I tell Dafny that a class field may be updated?"](FAQUpdateArrayField)
 
 ## Dafny tools
 

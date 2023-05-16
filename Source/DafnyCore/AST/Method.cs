@@ -5,7 +5,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat {
+public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, ICanFormat, IHasDocstring {
   public override IEnumerable<Node> Children => new Node[] { Body, Decreases }.
     Where(x => x != null).Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Mod.Expressions);
@@ -26,6 +26,7 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public readonly Specification<Expression> Decreases;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
+  [FilledInDuringResolution] public Function FunctionFromWhichThisIsByMethodDecl;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
   public Method OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
@@ -37,33 +38,33 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
   public bool HasPrecondition =>
     Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
-    foreach (var a in base.Assumptions()) {
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract) {
-      yield return AssumptionDescription.NoBody(IsGhost);
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
+      yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 
     if (Body is not null && HasConcurrentAttribute) {
-      yield return AssumptionDescription.HasConcurrentAttribute;
+      yield return new Assumption(this, tok, AssumptionDescription.HasConcurrentAttribute);
     }
 
-    if (HasExternAttribute && HasPostcondition) {
-      yield return AssumptionDescription.ExternWithPostcondition;
+    if (HasExternAttribute && HasPostcondition && !HasAxiomAttribute) {
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPostcondition);
     }
 
-    if (HasExternAttribute && HasPrecondition) {
-      yield return AssumptionDescription.ExternWithPrecondition;
+    if (HasExternAttribute && HasPrecondition && !HasAxiomAttribute) {
+      yield return new Assumption(this, tok, AssumptionDescription.ExternWithPrecondition);
     }
 
     if (AllowsNontermination) {
-      yield return AssumptionDescription.MayNotTerminate;
+      yield return new Assumption(this, tok, AssumptionDescription.MayNotTerminate);
     }
 
     foreach (var c in Descendants()) {
-      foreach (var a in c.Assumptions()) {
+      foreach (var a in c.Assumptions(this)) {
         yield return a;
       }
     }
@@ -335,5 +336,20 @@ public class Method : MemberDecl, TypeParameter.ParentType, IMethodCodeContext, 
     finally {
       resolver.currentMethod = null;
     }
+  }
+
+  protected override string GetTriviaContainingDocstring() {
+    IToken lastClosingParenthesis = null;
+    foreach (var token in OwnedTokens) {
+      if (token.val == ")") {
+        lastClosingParenthesis = token;
+      }
+    }
+
+    if (lastClosingParenthesis != null && lastClosingParenthesis.TrailingTrivia.Trim() != "") {
+      return lastClosingParenthesis.TrailingTrivia;
+    }
+
+    return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 }

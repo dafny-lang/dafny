@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   static class StringAssert {
@@ -181,6 +182,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.Equal(1, counterExamples[0].Variables.Count);
       Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value?"));
       Assert.Equal("(v := 0.0)", counterExamples[0].Variables["v:_module.Value?"]);
+    }
+
+    [Fact]
+    public async Task ConstantField() {
+      var source = @"
+      class Value {
+        const v:int;
+      }
+      method a(v:Value) {
+        assert v.v != 42;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.Single(counterExamples);
+      Assert.Equal(1, counterExamples[0].Variables.Count);
+      Assert.True(counterExamples[0].Variables.ContainsKey("v:_module.Value?"));
+      Assert.Equal("(v := 42)", counterExamples[0].Variables["v:_module.Value?"]);
     }
 
     [Fact]
@@ -1140,6 +1160,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<_module.uint8>", "(Length := 9899, [(- 1)] := 42)")));
       Assert.True(
         IsNegativeIndexedSeq(new KeyValuePair<string, string>("seq<seq<_module.uint8>>", "(Length := 1123, [(- 12345)] := @12)")));
+    }
+
+    public CounterExampleTest(ITestOutputHelper output) : base(output) {
     }
   }
 }
