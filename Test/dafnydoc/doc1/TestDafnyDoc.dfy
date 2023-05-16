@@ -26,7 +26,8 @@ module {:options "--function-syntax:4"} TestModule {
   {
     export // something
       reveals p  provides MII
-    export E1 /** one thing */
+    export E1 /** two things */
+      provides icc
       reveals ic
     export E2 /** everything */ reveals *
 
@@ -34,6 +35,7 @@ module {:options "--function-syntax:4"} TestModule {
     export E3 extends E1, MInner reveals f
 
     const ic := 0
+    const icc := 1
     predicate p() { true }
     function f(): int { 42 - 6*7 }
     module MII { export Nothing }

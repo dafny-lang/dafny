@@ -21,10 +21,10 @@ TODO:
   - similarly for links to modules and module contents from libraries
 - don't show full module path always for import declarations
 - function bodies are shown as source expressions, but not expressions elsewhere (subset & newtypes, constants) -- these will need handling of indentation properly
+- effective module in export detail should distinguish opaque and non-opaque members
 
 Comments from Mikael that are not yet addressed:
     Click on a module should not only open the page, but unfold the menu  -- I'd vote against this behavior -- I prefer separating the opening and the display
-    Export set should provide a view of the module with all definitions refined + revealed functions should have their bodies in the documentation somewhere.
     Import X = A.B.C clicking on A.B.C should link to C directly. -- As elsewhere, each section of a qualified name links to the declaration for that name segment
     Slight border for tables -- I'd vote not
     Class order: Constants, mutable fields, constructors and then methods -- I think we agreed to leave this as is.
@@ -37,7 +37,6 @@ implement some mechanism to always or when needed scroll back up automatically.
 
 - translate markdown to html
 - mark experimental
-- use project file
 
 - need to revise so that names that differ only in case do not resolve to the same html file on case-insenstive OSes
 
@@ -45,7 +44,6 @@ Future Improvements:
 - identify members from refinement parent; link to them
 - add details of abstract import
 - import details should distinguish provides and reveals
-- retain source layout of expressions
 - add Dafny favicon
 - ability to link to declarations in other documentation sets
 
@@ -68,10 +66,10 @@ class Info {
 
   public string Source; // information on where the entity is declared
 
-  public Info(DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(dd, kind, tok, name, fullname, fullname) {
+  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname) : this(register, dd, kind, tok, name, fullname, fullname) {
   }
 
-  public Info(DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
+  public Info(bool register, DafnyDoc dd, string kind, IToken tok, string name, string fullname, string id) {
     this.Contents = null;
     this.Kind = kind;
     this.Name = name;
@@ -81,7 +79,9 @@ class Info {
     if (tok != null) {
       this.Source = dd.FileInfo(tok);
     }
-    dd.Register(this);
+    if (register) {
+      dd.Register(this);
+    }
   }
 }
 class DafnyDoc {
@@ -166,7 +166,7 @@ class DafnyDoc {
       var rootModule = DafnyProgram.DefaultModule;
       var decls = rootModule.ModuleDef.TopLevelDecls.Select(d => !(d is LiteralModuleDecl));
       sidebar.Append(Size(Bold("Declarations"), LocalHeaderSize) + br + eol);
-      var info = ModuleInfo(rootModule, dafnyFiles);
+      var info = ModuleInfo(true, rootModule, rootModule.ModuleDef, dafnyFiles);
       script.Append(ScriptEnd());
       // Call the following to geneate pages after all the Info structures have been generated
       AddSideBarEntry(info, sidebar, true);
@@ -216,9 +216,7 @@ class DafnyDoc {
         file.Write(info.Source);
       }
       file.WriteLine(br);
-      file.Write(MainStart("full"));
       file.Write(info.HtmlDetail);
-      file.WriteLine(MainEnd());
       file.Write(BodyAndHtmlEnd());
       AnnounceFile(filename);
     }
@@ -235,17 +233,16 @@ class DafnyDoc {
     return Size(Bold(kind + " " + q), LocalHeaderSize);
   }
 
-  public Info ModuleInfo(LiteralModuleDecl module, IList<DafnyFile> dafnyFiles) {
-    var moduleDef = module.ModuleDef;
+  public Info ModuleInfo(bool register, LiteralModuleDecl module, ModuleDefinition moduleDef, IList<DafnyFile> dafnyFiles) {
     var fullName = moduleDef.FullDafnyName;
-    var parent = module.EnclosingModuleDefinition;
+    var parent = moduleDef.EnclosingModule;
     if (moduleDef.IsDefaultModule) {
       fullName = RootName;
       parent = null;
     }
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
 
-    var info = new Info(this, "module", null, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
+    var info = new Info(register, this, "module", module == null ? null : module.Tok, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
 
     if (moduleDef.IsDefaultModule) {
@@ -256,14 +253,15 @@ class DafnyDoc {
       } else {
         info.Source = FileInfo(dafnyFiles[0].CanonicalPath);
       }
-    } else {
+    } else if (module != null) {
       info.Source = FileInfo(module.Tok);
     }
 
     var docstring = Docstring(module);
 
-    info.HtmlSummary = $"{Link(module.FullName, module.Name)} {DashShortDocstring(module)}";
-
+    if (module != null) {
+      info.HtmlSummary = $"{Link(module.FullName, module.Name)} {DashShortDocstring(module)}";
+    }
     var details = new StringBuilder();
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
 
@@ -273,32 +271,29 @@ class DafnyDoc {
     }
     details.Append(MainStart("full"));
 
-    // TODO - ToString ought to put out a full declaration, as in the source code, so we don't ahve to reconstruct it here
-    // but it doesn't
-    var decl = module.ToString();
-    var pos = decl.IndexOf('{');
-    if (pos > 0) {
-      decl = decl[0..(pos - 1)];
+    if (module != null) {
+      details.Append(AttrString(moduleDef.Attributes));
+      details.Append(Code(abs + "module " + moduleDef.Name + refineText));
+      details.Append(br);
+      details.Append(eol);
+    } else {
+      details.Append("<hr>");
+      details.Append(Heading2("Effective exported module:")).Append(eol);
     }
-
-    details.Append(AttrString(module.Attributes));
-    details.Append(Code(abs + "module " + decl + refineText));
-    details.Append(br);
-    details.Append(eol);
 
     if (!String.IsNullOrEmpty(docstring)) {
       details.Append(IndentedHtml(docstring));
       details.Append(eol);
     }
 
-    AddExportSummaries(moduleDef, details, info);
-    AddImportSummaries(moduleDef, details, info);
-    AddSubModuleSummaries(moduleDef, details, info);
-    AddTypeSummaries(moduleDef, details, info);
-    AddConstantSummaries(defaultClass, details, info.Contents);
-    AddFunctionSummaries(defaultClass, details, info.Contents);
-    AddMethodSummaries(defaultClass, details, info.Contents);
-    AddLemmaSummaries(defaultClass, details, info.Contents);
+    AddExportSummaries(moduleDef, details, info, register);
+    AddImportSummaries(moduleDef, details, info, register);
+    AddSubModuleSummaries(moduleDef, details, info, register);
+    AddTypeSummaries(moduleDef, details, info, register);
+    AddConstantSummaries(defaultClass, details, info.Contents, register);
+    AddFunctionSummaries(defaultClass, details, info.Contents, register);
+    AddMethodSummaries(defaultClass, details, info.Contents, register);
+    AddLemmaSummaries(defaultClass, details, info.Contents, register);
 
     details.Append(MainEnd());
     details.Append(BodyAndHtmlEnd());
@@ -352,10 +347,10 @@ class DafnyDoc {
     return fullname + "__export";
   }
 
-  public Info ExportInfo(ModuleExportDecl ex) {
+  public Info ExportInfo(ModuleExportDecl ex, bool register) {
     var name = ex.Name;
     var docstring = Docstring(ex);
-    var info = new Info(this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
+    var info = new Info(register, this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
     info.HtmlSummary = $"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}"
      + DashShortDocstring(ex);
@@ -400,27 +395,30 @@ class DafnyDoc {
     }
     details.Append(eol);
 
+    var minfo = ModuleInfo(false, null, ex.EffectiveModule, null);
+    details.Append(minfo.HtmlDetail);
+
     info.HtmlDetail = details.ToString();
     return info;
   }
 
-  public void AddExportSummaries(ModuleDefinition module, StringBuilder summaries, Info owner) {
+  public void AddExportSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
 
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
     if (exports.Count() > 0) {
       summaries.Append(Heading3("Export sets")).Append(eol);
       foreach (var ex in exports) {
-        var info = ExportInfo(ex);
+        var info = ExportInfo(ex, register);
         owner.Contents.Add(info);
         summaries.Append(info.HtmlSummary).Append(br).Append(eol);
       }
     }
   }
 
-  public Info ImportInfo(ModuleDecl md) {
+  public Info ImportInfo(ModuleDecl md, bool register) {
     var name = md.Name;
     var docstring = Docstring(md);
-    var info = new Info(this, "import", md.Tok, name, md.FullDafnyName, md.FullDafnyName + "__import");
+    var info = new Info(register, this, "import", md.Tok, name, md.FullDafnyName, md.FullDafnyName + "__import");
 
     var styledName = Code(Bold(name));
     var details = new StringBuilder();
@@ -463,7 +461,7 @@ class DafnyDoc {
     return info;
   }
 
-  public void AddImportSummaries(ModuleDefinition module, StringBuilder summaries, Info owner) {
+  public void AddImportSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
     var imports = module.TopLevelDecls.Where(d => d is AliasModuleDecl).Select(d => d as AliasModuleDecl).ToList();
     imports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     var absimports = module.TopLevelDecls.Where(d => d is AbstractModuleDecl).Select(d => d as AbstractModuleDecl).ToList();
@@ -471,25 +469,25 @@ class DafnyDoc {
     if (imports.Count() + absimports.Count() > 0) {
       summaries.Append(Heading3("Imports")).Append(eol);
       foreach (var imp in imports) {
-        var info = ImportInfo(imp);
+        var info = ImportInfo(imp, register);
         owner.Contents.Add(info);
         summaries.Append(info.HtmlSummary).Append(br).Append(eol);
       }
       foreach (var imp in absimports) {
-        var info = ImportInfo(imp);
+        var info = ImportInfo(imp, register);
         owner.Contents.Add(info);
         summaries.Append(info.HtmlSummary).Append(br).Append(eol);
       }
     }
   }
 
-  public void AddSubModuleSummaries(ModuleDefinition module, StringBuilder summaries, Info info) {
+  public void AddSubModuleSummaries(ModuleDefinition module, StringBuilder summaries, Info info, bool register) {
     var submods = module.TopLevelDecls.Where(d => d is LiteralModuleDecl).Select(d => d as LiteralModuleDecl).ToList();
     submods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (submods.Count() > 0) {
       summaries.Append(Heading3("Submodules")).Append(eol);
       foreach (var submod in submods) {
-        var subinfo = ModuleInfo(submod, null);
+        var subinfo = ModuleInfo(register, submod, submod.ModuleDef, null);
         summaries.Append(subinfo.HtmlSummary).Append(br).Append(eol);
         info.Contents.Add(subinfo);
       }
@@ -500,7 +498,7 @@ class DafnyDoc {
     return (t is RevealableTypeDecl || t is SubsetTypeDecl);
   }
 
-  public void AddTypeSummaries(ModuleDefinition module, StringBuilder summaries, Info owner) {
+  public void AddTypeSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
     var types = module.TopLevelDecls.Where(c => IsType(c) && !IsGeneratedName(c.Name)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass)) {
@@ -510,7 +508,7 @@ class DafnyDoc {
         if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
           continue;
         }
-        var info = TypeInfo(t, module, owner);
+        var info = TypeInfo(register, t, module, owner);
         var styledName = Code(Bold(t.Name));
         summaries.Append(Row(t.WhatKind, Link(info.FullName, styledName), DashShortDocstring(t as IHasDocstring))).Append(eol); // TODO - typeparameters?
       }
@@ -518,8 +516,8 @@ class DafnyDoc {
     }
   }
 
-  public Info ConstantInfo(ConstantField c, TopLevelDeclWithMembers owner) {
-    var info = new Info(this, "const", c.Tok, c.Name, c.FullDafnyName);
+  public Info ConstantInfo(bool register, ConstantField c, TopLevelDeclWithMembers owner) {
+    var info = new Info(register, this, "const", c.Tok, c.Name, c.FullDafnyName);
 
     var docstring = Docstring(c);
     var modifiers = c.ModifiersAsString();
@@ -539,8 +537,8 @@ class DafnyDoc {
     return info;
   }
 
-  public Info VarInfo(Field f, TopLevelDeclWithMembers owner) {
-    var info = new Info(this, "var", f.Tok, f.Name, f.FullDafnyName);
+  public Info VarInfo(bool register, Field f, TopLevelDeclWithMembers owner) {
+    var info = new Info(register, this, "var", f.Tok, f.Name, f.FullDafnyName);
 
     var docstring = Docstring(f);
     var linkedName = Code(Link(f.FullDafnyName, Bold(f.Name)));
@@ -559,7 +557,7 @@ class DafnyDoc {
     return info;
   }
 
-  public Info ExecutableInfo(MemberDecl m, TopLevelDeclWithMembers owner) {
+  public Info ExecutableInfo(bool register, MemberDecl m, TopLevelDeclWithMembers owner) {
     var name = m.Name;
     if (m is Constructor) {
       if (name == "_ctor") {
@@ -569,7 +567,7 @@ class DafnyDoc {
       }
     }
 
-    var info = new Info(this, m.WhatKind, m.Tok, name, m.FullDafnyName);
+    var info = new Info(register, this, m.WhatKind, m.Tok, name, m.FullDafnyName);
 
     var md = m as IHasDocstring;
     var docstring = Docstring(md);
@@ -625,7 +623,7 @@ class DafnyDoc {
     return sb.ToString();
   }
 
-  public Info TypeInfo(TopLevelDecl t, ModuleDefinition module, Info owner) {
+  public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {
     var link = Link(t.FullDafnyName, Code(Bold(t.Name)));
 
     var docstring = t is IHasDocstring ? Docstring(t as IHasDocstring) : "";
@@ -634,7 +632,7 @@ class DafnyDoc {
     var typeparams = TypeFormals(t.TypeArgs);
     string kind = t.WhatKind.Replace("abstract ", "").Replace("opaque ", "").Replace("subset ", "").Replace(" synonym", "");
 
-    var info = new Info(this, t.WhatKind, t.Tok, t.Name, t.FullDafnyName);
+    var info = new Info(register, this, t.WhatKind, t.Tok, t.Name, t.FullDafnyName);
 
     var details = new StringBuilder();
 
@@ -718,13 +716,13 @@ class DafnyDoc {
       info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
 
       if (tm is ClassDecl) {
-        AddConstructorSummaries(tm, details, info.Contents);
+        AddConstructorSummaries(tm, details, info.Contents, register);
       }
-      AddConstantSummaries(tm, details, info.Contents);
-      AddFieldSummaries(tm, details, info.Contents);
-      AddFunctionSummaries(tm, details, info.Contents);
-      AddMethodSummaries(tm, details, info.Contents);
-      AddLemmaSummaries(tm, details, info.Contents);
+      AddConstantSummaries(tm, details, info.Contents, register);
+      AddFieldSummaries(tm, details, info.Contents, register);
+      AddFunctionSummaries(tm, details, info.Contents, register);
+      AddMethodSummaries(tm, details, info.Contents, register);
+      AddLemmaSummaries(tm, details, info.Contents, register);
     }
 
     owner.Contents.Add(info);
@@ -734,14 +732,14 @@ class DafnyDoc {
 
 
   /** Append the summary and detail information about const declarations to the string builders */
-  public void AddConstantSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddConstantSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var constants = decl.Members.Where(c => c is ConstantField && !IsGeneratedName(c.Name)).Select(c => c as ConstantField).ToList();
     constants.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (constants.Count() > 0) {
       summaries.Append(Heading3("Constants\n"));
       summaries.Append(TableStart()).Append(eol);
       foreach (var c in constants) {
-        var info = ConstantInfo(c, decl);
+        var info = ConstantInfo(register, c, decl);
         ownerInfoList.Add(info);
 
         var styledName = Code(Bold(c.Name));
@@ -754,14 +752,14 @@ class DafnyDoc {
     }
   }
 
-  public void AddFieldSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddFieldSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var fields = decl.Members.Where(c => c is Field && c is not ConstantField && !IsGeneratedName(c.Name)).Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
       summaries.Append(Heading3("Mutable Fields\n"));
       summaries.Append(TableStart()).Append(eol);
       foreach (var c in fields) {
-        var info = VarInfo(c, decl);
+        var info = VarInfo(register, c, decl);
         ownerInfoList.Add(info);
 
         var linkedType = TypeLink(c.Type);
@@ -773,28 +771,28 @@ class DafnyDoc {
     }
   }
 
-  public void AddFunctionSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddFunctionSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var functions = decl.Members.Where(m => m is Function && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     functions.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    AddExecutableSummaries("Functions", functions, decl, summaries, ownerInfoList);
+    AddExecutableSummaries("Functions", functions, decl, summaries, ownerInfoList, register);
   }
 
-  public void AddMethodSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddMethodSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike && !(m is Constructor) && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    AddExecutableSummaries("Methods", methods, decl, summaries, ownerInfoList);
+    AddExecutableSummaries("Methods", methods, decl, summaries, ownerInfoList, register);
   }
 
-  public void AddLemmaSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddLemmaSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    AddExecutableSummaries("Lemmas", methods, decl, summaries, ownerInfoList);
+    AddExecutableSummaries("Lemmas", methods, decl, summaries, ownerInfoList, register);
   }
 
-  public void AddConstructorSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddConstructorSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     var methods = decl.Members.Where(m => m is Constructor && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    AddExecutableSummaries("Constructors", methods, decl, summaries, ownerInfoList);
+    AddExecutableSummaries("Constructors", methods, decl, summaries, ownerInfoList, register);
   }
 
   string MethodSig(MemberDecl m) {
@@ -836,12 +834,12 @@ class DafnyDoc {
   }
 
   // For methods, lemmas, functions
-  public void AddExecutableSummaries(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList) {
+  public void AddExecutableSummaries(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     if (members.Count != 0) {
       summaries.Append(Heading3(kind));
       summaries.Append(TableStart()).Append(eol);
       foreach (var m in members) {
-        var info = ExecutableInfo(m, decl);
+        var info = ExecutableInfo(register, m, decl);
         ownerInfoList.Add(info);
         summaries.Append(Row(info.HtmlSummary));
       }
