@@ -89,8 +89,7 @@ internal class SemanticModel {
   public bool IsPublic(SyntaxNode syntax, bool fallback = true) {
     var symbol = GetSymbol(syntax);
     return symbol switch {
-      null => fallback,
-      { DeclaredAccessibility: Accessibility.Public } => true,
+      null => fallback, { DeclaredAccessibility: Accessibility.Public } => true,
       IPropertySymbol { ExplicitInterfaceImplementations: { IsEmpty: false } } => true,
       _ => false
     };

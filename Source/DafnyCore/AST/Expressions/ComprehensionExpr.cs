@@ -473,6 +473,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
             indentBefore = formatter.ReduceBlockiness ? indentBefore : formatter.GetNewTokenVisualIndent(token, indentBefore);
             assignOpIndent = formatter.ReduceBlockiness ? indentBefore + formatter.SpaceTab : indentBefore;
             formatter.SetOpeningIndentedRegion(token, indentBefore);
+
             break;
           }
         case ":=":

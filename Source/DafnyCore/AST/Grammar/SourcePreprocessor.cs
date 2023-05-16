@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 // Dafny files can use preprocessing directives, e.g.
 /// ```

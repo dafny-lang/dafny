@@ -35,7 +35,14 @@ namespace Microsoft.Dafny {
   public record Options(IDictionary<Option, object> OptionArguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+    public TextWriter ErrorWriter { get; }
+    public TextReader Input { get; }
+    public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
+    public IList<Uri> CliRootUris = new List<Uri>();
+
+    public ProjectFile ProjectFile { get; set; }
+    public Command CurrentCommand { get; set; }
     public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
     public bool AlwaysUseHeap => Allocated == 2;
     public bool CommonHeapUse => Allocated >= 2;
@@ -72,10 +79,16 @@ features like traits or co-inductive types.".TrimStart(), "cs");
       RegisterLegacyUi(CommonOptionBag.TypeSystemRefresh, ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
 1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.TypeInferenceDebug, ParseBoolean, "Language feature selection", "titrace", @"
+0 (default) - Don't print type-inference debug information.
+1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
+      RegisterLegacyUi(CommonOptionBag.NewTypeInferenceDebug, ParseBoolean, "Language feature selection", "ntitrace", @"
+0 (default) - Don't print debug information for the new type system.
+1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
       RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
       RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
 
-      RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
+      RegisterLegacyUi(CommonOptionBag.Libraries, ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
       RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
       RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
 
@@ -104,7 +117,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
           } else if (ps.args[ps.i].Equals("NoGhost")) {
             options.Set(option, PrintModes.NoGhost);
           } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            options.Set(option, PrintModes.DllEmbed);
+            // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
+            // but it is now used by the LibraryBackend when building .doo files as well. 
+            options.Set(option, PrintModes.Serialization);
           } else {
             ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
           }
@@ -134,7 +149,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Options.OptionArguments[option] = value;
     }
 
-    public void AddFile(string file) => base.AddFile(file, null);
+    protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
+      base.AddFile(file, ps);
+    }
 
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
@@ -144,6 +162,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
+    }
+
+    public static void ParseFileInfoElement(Option<IList<FileInfo>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = (IList<FileInfo>)options.Options.OptionArguments.GetOrCreate(option, () => new List<FileInfo>());
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(new FileInfo(ps.args[ps.i]));
       }
     }
 
@@ -183,10 +208,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create();
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
 
-    public static DafnyOptions Create(params string[] arguments) {
-      var result = new DafnyOptions();
+    public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
+      input ??= TextReader.Null;
+      var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
       return result;
     }
@@ -206,8 +232,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions()
-      : base("dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
+    public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
+      : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
+      Input = inputReader;
+      ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
       NormalizeNames = true;
@@ -247,7 +275,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
-    public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public List<string> FoldersToFormat { get; } = new();
@@ -290,6 +317,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public string MethodsToTest = null;
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
@@ -326,6 +354,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";
+    // Not directly user-configurable, only recorded once we discover it
+    public string SolverIdentifier { get; private set; }
+    public Version SolverVersion { get; private set; }
 
     public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
       new(new[] { SinglePassCompiler.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
@@ -372,7 +403,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this() {
+    public DafnyOptions(DafnyOptions src) : this(src.Input, src.OutputWriter, src.ErrorWriter) {
       src.CopyTo(this);
     }
 
@@ -532,10 +563,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             return true;
           }
 
-        case "titrace":
-          TypeInferenceDebug = true;
-          return true;
-
         case "induction":
           ps.GetIntArgument(ref Induction, 5);
           return true;
@@ -691,7 +718,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "allocated": {
             ps.GetIntArgument(ref Allocated, 5);
             if (Allocated != 4) {
-              Printer.AdvisoryWriteLine(Console.Out, "The /allocated:<n> option is deprecated");
+              Printer.AdvisoryWriteLine(OutputWriter, "The /allocated:<n> option is deprecated");
             }
             return true;
           }
@@ -1158,6 +1185,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private void SetZ3Options(Version z3Version) {
+      // Don't allow changing this once set, just in case:
+      // a DooFile will record this and will get confused if it changes.
+      if ((SolverIdentifier != null && SolverIdentifier != "Z3")
+          || (SolverVersion != null && SolverVersion != z3Version)) {
+        throw new Exception("Attempted to set Z3 options more than once");
+      }
+      SolverIdentifier = "Z3";
+      SolverVersion = z3Version;
+
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
@@ -1226,9 +1262,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /pmtrace
     Print pattern-match compiler debug info.
-
-/titrace
-    Print type-inference debug info.
 
 /printTooltips
     Dump additional positional information (displayed as mouse-over
@@ -1589,7 +1622,6 @@ Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
   }
-
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {

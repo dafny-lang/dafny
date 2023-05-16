@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit.Abstractions;
 using Xunit;
 using XunitAssertMessages;
 
@@ -15,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class HoverTest : ClientBasedLanguageServerTest {
     protected override async Task SetUp(Action<DafnyOptions> modifyOptions = null) {
       void ModifyOptions(DafnyOptions options) {
-        options.ProverOptions.Add("-proverOpt:SOLVER=noop");
+        options.ProverOptions.Add("SOLVER=noop");
         modifyOptions?.Invoke(options);
       }
 
@@ -498,6 +499,9 @@ method test(opt: int) {
 //      ^[```dafny\ns: int\n```]
 }
 ");
+    }
+
+    public HoverTest(ITestOutputHelper output) : base(output) {
     }
 
     [Fact]

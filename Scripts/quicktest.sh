@@ -13,7 +13,6 @@ if [ -n "$1" ]; then
 else
   DAFNY=$DIR/dafny
 fi
-##echo "Using:" $DAFNY
 
 echo "" > $tmp
 echo "Dafny program verifier finished with 1 verified, 0 errors" >> $tmp
