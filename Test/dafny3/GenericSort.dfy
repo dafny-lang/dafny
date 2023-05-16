@@ -3,7 +3,7 @@
 
 abstract module TotalOrder {
   type T // the type to be compared
-  predicate method Leq(a: T, b: T) // Leq(a,b) iff a <= b
+  predicate Leq(a: T, b: T) // Leq(a,b) iff a <= b
   // Three properties of total orders.  Here, they are given as unproved
   // lemmas, that is, as axioms.
   lemma Antisymmetry(a: T, b: T)
@@ -19,7 +19,7 @@ abstract module TotalOrder {
 abstract module Sort {
   import O : TotalOrder  // let O denote some module that has the members of TotalOrder
 
-  predicate Sorted(a: array<O.T>, low: int, high: int)
+  ghost predicate Sorted(a: array<O.T>, low: int, high: int)
     requires 0 <= low <= high <= a.Length
     reads a
     // The body of the predicate is hidden outside the module, but the postcondition is
@@ -32,7 +32,7 @@ abstract module Sort {
 
   // In the insertion sort routine below, it's more convenient to keep track of only that
   // neighboring elements of the array are sorted...
-  predicate NeighborSorted(a: array<O.T>, low: int, high: int)
+  ghost predicate NeighborSorted(a: array<O.T>, low: int, high: int)
     requires 0 <= low <= high <= a.Length
     reads a
   {
@@ -95,7 +95,7 @@ module IntOrder refines TotalOrder {
   // (If there were type synonyms, we could perhaps have written just "type T = int".)
   datatype T = Int(i: int)
   // Define the ordering on these integers
-  predicate method Leq ...
+  predicate Leq ...
     ensures Leq(a, b) ==> a.i <= b.i
   {
     a.i <= b.i
@@ -111,7 +111,7 @@ module IntOrder refines TotalOrder {
 // Lexiographic ordering of pairs of integers
 module IntLexOrder refines TotalOrder {
   datatype T = Int(i: int, j: int)
-  predicate method Leq ... {
+  predicate Leq ... {
     if a.i < b.i then true
     else if a.i == b.i then a.j <= b.j
     else false
@@ -154,7 +154,7 @@ module intOrder refines TotalOrder {
   // Instantiate type T with a datatype wrapper around an integer.
   type T = int
   // Define the ordering on these integers
-  predicate method Leq ...
+  predicate Leq ...
     ensures Leq(a, b) ==> a <= b
   {
     a <= b

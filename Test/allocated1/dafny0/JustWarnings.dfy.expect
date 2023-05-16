@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 JustWarnings.dfy(18,11): Warning: Shadowed type-parameter name: T
 JustWarnings.dfy(13,6): Warning: Shadowed local-variable name: x
 

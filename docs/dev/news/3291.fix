@@ -1,1 +1,0 @@
-the otherwise ambiguous program fragment `export least predicate` is parsed such that `least` (or `greatest`) is the export identifier

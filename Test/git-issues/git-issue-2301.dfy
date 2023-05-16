@@ -48,7 +48,7 @@ class Twostate {
   }
 
   twostate predicate GoodVariations(c: Twostate, d: Twostate, e: Twostate, f: Twostate)
-    reads [this], c, {d, e}, multiset{f}
+    reads this, c, {d, e}, multiset{f}
   {
     && unchanged(this, c)
     && unchanged({c, d})

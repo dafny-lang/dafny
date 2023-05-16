@@ -4,7 +4,7 @@
 //
 // This fragment of comp/Calls.dfy serves to facilitate incremental compiler development.
 
-function method F(x: int, y: bool): int {
+function F(x: int, y: bool): int {
   x + if y then 2 else 3
 }
 

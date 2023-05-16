@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 TypeSynonyms.dfy(78,11): Error: assertion might not hold
 TypeSynonyms.dfy(119,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
 TypeSynonyms.dfy(119,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point

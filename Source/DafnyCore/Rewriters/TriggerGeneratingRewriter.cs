@@ -14,10 +14,10 @@ public class TriggerGeneratingRewriter : IRewriter {
       finder.Visit(decl, null);
     }
 
-    var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext);
+    var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options);
     foreach (var quantifierCollection in finder.quantifierCollections) {
       quantifierCollection.ComputeTriggers(triggersCollector);
-      quantifierCollection.CommitTriggers();
+      quantifierCollection.CommitTriggers(Reporter.Options);
     }
   }
 }

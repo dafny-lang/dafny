@@ -57,7 +57,7 @@ class C {
       );
   }
 
-  function F(u: int): int {
+  ghost function F(u: int): int {
     5 +
     assert F2(u) == u; // error: twostate function not allowed in this context
     u

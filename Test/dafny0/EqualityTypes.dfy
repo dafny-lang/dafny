@@ -60,11 +60,11 @@ module H {
 
   method M<T(==)>(x: T)
   { }
-  function method F<T>(x: BulkyList<T>, y: BulkyList<T>): int
+  function F<T>(x: BulkyList<T>, y: BulkyList<T>): int
   { if x == y then 5 else 7 }  // this equality is allowed
-  function method G<T>(x: Dt<T>, y: Dt<T>): int
+  function G<T>(x: Dt<T>, y: Dt<T>): int
   { if x == y then 5 else 7 }  // error: the equality is not allowed, because Dt<T> may not support equality
-  function method G'<T(==)>(x: Dt<T>, y: Dt<T>): int
+  function G'<T(==)>(x: Dt<T>, y: Dt<T>): int
   { if x == y then 5 else 7 }  // fine
 
   method Caller0(b: BulkyList, y: int) {
@@ -118,7 +118,7 @@ module Gh {
     var y1 := F(d==e, false);  // error
   }
 
-  function method F(b: bool, ghost g: bool): int { 6 }
+  function F(b: bool, ghost g: bool): int { 6 }
 
   ghost method GM(b: bool, d: D, e: D)  // all equalities are fine in a ghost method
     ensures b ==> d == e;
@@ -151,7 +151,7 @@ module Deep {
 
   }
 
-  function method G<Y(==)>(y: Y, z: Y): int { if y == z then 5 else 7 }
+  function G<Y(==)>(y: Y, z: Y): int { if y == z then 5 else 7 }
 
   method P(b: set<Co>) {  // error: set element type must be a type with equality
   }
@@ -246,7 +246,7 @@ module Deep {
 
 module UnderspecifiedTypeParameters {
   method UP<T>()
-  function method UG<T>(): int
+  function UG<T>(): int
   method Callee<T(==)>()
   class TakesParam<U> { }
 
@@ -267,14 +267,14 @@ module UnderspecifiedTypeParameters {
 
 module EqualitySupportingTypes {
   method P<T>()
-  function method G<T>(): int
+  function G<T>(): int
   class AClass<V(==),Y> {
-    static function method H<W,X(==)>(): bool
+    static function H<W,X(==)>(): bool
     static method Q<A,B(==)>()
   }
 
   method Callee<T(==)>()
-  function method FCallee<T>(): T
+  function FCallee<T>(): T
 
   datatype Dt = Dt(f: int -> int)
   codatatype Stream<T> = Cons(T, Stream)

@@ -4,6 +4,8 @@ using System.IO;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using System.Text.RegularExpressions;
+using DafnyCore;
 
 namespace Microsoft.Dafny.Auditor;
 
@@ -63,6 +65,12 @@ public class Auditor : IRewriter {
                                  "md", "markdown", "md-table", "markdown-table",
                                  "md-ietf", "markdown-ietf",
                                  "txt");
+
+    DooFile.RegisterNoChecksNeeded(
+      ReportFileOption,
+      ReportFormatOption,
+      CompareReportOption
+    );
   }
 
   /// <summary>
@@ -73,9 +81,9 @@ public class Auditor : IRewriter {
   /// the reporter to use to emit errors and warnings
   /// </param>
   public Auditor(ErrorReporter reporter) : base(reporter) {
-    reportFileName = DafnyOptions.O.Get(ReportFileOption);
-    compareReport = DafnyOptions.O.Get(CompareReportOption);
-    var format = DafnyOptions.O.Get(ReportFormatOption);
+    reportFileName = reporter.Options.Get(ReportFileOption);
+    compareReport = reporter.Options.Get(CompareReportOption);
+    var format = reporter.Options.Get(ReportFormatOption);
     if (format is null) {
       if (reportFileName is null) {
         return;
@@ -97,25 +105,27 @@ public class Auditor : IRewriter {
     }
   }
 
+  private static Regex TableRegex = new Regex(@"\{\{TABLE\}\}\r?\n");
+
   private string GenerateHTMLReport(AuditReport report) {
     var table = report.RenderHTMLTable();
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
     if (templateStream is null) {
-      Reporter.Warning(MessageSource.Verifier, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
+      Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
-    return templateText.Replace("{{TABLE}}", table.ToString());
+    return TableRegex.Replace(templateText, table);
   }
 
   internal override void PostResolve(Program program) {
     var report = AuditReport.BuildReport(program);
 
     if (reportFileName is null && reportFormat is null) {
-      foreach (var assumption in report.AllAssumptions()) {
-        foreach (var warning in assumption.Warnings()) {
-          Reporter.Warning(MessageSource.Verifier, assumption.decl.tok, warning);
+      foreach (var (_, assumptions) in report.AllAssumptions()) {
+        foreach (var assumption in assumptions) {
+          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.tok, assumption.Warning());
         }
       }
     } else {
@@ -127,7 +137,7 @@ public class Auditor : IRewriter {
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
-        Console.Write(text);
+        Options.OutputWriter.Write(text);
       } else {
         if (compareReport) {
           try {
@@ -145,5 +155,8 @@ public class Auditor : IRewriter {
         }
       }
     }
+
+    var findingCount = report.AllAssumptions().SelectMany(d => d.Value).Count();
+    Console.WriteLine($"Dafny auditor completed with {findingCount} findings");
   }
 }

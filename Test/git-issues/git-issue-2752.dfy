@@ -10,6 +10,6 @@ const i := 0 as EmptyInt // Error
 
 type foo = x: object? | x != null witness *
 
-function method m(): foo {
+function m(): foo {
   null // Error
 }

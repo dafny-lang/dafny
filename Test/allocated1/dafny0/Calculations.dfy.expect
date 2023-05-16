@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Calculations.dfy(7,5): Error: index out of range
 Calculations.dfy(12,14): Error: index out of range
 Calculations.dfy(12,18): Error: assertion might not hold
@@ -6,5 +7,6 @@ Calculations.dfy(79,14): Error: index out of range
 Calculations.dfy(79,18): Error: assertion might not hold
 
 Dafny program verifier finished with 3 verified, 6 errors
+The /allocated:<n> option is deprecated
 
 Dafny program verifier did not attempt verification

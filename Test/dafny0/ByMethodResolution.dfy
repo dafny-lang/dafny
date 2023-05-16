@@ -31,11 +31,11 @@ module Export {
     export
       provides F, FP, F2, G, H
 
-    function F(): int {
+    ghost function F(): int {
       5
     }
 
-    predicate FP() {
+    ghost predicate FP() {
       true
     }
 
@@ -43,7 +43,7 @@ module Export {
       5
     }
 
-    function method G(): int {
+    function G(): int {
       5
     }
 
@@ -70,7 +70,7 @@ module Export {
 }
 
 module ByMethodGhostInterests {
-  function Zero(): int { 0 }
+  ghost function Zero(): int { 0 }
 
   function F(x: nat): int {
     x + Zero()
@@ -126,7 +126,7 @@ module BadExtremeRecursion {
   least predicate R0() {
     H0'() == 5
   }
-  function H0'(): int {
+  ghost function H0'(): int {
     if H0() < 100 then 5 else 3 // in a ghost context, this calls the function part of H0
   }
   function H0(): int {
@@ -141,7 +141,7 @@ module BadExtremeRecursion {
   least predicate R1() {
     H1'() == 5 // error: R1 is in same recursive cluster as H1
   }
-  function method H1'(): int {
+  function H1'(): int {
     if H1() < 100 then 5 else 3 // in a compiled context, this calls the method part of H1
   }
   function H1(): int {
@@ -156,7 +156,7 @@ module BadExtremeRecursion {
   least predicate R2() {
     H2'() == 5 // error: R2 is in same recursive cluster as H2
   }
-  function method H2'(): int {
+  function H2'(): int {
     if H2() < 100 then 5 else 3 // in a compiled context, this calls the method part of H2
   }
   function H2(): int {

@@ -9,7 +9,7 @@ method M() returns (x: int) {
   x := var y := 50; y;  // non-top-level let
 }
 
-function method F(): int {
+function F(): int {
   var r := 58; r  // top-level let
 }
 
@@ -35,7 +35,7 @@ method Main() {
 
 datatype Tree = Leaf | Node(Tree, val: int, Tree)
 
-function method Sum(t: Tree): int {
+function Sum(t: Tree): int {
   if t == Leaf then  // equality on datatypes
     0
   else
@@ -61,7 +61,7 @@ module Regressions {
     print a, " ", b, " ", c, " ", d, "\n"; // 12.0 15.0 15.0 15.0
   }
 
-  function method F(xyz: int): real
+  function F(xyz: int): real
   {
     // Because the following let expression is at the top level of the function
     // body, TrExprOpt is called (not TrExpr), and it converts these let variables
@@ -72,7 +72,7 @@ module Regressions {
   }
 
   // This one had problems:
-  function method G(xyz: int): real
+  function G(xyz: int): real
   {
     3.0 +
       var abc := 10;
@@ -81,7 +81,7 @@ module Regressions {
       12.0
   }
 
-  function method H(xyz: int): real
+  function H(xyz: int): real
   {
     3.0 +
       var abc := 10;

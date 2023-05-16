@@ -14,7 +14,7 @@ module VarUnchanged refines Induction {
 
   import opened Interp
 
-  predicate method VarUnchanged(x: string, e: Expr)
+  predicate VarUnchanged(x: string, e: Expr)
     // Returns true if no assignments of `x` (not shadowed by a let-binding) appears
     // in `e`.
     decreases e
@@ -38,7 +38,7 @@ module VarUnchanged refines Induction {
         forall e:Expr_Raw | e in es :: VarUnchanged(x, e)
   }
 
-  predicate ResultSameX(st: S, res: InterpResult)
+  ghost predicate ResultSameX(st: S, res: InterpResult)
   {
     match res
       case Success((v, ctx)) =>
@@ -49,7 +49,7 @@ module VarUnchanged refines Induction {
         true
   }
 
-  predicate ResultSeqSameX(st: S, res: InterpResultSeq)
+  ghost predicate ResultSeqSameX(st: S, res: InterpResultSeq)
   {
     match res
       case Success((_, ctx)) =>
@@ -79,23 +79,23 @@ module VarUnchanged refines Induction {
 
   ghost const Zero: V := 0
 
-  predicate Pre(st: S, e: Expr)
+  ghost predicate Pre(st: S, e: Expr)
   {
     st.x.Some? ==> VarUnchanged(st.x.value, e)
   }
 
-  predicate PreEs(st: S, es: seq<Expr>)
+  ghost predicate PreEs(st: S, es: seq<Expr>)
   {
     forall e | e in es :: Pre(st, e)
   }
 
-  predicate P ...
+  ghost predicate P ...
   {
     var res := InterpExpr(e, st.ctx);
     Pre(st, e) ==> ResultSameX(st, res)
   }
 
-  predicate P_Succ ...
+  ghost predicate P_Succ ...
   {
     var res := InterpExpr(e, st.ctx);
     && Pre(st, e)
@@ -104,19 +104,19 @@ module VarUnchanged refines Induction {
     && st'.x == st.x
   }
 
-  predicate P_Fail ...
+  ghost predicate P_Fail ...
   {
     var res := InterpExpr(e, st.ctx);
     Pre(st, e) ==> res.Failure?
   }
 
-  predicate Pes ...
+  ghost predicate Pes ...
   {
     var res := InterpExprs(es, st.ctx);
     PreEs(st, es) ==> ResultSeqSameX(st, res)
   }
 
-  predicate Pes_Succ ...
+  ghost predicate Pes_Succ ...
   {
     var res := InterpExprs(es, st.ctx);
     && PreEs(st, es)
@@ -125,30 +125,30 @@ module VarUnchanged refines Induction {
     && st'.x == st.x
   }
 
-  predicate Pes_Fail ...
+  ghost predicate Pes_Fail ...
   {
     var res := InterpExprs(es, st.ctx);
     PreEs(st, es) ==> res.Failure?
   }
 
-  function AppendValue ...
+  ghost function AppendValue ...
   {
     [v] + vs
   }
 
   ghost const NilVS: VS := []
 
-  function VS_Last ...
+  ghost function VS_Last ...
   {
     vs[|vs| - 1]
   }
 
-  predicate UpdateState_Pre ...
+  ghost predicate UpdateState_Pre ...
   {
     && |vars| == |argvs|
   }
 
-  function AssignState ...
+  ghost function AssignState ...
   {
     var MState(x, ctx) := st;
     var bindings := VarsAndValuesToContext(vars, vals);
@@ -157,7 +157,7 @@ module VarUnchanged refines Induction {
     st'
   }
 
-  function BindStartScope ...
+  ghost function BindStartScope ...
   {
     var MState(x, ctx) := st;
     var x' := if x.Some? && x.value in vars then None else x;
@@ -167,7 +167,7 @@ module VarUnchanged refines Induction {
     st'
   }
 
-  function BindEndScope ...
+  ghost function BindEndScope ...
   {
     var MState(x0, ctx0) := st0;
     var MState(x, ctx) := st;
@@ -176,13 +176,13 @@ module VarUnchanged refines Induction {
     st'
   }
 
-  function P_Step ...
+  ghost function P_Step ...
   {
     var Success((v, ctx1)) := InterpExpr(e, st.ctx);
     (MState(st.x, ctx1), v)
   }
 
-  function Pes_Step ...
+  ghost function Pes_Step ...
   {
     var Success((vs, ctx1)) := InterpExprs(es, st.ctx);
     (MState(st.x, ctx1), vs)

@@ -8,7 +8,7 @@
 datatype S = S(G: array<int>)
 datatype T = T(F: array<S>, ghost Repr: set<object>)
 
-predicate Valid(t: T)
+ghost predicate Valid(t: T)
   reads t.F
   reads (set i | 0 <= i < t.F.Length :: t.F[i].G)
 {

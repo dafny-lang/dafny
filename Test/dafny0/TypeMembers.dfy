@@ -25,14 +25,14 @@ method BasicTests() {
 }
 
 datatype DaTy = Yes {
-  function method W(): int { 10 }
-  static function method Q(): int { 13 }
+  function W(): int { 10 }
+  static function Q(): int { 13 }
 }
 
 newtype Pos = x | 0 < x witness 1
 {
-  static function method Func(y: Pos): int { (y + 3) as int }
-  function method Gittit(): int { (this + 2) as int }
+  static function Func(y: Pos): int { (y + 3) as int }
+  function Gittit(): int { (this + 2) as int }
   static method Method(y: Pos) returns (r: int) ensures r == (y + 3) as int { return (y + 3) as int; }
   method Collect() returns (r: int) ensures r == (this + 2) as int { return (this + 2) as int; }
 }
@@ -86,10 +86,10 @@ datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
 {
   const c: int := if this.Blue? then 18 else 19
   static const g: int := 22
-  function method F(x: int): int {
+  function F(x: int): int {
     x + if this.Bucket? then this.diameter.Floor else 25
   }
-  static function method G(x: int): int {
+  static function G(x: int): int {
     2 * x
   }
   method M(x: int) returns (y: int, d: Dt<A>) {
@@ -129,8 +129,8 @@ codatatype Co<A> = Cobalt | Continues(next: Co<A>)
 {
   const c: int := if this.Cobalt? then 18 else 19
   static const g: int
-  function method F(x: int): int { 19 }
-  static function method G(x: int): int { x + 12 }
+  function F(x: int): int { 19 }
+  static function G(x: int): int { x + 12 }
   method M(x: int) returns (y: int, d: Co<int>) {
     if this == Cobalt {
       y := x;
@@ -158,8 +158,8 @@ newtype Primes = x | 2 <= x && forall y :: 2 <= y < x ==> x % y != 0 witness 2
 {
   const c: int := this as int * 2
   static const g: int := 18
-  function method F(x: int): int { 2 * x + this as int }
-  static function method G(x: int): int { 100 - x }
+  function F(x: int): int { 2 * x + this as int }
+  static function G(x: int): int { 100 - x }
   method M(x: int) returns (y: int, d: Primes) {
     var z := RecursiveZero(3);
     return x + z, this;
@@ -180,8 +180,8 @@ newtype Small = x | 0 <= x < 25
 {
   const c := this as int % 4
   static const g: int := 18
-  function method F(x: int): int { 2 * x + this as int }
-  static function method G(x: int): int { 100 - x }
+  function F(x: int): int { 2 * x + this as int }
+  static function G(x: int): int { 100 - x }
   method M(x: int) returns (y: int, d: Small) {
     var z := RecursiveZero(3);
     return x + z, this;

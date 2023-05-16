@@ -126,14 +126,14 @@ links) and false when it is not.
 class Node {
   var next: Node?
 
-  predicate IsClosed(S: set<Node?>)
+  ghost predicate IsClosed(S: set<Node?>)
     reads S
   {
     this in S && null in S &&
     forall n :: n in S && n != null && n.next != null ==> n.next in S
   }
 
-  function Nexxxt(k: int, S: set<Node?>): Node?
+  ghost function Nexxxt(k: int, S: set<Node?>): Node?
     requires IsClosed(S) && 0 <= k
     ensures Nexxxt(k, S) in S  // a consequence of the definition
     reads S
@@ -143,7 +143,7 @@ class Node {
     else Nexxxt(k-1, S).next
   }
 
-  predicate Reaches(sink: Node, S: set<Node?>)
+  ghost predicate Reaches(sink: Node, S: set<Node?>)
     requires IsClosed(S)
     ensures Reaches(sink, S) ==> sink in S  // a consequence of the definition
     reads S

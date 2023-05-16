@@ -5,7 +5,7 @@
 class Node {
   var next: Node?
 
-  predicate IsList(r: set<Node>)
+  ghost predicate IsList(r: set<Node>)
     reads r
   {
     this in r &&
@@ -61,7 +61,7 @@ class Node {
     r := if x < y then y else x;
   }
 
-  function PoorlyDefined(x: int): int
+  ghost function PoorlyDefined(x: int): int
     requires if next == null then 5/x < 20 else true;  // error: ill-defined then branch
     requires if next == null then true else 0 <= 5/x;  // error: ill-defined then branch
     requires if next.next == null then true else true;  // error: ill-defined guard
@@ -391,12 +391,12 @@ method {:verify false} test1()
   assert false;
 }
 
-function test2() : bool
+ghost function test2() : bool
 {
   !test2()  // error
 }
 
-function {:verify false} test3() : bool
+ghost function {:verify false} test3() : bool
 {
   !test3()
 }
@@ -423,12 +423,12 @@ class Test {
     assert false;
   }
 
-  function test2() : bool
+  ghost function test2() : bool
   {
     !test2()  // error
   }
 
-  function {:verify false} test3() : bool
+  ghost function {:verify false} test3() : bool
   {
     !test3()
   }
@@ -437,7 +437,7 @@ class Test {
 
 // ------ an if-then-else regression test
 
-function F(b: bool): int
+ghost function F(b: bool): int
   // The if-then-else in the following line was once translated incorrectly,
   // incorrectly causing the postcondition to verify
   ensures if b then F(b) == 5 else F(b) == 6
@@ -460,7 +460,7 @@ class AttributeTests {
     r := false;
   }
 
-  function method m2() : bool
+  function m2() : bool
   {
     true
   }
@@ -673,7 +673,7 @@ method AssignSuchThat9() returns (q: QuiteFinite)
 
 // ----------- let-such-that expressions ------------------------
 
-function method LetSuchThat_P(x: int): bool
+function LetSuchThat_P(x: int): bool
 
 method LetSuchThat0(ghost g: int)
   requires LetSuchThat_P(g)
@@ -763,67 +763,67 @@ class GT {
 // ----- able to pick an element from the (domain of the) collection
 
 module GenericPick {
-  function SetPick0<U>(s: set<U>): U
+  ghost function SetPick0<U>(s: set<U>): U
     requires s != {}
   {
     var x :| x in s; x
   }
-  function SetPick1<U>(s: set<U>): U
+  ghost function SetPick1<U>(s: set<U>): U
     requires |s| != 0
   {
     var x :| x in s; x
   }
-  function SetPick2<U>(s: set<U>): U
+  ghost function SetPick2<U>(s: set<U>): U
     requires exists x :: x in s
   {
     var x :| x in s; x
   }
 
-  function MultisetPick0<U>(s: multiset<U>): U
+  ghost function MultisetPick0<U>(s: multiset<U>): U
     requires s != multiset{}
   {
     var x :| x in s; x
   }
-  function MultisetPick1<U>(s: multiset<U>): U
+  ghost function MultisetPick1<U>(s: multiset<U>): U
     requires |s| != 0
   {
     var x :| x in s; x
   }
-  function MultisetPick2<U>(s: multiset<U>): U
+  ghost function MultisetPick2<U>(s: multiset<U>): U
     requires exists x :: x in s
   {
     var x :| x in s; x
   }
-  function MultisetPick3<U>(s: multiset<U>): U
+  ghost function MultisetPick3<U>(s: multiset<U>): U
     requires exists x :: s[x] > 0
   {
     var x :| x in s; x
   }
 
-  function SeqPick0<U>(s: seq<U>): U
+  ghost function SeqPick0<U>(s: seq<U>): U
     requires s != []
   {
     EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
     var x :| x in s; x
   }
-  function SeqPick1<U>(s: seq<U>): U
+  ghost function SeqPick1<U>(s: seq<U>): U
     requires |s| != 0
   {
     EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
     var x :| x in s; x
   }
-  function SeqPick2<U>(s: seq<U>): U
+  ghost function SeqPick2<U>(s: seq<U>): U
     requires exists x :: x in s
   {
     var x :| x in s; x
   }
-  function SeqPick3<U>(s: seq<U>): U
+  ghost function SeqPick3<U>(s: seq<U>): U
     requires exists i {:nowarn} :: 0 <= i < |s|
   {
     EquivalentWaysOfSayingSequenceIsNonempty(s);  // I wish this wasn't needed; see comment near Seq#Length axioms in DafnyPrelude.bpl
     var x :| x in s; x
   }
-  function SeqPick4<U>(s: seq<U>): U
+  ghost function SeqPick4<U>(s: seq<U>): U
     requires exists i {:nowarn} :: 0 <= i < |s|
   {
     var i :| 0 <= i < |s|; s[i]
@@ -837,17 +837,17 @@ module GenericPick {
     assert s[0] in s;
   }
 
-  function MapPick0<U,V>(m: map<U,V>): U
+  ghost function MapPick0<U,V>(m: map<U,V>): U
     requires m != map[]
   {
     var x :| x in m; x
   }
-  function MapPick1<U,V>(m: map<U,V>): U
+  ghost function MapPick1<U,V>(m: map<U,V>): U
     requires |m| != 0
   {
     var x :| x in m; x
   }
-  function MapPick2<U,V>(m: map<U,V>): U
+  ghost function MapPick2<U,V>(m: map<U,V>): U
     requires exists x :: x in m
   {
     var x :| x in m; x

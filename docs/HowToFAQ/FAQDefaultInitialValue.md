@@ -16,7 +16,7 @@ You can manually initialize like this:
 ```dafny
 type {:extern} TT {
 }
-function method {:extern} init(): TT
+function {:extern} init(): TT
 
 method mmm() {
   var x: TT := init();

@@ -260,7 +260,7 @@ module Option {
 module ClientOfOption {
   import opened Option
 
-  function Foo(o: Option<int>): int {
+  ghost function Foo(o: Option<int>): int {
     match o
     case Some(x) => x
     case None => 0

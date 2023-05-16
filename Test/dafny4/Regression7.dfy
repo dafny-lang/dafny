@@ -10,7 +10,7 @@ module Q {
 
   datatype Queue<T> = FQ(front: LL.List<T>, rear: LL.List<T>)
 
-  function method MyCons<W>(w: W, ws: LL.List<W>): LL.List<W>
+  function MyCons<W>(w: W, ws: LL.List<W>): LL.List<W>
   {
     LL.Cons(w, ws)
   }

@@ -18,9 +18,9 @@ method FnEqGhost<A>() {
   ghost var b7 := g == zz; // should fail
 }
 
-function ToObject(): object
+ghost function ToObject(): object
 
-function F(): int
+ghost function F(): int
   // Regression: the following used resolve, but would then cause malformed Boogie.
   // There's no strong use case for this, so it's better to just forbid it.
   reads ToObject // error: arrow to collection of references is allowed, but no other arrows

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp ExternDefs.h "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 ExternDefs.h "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype uint32 = i:int | 0 <= i < 0x100000000
@@ -8,15 +8,15 @@ method ReturnTuple() returns (x:(uint32,uint32))
   return (1, 2);
 }
 
-function method EmptyTuple() : () {
+function EmptyTuple() : () {
   ()
 }
 
-function method GetEmptyTuple() : () {
+function GetEmptyTuple() : () {
   EmptyTuple()
 }
 
-function method Test() : (bool, bool) {
+function Test() : (bool, bool) {
   (false, true)
 }
 

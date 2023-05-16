@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 LoopModifies.dfy(8,4): Error: assignment might update an array element not in the enclosing context's modifies clause
 LoopModifies.dfy(19,7): Error: assignment might update an array element not in the enclosing context's modifies clause
 LoopModifies.dfy(48,7): Error: assignment might update an array element not in the enclosing context's modifies clause

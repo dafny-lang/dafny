@@ -78,7 +78,7 @@ method H2(q: int) returns (x: int)
 class {:autocontracts} MyAutoContractClass {
   var left: MyAutoContractClass?
 
-  predicate Valid() { true }
+  ghost predicate Valid() { true }
 
   method {:tailrecursion} VisitLeft(val: int)
   {
@@ -143,7 +143,7 @@ class TailConstructorRegressionTest'
 
 // ------------ tail-recursive functions --------------------------
 
-function method {:tailrecursion} R(n: nat): nat
+function {:tailrecursion} R(n: nat): nat
   decreases n
 {
   if n % 5 == 0 then
@@ -160,13 +160,13 @@ function method {:tailrecursion} R(n: nat): nat
     U(-2, R(n - 1))  // fine, R is used for ghost parameter
 }
 
-function method U(x: int, ghost y: int): nat
+function U(x: int, ghost y: int): nat
   requires x < y
 {
   if x < 0 then -x else x
 }
 
-function method {:tailrecursion} Q(n: nat): nat {
+function {:tailrecursion} Q(n: nat): nat {
   if n % 5 == 0 then
     var s := Q;  // error: this use of Q is not a tail call
     10
@@ -181,11 +181,11 @@ function method {:tailrecursion} Q(n: nat): nat {
     U(Q(n - 1), Q(n - 1) + 10)  // error: first Q has to be a tail call
 }
 
-function {:tailrecursion false} Gh0(n: nat): nat {  // fine
+ghost function {:tailrecursion false} Gh0(n: nat): nat {  // fine
   15
 }
 
-function {:tailrecursion} Gh1(n: nat): nat {  // error: {:tailrecursion true} cannot be used with ghost functions
+ghost function {:tailrecursion} Gh1(n: nat): nat {  // error: {:tailrecursion true} cannot be used with ghost functions
   15
 }
 
@@ -197,7 +197,7 @@ ghost method {:tailrecursion} Gh3(n: nat) {  // error: {:tailrecursion true} can
 
 // ----- auto-accumulator tail recursion -----
 
-function method {:tailrecursion} TriangleNumber(n: nat): nat {
+function {:tailrecursion} TriangleNumber(n: nat): nat {
   if n == 0 then
     0
   else if n % 2 == 0 then
@@ -207,23 +207,23 @@ function method {:tailrecursion} TriangleNumber(n: nat): nat {
 }
 
 newtype MyInt = int
-function method {:tailrecursion} SumMyInt(n: MyInt): MyInt
+function {:tailrecursion} SumMyInt(n: MyInt): MyInt
   requires 0 <= n
 {
   if n == 0 then 0 else n + SumMyInt(n - 1)
 }
 
 newtype MyConstrainedInt = x | x % 2 == 0
-function method {:tailrecursion} SumMyConstrainedInt(n: nat): MyConstrainedInt { // error: constrained types cannot be auto-accumulator tail recursive
+function {:tailrecursion} SumMyConstrainedInt(n: nat): MyConstrainedInt { // error: constrained types cannot be auto-accumulator tail recursive
   if n == 0 then 0 else (2 * n) as MyConstrainedInt + SumMyConstrainedInt(n - 1)
 }
 
 type Even = x | x % 2 == 0
-function method {:tailrecursion} SumEven(n: nat): Even { // error: constrained types cannot be auto-accumulator tail recursive
+function {:tailrecursion} SumEven(n: nat): Even { // error: constrained types cannot be auto-accumulator tail recursive
   if n == 0 then 0 else (2 * n) as Even + SumEven(n - 1)
 }
 
-function method {:tailrecursion} TriangleNumberSeq(n: nat): seq<nat> {
+function {:tailrecursion} TriangleNumberSeq(n: nat): seq<nat> {
   if n == 0 then
     [0]
   else if n % 2 == 0 then // error: then/else use different accumulators
@@ -234,7 +234,7 @@ function method {:tailrecursion} TriangleNumberSeq(n: nat): seq<nat> {
 
 datatype List = Nil | Cons(head: int, tail: List)
 
-function method {:tailrecursion} Sum(xs: List, u: int): int {
+function {:tailrecursion} Sum(xs: List, u: int): int {
   var uu := u + 1;
   if u % 2 == 0 then
     match xs {
@@ -256,7 +256,7 @@ function method {:tailrecursion} Sum(xs: List, u: int): int {
     }
 }
 
-function method {:tailrecursion} Tum(xs: List, u: int): seq<int> {
+function {:tailrecursion} Tum(xs: List, u: int): seq<int> {
   var uu := u + 1;  // test let expr
   if u % 2 == 0 then // error: then/else use different accumulators
     match xs {
@@ -278,7 +278,7 @@ function method {:tailrecursion} Tum(xs: List, u: int): seq<int> {
     }
 }
 
-function method {:tailrecursion} Gum(xs: List): int {
+function {:tailrecursion} Gum(xs: List): int {
   match xs
   case Nil =>
     assert xs.Nil?;
@@ -288,7 +288,7 @@ function method {:tailrecursion} Gum(xs: List): int {
     xs.head + Gum(xs.tail) + xs.head // error: this is not a simple accumulating tail call
 }
 
-function method {:tailrecursion} Hum(xs: List, b: bool): int {
+function {:tailrecursion} Hum(xs: List, b: bool): int {
   match xs
   case Nil =>
     if b then Hum(xs, false) else 0
@@ -296,7 +296,7 @@ function method {:tailrecursion} Hum(xs: List, b: bool): int {
     Hum(xs.tail, b) + xs.head
 }
 
-function method {:tailrecursion} Mum(xs: List, b: bool): int {
+function {:tailrecursion} Mum(xs: List, b: bool): int {
   match xs
   case Nil =>
     if b then 15 + Mum(xs, false) else 0
@@ -304,7 +304,7 @@ function method {:tailrecursion} Mum(xs: List, b: bool): int {
     Mum(xs.tail, b) + xs.head
 }
 
-function method {:tailrecursion} Bum(xs: List, b: bool): int {
+function {:tailrecursion} Bum(xs: List, b: bool): int {
   match xs
   case Nil =>
     if b then 15 - Bum(xs, false) else 0  // error: - only supports tail call on left (accumulator on right)
@@ -312,11 +312,11 @@ function method {:tailrecursion} Bum(xs: List, b: bool): int {
     Bum(xs.tail, b) - xs.head
 }
 
-function method {:tailrecursion} TailBv(n: bv5): bv5 {
+function {:tailrecursion} TailBv(n: bv5): bv5 {
   if n == 0 then 0 else TailBv(n - 1) + n  // error: because bitvector types are (currently) not supported in tail calls
 }
 
-function method {:tailrecursion} TailChar(n: int): char
+function {:tailrecursion} TailChar(n: int): char
   requires 0 <= n <= 20
   ensures TailChar(n) as int == 60 + n
 {

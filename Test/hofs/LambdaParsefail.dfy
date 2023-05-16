@@ -11,7 +11,7 @@ method Fails() { // all these fail
 
 // the rest of these are OK:
 
-function f():() {
+ghost function f():() {
   a.b(x); a.b(x)
 }
 
@@ -27,6 +27,6 @@ method M() {
   g := y => a.b(y);
 }
 
-function f():() {
+ghost function f():() {
   (u => a.b(x); a(x))(); a(x)
 }

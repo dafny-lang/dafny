@@ -4,6 +4,7 @@ entire module must be supplied.
 """
 
 import sys, _dafny
+import Wrappers_Compile
 
 assert "Library" == __name__
 Library = sys.modules[__name__]
@@ -70,7 +71,15 @@ class Mixed:
 class AllExtern:
     @staticmethod
     def P():
-        _dafny.print(_dafny.string_of(_dafny.Seq("AllExtern.P\n")))
+        print("AllExtern.P")
+
+    @staticmethod
+    def MaybeInt():
+        return Wrappers_Compile.Option_Some(42)
+
+    @staticmethod
+    def IntPair():
+        return Wrappers_Compile.Pair_Pair(3, 7)
 
 class SingletonOptimization:
     @staticmethod

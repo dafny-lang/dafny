@@ -8,7 +8,7 @@ module FOO {
     f2: nat
   )
 
-  function method f(d : D) : nat
+  function f(d : D) : nat
     ensures f(d) != 0
 
   const D0 := D(0, 0)

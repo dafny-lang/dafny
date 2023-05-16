@@ -76,7 +76,7 @@ method HenEric<T>(i: int, t0: T, t1: T) returns (r: T) {
   r := t1;
 }
 
-function method FenEric<T>(t0: T, t1: T): T
+function FenEric<T>(t0: T, t1: T): T
 {
   t1
 }
@@ -117,7 +117,7 @@ class GenEric<T> {
   }
 }
 
-function method GE<T>(d: GenEric?<T>): bool { true }
+function GE<T>(d: GenEric?<T>): bool { true }
 
 method TestGenEric() {
   var ge;
@@ -127,21 +127,21 @@ method TestGenEric() {
   }
 }
 
-function method Sum(list: List<object>): nat
+function Sum(list: List<object>): nat
 {
   match list
   case Nil => 0
   case Cons(x, y, tail) => x + Sum(tail)
 }
 
-function BadSum(list: List<object>): nat
+ghost function BadSum(list: List<object>): nat
 {
   match list
   case Nil => 0
   case Cons(x, y, tail) => x + BadSum(tail) - 30  // error: may not be a nat
 }
 
-function Abs(x: int): nat
+ghost function Abs(x: int): nat
 {
   if 0 <= x then x else -x
 }
@@ -149,24 +149,24 @@ function Abs(x: int): nat
 // ----- Here are tests that the type of the result value of a function is known by the
 // ----- time the well-formedness of the function's specification is checked.
 
-function TakesANat(n: nat): bool
+ghost function TakesANat(n: nat): bool
 {
   n < 29
 }
 
-function Naturally(): nat
+ghost function Naturally(): nat
   ensures TakesANat(Naturally());  // the wellformedness of this check requires
 {
   17
 }
 
-function Integrally_Bad(): int
+ghost function Integrally_Bad(): int
   ensures TakesANat(Integrally_Bad());  // error: well-formedness check fails
 {
   17
 }
 
-function Integrally_Good(): int
+ghost function Integrally_Good(): int
   ensures 0 <= Integrally_Good();
   ensures TakesANat(Integrally_Good());  // here, the needed information follows from the preceding ensures clause
 {

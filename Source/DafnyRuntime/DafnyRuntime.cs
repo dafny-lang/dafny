@@ -1426,6 +1426,7 @@ namespace Dafny {
 
     public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
     public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');  // See CharType.DefaultValue in Dafny source code
+    public static readonly TypeDescriptor<Rune> RUNE = new TypeDescriptor<Rune>(new Rune('D'));  // See CharType.DefaultValue in Dafny source code
     public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
@@ -1648,6 +1649,20 @@ namespace Dafny {
 
     public static Rune SubtractRunes(Rune left, Rune right) {
       return (Rune)(left.Value - right.Value);
+    }
+
+    public static uint Bv32ShiftLeft(uint a, int amount) {
+      return amount == 32 ? 0 : a << amount;
+    }
+    public static ulong Bv64ShiftLeft(ulong a, int amount) {
+      return amount == 64 ? 0 : a << amount;
+    }
+
+    public static uint Bv32ShiftRight(uint a, int amount) {
+      return amount == 32 ? 0 : a >> amount;
+    }
+    public static ulong Bv64ShiftRight(ulong a, int amount) {
+      return amount == 64 ? 0 : a >> amount;
     }
   }
 

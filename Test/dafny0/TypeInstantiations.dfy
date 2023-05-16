@@ -117,7 +117,7 @@ module DatatypeTestLocalY {
 
 module ClassLibrary {
   class Classic<A> {
-    static function method F(): A
+    static ghost function F(): A
   }
 }
 

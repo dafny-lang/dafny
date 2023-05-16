@@ -7,14 +7,14 @@ module A {
     var f: int;
   }
   datatype D = E(int) | F(int)
-  function f(n:nat): nat
+  ghost function f(n:nat): nat
 }
 module B {
   class C {
     var f: int;
   }
   datatype D = E(int) | F(int)
-  function f(n:nat): nat
+  ghost function f(n:nat): nat
 }
 module Test {
   import opened A // nice shorthand for import opened A = A; (see below)

@@ -17,13 +17,13 @@ method Main() {
 
 // Some tests of let-expression translation into Boogie's new let expressions:
 
-function method F(u: int): int
+function F(u: int): int
   requires u < 2400
 {
   u
 }
 
-function method G(w: int): int
+function G(w: int): int
 {
   var g := w + w;
   g - w
@@ -38,26 +38,26 @@ method LetTest() {
 
 // Issue 167:
 
-function method Rewrite(env: map<nat, nat>): map<nat, nat> {
+function Rewrite(env: map<nat, nat>): map<nat, nat> {
   var p := map g: nat | g in env :: g;  // regression test: used to produce malformed Boogie
   map n: nat | n in p :: n
 }
 
-function method Rewrite_Keys(env: map<nat, nat>): map<nat, nat> {
+function Rewrite_Keys(env: map<nat, nat>): map<nat, nat> {
   var p := env.Keys;  // this is an easier way to assign p like in Rewrite
   map n: nat | n in p :: n
 }
 
-function method Rewrite2(strs: set<string>): map<string, string> {
+function Rewrite2(strs: set<string>): map<string, string> {
   var p := map g: string | g in strs :: g;  // regression test: used to produce malformed Boogie
   map s: string | s in p :: s
 }
 
-function sum(a: int, b: int): int {
+ghost function sum(a: int, b: int): int {
   a + b
 }
 
-predicate sum_is_sum(b: int, c: int) {
+ghost predicate sum_is_sum(b: int, c: int) {
   var s := a => sum(a, b);
   forall a: int :: s(a) + c == a + b + c
 }
@@ -73,10 +73,10 @@ module Test {
   datatype A = A1
   datatype B = B1
 
-  function Convert_AB(f:A) : B { B1 }
-  function Convert_BA(f:B) : A { A1 }
+  ghost function Convert_AB(f:A) : B { B1 }
+  ghost function Convert_BA(f:B) : A { A1 }
 
-  function ConvertMap_AB(m:map<A, int>) : map<B, int>
+  ghost function ConvertMap_AB(m:map<A, int>) : map<B, int>
   {
     var dom_B := set a | a in m :: Convert_AB(a);
     assert forall u :: u in m.Keys ==> u == A1;  // added this to Issue 215 to make the next line verify

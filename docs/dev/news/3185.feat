@@ -1,3 +1,0 @@
-Add the experimental `--test-assumptions` option to all execution commands: run, build, translate and test.
-When turned on, inserts runtime tests at locations where (implicit) assumptions occur, such as when calling or being called by external code and when using assume statements.
-Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.

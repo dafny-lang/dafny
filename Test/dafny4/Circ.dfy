@@ -8,10 +8,10 @@ codatatype Stream<T> = Cons(head: T, tail: Stream)
 
 // ----- standard examples -----
 
-function zeros(): Stream<int> { Cons(0, zeros()) }
-function ones(): Stream<int> { Cons(1, ones()) }
-function blink(): Stream<int> { Cons(0, Cons(1, blink())) }
-function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
+ghost function zeros(): Stream<int> { Cons(0, zeros()) }
+ghost function ones(): Stream<int> { Cons(1, ones()) }
+ghost function blink(): Stream<int> { Cons(0, Cons(1, blink())) }
+ghost function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
 
 greatest lemma BlinkZipProperty()
   ensures zip(zeros(), ones()) == blink();
@@ -22,23 +22,23 @@ greatest lemma BlinkZipProperty()
 // ----- Thue-Morse sequence -----
 
 datatype Bit = O | I
-function bitnot(b: Bit): Bit
+ghost function bitnot(b: Bit): Bit
 {
   if b == O then I else O
 }
 
-function not(s: Stream<Bit>): Stream<Bit>
+ghost function not(s: Stream<Bit>): Stream<Bit>
 {
   Cons(bitnot(s.head), not(s.tail))
 }
 
 /* Function morse() is essentially this:
 
-function morse(): Stream<int>
+ghost function morse(): Stream<int>
 {
   Cons(0, morseTail())
 }
-function morseTail(): Stream<int>
+ghost function morseTail(): Stream<int>
 {
   Cons(1, zip(morseTail(), not(morseTail())))
 }
@@ -48,8 +48,8 @@ function morseTail(): Stream<int>
  * morseTail() as an axiom (that is, an unproved lemma).
  */
 
-function morse(): Stream<Bit>
-function morseTail(): Stream<Bit>
+ghost function morse(): Stream<Bit>
+ghost function morseTail(): Stream<Bit>
 lemma MorseProperties()
   ensures morse().head == O;
   ensures morseTail() == morse().tail;
@@ -58,7 +58,7 @@ lemma MorseProperties()
 
 // We will now define a function f and show that morse() is a fix-point of f.
 
-function f(s: Stream<Bit>): Stream<Bit>
+ghost function f(s: Stream<Bit>): Stream<Bit>
 {
   Cons(s.head, Cons(bitnot(s.head), f(s.tail)))
 }

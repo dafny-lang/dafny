@@ -3,14 +3,14 @@
 
 datatype Wrapper<T> = Wrapper(s: seq<T>)
 {
-  static function method empty(): Wrapper<T> {
+  static function empty(): Wrapper<T> {
     Wrapper([])
   }
 }
 
 datatype Wrapper2<T> = Wrapper2(s: seq<T>, t: T)
 {
-  static function method empty(t: T): Wrapper2<T> {
+  static function empty(t: T): Wrapper2<T> {
     Wrapper2([], t)
   }
 }

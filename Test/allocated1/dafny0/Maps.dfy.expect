@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
 Maps.dfy(78,7): Error: element might not be in domain
 Maps.dfy(128,17): Error: assertion might not hold

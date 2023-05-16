@@ -37,7 +37,7 @@
 
 datatype Tree = Null | Node(Tree, int, Tree)
 
-function Contains(t: Tree, v: int): bool
+ghost function Contains(t: Tree, v: int): bool
 {
   match t
   case Null => false

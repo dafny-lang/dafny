@@ -7,7 +7,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait Shape {
-  function method Center(): (real, real) reads this
+  function Center(): (real, real) reads this
   method PrintCenter() {
     print "Center: ", this.Center(), "\n";
   }
@@ -21,7 +21,7 @@ class Square extends Shape {
     this.x2 := x2;
     this.y2 := y2;
   }
-  function method Center(): (real, real) reads this {
+  function Center(): (real, real) reads this {
     var x := (this.x1 + this.x2) / 2.0;
     var y := (this.y1 + this.y2) / 2.0;
     (x, y)
@@ -35,7 +35,7 @@ class Circle extends Shape {
     this.y := y;
     this.r := r;
   }
-  function method Center(): (real, real) reads this {
+  function Center(): (real, real) reads this {
     (this.x, this.y)
   }
 }

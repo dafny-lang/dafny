@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate p(i: int)
+ghost predicate p(i: int)
 
 method m1()
 
@@ -17,7 +17,7 @@ class Test
 {
   var arr: array<int>
 
-  predicate p(i: int)
+  ghost predicate p(i: int)
 
   method foo()
     requires arr.Length > 0
@@ -29,7 +29,7 @@ class Test
   }
 }
 
-predicate R(i: int, test: Test)
+ghost predicate R(i: int, test: Test)
   reads test
 
 method m3(test: Test)

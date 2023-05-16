@@ -3,7 +3,7 @@
 // RUN: java -ea -cp %binaryDir/DafnyRuntime.jar:%S/git-issue-2071-java git_issue_2071 >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method singletonSeq<T>(x: T): seq<T> {
+function singletonSeq<T>(x: T): seq<T> {
   [x]
 }
 

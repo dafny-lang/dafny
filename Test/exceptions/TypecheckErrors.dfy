@@ -18,21 +18,21 @@ method RedeclareVar_Nat() returns (res: NatOutcome) {
 }
 
 trait BadOutcome1 {
-    // predicate method IsFailure() // <-- deliberately commented out
-    // function method PropagateFailure(): BadOutcome1 requires IsFailure() // <-- deliberately commented out
-    // function method Extract(): nat requires !IsFailure() // <-- deliberately commented out
+    // predicate IsFailure() // <-- deliberately commented out
+    // function PropagateFailure(): BadOutcome1 requires IsFailure() // <-- deliberately commented out
+    // function Extract(): nat requires !IsFailure() // <-- deliberately commented out
 }
 
 trait BadOutcome2 {
-    predicate method IsFailure()
-    // function method PropagateFailure(): BadOutcome2 requires IsFailure() // <-- deliberately commented out
-    function method Extract(): nat requires !IsFailure()
+    predicate IsFailure()
+    // function PropagateFailure(): BadOutcome2 requires IsFailure() // <-- deliberately commented out
+    function Extract(): nat requires !IsFailure()
 }
 
 trait BadOutcome3 {
-    predicate method IsFailure()
-    function method PropagateFailure(): BadOutcome3 requires IsFailure()
-    // function method Extract(): nat requires !IsFailure() // <-- deliberately commented out
+    predicate IsFailure()
+    function PropagateFailure(): BadOutcome3 requires IsFailure()
+    // function Extract(): nat requires !IsFailure() // <-- deliberately commented out
 }
 
 method TestMissingMethods1(o: BadOutcome1) returns (res: BadOutcome1) {
@@ -52,19 +52,19 @@ method TestTypecheckingInDesugaredTerm_Void() returns (res: VoidOutcome) {
 }
 
 trait BadVoidOutcome1 {
-    // predicate method IsFailure() // <-- deliberately commented out
-    // function method PropagateFailure(): BadVoidOutcome1 requires IsFailure() // <-- deliberately commented out
+    // predicate IsFailure() // <-- deliberately commented out
+    // function PropagateFailure(): BadVoidOutcome1 requires IsFailure() // <-- deliberately commented out
 }
 
 trait BadVoidOutcome2 {
-    predicate method IsFailure()
-    // function method PropagateFailure(): BadVoidOutcome2 requires IsFailure() // <-- deliberately commented out
+    predicate IsFailure()
+    // function PropagateFailure(): BadVoidOutcome2 requires IsFailure() // <-- deliberately commented out
 }
 
 trait BadVoidOutcome3 {
-    predicate method IsFailure()
-    function method PropagateFailure(): BadVoidOutcome3 requires IsFailure()
-    function method Extract(): nat requires !IsFailure() // <-- deliberately added, even though Void error handling must not have it
+    predicate IsFailure()
+    function PropagateFailure(): BadVoidOutcome3 requires IsFailure()
+    function Extract(): nat requires !IsFailure() // <-- deliberately added, even though Void error handling must not have it
 }
 
 method TestMissingVoidMethods1(o: BadVoidOutcome1) returns (res: BadVoidOutcome1) {

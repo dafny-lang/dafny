@@ -1,15 +1,15 @@
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs %S/BranchCoverage2.cs "%s" > "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:js %S/BranchCoverage3.js "%s" >> "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:go %S/BranchCoverage4.go "%s" >> "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:java %S/CodeCoverage.java "%s" >> "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:py %S/BranchCoverage.py "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs %S/BranchCoverage2.cs "%s" > "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:js %S/BranchCoverage3.js "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:go %S/BranchCoverage4.go "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:java %S/CodeCoverage.java "%s" >> "%t"
+// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:py %S/BranchCoverage.py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The Main method is at the end of this file, because that makes it easier to maintain
 // this test file when adding more tests.
 
 // ---------- class constructor ----------
-
+    
 class MyClass {
   constructor () {  // 3 times
   }
@@ -21,7 +21,7 @@ method NeverCalled() {
   // we get here 0 times
 }
 
-function method FunctionNeverCalled(): int {
+function FunctionNeverCalled(): int {
   // we get here 0 times
   75
 }
@@ -139,7 +139,7 @@ method R(x: int) returns (y: int) {
 
 // ---------- top-level if-then-else ----------
 
-function method Fib(n: nat): nat {
+function Fib(n: nat): nat {
   // we get here 465 times
   if n < 2 then  // then: 233 times
     n
@@ -151,7 +151,7 @@ function method Fib(n: nat): nat {
 
 // ---------- top-level match expression, match statement, and tail recursion ----------
 
-function method {:tailrecursion} Factorial(n: nat): nat {
+function {:tailrecursion} Factorial(n: nat): nat {
   // 11 times
   match n
   case 0 => 1  // 1 time

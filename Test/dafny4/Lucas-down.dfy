@@ -17,7 +17,7 @@
 
 // The following predicate gives the boolean value of bit "k" in
 // the natural number "n".
-predicate Bit(k: nat, n: nat)
+ghost predicate Bit(k: nat, n: nat)
 {
   if k == 0 then n % 2 == 1
   else Bit(k-1, n / 2)
@@ -25,7 +25,7 @@ predicate Bit(k: nat, n: nat)
 
 // Function "BitSet" returns the set of bits in the binary representation
 // of a number.
-function BitSet(n: nat): set<nat>
+ghost function BitSet(n: nat): set<nat>
 {
   set i | 0 <= i < n && Bit(i, n)
 }
@@ -41,14 +41,14 @@ lemma BitSize(i: nat, n: nat)
 
 // An easy-to-read name for the expression that checks if a number
 // is even.
-predicate EVEN(n: nat)
+ghost predicate EVEN(n: nat)
 {
   n % 2 == 0
 }
 
 // The binomial function is defined like in the Pascal triangle.
 // "binom(a, b)" is also known as "a choose b".
-function binom(a: nat, b: nat): nat
+ghost function binom(a: nat, b: nat): nat
 {
   if b == 0 then 1
   else if a == 0 then 0
@@ -73,7 +73,7 @@ lemma Lucas_Binary''(a: nat, b: nat)
 // each number in "S" by 1. Stated differently, it is the
 // increment-by-1 (successor) function applied pointwise to the
 // set.
-function Suc(S: set<nat>): set<nat>
+ghost function Suc(S: set<nat>): set<nat>
 {
   set x | x in S :: x + 1
 }

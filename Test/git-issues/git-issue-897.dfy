@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function missing_number(nums: seq<nat>): nat
+ghost function missing_number(nums: seq<nat>): nat
   requires |set i | i in nums| == |nums|
   requires forall x :: x in nums ==> 0 <= x <= |nums|
 {

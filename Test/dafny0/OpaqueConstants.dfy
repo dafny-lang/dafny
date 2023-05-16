@@ -74,7 +74,7 @@ module TypeMembers {
       }
   }
 
-  function IsUneven(i: int): bool { i % 2 == 1 }
+  ghost function IsUneven(i: int): bool { i % 2 == 1 }
 
   method StaticTest() {
     if

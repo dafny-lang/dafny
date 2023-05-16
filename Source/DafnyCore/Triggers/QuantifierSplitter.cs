@@ -145,7 +145,11 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   class MatchingLoopRewriter {
-    TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
+    public MatchingLoopRewriter(DafnyOptions options) {
+      triggersCollector = new TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>(), options);
+    }
+
+    TriggersCollector triggersCollector;
     List<Tuple<Expression, IdentifierExpr>> substMap;
 
     public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q) {
@@ -157,9 +161,9 @@ namespace Microsoft.Dafny.Triggers {
       substMap = new List<Tuple<Expression, IdentifierExpr>>();
       foreach (var m in q.LoopingMatches) {
         var e = m.OriginalExpr;
-        if (TriggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
+        if (triggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
           foreach (var sub in e.SubExpressions) {
-            if (triggersCollector.IsTriggerKiller(sub) && (!TriggersCollector.IsPotentialTriggerCandidate(sub))) {
+            if (triggersCollector.IsTriggerKiller(sub) && (!triggersCollector.IsPotentialTriggerCandidate(sub))) {
               var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
               if (entry == null) {
                 var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);

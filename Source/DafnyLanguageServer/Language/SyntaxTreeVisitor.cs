@@ -34,6 +34,9 @@
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
           break;
+        case AliasModuleDecl aliasModuleDeclaration:
+          Visit(aliasModuleDeclaration);
+          break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
         case OpaqueTypeDecl opaqueTypeDeclaration:
@@ -388,6 +391,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
+      forAllStatement.BoundVars.ForEach(Visit);
       VisitNullableStatement(forAllStatement.Body);
     }
 

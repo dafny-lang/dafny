@@ -47,18 +47,18 @@ module JustAboutEverything {
   }
 
   datatype Option<+T> = None | Some(value: T) {
-    predicate method IsFailure()
+    predicate IsFailure()
     {
       None?
     }
 
-    function method PropagateFailure<U>(): Option<U>
+    function PropagateFailure<U>(): Option<U>
       requires None?
     {
       None
     }
 
-    function method Extract(): T
+    function Extract(): T
       requires Some?
     {
       value
@@ -66,12 +66,12 @@ module JustAboutEverything {
   }
 
   datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
-    predicate method IsFailure()
+    predicate IsFailure()
     {
       DoesNotHave?
     }
 
-    function method PropagateFailure(): Option<T>
+    function PropagateFailure(): Option<T>
       requires DoesNotHave?
     {
       None
@@ -138,7 +138,7 @@ module JustAboutEverything {
     }
   }
 
-  function method CaseExpr(r: List<int>): List<int>
+  function CaseExpr(r: List<int>): List<int>
   {
     match r {
       case Nil =>
@@ -189,7 +189,7 @@ module JustAboutEverything {
     return 2;
   }
 
-  function FAttr(x: int): int
+  ghost function FAttr(x: int): int
     requires {:myAttr false + 3} true
     ensures {:myAttr false + 3} true
     decreases {:myAttr false + 3} x
@@ -197,7 +197,7 @@ module JustAboutEverything {
     10
   }
 
-  function GAttr(x: int): int
+  ghost function GAttr(x: int): int
     requires {:myAttr old(3)} true
     ensures {:myAttr old(3)} true
     decreases {:myAttr old(3)} x
@@ -205,7 +205,7 @@ module JustAboutEverything {
     10
   }
 
-  function HAttr(x: int): (r: int)
+  ghost function HAttr(x: int): (r: int)
     requires {:myAttr x, r} true
     ensures {:myAttr x, r} true
     decreases {:myAttr x, r} x
@@ -337,7 +337,7 @@ module JustAboutEverything {
     var i := var a, b {:boolAttr false + 3} :| a == 0 && b == 1; 100;
   }
 
-  function ExtendedPrintExpr(): int
+  ghost function ExtendedPrintExpr(): int
   {
     var a, b {:boolAttr false + 3} :| a == 0 && b == 1;
     100
@@ -357,7 +357,7 @@ module TwoStateAttributes {
   class C {
     var data: int
 
-    function {:myAttr old(data), x, r} F(x: int): (r: int)
+    ghost function {:myAttr old(data), x, r} F(x: int): (r: int)
 
     twostate function {:myAttr old(data), x, r} F2(x: int): (r: int)
 
@@ -621,7 +621,7 @@ AttributeChecks.dfy(380,11): Error: unresolved identifier: k
 AttributeChecks.dfy(379,11): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(378,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(378,17): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(389,22): Error: old expressions are not allowed in this context
+AttributeChecks.dfy(389,28): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(393,19): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(397,20): Error: old expressions are not allowed in this context
 AttributeChecks.dfy(399,29): Error: old expressions are not allowed in this context

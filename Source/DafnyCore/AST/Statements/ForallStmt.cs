@@ -5,7 +5,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class ForallStmt : Statement, ICloneable<ForallStmt> {
+public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
   public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
   public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
   public readonly List<AttributedExpression> Ens;
@@ -63,9 +63,8 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     }
   }
 
-  public ForallStmt(IToken tok, RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(tok, rangeToken, attrs) {
-    Contract.Requires(tok != null);
+  public ForallStmt(RangeToken rangeToken, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
@@ -130,9 +129,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     }
   }
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return AssumptionDescription.ForallWithoutBody;
+      yield return new Assumption(decl, tok, AssumptionDescription.ForallWithoutBody);
     }
   }
 
@@ -140,5 +139,18 @@ public class ForallStmt : Statement, ICloneable<ForallStmt> {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
     var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
     return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    if (Range != null) {
+      formatter.Visit(Range, indentBefore + formatter.SpaceTab);
+    }
+    foreach (var ens in Ens) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    return false;
   }
 }

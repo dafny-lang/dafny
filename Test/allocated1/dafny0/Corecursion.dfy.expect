@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Corecursion.dfy(17,12): Error: cannot prove termination; try supplying a decreases clause (note that only functions without side effects can be called co-recursively)
 Corecursion.dfy(23,12): Error: cannot prove termination; try supplying a decreases clause (note that only functions without any ensures clause can be called co-recursively)
 Corecursion.dfy(58,4): Error: cannot prove termination; try supplying a decreases clause

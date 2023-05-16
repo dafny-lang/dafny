@@ -1,9 +1,9 @@
 // RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
-// RUN: %baredafny run --no-verify --target=cs %args "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=js %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=go %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=java %args  "%s" >> "%t"
-// RUN: %baredafny run --no-verify --target=py %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=cs %args "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=js %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=go %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=java %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=py %args  "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
@@ -72,6 +72,17 @@ method Main() {
   CharValues();
 
   TypeSynonym.Test();
+
+  MoreArrays.Test();
+  NativeArrays.Test();
+  SimultaneousAssignment.Test();
+  ArrayToSeq.Test();
+
+  ArrayAllocationInitialization.Test();
+  VariationsOnIndexAndDimensionTypes.Test();
+  TypeSpecialization.Test();
+
+  GenericArrayEquality.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -300,7 +311,7 @@ class Cell<T> {
     crr := arr;
     mat := new T[15, 15]((_, _) => t);
   }
-  function method FArray(): array<T>
+  function FArray(): array<T>
     reads this
   {
     arr
@@ -372,5 +383,531 @@ module TypeSynonym {
   method Test() {
     var b := new uint8[] [19, 18, 9, 8];
     BufferTest(b);
+  }
+}
+
+module MoreArrays {
+  newtype byte = x | 0 <= x < 256
+
+  class MyClass { }
+
+  method Test() {
+    TestEqualityOfSomeNonArraysToo();
+
+    var a := StringToByteArray("hello there");
+    WriteLine(a);
+
+    var b := StringToByteArray("hello there");
+    print a == b; // false
+    CheckEquality(a, b); // false (this once caused the emitted JavaScript to crash, see issue #3207)
+    print a == a; // true
+    CheckEquality(a, a); // true
+    var c: array?<byte> := null;
+    print a == c; // false
+    CheckEquality(a, c); // false
+    print c == a; // false
+    CheckEquality(c, a); // false
+  }
+
+  method TestEqualityOfSomeNonArraysToo() {
+    var bb: byte := 76;
+    CheckEquality(bb, bb); // true
+    CheckEquality(bb, bb + 1); // false
+
+    var cc0 := new MyClass;
+    var cc1 := new MyClass;
+    CheckEquality(cc0, cc0); // true
+    CheckEquality(cc0, cc1); // false
+    CheckEquality(cc0, null); // false
+    CheckEquality(null, cc0); // false
+    CheckEquality(null, null); // true
+
+    var s0 := [20, 10, 20];
+    var s1 := [20, 10, 20];
+    var s2 := [20, 10, 22];
+    CheckEquality(s0, s1); // true
+    CheckEquality(s0, s2); // false
+
+    CheckEquality((true, 100), (true, 100)); // true
+    CheckEquality((true, 100), (false, 100)); // false
+
+    var m0 := map[4 := true, 3 := false];
+    var m1 := map[4 := true][3 := false];
+    var m2 := map[3 := false][4 := true][3 := false][4 := true];
+    var m3 := map[3 := false][4 := false][3 := false][3 := false];
+    CheckEquality(m0, m1); // true
+    CheckEquality(m0, m2); // true
+    CheckEquality(m0, m3); // false
+  }
+
+  method StringToByteArray(s: string) returns (arr: array<byte>) {
+    arr := new [|s|];
+    forall i | 0 <= i < |s| {
+      arr[i] := (var ch := s[i]; if ' ' <= ch <= 'z' then ch else 'X') as byte;
+    }
+  }
+
+  method WriteLine(arr: array<byte>) {
+    for i := 0 to arr.Length {
+      print [arr[i] as char];
+    }
+    print "\n";
+  }
+
+  method CheckEquality<T(==)>(x: T, y: T) {
+    print " ", x == y, "\n";
+  }
+}
+
+module NativeArrays {
+  newtype byte = x | 0 <= x < 256
+  newtype onebyte = x | 0 < x < 256 witness 1
+
+  method Test() {
+    var aa := new byte[3];
+    PrintArray(aa, "uninitialized bytes");
+    aa := new byte[] [7, 8, 9];
+    PrintArray(aa, "bytes from display");
+    aa := new byte[3](i => if 0 <= i < 10 then (20 + i) as byte else 88);
+    PrintArray(aa, "bytes from lambda");
+
+    var bb := new onebyte[3];
+    PrintArray(bb, "uninitialized 1bytes");
+    bb := new onebyte[] [7, 8, 9];
+    PrintArray(bb, "1bytes from display");
+    bb := new onebyte[3](i => if 0 <= i < 10 then (20 + i) as onebyte else 88);
+    PrintArray(bb, "1bytes from lambda");
+
+    TestVariousFlavorsOfIndices();
+  }
+
+  method PrintArray(a: array, title: string) {
+    print title, ": array[";
+    for i := 0 to a.Length {
+      print if i == 0 then "" else ", ", a[i];
+    }
+    print "]\n";
+  }
+
+  method TestVariousFlavorsOfIndices() {
+    var arr := new int[250];
+    var m := new int[20, 30];
+
+    arr[3 as bv19] := 17;
+    arr[4 as bv5] := 19;
+    var iIndex: int, bIndex: byte, bvIndex: bv9 := 3, 4, 5;
+    m[iIndex, bIndex] := arr[iIndex];
+    arr[iIndex] := m[iIndex, bvIndex - 1];
+    assert arr[iIndex] == 17;
+    print arr[iIndex], " "; // 17
+    m[bIndex, iIndex] := arr[bIndex];
+    arr[bIndex] := m[bvIndex - 1, iIndex];
+    assert arr[bIndex] == 19;
+    print arr[bIndex], " "; // 19
+    m[iIndex, iIndex] := arr[iIndex] + 1;
+    arr[iIndex] := m[iIndex, iIndex];
+    m[bIndex, bIndex] := arr[bIndex] + 1;
+    arr[bIndex] := m[bIndex, bIndex];
+    print arr[iIndex], " ", arr[bIndex], "\n"; // 18 20
+  }
+}
+
+module SimultaneousAssignment {
+  method Test() {
+    var arr := new int[250];
+    var m := new int[20, 30];
+    var arr', m' := arr, m;
+
+    var a, b, c := 18, 28, 38;
+    var arr'' := new int[1];
+    var m'' := new int[1, 1];
+
+    arr, a, arr[a + b], m, arr, c, m[a, b], b, m := arr'', 100, 120, m'', arr'', 300, c, 200, m'';
+
+    print a, " ", b, " ", c, " ", arr'[46], " ", m'[18, 28], "\n"; // 100 120 200 300 38
+  }
+}
+
+module ArrayToSeq {
+  newtype byte = x | 0 <= x < 256
+
+  trait TraitMeRite {
+  }
+
+  class MyClass extends TraitMeRite {
+  }
+
+  method Test() {
+    var arrChar := new [] ['h', 'e', 'l', 'l', 'o'];
+    var arrInt := new int[5](i => i);
+    var arrByte := new byte[5](_ => 2);
+    var c: MyClass := new MyClass;
+    var tr: TraitMeRite := c;
+    var arrClass := new MyClass[] [c, c, c];
+    var arrTrait := new TraitMeRite[] [tr, c, tr];
+
+    var s0 := arrChar[..];
+    var s1 := arrInt[..];
+    var s2 := arrByte[..];
+    var s3 := arrClass[..];
+    var s4 := arrTrait[..];
+
+    expect s0 == "hello";
+    expect arrInt[1..][..2] == arrInt[..3][1..];
+    expect arrInt[1 as byte..][..2] == arrInt[..3 as byte][1..];
+    expect arrInt[1 as byte..3] == arrInt[1..3 as byte];
+    expect arrByte[..0] <= arrByte[5..] <= arrByte[..3] <= s2;
+    expect s3 == s4;
+
+    print s0, " ";
+    print s1, " ";
+    print s2, "\n";
+  }
+}
+
+module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
+  newtype AutoInit = x | 20 <= x < 2_000_000 witness 77
+  newtype NonAutoInit = x | 20 <= x < 2_000_000 witness *
+  newtype byte = x | 0 <= x < 256
+
+  function AutoInitF(i: nat): AutoInit { if 20 <= i < 30 then i as AutoInit else 78 }
+  function NonAutoInitF(i: nat): NonAutoInit { 82 }
+  function ByteF(i: nat): byte { if 20 <= i < 30 then i as byte else 60 }
+  function CharF(i: nat): char { if 20 <= i < 30 then 'a' + (i - 20) as char else 'g' }
+
+  function AutoInitF2(i: nat, j: nat): AutoInit { if i == j then 50 else 78 }
+  function ByteF2(i: nat, j: nat): byte { if i == j then 50 else 60 }
+  function CharF2(i: nat, j: nat): char { if i == j then 'a' else 'g' }
+
+  method Test() {
+    TestAutoInit();
+    TestTypeParameter(AutoInitF);
+
+    TestNonAutoInit();
+
+    TestByte();
+    TestTypeParameter(ByteF);
+
+    TestChar();
+    TestTypeParameter(CharF);
+
+    TestMatrixAutoInit();
+    TestMatrixTypeParameter(AutoInitF2);
+    TestMatrixTypeParameter(ByteF2);
+    TestMatrixTypeParameter(CharF2);
+  }
+
+  method TestAutoInit() {
+    var zero, five := 0, 5;
+    var a: array<AutoInit>;
+    var s := [];
+
+    a := new AutoInit[zero];
+    s := s + a[..];
+    a := new AutoInit[five]; // initialized by the default element
+    s := s + a[..];
+    a := new AutoInit[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new AutoInit[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new AutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new AutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new AutoInit[zero](AutoInitF);
+    s := s + a[..];
+    a := new AutoInit[five](AutoInitF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestNonAutoInit() {
+    var zero, five := 0, 5;
+    var a: array<NonAutoInit>;
+    var s := [];
+
+    a := new NonAutoInit[zero];
+    s := s + a[..];
+    // Note, "new NonAutoInit[five]" is not allowed for a non-auto-init type
+    s := s + [99, 99, 99, 99, 99];
+    a := new NonAutoInit[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new NonAutoInit[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new NonAutoInit[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new NonAutoInit[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new NonAutoInit[zero](NonAutoInitF);
+    s := s + a[..];
+    a := new NonAutoInit[five](NonAutoInitF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestByte() {
+    var zero, five := 0, 5;
+    var a: array<byte>;
+    var s := [];
+
+    a := new byte[zero];
+    s := s + a[..];
+    a := new byte[five]; // initialized by the default element
+    s := s + a[..];
+    a := new byte[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new byte[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new byte[five] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new byte[] [20, 21, 22, 23, 24]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new byte[zero](ByteF);
+    s := s + a[..];
+    a := new byte[five](ByteF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestChar() {
+    var zero, five := 0, 5;
+    var a: array<char>;
+    var s := [];
+
+    a := new char[zero];
+    s := s + a[..];
+    a := new char[five]; // initialized by the default element
+    s := s + a[..];
+    a := new char[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new char[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new char[five] ['a', 'b', 'c', 'd', 'e']; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new char[] ['a', 'b', 'c', 'd', 'e']; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new char[zero](CharF);
+    s := s + a[..];
+    a := new char[five](CharF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  method TestTypeParameter<T(0)>(initF: nat -> T) {
+    var zero, five := 0, 5;
+    var a: array<T>;
+    var s := [];
+
+    a := new T[zero];
+    s := s + a[..];
+    a := new T[five]; // initialized by the default element
+    s := s + a[..];
+    a := new T[zero] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new T[] []; // initialized as given (no elements)
+    s := s + a[..];
+    a := new T[five] [initF(20), initF(21), initF(22), initF(23), initF(24)]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new T[] [initF(20), initF(21), initF(22), initF(23), initF(24)]; // initialized as given (5 elements)
+    s := s + a[..];
+    a := new T[zero](initF);
+    s := s + a[..];
+    a := new T[five](initF);
+    s := s + a[..];
+
+    print s, "\n";
+  }
+
+  function MatrixToSequence<T>(m: array2<T>): seq<T>
+    reads m
+  {
+    M2S(m, 0, 0)
+  }
+
+  function M2S<T>(m: array2<T>, i: nat, j: nat): seq<T>
+    requires i <= m.Length0 && j <= m.Length1
+    requires i == m.Length0 ==> j == 0
+    reads m
+    decreases m.Length0 - i, m.Length1 - j
+  {
+    if i == m.Length0 then
+      []
+    else if j == m.Length1 then
+      M2S(m, i + 1, 0)
+    else
+      [m[i, j]] + M2S(m, i, j + 1)
+  }
+
+  method TestMatrixAutoInit() {
+    var zero, two, five := 0, 2, 5;
+    var a: array2<AutoInit>;
+    var s := [];
+
+    a := new AutoInit[zero, zero];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[zero, five];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[five, zero];
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[two, five]; // initialized by the default element
+    s := s + MatrixToSequence(a);
+    
+    a := new AutoInit[zero, zero](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[zero, five](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[five, zero](AutoInitF2);
+    s := s + MatrixToSequence(a);
+    a := new AutoInit[two, five](AutoInitF2);
+    s := s + MatrixToSequence(a);
+
+    print s, "\n";
+  }
+
+  method TestMatrixTypeParameter<T(0)>(initF2: (nat, nat) -> T) {
+    var zero, two, five := 0, 2, 5;
+    var a: array2<T>;
+    var s := [];
+
+    a := new T[zero, zero];
+    s := s + MatrixToSequence(a);
+    a := new T[zero, five];
+    s := s + MatrixToSequence(a);
+    a := new T[five, zero];
+    s := s + MatrixToSequence(a);
+    a := new T[two, five]; // initialized by the default element
+    s := s + MatrixToSequence(a);
+
+    a := new T[zero, zero](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[zero, five](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[five, zero](initF2);
+    s := s + MatrixToSequence(a);
+    a := new T[two, five](initF2);
+    s := s + MatrixToSequence(a);
+
+    print s, "\n";
+  }
+}
+
+module {:options "/functionSyntax:4"} VariationsOnIndexAndDimensionTypes {
+  newtype byte = x | 0 <= x < 256
+  newtype onebyte = x | 0 < x < 256 witness 1
+  newtype Long = x | -0x8000_0000_0000_0000 < x < 0x8000_0000_0000_0000
+
+  method Test() {
+    TestArray();
+    TestMatrix();
+  }
+
+  method TestArray() {
+    var aa;
+    aa := new byte[3](i => if 0 <= i < 10 then (20 + i) as byte else 88);
+  }
+
+  method TestMatrix() {
+    var a, b, c := 3 as byte, 2, 5 as Long;
+    var m := new byte[a, b, c](F);
+    expect m[0 as byte, 1, 2 as Long]
+         + m[1 as Long, 1 as byte, 2]
+         + m[2, 1 as Long, 2 as byte]
+        == 138;
+  }
+
+  function F(a: nat, b: nat, c: nat): byte {
+    if a == 0 then
+      45
+    else if a == 1 then
+      46
+    else
+      47
+  }
+}
+
+module TypeSpecialization {
+  newtype byte = x | 0 <= x < 256
+
+  method Test() {
+    var a := new int[100];
+    Int(a, a, 50);
+    print a[19], " ", a[20], " ", a[21], "\n";
+
+    var b := new byte[100];
+    Byte(b, b, 50);
+    print b[19], " ", b[20], " ", b[21], "\n";
+
+    var c := new char[100];
+    Char(c, c, 'n');
+    print c[19], " ", c[20], " ", c[21], "\n";
+  }
+
+  method Int<T>(a: array<T>, b: array<int>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 69;
+    b[21] := 69;
+    a[21] := t;
+  }
+
+  method Byte<T>(a: array<T>, b: array<byte>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 69;
+    b[21] := 69;
+    a[21] := t;
+  }
+
+  method Char<T>(a: array<T>, b: array<char>, t: T)
+    requires a.Length == b.Length == 100
+    modifies a, b
+  {
+    a[20] := t;
+    b[20] := 'k';
+    b[21] := 'k';
+    a[21] := t;
+  }
+}
+
+module GenericArrayEquality {
+  method Test() {
+    var a := new int[25];
+    var b := new int[25];
+    ArrayCompare(a, b); // false
+    GenericCompare(a, b); // false
+
+    // In Go, an array is stored as a struct that contains a pointer to the actual array elements.
+    // An easy mistake (in the runtime) would be to compare the address of the struct to determine
+    // array equality. The following test checks that it's done properly.
+    b := a;
+    ArrayCompare(a, b); // true
+    GenericCompare(a, b); // true
+
+    b := null;
+    ArrayCompare(a, b); // false
+    GenericCompare(a, b); // false
+    ArrayCompare(b, a); // false
+    GenericCompare(b, a); // false
+
+    a := null;
+    ArrayCompare(a, b); // true
+    GenericCompare(a, b); // true
+  }
+
+  method ArrayCompare<X>(a: array?<X>, b: array?<X>) {
+    print a == b, " ";
+  }
+  
+
+  method GenericCompare<X(==)>(a: X, b: X) {
+    print a == b, "\n";
   }
 }

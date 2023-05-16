@@ -25,7 +25,7 @@ module M2 {
 
   const Y := true
 
-  predicate P(u: int)
+  ghost predicate P(u: int)
 
   lemma A() {
     forall u: int {  // regression: the inferred "ensures" clause used to have

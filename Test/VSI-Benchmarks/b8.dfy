@@ -20,11 +20,11 @@ class Queue<T> {
     requires 0 < |contents|
     modifies this
     ensures contents == old(contents)[1..] && x == old(contents)[0]
-  function method Head(): T
+  function Head(): T
     requires 0 < |contents|
     reads this
   { contents[0] }
-  function method Get(i: int): T
+  function Get(i: int): T
     requires 0 <= i < |contents|
     reads this
   { contents[i] }
@@ -141,14 +141,14 @@ class Glossary {
 
 class Word
 {
-  predicate AtMost(w: Word)
+  ghost predicate AtMost(w: Word)
 }
 
 class ReaderStream {
   ghost var footprint: set<object>
   var isOpen: bool
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint && isOpen
@@ -182,7 +182,7 @@ class WriterStream {
   var stream:seq<int>
   var isOpen:bool
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint && isOpen
@@ -243,7 +243,7 @@ class Map<Key(==),Value> {
   var keys: seq<Key>
   var values: seq<Value>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this
   {
     |keys| == |values| &&

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -31,12 +32,14 @@ namespace Microsoft.Dafny {
   public interface IHasUsages : IDeclarationOrUsage {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
-  public class Program : Node {
+  public class Program : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
+
+    public List<Include> Includes => DefaultModuleDef.Includes;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -46,19 +49,19 @@ namespace Microsoft.Dafny {
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly ModuleDecl DefaultModule;
-    public readonly ModuleDefinition DefaultModuleDef;
+    public readonly LiteralModuleDecl DefaultModule;
+    public readonly DefaultModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
+    public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
-      Contract.Requires(module is LiteralModuleDecl);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDecl)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
@@ -90,41 +93,61 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
+    /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      return DefaultModuleDef.GetFirstTopLevelToken();
+      if (DefaultModule.RootToken.Next == null) {
+        return null;
+      }
+
+      var firstToken = DefaultModule.RootToken.Next;
+      // We skip all included files
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+        firstToken = firstToken.Next;
+      }
+
+      if (firstToken == null || firstToken.kind == 0) {
+        return null;
+      }
+
+      return firstToken;
     }
 
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
-    public IEnumerable<Node> ConcreteChildren => Children;
+    public override IEnumerable<Node> PreResolveChildren => Children;
+
+    public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+      return Modules().SelectMany(m => m.Assumptions(decl));
+    }
   }
 
-  public class Include : Node, IComparable {
-    public string IncluderFilename { get; }
+  public class Include : TokenNode, IComparable {
+    public Uri IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename);
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
       this.ErrorReported = false;
       CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
-      var i = obj as Include;
-      if (i != null) {
-        return this.CanonicalPath.CompareTo(i.CanonicalPath);
+      if (obj is Include include) {
+        return CanonicalPath.CompareTo(include.CanonicalPath);
       } else {
         throw new NotImplementedException();
       }
     }
 
     public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -143,12 +166,18 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
-  public class Attributes : Node {
+  public class Attributes : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Name != null);
       Contract.Invariant(cce.NonNullElements(Args));
     }
+
+    public static string AxiomAttributeName = "axiom";
+    public static string ConcurrentAttributeName = "concurrent";
+    public static string ExternAttributeName = "extern";
+    public static string VerifyAttributeName = "verify";
+    public static string AutoGeneratedAttributeName = "auto_generated";
 
     public string Name;
     /*Frozen*/
@@ -161,6 +190,16 @@ namespace Microsoft.Dafny {
       Name = name;
       Args = args;
       Prev = prev;
+    }
+
+    public override string ToString() {
+      string result = Prev?.ToString() + "{:" + Name;
+      if (Args == null || Args.Count() == 0) {
+        return result + "}";
+      } else {
+        var exprs = String.Join(", ", Args.Select(e => e.ToString()));
+        return result + " " + exprs + "}";
+      }
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
@@ -316,6 +355,8 @@ namespace Microsoft.Dafny {
       Prev == null
         ? Enumerable.Empty<Node>()
         : new List<Node> { Prev });
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public static class AttributesExtensions {
@@ -346,11 +387,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
-  public abstract class INamedRegion : Node {
-    string Name { get; }
-  }
-
   [ContractClass(typeof(IVariableContracts))]
   public interface IVariable : IDeclarationOrUsage {
     string Name {
@@ -373,6 +409,11 @@ namespace Microsoft.Dafny {
     string CompileName {
       get;
     }
+
+    PreType PreType {
+      get;
+      set;
+    }
     Type Type {
       get;
     }
@@ -386,12 +427,9 @@ namespace Microsoft.Dafny {
       get;
     }
     void MakeGhost();
-    IToken Tok {
-      get;
-    }
   }
   [ContractClassFor(typeof(IVariable))]
-  public abstract class IVariableContracts : Node, IVariable {
+  public abstract class IVariableContracts : TokenNode, IVariable {
     public string Name {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
@@ -439,6 +477,9 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
+
+    public PreType PreType { get; set; }
+
     public bool IsMutable {
       get {
         throw new NotImplementedException();
@@ -460,12 +501,11 @@ namespace Microsoft.Dafny {
     public abstract IToken NameToken { get; }
   }
 
-  public abstract class NonglobalVariable : Node, IVariable {
+  public abstract class NonglobalVariable : TokenNode, IVariable {
     readonly string name;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(tok != null);
       Contract.Invariant(name != null);
       Contract.Invariant(type != null);
     }
@@ -540,6 +580,8 @@ namespace Microsoft.Dafny {
     Type type;
     public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
+    public PreType PreType { get; set; }
+
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
@@ -576,7 +618,8 @@ namespace Microsoft.Dafny {
     }
 
     public IToken NameToken => tok;
-    public override IEnumerable<Node> Children => IsTypeExplicit ? Type.Nodes : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> Children => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
+    public override IEnumerable<Node> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   }
 
   public class Formal : NonglobalVariable {
@@ -619,6 +662,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>
@@ -717,13 +765,14 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBinding : Node {
+  public class ActualBinding : TokenNode {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
     public readonly bool IsGhost;
 
     public override IEnumerable<Node> Children => new List<Node> { Actual }.Where(x => x != null);
-    // Names are owned by the method call
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
 
     public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
@@ -733,7 +782,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ActualBindings : Node {
+  public class ActualBindings : TokenNode {
     public readonly List<ActualBinding> ArgumentBindings;
 
     public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -769,6 +818,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => arguments == null ? ArgumentBindings : arguments;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   class QuantifiedVariableDomainCloner : Cloner {
@@ -787,7 +837,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Specification<T> : Node, IAttributeBearingDeclaration
+  public class Specification<T> : TokenNode, IAttributeBearingDeclaration
     where T : Node {
     public readonly List<T> Expressions;
 
@@ -809,6 +859,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Node> Children => Expressions;
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   public class BottomUpVisitor {
@@ -875,6 +926,7 @@ namespace Microsoft.Dafny {
       Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
+      if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
       //TODO More?
     }
     public void Visit(Expression expr) {
@@ -905,11 +957,20 @@ namespace Microsoft.Dafny {
     }
   }
   public class TopDownVisitor<State> {
+    protected bool preResolve = false;
+
     public void Visit(Expression expr, State st) {
       Contract.Requires(expr != null);
       if (VisitOneExpr(expr, ref st)) {
-        // recursively visit all subexpressions and all substatements
-        expr.SubExpressions.Iter(e => Visit(e, st));
+        if (preResolve && expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+          concreteSyntaxExpression.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else if (preResolve && expr is QuantifierExpr quantifierExpr) {
+          // pre-resolve, split expressions are not children
+          quantifierExpr.PreResolveSubExpressions.Iter(e => Visit(e, st));
+        } else {
+          // recursively visit all subexpressions and all substatements
+          expr.SubExpressions.Iter(e => Visit(e, st));
+        }
         if (expr is StmtExpr) {
           // a StmtExpr also has a substatement
           var e = (StmtExpr)expr;
@@ -921,8 +982,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       if (VisitOneStmt(stmt, ref st)) {
         // recursively visit all subexpressions and all substatements
-        stmt.SubExpressions.Iter(e => Visit(e, st));
-        stmt.SubStatements.Iter(s => Visit(s, st));
+        if (preResolve) {
+          stmt.PreResolveSubExpressions.Iter(e => Visit(e, st));
+          stmt.PreResolveSubStatements.Iter(s => Visit(s, st));
+        } else {
+          stmt.SubExpressions.Iter(e => Visit(e, st));
+          stmt.SubStatements.Iter(s => Visit(s, st));
+        }
       }
     }
     public void Visit(IEnumerable<Expression> exprs, State st) {

@@ -7,8 +7,10 @@ using System.Security.Policy;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : Node, IAttributeBearingDeclaration {
-  public IToken EndTok { get; set; }  // typically a terminating semi-colon or end-curly-brace
+public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
+  public override IToken Tok => PostLabelToken ?? StartToken;
+  public IToken PostLabelToken { get; set; }
+
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;
@@ -24,15 +26,16 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Tok != null);
-    Contract.Invariant(EndTok != null);
   }
 
   [FilledInDuringResolution] public bool IsGhost { get; set; }
 
-  protected Statement(Cloner cloner, Statement original) {
+  public virtual void Resolve(Resolver resolver, ResolutionContext resolutionContext) {
+    resolver.ResolveAttributes(this, resolutionContext);
+  }
+
+  protected Statement(Cloner cloner, Statement original) : base(cloner.Tok(original.RangeToken)) {
     cloner.AddStatementClone(original, this);
-    this.Tok = cloner.Tok(original.Tok);
-    this.RangeToken = cloner.Tok(original.RangeToken);
     this.attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
@@ -41,16 +44,12 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
     }
   }
 
-  protected Statement(IToken tok, RangeToken rangeToken, Attributes attrs) {
-    Contract.Requires(tok != null);
-    this.Tok = tok;
-    this.RangeToken = rangeToken;
+  protected Statement(RangeToken rangeToken, Attributes attrs) : base(rangeToken) {
     this.attributes = attrs;
   }
 
-  protected Statement(IToken tok, RangeToken rangeToken)
-    : this(tok, rangeToken, null) {
-    Contract.Requires(tok != null);
+  protected Statement(RangeToken rangeToken)
+    : this(rangeToken, null) {
     Contract.Requires(rangeToken != null);
   }
 
@@ -80,6 +79,11 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns the non-null substatements of the Statements, before resolution occurs
+  /// </summary>
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
+
+  /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
   /// Includes both specification and non-specification expressions.
   /// </summary>
@@ -94,6 +98,11 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
       }
     }
   }
+
+  /// <summary>
+  /// Same as SubExpressions but returns all the SubExpressions before resolution
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => SubExpressions;
 
   /// <summary>
   /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
@@ -124,9 +133,9 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(type != null);
-    var variable = new LocalVariable(tok, tok.ToRange(), name, type, false);
+    var variable = new LocalVariable(tok.ToRange(), name, type, false);
     variable.type = type;
-    return new VarDeclStmt(tok, tok.ToRange(), Util.Singleton(variable), null);
+    return new VarDeclStmt(tok.ToRange(), Util.Singleton(variable), null);
   }
 
   /// <summary>
@@ -137,24 +146,24 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
     Contract.Requires(name != null);
     Contract.Requires(value != null);
     var rangeToken = new RangeToken(tok, tok);
-    var variable = new LocalVariable(tok, rangeToken, name, value.Type, false);
+    var variable = new LocalVariable(rangeToken, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(tok, rangeToken, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(tok, rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
-    return new VarDeclStmt(tok, rangeToken, Util.Singleton(variable), variableUpdateStmt);
+    return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }
 
   public static PrintStmt CreatePrintStmt(IToken tok, params Expression[] exprs) {
     var rangeToken = new RangeToken(tok, tok);
-    return new PrintStmt(tok, rangeToken, exprs.ToList());
+    return new PrintStmt(rangeToken, exprs.ToList());
   }
 
   public override string ToString() {
     try {
-      return Printer.StatementToString(this);
+      return Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, this);
     } catch (Exception e) {
       return $"couldn't print stmt because: {e.Message}";
     }
@@ -163,6 +172,10 @@ public abstract class Statement : Node, IAttributeBearingDeclaration {
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       SubStatements.Concat<Node>(SubExpressions));
+
+  public override IEnumerable<Node> PreResolveChildren =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    PreResolveSubStatements).Concat(PreResolveSubExpressions);
 }
 
 public class LList<T> {
@@ -221,7 +234,7 @@ public class AssertLabel : Label {
   }
 }
 
-public class RevealStmt : Statement, ICloneable<RevealStmt> {
+public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -229,6 +242,8 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -248,9 +263,8 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
     }
   }
 
-  public RevealStmt(IToken tok, RangeToken rangeToken, List<Expression> exprs)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public RevealStmt(RangeToken rangeToken, List<Expression> exprs)
+    : base(rangeToken) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
   }
@@ -262,6 +276,10 @@ public class RevealStmt : Statement, ICloneable<RevealStmt> {
     } else {
       return null;
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }
 
@@ -281,9 +299,8 @@ public abstract class ProduceStmt : Statement {
     }
   }
 
-  public ProduceStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public ProduceStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
+    : base(rangeToken) {
     this.Rhss = rhss;
     HiddenUpdate = null;
   }
@@ -320,9 +337,21 @@ public abstract class ProduceStmt : Statement {
       }
     }
   }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      if (Rhss != null) {
+        foreach (var rhs in Rhss) {
+          foreach (var s in rhs.PreResolveSubStatements) {
+            yield return s;
+          }
+        }
+      }
+    }
+  }
 }
 
-public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
+public class YieldStmt : ProduceStmt, ICloneable<YieldStmt>, ICanFormat {
   public YieldStmt Clone(Cloner cloner) {
     return new YieldStmt(cloner, this);
   }
@@ -330,13 +359,16 @@ public class YieldStmt : ProduceStmt, ICloneable<YieldStmt> {
   public YieldStmt(Cloner cloner, YieldStmt original) : base(cloner, original) {
   }
 
-  public YieldStmt(IToken tok, RangeToken rangeToken, List<AssignmentRhs> rhss)
-    : base(tok, rangeToken, rhss) {
-    Contract.Requires(tok != null);
+  public YieldStmt(RangeToken rangeToken, List<AssignmentRhs> rhss)
+    : base(rangeToken, rhss) {
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }
 
-public abstract class AssignmentRhs : Node, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : TokenNode, IAttributeBearingDeclaration {
   private Attributes attributes;
   public Attributes Attributes {
     get {
@@ -352,12 +384,12 @@ public abstract class AssignmentRhs : Node, IAttributeBearingDeclaration {
   }
 
   internal AssignmentRhs(Cloner cloner, AssignmentRhs original) {
-    Tok = cloner.Tok(original.tok);
+    tok = cloner.Tok(original.tok);
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
   internal AssignmentRhs(IToken tok, Attributes attrs = null) {
-    Tok = tok;
+    this.tok = tok;
     Attributes = attrs;
   }
   public abstract bool CanAffectPreviouslyKnownExpressions { get; }
@@ -388,11 +420,24 @@ public abstract class AssignmentRhs : Node, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns the non-null subexpressions before resolution of the AssignmentRhs.
+  /// </summary>
+  public virtual IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var e in Attributes.SubExpressions(Attributes)) {
+        yield return e;
+      }
+    }
+  }
+
+  /// <summary>
   /// Returns the non-null sub-statements of the AssignmentRhs.
   /// </summary>
   public virtual IEnumerable<Statement> SubStatements {
     get { yield break; }
   }
+
+  public virtual IEnumerable<Statement> PreResolveSubStatements => SubStatements;
 }
 
 public class ExprRhs : AssignmentRhs {
@@ -414,7 +459,18 @@ public class ExprRhs : AssignmentRhs {
     }
   }
 
+  public override IEnumerable<Expression> PreResolveSubExpressions {
+    get {
+      foreach (var expr in base.PreResolveSubExpressions) {
+        yield return expr;
+      }
+
+      yield return Expr;
+    }
+  }
+
   public override IEnumerable<Node> Children => new[] { Expr };
+  public override IEnumerable<Node> PreResolveChildren => PreResolveSubExpressions;
 }
 
 /// <summary>
@@ -500,6 +556,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
 
   public Type Path;
   [FilledInDuringResolution] public CallStmt InitCall;  // may be null (and is definitely null for arrays),
+  [FilledInDuringResolution] public PreType PreType;
   [FilledInDuringResolution] public Type Type;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -572,6 +629,12 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
           }
         }
       }
+
+      if (Bindings != null && Arguments != null) {
+        foreach (var e in Arguments) {
+          yield return e;
+        }
+      }
     }
   }
   public override IEnumerable<Statement> SubStatements {
@@ -583,6 +646,7 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   }
 
   public IToken Start => Tok;
+
   public override IEnumerable<Node> Children {
     get {
       if (ArrayDimensions == null) {
@@ -596,6 +660,14 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
       return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
+  public override IEnumerable<Node> PreResolveChildren =>
+    new[] { EType, Type }.OfType<UserDefinedType>()
+      .Concat<Node>(ArrayDimensions ?? Enumerable.Empty<Node>())
+      .Concat<Node>(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
+      .Concat<Node>(InitDisplay ?? Enumerable.Empty<Node>())
+      .Concat<Node>((Bindings != null ? Arguments : null) ?? Enumerable.Empty<Node>());
+
+  public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 }
 
 public class HavocRhs : AssignmentRhs {
@@ -604,9 +676,10 @@ public class HavocRhs : AssignmentRhs {
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
 }
 
-public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
+public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly List<LocalVariable> Locals;
   public readonly ConcreteUpdateStatement Update;
   [ContractInvariantMethod]
@@ -624,9 +697,8 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
     Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
   }
 
-  public VarDeclStmt(IToken tok, RangeToken rangeToken, List<LocalVariable> locals, ConcreteUpdateStatement update)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public VarDeclStmt(RangeToken rangeToken, List<LocalVariable> locals, ConcreteUpdateStatement update)
+    : base(rangeToken) {
     Contract.Requires(locals != null);
     Contract.Requires(locals.Count != 0);
 
@@ -646,13 +718,25 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt> {
           yield return e;
         }
       }
+
+      if (this.Update != null) {
+        foreach (var e in this.Update.NonSpecificationSubExpressions) {
+          yield return e;
+        }
+      }
     }
   }
 
   public override IEnumerable<Node> Children => Locals.Concat<Node>(SubStatements);
+
+  public override IEnumerable<Node> PreResolveChildren => Children;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var result = formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, false);
+    return Update != null ? formatter.SetIndentUpdateStmt(Update, indentBefore, true) : result;
+  }
 }
 
-public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
+public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat {
   public readonly CasePattern<LocalVariable> LHS;
   public readonly Expression RHS;
   public bool HasGhostModifier;
@@ -667,8 +751,8 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
     HasGhostModifier = original.HasGhostModifier;
   }
 
-  public VarDeclPattern(IToken tok, RangeToken rangeToken, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
-    : base(tok, rangeToken) {
+  public VarDeclPattern(RangeToken rangeToken, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier)
+    : base(rangeToken) {
     LHS = lhs;
     RHS = rhs;
     HasGhostModifier = hasGhostModifier;
@@ -693,23 +777,9 @@ public class VarDeclPattern : Statement, ICloneable<VarDeclPattern> {
       }
     }
   }
-}
 
-/// <summary>
-/// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
-/// </summary>
-public abstract class ConcreteUpdateStatement : Statement {
-  public readonly List<Expression> Lhss;
-
-  protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
-    Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
-  }
-
-  public ConcreteUpdateStatement(IToken tok, RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
-    : base(tok, rangeToken, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(lhss));
-    Lhss = lhss;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentVarDeclStmt(indentBefore, OwnedTokens, false, true);
   }
 }
 
@@ -726,56 +796,7 @@ public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearin
   Attributes IAttributeBearingDeclaration.Attributes => Attrs;
 }
 
-public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt> {
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly bool CanMutateKnownState;
-  public Expression OriginalInitialLhs = null;
-
-  [FilledInDuringResolution] public List<Statement> ResolvedStatements;
-  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
-
-  public override IEnumerable<Node> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Lhss));
-    Contract.Invariant(cce.NonNullElements(Rhss));
-  }
-
-  public UpdateStmt Clone(Cloner cloner) {
-    return new UpdateStmt(cloner, this);
-  }
-
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
-    Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
-    CanMutateKnownState = original.CanMutateKnownState;
-    if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
-    }
-  }
-
-  public UpdateStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
-    : base(tok, rangeToken, lhss) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = false;
-  }
-  public UpdateStmt(IToken tok, RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
-    : base(tok, rangeToken, lhss) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
-    Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
-    Rhss = rhss;
-    CanMutateKnownState = mutate;
-  }
-}
-
-public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
-  public readonly IToken EndTok;  // typically a terminating semi-colon or end-curly-brace
+public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
   readonly string name;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -786,24 +807,24 @@ public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
     Contract.Invariant(OptionalType != null);
   }
 
-  public LocalVariable(Cloner clone, LocalVariable original) {
-    Tok = clone.Tok(original.Tok);
-    EndTok = clone.Tok(original.RangeToken.EndToken);
+  public override IToken Tok => RangeToken.StartToken;
+
+  public LocalVariable(Cloner cloner, LocalVariable original)
+    : base(cloner, original) {
     name = original.Name;
-    OptionalType = clone.CloneType(original.OptionalType);
+    OptionalType = cloner.CloneType(original.OptionalType);
     IsGhost = original.IsGhost;
 
-    if (clone.CloneResolvedFields) {
+    if (cloner.CloneResolvedFields) {
       type = original.type;
     }
   }
-  public LocalVariable(IToken tok, RangeToken rangeToken, string name, Type type, bool isGhost) {
-    Contract.Requires(tok != null);
+
+  public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
+    : base(rangeToken) {
     Contract.Requires(name != null);
     Contract.Requires(type != null);  // can be a proxy, though
 
-    this.Tok = tok;
-    this.RangeToken = rangeToken;
     this.name = name;
     this.OptionalType = type;
     if (type is InferredTypeProxy) {
@@ -824,7 +845,7 @@ public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
   }
   public static string DisplayNameHelper(IVariable v) {
     Contract.Requires(v != null);
-    return HasWildcardName(v) ? "_" : v.Name;
+    return HasWildcardName(v) ? $"_ /* {v.Name} */" : v.Name;
   }
   public string DisplayName {
     get { return DisplayNameHelper(this); }
@@ -857,6 +878,9 @@ public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
       return type.Normalize();
     }
   }
+
+  public PreType PreType { get; set; }
+
   public bool IsMutable {
     get {
       return true;
@@ -873,25 +897,25 @@ public class LocalVariable : Node, IVariable, IAttributeBearingDeclaration {
   public void MakeGhost() {
     this.IsGhost = true;
   }
-  IToken IVariable.Tok {
-    get {
-      return Tok;
-    }
-  }
 
-  public IToken NameToken => Tok;
+  public IToken NameToken => RangeToken.StartToken;
   public bool IsTypeExplicit = false;
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
+
+  public override IEnumerable<Node> PreResolveChildren =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+      IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 }
 
-public class GuardedAlternative : Node, IAttributeBearingDeclaration {
+public class GuardedAlternative : TokenNode, IAttributeBearingDeclaration {
   public readonly bool IsBindingGuard;
   public readonly Expression Guard;
   public readonly List<Statement> Body;
   public Attributes Attributes;
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(new List<Node>() { Guard }).Concat<Node>(Body);
+  public override IEnumerable<Node> PreResolveChildren => Children;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [ContractInvariantMethod]
@@ -906,7 +930,7 @@ public class GuardedAlternative : Node, IAttributeBearingDeclaration {
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;
@@ -917,7 +941,7 @@ public class GuardedAlternative : Node, IAttributeBearingDeclaration {
     Contract.Requires(guard != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(body != null);
-    this.Tok = tok;
+    this.tok = tok;
     this.IsBindingGuard = isBindingGuard;
     this.Guard = guard;
     this.Body = body;
@@ -925,7 +949,7 @@ public class GuardedAlternative : Node, IAttributeBearingDeclaration {
   }
 }
 
-public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
+public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   public readonly Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
@@ -946,19 +970,17 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
     Guard = cloner.CloneExpr(original.Guard);
   }
 
-  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public WhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, rangeToken, invariants, decreases, mod, body, null) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, invariants, decreases, mod, body, null) {
     this.Guard = guard;
   }
 
-  public WhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public WhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body, Attributes attrs)
-    : base(tok, rangeToken, invariants, decreases, mod, body, attrs) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, invariants, decreases, mod, body, attrs) {
     this.Guard = guard;
   }
 
@@ -970,6 +992,23 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
       }
     }
   }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    foreach (var ens in Invariants) {
+      formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
+    }
+
+    foreach (var dec in Decreases.Expressions) {
+      formatter.SetDecreasesExpressionIndentation(dec, indentBefore + formatter.SpaceTab);
+    }
+
+    if (EndToken.val == "}") {
+      formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    }
+
+    return false;
+  }
 }
 
 /// <summary>
@@ -977,11 +1016,10 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt> {
 /// merge.
 /// </summary>
 public class RefinedWhileStmt : WhileStmt {
-  public RefinedWhileStmt(IToken tok, RangeToken rangeToken, Expression guard,
+  public RefinedWhileStmt(RangeToken rangeToken, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(tok, rangeToken, guard, invariants, decreases, mod, body) {
-    Contract.Requires(tok != null);
+    : base(rangeToken, guard, invariants, decreases, mod, body) {
     Contract.Requires(body != null);
   }
 }
@@ -1006,7 +1044,7 @@ public class RefinedWhileStmt : WhileStmt {
 /// * modify ... { Stmt }
 ///   ConditionOmitted == true && BodyOmitted == false
 /// </summary>
-public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
+public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
   public readonly Statement S;
   public bool ConditionOmitted { get { return ConditionEllipsis != null; } }
   public readonly IToken ConditionEllipsis;
@@ -1023,14 +1061,13 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
     BodyEllipsis = original.BodyEllipsis;
   }
 
-  public SkeletonStatement(IToken tok, RangeToken rangeToken)
-    : base(tok, rangeToken) {
-    Contract.Requires(tok != null);
+  public SkeletonStatement(RangeToken rangeToken)
+    : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     S = null;
   }
   public SkeletonStatement(Statement s, IToken conditionEllipsis, IToken bodyEllipsis)
-    : base(s.Tok, s.RangeToken) {
+    : base(s.RangeToken) {
     Contract.Requires(s != null);
     S = s;
     ConditionEllipsis = conditionEllipsis;
@@ -1048,6 +1085,16 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement> {
         }
       }
     }
+  }
+
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      yield return S;
+    }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return true;
   }
 }
 
@@ -1078,7 +1125,7 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Statement tryBody, IVariable haltMessageVar, Statement recoverBody)
-    : base(tryBody.Tok, recoverBody.RangeToken) {
+    : base(new RangeToken(tryBody.StartToken, recoverBody.EndToken)) {
     Contract.Requires(tryBody != null);
     Contract.Requires(haltMessageVar != null);
     Contract.Requires(recoverBody != null);

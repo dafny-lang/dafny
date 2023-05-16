@@ -3,9 +3,9 @@
 
 type t = i:int | 0 <= i < 10
 
-function f():t
+ghost function f():t
 
-function g():int
+ghost function g():int
 
 lemma L1() returns(m:map<int, t>)
 {

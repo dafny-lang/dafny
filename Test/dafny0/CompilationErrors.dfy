@@ -16,8 +16,8 @@ class TestClass {
   ghost var g: int;
 }
 
-function F(): int  // compile error: body-less ghost function
-function method H(): int  // compile error: body-less function method
+ghost function F(): int  // compile error: body-less ghost function
+function H(): int  // compile error: body-less function method
 
 lemma Lemma() {
   assume false;  // compile error: assume
@@ -28,14 +28,14 @@ ghost method GMethod() {
   assume {:axiom} true;
 }
 
-function MyFunction(): int
+ghost function MyFunction(): int
 {
   assume false;  // compile error: assume
   assume {:axiom} true;
   6
 }
 
-function MyCalcFunction(): int
+ghost function MyCalcFunction(): int
 {
   calc <= {
     2;
@@ -48,8 +48,8 @@ function MyCalcFunction(): int
 }
 
 datatype Result = Failure {
-  predicate method IsFailure() { true }
-  function method Extract() : () requires false { () }
+  predicate IsFailure() { true }
+  function Extract() : () requires false { () }
 }
 method MyResultMethod() returns (r: Result) {
   var x :- assume Failure(); // compile error: assume

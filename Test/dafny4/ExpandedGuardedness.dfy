@@ -62,41 +62,41 @@ ghost method GhostMain()
 
 codatatype Stream<T> = ICons(head: T, tail: Stream<T>)
 
-function method Up(n: int): Stream<int>
+function Up(n: int): Stream<int>
 {
   ICons(n, Up(n+1))
 }
 
-function method Up2(n: int): Stream<int>
+function Up2(n: int): Stream<int>
 {
   ICons(n, ICons(n+1, Up2(n+2)))
 }
 
-function method UpIf(n: int): Stream<int>
+function UpIf(n: int): Stream<int>
 {
   if n % 2 == 1 then ICons(n, UpIf(n+1)) else ICons(n, UpIf(n+2))
 }
 
-function method UpIf'(n: int): Stream<int>
+function UpIf'(n: int): Stream<int>
 {
   ICons(n, if n % 2 == 1 then UpIf'(n+1) else UpIf'(n+2))
 }
 
 datatype Color = Red | Blue
 
-function method CUp0(n: int, c: Color): Stream<int>
+function CUp0(n: int, c: Color): Stream<int>
 {
   match c
   case Red => ICons(n, CUp0(n+1, c))
   case Blue => ICons(n, CUp0(n+2, c))
 }
 
-function method CUp1(n: int, c: Color): Stream<int>
+function CUp1(n: int, c: Color): Stream<int>
 {
   ICons(n, match c case Red => CUp1(n+1, c) case Blue => CUp1(n+2, c))
 }
 
-function method CUp2(n: int, c: Color): Stream<int>
+function CUp2(n: int, c: Color): Stream<int>
 {
   if c == Red then
     ICons(n, CUp2(n+1, c))
@@ -104,7 +104,7 @@ function method CUp2(n: int, c: Color): Stream<int>
     ICons(n, CUp2(n+2, c))
 }
 
-function method CUp3(n: int, c: Color): Stream<int>
+function CUp3(n: int, c: Color): Stream<int>
 {
   ICons(n, if c == Red then CUp3(n+1, c) else CUp3(n+2, c))
 }
@@ -114,13 +114,13 @@ greatest lemma CUps(n: int, c: Color)
 {
 }
 
-function method UpLet0(n: int): Stream<int>
+function UpLet0(n: int): Stream<int>
 {
   var n' := n+1;
   ICons(n'-1, UpLet0(n'))
 }
 
-function method UpLet1(n: int): Stream<int>
+function UpLet1(n: int): Stream<int>
 {
   ICons(n, var n' := n+1; UpLet1(n'))
 }
@@ -129,12 +129,12 @@ function method UpLet1(n: int): Stream<int>
 
 codatatype Lang<!S> = L(nullable: bool, deriv: S ~> Lang<S>)
 
-function method Nothing(): Lang
+function Nothing(): Lang
 {
   L(false, s => Nothing())
 }
 
-function method OnlyDs(): Lang<char>
+function OnlyDs(): Lang<char>
 {
   L(true, ch => if ch == 'd' || ch == 'D' then OnlyDs() else Nothing())
 }
@@ -187,24 +187,24 @@ greatest lemma OnlyDsTotal_Nat[nat]()
 // S should be specified as a non-strict covariant
 codatatype IMLang<!S> = IML(nullable: bool, deriv: imap<S, IMLang<S>>)
 
-function IMNothing<S(!new)>(): IMLang
+ghost function IMNothing<S(!new)>(): IMLang
 {
   IML(false, imap s {:nowarn} :: IMNothing())
 }
 
-function IMOnlyDs(): IMLang<char>
+ghost function IMOnlyDs(): IMLang<char>
 {
   IML(true, imap ch {:nowarn} :: if ch == 'd' || ch == 'D' then IMOnlyDs() else IMNothing())
 }
 
 codatatype MLang<S> = ML(nullable: bool, deriv: map<S, MLang<S>>)
 
-function method MNothing(): MLang
+function MNothing(): MLang
 {
   ML(false, map s {:nowarn} | s in {} :: MNothing())  // TODO: finiteness check should allow 'false'
 }
 
-function method MOnlyDs(): MLang<char>
+function MOnlyDs(): MLang<char>
 {
   ML(true, map ch {:nowarn} | ch == 'd' || ch == 'D' :: MOnlyDs())
 }

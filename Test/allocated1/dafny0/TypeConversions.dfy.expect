@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
 TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 TypeConversions.dfy(17,40): Error: value does not satisfy the subset constraints of 'nat'

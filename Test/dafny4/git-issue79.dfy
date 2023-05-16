@@ -4,21 +4,21 @@
 datatype EInt = Int(val: int) | Unknown
 type Pair = (string, EInt)
 
-function Inc(p: Pair): Pair
+ghost function Inc(p: Pair): Pair
 {
   match p
   case (s, Int(x)) => (s, Int(x + 1))
   case (s, Unknown) => (s, Unknown)
 }
 
-function Inc2(s1:string, t1:EInt): Pair
+ghost function Inc2(s1:string, t1:EInt): Pair
 {
   match (s1, t1)
   case (s1, Int(x)) => (s1, Int(x + 1))
   case (s1, Unknown) => (s1, Unknown)
 }
 
-function Inc3(s1: string, t1: EInt, t2: EInt) : Pair
+ghost function Inc3(s1: string, t1: EInt, t2: EInt) : Pair
 {
   match (s1, t1, t2)
   case (s1, Int(x), Unknown) => (s1, Int(x + 1))
@@ -29,7 +29,7 @@ function Inc3(s1: string, t1: EInt, t2: EInt) : Pair
 
 type Triple = (string, EInt, EInt)
 
-function Inc4(t: Triple) : Pair
+ghost function Inc4(t: Triple) : Pair
 {
   match t
   case (s1, Int(x), Unknown) => (s1, Int(x + 1))

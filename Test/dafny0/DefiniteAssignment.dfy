@@ -69,7 +69,7 @@ method M1<G>(x: int, a: G, b: G) returns (y: G, z: G)
 
 class C { var u: int }
 
-function method F(): C
+function F(): C
 
 type NonNullC = c: C? | c != null witness F()
 
@@ -226,7 +226,7 @@ method Loop<G>(a: G, b: G, n: nat, k: int) returns (g: G)
 
 // ----- multiple returns, LHS patterns, and underscores -----
 
-function method Two<T>(t: T): (T, T)
+function Two<T>(t: T): (T, T)
 {
   (t, t)
 }
@@ -350,14 +350,14 @@ module AssignSuchThatReference {
 module LetSuchThat {
   type C
 
-  function Bad(): int
+  ghost function Bad(): int
   {
     // regression: in the the following line, the verifier once used the fact that all types were nonempty
     var c: C :| true;  // error: cannot prove existence of such a "c"
     5
   }
 
-  function Good(y: C): int
+  ghost function Good(y: C): int
   {
     var c: C :| true;  // fine, since parameter "y" serves as a witness
     5

@@ -59,7 +59,7 @@ Another solution, which is a pattern applicable in other circumstances as well, 
 ```dafny
 datatype T = Y | N | B(T,T)
 
-function method f(x : T) : bool
+function f(x : T) : bool
   decreases x, 1
 {
   match x {
@@ -69,7 +69,7 @@ function method f(x : T) : bool
   }
 }
 
-function method g(ghost parent: T, x : T, y : T) : bool
+function g(ghost parent: T, x : T, y : T) : bool
   decreases parent, 0
   requires x < parent && y < parent
 {

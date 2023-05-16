@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module ModOpaque {
-    function {:opaque} Hidden(x:int) : (int, int)
+    ghost function {:opaque} Hidden(x:int) : (int, int)
     {
         (5, 7)
     }
 
-    function Visible(x:int) : (int, int)
+    ghost function Visible(x:int) : (int, int)
     {
         Hidden(x)
     }
@@ -33,12 +33,12 @@ module ModOpaque {
 }
 
 module ModVisible {
-    function Hidden(x:int) : (int, int)
+    ghost function Hidden(x:int) : (int, int)
     {
         (5, 7)
     }
 
-    function Visible(x:int) : (int, int)
+    ghost function Visible(x:int) : (int, int)
     {
         Hidden(x)
     }
@@ -65,12 +65,12 @@ module ModVisible {
 }
 
 module ModFuel {
-    function {:fuel 0,0} Hidden(x:int) : (int, int)
+    ghost function {:fuel 0,0} Hidden(x:int) : (int, int)
     {
         (5, 7)
     }
 
-    function Visible(x:int) : (int, int)
+    ghost function Visible(x:int) : (int, int)
     {
         Hidden(x)
     }

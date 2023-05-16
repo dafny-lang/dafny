@@ -1,22 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using IntervalTree;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Xunit;
+using Xunit.Abstractions;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
-[TestClass]
 public class GhostStateDiagnosticCollectorTest {
   private GhostStateDiagnosticCollector ghostStateDiagnosticCollector;
 
@@ -34,9 +30,8 @@ public class GhostStateDiagnosticCollectorTest {
     }
   }
 
-  [TestInitialize]
-  public void SetUp() {
-    var options = new DafnyOptions();
+  public GhostStateDiagnosticCollectorTest(ITestOutputHelper output) {
+    var options = new DafnyOptions(TextReader.Null, new WriterFromOutputHelper(output), new WriterFromOutputHelper(output));
     options.Set(ServerCommand.GhostIndicators, true);
     ghostStateDiagnosticCollector = new GhostStateDiagnosticCollector(
       options,
@@ -44,28 +39,35 @@ public class GhostStateDiagnosticCollectorTest {
   }
 
   class CollectingErrorReporter : BatchErrorReporter {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> GetErrors() {
+    public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
       return this.AllMessages;
+    }
+
+    public CollectingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
-    public DummyModuleDecl() : base(
-      new DefaultModuleDecl(), null) {
+    public DummyModuleDecl(IList<Uri> rootUris) : base(
+      new DefaultModuleDefinition(rootUris), null) {
     }
     public override object Dereference() {
       return this;
     }
   }
 
-  [TestMethod]
+  [Fact]
   public void EnsureResilienceAgainstErrors() {
     // Builtins is null to trigger an error.
-    var reporter = new CollectingErrorReporter();
-    var program = new Dafny.Program("dummy", new DummyModuleDecl(), null, reporter);
+    var options = DafnyOptions.DefaultImmutableOptions;
+    var rootUri = new Uri(Directory.GetCurrentDirectory());
+    var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
+    var reporter = new CollectingErrorReporter(options, (DefaultModuleDefinition)dummyModuleDecl.ModuleDef);
+    var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter);
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
-      new SignatureAndCompletionTable(null!, new CompilationUnit(program), null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
+      new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
+        null!, null!, new IntervalTree<Position, ILocalizableSymbol>(), true)
       , CancellationToken.None);
-    Assert.AreEqual(0, ghostDiagnostics.Count());
+    Assert.Empty(ghostDiagnostics);
   }
 }

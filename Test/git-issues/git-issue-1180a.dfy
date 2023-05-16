@@ -29,19 +29,19 @@ module StartingFromOpaqueType {
   abstract module A {
     type Ty<X> {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
   module OpaqueType refines A {
     type Ty<X, Y> ... { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parameters, and wrong out-parameter type
     }
   }
   module Datatype refines A {
     datatype Ty = Make(x: int) { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -50,7 +50,7 @@ module StartingFromOpaqueType {
   }
   module Codatatype refines A {
     codatatype Ty = Make(w: int) { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -59,19 +59,19 @@ module StartingFromOpaqueType {
   }
   module Newtype refines A {
     newtype Ty = int { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
   module Class refines A {
     class Ty { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
   module Trait refines A {
     trait Ty { // error: wrong number of type parameters
-      function method F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
+      function F<Z>(x: nat): Z // error (x2): wrong number of type parametes, and wrong result type
       method M<Z>(x: nat) returns (r: Z) { r := c; } // error (x2): wrong number of type parametes, and wrong out-parameter type
     }
   }
@@ -84,7 +84,7 @@ module StartingFromDatatype {
   abstract module A {
     datatype Ty = Make(w: int) {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
@@ -119,7 +119,7 @@ module StartingFromCodatatype {
   abstract module A {
     codatatype Ty = Make(w: int) {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
@@ -151,7 +151,7 @@ module StartingFromNewtype {
   abstract module A {
     newtype Ty = int {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
@@ -180,7 +180,7 @@ module StartingFromClass {
   abstract module A {
     class Ty {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }
@@ -209,7 +209,7 @@ module StartingFromTrait {
   abstract module A {
     trait Ty {
       const c: nat
-      function method F(x: nat): nat
+      function F(x: nat): nat
       method M(x: nat) returns (r: nat)
     }
   }

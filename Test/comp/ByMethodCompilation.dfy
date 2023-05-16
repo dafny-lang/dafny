@@ -107,7 +107,7 @@ function Sum(s: set<int>): int {
   return sum;
 }
 
-function Pick(s: set<int>): int
+ghost function Pick(s: set<int>): int
   requires s != {}
 {
   var x :| x in s; x

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" ExternDefs.h > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" ExternDefs.h > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
@@ -25,18 +25,18 @@ module Test {
   newtype uint32  = i:int | 0 <= i < 0x100000000
 
   // Function-method tests
-  function method Test(x:uint32) : uint64 {
+  function Test(x:uint32) : uint64 {
     x as uint64 + 1
   }
 
-  function method Seqs<T>(s:seq<T>, x:uint32, default_val:T) : T
+  function Seqs<T>(s:seq<T>, x:uint32, default_val:T) : T
     requires |s| < 1000
   {
     if |s| as uint32 > x then s[x] else default_val
   }
 
   // Function pointer tests
-  function method AddOne(x:uint64) : uint64
+  function AddOne(x:uint64) : uint64
     requires x < 100
   {
     x + 1

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 SubsetTypes.dfy(7,18): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(8,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(10,23): Error: value does not satisfy the subset constraints of 'nat'

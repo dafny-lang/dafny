@@ -17,7 +17,7 @@ class WClass<W> {
   constructor Make(w: W) {
     strm := Generate(w);
   }
-  static function method Generate(w: W): Stream<W> {
+  static function Generate(w: W): Stream<W> {
     Next(w, Generate(w))
   }
 }
@@ -34,7 +34,7 @@ class Class {
   }
 }
 
-predicate method Same<A(==)>(a0: A, a1: A) {
+predicate Same<A(==)>(a0: A, a1: A) {
   a0 == a1
 }
 
@@ -195,7 +195,7 @@ module NilRegression {
   method Gimmie<R(0)>() returns (r: R) { }
   method Gimmie2<R(0), S(0)>() returns (r: R, s: S) { }
 
-  function method Id<X>(x: X): X { x }
+  function Id<X>(x: X): X { x }
 
   method NilRegression3() {
     // test out-parameters of methods
@@ -295,7 +295,7 @@ module GhostWitness {
     | forall a :: f.reads(a) == {}
     ghost witness GhostEffectlessArrowWitness<A, B>
 
-  function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
+  ghost function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }
@@ -304,7 +304,7 @@ module GhostWitness {
 
   class MyClass { }
 
-  predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
+  ghost predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
     reads f.reads
   {
     forall a :: f.reads(a) == {} && f.requires(a)
@@ -314,7 +314,7 @@ module GhostWitness {
     | Total(f)
     ghost witness TotalWitness<A, B>
 
-  function TotalWitness<A, B(00)>(a: A): B
+  ghost function TotalWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }

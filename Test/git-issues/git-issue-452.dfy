@@ -1,10 +1,10 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-function TwinPrimes(): (int, int) {
+ghost function TwinPrimes(): (int, int) {
   (41, 43)
 }
 
-function method TwinPrimesM(): (int, int) {
+function TwinPrimesM(): (int, int) {
   (41, 43)
 }
 

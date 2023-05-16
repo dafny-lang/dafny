@@ -1,32 +1,37 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
   public class Trivia {
+
+    private readonly TextWriter output;
+
+    public Trivia(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     enum Newlines { LF, CR, CRLF };
 
     private Newlines currentNewlines;
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      ErrorReporter reporter = new ConsoleErrorReporter();
-      var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+      var options = DafnyOptions.Create(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
 // Comment ∈ before
 module Test // Module docstring
-{}
+{} // Attached to }
 
 /** Trait docstring */
 trait Trait1 { }
@@ -36,6 +41,7 @@ trait Trait2 extends Trait1
 // Trait docstring
 { }
 // This is attached to trait2
+// This is also attached to trait2
 
 // This is attached to n
 type n = x: int | x % 2 == 0
@@ -71,11 +77,8 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns();
-        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = Utils.Parse(options, programString, false);
+        var reporter = dafnyProgram.Reporter;
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
@@ -115,16 +118,13 @@ ensures true
     private void TestTokens(Node program) {
       var allTokens = new HashSet<IToken>();
 
-      void Traverse(Node node, int depth = 0) {
-        if (depth == 2) {
-          depth = 2;
-        }
+      void Traverse(Node node) {
         foreach (var ownedToken in node.OwnedTokens) {
           Assert.DoesNotContain(ownedToken, allTokens);
           allTokens.Add(ownedToken);
         }
-        foreach (var child in node.Children) {
-          Traverse(child, depth + 1);
+        foreach (var child in node.PreResolveChildren) {
+          Traverse(child);
         }
       }
 
@@ -140,7 +140,7 @@ ensures true
             t = t.Next;
           }
         } else {
-          foreach (var child in node.Children) {
+          foreach (var child in node.PreResolveChildren) {
             AreAllTokensOwned(child);
           }
         }

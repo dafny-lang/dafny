@@ -116,7 +116,7 @@ module AdvancedZeroInitialization {
     print "z: Yt<Even> :: ", z, " versus ", z', "\n";
   }
   // print '\0' in a way that git doesn't freak out about
-  function method PrCh(ch: char): string {
+  function PrCh(ch: char): string {
     if ch == '\0' then "'\\0'"
     else if ch == 'D' then "'D'"
     else "'(other char)'"

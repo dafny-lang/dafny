@@ -27,7 +27,7 @@ module M1 {
     lemma L(c: C)
       requires unchanged(c)  // error: 'unchanged' not allowed here
       ensures unchanged(c)  // allowed, just like 'old' is allowed, but useless here
-    function F(c: C): bool
+    ghost function F(c: C): bool
       requires unchanged(c)  // error: 'unchanged' not allowed here
       ensures unchanged(c)  // error: 'unchanged' not allowed here
     twostate lemma L2(c: C, d: C)
@@ -71,7 +71,7 @@ module PrettyPrinting {
       y.Floor as real == y
     }
 
-    function method MF(y: real, ghost g: int): char
+    function MF(y: real, ghost g: int): char
     {
       'G'
     }
@@ -118,7 +118,7 @@ module F {
 module G {
   class C { var f: int }
   twostate predicate P() { true }
-  function Fu(): int
+  ghost function Fu(): int
     requires P()  // error: cannot use a two-state function here
     reads if P() then {null} else {}  // error: cannot use a two-state function here
     ensures P()  // error: cannot use a two-state function here
@@ -160,7 +160,7 @@ module H {
   class YY {
     static twostate predicate Sp() { false }
   }
-  function Fu(): int
+  ghost function Fu(): int
   {
     ghost var p: () -> bool := P;  // error: cannot use a two-state function in this context
     ghost var q: () -> bool := YY.Sp;  // error: cannot use a two-state function in this context
@@ -175,7 +175,7 @@ module H {
     ghost var q: () -> bool := YY.Sp;
   }
   class D {
-    function G(): int
+    ghost function G(): int
     static method Sm(c: C) returns (ghost b: bool)
       requires c != null
       ensures P()
@@ -213,7 +213,7 @@ module H {
     assert P();
     var p: () -> bool := P;
   }
-  function K(c: C): int
+  ghost function K(c: C): int
   {
     TL(c);  // error: cannot call two-state lemma from this context
     5
@@ -272,17 +272,17 @@ module TraitsAndOldParameters {
 
 // Print test for /dprint. Note, this same class is tested with /rprint in Test/dafny2/CalcDefaultMainOperator.dfy.
 module PrintTest {
-  function method Five(): int { 5 }
-  function Six(): int { 6 }
+  function Five(): int { 5 }
+  ghost function Six(): int { 6 }
 
-  function method Ten(): int {
+  function Ten(): int {
     var f := Five();
     ghost var s := Six();
     assert s == 6;
     f + f
   }
 
-  function method TenAgain(): int {
+  function TenAgain(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -291,7 +291,7 @@ module PrintTest {
     ten
   }
 
-  function TenOnceMore(): int {
+  ghost function TenOnceMore(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -300,28 +300,28 @@ module PrintTest {
     ten
   }
 
-  function Eleven(): int {
+  ghost function Eleven(): int {
     var f, s := Five(), Six();
     f + s
   }
 
-  function Twelve(): int {
+  ghost function Twelve(): int {
     var s, t := Six(), Six();
     s + t
   }
 
-  function method Twenty(): int {
+  function Twenty(): int {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int {
+  function TwentyOne(): int {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
   }
 
-  predicate Yes(x: int) { true }
+  ghost predicate Yes(x: int) { true }
 
   type Odd = x |
     var rr := 2; x % rr == 1
@@ -375,7 +375,7 @@ module TwoStateAt {
       assert old(c.data) == c.data;
     }
 
-    function method G(): int { 32 }
+    function G(): int { 32 }
     lemma Theorem() { }
   }
 
@@ -385,7 +385,7 @@ module TwoStateAt {
     old(c.data) + c.data
   }
 
-  function F(): int { 9 }
+  ghost function F(): int { 9 }
 
   method Test<Y>(c: Cell, b: bool, y: Y)
     requires c.data == 2
@@ -474,7 +474,7 @@ module TwoStateAt {
     var x, d := ReturnSomething@L(c);
   }
 
-  function {:opaque} OrdinaryOpaque(): int { 12 }
+  ghost function {:opaque} OrdinaryOpaque(): int { 12 }
   method UseOrdinaryOpaque() {
     label L:
     reveal OrdinaryOpaque();
@@ -482,7 +482,7 @@ module TwoStateAt {
     reveal OrdinaryOpaque@K();  // error: label K not in scope
     reveal OrdinaryOpaque@L();  // error: @ can only be applied to something two-state (error message can be improved)
   }
-  function FuncUseOrdinaryOpaque(): int {
+  ghost function FuncUseOrdinaryOpaque(): int {
     reveal OrdinaryOpaque();
     reveal OrdinaryOpaque;  // error: missing parentheses
     reveal OrdinaryOpaque@K();  // error: label K not in scope
@@ -496,7 +496,7 @@ module TwoStateAt {
     reveal Opaque@K();  // error: label K not in scope
     reveal Opaque@L();  // error: all parameters in a reveal must be implicit, including labels
   }
-  function FuncUseOpaque(): int {
+  ghost function FuncUseOpaque(): int {
     reveal Opaque();  // error: cannot call two-state lemma in one-state function
     reveal Opaque;  // error: missing parentheses
     reveal Opaque@K();  // error: label K not in scope
@@ -511,7 +511,7 @@ module TwoStateAt {
 
   twostate lemma EasyTwo()
     ensures true
-  function CallEasy(): int {
+  ghost function CallEasy(): int {
     EasyTwo();  // error: two-state lemma cannot be called from one-state function
     9
   }
@@ -520,20 +520,20 @@ module TwoStateAt {
 module OlderParameters {
   class C { }
   trait Tr {
-    predicate P(a: C)
-    predicate Q(older a: C)
+    ghost predicate P(a: C)
+    ghost predicate Q(older a: C)
     twostate predicate X(a: C)
     twostate predicate Y(new a: C)
   }
   class Good extends Tr {
-    predicate P(a: C)
-    predicate Q(older a: C)
+    ghost predicate P(a: C)
+    ghost predicate Q(older a: C)
     twostate predicate X(a: C)
     twostate predicate Y(new a: C)
   }
   class Bad extends Tr {
-    predicate P(older a: C) // error: cannot change non-older to older
-    predicate Q(a: C) // error: cannot change older to non-older
+    ghost predicate P(older a: C) // error: cannot change non-older to older
+    ghost predicate Q(a: C) // error: cannot change older to non-older
     twostate predicate X(new a: C) // error: cannot change from non-new to new
     twostate predicate Y(a: C) // error: cannot change from new to non-new
   }
@@ -541,28 +541,28 @@ module OlderParameters {
 
 module RefinementBase {
   class C { }
-  predicate P(a: C)
-  predicate Q(older a: C)
+  ghost predicate P(a: C)
+  ghost predicate Q(older a: C)
   twostate predicate X(a: C)
   twostate predicate Y(new a: C)
 }
 
 module GoodRefinement refines RefinementBase {
-  predicate P(a: C) { true }
-  predicate Q(older a: C) { true }
+  ghost predicate P(a: C) { true }
+  ghost predicate Q(older a: C) { true }
   twostate predicate X(a: C) { true }
   twostate predicate Y(new a: C) { true }
 }
 
 module BadRefinement refines RefinementBase {
-  predicate P(older a: C) { true } // error: cannot change non-older to older
-  predicate Q(a: C) { true } // error: cannot change older to non-older
+  ghost predicate P(older a: C) { true } // error: cannot change non-older to older
+  ghost predicate Q(a: C) { true } // error: cannot change older to non-older
   twostate predicate X(new a: C) { true } // error: cannot change non-new to new
   twostate predicate Y(a: C) { true } // error: cannot change new to non-new
 }
 
 module RevealInsideIterator {
-  function {:opaque} G(): int { 2 }
+  ghost function {:opaque} G(): int { 2 }
 
   iterator Iter(x: int) yields (r: int)
   {

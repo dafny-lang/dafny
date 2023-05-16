@@ -104,7 +104,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="input"></param>
   /// <param name="openingBracePosition"></param>
   /// <returns></returns>
-  private static (Range? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
+  private static (RangeToken? beforeEndBrace, string indentationExtra, string indentationUntilBrace)
       GetInformationToInsertAtEndOfBlock(IDafnyCodeActionInput input, Position openingBracePosition) {
 
     var (line, col) = openingBracePosition.ToTokenLineAndCol();
@@ -114,7 +114,7 @@ public static class DafnyCodeActionHelpers {
     }
 
     var (extraIndentation, indentationUntilBrace) = GetIndentationBefore(endToken, line, col, input.Code);
-    var beforeClosingBrace = endToken.GetLspRange().GetStartRange();
+    var beforeClosingBrace = new RangeToken(endToken, null);
     return (beforeClosingBrace, extraIndentation, indentationUntilBrace);
   }
 
@@ -132,9 +132,9 @@ public static class DafnyCodeActionHelpers {
     // Return the EndTok of them.
     foreach (var module in program.Modules()) {
       foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filename == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
+        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filepath == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
           foreach (var member in classDecl.Members) {
-            if (member is Method method && method.tok.filename == documentUri && method.Body != null &&
+            if (member is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
                 method.StartToken.line <= line && line <= method.EndToken.line &&
                 GetMatchingEndToken(line, col, method.Body) is { } token) {
               return token;

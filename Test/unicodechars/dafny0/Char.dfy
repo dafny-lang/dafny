@@ -14,7 +14,7 @@ class CharChar {
     }
   }
 
-  function Recurse(ch: char): bool
+  ghost function Recurse(ch: char): bool
     reads this;
   {
     if c < ch then Recurse(c)
@@ -22,7 +22,7 @@ class CharChar {
     else ch == ' '
   }
 
-  function MinChar(s: string): char
+  ghost function MinChar(s: string): char
     requires s != "";
   {
     var ch := s[0];
@@ -67,7 +67,7 @@ class CharChar {
 
 // arithmetic with char's
 
-function toLower(ch: char): char
+ghost function toLower(ch: char): char
 {
   if 'A' <= ch <= 'Z' then
     ch - 'A' + 'a'
@@ -75,7 +75,7 @@ function toLower(ch: char): char
     ch
 }
 
-function BadToLower_Overflow(ch: char): char
+ghost function BadToLower_Overflow(ch: char): char
 {
   if 'A' <= ch then
     ch - 'A' + 'a'  // error: possible overflow
@@ -83,7 +83,7 @@ function BadToLower_Overflow(ch: char): char
     ch
 }
 
-function BadToLower_Underflow(ch: char): char
+ghost function BadToLower_Underflow(ch: char): char
 {
   if ch <= 'Z' then
     ch - 'A' + 'a'  // error: possible underflow
@@ -91,7 +91,7 @@ function BadToLower_Underflow(ch: char): char
     ch
 }
 
-function BadToLower_OverflowIntoSurrogateRange(ch: char): char
+ghost function BadToLower_OverflowIntoSurrogateRange(ch: char): char
 {
   if 'A' <= ch <= '\U{D7FF}' then
     ch - 'A' + 'a'  // error: possible overflow
@@ -99,7 +99,7 @@ function BadToLower_OverflowIntoSurrogateRange(ch: char): char
     ch
 }
 
-function BadToLower_UnderflowIntoSurrogateRange(ch: char): char
+ghost function BadToLower_UnderflowIntoSurrogateRange(ch: char): char
 {
   if '\U{E000}' <= ch <= '\U{1_0000}' then
     ch - 'A' + 'a'  // error: possible underflow

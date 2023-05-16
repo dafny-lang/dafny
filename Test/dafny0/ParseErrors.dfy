@@ -130,9 +130,9 @@ class C {
   method M(ghost x: int) returns (ghost y: int)
 }
 
-function F(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
-function method FM(ghost x: int): int
-predicate P(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
+ghost function F(ghost x: int): int  // error: formal not allowed to be declared "ghost" here -- a function is already ghost
+function FM(ghost x: int): int
+ghost predicate P(ghost x: int)  // error: formal not allowed to be declared "ghost" here -- a predicate is already ghost
 
 least predicate IP(ghost x: int)  // error: formal not allowed to be declared "ghost" here
                                       // -- a least predicate is already ghost
@@ -179,8 +179,8 @@ module NameOnlyParameters {
     | D1(int, nameonly int, real) // error: nameonly modifier must be followed by parameter name
     | D2(int, nameonly x: int)
   // named function results
-  function F(nameonly y: int): int
-  function G(y: int): (nameonly r: int) // error: 'nameonly' unexpected here
+  ghost function F(nameonly y: int): int
+  ghost function G(y: int): (nameonly r: int) // error: 'nameonly' unexpected here
   // out-parameters
   method M(nameonly x: int) returns (y: int)
   method N(x: int) returns (nameonly y: int) // error: 'nameonly' not allowed here
@@ -211,7 +211,7 @@ module IllegalStatic {
     static constructor () // error: constructor cannot be declared 'static'
   }
   static method M() // warning: 'static' not allowed here
-  static function F(): int // warning: 'static' not allowed here
+  static ghost function F(): int // warning: 'static' not allowed here
   static lemma F() // warning: 'static' not allowed here
   static twostate function F2(): int // warning: 'static' not allowed here
   static least predicate LP() // warning: 'static' not allowed here
@@ -232,9 +232,9 @@ module IllegalGhost {
 module AlreadyGhost {
   // a twostate function/predicate cannot be used with ...
   ghost twostate function F(): int { 2 } by method { } // error (x2): ... with "by method" or "ghost"
-  twostate function method G(): int { 2 } by method { } // error: ... with "by method"
+  twostate function G(): int { 2 } by method { } // error: ... with "by method"
   ghost twostate predicate P() { true } by method { } // error (x2): ... with "by method" or "ghost"
-  twostate predicate method Q() { true } by method { } // error: ... with "by method"
+  twostate predicate Q() { true } by method { } // error: ... with "by method"
 
   // an extreme predicate cannot be used with ...
   ghost least predicate I() { true } by method { } // error (x2): ... with "by method" or "ghost"
@@ -250,14 +250,14 @@ module AlreadyGhost {
 // ------------------------- 'older' contextual keyword ------------------------------
 
 module Older {
-  function F(older x: X): R
-  predicate P(older older older x: X)
+  ghost function F(older x: X): R
+  ghost predicate P(older older older x: X)
   least predicate Q(older older older x: X) // error (x3): 'older' is an identifier here
   method M(older x: X) // error: 'older' is an identifier here
-  function F(): (older r: R) // error: 'older' is an identifier here
+  ghost function F(): (older r: R) // error: 'older' is an identifier here
 
   twostate function W(a: A, new older new older b: B, nameonly older nameonly c: C := "hello"): int
-  function method C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
+  function C(a: A, ghost older older b: B, nameonly ghost older nameonly ghost c: C := "hello"): int
   twostate lemma L(nameonly older nameonly c: C := "hello") // error: 'older' is an identifier here
 }
 

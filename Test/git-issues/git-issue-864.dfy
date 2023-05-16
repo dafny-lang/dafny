@@ -11,13 +11,13 @@ module M1 {
 
 module M2 refines M1 {
   trait T1 {            // error: name T1 already used
-    predicate p() {b}
+    ghost predicate p() {b}
   }
 }
 
 module M3 refines M1 {
   trait T1 ... {
-    predicate p() {b}   // OK - the refined trait extends T0
+    ghost predicate p() {b}   // OK - the refined trait extends T0
   }
 }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
@@ -9,7 +10,7 @@ public class InductionRewriter : IRewriter {
   }
 
   internal override void PostDecreasesResolve(ModuleDefinition m) {
-    if (DafnyOptions.O.Induction == 0) {
+    if (Reporter.Options.Induction == 0) {
       // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
     } else {
       foreach (var decl in m.TopLevelDecls) {
@@ -86,18 +87,18 @@ public class InductionRewriter : IRewriter {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(searchExprs != null);
-    Contract.Requires(DafnyOptions.O.Induction != 0);
+    Contract.Requires(Reporter.Options.Induction != 0);
 
     var args = Attributes.FindExpressions(attributes,
       "induction"); // we only look at the first one we find, since it overrides any other ones
     if (args == null) {
-      if (DafnyOptions.O.Induction < 2) {
+      if (Reporter.Options.Induction < 2) {
         // No explicit induction variables and we're asked not to infer anything, so we're done
         return;
-      } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
+      } else if (Reporter.Options.Induction == 2 && lemma != null) {
         // We're asked to infer induction variables only for quantifiers, not for lemmas
         return;
-      } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+      } else if (Reporter.Options.Induction == 4 && lemma == null) {
         // We're asked to infer induction variables only for lemmas, not for quantifiers
         return;
       }
@@ -130,7 +131,7 @@ public class InductionRewriter : IRewriter {
           }
 
           if (0 <= j) {
-            Reporter.Warning(MessageSource.Rewriter, arg.tok,
+            Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, arg.tok,
               "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
               lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
             return;
@@ -143,12 +144,12 @@ public class InductionRewriter : IRewriter {
             continue;
           }
 
-          Reporter.Warning(MessageSource.Rewriter, arg.tok,
+          Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, arg.tok,
             "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
           return;
         }
 
-        Reporter.Warning(MessageSource.Rewriter, arg.tok,
+        Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, arg.tok,
           "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
           i == 0 ? "'false' or 'true' or " : "",
           lemma != null ? "lemma parameter" : "bound variable");
@@ -170,7 +171,7 @@ public class InductionRewriter : IRewriter {
 
     foreach (IVariable n in boundVars) {
       if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null ||
-            searchExprs.Exists(expr => InductionHeuristic.VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+            searchExprs.Exists(expr => InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, expr, n)))) {
         inductionVariables.Add(new IdentifierExpr(n.Tok, n));
       }
     }
@@ -179,7 +180,7 @@ public class InductionRewriter : IRewriter {
       // We found something usable, so let's record that in an attribute
       attributes = new Attributes("_induction", inductionVariables, attributes);
       // And since we're inferring something, let's also report that in a hover text.
-      var s = Printer.OneAttributeToString(attributes, "induction");
+      var s = Printer.OneAttributeToString(Reporter.Options, attributes, "induction");
       if (lemma is PrefixLemma) {
         s = lemma.Name + " " + s;
       }

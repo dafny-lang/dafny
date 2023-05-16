@@ -20,7 +20,7 @@ module AST {
     | Op(op: BinOp, oe1: Expr_Raw, oe2: Expr_Raw)
     | Seq(es: seq<Expr_Raw>)
   {
-    function method Depth() : nat
+    function Depth() : nat
     {
       1 + match this {
         case Var(_) =>
@@ -41,7 +41,7 @@ module AST {
       }
     }
 
-    static predicate method All(e: Expr_Raw, p: (Expr_Raw) -> bool)
+    static predicate All(e: Expr_Raw, p: (Expr_Raw) -> bool)
     {
       p(e) &&
       (match e
@@ -61,14 +61,14 @@ module AST {
       )
     }
 
-    static predicate method All_Es(es: seq<Expr_Raw>, p: (Expr_Raw) -> bool)
+    static predicate All_Es(es: seq<Expr_Raw>, p: (Expr_Raw) -> bool)
       // Rem.: we pay attention of not making ``All_Es`` and ``All`` mutually
       // recursive, otherwise it causes problems in the proofs.
     {
       forall e | e in es :: e.All(e, p)
     }
 
-    static predicate WellFormed_Single(e: Expr_Raw)
+    static ghost predicate WellFormed_Single(e: Expr_Raw)
     {
       match e
         case Var(name) => true
@@ -80,7 +80,7 @@ module AST {
         case Seq(es) => true
     }
 
-    predicate WellFormed()
+    ghost predicate WellFormed()
     {
       All(this, WellFormed_Single)
     }

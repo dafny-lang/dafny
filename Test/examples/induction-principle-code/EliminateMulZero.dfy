@@ -23,13 +23,13 @@ module EliminateMulZero refines Induction {
 
   const ZeroExpr: Expr := Literal(0)
 
-  predicate method IsZeroMulPure(e1: Expr, e2: Expr)
+  predicate IsZeroMulPure(e1: Expr, e2: Expr)
   {
     && e1 == ZeroExpr
     && Pure.IsPure(e2)
   }
 
-  function method Eliminate(e: Expr): Expr
+  function Eliminate(e: Expr): Expr
     decreases e, 1
   {
     match e
@@ -65,7 +65,7 @@ module EliminateMulZero refines Induction {
         Seq(es')
   }
 
-  function method Eliminate_Es(es: seq<Expr>): (es':seq<Expr>)
+  function Eliminate_Es(es: seq<Expr>): (es':seq<Expr>)
     ensures |es'| == |es|
     decreases es, 0
   {
@@ -76,7 +76,7 @@ module EliminateMulZero refines Induction {
       [e'] + es'
   }
 
-  predicate EqResult<V>(res: Result<(V,Context)>, res': Result<(V,Context)>)
+  ghost predicate EqResult<V>(res: Result<(V,Context)>, res': Result<(V,Context)>)
   {
     match (res, res')
       case (Success((v, ctx1)), Success((v', ctx1'))) =>
@@ -105,19 +105,19 @@ module EliminateMulZero refines Induction {
 
   ghost const Zero: V := 0
 
-  function AppendValue ...
+  ghost function AppendValue ...
   {
     [v] + vs
   }
 
   ghost const NilVS: VS := []
 
-  function VS_Last ...
+  ghost function VS_Last ...
   {
     vs[|vs| - 1]
   }
 
-  predicate P ...
+  ghost predicate P ...
   {
     var e' := Eliminate(e);
     var res := InterpExpr(e, st);
@@ -125,7 +125,7 @@ module EliminateMulZero refines Induction {
     EqResult(res, res')
   }
 
-  predicate P_Succ ...
+  ghost predicate P_Succ ...
   {
     var e' := Eliminate(e);
     var res := InterpExpr(e, st);
@@ -134,7 +134,7 @@ module EliminateMulZero refines Induction {
     && res == Success((v, st'))
   }
 
-  predicate P_Fail ...
+  ghost predicate P_Fail ...
   {
     var e' := Eliminate(e);
     var res := InterpExpr(e, st);
@@ -143,7 +143,7 @@ module EliminateMulZero refines Induction {
     && res.Failure?
   }
 
-  predicate Pes ...
+  ghost predicate Pes ...
   {
     var es' := Eliminate_Es(es);
     var res := InterpExprs(es, st);
@@ -151,7 +151,7 @@ module EliminateMulZero refines Induction {
     EqResult(res, res')
   }
 
-  predicate Pes_Succ ...
+  ghost predicate Pes_Succ ...
   {
     var es' := Eliminate_Es(es);
     var res := InterpExprs(es, st);
@@ -160,7 +160,7 @@ module EliminateMulZero refines Induction {
     && res == Success((vs, st'))
   }
 
-  predicate Pes_Fail ...
+  ghost predicate Pes_Fail ...
   {
     var es' := Eliminate_Es(es);
     var res := InterpExprs(es, st);
@@ -169,12 +169,12 @@ module EliminateMulZero refines Induction {
     && res.Failure?
   }
 
-  predicate UpdateState_Pre ...
+  ghost predicate UpdateState_Pre ...
   {
     && |vars| == |argvs|
   }
 
-  function AssignState ...
+  ghost function AssignState ...
   {
     var ctx := st;
     var bindings := VarsAndValuesToContext(vars, vals);
@@ -183,7 +183,7 @@ module EliminateMulZero refines Induction {
     st'
   }
 
-  function BindStartScope ...
+  ghost function BindStartScope ...
   {
     var ctx := st;
     var bindings := VarsAndValuesToContext(vars, vals);
@@ -192,7 +192,7 @@ module EliminateMulZero refines Induction {
     st'
   }
 
-  function BindEndScope ...
+  ghost function BindEndScope ...
   {
     var ctx0 := st0;
     var ctx := st;
@@ -201,7 +201,7 @@ module EliminateMulZero refines Induction {
     st'
   }
 
-  function P_Step ...
+  ghost function P_Step ...
   {
     var Success((v, ctx1)) := InterpExpr(e, st);
     (ctx1, v)

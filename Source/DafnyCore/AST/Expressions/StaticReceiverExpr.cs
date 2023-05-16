@@ -81,6 +81,17 @@ public class StaticReceiverExpr : LiteralExpr {
 
   public override bool IsImplicit { get; }
 
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (ObjectToDiscard != null) {
+        yield return ObjectToDiscard;
+      }
+      foreach (var ee in base.SubExpressions) {
+        yield return ee;
+      }
+    }
+  }
+
   public override IEnumerable<Node> Children =>
     new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);
 }

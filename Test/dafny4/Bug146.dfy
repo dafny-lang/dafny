@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method inhabited(world: array2<bool>): bool
+function inhabited(world: array2<bool>): bool
 {
     exists i,j :: 0 <= i < world.Length0 && 0 <= j < world.Length1 && world[i,j]  // error: insufficient reads clause
 }
@@ -20,7 +20,7 @@ method GameOfLife(size: nat, N: nat)
     }
 }
 
-function method inhabited2(world: array2<bool>): bool
+function inhabited2(world: array2<bool>): bool
     reads world
 {
     exists i,j :: 0 <= i < world.Length0 && 0 <= j < world.Length1 && world[i,j]

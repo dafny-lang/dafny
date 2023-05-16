@@ -80,7 +80,7 @@ class CP<T,U> {
 
 datatype Data = Lemon | Kiwi(int)
 
-function G(d: Data): int
+ghost function G(d: Data): int
   requires d != Data.Lemon
 {
   match d
@@ -93,7 +93,7 @@ function G(d: Data): int
 datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
 class DatatypeInduction<T(!new)> {
-  function LeafCount<G>(tree: Tree<G>): int
+  ghost function LeafCount<G>(tree: Tree<G>): int
   {
     match tree
     case Leaf(t) => 1
@@ -127,7 +127,7 @@ class DatatypeInduction<T(!new)> {
     assert forall t: Tree<T> {:induction} :: 2 <= LeafCount(t);  // error: fails for Leaf case
   }
 
-  function Predicate(): bool
+  ghost function Predicate(): bool
   {
     forall t: Tree<T> {:induction} :: 2 <= LeafCount(t)
   }

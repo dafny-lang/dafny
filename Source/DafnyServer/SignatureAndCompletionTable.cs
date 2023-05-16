@@ -13,7 +13,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyServer {
   public class LegacySymbolTable {
     private readonly Program _dafnyProgram;
-    private readonly List<SymbolInformation> _information = new List<SymbolInformation>();
+    private readonly List<SymbolInformation> _information = new();
 
     public LegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
@@ -29,9 +29,8 @@ namespace DafnyServer {
     }
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var clbl in
-          ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => e != null && !(e.Tok is IncludeToken))) {
+      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                 Where(e => e != null && !e.Tok.WasIncluded(_dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -87,8 +86,8 @@ namespace DafnyServer {
     }
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (
-          var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken))) {
+      foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
+                 Where(e => e != null && !e.Tok.WasIncluded(_dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
@@ -107,8 +106,9 @@ namespace DafnyServer {
       }
     }
 
-    private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => !(cl.tok is IncludeToken))) {
+    private void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
+      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).
+                 Where(cl => !cl.Tok.WasIncluded(_dafnyProgram))) {
         if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
@@ -122,10 +122,10 @@ namespace DafnyServer {
       }
     }
 
-    private static ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
+    private ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
       var requires = new List<string>();
       foreach (var maybeFreeExpression in contractClauses) {
-        requires.Add(Printer.ExprToString(maybeFreeExpression.E));
+        requires.Add(Printer.ExprToString(_dafnyProgram.Options, maybeFreeExpression.E));
       }
       return requires;
     }
@@ -155,7 +155,7 @@ namespace DafnyServer {
                   ParentClass = userType.ResolvedClass.SanitizedName,
                   Module = userType.ResolvedClass.EnclosingModuleDefinition.SanitizedName,
                   SymbolType = SymbolInformation.Type.Definition,
-                  StartToken = method.BodyStartTok,
+                  StartToken = method.StartToken,
                   EndToken = method.EndToken
                 });
               }
@@ -254,7 +254,8 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                   Where(e => !e.Tok.WasIncluded(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -272,7 +273,8 @@ namespace DafnyServer {
       var information = new List<ReferenceInformation>();
 
       foreach (var module in _dafnyProgram.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).Where(e => !(e.Tok is IncludeToken))) {
+        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
+                   Where(e => !e.Tok.WasIncluded(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }

@@ -16,7 +16,7 @@ module A' {
 module B {  // non-static const's
   class Class {
     const a: int := 10
-    static function method G(): int
+    static ghost function G(): int
     {
       a  // error: "a" is an instance field, but G() is static
     }
@@ -27,7 +27,7 @@ module C {  // ghost const's
   ghost const x: int := 10
   class Class {
     ghost const y: int := 20
-    function method F(): int
+    function F(): int
     {
       x +  // error: "x" is ghost
       y  // error: "y" is ghost
@@ -109,13 +109,13 @@ module G {
   const a: int := c  // error: cyclic dependency between a, b, and c
   const b := G(a)
   const c := F(b)
-  function method G(x: int): int { x + 2 }
-  function method F(x: int): int { 2 * x }
+  function G(x: int): int { x + 2 }
+  function F(x: int): int { 2 * x }
 
   ghost const x: int := H(10)  // error: cyclic dependency between x and H
-  function H(y: int): int { y + x }
+  ghost function H(y: int): int { y + x }
 
-  function H'(y: int): int { y + x' }
+  ghost function H'(y: int): int { y + x' }
   ghost const x': int := H'(10)  // error: cyclic dependency between x' and H'
 }
 
@@ -125,7 +125,7 @@ module H { // self cycles are checked earlier
 
 module I {
   newtype A = x: int | F(x)  // error: recursive dependency: A, F
-  function F(x: int): bool
+  ghost function F(x: int): bool
   {
     var b: A :| true;
     b == b
@@ -134,7 +134,7 @@ module I {
 
 module J {
   newtype A = x: int | F(x)  // error: recursive dependency: A, F, B
-  function F(x: int): bool
+  ghost function F(x: int): bool
   {
     var b: B :| true;
     b == b
@@ -144,7 +144,7 @@ module J {
 
 module K {
   newtype A = x: int | var l := F(x); true  // error: recursive dependency: A, F, B
-  function F(x: int): bool
+  ghost function F(x: int): bool
   {
     var b: B := 6;
     b == b
@@ -154,7 +154,7 @@ module K {
 
 module L {
   newtype A = x: int | F(x)  // error: recursive dependency: A, F, B
-  function F(x: int): bool
+  ghost function F(x: int): bool
   {
     var b: B :| true;
     b == b
@@ -164,7 +164,7 @@ module L {
 
 module M {
   newtype A = x: int | F(x)  // error: recursive dependency: A, F, B, C
-  function F(x: int): bool
+  ghost function F(x: int): bool
   {
     var b: B :| true;
     b == b
@@ -174,16 +174,16 @@ module M {
 }
 
 module N {
-  predicate Cmp(x: int, y: int) { x < y }
+  ghost predicate Cmp(x: int, y: int) { x < y }
 
   // here comes a long recursive definition of the constraints
   newtype A = x: int | Cmp(x, b)  // error: recursive dependency: A, b, MakeC, C, D, E, f, G, H, I, j, K, L, M, n, MakeA
   const b := var c := MakeC(); if c == c then 5 else 7
-  function method MakeC(): C
+  function MakeC(): C
   type C = D
   datatype D = Ctor(E)
   type E = x: int | f(x)
-  predicate f(x: int)
+  ghost predicate f(x: int)
   {
     var g: G :| true;  // function -> codatatype
     x % 3 == 0
@@ -191,7 +191,7 @@ module N {
   codatatype G = CoCtor(H)
   type H = I
   type I = x: int | j(x)
-  predicate j(x: int)
+  ghost predicate j(x: int)
   {
     var k: (bool, K) :| true;
     x % 5 == 0
@@ -200,7 +200,7 @@ module N {
   datatype L = LCtor((M, real))
   type M = x: int | x < n
   const n := var o: (bv5, A) := (2, MakeA()); 300
-  function method MakeA(): A
+  function MakeA(): A
 }
 
 module O {

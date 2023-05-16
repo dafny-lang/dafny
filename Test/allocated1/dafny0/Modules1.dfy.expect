@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Modules1.dfy(10,8): Error: target object might not be allocated
 Modules1.dfy(82,15): Error: assertion might not hold
 Modules1.dfy(95,15): Error: assertion might not hold

@@ -80,7 +80,7 @@ module Constraints {
   newtype B = x: A | x < 100
   newtype C = B  // the constraints 0 <= x < 100 still apply
 
-  predicate IsEven(x: int)  // note that this is a ghost predicate
+  ghost predicate IsEven(x: int)  // note that this is a ghost predicate
   {
     x % 2 == 0
   }
@@ -288,7 +288,7 @@ module BigOrdinals {
 module Cycle0 {
   type X = x: int | P(x) // error: recursive constraint dependency
 
-  predicate P(y: int) {
+  ghost predicate P(y: int) {
     M();
     true
   }
@@ -303,7 +303,7 @@ module Cycle1 {
   type X = Y
   type Y = x: int | P(x) // error: recursive constraint dependency
 
-  predicate P(y: int) {
+  ghost predicate P(y: int) {
     M();
     true
   }
@@ -316,7 +316,7 @@ module Cycle1 {
 module Cycle2 {
   newtype X = x: int | P(x) // error: recursive constraint dependency
 
-  predicate P(y: int) {
+  ghost predicate P(y: int) {
     M();
     true
   }
@@ -331,7 +331,7 @@ module Cycle3 {
   type X = Y
   newtype Y = x: int | P(x) // error: recursive constraint dependency
 
-  predicate P(y: int) {
+  ghost predicate P(y: int) {
     M();
     true
   }
@@ -358,7 +358,7 @@ module LongerCycle1 {
   type G2 = G3<int>
   type G3<X> = (X, G4)
   newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency
-  predicate P(r: G5)
+  ghost predicate P(r: G5)
   datatype G5 = G5(G6)
   codatatype G6 = G6(set<G0>)
 }
@@ -369,7 +369,7 @@ module LongerCycle2 {
   type G2 = G3<int>
   type G3<X> = (X, G4)
   newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency / illegally uses a reference type
-  predicate P(r: G5)
+  ghost predicate P(r: G5)
   datatype G5 = G5(G6)
   codatatype G6 = G6(array<G0>)
 }
@@ -380,7 +380,7 @@ module CycleUnsoundnessRegression {
   type X = Y
   type Y = x: int | P(x) witness (M(); 2) // error: recursive constraint dependency
 
-  predicate P(y: int) {
+  ghost predicate P(y: int) {
     false
   }
 

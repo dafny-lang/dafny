@@ -78,8 +78,8 @@ module DirectUse {
     method Print() { print "hello\n"; }
     lemma Lemma()
     datatype Record = Record(x: int)
-    function method F(): int
-    function G(): int
+    function F(): int
+    ghost function G(): int
     const c: int
     ghost const d: int
   }

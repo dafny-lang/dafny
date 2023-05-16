@@ -1,10 +1,10 @@
-MoreInduction.dfy(78,0): Error: A postcondition might not hold on this return path.
-MoreInduction.dfy(77,10): Related location: This is the postcondition that might not hold.
-MoreInduction.dfy(83,0): Error: A postcondition might not hold on this return path.
-MoreInduction.dfy(82,20): Related location: This is the postcondition that might not hold.
-MoreInduction.dfy(88,0): Error: A postcondition might not hold on this return path.
-MoreInduction.dfy(87,10): Related location: This is the postcondition that might not hold.
-MoreInduction.dfy(93,0): Error: A postcondition might not hold on this return path.
-MoreInduction.dfy(92,21): Related location: This is the postcondition that might not hold.
+MoreInduction.dfy(78,0): Error: a postcondition could not be proved on this return path
+MoreInduction.dfy(77,10): Related location: this is the postcondition that could not be proved
+MoreInduction.dfy(83,0): Error: a postcondition could not be proved on this return path
+MoreInduction.dfy(82,20): Related location: this is the postcondition that could not be proved
+MoreInduction.dfy(88,0): Error: a postcondition could not be proved on this return path
+MoreInduction.dfy(87,10): Related location: this is the postcondition that could not be proved
+MoreInduction.dfy(93,0): Error: a postcondition could not be proved on this return path
+MoreInduction.dfy(92,21): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 9 verified, 4 errors

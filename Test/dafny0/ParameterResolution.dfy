@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Actuals {
-  function method F(x: int, y: int, z: int): int
+  function F(x: int, y: int, z: int): int
 
   method M0() {
     var a0 := F(2, 3, 5);
@@ -43,13 +43,13 @@ module Formals {
     method M3(x: ORDINAL := 5)
     method M4(x: int := Generic0<GG>(), y: int := 0)
     method M5(x: int := Generic1(y), y: int := 0)
-    function method Generic0<X>(): int
-    function method Generic1<X>(p: X): int
+    function Generic0<X>(): int
+    function Generic1<X>(p: X): int
 
     method T0(x: int := u + this.u + v + this.v, y: int := if this != null then 0 else 2)
-    function method T1(x: int := u + this.u + v + this.v, y: int := if this != null then 0 else 2): int
+    function T1(x: int := u + this.u + v + this.v, y: int := if this != null then 0 else 2): int
     static method T2(x: int := if this != null then 0 else 2) // error: 'this' is not in scope
-    static function T3(x: int := if this != null then 0 else 2): int // error: 'this' is not in scope
+    static ghost function T3(x: int := if this != null then 0 else 2): int // error: 'this' is not in scope
     static method T4(x: int := u + this.u + v + this.v) // error (x4): 'this' is not in scope
     constructor T5(x: int := this.u) // error: 'this' is not in scope for constructor
   }
@@ -63,14 +63,14 @@ module Formals {
 }
 
 module InfiniteExpansion {
-  function method C(n: nat := C()): nat // error: default-value expression has infinite expansion
+  function C(n: nat := C()): nat // error: default-value expression has infinite expansion
 
-  function F(m: nat := G(), n: nat := H()): int // error (3 cycles): default-value expression has infinite expansion
-  function G(m: nat := 10, n: nat := F()): int
-  function H(m: nat := F()): int
+  ghost function F(m: nat := G(), n: nat := H()): int // error (3 cycles): default-value expression has infinite expansion
+  ghost function G(m: nat := 10, n: nat := F()): int
+  ghost function H(m: nat := F()): int
 
   // The following two declarations can cause the Resolver to produce infinite expressions (or loop forever), if not handled carefully
-  function method InfiniteLoopFunction(n: nat := InfiniteLoopFunction()): nat // error: InfiniteLoopFunction used in its own default value
+  function InfiniteLoopFunction(n: nat := InfiniteLoopFunction()): nat // error: InfiniteLoopFunction used in its own default value
   lemma InfiniteLoopLemma(n: nat := (InfiniteLoopLemma(); 3)) // error: InfiniteLoopLemma used in its own default value
 }
 
@@ -81,20 +81,20 @@ module Modes {
   method G3(ghost x: int := y, ghost y: int := 0)
   ghost method G4(x: int := y, y: int := 0)
 
-  function method CompiledFunction(): int
-  function GhostFunction(): int
+  function CompiledFunction(): int
+  ghost function GhostFunction(): int
   method H0(x: int := CompiledFunction(), y: int := GhostFunction()) // error: y is assigned a ghost
   method H1(x: int := CompiledFunction(), ghost y: int := GhostFunction())
   method H2(ghost x: int := CompiledFunction(), y: int := GhostFunction()) // error: y is assigned a ghost
   method H3(ghost x: int := CompiledFunction(), ghost y: int := GhostFunction())
   ghost method H4(x: int := CompiledFunction(), y: int := GhostFunction())
 
-  function method FG(ghost u: int): int
-  function method FC(u: int): int
+  function FG(ghost u: int): int
+  function FC(u: int): int
   method          MG0(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
   method          MG1(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
-  function method MG2(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)): int
-  function method MG3(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)): int // error: call to FC passes in a ghost expression
+  function MG2(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)): int
+  function MG3(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)): int // error: call to FC passes in a ghost expression
   datatype MG4 =  MG4(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
   datatype MG5 =  MG5(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
   iterator        MG6(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
@@ -113,14 +113,14 @@ module Modes {
 
 module Overriding {
   trait Trait {
-    function method M(x: int := 5): int
-    function method N(x: int := 5): int
-    function method O(x: int): int
+    function M(x: int := 5): int
+    function N(x: int := 5): int
+    function O(x: int): int
   }
   class Class extends Trait {
-    function method M(x: int := 6): int { 2 * x } // it's fine to change default-value expressions
-    function method N(x: int): int { 2 * x } // it's fine to drop a default-value expression
-    function method O(x: int := 6): int { 2 * x } // it's fine to add a default-value expression
+    function M(x: int := 6): int { 2 * x } // it's fine to change default-value expressions
+    function N(x: int): int { 2 * x } // it's fine to drop a default-value expression
+    function O(x: int := 6): int { 2 * x } // it's fine to add a default-value expression
   }
   method TestOverriding(c: Class) {
     assert c.M() == 12;
@@ -136,9 +136,9 @@ module Overriding {
 }
 
 module RefinementA {
-  function method M(x: int := 5): int
-  function method N(x: int := 5): int
-  function method O(x: int): int
+  function M(x: int := 5): int
+  function N(x: int := 5): int
+  function O(x: int): int
 
   method Test0() {
     // the default value that gets used depends on the module where the call is
@@ -147,7 +147,7 @@ module RefinementA {
     assert O() == 10; // error (x2 -- the second time in RefinementB): needs a parameter
   }
 
-  function method FF(x: int := 5): (r: int)
+  function FF(x: int := 5): (r: int)
     ensures r == x
   method MM(x: int := 5) returns (r: int)
     ensures r == x
@@ -158,9 +158,9 @@ module RefinementA {
 }
 
 module RefinementB refines RefinementA {
-  function method M(x: int := 6): int { 2 * x } // error: refinement module cannot indicate default value on refined parameter
-  function method N(x: int): int { 2 * x }
-  function method O(x: int := 6): int { 2 * x } // error: refinement module cannot indicate default value on refined parameter
+  function M(x: int := 6): int { 2 * x } // error: refinement module cannot indicate default value on refined parameter
+  function N(x: int): int { 2 * x }
+  function O(x: int := 6): int { 2 * x } // error: refinement module cannot indicate default value on refined parameter
 
   method Test1() {
     // the default value that gets used depends on the module where the call is
@@ -169,8 +169,8 @@ module RefinementB refines RefinementA {
     assert O() == 12; // error: needs a parameter
   }
 
-  function method FF(x: int := 6): int { x } // error: refinement module cannot indicate default value on refined parameter
-  function method F'(x: int := 6): int { x }
+  function FF(x: int := 6): int { x } // error: refinement module cannot indicate default value on refined parameter
+  function F'(x: int := 6): int { x }
   method MM(x: int := 6) returns (r: int) // error: refinement module cannot indicate default value on refined parameter
   {
     r := x;
@@ -188,21 +188,21 @@ module RefinementB refines RefinementA {
 }
 
 module TypesAreDetermined {
-  function method F<X>(): int
+  function F<X>(): int
 
   method P(y: int := F()) { // error: type parameter X not determined
     var f := F(); // error: type parameter X not determined
   }
-  function G(y: int := F()): int // error: type parameter X not determined
+  ghost function G(y: int := F()): int // error: type parameter X not determined
   iterator Iter(y: int := F()) // error: type parameter X not determined (the error gets reported twice)
   datatype Record = Record(y: int := F()) // error: type parameter X not determined
 }
 
-module RequiresBeforeOptional {
-  datatype Color = Blue(x: int := y, y: int) // error: required parameters must precede optional parameters
-  iterator Iter(x: int := y, y: int) // error: required parameters must precede optional parameters (reported twice)
-  lemma Lemma(x: int := y, y: int) // error: required parameters must precede optional parameters
-  least predicate Least(x: int := y, y: int) // error: required parameters must precede optional parameters
+module RequiredBeforeOptional {
+  datatype Color = Blue(x: int := y, y: int)
+  iterator Iter(x: int := y, y: int)
+  lemma Lemma(x: int := y, y: int)
+  least predicate Least(x: int := y, y: int)
 }
 
 module TwoState {
@@ -210,7 +210,7 @@ module TwoState {
     var x: int
     method M(u: int := old(x)) // error: old not allowed in this context
     twostate lemma N(u: int := old(x))
-    function method F(u: int := old(x)): int // error: old not allowed in this context
+    function F(u: int := old(x)): int // error: old not allowed in this context
     twostate function G(u: int := old(x)): int
   }
   iterator Iter(c: C, u: int := old(c.x)) // error: old not allowed in this context
@@ -271,19 +271,19 @@ module NameOnlyParameters {
     method M(a: int, nameonly b: int, c: int := 100)
     method P(a: int, nameonly b: int, c: int := 100)
     twostate lemma N(a: int, nameonly b: int, c: int := 100)
-    function method F(a: int, nameonly b: int, c: int := 100): int
+    function F(a: int, nameonly b: int, c: int := 100): int
     least predicate LP(a: int, nameonly b: int, c: int := 100)
     static greatest predicate GP(a: int, nameonly b: int := 75, c: int := 100)
   }
-  iterator Iter(nameonly u: int, x: int)
+  iterator Iter(nameonly u: int, x: int) // error (x2, because of the desugaring of iterators): x is effectively nameonly, but not declared as such
   datatype D =
     | DD(a: int, nameonly b: int)
-    | DE(int, 0: int, real, nameonly 1: int, c: int)
+    | DE(int, 0: int, real, nameonly 1: int, c: int) // error: c is effective nameonly, but not declared as such
     | DF(800: int, nameonly 900: int, 9_0_0: int := 100)
   datatype E =
-    | E0(a: int, b: int := 6, int) // error: required parameters must preceded optional parameters
-    | E1(a: int, nameonly b: int := 6, u: int) // error: required parameters must preceded optional parameters
-    | E2(a: int, nameonly b: int, int) // error: after a 'nameonly' parameter, all remaining parameters must have names
+    | E0(a: int, b: int := 6, int) // error: there is no way for the default value of 'b' to be used
+    | E1(a: int, nameonly b: int := 6, u: int) // u is effectively nameonly
+    | E2(a: int, nameonly b: int, int) // error: after a 'nameonly' parameter, all remaining parameters must be nameonly or have a default value
 
   method Test() {
     var c: C;
@@ -354,5 +354,27 @@ module NameOnlyParameters {
     d := DF(900 := 3, 9_0_0 := 4, 800 := 2);
     d := DF(2, 0900 := 3, 9_0_0 := 4); // error (x2): no parameter is named '0900'; no argument passed for parameter '900'
     d := DF(2, 900 := 3, 90_0 := 4); // error: no parameter is named '90_0'
+  }
+
+  // Issue 3859
+  datatype Foo = Foo(nameonly bar: string := "", nameonly baz: string, qux: int := 8)
+  function FooF(nameonly bar: string := "", nameonly baz: string, qux: int := 8): int
+  method FooM(nameonly bar: string := "", nameonly baz: string, qux: int := 8)
+
+  datatype XFoo = XFoo(bar: string := "", nameonly baz: string, qux: int := 8)
+  function XFooF(bar: string := "", nameonly baz: string, qux: int := 8): int
+  method XFooM(bar: string := "", nameonly baz: string, qux: int := 8)
+
+  datatype YFoo = YFoo(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0) // error: onho is effectively nameonly, but not declared as such
+  function YFooF(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0): int // error: onho is effectively nameonly, but not declared as such
+  method YFooM(bar: string := "", nameonly baz: string, qux: int := 8, ohno: int, quux: real := 2.0) // error: onho is effectively nameonly, but not declared as such
+
+  method FooUse() {
+    var f := Foo(baz := "yeah");
+    f := Foo(baz := "yeah", bar := "fun");
+    f := Foo(bar := "fun", baz := "yeah", qux := 10);
+    f := Foo(qux := 10, baz := "yeah");
+    f := Foo(); // error: baz is missing
+    var y := YFoo(baz := "a", ohno := 21);
   }
 }

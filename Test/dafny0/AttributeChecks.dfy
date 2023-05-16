@@ -54,7 +54,7 @@ module JustAboutEverything {
     }
   }
 
-  function method CaseExpr(r: List<int>): List<int>
+  function CaseExpr(r: List<int>): List<int>
   {
     match r {
       case Nil => Nil
@@ -106,7 +106,7 @@ module JustAboutEverything {
   datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
     | {:dt 50} Blue | {:dt k, this} Green // error (x2): k is unknown, this is not allowed
 
-  function FAttr(x: int): int
+  ghost function FAttr(x: int): int
     requires {:myAttr false + 3} true // error: false + 3 is ill-typed
     ensures {:myAttr false + 3} true // error: false + 3 is ill-typed
     decreases {:myAttr false + 3} x // error: false + 3 is ill-typed
@@ -114,7 +114,7 @@ module JustAboutEverything {
     10
   }
 
-  function GAttr(x: int): int
+  ghost function GAttr(x: int): int
     requires {:myAttr old(3)} true // error: old is not allowed here
     ensures {:myAttr old(3)} true // error: old is not allowed here
     decreases {:myAttr old(3)} x // error: old is not allowed here
@@ -122,7 +122,7 @@ module JustAboutEverything {
     10
   }
 
-  function HAttr(x: int): (r: int)
+  ghost function HAttr(x: int): (r: int)
     requires {:myAttr x, r} true // error: r is not in scope here
     ensures {:myAttr x, r} true
     decreases {:myAttr x, r} x // error: r is not in scope here
@@ -330,7 +330,7 @@ module JustAboutEverything {
       100;
   }
 
-  function ExtendedPrintExpr(): int {
+  ghost function ExtendedPrintExpr(): int {
     var
       a, b {:boolAttr false + 3} :| a == 0 && b == 1; // error: false + 3 is ill-typed
       100
@@ -347,15 +347,15 @@ module JustAboutEverything {
   method GiveMustHave() returns (r: MustHave<int>)
 
   datatype Option<+T> = None | Some(value: T) {
-    predicate method IsFailure() {
+    predicate IsFailure() {
       None?
     }
-    function method PropagateFailure<U>(): Option<U>
+    function PropagateFailure<U>(): Option<U>
       requires None?
     {
       None
     }
-    function method Extract(): T
+    function Extract(): T
       requires Some?
     {
       value
@@ -363,10 +363,10 @@ module JustAboutEverything {
   }
 
   datatype MustHave<+T> = HasIt | DoesNotHave(value: T) {
-    predicate method IsFailure() {
+    predicate IsFailure() {
       DoesNotHave?
     }
-    function method PropagateFailure(): Option<T>
+    function PropagateFailure(): Option<T>
       requires DoesNotHave?
     {
       None
@@ -386,7 +386,7 @@ module TwoStateAttributes {
   class C {
     var data: int
 
-    function {:myAttr old(data), x, r} F(x: int): (r: int) // error: old not allowed in this context
+    ghost function {:myAttr old(data), x, r} F(x: int): (r: int) // error: old not allowed in this context
 
     twostate function {:myAttr old(data), x, r} F2(x: int): (r: int) // old is allowed
 

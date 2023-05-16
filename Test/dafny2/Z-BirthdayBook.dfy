@@ -41,7 +41,7 @@ abstract module Specification {
     var known: set<Name>
     var birthday: map<Name, Date>
 
-    predicate Valid() {
+    ghost predicate Valid() {
       // In Z notation:  known = dom birthday
       known == birthday.Keys
     }

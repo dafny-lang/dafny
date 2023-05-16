@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function bad(n: nat): nat
+ghost function bad(n: nat): nat
   decreases n
 {
   bad(n+1)  // error: termination failure
@@ -12,7 +12,7 @@ ghost method go_bad()
 }
 
 datatype Nat = Zero | Succ(tail: Nat)
-predicate ThProperty(step: nat, t: Nat, r: nat)
+ghost predicate ThProperty(step: nat, t: Nat, r: nat)
 {
   match t
   case Zero => true
@@ -25,7 +25,7 @@ ghost method test_ThProperty()
 }
 
 // The following is a test that well-typedness antecednets are included in the literal axioms
-function StaticFact(n: nat): nat
+ghost function StaticFact(n: nat): nat
   ensures 0 < StaticFact(n)
 {
   if n == 0 then 1 else n * StaticFact(n - 1)
@@ -35,7 +35,7 @@ method test_StaticFact()
   assert StaticFact(0) == 1;
   assert 42 != 42;  // error:  this should fail
 }
-function fact(n: nat): nat
+ghost function fact(n: nat): nat
 {
   if (n==0) then 1 else n*fact(n-1)
 }

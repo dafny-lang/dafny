@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Twostate-Verification.dfy(34,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(39,26): Error: target object might not be allocated
 Twostate-Verification.dfy(44,34): Error: target object might not be allocated

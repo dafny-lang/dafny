@@ -6,7 +6,7 @@
 datatype DT = Make | Create(w: int) {
   static const b := 30
   const c := 40
-  function method F(): int {
+  function F(): int {
     if Make? then 92 else 95
   }
 }

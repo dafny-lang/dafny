@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny.Plugins {

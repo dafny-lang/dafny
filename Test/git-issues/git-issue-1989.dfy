@@ -7,7 +7,7 @@ module Test {
   class C {
   }
 
-  function arrSet(a: array<C>): set<object>
+  ghost function arrSet(a: array<C>): set<object>
     reads a
   {
     set i : int | 0 <= i < a.Length :: a[i]
@@ -25,22 +25,22 @@ module Test {
 
 // ---------------------------------------
 
-predicate P(s: seq<int>)
-predicate Q(a: array<int>)
+ghost predicate P(s: seq<int>)
+ghost predicate Q(a: array<int>)
   reads a
 
 class C {
   var x: int
 
-  predicate PInClass(s: seq<int>)
-  static predicate StaticPInClass(s: seq<int>)
+  ghost predicate PInClass(s: seq<int>)
+  static ghost predicate StaticPInClass(s: seq<int>)
 
-  predicate QInClass(a: array<int>)
+  ghost predicate QInClass(a: array<int>)
     reads a
-  static predicate StaticQInClass(a: array<int>)
+  static ghost predicate StaticQInClass(a: array<int>)
     reads a
 
-  predicate R(y: int := x)
+  ghost predicate R(y: int := x)
     reads this
 }
 

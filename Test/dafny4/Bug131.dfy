@@ -7,5 +7,5 @@ class Cell {
   }
 }
 
-predicate F()
+ghost predicate F()
 

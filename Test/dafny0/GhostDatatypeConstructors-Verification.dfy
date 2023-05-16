@@ -128,7 +128,7 @@ module Members {
   {
     const n := 100
 
-    function F(): int {
+    ghost function F(): int {
       3
     }
 

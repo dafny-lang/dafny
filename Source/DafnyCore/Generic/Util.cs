@@ -17,11 +17,15 @@ namespace Microsoft.Dafny {
   public static class Util {
 
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
+#pragma warning disable VSTHRD003
       return Select(task, f).Unwrap();
+#pragma warning restore VSTHRD003
     }
 
     public static Task<U> Select<T, U>(this Task<T> task, Func<T, U> f) {
+#pragma warning disable VSTHRD105
       return task.ContinueWith(completedTask => f(completedTask.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+#pragma warning restore VSTHRD105
     }
 
     public static string Comma(this IEnumerable<string> l) {
@@ -187,8 +191,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static void ValidateEscaping(IToken t, string s, bool isVerbatimString, Errors errors) {
-      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
+    public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
+      if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
             errors.SemErr(t, "\\u escape sequences are not permitted when Unicode chars are enabled");
@@ -229,13 +233,13 @@ namespace Microsoft.Dafny {
     /// Replaced any escaped characters in s by the actual character that the escaping represents.
     /// Assumes s to be a well-parsed string.
     /// </summary>
-    public static string RemoveEscaping(string s, bool isVerbatimString) {
+    public static string RemoveEscaping(DafnyOptions options, string s, bool isVerbatimString) {
       Contract.Requires(s != null);
       var sb = new StringBuilder();
-      if (DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters)) {
-        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
+      if (options.Get(CommonOptionBag.UnicodeCharacters)) {
+        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append(new Rune(ch)));
       } else {
-        UnescapedCharacters(s, isVerbatimString).Iter(ch => sb.Append((char)ch));
+        UnescapedCharacters(options, s, isVerbatimString).Iter(ch => sb.Append((char)ch));
       }
       return sb.ToString();
     }
@@ -293,8 +297,8 @@ namespace Microsoft.Dafny {
     /// if --unicode-char is enabled - these are synthesized by the parser when
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
-    public static IEnumerable<int> UnescapedCharacters(string p, bool isVerbatimString) {
-      var unicodeChars = DafnyOptions.O.Get(CommonOptionBag.UnicodeCharacters);
+    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
+      var unicodeChars = options.Get(CommonOptionBag.UnicodeCharacters);
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {
@@ -479,11 +483,11 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
         foreach (var callee in vertex.Successors) {
-          Console.Write("{0} ", callee.N.SanitizedName);
+          program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
         }
-        Console.Write("\n");
+        program.Options.OutputWriter.Write("\n");
       }
     }
 
@@ -577,9 +581,9 @@ namespace Microsoft.Dafny {
       }
 
       // Print out the results, with some nice formatting
-      Console.WriteLine("");
-      Console.WriteLine("Statistics");
-      Console.WriteLine("----------");
+      program.Options.OutputWriter.WriteLine("");
+      program.Options.OutputWriter.WriteLine("Statistics");
+      program.Options.OutputWriter.WriteLine("----------");
 
       int max_key_length = 0;
       foreach (var key in stats.Keys) {
@@ -590,7 +594,7 @@ namespace Microsoft.Dafny {
 
       foreach (var keypair in stats) {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
-        Console.WriteLine("{0} {1,4}", keyString, keypair.Value);
+        program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
   }
@@ -604,7 +608,7 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.IncluderFilename ?? "roots";
+      string key = include.IncluderFilename.LocalPath ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
         existingDependencies.Add(include.CanonicalPath);
@@ -621,20 +625,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMap() {
+    public void PrintMap(DafnyOptions options) {
       SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
-        System.Console.Write(target);
+        options.OutputWriter.Write(target);
         foreach (string dependency in dependencies[target]) {
-          System.Console.Write(";" + dependency);
+          options.OutputWriter.Write(";" + dependency);
           if (!dependencies.ContainsKey(dependency)) {
             leaves.Add(dependency);
           }
         }
-        System.Console.WriteLine();
+        options.OutputWriter.WriteLine();
       }
       foreach (string leaf in leaves) {
-        System.Console.WriteLine(leaf);
+        options.OutputWriter.WriteLine(leaf);
       }
     }
   }

@@ -3,7 +3,7 @@
 
 codatatype Stream<T> = Cons(head: T, tail: Stream)
 
-function Upward(n: int): Stream<int>
+ghost function Upward(n: int): Stream<int>
 {
   Cons(n, Upward(n + 1))
 }
@@ -12,7 +12,7 @@ greatest predicate Pos(s: Stream<int>)
 {
   0 < s.head && Pos(s.tail)
 }
-predicate FullPos(s: Stream<int>) { Pos(s) }  // a way in the test file to sidestep focal-predicate rewrites
+ghost predicate FullPos(s: Stream<int>) { Pos(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 greatest lemma {:induction false} PosLemma0(n: int)
   requires 1 <= n;
@@ -84,7 +84,7 @@ greatest lemma {:induction false} AlwaysLemma_X1(s: Stream)
 {
   AlwaysLemma_X1(s);  // this is the right proof
 }
-predicate FullX(s: Stream) { X(s) }  // a way in the test file to sidestep focal-predicate rewrites
+ghost predicate FullX(s: Stream) { X(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 greatest lemma {:induction false} AlwaysLemma_X2(s: Stream)
   ensures X(s);
@@ -114,7 +114,7 @@ greatest predicate Y(s: Stream)  // this is equivalent to always returning 'true
 {
   Y(s.tail)
 }
-predicate FullY(s: Stream) { Y(s) }  // a way in the test file to sidestep focal-predicate rewrites
+ghost predicate FullY(s: Stream) { Y(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
 greatest lemma {:induction false} AlwaysLemma_Y0(s: Stream)
   ensures Y(s);  // prove that Y(s) really is always 'true'
@@ -165,7 +165,7 @@ greatest lemma {:induction false} AlwaysLemma_Z(s: Stream)
   AlwaysLemma_Z(s);
 }
 
-function Doubles(n: int): Stream<int>
+ghost function Doubles(n: int): Stream<int>
 {
   Cons(2*n, Doubles(n + 1))
 }
@@ -181,7 +181,7 @@ greatest lemma {:induction false} Lemma0(n: int)
   Lemma0(n+1);
 }
 
-function UpwardBy2(n: int): Stream<int>
+ghost function UpwardBy2(n: int): Stream<int>
 {
   Cons(n, UpwardBy2(n + 2))
 }
@@ -224,7 +224,7 @@ ghost method M(s: IList)
   }
 }
 
-function G(s: IList): int
+ghost function G(s: IList): int
 {
   match s
   case INil =>

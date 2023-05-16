@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class X {
-  function method F(): int { 2 }
+  function F(): int { 2 }
   var J: int
 }
 

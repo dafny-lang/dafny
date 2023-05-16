@@ -9,29 +9,29 @@ Modules0.dfy(14,8): Error: duplicate name of top-level declaration: WazzupB
 Modules0.dfy(15,11): Error: duplicate name of top-level declaration: WazzupB
 Modules0.dfy(8,8): Error: a module that already contains a top-level declaration 'WazzupA?' is not allowed to declare a class 'WazzupA'
 Modules0.dfy(39,8): Error: class 'X' with fields without known initializers, like 't' of type 'MM.T', must declare a constructor
-Modules0.dfy(56,21): Error: Undeclared top-level type or type parameter: MyClass1 (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(57,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(68,21): Error: Undeclared top-level type or type parameter: MyClass2 (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(84,24): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(93,19): Error: Undeclared top-level type or type parameter: ClassG (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(101,14): Error: Undeclared top-level type or type parameter: MyClassY (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(226,15): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(226,8): Error: new can be applied only to class types (got X)
+Modules0.dfy(56,21): Error: Type or type parameter is not declared in this scope: MyClass1 (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(57,21): Error: Type or type parameter is not declared in this scope: MyClass2 (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(68,21): Error: Type or type parameter is not declared in this scope: MyClass2 (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(84,24): Error: Type or type parameter is not declared in this scope: MyClassY (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(93,19): Error: Type or type parameter is not declared in this scope: ClassG (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(101,14): Error: Type or type parameter is not declared in this scope: MyClassY (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(226,15): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(226,11): Error: new can be applied only to class types (got X)
 Modules0.dfy(235,13): Error: module 'B' does not declare a type 'X'
 Modules0.dfy(245,13): Error: unresolved identifier: X
 Modules0.dfy(246,15): Error: member 'DoesNotExist' does not exist in class 'X'
-Modules0.dfy(285,19): Error: Undeclared top-level type or type parameter: D (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(285,12): Error: new can be applied only to class types (got D)
+Modules0.dfy(285,19): Error: Type or type parameter is not declared in this scope: D (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(285,15): Error: new can be applied only to class types (got D)
 Modules0.dfy(288,25): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(289,16): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(289,17): Error: expected method call, found expression
 Modules0.dfy(290,16): Error: type of the receiver is not fully determined at this program point
 Modules0.dfy(290,17): Error: expected method call, found expression
 Modules0.dfy(314,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type Q_Imp.Node, or a map with domain Q_Imp.Node (instead got set<Node>) (expecting element type to be assignable to Node (got Q_Imp.Node))
-Modules0.dfy(319,11): Error: Undeclared top-level type or type parameter: LongLostModule (did you forget to qualify a name or declare a module import 'opened'?)
-Modules0.dfy(320,11): Error: Undeclared top-level type or type parameter: Wazzup (did you forget to qualify a name or declare a module import 'opened'?)
+Modules0.dfy(319,11): Error: Type or type parameter is not declared in this scope: LongLostModule (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+Modules0.dfy(320,11): Error: Type or type parameter is not declared in this scope: Wazzup (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
 Modules0.dfy(321,17): Error: module 'Q_Imp' does not declare a type 'Edon'
-Modules0.dfy(323,10): Error: new can be applied only to class types (got Q_Imp.List<?>)
+Modules0.dfy(323,13): Error: new can be applied only to class types (got Q_Imp.List<?>)
 Modules0.dfy(324,23): Error: member 'Create' does not exist in class 'Klassy'
 Modules0.dfy(324,10): Error: when allocating an object of type 'Klassy', one of its constructor methods must be called
 Modules0.dfy(318,13): Error: arguments must have comparable types (got Q_Imp.Node and Node)

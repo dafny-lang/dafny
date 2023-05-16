@@ -6,7 +6,7 @@ Dafny program verifier did not attempt verification
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] Q {} 0 Dt.D0(0)
+0 [] 'Q' {} 0 Dt.D0(0)
 false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
@@ -27,7 +27,7 @@ Dafny program verifier did not attempt verification
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] Q {} 0 Dt.D0(0)
+0 [] 'Q' {} 0 Dt.D0(0)
 false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
@@ -48,7 +48,7 @@ Dafny program verifier did not attempt verification
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] Q {} 0 Dt.D0(0)
+0 [] 'Q' {} 0 Dt.D0(0)
 false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
@@ -69,7 +69,7 @@ Dafny program verifier did not attempt verification
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] Q {} 0 Dt.D0(0)
+0 [] 'Q' {} 0 Dt.D0(0)
 false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
@@ -90,7 +90,7 @@ Dafny program verifier did not attempt verification
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] Q {} 0 Dt.D0(0)
+0 [] 'Q' {} 0 Dt.D0(0)
 false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9

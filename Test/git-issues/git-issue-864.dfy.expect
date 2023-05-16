@@ -1,3 +1,3 @@
 git-issue-864.dfy(13,8): Error: to redeclare and refine declaration 'T1' from module 'M1', you must use the refining (`...`) notation
-git-issue-864.dfy(14,19): Error: unresolved identifier: b
+git-issue-864.dfy(14,25): Error: unresolved identifier: b
 2 resolution/type errors detected in git-issue-864.dfy

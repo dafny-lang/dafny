@@ -47,7 +47,7 @@ method Search(N: int) returns (success: bool, board: seq<int>)
 
 // Given a board, this function says whether or not the queen placed in column 'pos'
 // is consistent with the queens placed in columns to its left.
-function method IsConsistent(board: seq<int>, pos: int): bool
+function IsConsistent(board: seq<int>, pos: int): bool
 {
   0 <= pos && pos < |board| &&
   (forall q :: 0 <= q && q < pos ==>
