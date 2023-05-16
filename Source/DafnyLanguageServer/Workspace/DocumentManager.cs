@@ -70,7 +70,7 @@ public class DocumentManager {
       services.GetRequiredService<ITextDocumentLoader>(),
       document);
     cancellationTokenSource = new();
-    
+
     changeReceived.Throttle(TimeSpan.FromMilliseconds(20)).ObserveOn(updateScheduler)
       .Subscribe(_ => ProcessChanges());
 
@@ -159,7 +159,7 @@ public class DocumentManager {
         .Take(MaxRememberedChanges).ToList()!;
     }
     observerSubscription.Dispose();
-    
+
     observer.LastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(changeProcessor, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = changeProcessor.MigrateSymbolTable(lastPublishedState.SignatureAndCompletionTable),
@@ -168,11 +168,10 @@ public class DocumentManager {
     CreateAndStartCompilation(compilationSource, observer.LastPublishedState, VerifyOnChange);
   }
 
-  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource, 
+  private void CreateAndStartCompilation(TaskCompletionSource<Compilation> compilationSource,
     IdeState lastIdeState,
-    bool verifyEverything)
-  {
-    
+    bool verifyEverything) {
+
     var _1 = workCompletedForCurrentVersion.WaitAsync();
     var compilation = new Compilation(
       services,
@@ -186,12 +185,9 @@ public class DocumentManager {
 
     observerSubscription = compilation.DocumentUpdates.Select(d => d.ToIdeState(lastIdeState)).Subscribe(observer);
 
-    if (verifyEverything)
-    {
+    if (verifyEverything) {
       var _ = VerifyEverythingAsync();
-    }
-    else
-    {
+    } else {
       workCompletedForCurrentVersion.Release();
     }
 

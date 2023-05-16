@@ -1131,7 +1131,7 @@ method Foo() {
       var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
       Assert.True(diagnostics2.Any());
     }
-    
+
     public DiagnosticsTest(ITestOutputHelper output) : base(output) {
     }
   }
