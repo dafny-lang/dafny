@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny {
       return ReadHeap(tok, heapExpr, e, predef.Alloc(tok));
     }
 
-    public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
+    public Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1507,6 +1507,24 @@ namespace Microsoft.Dafny {
       args.Add(r);
       return new Bpl.NAryExpr(tok,
         new Bpl.MapSelect(tok, 1),
+        args);
+    }
+
+    public Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
+      Contract.Requires(tok != null);
+      Contract.Requires(heap != null);
+      Contract.Requires(r != null);
+      Contract.Requires(f != null);
+      Contract.Requires(v != null);
+      Contract.Ensures(Contract.Result<Boogie.NAryExpr>() != null);
+
+      List<Boogie.Expr> args = new List<Boogie.Expr>();
+      args.Add(heap);
+      args.Add(r);
+      args.Add(f);
+      args.Add(v);
+      return new Boogie.NAryExpr(tok,
+        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "update", heap.Type)),
         args);
     }
 
@@ -8763,7 +8781,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(fseField != null);
                 Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
                 bldr.Add(cmd);
                 // assume $IsGoodHeap($Heap);
                 bldr.Add(AssumeGoodHeap(tok, et));
@@ -8791,7 +8809,7 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -8814,7 +8832,7 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, ExpressionTranslator.UpdateHeap(tok, h, obj, fieldName, rhs));
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, etran));
@@ -8986,7 +9004,7 @@ namespace Microsoft.Dafny {
             var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
             var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
             var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
-            var heapRhs = ExpressionTranslator.UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
+            var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
             heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
           }
           CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
@@ -9125,7 +9143,7 @@ namespace Microsoft.Dafny {
       // $Heap[$nw, alloc] := true;
       Bpl.Expr alloc = predef.Alloc(tok);
       Bpl.IdentifierExpr heap = etran.HeapCastToIdentifierExpr;
-      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, ExpressionTranslator.UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
+      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
       builder.Add(cmd);
       if (extraCmd != null) {
         builder.Add(extraCmd);

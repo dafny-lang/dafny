@@ -458,7 +458,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr obj = TrExpr(e.Obj);
                     Boogie.Expr result;
                     if (field.IsMutable) {
-                      result = ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)));
+                      result = translator.ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)));
                       return translator.CondApplyUnbox(GetToken(expr), result, field.Type, expr.Type);
                     } else {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)),
@@ -524,7 +524,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr x;
                 if (seqType.IsArrayType) {
                   Boogie.Expr fieldName = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.IndexField, null, e0);
-                  x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName);
+                  x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName);
                 } else if (seqType is SeqType) {
                   x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
                 } else if (seqType is MapType) {
@@ -591,7 +591,7 @@ namespace Microsoft.Dafny {
               Boogie.Type elType = translator.TrType(elmtType);
 
               Boogie.Expr fieldName = GetArrayIndexFieldName(GetToken(selectExpr), e.Indices);
-              Boogie.Expr x = ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName);
+              Boogie.Expr x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName);
               if (!ModeledAsBoxType(elmtType)) {
                 x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.Unbox, elType, x);
               }
@@ -1707,42 +1707,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         Contract.Requires(fromType != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
         return translator.BoxIfNecessary(tok, e, fromType);
-      }
-
-      public static Boogie.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
-        Contract.Requires(tok != null);
-        Contract.Requires(heap != null);
-        Contract.Requires(r != null);
-        Contract.Requires(f != null);
-        Contract.Ensures(Contract.Result<Boogie.NAryExpr>() != null);
-
-        List<Boogie.Expr> args = new List<Boogie.Expr>();
-        args.Add(heap);
-        args.Add(r);
-        args.Add(f);
-        Boogie.Type t = (f.Type != null) ? f.Type : f.ShallowType;
-        return new Boogie.NAryExpr(tok,
-          new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
-          args);
-      }
-
-
-      public static Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
-        Contract.Requires(tok != null);
-        Contract.Requires(heap != null);
-        Contract.Requires(r != null);
-        Contract.Requires(f != null);
-        Contract.Requires(v != null);
-        Contract.Ensures(Contract.Result<Boogie.NAryExpr>() != null);
-
-        List<Boogie.Expr> args = new List<Boogie.Expr>();
-        args.Add(heap);
-        args.Add(r);
-        args.Add(f);
-        args.Add(v);
-        return new Boogie.NAryExpr(tok,
-          new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "update", heap.Type)),
-          args);
       }
 
       /// <summary>
