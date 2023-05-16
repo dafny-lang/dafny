@@ -276,10 +276,12 @@ namespace Microsoft.Dafny {
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
             if (!df.IsPreverified) {
-              if (!options.Verify || options.VerificationScope == VerificationScope.Everything) {
+              if (!options.Verify || options.VerificationScope == VerificationScope.Everything
+                                  /* Since RootSources is already an unsafe option, we also allow it to skip verification of libraries */
+                                  || options.VerificationScope == VerificationScope.RootSources) {
                 df.IsPreverified = true;
               } else {
-                options.Printer.ErrorWriteLine(errorWriter, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything is used.");
+                options.Printer.ErrorWriteLine(errorWriter, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything or --verification-scope=RootSources is used.");
                 return CommandLineArgumentsResult.PREPROCESSING_ERROR;
               }
             }
