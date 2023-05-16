@@ -334,7 +334,11 @@ namespace Microsoft.Dafny {
             }
           } else {
             if (od.SupportsEquality) {
-              if (nw is ClassDecl || nw is NewtypeDecl) {
+              if (nw is TraitDecl traitDecl) {
+                if (!traitDecl.IsReferenceTypeDecl) {
+                  Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by this trait");
+                }
+              } else if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
                 Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
@@ -416,8 +420,14 @@ namespace Microsoft.Dafny {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
-        if (d is ClassDecl && !(d is TraitDecl)) {
+        if (d is ClassDecl) {
           m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+        } else {
+          Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        }
+      } else if (nw is DefaultClassDecl) {
+        if (d is DefaultClassDecl) {
+          m.TopLevelDecls[index] = MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }

@@ -999,10 +999,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
+  /// <summary>
+  /// Return every ClassDecl (including ArrayClassDecl and IteratorDecl), TraitDecl, and DefaultClassDecl
+  /// among the given "declarations".
+  /// </summary>
+  public static IEnumerable<TopLevelDeclWithMembers> AllClasses(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      if (d is ClassDecl cl) {
-        yield return cl;
+      if (d is ClassLikeDecl or DefaultClassDecl) {
+        yield return (TopLevelDeclWithMembers)d;
       }
     }
   }
@@ -1085,7 +1089,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(List<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       yield return d;
-      if (d is ClassDecl { NonNullTypeDecl: { } } cl) {
+      if (d is ClassLikeDecl { NonNullTypeDecl: { } } cl) {
         yield return cl.NonNullTypeDecl;
       }
     }
@@ -1290,6 +1294,11 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   /// </summary>
   public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
 
+  internal bool HeadDerivesFrom(TopLevelDecl b) {
+    Contract.Requires(b != null);
+    return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
+  }
+
   [FilledInDuringResolution] public InheritanceInformationClass ParentTypeInformation;
   public class InheritanceInformationClass {
     private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
@@ -1412,19 +1421,27 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   }
 }
 
-public class TraitDecl : ClassDecl {
-  public override string WhatKind { get { return "trait"; } }
+public class TraitDecl : ClassLikeDecl {
+  public override string WhatKind => "trait";
   public bool IsParent { set; get; }
+  public override bool AcceptThis => true;
+
+  public override bool IsReferenceTypeDecl => true; // SOON: IsObjectTrait || ParentTraits.Any(parent => parent.IsRefType);
+
   public TraitDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) { }
+    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type> /*?*/ traits)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
+
+    NonNullTypeDecl = new NonNullTypeDecl(this); // SOON: this should be done only if the trait is a reference type
+    this.NewSelfSynonym();
+  }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var assumption in base.Assumptions(this)) {
       yield return assumption;
     }
 
-    if (Attributes.Find(Attributes, "termination") is Attributes ta &&
+    if (Attributes.Find(Attributes, "termination") is { } ta &&
         ta.Args.Count == 1 && Expression.IsBoolLiteral(ta.Args[0], out var termCheck) &&
         termCheck == false) {
       yield return new Assumption(this, tok, AssumptionDescription.HasTerminationFalseAttribute);
@@ -1432,18 +1449,18 @@ public class TraitDecl : ClassDecl {
   }
 }
 
-public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
-  public override string WhatKind { get { return "class"; } }
-  public override bool CanBeRevealed() { return true; }
-  [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
-  public readonly NonNullTypeDecl NonNullTypeDecl;
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Members));
-    Contract.Invariant(ParentTraits != null);
-  }
+public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
+  public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
-  public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
+  public bool IsObjectTrait {
+    get => Name == "object";
+  }
+  public abstract bool IsReferenceTypeDecl { get; }
+
+  public TopLevelDecl AsTopLevelDecl => this;
+  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+
+  public ClassLikeDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
     Contract.Requires(rangeToken != null);
@@ -1451,55 +1468,45 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
-    Contract.Assume(!(this is ArrowTypeDecl));  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor; ArrowTypeDecl should use the next constructor
-    if (!IsDefaultClass) {
-      NonNullTypeDecl = new NonNullTypeDecl(this);
+  }
+
+  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    IToken classToken = null;
+    var parentTraitIndent = indentBefore + formatter.SpaceTab;
+    var commaIndent = indentBefore;
+    var extraIndent = 0;
+
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "class": {
+          classToken = token;
+          break;
+        }
+        case "extends": {
+          if (token.line != token.Next.line) {
+            extraIndent = classToken != null && classToken.line == token.line ? 0 : formatter.SpaceTab;
+            commaIndent += extraIndent;
+            formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab + extraIndent);
+          } else {
+            extraIndent += 2;
+            commaIndent = indentBefore + formatter.SpaceTab;
+            formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab);
+          }
+
+          break;
+        }
+        case ",": {
+          formatter.SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
+          break;
+        }
+      }
     }
-    this.NewSelfSynonym();
-  }
-  /// <summary>
-  /// The following constructor is supposed to be called by the ArrowTypeDecl subtype, in order to avoid
-  /// the call to this.NewSelfSynonym() (because NewSelfSynonym() depends on the .Arity field having been
-  /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
-  /// constructor will do that call.
-  /// </summary>
-  protected ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, null) {
-    Contract.Requires(rangeToken != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
-    Contract.Assume(this is ArrowTypeDecl);  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor
-  }
-  public virtual bool IsDefaultClass {
-    get {
-      return false;
+
+    foreach (var parent in ParentTraits) {
+      formatter.SetTypeIndentation(parent);
     }
-  }
 
-  public bool IsObjectTrait {
-    get => Name == "object";
-  }
-
-  internal bool HeadDerivesFrom(TopLevelDecl b) {
-    Contract.Requires(b != null);
-    return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
-  }
-
-  public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-
-    // Instantiate with the actual type arguments
-    if (typeArgs.Count == 0) {
-      // this optimization seems worthwhile
-      return ParentTraits;
-    } else {
-      var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-      return ParentTraits.ConvertAll(traitType => traitType.Subst(subst));
-    }
+    return true;
   }
 
   public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
@@ -1512,48 +1519,6 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
 
   public override List<Type> ParentTypes(List<Type> typeArgs) {
     return PossiblyNullTraitsWithArgument(typeArgs);
-  }
-
-  public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
-  public override bool AcceptThis => this is not DefaultClassDecl;
-  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IToken classToken = null;
-    var parentTraitIndent = indentBefore + formatter.SpaceTab;
-    var commaIndent = indentBefore;
-    var extraIndent = 0;
-
-    foreach (var token in OwnedTokens) {
-      switch (token.val) {
-        case "class": {
-            classToken = token;
-            break;
-          }
-        case "extends": {
-            if (token.line != token.Next.line) {
-              extraIndent = classToken != null && classToken.line == token.line ? 0 : formatter.SpaceTab;
-              commaIndent += extraIndent;
-              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab + extraIndent);
-            } else {
-              extraIndent += 2;
-              commaIndent = indentBefore + formatter.SpaceTab;
-              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab);
-            }
-
-            break;
-          }
-        case ",": {
-            formatter.SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
-            break;
-          }
-      }
-    }
-
-    foreach (var parent in ParentTraits) {
-      formatter.SetTypeIndentation(parent);
-    }
-
-    return true;
   }
 
   protected override string GetTriviaContainingDocstring() {
@@ -1575,17 +1540,50 @@ public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat
   }
 }
 
-public class DefaultClassDecl : ClassDecl {
+public class ClassDecl : ClassLikeDecl, IHasDocstring {
+  public override string WhatKind => "class";
+  public override bool IsReferenceTypeDecl => true;
+  public override bool AcceptThis => true;
+
+  public override bool CanBeRevealed() { return true; }
+  [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
+  [ContractInvariantMethod]
+  void ObjectInvariant() {
+    Contract.Invariant(cce.NonNullElements(Members));
+    Contract.Invariant(ParentTraits != null);
+  }
+
+  public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
+    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {
+    Contract.Requires(rangeToken != null);
+    Contract.Requires(name != null);
+    Contract.Requires(module != null);
+    Contract.Requires(cce.NonNullElements(typeArgs));
+    Contract.Requires(cce.NonNullElements(members));
+    NonNullTypeDecl = new NonNullTypeDecl(this);
+    this.NewSelfSynonym();
+  }
+}
+
+public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
+  public override string WhatKind => "top-level module declaration";
+  public override bool AcceptThis => false;
+
+  public TopLevelDecl AsTopLevelDecl => this;
+  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
     : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
     Contract.Requires(cce.NonNullElements(members));
+    this.NewSelfSynonym();
   }
-  public override bool IsDefaultClass => true;
 }
 
 public class ArrayClassDecl : ClassDecl {
-  public override string WhatKind { get { return "array type"; } }
+  public override string WhatKind => "array type";
+
   public readonly int Dims;
   public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(RangeToken.NoToken, new Name(BuiltIns.ArrayClassName(dims)), module,
@@ -1603,15 +1601,18 @@ public class ArrayClassDecl : ClassDecl {
   }
 }
 
-public class ArrowTypeDecl : ClassDecl {
-  public override string WhatKind { get { return "function type"; } }
+public class ArrowTypeDecl : ValuetypeDecl {
+  public override string WhatKind => "function type";
   public readonly int Arity;
   public readonly Function Requires;
   public readonly Function Reads;
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
-    : base(RangeToken.NoToken, new Name(ArrowType.ArrowTypeName(tps.Count - 1)), module, tps,
-      new List<MemberDecl> { req, reads }, attributes, false) {
+    : base(ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
+      new List<MemberDecl> { req, reads }, attributes,
+      ty =>
+        ty.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: ArrowTypeDecl arrowTypeDecl} && arrowTypeDecl.Arity == tps.Count - 1,
+      null) {
     Contract.Requires(tps != null && 1 <= tps.Count);
     Contract.Requires(req != null);
     Contract.Requires(reads != null);
@@ -1621,7 +1622,6 @@ public class ArrowTypeDecl : ClassDecl {
     Reads = reads;
     Requires.EnclosingClass = this;
     Reads.EnclosingClass = this;
-    this.NewSelfSynonym();
   }
 }
 
@@ -1852,14 +1852,15 @@ public class CoDatatypeDecl : DatatypeDecl {
 /// The "ValuetypeDecl" class models the built-in value types (like bool, int, set, and seq.
 /// Its primary function is to hold the formal type parameters and built-in members of these types.
 /// </summary>
-public class ValuetypeDecl : TopLevelDecl {
+public class ValuetypeDecl : TopLevelDeclWithMembers {
   public override string WhatKind { get { return "type"; } }
-  public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
   readonly Func<Type, bool> typeTester;
   readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
+  public override bool AcceptThis => true;
+
   public ValuetypeDecl(string name, ModuleDefinition module, Func<Type, bool> typeTester, Func<List<Type>, Type> typeCreator /*?*/)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), new List<MemberDecl>(), null, false, null) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
@@ -1869,7 +1870,7 @@ public class ValuetypeDecl : TopLevelDecl {
 
   public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter.TPVarianceSyntax> typeParameterVariance,
     Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-    : base(RangeToken.NoToken, new Name(name), module, new List<TypeParameter>(), null, false) {
+    : this(name, module, typeTester, typeCreator) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
     Contract.Requires(typeTester != null);
@@ -1884,6 +1885,11 @@ public class ValuetypeDecl : TopLevelDecl {
         TypeArgs.Add(tp);
       }
     }
+  }
+
+  public ValuetypeDecl(string name, ModuleDefinition module, List<TypeParameter> typeParameters,
+    List<MemberDecl> members, Attributes attributes, Func<Type, bool> typeTester, Func<List<Type>, Type> /*?*/ typeCreator)
+    : base(RangeToken.NoToken, new Name(name), module, typeParameters, members, attributes, false) {
     this.typeTester = typeTester;
     this.typeCreator = typeCreator;
   }
@@ -2533,24 +2539,25 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
 
 public class NonNullTypeDecl : SubsetTypeDecl {
   public override string WhatKind { get { return "non-null type"; } }
-  public readonly ClassDecl Class;
+  public readonly ClassLikeDecl Class;
+
   /// <summary>
   /// The public constructor is NonNullTypeDecl(ClassDecl cl). The rest is pretty crazy: There are stages of "this"-constructor calls
   /// in order to build values that depend on previously computed parameters.
   /// </summary>
-  public NonNullTypeDecl(ClassDecl cl)
+  public NonNullTypeDecl(ClassLikeDecl cl)
     : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics))) {
     Contract.Requires(cl != null);
   }
 
-  private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps)
+  private NonNullTypeDecl(ClassLikeDecl cl, List<TypeParameter> tps)
     : this(cl, tps,
       new BoundVar(cl.Tok, "c", new UserDefinedType(cl.Tok, cl.Name + "?", tps.Count == 0 ? null : tps.ConvertAll(tp => (Type)new UserDefinedType(tp))))) {
     Contract.Requires(cl != null);
     Contract.Requires(tps != null);
   }
 
-  private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
+  private NonNullTypeDecl(ClassLikeDecl cl, List<TypeParameter> tps, BoundVar id)
     : base(cl.RangeToken, cl.NameNode, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
       new BinaryExpr(cl.Tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.Tok, id), new LiteralExpr(cl.Tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute()) {
@@ -2565,7 +2572,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
 
     foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
-      Contract.Assert(rhsParentUdt.ResolvedClass is ClassDecl);
+      Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
       result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
     }
 

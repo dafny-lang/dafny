@@ -208,7 +208,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var isDefaultClass = cls is ClassDecl c && c.IsDefaultClass;
+      var isDefaultClass = cls is DefaultClassDecl;
 
       bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
@@ -1326,7 +1326,7 @@ namespace Microsoft.Dafny.Compilers {
         var tp = type.AsTypeParameter;
         Contract.Assert(tp != null);
         string th;
-        if (thisContext != null && tp.Parent is ClassDecl and not TraitDecl) {
+        if (thisContext != null && tp.Parent is ClassDecl) {
           th = "_this.";
         } else if (thisContext == null && tp.Parent is SubsetTypeDecl) {
           th = "_this.";
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
+      } else if (cl is ClassDecl or TraitDecl or ArrowTypeDecl) {
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
@@ -2047,7 +2047,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is ClassDecl clsDecl && clsDecl.IsObjectTrait) {
+      if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
@@ -2446,7 +2446,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(Options, out _, out _);
+      return cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+             member != null && member.IsExtern(Options, out _, out _);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -3083,7 +3084,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
-             (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && !t.IsTraitType && udt.ResolvedClass is ClassDecl);
+             t.NormalizeExpand() is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {

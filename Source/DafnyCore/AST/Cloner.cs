@@ -112,18 +112,19 @@ namespace Microsoft.Dafny {
       } else if (d is TraitDecl) {
         var dd = (TraitDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
         var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
+      } else if (d is DefaultClassDecl) {
+        var dd = (DefaultClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
+        return new DefaultClassDecl(m, mm);
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
-        if (d is DefaultClassDecl) {
-          return new DefaultClassDecl(m, mm);
-        } else {
-          return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
-        }
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
+        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
@@ -800,14 +801,14 @@ namespace Microsoft.Dafny {
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var based = base.CloneDeclaration(d, m);
-      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
+      if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
         var otd = new OpaqueTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
         based = otd;
-        if (d is ClassDecl) {
-          reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
+        if (d is ClassLikeDecl { IsReferenceTypeDecl: true } cl) {
+          reverseMap.Add(based, cl.NonNullTypeDecl);
           return based;
         }
       }
@@ -919,9 +920,8 @@ namespace Microsoft.Dafny {
     }
 
     public override Expression CloneExpr(Expression expr) {
-      var me = expr as MatchExpr;
-      if (me != null && me.OrigUnresolved != null) {
-        return CloneExpr(me.OrigUnresolved);
+      if (expr is MatchExpr { OrigUnresolved: { } origUnresolved }) {
+        return CloneExpr(origUnresolved);
       }
       return base.CloneExpr(expr);
     }

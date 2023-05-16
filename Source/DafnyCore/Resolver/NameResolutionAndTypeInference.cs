@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
         if (!scope.AllowInstance) {
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
+        if (currentClass is DefaultClassDecl) {
           // there's no type
         } else {
           if (currentClass == null) {
@@ -3938,7 +3938,7 @@ namespace Microsoft.Dafny {
           if (ReallyAmbiguousThing(ref member)) {
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
           }
 #endif
@@ -5053,10 +5053,12 @@ namespace Microsoft.Dafny {
           if (rr.EType.IsRefType) {
             var udt = rr.EType.NormalizeExpand() as UserDefinedType;
             if (udt != null) {
-              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-              if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType && (cl.HasConstructor || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
-                reporter.Error(MessageSource.Resolver, stmt, "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
-                  cl.HasConstructor ? "" : "imported ");
+              var cl = (ClassLikeDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType &&
+                  (cl is ClassDecl { HasConstructor: true } || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
+                reporter.Error(MessageSource.Resolver, stmt,
+                  "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
+                  cl is ClassDecl { HasConstructor: true } ? "" : "imported ");
               }
             }
           }
@@ -5094,7 +5096,7 @@ namespace Microsoft.Dafny {
       foreach (var valuet in valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
           MemberDecl member;
-          if (valuet.Members.TryGetValue(memberName, out member)) {
+          if (classMembers[valuet].TryGetValue(memberName, out member)) {
             SelfType resultType = null;
             if (member is SpecialFunction) {
               resultType = ((SpecialFunction)member).ResultType as SelfType;
@@ -5227,7 +5229,7 @@ namespace Microsoft.Dafny {
           if (joinType.IsRefType) {
             var joinExpanded = joinType.NormalizeExpand();  // go all the way to the base type, to get to the class
             if (!joinExpanded.IsObjectQ) {
-              var cl = ((UserDefinedType)joinExpanded).ResolvedClass as ClassDecl;
+              var cl = ((UserDefinedType)joinExpanded).ResolvedClass as ClassLikeDecl;
               if (cl != null) {
                 // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
                 var plausibleMembers = new HashSet<MemberDecl>();
@@ -5934,7 +5936,7 @@ namespace Microsoft.Dafny {
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
           if (!isLastNameSegment) {
-            if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+            if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
               if (complain) {
@@ -5960,7 +5962,7 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
+          var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
@@ -6081,14 +6083,14 @@ namespace Microsoft.Dafny {
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
         } else {
           if (!scope.AllowInstance) {
             reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context");
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+          receiver.Type = GetThisType(expr.tok, (ClassLikeDecl)member.EnclosingClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
 #endif
@@ -6112,7 +6114,7 @@ namespace Microsoft.Dafny {
         if (ReallyAmbiguousThing(ref member)) {
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
         }
 #endif
@@ -6225,7 +6227,7 @@ namespace Microsoft.Dafny {
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
             if (!isLastNameSegment) {
-              if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+              if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
                 // the name of the class, C. Report an error and continue.
                 reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
@@ -6240,7 +6242,7 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (AmbiguousMemberDecl)member;
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (ClassDecl)member.EnclosingClass, false);
+            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
