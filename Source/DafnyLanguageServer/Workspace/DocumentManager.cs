@@ -31,14 +31,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// Handles migration of previously published document state
 /// </summary>
 public class DocumentManager {
-  private MemoryCache memoryCache = MemoryCache.Default;
+  private readonly MemoryCache memoryCache = MemoryCache.Default;
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
 
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
-  private TaskCompletionSource<Compilation> compilationSource = new();
-  public Task<Compilation> Compilation => compilationSource.Task;
+  private TaskCompletionSource<Compilation> latestCompilationSource = new();
+  public Task<Compilation> Compilation => latestCompilationSource.Task;
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
 
@@ -72,7 +72,7 @@ public class DocumentManager {
     cancellationTokenSource = new();
 
     changeReceived.Throttle(TimeSpan.FromMilliseconds(20)).ObserveOn(updateScheduler)
-      .Subscribe(_ => ProcessChanges());
+      .Subscribe(_ => MergeAndProcessDocumentChanges());
 
     var initialIdeState = new IdeState(document, Array.Empty<Diagnostic>(),
       SymbolTable.Empty(), SignatureAndCompletionTable.Empty(options, document),
@@ -83,7 +83,7 @@ public class DocumentManager {
 
     observerSubscription = Disposable.Empty;
     var _ = Task.Run(() => {
-      CreateAndStartCompilation(compilationSource, initialIdeState, VerifyOnOpen);
+      CreateAndStartCompilation(latestCompilationSource, initialIdeState, VerifyOnOpen);
     });
   }
 
@@ -92,7 +92,7 @@ public class DocumentManager {
 
   private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
   private readonly object changeLock = new();
-  void ProcessChanges() {
+  void MergeAndProcessDocumentChanges() {
     lock (changeLock) {
       var items = new List<DidChangeTextDocumentParams>(changeRequests.Count);
       TaskCompletionSource<Compilation> compilationSource = null!;
@@ -127,8 +127,8 @@ public class DocumentManager {
     cancellationTokenSource.Cancel();
     cancellationTokenSource = new();
     // There's a race condition here with ProcessDocumentChange. Should add a lock
-    compilationSource = new();
-    changeRequests.Enqueue((documentChange, compilationSource));
+    latestCompilationSource = new();
+    changeRequests.Enqueue((documentChange, latestCompilationSource));
     changeReceived.OnNext(Unit.Value);
   }
 
@@ -303,11 +303,8 @@ public class DocumentManager {
     return observer.LastPublishedState;
   }
 
-  private int counter = 0;
   private async Task VerifyEverythingAsync() {
-    var count = counter++;
     try {
-      // Will this compilation always include the latest received edits? I think so, because compilationSource is cleared when an edit is received 
       var compilation = await Compilation;
       var translatedDocument = await compilation.TranslatedDocument;
 
