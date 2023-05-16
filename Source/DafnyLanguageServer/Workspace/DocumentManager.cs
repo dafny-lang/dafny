@@ -31,26 +31,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 /// Handles migration of previously published document state
 /// </summary>
 public class DocumentManager {
+
+  private const int MaxRememberedChanges = 100;
+  private const int MaxRememberedChangedVerifiables = 5;
+  
   private readonly MemoryCache memoryCache = MemoryCache.Default;
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
-
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
+  
   private TaskCompletionSource<Compilation> latestCompilationSource = new();
   public Task<Compilation> Compilation => latestCompilationSource.Task;
   private IDisposable observerSubscription;
   private readonly ILogger<DocumentManager> logger;
-
-  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
-  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
   public List<Position> ChangedVerifiables { get; set; } = new();
   public List<Range> ChangedRanges { get; set; } = new();
 
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly IScheduler updateScheduler = new EventLoopScheduler();
+  private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
   private CancellationTokenSource cancellationTokenSource;
   private DocumentTextBuffer document;
 
@@ -86,35 +87,32 @@ public class DocumentManager {
       CreateAndStartCompilation(latestCompilationSource, initialIdeState, VerifyOnOpen);
     });
   }
-
-  private const int MaxRememberedChanges = 100;
-  private const int MaxRememberedChangedVerifiables = 5;
-
-  private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
-  private readonly object changeLock = new();
+  
+  /// <summary>
+  /// Executed synchronously through the updateScheduler
+  /// </summary>
   void MergeAndProcessDocumentChanges() {
-    lock (changeLock) {
-      var items = new List<DidChangeTextDocumentParams>(changeRequests.Count);
-      TaskCompletionSource<Compilation> compilationSource = null!;
-      while (!changeRequests.IsEmpty) {
-        if (changeRequests.TryDequeue(out var change)) {
-          items.Add(change.Item1);
-          compilationSource = change.Item2;
-        }
+    var items = new List<DidChangeTextDocumentParams>(changeRequests.Count);
+    TaskCompletionSource<Compilation> compilationSource = null!;
+    while (!changeRequests.IsEmpty) {
+      if (changeRequests.TryDequeue(out var change)) {
+        items.Add(change.Item1);
+        compilationSource = change.Item2;
       }
-
-      if (items.Count == 0) {
-        return;
-      }
-      var changes = items.SelectMany(cr => cr.ContentChanges).ToList();
-      var documentIdentifier = items[^1].TextDocument;
-      logger.LogError($"Merged {items.Count} items");
-      var merged = new DidChangeTextDocumentParams {
-        TextDocument = documentIdentifier,
-        ContentChanges = changes
-      };
-      ProcessDocumentChange(compilationSource!, merged);
     }
+
+    if (items.Count == 0) {
+      return;
+    }
+    
+    var changes = items.SelectMany(cr => cr.ContentChanges).ToList();
+    var documentIdentifier = items[^1].TextDocument;
+    logger.LogError($"Merged {items.Count} items");
+    var merged = new DidChangeTextDocumentParams {
+      TextDocument = documentIdentifier,
+      ContentChanges = changes
+    };
+    ProcessDocumentChange(compilationSource!, merged);
   }
 
   private readonly Subject<Unit> changeReceived = new();
@@ -129,6 +127,7 @@ public class DocumentManager {
     // There's a race condition here with ProcessDocumentChange. Should add a lock
     latestCompilationSource = new();
     changeRequests.Enqueue((documentChange, latestCompilationSource));
+    cancellationTokenSource.Token.Register(() => latestCompilationSource.TrySetCanceled(cancellationTokenSource.Token));
     changeReceived.OnNext(Unit.Value);
   }
 
@@ -346,4 +345,8 @@ public class DocumentManager {
 
     return changedRanges.SelectMany(changeRange => intervalTree.Query(changeRange.Start, changeRange.End));
   }
+
+  private bool VerifyOnOpen => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnChange => options.Get(ServerCommand.Verification) == VerifyOnMode.Change;
+  private bool VerifyOnSave => options.Get(ServerCommand.Verification) == VerifyOnMode.Save;
 }
