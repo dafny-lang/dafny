@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class SignatureHelpTest : ClientBasedLanguageServerTest {
@@ -188,6 +189,9 @@ class B {
       var markup = signatures[0].Documentation.MarkupContent;
       Assert.Equal(MarkupKind.Markdown, markup.Kind);
       Assert.Equal("```dafny\nfunction A.Multiply(n: int, m: int): int\n```", markup.Value);
+    }
+
+    public SignatureHelpTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

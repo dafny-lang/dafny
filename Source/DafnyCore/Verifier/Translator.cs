@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (d.tok is IncludeToken && !options.VerifyAllModules) {
+      if (!options.VerifyAllModules && d.tok.WasIncluded(program)) {
         return false;
       }
 
@@ -434,7 +434,7 @@ namespace Microsoft.Dafny {
     PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
       if (prog.Resolve(options) != 0) {
-        Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
+        options.OutputWriter.WriteLine("Error: resolution errors encountered in Dafny prelude");
         return null;
       }
 
@@ -577,85 +577,85 @@ namespace Microsoft.Dafny {
         }
       }
       if (seqTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Set");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Set");
       } else if (isetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
       } else if (mapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Map");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Map");
       } else if (imapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (ORDINAL_isLimit == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
       } else if (ORDINAL_offset == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
       } else if (ORDINAL_isNat == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
       } else if (mapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
       } else if (imapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
       } else if (mapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
       } else if (imapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
       } else if (mapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
       } else if (imapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
       } else if (tuple2Constructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
       } else if (tyTagFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (handleType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
       } else if (layerType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
       } else if (dtCtorId == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
       } else if (charType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type char");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type char");
       } else if (refType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Box");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Box");
       } else if (tickType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
       } else if (heap == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
       } else if (objectTypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
@@ -1667,7 +1667,7 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
       AddVerboseName(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
@@ -4301,7 +4301,7 @@ namespace Microsoft.Dafny {
       }
       var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
-        req, mod, ens, etran.TrAttributes(f.Attributes, null));
+        false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4537,7 +4537,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+        false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4690,7 +4690,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4761,7 +4761,7 @@ namespace Microsoft.Dafny {
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
       AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -7446,7 +7446,7 @@ namespace Microsoft.Dafny {
         }
         w = BplOr(body, w);
       }
-      builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists()));
+      builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists(bvars, expr)));
     }
 
     private void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
@@ -8212,7 +8212,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
-      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filename, stmt.Tok.line, stmt.Tok.col)));
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filepath, stmt.Tok.line, stmt.Tok.col)));
     }
 
     /// <summary>

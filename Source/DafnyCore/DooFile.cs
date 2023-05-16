@@ -113,6 +113,11 @@ public class DooFile {
   }
 
   public bool Validate(string filePath, DafnyOptions options, Command currentCommand) {
+    if (currentCommand == null) {
+      options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+      return false;
+    }
+
     if (options.VersionNumber != Manifest.DafnyVersion) {
       options.Printer.ErrorWriteLine(Console.Out, $"Cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return false;

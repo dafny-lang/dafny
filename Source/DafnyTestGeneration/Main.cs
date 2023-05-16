@@ -58,7 +58,7 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, sourceFile);
+      var program = Utils.Parse(options, source, true, new Uri(sourceFile));
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
@@ -85,7 +85,7 @@ namespace DafnyTestGeneration {
             i.VerboseName.Split(" ")[0]
             == options.TestGenOptions.TargetMethod));
         if (!targetFound) {
-          options.Printer.ErrorWriteLine(Console.Error,
+          options.Printer.ErrorWriteLine(options.ErrorWriter,
             "Error: Cannot find method " +
             options.TestGenOptions.TargetMethod +
             " (is this name fully-qualified?)");
@@ -135,18 +135,18 @@ namespace DafnyTestGeneration {
     /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
     public static async IAsyncEnumerable<string> GetTestClassForProgram(string sourceFile, DafnyOptions options) {
-
       options.PrintMode = PrintModes.Everything;
       TestMethod.ClearTypesToSynthesize();
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, sourceFile);
+      var uri = new Uri(sourceFile);
+      var program = Utils.Parse(options, source, true, uri);
       if (program == null) {
         yield break;
       }
       if (Utils.AttributeFinder.ProgramHasAttribute(program,
             TestGenerationOptions.TestInlineAttribute)) {
         options.VerifyAllModules = true;
-        program = Utils.Parse(options, source, sourceFile);
+        program = Utils.Parse(options, source, true, uri);
         if (program == null) {
           yield break;
         }
@@ -179,7 +179,7 @@ namespace DafnyTestGeneration {
       yield return "}";
 
       if (methodsGenerated == 0) {
-        options.Printer.ErrorWriteLine(Console.Error,
+        options.Printer.ErrorWriteLine(options.ErrorWriter,
           "Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         setNonZeroExitCode = true;

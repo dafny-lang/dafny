@@ -140,12 +140,16 @@ module {:options "/functionSyntax:4"} EnumerationTests {
   method PickEnumValue() returns (r: Enum) {
     if e: Enum :| e.Is(13) {
       r := e;
+    } else {
+      r := *;
     }
   }
 
   method PickAllGhostValue() returns (r: AllGhost) {
     if ag: AllGhost :| ag.Is(13) {
       r := ag;
+    } else {
+      r := *;
     }
   }
 }
