@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
@@ -18,6 +19,16 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Accumulating scope, each next one includes the previous one.
+  /// </summary>
+  public enum VerificationScope {
+    RootSources,
+    RootSourcesAndIncludes,
+    Everything
+  }
+
   public enum FunctionSyntaxOptions {
     Version3,
     Migration3To4,
@@ -39,7 +50,7 @@ namespace Microsoft.Dafny {
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
-    public IList<Uri> CliRootUris = new List<Uri>();
+    public IList<Uri> CliRootSourceUris = new List<Uri>();
 
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
@@ -150,7 +161,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
+      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 
@@ -330,7 +341,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
-    public bool VerifyAllModules = false;
+    public VerificationScope VerificationScope = VerificationScope.RootSources;
     public bool SeparateModuleOutput = false;
 
     public enum IncludesModes {
@@ -634,7 +645,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
 
         case "verifyAllModules":
-          VerifyAllModules = true;
+          VerificationScope = VerificationScope.Everything;
           return true;
 
         case "separateModuleOutput":

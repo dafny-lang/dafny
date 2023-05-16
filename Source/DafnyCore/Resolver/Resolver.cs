@@ -439,7 +439,7 @@ namespace Microsoft.Dafny {
 
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
-      if (!Options.VerifyAllModules) {
+      if (Options.VerificationScope < VerificationScope.RootSourcesAndIncludes) {
         rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
 
           if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
-            CheckModuleExportConsistency(m);
+            CheckModuleExportConsistency(prog, m);
           }
 
           var tempVis = new VisibilityScope();
@@ -1158,7 +1158,7 @@ namespace Microsoft.Dafny {
 
     //check for export consistency by resolving internal modules
     //this should be effect-free, as it only operates on clones
-    private void CheckModuleExportConsistency(ModuleDefinition m) {
+    private void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 
@@ -1310,8 +1310,7 @@ namespace Microsoft.Dafny {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
-          true, true);
+        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -2014,8 +2013,7 @@ namespace Microsoft.Dafny {
       var errCount = reporter.Count(ErrorLevel.Error);
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false,
-        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+        false);
       mod.Height = Height;
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {

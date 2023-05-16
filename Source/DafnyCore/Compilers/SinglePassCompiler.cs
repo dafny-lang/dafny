@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny.Compilers {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        if (!m.IsToBeCompiled) {
+        if (!m.ShouldCompile(program)) {
           continue;
         }
         var moduleIsExtern = false;

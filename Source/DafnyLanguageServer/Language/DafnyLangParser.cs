@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         new LiteralModuleDecl(errorReporter.OuterModule, null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(errorReporter.Options),
-        errorReporter
+        errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
       );
     }
 
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
       var resolvedIncludes = new SortedSet<Include>();
-      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString(), false));
+      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString()));
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
@@ -143,13 +143,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
-          new StreamReader(dafnyFile.Uri.LocalPath),
+          dafnyFile.Content,
           dafnyFile.Uri,
           module,
           builtIns,
-          errorReporter,
-          verifyThisFile: false,
-          compileThisFile: false
+          errorReporter
         );
         if (errorCount != 0) {
           return false;
