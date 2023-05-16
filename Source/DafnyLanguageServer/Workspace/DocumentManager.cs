@@ -51,6 +51,7 @@ public class DocumentManager {
   private readonly SemaphoreSlim workCompletedForCurrentVersion = new(1);
   private readonly DafnyOptions options;
   private readonly IScheduler updateScheduler = new EventLoopScheduler();
+
   private readonly ConcurrentQueue<(DidChangeTextDocumentParams, TaskCompletionSource<Compilation>)> changeRequests = new();
   private CancellationTokenSource cancellationTokenSource;
   private DocumentTextBuffer document;
@@ -97,6 +98,10 @@ public class DocumentManager {
     while (!changeRequests.IsEmpty) {
       if (changeRequests.TryDequeue(out var change)) {
         items.Add(change.Item1);
+
+        // It's important to store each DidChangeTextDocumentParams together with its TaskCompletionSource.
+        // One might think it's enough to always use latestCompilationSource after dequeueing some number of DidChangeTextDocumentParams,
+        // but this can cause the task to be completed without the full set of changes that was expected of it.
         compilationSource = change.Item2;
       }
     }
@@ -107,7 +112,7 @@ public class DocumentManager {
 
     var changes = items.SelectMany(cr => cr.ContentChanges).ToList();
     var documentIdentifier = items[^1].TextDocument;
-    logger.LogError($"Merged {items.Count} items");
+    logger.LogDebug($"Merged {items.Count} items");
     var merged = new DidChangeTextDocumentParams {
       TextDocument = documentIdentifier,
       ContentChanges = changes
@@ -124,7 +129,6 @@ public class DocumentManager {
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     cancellationTokenSource.Cancel();
     cancellationTokenSource = new();
-    // There's a race condition here with ProcessDocumentChange. Should add a lock
     latestCompilationSource = new();
     changeRequests.Enqueue((documentChange, latestCompilationSource));
     cancellationTokenSource.Token.Register(() => latestCompilationSource.TrySetCanceled(cancellationTokenSource.Token));
@@ -180,7 +184,8 @@ public class DocumentManager {
       services,
       GetDocumentOptions(document.Uri),
       document,
-      lastIdeState.VerificationTree, cancellationTokenSource.Token);
+      lastIdeState.VerificationTree, // TODO no longer pass verification tree to compilation 
+      cancellationTokenSource.Token);
 
     if (!compilationSource.TrySetResult(compilation)) {
       logger.LogDebug("Halting compilation since it was cancelled.");

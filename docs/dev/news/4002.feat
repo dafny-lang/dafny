@@ -1,0 +1,1 @@
+Various improvements around IDE performance that help with processing large files and projects and prevent scenarios in which the IDE could become unresponsive. 
