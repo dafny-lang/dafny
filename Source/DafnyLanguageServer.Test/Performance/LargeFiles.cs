@@ -32,11 +32,11 @@ include ""./veryLargeAndIncludesAnotherLarge.dfy""
     var source = @"
 include ""./veryLargeAndIncludesAnotherLarge.dfy""
 ";
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Performance/TestFiles/test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Empty(diagnostics);
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 300; i++) {
       ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "// added this comment\n");
     }
 

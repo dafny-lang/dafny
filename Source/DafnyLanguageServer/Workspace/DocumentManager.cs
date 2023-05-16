@@ -142,28 +142,32 @@ public class DocumentManager {
         $"the updates of document {documentUri} are out-of-order: {oldVer} -> {newVer}");
     }
 
-    var before = DateTime.Now;
+    var beforeApplyChange = DateTime.Now;
     document = textChangeProcessor.ApplyChange(document, documentChange, CancellationToken.None);
-    logger.LogError($"Applying text change took {(DateTime.Now - before).Milliseconds}ms");
+    logger.LogDebug($"Applying text change took {(DateTime.Now - beforeApplyChange).Milliseconds}ms, {DateTime.Now.ToLongTimeString()}");
 
     var lastPublishedState = observer.LastPublishedState;
 
     var changeProcessor = relocator.GetChangeProcessor(documentChange, CancellationToken.None);
-    var migratedVerificationTree =
-      changeProcessor.RelocateVerificationTree(lastPublishedState.VerificationTree, document.NumberOfLines);
 
     lock (ChangedRanges) {
+      var beforeUpdateChangedRanges = DateTime.Now;
       ChangedRanges = documentChange.ContentChanges.Select(contentChange => contentChange.Range).Concat(
           ChangedRanges.Select(range => changeProcessor.MigrateRange(range))).Where(r => r != null)
         .Take(MaxRememberedChanges).ToList()!;
+      logger.LogDebug($"Updating changed ranges took {(DateTime.Now - beforeUpdateChangedRanges).Milliseconds}ms, {DateTime.Now.ToLongTimeString()}");
     }
     observerSubscription.Dispose();
 
+    var beforeMigrateIdeState = DateTime.Now;
+    var migratedVerificationTree =
+      changeProcessor.RelocateVerificationTree(lastPublishedState.VerificationTree, document.NumberOfLines);
     observer.LastPublishedState = lastPublishedState with {
       ImplementationIdToView = MigrateImplementationViews(changeProcessor, lastPublishedState.ImplementationIdToView),
       SignatureAndCompletionTable = changeProcessor.MigrateSymbolTable(lastPublishedState.SignatureAndCompletionTable),
       VerificationTree = migratedVerificationTree
     };
+    logger.LogDebug($"Migrating Ide state took {(DateTime.Now - beforeMigrateIdeState).Milliseconds}ms, {DateTime.Now.ToLongTimeString()}");
     CreateAndStartCompilation(compilationSource, observer.LastPublishedState, VerifyOnChange);
   }
 
@@ -179,6 +183,7 @@ public class DocumentManager {
       lastIdeState.VerificationTree, cancellationTokenSource.Token);
 
     if (!compilationSource.TrySetResult(compilation)) {
+      logger.LogDebug("Halting compilation since it was cancelled.");
       return;
     }
 

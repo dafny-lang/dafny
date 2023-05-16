@@ -93,11 +93,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           var postcondition = entryDocumentSource.Substring(range.StartToken.pos, rangeLength);
           message = $"This postcondition might not hold: {postcondition}";
         } else if (message == "Related location") {
-          var tokenUri = tokenForMessage.GetDocumentUri();
+          var tokenUri = tokenForMessage.GetUri();
           if (tokenUri == entryDocumentUri) {
             message = FormatRelated(entryDocumentSource.Substring(range.StartToken.pos, rangeLength));
           } else {
-            var fileName = tokenForMessage.GetDocumentUri().GetFileSystemPath();
+            var fileName = tokenForMessage.GetUri().LocalPath;
             message = "";
             try {
               var content = File.ReadAllText(fileName);
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
       return token.Filepath == null
         ? entryDocumentUri
-        : token.GetDocumentUri();
+        : token.GetUri();
     }
   }
 }

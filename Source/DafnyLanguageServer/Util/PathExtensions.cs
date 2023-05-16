@@ -40,23 +40,23 @@ namespace Microsoft.Dafny.LanguageServer.Util {
     /// Checks if the given URI is the entrypoint document.
     /// </summary>
     /// <param name="program">The dafny program to check the token against.</param>
-    /// <param name="documentUri">The URI to check.</param>
+    /// <param name="uri">The URI to check.</param>
     /// <returns><c>true</c> if the given URI is the entrypoint document of the given program.</returns>
-    public static bool IsEntryDocument(this Dafny.Program program, DocumentUri documentUri) {
-      return documentUri.ToString() == program.FullName;
+    public static bool IsEntryDocument(this Dafny.Program program, Uri uri) {
+      return uri == program.DefaultModuleDef.RootSourceUris[0];
     }
 
     /// <summary>
-    /// Gets the document uri for the specified boogie token.
+    /// Gets the uri for the specified boogie token.
     /// </summary>
     /// <param name="token">The token to get the boogie token from.</param>
     /// <returns>The uri of the document where the token is located.</returns>
-    public static DocumentUri GetDocumentUri(this Boogie.IToken token) {
+    public static Uri GetUri(this Boogie.IToken token) {
       while (token is RefinementToken refinementToken) {
         token = refinementToken.WrappedToken;
       }
 
-      return DocumentUri.From(((IToken)token).Uri);
+      return ((IToken)token).Uri;
     }
 
     /// <summary>
