@@ -1,4 +1,4 @@
-*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything is used.
+*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything or --verification-scope=RootSources is used.
 verificationScope.dfy(10,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
