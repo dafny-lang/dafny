@@ -1,0 +1,2 @@
+git-issue-3839a.dfy(4,15): Error: Methods with the {:test} attribute may not have input arguments
+1 resolution/type errors detected in git-issue-3839a.dfy

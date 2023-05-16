@@ -768,7 +768,7 @@ these declarations:
 
 <!-- %check-verify -->
 ```dafny
-module Interface {
+abstract module Interface {
   function addSome(n: nat): nat
     ensures addSome(n) > n
 }
@@ -799,9 +799,9 @@ module Implementation {
 We can then substitute `Implementation` for `A` in a new module, by
 declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 
-<!-- %check-verify -->
+<!-- %check-build -->
 ```dafny
-module Interface {
+abstract module Interface {
   function addSome(n: nat): nat
     ensures addSome(n) > n
 }
