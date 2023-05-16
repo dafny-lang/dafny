@@ -34,13 +34,13 @@ public class DocumentManager {
 
   private const int MaxRememberedChanges = 100;
   private const int MaxRememberedChangedVerifiables = 5;
-  
+
   private readonly MemoryCache memoryCache = MemoryCache.Default;
   private readonly IRelocator relocator;
   private readonly ITextChangeProcessor textChangeProcessor;
   private readonly IServiceProvider services;
   private readonly IdeStateObserver observer;
-  
+
   private TaskCompletionSource<Compilation> latestCompilationSource = new();
   public Task<Compilation> Compilation => latestCompilationSource.Task;
   private IDisposable observerSubscription;
@@ -87,7 +87,7 @@ public class DocumentManager {
       CreateAndStartCompilation(latestCompilationSource, initialIdeState, VerifyOnOpen);
     });
   }
-  
+
   /// <summary>
   /// Executed synchronously through the updateScheduler
   /// </summary>
@@ -104,7 +104,7 @@ public class DocumentManager {
     if (items.Count == 0) {
       return;
     }
-    
+
     var changes = items.SelectMany(cr => cr.ContentChanges).ToList();
     var documentIdentifier = items[^1].TextDocument;
     logger.LogError($"Merged {items.Count} items");
