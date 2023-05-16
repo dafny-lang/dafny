@@ -597,9 +597,10 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        details.Append(Code("{")).Append(br).Append(eol);
-        details.Append(Indent(Code(ExpressionAsSource(body))));
-        details.Append(Code("}")).Append(br).Append(eol);
+        var brackets = new RangeToken(body.StartToken.Prev, body.EndToken.Next);
+        int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
+        var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
+        details.Append(Pre(offset + brackets.PrintOriginal()));
       }
     }
 
@@ -611,16 +612,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    StringBuilder sb = new StringBuilder();
-    var rtoken = e.RangeToken;
-    var t = rtoken.StartToken;
-    while (t != null) {
-      sb.Append(t.val).Append(t.TrailingTrivia);
-      if (t == rtoken.EndToken) break;
-      if (t.Next != null && t.line != t.Next.line) sb.Append(br).Append(eol);
-      t = t.Next;
-    }
-    return sb.ToString();
+    return e.RangeToken.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {

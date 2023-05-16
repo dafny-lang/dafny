@@ -140,6 +140,9 @@ class DafnyDocHtml {
   public static string Code(string text) {
     return $"<span class=\"code\">{text}</span>";
   }
+  public static string Pre(string text) {
+    return $"<pre>{text}</pre>";
+  }
   public static string Keyword(string text) {
     return Bold(text);
   }
