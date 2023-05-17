@@ -20,7 +20,7 @@ This may change in the future.
 newtype T = i: int | i 
 ```
 
-The expression after the vertical bar is should be a boolean condition.
+The expression after the vertical bar must be a boolean condition.
 The values of the basetype that satisfy this condition are the members 
 of the newtype. This is different than, say, a set comprehension like
 `set i: int :: i*2` where the expression after the `::` gives the elements
@@ -32,7 +32,7 @@ of the set directly.
 type T = i: int | i
 ```
 
-The expression after the vertical bar is should be a boolean condition.
+The expression after the vertical bar must be a boolean condition.
 The values of the basetype that satisfy this condition are the members 
 of the subset type. This is different than, say, a set comprehension like
 `set i: int :: i*2` where the expression after the `::` gives the elements
@@ -52,7 +52,7 @@ the witness may not be an expression of some different type.
 
 <!-- 2 instances -->
 
-## **Error: type of argument of a unary - must be of a numeric or bitvector type (instead got _type_)**
+## **Error: the argument of a unary minus must have numeric or bitvector type (instead got _type_)**
 
 ```dafny
 datatype D = A | B
@@ -93,9 +93,9 @@ method m() {
 ```
 
 As in some other programming languages, `this` in Dafny refers to the object that contains 
-the method in which this reference to `this` is used. However, the containing object is
+the method in which the identifier `this` is used. However, the containing object is
 an implicit argument to a method only if it is an _instance_ method, not if it is a
-_static_ method; so `this` cnanot be used in static methods.
+_static_ method; so `this` cannot be used in static methods.
 
 A method in a class is instance by default and static only if it is explicitly
 declared so. A method declared at the top-level or as a direct member of a 
@@ -169,7 +169,7 @@ usually clear from context where type names are used and where expressions are u
 
 ## **Error: a two-state function can be used only in a two-state context**
 
-<!-- TODO - fix - different error message for this example -->
+<!-- %no-check TODO - fix - incorrect error message for this example -->
 ```dafny
 module M {
   twostate function f(): int
@@ -182,9 +182,9 @@ Accordingly it can be used only in situations in which there are two states
 in play (that is, a _two-state_ context).  One example is in a postcondition
 (_ensures_ clause) where the two states are the states at the beginning and end 
 of the method execution. Another two-state context is the body of a method, 
-where the state are the pre-state of the method and the current state at the
-location of the call. However, outside of a method, such as initializations 
-of const declarations are not two-state contexts.
+where the states are the pre-state of the method and the current state at the
+location of the call. However, contexts outside of a method, such as initializations 
+of const declarations, are not two-state contexts.
 
 ## **Error: a field must be selected via an object, not just a class name**
 
@@ -222,6 +222,7 @@ Multi-dimensional arrays are selected only by integer or bit-vector values.
 There is no implicit conversion from characters or reals.
 A value of ORDINAL type may be used if it can be proved that the value is
 less than the length of the array dimension.
+Note that the 'index' in the error message is counted from 0.
 
 ## **Error: update requires a sequence, map, or multiset (got _type_)**
 
@@ -229,13 +230,13 @@ less than the length of the array dimension.
 method m(i: int, s: seq<int>) 
   requires |s| > 100
 {
-  var ss := i[0 := 10];
+  var ss := i[1 := 10];
 }
 ```
 
 The update syntax provides a way to produce a slightly modified sequence, multiset, or map:
-if `s` is a `seq<int>`, then `s[0 := 10]` is a `seq<int>` with the same values at the same positions
-as `s`, except that the value at position 0 is now 10. It is important to understand that
+if `s` is a `seq<int>`, then `s[1 := 10]` is a `seq<int>` with the same values at the same positions
+as `s`, except that the value at position 1 is now 10. It is important to understand that
 these are _value_ types; the original value of `s` is unchanged; rather a new value is
 produced as a result of the update expression.
  
@@ -261,20 +262,20 @@ method m(i: int)
 ```
 
 The syntax `f(a,b,c)` is an example of a call of a function or method `f`, with, in this case,
-three actual arguments, which must correespond to the formal argument in the definition of `f`.
-This syntax is only legal if the expression prior to the left parenthesis is a function,
+three actual arguments, which must correespond to the formal arguments in the definition of `f`.
+This syntax is only legal in an expression if the expression prior to the left parenthesis is a function,
 and not something else. It need not be just an identifier; it could be a expression, such
 as a lambda expression: `((f:int)=>42)(1)`.
 
-## **Error: wrong number of arguments to function application (function type '_type_' expects _number_, got _number_)**
+## **Error: wrong number of arguments for function application (function type '_type_' expects _number_, got _number_)**
 
-<!-- TODO - fix - different error message for this example -->
-
+<!-- %no-check TODO - fix - different error message for this example -->
 ```dafny
-const k := ((f:int)=>42)(1,2);
+function f(): int { 0 }
+const k := f(1,2);
 ```
 
-This message indicates that in some kind of function call, the number of actual arguments does
+This message indicates that in some function call the number of actual arguments does
 not match the number of formal parameters (as given in the function definition).
 Usually the actuals and formals must match exactly, but Dafny does allow
 for optional and named arguments with default values. In those cases, the number of actual
@@ -326,8 +327,9 @@ method m() {
 ```
 
 The result of the `fresh` predicate is true if the argument has been allocated since the pre-state of the 
-two-state context containing thte call. Thus the argument must be of a type that is allocatable,
-such as a class type --- but not value types like `bool` or `int` or datatypes. 
+two-state context containing the call. Thus the argument must be of a type that is allocatable,
+such as a class type --- but not value types like `bool` or `int` or datatypes. The argument may also be
+a set or sequence of such allocatable objects.
 
 ## **Error: logical/bitwise negation expects a boolean or bitvector argument (instead got _type_)**
 
@@ -433,8 +435,8 @@ const c := 0 as D
 
 The `as` operator is the type conversion operator. But it is only allowed between an expression and a type if it
 is syntactically possible for the value to be converted to the type. Some types, such as datatypes,
-have no conversions to or from the type. Type conversions from a value of a datatype to that type are
-always identity functions and are not allowed to be written either.
+have no conversions to or from other types. Type conversions from a value of a datatype to some other type are
+always identity functions and are not allowed to be written.
 
 ## **Error: type test for type '_type_' must be from an expression assignable to it (got '_type_')**
 
@@ -475,15 +477,14 @@ Dafny does not have any implicit conversion to or from `bool` values.
 
 ## **Error: range of quantified variable must be of type bool (instead got _type_)**
 
-<!-- TODO - fix - different error message for this example -->
-
+<!-- %no-check TODO - fix - different error message for this example -->
 ```dafny
-const c := forall i: int | true && i :: true
+const c := forall i: int | true && (i==0) :: true
 ```
 
 In a quantified expression, the expression between the `|` and the `::` is the 
-_range_ expression. It serves to limmit the values of the quantified variable(s)
-that are to be considered in evaluating the exp[ression after the `::`. 
+_range_ expression. It serves to limit the values of the quantified variable(s)
+that are to be considered in evaluating the expression after the `::`. 
 As such, this range expression must always have a `bool` type.
 
 ## **Error: arguments must have comparable types (got _type_ and _type_)**
@@ -527,7 +528,7 @@ The `<` and `>` operators are used for traditional numeric comparison,
 comparison of prefixes in sequences (just `<`),
 subset relations among sets,
 and for rank (structural depth) comparisons between values of the same datatype.
-But both operands must be values of the some datatype.
+When used for rank comparison, both operands must be values of the same datatype.
 
 <!--two instances, for < and for > -->
 
@@ -540,7 +541,7 @@ const z := y < x
 ```
 
 For binary operators, the two operands must be able to be implicitly converted to the same supertype.
-FOr example, two different int-based subtypes would be converted to int, or two values of different
+For example, two different int-based subtypes would be converted to int, or two values of different
 classes that extend the same trait could be converted to values of that trait.
 Where Dafny cannot determine such a common supertype, the comparison is illegal and this error message results.
 
@@ -607,8 +608,8 @@ But not for all types. There is no `+` for datatypes or references, for example.
 const z := 0 + {1}
 ```
 
-Though the `+` operand applies the many of Dafny's types, the left- and right- operand need to be
-the same type or convertible to the same type. For example, there is no conversion from  a type to a 
+Though the `+` operand applies to many of Dafny's types, the left- and right- operand need to be
+the same type or convertible to the same type. For example, there is no conversion from a type to a 
 collection of that type.
 
 ## **Error: type of right argument to + (_type_) must agree with the result type (_type_)**
@@ -617,8 +618,8 @@ collection of that type.
 const z := {1} + 0
 ```
 
-Though the `+` operand applies the many of Dafny's types, the left- and right- operand need to be
-the same type or convertible to the same type. For example, there is no conversion from  a type to a 
+Though the `+` operand applies to many of Dafny's types, the left- and right- operand need to be
+the same type or convertible to the same type. For example, there is no conversion from a type to a 
 collection of that type.
 
 ## **Error: type of - must be of a numeric type, bitvector type, ORDINAL, char, or a set-like or map-like type (instead got _type_)**
@@ -628,7 +629,7 @@ datatype D = D()
 const z := D() - D()
 ```
 
-The `-` operand in Dafny is used for traditional numeric subtraction, and for set difference,
+The `-` operand in Dafny is used for traditional numeric subtraction, for set difference,
 and key removal from maps.
 But not for all types. There is no `-` for datatypes or references, for example.
 
@@ -640,7 +641,7 @@ const z := 0 - {1}
 ```
 
 Though the `-` operand applies the many of Dafny's types, the left- and right- operand need to be
-the same type or convertible to the same type. For example, there is no conversion from  a type to a 
+the same type or convertible to the same type. For example, there is no conversion from a type to a 
 collection of that type.
 
 ## **Error: map subtraction expects right-hand operand to have type _type_ (instead got _type_)**
@@ -653,8 +654,8 @@ collection of that type.
 const z := {1} - 0
 ```
 
-Though the `-` operand applies the many of Dafny's types, the left- and right- operand need to be
-the same type or convertible to the same type. For example, there is no conversion from  a type to a 
+Though the `-` operand applies to many of Dafny's types, the left- and right- operand need to be
+the same type or convertible to the same type. For example, there is no conversion from a type to a 
 collection of that type.
 
 

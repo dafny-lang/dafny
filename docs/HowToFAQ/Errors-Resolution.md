@@ -78,12 +78,13 @@ method m() returns (a: int)
 
 A ghost function can only be called in a ghost context; assigning to an out-parameter is
 always a non-ghost context. If you declare the function to be compilable, then it can be used
-in a non-ghost context. In Dafny 3 a non-ghost function s declared as `function method` (and just `function` is ghost);
-in Dafny 4, `function` is non-ghost and `ghost function` is ghosts (like the declarations
+in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function method` (and just `function` is ghost);
+in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
 for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} with '{what} method')**
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with '_what_ method')**
 
+<!-- %check-resolve %options --function-syntax:3 -->
 ```dafny
 function f(i: int): int
 method m() {
@@ -117,7 +118,6 @@ or used in the then- or else-branch of a non-ghost if statment.
 
 ## **Error: old expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve -->
 ```dafny
 class A {}
 method m(a: A) returns (r: A){
@@ -128,7 +128,7 @@ method m(a: A) returns (r: A){
 The `old` construct is only used in ghost contexts. Typically using `old`
 forces an expression to be ghost.
 But in situations where it is definitely not a ghost context, such as
-assiging to a non-ghost out-parameter or the actual aargument for a
+assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter, then `old` cannot be used.
 
 ## **Error: an expression of type '_type_' is not run-time checkable to be a '_type_'**
@@ -137,23 +137,21 @@ non-ghost formal parameter, then `old` cannot be used.
 
 ## **Error: fresh expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve -->
 ```dafny
 class A {}
-method m(a: A) returns (b: bool){
+method m(a: A) returns (b: bool) {
   b := fresh(a);
 }
 ```
 
 The `old` construct is only used in ghost contexts. Typically using `old`
 forces an expression to be ghost.
-But in situations where it is definitely not a ghost context, such as
-assiging to a non-ghost out-parameter or the actual argument for a
-non-ghost formal parameter, then `old` cannot be used.
+So `old` cannot be used in situations where it is definitely not a ghost context, such as
+assigning to a non-ghost out-parameter or the actual argument for a
+non-ghost formal parameter.
 
 ## **Error: unchanged expressions are allowed only in specification and ghost contexts**
 
-<!-- %check-resolve -->
 ```dafny
 class A {}
 method m(a: A) returns (b: bool){
@@ -163,9 +161,9 @@ method m(a: A) returns (b: bool){
 
 The `unchanged` construct is only used in ghost contexts. Typically using `unchanged`
 forces an expression to be ghost.
-But in situations where it is definitely not a ghost context, such as
-assiging to a non-ghost out-parameter or the actual argument for a
-non-ghost formal parameter, then `unchanged` cannot be used.
+So `unchanged` cannot be used in situations where it is definitely not a ghost context, such as
+assigning to a non-ghost out-parameter or the actual argument for a
+non-ghost formal parameter.
 
 ## **Error: rank comparisons are allowed only in specification and ghost contexts**
 
@@ -212,6 +210,8 @@ enough hints to construct a compiled version of the program.
 
 ## **Error: match expression is not compilable, because it depends on a ghost constructor**
 
+<!-- TODO - does not fail -->
+<!-- %no-check -->
 ```dafny
 datatype D = A | ghost B
 method m(dd: D) 
@@ -256,15 +256,15 @@ intended to be the same, in which case a common type must be chosen.
 const b: bv4 := 30
 ```
 
-An integer literal can be converted implicitly to a value of a bitvecotr type,
+An integer literal can be converted implicitly to a value of a bitvector type,
 but only if the integer literal is in the range for the target type.
-For example, the type `bv4` has 4 bits and holds the values 0 through 15.
+For example, the type `bv4` has 4 bits and holds the values 0 through 15 inclusive.
 So a `bv4` can be initialized with a value in that range.
 Negative values are allowed: a value of -n corresponds to the bit vector
 value which, when added to the bitvector value of n, gives 0.
 For bv4, -n is the same as 16-n.
 
-## **Error: unary minus (-{0}, type {1}) not allowed in case pattern**
+## **Error: unary minus (-_num_, type _type_) not allowed in case pattern**
 
 ```dafny
 const d: bv4
@@ -353,7 +353,7 @@ method m(c: C) {
 
 Dafny does have a `null` value and expressions of types that include `null` can have a `null` value.
 But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
-whereas `C?` does. So if an expression `e` having type `C` is comared against `null`, as in `e == null`,
+whereas `C?` does. So if an expression `e` having type `C` is compared against `null`, as in `e == null`,
 that comparison will always be `false`. If the logic of the program allows `e` to be sometimes `null`,
 then it should be declared with a type like `C?`.
 
@@ -369,7 +369,7 @@ method m(c: C) {
 
 Dafny does have a `null` value and variables of types that include `null` can have a `null` value.
 But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
-whereas `C?` does. So if a variable `v` declared as type `C` is comared against `null`, as in `v == null`,
+whereas `C?` does. So if a variable `v` declared as type `C` is compared against `null`, as in `v == null`,
 that comparison will always be `false`. If the logic of the program allows `v` to be sometimes `null`,
 then it should be declared with a type like `C?`.
 
@@ -392,6 +392,7 @@ or the test is unnecessary.
 
 ## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'**
 
+<!-- %check-resolve-warn -->
 ```dafny
 trait T {}
 const m: map<T,T>
@@ -404,7 +405,7 @@ fail (for `in`) or succeed (for `!in`). If it is actually the case that the map'
 then the domain type should be a nullable type like `T?`. If it is not the case that null could be in the domain,
 then this test is not needed at all.
 
-## **the type of this _var_ is underspecified**
+## **Error: the type of this _var_ is underspecified**
 
 <!-- TODO -->
 
@@ -460,11 +461,11 @@ method m(ghost b: bool)
 }
 ```
 
-`expect` statements are not allowed in ghost contexts; use an `assert` setatement instead.
+`expect` statements are not allowed in ghost contexts; use an `assert` statement instead.
 Ghost context can be explicitly clear, such as the body of a method or function declared `ghost`.
 But a ghost context can also be implicit, and not so obvious: if part of a statement,
 such as the condition of an if statement or loop or the expression being matched in a match 
-statement, is ghost the rest of the statement may be required to be ghost.
+statement, is ghost, then the rest of the statement may be required to be ghost.
 
 ## **Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
 
@@ -482,7 +483,9 @@ But a ghost context can also be implicit, and not so obvious: if something ghost
 such as the condition of an `if` statement or loop or the expression being matched in a match 
 statement, then the rest of the statement may be required to be ghost.
 
-## **ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_**
+<!-- TODO: comment on tracking of printeffects -->
+
+## **Error: ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_**
 
 ```dafny
 method m(i: int) {
@@ -502,7 +505,7 @@ non-ghost, we have the situation of ghost code affecting the flow of control of 
 Consequently a ghost break or continue statement must have as its target some enclosing ghost
 block or loop. 
 
-## **_kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)**
+## **Error: _kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)**
 
 ```dafny
 method m() {
@@ -512,7 +515,7 @@ method m() {
 ```
 
 If the condition of a `if` or `match` statement is a ghost expression, then the whole statement is
-considered ghost. And then the stastement can contain no substatements that are forbidden to be ghost.
+considered ghost. And then the statement can contain no substatements that are forbidden to be ghost.
 `return` and `yield` stastements are never ghost, so they cannot appear in a statement whose guarding
 value is ghost.
 
@@ -524,11 +527,11 @@ value is ghost.
 
 <!-- TODO -->
 
-## **in _proof_, calls are allowed only to lemmas**
+## **Error: in _proof_, calls are allowed only to lemmas**
 
 ```dafny
 method n() {}
-method m(aa: A)
+method m()
 {  
   var i: int;
   assert true by {
@@ -537,15 +540,13 @@ method m(aa: A)
 }
 ```
 
-Proof contexts are blocks of statements that are used to contrcut a proof.
+Proof contexts are blocks of statements that are used to construct a proof.
 Examples are the bodies of lemma, the by-blocks of assert-by statements
 and calc statements. A proof context is a ghost context.
 In ghost context, no methods may be called, even ghost methods.
 Only lemmas may be called.
 
-
-
-## **only ghost methods can be called from this context**
+## **Error: only ghost methods can be called from this context**
 
 ```dafny
 method n() {}
@@ -559,7 +560,7 @@ The body of a ghost method is a ghost context. So if there are any
 method calls in that body, they must be ghost.
 Lemmas and ghost functions may also be called.
 
-## **actual out-parameter _parameter_ is required to be a ghost variable**
+## **Error: actual out-parameter _parameter_ is required to be a ghost variable**
 
 ```dafny
 method n() returns (r: int, ghost s: int) {}
@@ -581,27 +582,27 @@ arrays are never ghost.
 
 <!-- 2 instances -->
 
-## **actual out-parameter _parameter_ is required to be a ghost field**
+## **Error: actual out-parameter _parameter_ is required to be a ghost field**
 
 ```dafny
 class A { var a: int }
 method n() returns (r: int, ghost s: int) {}
-method m(a: array<int>) returns (r: bool)
+method m(a: A) returns (r: bool)
 { 
   var x: int;
   var y: int;
-  x, a[0] := n();
+  x, a.a := n();
 }
 ```
 
 The method being called returns a ghost value as one of its out-parameters.
 The left-hand-side expression receiving that value is required to be ghost as well.
-In this case, the lHS expression is a field of an object;
+In this case, the LHS expression is a field of an object;
 the field itself must be ghost, not simply the whole object.
 Note that out-parameters are numbered beginning with 0.
 
 
-## **a loop in _context_ is not allowed to use 'modifies' clauses**
+## **Error: a loop in _context_ is not allowed to use 'modifies' clauses**
 
 ```dafny
 class A { var a: int }
@@ -620,7 +621,7 @@ method m(aa: A)
 }
 ```
 
-Proof contexts are blocks of statements that are used to contrcut a proof.
+Proof contexts are blocks of statements that are used to construct a proof.
 Examples are the bodies of lemma, the by-blocks of assert-by statements
 and calc statements. A proof context is a ghost context. One of the rules
 for ghost contexts is that nothing on the heap may be modified in ghost context.
@@ -645,11 +646,11 @@ method m()
 ```
 
 A while loop is ghost if its controlling condition is a ghost expression.
-Simiarly, a for loop is ghost if the range over which the index variable ranges is ghost.
+Similarly, a for loop is ghost if the range over which the index variable ranges is ghost.
 Ghost code is meant to aid proofs; for sound proofs any constructs in the ghost code must be terminating.
 Hence, indications of non-terminating loops, that is, `decreases *`, are not permitted.
 
-This does mean that specifier has to do the work of designing a valid terminating condition and proving it.
+This does mean that the specifier has to do the work of designing a valid terminating condition and proving it.
 
 <!-- 2 instances -->
 
@@ -741,7 +742,7 @@ method m(aa: A) {
 
 This message can occur in many program situations: the fault is an assignment to a field in the heap
 that is not permitted because the assignment statement occurs in a ghost context within a generally
-non-ghost environment. A coomon example is the the or else branch of a `if` statement that is
+non-ghost environment. A common example is the then or else branch of a `if` statement that is
 deemed a ghost context because the controlling condition for the loop is a ghost expression.
 Similar situations arise for loops and match statements.
 
