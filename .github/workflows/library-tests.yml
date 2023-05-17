@@ -21,15 +21,13 @@ jobs:
      with:
        branch: master
 
-  build:
-    uses: ./.github/workflows/build-reusable.yml
-    with:
-      os: ubuntu-latest
-
   librarytests:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
+    uses: ./.github/workflows/build-reusable.yml
+    with:
+      os: ubuntu-latest
     steps:
     - name: Checkout library
       uses: actions/checkout@v3
