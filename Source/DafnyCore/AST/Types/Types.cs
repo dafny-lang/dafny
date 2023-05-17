@@ -2362,6 +2362,18 @@ public class UserDefinedType : NonProxyType {
     return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
   }
 
+  public static UserDefinedType CreateNonNullTypeIfReferenceType(UserDefinedType classLikeType) {
+    Contract.Requires(classLikeType != null);
+    Contract.Requires(classLikeType.ResolvedClass is ClassLikeDecl);
+    return classLikeType.IsRefType ? CreateNonNullType(classLikeType) : classLikeType;
+  }
+
+  public static UserDefinedType CreateNullableTypeIfReferenceType(UserDefinedType classLikeType) {
+    Contract.Requires(classLikeType != null);
+    Contract.Requires(!classLikeType.IsRefType || classLikeType.ResolvedClass is NonNullTypeDecl);
+    return classLikeType.IsRefType ? CreateNullableType(classLikeType) : classLikeType;
+  }
+
   /// <summary>
   /// This constructor constructs a resolved type parameter
   /// </summary>

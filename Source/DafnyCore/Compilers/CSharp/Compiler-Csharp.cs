@@ -2679,7 +2679,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(from.IsRefType == to.IsRefType);
+      Contract.Assert(!Options.Get(CommonOptionBag.TraitsAreReferences) || from.IsRefType == to.IsRefType);
 
       var w = new ConcreteSyntaxTree();
       if (to.IsRefType) {

@@ -1533,11 +1533,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     return ParentTraits.ConvertAll(traitType => {
       var ty = (UserDefinedType)traitType.Subst(subst);
-      if (traitType.IsRefType) {
-        return (Type)UserDefinedType.CreateNullableType(ty);
-      } else {
-        return ty;
-      }
+      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
     });
   }
 
@@ -2597,7 +2593,7 @@ public class NonNullTypeDecl : SubsetTypeDecl {
     foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
       var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
       Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
-      result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
+      result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));
     }
 
     return result;

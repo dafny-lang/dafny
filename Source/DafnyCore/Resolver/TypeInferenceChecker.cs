@@ -221,7 +221,7 @@ partial class Resolver {
         var e = (ConversionExpr)expr;
         if (e.ToType.IsRefType) {
           var fromType = e.E.Type;
-          Contract.Assert(fromType.IsRefType);
+          Contract.Assert(!resolver.Options.Get(CommonOptionBag.TraitsAreReferences) || fromType.IsRefType);
           if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
             // looks good
           } else {

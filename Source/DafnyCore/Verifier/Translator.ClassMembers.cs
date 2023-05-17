@@ -100,13 +100,13 @@ namespace Microsoft.Dafny {
         string name;
 
         if (is_alloc) {
-          name = c + ": Class $IsAlloc";
+          name = $"{c}: {c.WhatKind} $IsAlloc";
           var h = BplBoundVar("$h", predef.HeapType, vars);
           // $IsAlloc(o, ..)
           is_o = MkIsAlloc(o, o_ty, h);
           body = BplIff(is_o, BplOr(o_null, IsAlloced(c.tok, h, o)));
         } else {
-          name = c + ": Class $Is";
+          name = $"{c}: {c.WhatKind} $Is";
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
