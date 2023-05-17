@@ -2697,7 +2697,7 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeCharacteristics_Stmt(iter.Body, false);
             }
-          } else if (d is ClassDecl or TraitDecl) {
+          } else if (d is ClassLikeDecl) {
             var cl = (TopLevelDeclWithMembers)d;
             foreach (var parentTrait in cl.ParentTraits) {
               CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);

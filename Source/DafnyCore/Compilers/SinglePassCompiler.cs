@@ -1983,7 +1983,7 @@ namespace Microsoft.Dafny.Compilers {
               if (wBody != null) {
                 if (cf.Rhs != null) {
                   CompileReturnBody(cf.Rhs, cf.Type, wBody, null);
-                } else if (!cf.IsStatic && c is ClassDecl or TraitDecl) {
+                } else if (!cf.IsStatic && c is ClassLikeDecl) {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
@@ -2510,7 +2510,7 @@ namespace Microsoft.Dafny.Compilers {
           receiver = new LocalVariable(m.RangeToken, "b", ty, false) {
             type = ty
           };
-          if (m.EnclosingClass is ClassDecl or TraitDecl) {
+          if (m.EnclosingClass is ClassLikeDecl) {
             var wStmts = w.Fork();
             var wRhs = DeclareLocalVar(IdName(receiver), ty, m.tok, w);
             EmitNew(ty, m.tok, null, wRhs, wStmts);

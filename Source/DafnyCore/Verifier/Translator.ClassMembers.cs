@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
         }
 
-        if (c is ClassDecl or TraitDecl) {
+        if (c is ClassLikeDecl) {
           AddIsAndIsAllocForClassLike(c);
         }
 

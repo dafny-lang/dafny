@@ -68,7 +68,7 @@ public class AutoContractsRewriter : IRewriter {
   internal override void PreResolve(ModuleDefinition m) {
     foreach (var d in m.TopLevelDecls) {
       bool sayYes = true;
-      if (d is ClassDecl or TraitDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
+      if (d is ClassLikeDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
         ProcessClassPreResolve((TopLevelDeclWithMembers)d);
       }
     }

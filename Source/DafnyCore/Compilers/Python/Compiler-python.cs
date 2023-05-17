@@ -567,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl or TraitDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
+          ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
