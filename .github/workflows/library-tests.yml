@@ -68,4 +68,4 @@ jobs:
       run: |
         cd libraries
         ../dafny/Scripts/dafny --version
-        PATH=../dafny/bin:$PATH lit --time-tests -v --param 'dafny_params=--log-format trx --log-format csv' .
+        PATH=../dafny/Scripts:$PATH lit src
