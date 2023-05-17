@@ -2968,7 +2968,7 @@ namespace Microsoft.Dafny {
                     }
                   }
                 }
-                DONE_DT: ;
+              DONE_DT:;
               }
             }
           } else if (d is TypeSynonymDecl) {
