@@ -49,11 +49,11 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: 'dafny-lang/libraries'
-        path: library
+        path: libraries
     - name: Version information
       run: |
-        which dafny
-        dafny --version
+        ls dafny
+        dafny/Scripts/dafny --version
 
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
@@ -67,5 +67,5 @@ jobs:
     - name: Verify Code and Examples
       run: |
         cd libraries
-        dafny --version
+        ../dafny/Scripts/dafny --version
         PATH=../dafny/bin:$PATH lit --time-tests -v --param 'dafny_params=--log-format trx --log-format csv' .
