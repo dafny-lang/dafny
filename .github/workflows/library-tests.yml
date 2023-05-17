@@ -1,4 +1,4 @@
-name: Test documentation
+name: Test that libraries verify
 
 ## Tests various aspects of documentation
 ##  -- Examples are well-formed and verify when expected
@@ -21,7 +21,7 @@ jobs:
      with:
        branch: master
 
-  doctests:
+  librarytests:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     runs-on: ubuntu-latest
