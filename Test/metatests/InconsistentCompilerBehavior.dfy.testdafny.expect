@@ -1,14 +1,20 @@
 Verifying...
 Executing on C#...
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ 
+ Dafny program verifier did not attempt verification
+-Different than any output
++0
+ 
+
 Executing on JavaScript...
 AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
  
  Dafny program verifier did not attempt verification
--System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
-+function (_3_x) {
-+        return _3_x;
-+      }
+-Different than any output
++0
  
 
 Executing on Go...
@@ -16,8 +22,8 @@ AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
  
  Dafny program verifier did not attempt verification
--System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
-+func(dafny.Int) dafny.Int
+-Different than any output
++0
  
 
 Executing on Java...
@@ -25,8 +31,8 @@ AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
  
  Dafny program verifier did not attempt verification
--System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
-+Function
+-Different than any output
++0
  
 
 Executing on Python...
@@ -34,8 +40,8 @@ AssertEqualWithDiff() Failure
 Diff (changing expected into actual):
  
  Dafny program verifier did not attempt verification
--System.Func`2[System.Numerics.BigInteger,System.Numerics.BigInteger]
-+Function
+-Different than any output
++0
  
 
 Executing on C++...
