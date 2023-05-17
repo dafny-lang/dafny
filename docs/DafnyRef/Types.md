@@ -635,7 +635,7 @@ type synonyms have the characteristics of the type they represent.
 An abstract type has no known characteristics. If it is intended to be defined only as types
 that have certain characteristics, then those characteristics must be declared.
 For example,
-<!-- %no-check -->
+<!-- %check-resolve Types.26.expect -->
 ```dafny
 class A<T(00)> {}
 type Q
