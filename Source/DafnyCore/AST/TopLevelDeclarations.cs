@@ -1479,26 +1479,26 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "class": {
-          classToken = token;
-          break;
-        }
-        case "extends": {
-          if (token.line != token.Next.line) {
-            extraIndent = classToken != null && classToken.line == token.line ? 0 : formatter.SpaceTab;
-            commaIndent += extraIndent;
-            formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab + extraIndent);
-          } else {
-            extraIndent += 2;
-            commaIndent = indentBefore + formatter.SpaceTab;
-            formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab);
+            classToken = token;
+            break;
           }
+        case "extends": {
+            if (token.line != token.Next.line) {
+              extraIndent = classToken != null && classToken.line == token.line ? 0 : formatter.SpaceTab;
+              commaIndent += extraIndent;
+              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab + extraIndent);
+            } else {
+              extraIndent += 2;
+              commaIndent = indentBefore + formatter.SpaceTab;
+              formatter.SetIndentations(token, below: indentBefore + formatter.SpaceTab);
+            }
 
-          break;
-        }
+            break;
+          }
         case ",": {
-          formatter.SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
-          break;
-        }
+            formatter.SetIndentations(token, parentTraitIndent + extraIndent, commaIndent, parentTraitIndent + extraIndent);
+            break;
+          }
       }
     }
 
@@ -1611,7 +1611,7 @@ public class ArrowTypeDecl : ValuetypeDecl {
     : base(ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
       new List<MemberDecl> { req, reads }, attributes,
       ty =>
-        ty.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: ArrowTypeDecl arrowTypeDecl} && arrowTypeDecl.Arity == tps.Count - 1,
+        ty.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: ArrowTypeDecl arrowTypeDecl } && arrowTypeDecl.Arity == tps.Count - 1,
       null) {
     Contract.Requires(tps != null && 1 <= tps.Count);
     Contract.Requires(req != null);
