@@ -22,3 +22,14 @@ class Cat extends Animal {
     predicate depends_on_iam_opaque() 
        ensures iam_opaque() == 42 {reveal iam_opaque(); true}
 }
+
+trait T {
+  predicate Valid(x: int)
+  method MyMethod(x: int) requires Valid(x)
+}
+
+class C extends T {
+  predicate {:opaque} Valid(x: int) { true }
+  method MyMethod(x: int) requires Valid(x) {
+  }
+}

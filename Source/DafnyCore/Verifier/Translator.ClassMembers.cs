@@ -757,6 +757,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options);
       var etran = new ExpressionTranslator(this, predef, m.tok);
       var localVariables = new List<Variable>();
+      InitializeFuelConstant(m.tok, builder, etran);
 
       // assume traitTypeParameter == G(overrideTypeParameters);
       AddOverrideCheckTypeArgumentInstantiations(m, builder, localVariables);
