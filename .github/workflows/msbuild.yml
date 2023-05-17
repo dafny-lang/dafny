@@ -32,6 +32,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: dafny
+        submodules: recursive
     - name: Restore tools
       working-directory: dafny
       run: dotnet tool restore
@@ -86,6 +87,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: dafny
+          submodules: recursive
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
@@ -123,7 +125,12 @@ jobs:
           reportgenerator \
             -reports:"./**/coverage.cobertura.xml" \
             -reporttypes:Cobertura -targetdir:coverage-cobertura \
-            -classfilters:-Microsoft.Dafny.*PreType*
+            -classfilters:-Microsoft.Dafny.*PreType* \
+            -classfilters:-Microsoft.Dafny.ResolverPass \
+            -classfilters:-Microsoft.Dafny.*Underspecification* \
+            -classfilters:-Microsoft.Dafny.DetectUnderspecificationVisitor \
+            -classfilters:-Microsoft.Dafny.Microsoft.Dafny.UnderspecificationDetector \
+            -classfilters:-Microsoft.Dafny.ResolverPass
           # Generate HTML from combined report, leaving out XUnitExtensions
           reportgenerator \
             -reports:"coverage-cobertura/Cobertura.xml" \

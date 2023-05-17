@@ -18,12 +18,15 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
+using System.CommandLine.IO;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using System.Threading;
 using DafnyCore;
 using Microsoft.Dafny.Plugins;
 
@@ -97,31 +100,36 @@ namespace Microsoft.Dafny {
     };
 
     public static int Main(string[] args) {
-      int ret = 0;
-      var thread = new System.Threading.Thread(
-        new System.Threading.ThreadStart(() => { ret = ThreadMain(args); }),
-          0x10000000); // 256MB stack size to prevent stack overflow
-      thread.Start();
-      thread.Join();
-      return ret;
+      return MainWithWriters(Console.Out, Console.Error, Console.In, args);
     }
 
-    public static int ThreadMain(string[] args) {
+    public static int MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader,
+      string[] args) {
+
+      // Code that shouldn't be needed, but prevents some exceptions when running the integration tests in parallel
+      // outputWriter = new UndisposableTextWriter(outputWriter);
+      // errorWriter = new UndisposableTextWriter(errorWriter);
+      // outputWriter = TextWriter.Synchronized(outputWriter);
+      // errorWriter = TextWriter.Synchronized(errorWriter);
+
+#pragma warning disable VSTHRD002
+      return Task.Run(() => ThreadMain(outputWriter, errorWriter, inputReader, args)).Result;
+#pragma warning restore VSTHRD002
+    }
+
+    private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-      var cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
+
+      var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
+        args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
           var driver = new DafnyDriver(dafnyOptions);
-          ErrorReporter reporter = dafnyOptions.DiagnosticsFormat switch {
-            DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(dafnyOptions),
-            DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(dafnyOptions),
-            _ => throw new ArgumentOutOfRangeException()
-          };
 #pragma warning disable VSTHRD002
-          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), reporter).Result;
+          exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
 #pragma warning restore VSTHRD002
           break;
         case CommandLineArgumentsResult.PREPROCESSING_ERROR:
@@ -145,7 +153,7 @@ namespace Microsoft.Dafny {
         try {
           VerificationResultLogger.RaiseTestLoggerEvents(dafnyOptions);
         } catch (ArgumentException ae) {
-          dafnyOptions.Printer.ErrorWriteLine(Console.Out, $"*** Error: {ae.Message}");
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter, $"*** Error: {ae.Message}");
           exitValue = ExitValue.PREPROCESSING_ERROR;
         }
       }
@@ -184,12 +192,15 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public static CommandLineArgumentsResult ProcessCommandLineArguments(string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
+    public static CommandLineArgumentsResult ProcessCommandLineArguments(TextWriter outputWriter,
+      TextWriter errorWriter,
+      TextReader inputReader,
+      string[] args, out DafnyOptions options, out List<DafnyFile> dafnyFiles, out List<string> otherFiles) {
       dafnyFiles = new List<DafnyFile>();
       otherFiles = new List<string>();
 
       try {
-        switch (CommandRegistry.Create(args)) {
+        switch (CommandRegistry.Create(outputWriter, errorWriter, inputReader, args)) {
           case ParseArgumentSuccess success:
             options = success.DafnyOptions;
             break;
@@ -201,7 +212,7 @@ namespace Microsoft.Dafny {
 
         options.RunningBoogieFromCommandLine = true;
       } catch (ProverException pe) {
-        new DafnyConsolePrinter(DafnyOptions.Create()).ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
+        new DafnyConsolePrinter(DafnyOptions.Create(outputWriter)).ErrorWriteLine(outputWriter, "*** ProverException: {0}", pe.Message);
         options = null;
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -216,7 +227,7 @@ namespace Microsoft.Dafny {
       if (compiler == null) {
         if (nonOutOptions.CompilerName != null) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(Console.Error, $"No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
+          options.Printer.ErrorWriteLine(options.ErrorWriter, $"No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
@@ -231,36 +242,38 @@ namespace Microsoft.Dafny {
       }
 
       if (options.UseStdin) {
+        options.CliRootUris.Add(new Uri("stdin:///"));
         dafnyFiles.Add(new DafnyFile(options, "<stdin>", true));
-      } else if (options.Files.Count == 0 && !options.Format) {
+      } else if (options.CliRootUris.Count == 0 && !options.Format) {
         options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
         string errMsg = options.XmlSink.Open();
         if (errMsg != null) {
-          options.Printer.ErrorWriteLine(Console.Error, "*** Error: " + errMsg);
+          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
       if (options.ShowEnv == ExecutionEngineOptions.ShowEnvironment.Always) {
-        Console.WriteLine("---Command arguments");
+        outputWriter.WriteLine("---Command arguments");
         foreach (string arg in args) {
           Contract.Assert(arg != null);
-          Console.WriteLine(arg);
+          outputWriter.WriteLine(arg);
         }
-        Console.WriteLine("--------------------");
+        outputWriter.WriteLine("--------------------");
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (string file in options.Files.Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
+      foreach (var file in options.CliRootUris.Where(u => u.IsFile).Select(u => u.LocalPath).
+                 Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
 
         bool isDafnyFile = false;
         try {
-          var df = new DafnyFile(options, file);
+          var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
             df.IsPreverified = true;
             df.IsPrecompiled = true;
@@ -279,7 +292,8 @@ namespace Microsoft.Dafny {
 
         var relative = System.IO.Path.GetFileName(file);
         bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
-        var nameToShow = useRelative ? relative : file;
+        var nameToShow = useRelative ? relative
+          : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes
@@ -287,23 +301,23 @@ namespace Microsoft.Dafny {
           if (File.Exists(file) || extension == ".h") {
             otherFiles.Add(file);
           } else {
-            options.Printer.ErrorWriteLine(Console.Out, $"*** Error: file {nameToShow} not found");
+            options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {nameToShow} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         } else if (options.Format && Directory.Exists(file)) {
           options.FoldersToFormat.Add(file);
         } else if (!isDafnyFile) {
           if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
-            options.Printer.ErrorWriteLine(Console.Out,
+            options.Printer.ErrorWriteLine(options.OutputWriter,
               "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
               nameToShow,
               string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
           } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
-            options.Printer.ErrorWriteLine(Console.Out,
+            options.Printer.ErrorWriteLine(options.OutputWriter,
               "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
               nameToShow, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
           } else {
-            options.Printer.ErrorWriteLine(Console.Out,
+            options.Printer.ErrorWriteLine(options.OutputWriter,
               "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
               nameToShow, extension, string.Join(", ", supportedExtensions));
           }
@@ -313,12 +327,12 @@ namespace Microsoft.Dafny {
 
       if (dafnyFiles.Count == 0) {
         if (!options.Format) {
-          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+          options.Printer.ErrorWriteLine(options.OutputWriter, "*** Error: The command-line contains no .dfy files");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
         if (options.FoldersToFormat.Count == 0) {
-          options.Printer.ErrorWriteLine(Console.Out,
+          options.Printer.ErrorWriteLine(options.OutputWriter,
             "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
@@ -326,13 +340,13 @@ namespace Microsoft.Dafny {
 
       if (dafnyFiles.Count > 1 &&
           options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        options.Printer.ErrorWriteLine(Console.Out,
+        options.Printer.ErrorWriteLine(options.OutputWriter,
           "*** Error: Only one .dfy file can be specified for testing");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
       if (options.ExtractCounterexample && options.ModelViewFile == null) {
-        options.Printer.ErrorWriteLine(Console.Out,
+        options.Printer.ErrorWriteLine(options.OutputWriter,
           "*** Error: ModelView file must be specified when attempting counterexample extraction");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
@@ -341,15 +355,14 @@ namespace Microsoft.Dafny {
 
     private async Task<ExitValue> ProcessFilesAsync(IList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
-      ErrorReporter reporter, bool lookForSnapshots = true, string programId = null) {
+      DafnyOptions options, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
-      var options = reporter.Options;
       if (options.TestGenOptions.WarnDeadCode) {
         await foreach (var line in DafnyTestGeneration.Main.GetDeadCodeStatistics(dafnyFileNames[0], options)) {
-          Console.WriteLine(line);
+          await options.OutputWriter.WriteLineAsync(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
@@ -358,7 +371,7 @@ namespace Microsoft.Dafny {
       }
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         await foreach (var line in DafnyTestGeneration.Main.GetTestClassForProgram(dafnyFileNames[0], options)) {
-          Console.WriteLine(line);
+          await options.OutputWriter.WriteLineAsync(line);
         }
         if (DafnyTestGeneration.Main.setNonZeroExitCode) {
           exitValue = ExitValue.DAFNY_ERROR;
@@ -368,9 +381,9 @@ namespace Microsoft.Dafny {
 
       if (options.VerifySeparately && 1 < dafnyFiles.Count) {
         foreach (var f in dafnyFiles) {
-          Console.WriteLine();
-          Console.WriteLine("-------------------- {0} --------------------", f);
-          var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);
+          await options.OutputWriter.WriteLineAsync();
+          await options.OutputWriter.WriteLineAsync($"-------------------- {f} --------------------");
+          var ev = await ProcessFilesAsync(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), options, lookForSnapshots, f.FilePath);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -384,8 +397,9 @@ namespace Microsoft.Dafny {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             snapshots.Add(new DafnyFile(options, f));
+            options.CliRootUris.Add(new Uri(Path.GetFullPath(f)));
           }
-          var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), reporter, false, programId);
+          var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
             exitValue = ev;
           }
@@ -394,32 +408,32 @@ namespace Microsoft.Dafny {
       }
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
-      Program dafnyProgram;
       string err;
       if (Options.Format) {
-        return DoFormatting(dafnyFiles, Options, reporter, programName);
+        return DoFormatting(dafnyFiles, Options, programName, options.ErrorWriter);
       }
 
-      err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
+      err = DafnyMain.ParseCheck(Options.Input, dafnyFiles, programName, options, out var dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
-        options.Printer.ErrorWriteLine(Console.Out, err);
+        options.Printer.ErrorWriteLine(options.OutputWriter, err);
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck
           && options.DafnyVerify) {
 
-        var boogiePrograms = Translate(engine.Options, dafnyProgram).ToList();
+        var boogiePrograms =
+          await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) = await BoogieAsync(options, baseName, boogiePrograms, programId);
 
         bool compiled;
         try {
-          compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
+          compiled = await Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
             throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          reporter.Error(MessageSource.Compiler, e.Token, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, e.Token, e.Message);
           compiled = false;
         }
 
@@ -438,8 +452,7 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
-    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, DafnyOptions options,
-      ErrorReporter reporter, string programName) {
+    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, DafnyOptions options, string programName, TextWriter errorWriter) {
       var exitValue = ExitValue.SUCCESS;
       Contract.Assert(dafnyFiles.Count > 0 || options.FoldersToFormat.Count > 0);
       dafnyFiles = dafnyFiles.Concat(options.FoldersToFormat.SelectMany(folderPath => {
@@ -449,14 +462,14 @@ namespace Microsoft.Dafny {
 
       var failedToParseFiles = new List<string>();
       var emptyFiles = new List<string>();
-      var doCheck = reporter.Options.FormatCheck;
-      var doPrint = reporter.Options.DafnyPrintFile == "-";
-      reporter.Options.DafnyPrintFile = null;
+      var doCheck = options.FormatCheck;
+      var doPrint = options.DafnyPrintFile == "-";
+      options.DafnyPrintFile = null;
       var neededFormatting = 0;
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
         if (dafnyFile.UseStdin && !doCheck && !doPrint) {
-          Console.Error.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
+          errorWriter.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
           exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;
         }
@@ -469,13 +482,13 @@ namespace Microsoft.Dafny {
         }
 
         // Might not be totally optimized but let's do that for now
-        var err = Dafny.Main.Parse(new List<DafnyFile> { dafnyFile }, programName, reporter, out var dafnyProgram);
+        var err = DafnyMain.Parse(options.Input, new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
         var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
           File.Exists(dafnyFile.FilePath) ?
           File.ReadAllText(dafnyFile.FilePath) : null;
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
-          Console.Error.WriteLine(err);
+          errorWriter.WriteLine(err);
           failedToParseFiles.Add(dafnyFile.BaseName);
         } else {
           var firstToken = dafnyProgram.GetFirstTopLevelToken();
@@ -489,11 +502,11 @@ namespace Microsoft.Dafny {
                 exitValue = exitValue != ExitValue.DAFNY_ERROR ? ExitValue.FORMAT_ERROR : exitValue;
               }
 
-              if (doCheck && (!doPrint || reporter.Options.CompileVerbose)) {
-                Console.Out.WriteLine("The file " +
-                                      (reporter.Options.UseBaseNameForFileName
-                                        ? Path.GetFileName(dafnyFile.FilePath)
-                                        : dafnyFile.FilePath) + " needs to be formatted");
+              if (doCheck && (!doPrint || options.CompileVerbose)) {
+                options.OutputWriter.WriteLine("The file " +
+                                               (options.UseBaseNameForFileName
+                                                 ? Path.GetFileName(dafnyFile.FilePath)
+                                                 : dafnyFile.FilePath) + " needs to be formatted");
               }
 
               if (!doCheck && !doPrint) {
@@ -501,16 +514,16 @@ namespace Microsoft.Dafny {
               }
             }
           } else {
-            if (reporter.Options.CompileVerbose) {
-              Console.Error.WriteLine(dafnyFile.BaseName + " was empty.");
+            if (options.CompileVerbose) {
+              options.ErrorWriter.WriteLine(dafnyFile.BaseName + " was empty.");
             }
 
-            emptyFiles.Add((reporter.Options.UseBaseNameForFileName
+            emptyFiles.Add((options.UseBaseNameForFileName
               ? Path.GetFileName(dafnyFile.FilePath)
               : dafnyFile.FilePath));
           }
           if (doPrint) {
-            Console.Out.Write(result);
+            options.OutputWriter.Write(result);
           }
         }
 
@@ -538,12 +551,12 @@ namespace Microsoft.Dafny {
       reportMsg = filesNeedFormatting + reportMsg;
 
       if (doCheck) {
-        Console.Out.WriteLine(neededFormatting > 0
+        options.OutputWriter.WriteLine(neededFormatting > 0
           ? $"Error: {reportMsg}"
           : "All files are correctly formatted");
-      } else if (failedToParseFiles.Count > 0 || reporter.Options.CompileVerbose) {
+      } else if (failedToParseFiles.Count > 0 || options.CompileVerbose) {
         // We don't display anything if we just format files without verbosity and there was no parse error
-        Console.Out.WriteLine($"{reportMsg}");
+        options.OutputWriter.WriteLine($"{reportMsg}");
       }
 
       return exitValue;
@@ -557,14 +570,14 @@ namespace Microsoft.Dafny {
     /// the counterexample </param> 
     private static void PrintCounterexample(DafnyOptions options, string modelViewFile) {
       var model = DafnyModel.ExtractModel(options, File.ReadAllText(modelViewFile));
-      Console.WriteLine("Counterexample for first failing assertion: ");
+      options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
       foreach (var state in model.States.Where(state => !state.IsInitialState)) {
-        Console.WriteLine(state.FullStateName + ":");
+        options.OutputWriter.WriteLine(state.FullStateName + ":");
         var vars = state.ExpandedVariableSet(-1);
         foreach (var variable in vars) {
-          Console.WriteLine($"\t{variable.ShortName} : " +
-                            $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                            $"{variable.Value}");
+          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
+                                   $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+                                   $"{variable.Value}");
         }
       }
     }
@@ -584,7 +597,7 @@ namespace Microsoft.Dafny {
 
         if (options.PrintFile != null) {
 
-          var nm = nmodules > 1 ? Dafny.Main.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
+          var nm = nmodules > 1 ? Dafny.DafnyMain.BoogieProgramSuffix(options.PrintFile, prog.Item1) : options.PrintFile;
 
           ExecutionEngine.PrintBplFile(options, nm, prog.Item2, false, false, options.PrettyPrint);
         }
@@ -600,7 +613,7 @@ namespace Microsoft.Dafny {
         IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId) {
 
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
-      var writerManager = new ConcurrentToSequentialWriteManager(Console.Out);
+      var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
 
       var moduleTasks = boogiePrograms.Select(async program => {
         await using var moduleWriter = writerManager.AppendWriter();
@@ -612,12 +625,12 @@ namespace Microsoft.Dafny {
       }).ToList();
 
       await Task.WhenAll(moduleTasks);
-      await Console.Out.FlushAsync();
+      await options.OutputWriter.FlushAsync();
       var outcome = moduleTasks.Select(t => t.Result.Outcome)
         .Aggregate(PipelineOutcome.VerificationCompleted, MergeOutcomes);
 
       var isVerified = moduleTasks.Select(t =>
-        Dafny.Main.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
+        Dafny.DafnyMain.IsBoogieVerified(t.Result.Outcome, t.Result.Stats)).All(x => x);
       return (isVerified, outcome, concurrentModuleStats);
     }
 
@@ -634,7 +647,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await Dafny.Main.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
+        await Dafny.DafnyMain.BoogieOnce(options, output, engine, baseName, moduleName, program, programId);
 
       watch.Stop();
 
@@ -708,24 +721,24 @@ namespace Microsoft.Dafny {
     }
 
 
-    public static bool Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
+    public static async Task<bool> Compile(string fileName, ReadOnlyCollection<string> otherFileNames, Program dafnyProgram,
                                PipelineOutcome oc, IDictionary<string, PipelineStatistics> moduleStats, bool verified) {
       var options = dafnyProgram.Options;
       var resultFileName = options.DafnyPrintCompiledFile ?? fileName;
       bool compiled = true;
       switch (oc) {
         case PipelineOutcome.VerificationCompleted:
-          WriteModuleStats(options, Console.Out, moduleStats);
+          WriteModuleStats(options, options.OutputWriter, moduleStats);
           if ((options.Compile && verified && !options.UserConstrainedProcsToCheck) || options.ForceCompile) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
           } else if ((2 <= options.SpillTargetCode && verified && !options.UserConstrainedProcsToCheck) || 3 <= options.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
         case PipelineOutcome.Done:
-          WriteModuleStats(options, Console.Out, moduleStats);
+          WriteModuleStats(options, options.OutputWriter, moduleStats);
           if (options.ForceCompile || 3 <= options.SpillTargetCode) {
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, options.ForceCompile);
+            compiled = await CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, options.ForceCompile);
           }
           break;
         default:
@@ -799,11 +812,10 @@ namespace Microsoft.Dafny {
       }
 
       CheckFilenameIsLegal(filename);
-      using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
-        target.Write(text);
-        if (moreText != null) {
-          target.Write(moreText);
-        }
+      using TextWriter target = new StreamWriter(new FileStream(filename, FileMode.Create));
+      target.Write(text);
+      if (moreText != null) {
+        target.Write(moreText);
       }
     }
 
@@ -829,16 +841,13 @@ namespace Microsoft.Dafny {
     /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
-    public static bool CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
-                                           ReadOnlyCollection<string> otherFileNames, bool invokeCompiler,
-                                           TextWriter outputWriter = null) {
+    public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
+                                           ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 
-      // TODO: `outputWriter` seems to always be passed in as `null`.  Remove it?
-      if (outputWriter == null) {
-        outputWriter = Console.Out;
-      }
+      var outputWriter = dafnyProgram.Options.OutputWriter;
+      var errorWriter = dafnyProgram.Options.ErrorWriter;
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.Reporter.Count(ErrorLevel.Error);
@@ -855,7 +864,7 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
-        compiler.Compile(dafnyProgram, output);
+        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
@@ -875,7 +884,7 @@ namespace Microsoft.Dafny {
         var callToMainTree = new ConcreteSyntaxTree();
         string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
         compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
-        callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main
+        callToMain = callToMainTree.MakeString(compiler.TargetIndentSize); // assume there aren't multiple files just to call main
       }
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.Reporter.Count(ErrorLevel.Error) != oldErrorCount;
@@ -904,15 +913,16 @@ namespace Microsoft.Dafny {
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.CompileVerbose) {
-            outputWriter.WriteLine("Running...");
-            outputWriter.WriteLine();
+            await outputWriter.WriteLineAsync("Running...");
+            await outputWriter.WriteLineAsync();
           }
 
-          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, paths.Filename, otherFileNames, compilationResult, outputWriter);
+          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,
+            paths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
         } else {
           // make sure to give some feedback to the user
           if (options.CompileVerbose) {
-            outputWriter.WriteLine("Program compiled successfully");
+            await outputWriter.WriteLineAsync("Program compiled successfully");
           }
         }
       }
@@ -947,8 +957,10 @@ namespace Microsoft.Dafny {
       throw new NotSupportedException();
     }
 
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string pathsFilename,
-      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+      string pathsFilename,
+      ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+      TextWriter errorWriter) {
       throw new NotSupportedException();
     }
   }

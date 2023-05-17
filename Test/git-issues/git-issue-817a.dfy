@@ -35,6 +35,7 @@ method P() returns (r: Result<int>){
   assert a[7] == 200;
   assert c.data == 9;
   print c.data, " ", a[7], " ", a[9], "\n"; // 9 200 142
+  r := *;
 }
 
 method Main() {
