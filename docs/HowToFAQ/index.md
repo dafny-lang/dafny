@@ -85,6 +85,7 @@ If you have questions that are not addressed here, be sure to communicate them t
 - ["How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'."](FAQThisFrameField)
 - ["How do I model extern methods that return objects?"](FAQExternReturnsObject)
 - ["How do I tell Dafny that a class field may be updated?"](FAQUpdateArrayField)
+- ["Why does Dafny not know this obvious property of maps?"](FAQMapMembership)
 
 ## Dafny tools
 
