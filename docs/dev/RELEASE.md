@@ -60,7 +60,7 @@
       Approve and merge these PRs.
 
 1. Add the new version to the list of versions to be checked in the library repo,
-   namely the list in the file libraries/.github/workflows/tests.yml
+   namely the list in the file libraries/.github/workflows/tests.yml.
 
 1. Update the Homebrew formula for Dafny (see below).
     Note that it is fine to leave this for the next day,
