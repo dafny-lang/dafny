@@ -1292,6 +1292,26 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
+To avoid cuasing circular reasoning chains or providing too much informatino that might
+complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
+For example, the following does not prove:
+<!-- %check-verify Types.25.expect -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert v in mm.Values;
+  }
+```
+Rather, one must provide an intermediate step, which is not entirely obvious:
+<!-- %check-verify -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert k in mm.Keys;
+    assert v in mm.Values;
+  }
+```
+
 ### 5.5.5. Iterating over collections
 
 Collections are very commonly used in programming and one frequently
