@@ -1,1 +1,1 @@
-Ensures reveal statements contribute during override checks
+Ensures override checks have access to fuel constant equivalences
