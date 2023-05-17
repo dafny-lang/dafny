@@ -393,8 +393,8 @@ namespace Microsoft.Dafny.Compilers {
       var w = EmitAssignmentRhs(wr);
       w.Write(rhs);
     }
-    protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
+    protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+      wStmts ??= wr.Fork();
       var w = EmitAssignmentRhs(wr);
       w.Append(Expr(rhs, inLetExprBody, wStmts));
     }
@@ -3221,8 +3221,9 @@ namespace Microsoft.Dafny.Compilers {
         if (s.End != null) {
           // introduce a variable to hold the value of the end-expression
           endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
+          wStmts = wr.Fork();
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
-          EmitAssignmentRhs(s.End, false, wr);
+          EmitAssignmentRhs(s.End, false, wr, wStmts);
         }
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         startExprWriter.Append(Expr(s.Start, false, wStmts));
