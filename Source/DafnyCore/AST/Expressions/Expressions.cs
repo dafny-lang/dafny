@@ -2722,6 +2722,8 @@ public class StmtExpr : Expression, ICanFormat {
     Contract.Invariant(E != null);
   }
 
+  public override IEnumerable<Node> Children => new Node[] { S, E };
+
   public StmtExpr(IToken tok, Statement stmt, Expression expr)
     : base(tok) {
     Contract.Requires(tok != null);
