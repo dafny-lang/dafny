@@ -17,7 +17,7 @@ namespace Microsoft.Dafny {
     protected readonly Dictionary<IVariable, Expression> substMap;
     protected readonly Dictionary<TypeParameter, Type> typeMap;
     protected readonly Label oldHeapLabel;
-    [CanBeNull] private readonly BuiltIns builtIns; // if non-null, substitutions into FunctionCallExpr's will be wrapped
+    [CanBeNull] protected readonly BuiltIns builtIns; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
     public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
