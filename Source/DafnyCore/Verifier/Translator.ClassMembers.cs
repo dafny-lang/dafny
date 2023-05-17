@@ -919,6 +919,8 @@ namespace Microsoft.Dafny {
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
       List<Variable> localVariables = new List<Variable>();
 
+      InitializeFuelConstant(f.tok, builder, etran);
+
       // assume traitTypeParameter == G(overrideTypeParameters);
       AddOverrideCheckTypeArgumentInstantiations(f, builder, localVariables);
 

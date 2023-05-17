@@ -20,5 +20,5 @@ class Cat extends Animal {
     predicate depends_on_not_opaque() 
        ensures not_opaque() == 42 {true}
     predicate depends_on_iam_opaque() 
-       ensures reveal iam_opaque(); iam_opaque() == 42 {reveal iam_opaque(); true}
+       ensures iam_opaque() == 42 {reveal iam_opaque(); true}
 }
