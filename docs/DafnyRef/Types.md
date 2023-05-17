@@ -635,7 +635,7 @@ type synonyms have the characteristics of the type they represent.
 An abstract type has no known characteristics. If it is intended to be defined only as types
 that have certain characteristics, then those characteristics must be declared.
 For example,
-<! %no-check -->
+<!-- %no-check -->
 ```dafny
 class A<T(00)> {}
 type Q
@@ -643,11 +643,11 @@ const a: A<Q>
 ```
 will give an error because it is not known whether the type `Q` is non-empty (`00`).
 Instead, one needs to write
-<! %check-resolve -->
+<!-- %check-resolve -->
 ```dafny
 class A<T(00)> {}
 type Q(00)
-const a: A<Q>
+const a: A?<Q> := null
 ```
 
 #### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
