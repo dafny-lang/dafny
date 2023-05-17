@@ -482,12 +482,6 @@ namespace Microsoft.Dafny {
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
-      if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
-        var preTypeResolver = new PreTypeResolver(this);
-        preTypeResolver.ResolveDeclarations(
-          prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is not ClassDecl).ToList());
-      }
-
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes =
@@ -2600,7 +2594,7 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeCharacteristics_Stmt(iter.Body, false);
             }
-          } else if (d is ClassDecl or TraitDecl) {
+          } else if (d is ClassLikeDecl) {
             var cl = (TopLevelDeclWithMembers)d;
             foreach (var parentTrait in cl.ParentTraits) {
               CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);

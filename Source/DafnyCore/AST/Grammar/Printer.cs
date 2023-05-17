@@ -390,7 +390,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             PrintMembers(defaultClassDecl.Members, indent, fileBeingPrinted);
           }
 
-        } else if (d is ClassDecl or TraitDecl) {
+        } else if (d is ClassLikeDecl) {
           var cl = (ClassLikeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           PrintClass(cl, indent, fileBeingPrinted);

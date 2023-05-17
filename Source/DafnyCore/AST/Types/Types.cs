@@ -1101,7 +1101,7 @@ public abstract class Type : TokenNode {
                 return true;
               }
             }
-          } else if (udtSub.ResolvedClass is ClassDecl or TraitDecl) {
+          } else if (udtSub.ResolvedClass is ClassLikeDecl) {
             var cl = (TopLevelDeclWithMembers)udtSub.ResolvedClass;
             return cl.HeadDerivesFrom(udtSuper.ResolvedClass);
           } else {
@@ -1442,7 +1442,7 @@ public abstract class Type : TokenNode {
         var udt = (UserDefinedType)a;
         var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
         return abNonNullTypes ? UserDefinedType.CreateNonNullType(xx) : xx;
-      } else if (aa is ClassDecl or TraitDecl && bb is ClassDecl or TraitDecl) {
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         var A = (TopLevelDeclWithMembers)aa;
         var B = (TopLevelDeclWithMembers)bb;
         if (A.HeadDerivesFrom(B)) {
@@ -1665,7 +1665,7 @@ public abstract class Type : TokenNode {
         }
         var udt = (UserDefinedType)a;
         return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-      } else if (aa is ClassDecl or TraitDecl && bb is ClassDecl or TraitDecl) {
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         if (a.IsSubtypeOf(b, false, false)) {
           return a;
         } else if (b.IsSubtypeOf(a, false, false)) {
