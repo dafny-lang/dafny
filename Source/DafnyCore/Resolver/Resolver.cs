@@ -1989,6 +1989,7 @@ namespace Microsoft.Dafny {
 
       // Now, for each reference type (class and some traits), register its possibly-null type.
       // In the big loop above, each class and trait was registered under its own name. We're now going to change that for the reference types.
+      // Also, now that we know which traits are reference types, forbid mutable fields in all non-reference types.
       foreach (TopLevelDecl d in declarations) {
         if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
           var name = d.Name + "?";
@@ -2004,6 +2005,14 @@ namespace Microsoft.Dafny {
             // map the name d.Name+"?" to d
             toplevels[name] = d;
             sig.TopLevels[name] = d;
+          }
+        }
+
+        if (d is TopLevelDeclWithMembers and not ClassLikeDecl { IsReferenceTypeDecl: true }) {
+          foreach (var member in ((TopLevelDeclWithMembers)d).Members.Where(member => member is Field and not SpecialField)) {
+            var traitHint = d is TraitDecl ? " or declaring the trait with 'extends object'" : "";
+            reporter.Error(MessageSource.Resolver, member,
+              $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
           }
         }
       }

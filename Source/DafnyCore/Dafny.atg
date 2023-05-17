@@ -1091,7 +1091,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !theOptions.AllowGlobals>
+  | ClassMemberDecl<dmod, membersDefaultClass, false, !theOptions.AllowGlobals>
   )
   .
 
@@ -1338,7 +1338,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false>
+      ClassMemberDecl<dmod, members, true, false>
     }
   "}"
   (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1375,7 +1375,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false>
+      ClassMemberDecl<dmod, members, true, false>
     }
   "}"
   (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1385,7 +1385,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   .
 
 /*------------------------------------------------------------------------*/
-ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl.>
+ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -1395,7 +1395,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    FieldDecl<dmod, !moduleLevelDecl && isValueType, mm> /* The !isModuleLevelDecl is just to prevent cascading errors */
+    FieldDecl<dmod, mm> /* The !isModuleLevelDecl is just to prevent cascading errors */
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1484,37 +1484,29 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   "{"
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
-    ClassMemberDecl<dmod, members, false, true, false>
+    ClassMemberDecl<dmod, members, false, false>
   }
   "}"
   .
 
 /*------------------------------------------------------------------------*/
-FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
+FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      Type/*!*/ ty;
      Name name;
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost);
      var startToken = dmod.FirstToken;
-     if (isValueType) {
-       // we're about to produce an error; put fields into a throw-away list, so we don't return them
-       mm = new List<MemberDecl>();
-     }
   .)
   SYNC
-  "var"                               (. startToken = startToken ?? t;
-                                         if (isValueType) {
-                                           SemErr(ErrorId.p_no_mutable_fields_in_value_types, t, "mutable fields are not allowed in value types");
-                                         }
-                                      .)
+  "var"                                (. startToken = startToken ?? t; .)
   { Attribute<ref attrs> }
-  FIdentType<out name, out ty>           (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
-                                             mm.Add(f); f.TokenWithTrailingDocString = t;
-                                           .)
+  FIdentType<out name, out ty>         (. var f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs);
+                                          mm.Add(f); f.TokenWithTrailingDocString = t;
+                                       .)
   { ","                                (. startToken = t; .)
-    FIdentType<out name, out ty>         (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs); 
-                                            mm.Add(f); f.TokenWithTrailingDocString = t;
+    FIdentType<out name, out ty>       (. f = new Field(new RangeToken(startToken, t), name, dmod.IsGhost, ty, attrs);
+                                          mm.Add(f); f.TokenWithTrailingDocString = t;
                                        .)
   }
   OldSemi
@@ -1989,7 +1981,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
     "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (.  CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {

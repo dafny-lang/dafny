@@ -25,7 +25,6 @@ public class ParseErrors {
     p_extraneous_comma_in_export,
     p_top_level_field,
     p_bad_datatype_refinement,
-    p_no_mutable_fields_in_value_types,
     p_bad_const_initialize_op,
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
@@ -180,13 +179,6 @@ Rather, you may want the declaration to be a `const` declaration or you may want
 There are limitations on refining a datatype, namely that the set of constructors cannot be changed.
 It is only allowed to add members to the body of the datatype.
 ");
-
-    Add(ErrorId.p_no_mutable_fields_in_value_types,
-    @"
-The `var` declaration declares a mutable field, which is only permitted within
-classes, traits and iterators. 
-`const` declarations can be members of value-types, such as datatypes.
-", Replace("const"));
 
     Add(ErrorId.p_bad_const_initialize_op,
     @"
