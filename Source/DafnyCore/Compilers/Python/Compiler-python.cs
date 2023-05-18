@@ -1410,7 +1410,10 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("len", expr, wr, inLetExprBody, wStmts);
+          var multiset = expr.Type.AsMultiSetType != null;
+          if (!multiset) { wr.Write("len"); }
+          TrParenExpr(expr, wr, inLetExprBody, wStmts);
+          if (multiset) { wr.Write(".cardinality"); }
           break;
         case ResolvedUnaryOp.BitwiseNot:
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);
