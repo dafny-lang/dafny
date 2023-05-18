@@ -2370,9 +2370,7 @@ public class UserDefinedType : NonProxyType {
   }
 
   /// <summary>
-  /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an abstract type -- use the (AbstractType_AsParameter, AbstractTypeDecl, List(Type))
-  /// constructor for that).
+  /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(IToken tok, TypeParameter tp) {
     Contract.Requires(tok != null);
