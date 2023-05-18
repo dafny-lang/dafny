@@ -34,7 +34,7 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Build Dafny
-      uses: ./.github/workflows/build-reusable.yml
+      uses: ./dafny/.github/workflows/build-reusable.yml
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
