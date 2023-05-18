@@ -39,8 +39,8 @@ verbatim string token. The ``stringToken`` is interpreted as the name of
 a file that will be included in the Dafny source. These included
 files also obey the ``Dafny`` grammar. Dafny parses and processes the
 transitive closure of the original source files and all the included files,
-and will invoke the verifier on the included files unless the option `--verify-scope=RootSources` option is
-specified and they have not been listed explicitly as command line arguments.
+and will not invoke the verifier on the included files by default. This behavior
+can be changed using the `--verify-scope` option.
 
 The file name may be a path using the customary `/`, `.`, and `..` punctuation.
 The interpretation of the name (e.g., case-sensitivity) will depend on the
