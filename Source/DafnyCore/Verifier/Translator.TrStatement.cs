@@ -218,10 +218,9 @@ namespace Microsoft.Dafny {
           TrStmt(resolved[0], builder, locals, etran);
         } else {
           AddComment(builder, s, "update statement");
-          var lhss = new List<Expression>();
-          foreach (var lhs in s.Lhss) {
-            lhss.Add(lhs.Resolved);
-          }
+          var assignStmts = resolved.Cast<AssignStmt>().ToList();
+          var lhss = assignStmts.Select(a => a.Lhs).ToList();
+          var rhss = assignStmts.Select(a => a.Rhs).ToList();
           List<AssignToLhs> lhsBuilder;
           List<Bpl.IdentifierExpr> bLhss;
           // note: because we have more than one expression, we always must assign to Boogie locals in a two
@@ -235,7 +234,7 @@ namespace Microsoft.Dafny {
           // generate a new local, i.e. bLhss is just all nulls.
           Contract.Assert(Contract.ForAll(bLhss, lhs => lhs == null));
           // This generates the assignments, and gives them to us as finalRhss.
-          var finalRhss = ProcessUpdateAssignRhss(lhss, s.Rhss, builder, locals, etran);
+          var finalRhss = ProcessUpdateAssignRhss(lhss, rhss, builder, locals, etran);
           // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
           // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
           // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
@@ -1577,7 +1576,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
-      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
+      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {

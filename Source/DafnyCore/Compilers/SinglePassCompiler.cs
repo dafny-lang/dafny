@@ -393,8 +393,8 @@ namespace Microsoft.Dafny.Compilers {
       var w = EmitAssignmentRhs(wr);
       w.Write(rhs);
     }
-    protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
+    protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
+      wStmts ??= wr.Fork();
       var w = EmitAssignmentRhs(wr);
       w.Append(Expr(rhs, inLetExprBody, wStmts));
     }
@@ -1642,7 +1642,7 @@ namespace Microsoft.Dafny.Compilers {
                 } else {
                   // more than one main in the program
                   ReportError(program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
-                    ErrorReporter.TokenToString(mainMethod.tok));
+                    mainMethod.tok.TokenToString(program.Options));
                   hasMain = false;
                 }
               }
@@ -1682,7 +1682,7 @@ namespace Microsoft.Dafny.Compilers {
                 } else {
                   // more than one main in the program
                   ReportError(program.Reporter, m.tok, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
-                    DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
+                    DefaultNameMain, mainMethod.tok.TokenToString(program.Options));
                   hasMain = false;
                 }
               }
@@ -3221,8 +3221,9 @@ namespace Microsoft.Dafny.Compilers {
         if (s.End != null) {
           // introduce a variable to hold the value of the end-expression
           endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
+          wStmts = wr.Fork();
           wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
-          EmitAssignmentRhs(s.End, false, wr);
+          EmitAssignmentRhs(s.End, false, wr, wStmts);
         }
         var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
         startExprWriter.Append(Expr(s.Start, false, wStmts));
