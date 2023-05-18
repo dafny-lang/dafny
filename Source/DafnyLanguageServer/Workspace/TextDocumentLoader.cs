@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       CancellationToken cancellationToken) {
       var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
       var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
-      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
       if (errorReporter.HasErrors) {
@@ -92,6 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return documentAfterParsing;
       }
 
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
