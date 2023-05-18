@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -36,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, logger);
     }
 
-    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Dafny.Program CreateUnparsed(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       try {
         return NewDafnyProgram(document, errorReporter);
@@ -46,12 +47,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       var program = NewDafnyProgram(document, errorReporter);
       try {
         var parseErrors = Parser.Parse(
-          document.Text,
+          document.Content,
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
           document.Uri.ToUri(),
           program.DefaultModule,

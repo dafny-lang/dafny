@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
@@ -55,29 +56,27 @@ public static class SourcePreprocessor {
 
     return defines.Contains(arg) == sense;
   }
-
-  public static string ProcessDirectives(TextReader reader, List<string> /*!*/ defines) {
-    Contract.Requires(reader != null);
+  
+  public static async Task ProcessDirectives(Stream source, Stream destination, List<string> /*!*/ defines) {
     Contract.Requires(cce.NonNullElements(defines));
     Contract.Ensures(Contract.Result<string>() != null);
+    var writer = new StreamWriter(destination);
+    var reader = new StreamReader(source);
     string newline = null;
-    StringBuilder sb = new StringBuilder();
-    List<IfDirectiveState> /*!*/
-      ifDirectiveStates = new List<IfDirectiveState>(); // readState.Count is the current nesting level of #if's
-    int ignoreCutoff =
-      -1; // -1 means we're not ignoring; for 0<=n, n means we're ignoring because of something at nesting level n
-    while (true)
+    var /*!*/ ifDirectiveStates = new List<IfDirectiveState>(); // readState.Count is the current nesting level of #if's
+    int ignoreCutoff = -1; // -1 means we're not ignoring; for 0<=n, n means we're ignoring because of something at nesting level n
+    while (!reader.EndOfStream)
     //invariant -1 <= ignoreCutoff && ignoreCutoff < readState.Count;
     {
       string line;
       if (newline == null) {
         line = ReadLineAndDetermineNewline(reader, out newline);
       } else {
-        line = reader.ReadLine();
+        line = await reader.ReadLineAsync();
       }
       if (line == null) {
         if (ifDirectiveStates.Count != 0) {
-          sb.AppendLine("#MalformedInput: missing #endif");
+          await writer.WriteLineAsync("#MalformedInput: missing #endif");
         }
 
         break;
@@ -96,11 +95,11 @@ public static class SourcePreprocessor {
         }
 
         ifDirectiveStates.Add(rs);
-        sb.Append(newline); // ignore the #if line
+        await writer.WriteAsync(newline); // ignore the #if line
       } else if (t.StartsWith("#elsif")) {
         IfDirectiveState rs;
         if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[ifDirectiveStates.Count - 1]).hasSeenElse) {
-          sb.Append("#MalformedInput: misplaced #elsif" + newline); // malformed input
+          await writer.WriteAsync("#MalformedInput: misplaced #elsif" + newline); // malformed input
           break;
         }
 
@@ -116,11 +115,11 @@ public static class SourcePreprocessor {
           ifDirectiveStates[ifDirectiveStates.Count - 1] = rs;
         }
 
-        sb.Append(newline); // ignore the #elsif line
+        await writer.WriteAsync(newline); // ignore the #elsif line
       } else if (t == "#else") {
         IfDirectiveState rs;
         if (ifDirectiveStates.Count == 0 || (rs = ifDirectiveStates[ifDirectiveStates.Count - 1]).hasSeenElse) {
-          sb.Append("#MalformedInput: misplaced #else" + newline); // malformed input
+          await writer.WriteAsync("#MalformedInput: misplaced #else" + newline); // malformed input
           break;
         }
 
@@ -136,10 +135,10 @@ public static class SourcePreprocessor {
         }
 
         ifDirectiveStates[ifDirectiveStates.Count - 1] = rs;
-        sb.Append(newline); // ignore the #else line
+        await writer.WriteAsync(newline); // ignore the #else line
       } else if (t == "#endif") {
         if (ifDirectiveStates.Count == 0) {
-          sb.Append("#MalformedInput: misplaced #endif" + newline); // malformed input
+          await writer.WriteAsync("#MalformedInput: misplaced #endif" + newline); // malformed input
           break;
         }
 
@@ -149,21 +148,20 @@ public static class SourcePreprocessor {
           ignoreCutoff = -1;
         }
 
-        sb.Append(newline); // ignore the #endif line
+        await writer.WriteAsync(newline); // ignore the #endif line
       } else if (ignoreCutoff == -1) {
-        sb.Append(line);
-        sb.Append(newline);
+        await writer.WriteAsync(line);
+        await writer.WriteAsync(newline);
       } else {
-        sb.Append(newline); // ignore the line
+        await writer.WriteAsync(newline); // ignore the line
       }
     }
-
-    return sb.ToString();
+    await writer.FlushAsync();
   }
 
   public static string ReadLineAndDetermineNewline(TextReader reader, out string newline) {
 
-    StringBuilder sb = new StringBuilder();
+    var sb = new StringBuilder();
     newline = null;
     while (true) {
       int ch = reader.Read();

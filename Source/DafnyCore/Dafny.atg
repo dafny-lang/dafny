@@ -133,17 +133,20 @@ bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
 
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse(TextReader reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
+public static int Parse(Stream reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
-  var text = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-  return Parse(text, uri, module, builtIns, errors);
+  var memoryStream = new MemoryStream();
+  
+  var _ = SourcePreprocessor.ProcessDirectives(reader, memoryStream, new List<string>());
+  return Parse(memoryStream, uri, module, builtIns, errors);
 }
 
 ///<summary>
@@ -152,24 +155,20 @@ public static int Parse(TextReader reader, Uri/*!*/ uri, ModuleDecl module, Buil
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter) {
-  Contract.Requires(s != null);
+public static int Parse(Stream/*!*/ stream, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter) {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, uri, module, builtIns, errors);
+  return Parse(stream, uri, module, builtIns, errors);
 }
 
-public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
+public static Parser SetupParser(Stream/*!*/ stream, Uri/*!*/ uri, ModuleDecl module,
                                  BuiltIns builtIns, Errors/*!*/ errors) {
-  Contract.Requires(s != null);
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-  byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
-  MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
   if((module.RootToken.Filepath ?? "") == "") { // This is the first module
     module.RootToken.Uri = uri;
@@ -177,19 +176,8 @@ public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
   } else {
     firstToken = new Token(); // It's an included file
   }
-  Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
+  Scanner scanner = new Scanner(stream, errors, uri, firstToken: firstToken);
   return new Parser(scanner, errors, module, builtIns);
-}
-
-public static Expression ParseExpression(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
 }
 
 public void ApplyOptionsFromAttributes(Attributes attrs) {
@@ -228,19 +216,6 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
     }
     theOptions = options;
   }
-}
-
-///<summary>
-/// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "module".
-/// Returns the number of parsing errors encountered.
-/// Note: first initialize the Scanner with the given Errors sink.
-///</summary>
-public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                         BuiltIns builtIns, Errors/*!*/ errors) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors);
-  parser.Parse();
-  return parser.errors.ErrorCount;
 }
 
 public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns)

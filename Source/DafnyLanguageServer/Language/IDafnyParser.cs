@@ -1,5 +1,6 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -18,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>An "empty" dafny program representing the given text document.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Dafny.Program CreateUnparsed(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
+    Dafny.Program CreateUnparsed(DocumentTextBuffer textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
 
     /// <summary>
     /// Parses the specified document to generate a syntax tree.
@@ -29,6 +30,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns>The parsed document represented as a dafny program.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Dafny.Program Parse(TextDocumentItem textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
+    Dafny.Program Parse(DocumentTextBuffer textDocument, ErrorReporter errorReporter, CancellationToken cancellationToken);
   }
 }

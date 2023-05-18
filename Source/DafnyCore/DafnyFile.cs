@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Text;
 using DafnyCore;
 
 namespace Microsoft.Dafny;
@@ -14,9 +15,9 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public TextReader Content { get; }
+  public Stream Content { get; }
   public Uri Uri { get; }
-  public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) {
+  public DafnyFile(DafnyOptions options, string filePath, Stream contentOverride = null) {
     UseStdin = contentOverride != null;
     Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
     BaseName = contentOverride != null ? "<stdin>" : Path.GetFileName(filePath);
@@ -49,7 +50,7 @@ public class DafnyFile {
         options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
         throw new IllegalDafnyFile(true);
       } else {
-        Content = new StreamReader(filePath);
+        Content = new StreamReader(filePath).BaseStream;
       }
     } else if (extension == ".doo") {
       IsPreverified = true;
@@ -68,7 +69,7 @@ public class DafnyFile {
       // more efficiently inside a .doo file, at which point
       // the DooFile class should encapsulate the serialization logic better
       // and expose a Program instead of the program text.
-      Content = new StringReader(dooFile.ProgramText);
+      Content = new MemoryStream(Encoding.ASCII.GetBytes(dooFile.ProgramText));
     } else if (extension == ".dll") {
       IsPreverified = true;
       // Technically only for C#, this is for backwards compatability
@@ -76,7 +77,7 @@ public class DafnyFile {
 
       var sourceText = GetDafnySourceAttributeText(filePath);
       if (sourceText == null) { throw new IllegalDafnyFile(); }
-      Content = new StringReader(sourceText);
+      Content = new MemoryStream(Encoding.ASCII.GetBytes(sourceText));
     } else {
       throw new IllegalDafnyFile();
     }

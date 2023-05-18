@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Mime;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -5,6 +6,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class DocumentTextBuffer {
+
+  public Stream Content => Buffer.Content;
+  
   public TextDocumentItem TextDocumentItem { get; }
   public TextBuffer Buffer { get; }
   public DocumentTextBuffer(TextDocumentItem documentItem) {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -9,7 +10,37 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class TextBuffer {
   public string Text { get; }
+  public Stream Content => Buffer.Content;
 
+  class StreamFromTextBuffer : Stream {
+    private TextBuffer buffer;
+    public override void Flush() {
+      throw new NotSupportedException();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count) {
+      throw new NotImplementedException();
+    }
+
+    public override long Seek(long offset, SeekOrigin origin) {
+      throw new NotImplementedException();
+    }
+
+    public override void SetLength(long value) {
+      throw new NotSupportedException();
+    }
+
+    public override void Write(byte[] buffer, int offset, int count) {
+      throw new NotSupportedException();
+    }
+
+    public override bool CanRead { get; }
+    public override bool CanSeek => true;
+    public override bool CanWrite => false;
+    public override long Length { get; }
+    public override long Position { get; set; }
+  }
+  
   private readonly IIntervalTree<int, BufferLine> indexToLineTree = new IntervalTree<int, BufferLine>();
   public readonly IReadOnlyList<BufferLine> Lines;
 
