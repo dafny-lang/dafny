@@ -16,13 +16,10 @@ name: Build Dafny
 
 on:
   workflow_call:
-    inputs:
-      os:
-        type: string
 
 jobs:
   build-dafny:
-    runs-on: ${{inputs.os}}
+    runs-on: ubuntu-latest
 
     steps:
     - name: Setup dotnet
