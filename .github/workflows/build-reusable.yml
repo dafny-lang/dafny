@@ -18,7 +18,7 @@ on:
   workflow_call:
     inputs:
       os:
-        string
+        type: string
 
 jobs:
   build-dafny:
