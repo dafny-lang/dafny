@@ -473,7 +473,7 @@ namespace Microsoft.Dafny {
             AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "ORDINAL") {
             AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
+          } else if (DPreType.IsReferenceTypeDecl(ancestorDecl) || ancestorDecl is TraitDecl) {
             AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
             ReportError(expr, "type conversions are not supported to this type (got {0})", e.ToType);

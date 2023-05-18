@@ -273,7 +273,7 @@ namespace Microsoft.Dafny {
 
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
-      if (!(c is ClassLikeDecl)) {
+      if (c is (not ClassLikeDecl) or TraitDecl { IsReferenceTypeDecl: false }) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
@@ -343,7 +343,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr is_o = BplAnd(
         ReceiverNotNull(o),
-        c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+        c is ClassDecl ? DType(o, o_ty) : MkIs(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
       ante = BplAnd(ante, is_o);
 
       ante = BplAnd(ante, indexBounds);

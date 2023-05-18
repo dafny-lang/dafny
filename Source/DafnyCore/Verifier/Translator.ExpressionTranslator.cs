@@ -456,6 +456,9 @@ namespace Microsoft.Dafny {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     } else {
                       Boogie.Expr obj = TrExpr(e.Obj);
+                      if (e.Member.EnclosingClass is TraitDecl { IsReferenceTypeDecl: false }) {
+                        obj = BoxIfNecessary(e.tok, obj, e.Obj.Type);
+                      }
                       args.Add(obj);
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     }
