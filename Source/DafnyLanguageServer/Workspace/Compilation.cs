@@ -110,7 +110,6 @@ public class Compilation {
     }
 
     try {
-      statusPublisher.SendStatusNotification(resolvedCompilation.TextDocumentItem, CompilationStatus.PreparingVerification);
       var translatedDocument = await PrepareVerificationTasksAsync(resolvedCompilation, cancellationSource.Token);
       documentUpdates.OnNext(translatedDocument);
       foreach (var task in translatedDocument.VerificationTasks!) {
@@ -133,6 +132,8 @@ public class Compilation {
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
+
+    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
