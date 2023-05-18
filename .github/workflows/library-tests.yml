@@ -67,4 +67,5 @@ jobs:
 
     - name: Verify Code and Examples
       run: |
+        cd libraries
         PATH=../dafny/Scripts:$PATH lit -v src
