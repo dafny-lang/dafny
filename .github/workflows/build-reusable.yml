@@ -20,7 +20,6 @@ on:
 jobs:
   build-dafny:
     runs-on: ubuntu-latest
-
     steps:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
