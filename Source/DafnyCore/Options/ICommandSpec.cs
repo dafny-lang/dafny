@@ -71,6 +71,7 @@ public interface ICommandSpec {
     CommonOptionBag.StdIn,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
+    CommonOptionBag.WarnDeprecation,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,

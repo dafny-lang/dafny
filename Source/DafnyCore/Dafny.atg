@@ -2606,12 +2606,14 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        var what = isPredicate || isLeastPredicate || isGreatestPredicate ? "predicate" : "function";
  
        if (isTwoState) {
-         SemErr(ErrorId.p_no_by_method_in_twostate, byMethodBody.Tok, $"a 'by method' implementation is not allowed on a twostate {what}");
+         var byrange = new RangeToken(byMethodTok, byMethodBody.EndToken);
+         SemErr(ErrorId.p_no_by_method_in_twostate, byrange, $"a 'by method' implementation is not allowed on a twostate {what}");
          byMethodBody = null;
          functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
 
        } else if (isLeastPredicate || isGreatestPredicate) {
-         SemErr(ErrorId.p_no_by_method_in_extreme_predicate, byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
+         var byrange = new RangeToken(byMethodTok, byMethodBody.EndToken);
+         SemErr(ErrorId.p_no_by_method_in_extreme_predicate, byrange, "a 'by method' implementation is not allowed on an extreme predicate");
          byMethodBody = null;
          functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
        }
@@ -2646,15 +2648,25 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          Contract.Assert(headToken != null);
          if (functionMethodToken != null) {
            if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(ErrorId.p_old_ghost_syntax, t, $"a {what} is always ghost and is declared with '{what}'");
+             SemErr(ErrorId.p_old_ghost_syntax, functionMethodToken, $"a {what} is always ghost and is declared with '{what}'");
              functionMethodToken = null;
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(ErrorId.p_deprecating_function_method, functionMethodToken, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             var erange = new RangeToken(functionMethodToken.Prev, functionMethodToken);
+             if (isPredicate) {
+              SemErr(ErrorId.p_deprecating_predicate_method, erange, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             } else {
+              SemErr(ErrorId.p_deprecating_function_method, erange, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             }
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
-             SemErr(ErrorId.p_no_ghost_function_method, t, $"there is no such thing as a 'ghost {what} method'");
+             var erange = new RangeToken(headToken, functionMethodToken);
+             if (isPredicate) {
+              SemErr(ErrorId.p_no_ghost_predicate_method, erange, $"there is no such thing as a 'ghost {what} method'");
+             } else {
+              SemErr(ErrorId.p_no_ghost_function_method, erange, $"there is no such thing as a 'ghost {what} method'");
+             }
              functionMethodToken = null;
            }
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
@@ -2720,7 +2732,16 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           SemErr(ErrorId.p_no_ghost_formal, formal.tok, "formal cannot be declared 'ghost' in this context");
+           IToken t = formal.tok;
+           IToken ghostToken = null;
+           while (t != null && t.val != "," && t.val != "(") {
+            if (t.val == "ghost") {
+              ghostToken = t;
+              break;
+            }
+            t = t.Prev;
+           }
+           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.tok, "formal cannot be declared 'ghost' in this context");
          }
        }
      }
@@ -2779,12 +2800,17 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
   { RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
   | EnsuresClause<ens, false>
-  | (. if (decreases == null) {
-         SemErr(ErrorId.p_no_decreases_for_extreme_predicates, t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+  | (. var decreasesToken = la;
+       var decreasesForbidden = decreases == null;
+       if (decreases == null) {
          decreases = new List<Expression/*!*/>();
        }
     .)
     DecreasesClause<decreases, ref decAttrs, false, false>
+    (. if (decreasesForbidden) {
+       var erange = new RangeToken(decreasesToken, t);
+       SemErr(ErrorId.p_no_decreases_for_extreme_predicates, erange, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+    }.)
   }
   .
 
@@ -2798,14 +2824,14 @@ PredicateResult<string name, out Formal result>
      "("
        GIdentType<false, false, false, false, out var range, out var nameId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (.
-          if(ty is not BoolType) {
-            SemErr(ErrorId.p_predicate_return_type_must_be_bool, t, $"{name} return type should be bool, got {ty}");
+          if (ty is not BoolType) {
+            SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.Tok, t), $"{name} return type should be bool, got {ty}");
           }
           result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, false)
             { RangeToken = range, IsTypeExplicit = ty != null };
        .)
      ")"
-     | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
+     | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.Tok, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
   )
   .
 
@@ -2872,7 +2898,8 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
-  [ "by" "method"             (. byMethodTok = t; .)
+  [ "by"                      (. byMethodTok = t; .)
+    "method"
     BlockStmt<out byMethodBody, out _, out _>
   ]
   .
@@ -3075,7 +3102,7 @@ UpdateStmt<out Statement/*!*/ s>
       }
     )
     ";"                            (. endTok = t; .)
-  | ":"                            (. SemErr(ErrorId.p_invalid_colon, t, "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
+  | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   )
 | ":-"                             (. x = t; startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
@@ -4197,7 +4224,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
     ]              (. if (y == Token.NoToken) {
                         SemErr(ErrorId.p_bang_not_a_relational_op, x, "invalid relational operator");
                       } else if (y.pos != x.pos + 1) {
-                        SemErr(ErrorId.p_invalid_relational_op, x, "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
+                        SemErr(ErrorId.p_invalid_relational_op, new RangeToken(x,y), "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
                         x.val = "!!";
                         y.val = "";
@@ -4461,17 +4488,17 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
-= (. IToken x;
+= (. IToken lp; IToken rp;
      var args = new List<ActualBinding>();
   .)
-  "("                                        (. x = t; .)
+  "("                                        (. lp = t; .)
   [ TupleArgs<args> ]
-  ")"
+  ")"                                        (. rp = t; .)
   (. if (args.Count == 1 && !args[0].IsGhost) {
        if (args[0].FormalParameterName != null) {
-         SemErr(ErrorId.p_no_parenthesized_binding, args[0].FormalParameterName, "binding not allowed in parenthesized expression");
+         SemErr(ErrorId.p_no_parenthesized_binding, new RangeToken(lp,rp), "binding not allowed in parenthesized expression");
        }
-       e = new ParensExpression(x, args[0].Actual);
+       e = new ParensExpression(lp, args[0].Actual);
      } else {
        // Compute the actual position of ghost arguments
        var ghostness = new bool[args.Count];
@@ -4493,8 +4520,8 @@ ParensExpression<out Expression e>
        }
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
+       var tmp = theBuiltIns.TupleType(lp, args.Count, true, argumentGhostness);
+       e = new DatatypeValue(lp, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
   .)
   .
@@ -4555,15 +4582,16 @@ SetDisplayExpr<out Expression e>
 SeqDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
+     IToken startInstantiation = null;
      Type explicitTypeArg = null;
      Expression n, f;
      e = dummyExpr;
   .)
   (
     "seq"                          (. x = t; .)
-    [ (. var gt = new List<Type>(); .)
+    [ (. var gt = new List<Type>(); startInstantiation = la; .)
     GenericInstantiation<gt>     (. if (gt.Count > 1) {
-                                      SemErr(ErrorId.p_seq_has_one_type_argument, t, "seq type expects only one type argument");
+                                      SemErr(ErrorId.p_seq_has_one_type_argument, new RangeToken(startInstantiation,t), "seq type expects only one type argument");
                                     } else {
                                       explicitTypeArg = gt[0];
                                     }
@@ -4740,14 +4768,16 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       if (letLHSs.Count == 1) {
         lhs = letLHSs[0];
       } else {
-        SemErr(ErrorId.p_elephant_has_one_lhs, t, "':-' can have at most one left-hand side");
+        var erange = new RangeToken(letLHSs[1].StartToken.Prev, letLHSs[^1].EndToken);
+        SemErr(ErrorId.p_elephant_has_one_lhs, erange, "':-' can have at most one left-hand side");
       }
       Expression rhs = null;
       Contract.Assert(letRHSs.Count > 0);
       if (letRHSs.Count == 1) {
         rhs = letRHSs[0];
       } else {
-        SemErr(ErrorId.p_elephant_has_one_rhs, t, "':-' must have exactly one right-hand side");
+        var erange = new RangeToken(letRHSs[0].EndToken.Next, letRHSs[^1].EndToken);
+        SemErr(ErrorId.p_elephant_has_one_rhs, erange, "':-' must have exactly one right-hand side");
       }
       e = new LetOrFailExpr(x, lhs, rhs, e);
     } else {
@@ -5400,7 +5430,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.Deprecated(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/

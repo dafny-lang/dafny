@@ -36,7 +36,7 @@ public static class ErrorRegistry {
   }
 #nullable disable
 
-  public static ActionSignature Insert(string newContent, string title) {
+  public static ActionSignature InsertAfter(string newContent, string title) {
     return range => InsertAction(title, range, newContent);
   }
 

@@ -15,7 +15,6 @@ Such repetition would be superfluous even if allowed.
  
 ```dafny
 abstract const c := 4
-}
 ```
 
 Only modules may be declared abstract.
@@ -196,10 +195,12 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Error: ** {#p_const_decl_missing_identifier}
+## **Error: expected an identifier after 'const' and any attributes** {#p_const_decl_missing_identifier}
 
 ```dafny
+const c := 5
 const
+const d := 5
 ```
 
 This error arises from a truncated declarations of a const field, namely just a const keyword.
@@ -466,7 +467,7 @@ and they may not be declared.
 ## **Error: A 'reads' clause that contains '*' is not allowed to contain any other expressions** {#p_reads_star_must_be_alone}
 
 ```dafny
-const a: object;
+const a: object
 function f(): int
   reads a, *
 {
@@ -550,8 +551,6 @@ The error message states that the parser sees some number of type parameters dif
 ```dafny
 const m: imap<int,bool,string>
 ```
-
-<!-- UP TO HERE -->
 
 A `imap` type has two type parameters: the type of the keys and the type of the values.
 The error message states that the parser sees some number of type parameters different than two.
@@ -659,6 +658,19 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 - If you intend to predicate to be ghost, remove `method`.
 - If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_predicate_method}
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  function method f(): int { 42 }
+}
+```
+
+In Dafny 4 on, the phrases `function method` and `predicate method` are no
+longer accepted. Use `function` for compiled, non-ghost functions and
+`ghost function` for non-compiled, ghost functions, and similarly for predicates.
+See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+
 ## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_function_method}
 
 ```dafny
@@ -673,6 +685,24 @@ longer accepted. Use `function` for compiled, non-ghost functions and
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: there is no such thing as a 'ghost _what_ method'** {#p_no_ghost_function_method}
+
+```dafny
+module {:options "--function-syntax:experimentalDefaultGhost"} M {
+  ghost function method f(): int { 42 }
+}
+```
+
+Pre-Dafny 4, a `function method` and a `predicate method` are explicitly
+non-ghost, compiled functions, and therefore cannot be declared `ghost` as well.
+If indeed the function or predicate is intended to be ghost, leave out `method`;
+ if it is intended to be non-ghost, leave out `ghost`.
+
+From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost function is declared `function` 
+and there is no longer any declaration of the form `function method`, and similarly for predicates. 
+
+See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
+
+## **Error: there is no such thing as a 'ghost _what_ method'** {#p_no_ghost_predicate_method}
 
 ```dafny
 module {:options "--function-syntax:experimentalDefaultGhost"} M {
@@ -707,7 +737,8 @@ Change `function` in the declaration to one of these.
 ghost predicate p(ghost i: int) { true }
 ```
 
-<!-- TODO -->
+A ghost predicate or function effectively has all ghost formal parameters, so they cannot be declared ghost in addition.
+
 
 ## **Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed** {#p_no_decreases_for_extreme_predicates}
 
@@ -733,13 +764,14 @@ If you mean to have a non-`bool` return type, use `function` instead of `predica
 
 ## **Error: _name_s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'** {#p_no_return_type_for_predicate}
 
+<!-- %no-check TODO - this example crashes -->
 ```dafny
 predicate p(): bool { true } 
 ```
 
 A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
-So `predicate p(): (res: bool) { true }` is permitted
+So `predicate p(): (res: bool) { true }` is permitted.
 
 ## **Error: A '*' expression is not allowed here** {#p_no_wild_expression}
 
@@ -753,6 +785,7 @@ function m(i: int): int
 
 A method or loop with a `decreases *` clause is not checked for termination.
 This is only permitted for non-ghost methods and loops.
+Insert an actual decreases expression.
 
 
 ## **Error: A '*' frame expression is not permitted here** {#p_no_wild_frame_expression}
@@ -772,6 +805,7 @@ iterator Gen(start: int) yields (x: int)
 
 A `reads *` clause means the reads clause allows the functions it specifies to read anything.
 Such a clause is not allowed in an iterator specification.
+Insert a specific reads expression.
 
 ## **Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)** {#p_invalid_colon}
 
@@ -795,7 +829,7 @@ method m() {
 }
 ```
 
-One-dimensional arrays can be initiallized like `var s := new int[][1,2,3,4];`,
+One-dimensional arrays can be initialized like `var s := new int[][1,2,3,4];`,
 but multi-dimensional arrays cannot. The alternatives are to initialize the array
 in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
@@ -820,13 +854,15 @@ method m() {
 }
 ```
 
-The `:|` syntax is called _assign-such-that_: the variables on the left-hand-side are initiallized or assigned
+The `:|` syntax is called _assign-such-that_: the variables on the left-hand-side are initialized or assigned
 some non-deterministic values that satisfy the predicate on the right-hand-side.
 
 However, Dafny only allows a list of simple variables on the left, not datatype deconstructor patterns, as seen here.
 
 
 ## **Error: 'modifies' clauses are not allowed on refining loops** {#p_no_modifies_on_refining_loops}
+
+<!-- TODO _ example -->
 
 _Refining statements, including loops, are deprecated._
 
@@ -896,7 +932,7 @@ that assist in proving the validity of the asserted expression.
 
 <!-- %check-legacy %options -compile:0 -noCheating:1 -->
 ```dafny
-module  M {
+module M {
   predicate f(i: int) { true }
   method  m(a: seq<int>) {
     forall i | 0 <= i < 10
@@ -994,12 +1030,12 @@ This check is syntactic, so even methods that do not modify anything are not per
 ## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.** {#p_ambiguous_implies}
 
 ```dafny
-const b := true ==> false <== true;
+const b := true ==> false <== true
 ```
 
 The `==>` and `<==` operators have the same precedence but do not associate with each other.
-You must use parentheses to show how they are grouped. Write the above example as either
-`(true ==> false) <== true` or `true ==> (false <== true)`.
+You must use parentheses to show how they are grouped. Write `p ==> q <== r` as either
+`(p ==> q) <== r` or `p ==> (q <== r)`.
 
 In contrast, `p ==> q ==> r` is `p ==> (q ==> r)` and
 `p <== q <== r` is `(p <== q) <== r`.
@@ -1015,8 +1051,8 @@ const b := true && false || true
 ```
 
 The `&&` and `||` operators have the same precedence but do not associate with each other.
-You must use parentheses to show how they are grouped. Write the above example as either
-`(true && false) || true` or `true && (false || true)`.
+You must use parentheses to show how they are grouped. Write `p && q || r` as either
+`(p && q) || r` or `p && (q || r)`.
 
 ## **Error: chaining not allowed from the previous operator** {#p_invalid_equal_chaining}
 
@@ -1094,7 +1130,7 @@ const c := 2 < 3 in 4
 ```
 
 The operators `in` and `!in` are relational operators, but they may not occur in a chain.
-Use parentheses if necessary. An expression like the above is not type-correct in any case.
+Use parentheses if necessary. Such expressions are usually not type-correct in any case.
 
 ## **Error: invalid relational operator** {#p_bang_not_a_relational_op}
 
@@ -1127,13 +1163,13 @@ const i: int := 5 | 6 & 7
 
 The bit-operators `&`, `|`, and `^` have the same precedence but do not associate with each other.
 So if they are used within the same expression, parentheses have to be used to show how they
-are grouped. The above example should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
+are grouped. The example `5 | 6 & 7` should be written as either `(5 | 6) & 7` or `5 | (6 & 7)`.
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
 <!-- %check-resolve --unicode-char:false -->
 ```dafny
-const c := '🚀';
+const c := '🚀'
 ```
 
 A character literal can only contain a single value of the built-in char type.
@@ -1155,8 +1191,8 @@ method m() {
 }
 ```
 
-A binding of the form `x := y` is used in map-display expresions, in which case they are enclosed in square brackets,
-not parentheses. The above example should be `var c := [ 4 := 5 ]`
+Bindings of the form `x := y` are used in map-display expressions, in which case they are enclosed in square brackets,
+not parentheses. `var c := ( 4 := 5 )` should be `var c := map[ 4 := 5 ]`.
 
 ## **Error: A forming expression must be a multiset** {#p_must_be_multiset}
 
@@ -1170,7 +1206,12 @@ The tests that check for this error case are already known to be false by previo
 
 ## **Error: seq type expects only one type argument** {#p_seq_has_one_type_argument}
 
-<!-- TODO -->
+```dafny
+const c: seq<int,int>
+```
+
+The built-in `seq` (sequence) type takes one type parameter, which in some situations is inferred.
+That type parameter is the type of the sequence elements.
 
 ## **Error: a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'** {#p_map_comprehension_must_have_term_expression}
 
@@ -1186,14 +1227,15 @@ One can abbreviate the above syntax to expressions like `map x | 0 <= x < 5 :: x
 which is equivalent to `map x | 0 <= x < 5 :: x => x*3`. The missing expression before
 the `=>` is just the declared identifier.
 
-One can also have multiple variables involved as in `map x, y | 0 < x < y < < 5 :: 10*x+y => 10*y+x`,
+One can also have multiple variables involved as in `map x, y | 0 < x < y < 5 :: 10*x+y => 10*y+x`,
 which defines the mappings `(12=>21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
 
 But when there are multiple variables, one cannot abbreviate the `=>` syntax with just its right-hand expression,
-becuase it is not clear what the left-hand expression should be. 
+because it is not clear what the left-hand expression should be. 
 
-Rewrite the failing example above as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
-a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10 `).
+Incorrect text like `const s := map x, y  | 0 <= x < y < 10 :: x*y` should be written
+ as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
+a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10`).
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns** {#p_no_patterns_in_let_such_that}
 
@@ -1265,17 +1307,18 @@ function test(): Outcome<int> {
 
 This error only occurs when using the elephant operator `:-` in conjunction with
 [failure-compatible types](../DafnyRef/DafnyRef#sec-failure-compatible-types)
-and in the context of a let-or-fail expression, as in the body of `test()` in the example above.
+and in the context of a let-or-fail expression.
 
-In contrast to the let expression (`:=`), which allows multiple parallel initializations, the let-or-fail expression (`:-`) is implemented to
-only allow at most a single left-hand-side and a single-right-hand-side.
+In contrast to the let expression (`:=`), which allows multiple parallel initializations, 
+the let-or-fail expression (`:-`) is implemented to
+only allow at most a single left-hand-side and exactly one right-hand-side.
 
 
 
 ## **Error: a set comprehension with more than one bound variable must have a term expression** {#p_set_comprehension_needs_term_expression}
 
 ```dafny
-const s := set x, y  | 0 <= x < y < 10 
+const s := set x, y | 0 <= x < y < 10 
 ```
 
 A set comprehension (1) declares one or more variables, (2) possibly states some limits on those variables, 
@@ -1306,6 +1349,16 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
 
 <!-- Scanner.frame -->
+
+## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
+
+<!-- %check-resolve-warn -->
+```dafny
+const c := 5;
+```
+
+Semicolons are required after statements and declarations in method bodies,  
+but are deprecated after declarations within modules and types.
 
 ## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
 

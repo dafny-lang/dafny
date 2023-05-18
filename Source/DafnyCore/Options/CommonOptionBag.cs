@@ -31,6 +31,10 @@ true - In the compiled target code, transform any non-extern
     "Print additional information such as which files are emitted where.") {
   };
 
+  public static readonly Option<bool> WarnDeprecation = new("--warn-deprecation", () => true,
+    "Warn about the use of deprecated features (default true).") {
+  };
+
   public static readonly Option<bool> DisableNonLinearArithmetic = new("--disable-nonlinear-arithmetic",
     @"
 (experimental, will be replaced in the future)
@@ -245,6 +249,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
 
     DafnyOptions.RegisterLegacyBinding(Verbose, (o, v) => o.CompileVerbose = v);
     DafnyOptions.RegisterLegacyBinding(DisableNonLinearArithmetic, (o, v) => o.DisableNLarith = v);
+    DafnyOptions.RegisterLegacyBinding(WarnDeprecation, (o, v) => o.DeprecationNoise = v ? 1 : 0);
 
     DafnyOptions.RegisterLegacyBinding(VerificationLogFormat, (o, v) => o.VerificationLoggerConfigs = v);
     DafnyOptions.RegisterLegacyBinding(SpillTranslation, (o, f) => o.SpillTargetCode = f ? 1U : 0U);
@@ -288,6 +293,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       Prelude,
       Target,
       Verbose,
+      WarnDeprecation,
       FormatPrint,
       JsonDiagnostics,
       QuantifierSyntax,
