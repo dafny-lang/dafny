@@ -52,7 +52,8 @@ jobs:
         path: libraries
     - name: Version information
       run: |
-        ls dafny
+        ( cd dafny; echo -n "dafny: " ; git rev-parse HEAD )
+        ( cd libraries; echo -n "libraries: " ; git rev-parse HEAD )
         dafny/Scripts/dafny --version
 
     - name: Upgrade outdated pip
@@ -66,6 +67,4 @@ jobs:
 
     - name: Verify Code and Examples
       run: |
-        cd libraries
-        ../dafny/Scripts/dafny --version
-        PATH=../dafny/Scripts:$PATH lit src
+        PATH=../dafny/Scripts:$PATH lit -v src
