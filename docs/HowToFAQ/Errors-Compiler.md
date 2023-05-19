@@ -36,18 +36,18 @@ so the program will need to be revised to avoid this feature;
 The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 
-## **Error: Opaque type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}**
+## **Error: Abstract type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}**
 
 <!-- TODO -->
 _Documentation of extern and compile hints is in progress._
 
-## **Error: Opaque type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.**
+## **Error: Abstract type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.**
 <!-- %check-run -->
 ```dafny
 type T
 ```
 
-[Opaque types](../DafnyRef/DafnyRef#sec-opaque-types) are declared like `type T`.
+[Abstract types](../DafnyRef/DafnyRef#sec-abstract-types) are declared like `type T`.
 They can be useful in programs where the particular characteristics of the type
 do not matter, such as in manipulating generic collections.
 Such programs can be verified, but in order to be compiled to something executable, 
