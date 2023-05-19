@@ -1374,7 +1374,7 @@ namespace Microsoft.Dafny.Compilers {
               if (exprs.Count == 1) {
                 DeclareExternType(at, exprs[0], wr);
               } else {
-                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint.  Expected {{:extern compile_type_hint}} ", wr, at.FullName);
+                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
               }
               v.Visit(exprs);
             } else {
@@ -2472,6 +2472,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
+          // Is this feasible? -- note the expression m.Body.Tok above
           Error(ErrorId.c_method_has_no_body, m.tok, "Method {0} has no body", w, m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);

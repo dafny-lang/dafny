@@ -46,4 +46,6 @@ diff tmp-ids-enum tmp-ids-md
 echo DIFFS ADD
 diff tmp-ids-enum tmp-ids-add
 
-
+## TODOs
+echo TODOs
+grep TODO $mdfiles $srcfiles $errfiles

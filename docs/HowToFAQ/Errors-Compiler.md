@@ -37,12 +37,17 @@ so the program will need to be revised to avoid this feature;
 The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 
-## **Error: Opaque type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}** {#c_abstract_type_needs_hint}
+## **Error: Opaque type ('_type_') with extern attribute requires a compile hint. Expected {:extern _hint_}** {#c_abstract_type_needs_hint}
 
-<!-- TODO -->
-_Documentation of extern and compile hints is in progress._
+<!-- %check-run -->
+```dafny
+type {:extern } T
+```
+
+The type needs a name given to know which type in the target language it is associated with.
 
 ## **Error: Opaque type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.** {#c_abstract_type_cannot_be_compiled}
+
 <!-- %check-run -->
 ```dafny
 type T
@@ -97,7 +102,14 @@ Furthermore, if the iterator is non-ghost, it cannot be executed if it does not 
 
 ## **Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option** {#c_constructorless_class_forbidden}
 
-<!-- TODO -->
+<!-- %check-run %options --enforce-determinism -->
+```dafny
+class A { var j: int }
+```
+
+The `--enforce-determinism` option prohibits all non-deterministic operations in a Dafny program.
+One of these operations is the arbitrary values assigned to non-explicitly-initialized fields in a default constructor.
+Consequently a non-default constructor is required.
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
@@ -235,8 +247,6 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-<!-- TODO - two instances -->
-
 ## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)** {#c_assume_statement_may_not_be_compiled}
 
 <!-- %check-run -->
@@ -306,7 +316,7 @@ There are a few different forms of this kind of assignment:
 - `x, y, z := 3, *, 42;`
 - `forall i | 0 <= i < a.Length { a[i] := *; }`
 
-<!-- TODO - 3 instances -->
+<!-- TODO - test all 3 instances -->
 
 ## **Error: assign-such-that statement forbidden by the --enforce-determinism option** {#c_assign_such_that_forbidden}
 
@@ -483,13 +493,18 @@ This message relates to mocking methods in C# with the Moq framework.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
 
-<!-- DafnyCore/Compilers/Cplusplus/CppCompilerBackend.cs -->
+<!-- DafnyCore/Compilers/Cplusplus/Compiler-Cpp.cs -->
 
+ 
 ## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
 
-<!-- TODO -->
-_The documentation of this problem is in progress._
+<!-- %check-run %options --enforce-determinism --target cpp --unicode-char:false -->
+```dafny
+type {:extern "class" } T
+```
 
+The C++ compiler must be told how to translate an abstract type. Typically the value of the extern attribute is "struct".
+Note that Dafny's C++ compiler is very preliminary, partial and experimental.
 
 <!-- DafnyCore/Compilers/Compiler-go.cs -->
 # Errors specific to the Go compiler
