@@ -2342,7 +2342,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
-  (. startToken =  startToken ?? ty.StartToken ?? tok;
+  (. startToken = startToken ?? ty.StartToken ?? tok;
      ty.RangeToken = new RangeToken(startToken, t);
   .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2825,13 +2825,13 @@ PredicateResult<string name, out Formal result>
        GIdentType<false, false, false, false, out var range, out var nameId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (.
           if (ty is not BoolType) {
-            SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.Tok, t), $"{name} return type should be bool, got {ty}");
+            SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
           result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, false)
             { RangeToken = range, IsTypeExplicit = ty != null };
        .)
      ")"
-     | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.Tok, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
+     | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.StartToken, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
   )
   .
 
