@@ -188,8 +188,6 @@ This attribute is obsolete and unmaintained. It will be removed from dafny in th
     @"
 The value of an options attribute cannot be a computed expression. It must be a literal string.
 ", range => new List<DafnyAction> {
-    OneAction("remove " + range.PrintOriginal(), range, ""), // TODO - remove surrounding whitespace?
-    OneAction("replace with empty string", range, "\"\""),
     OneAction("enclose in quotes", range, "\"" + range.PrintOriginal() + "\"")
 });
 
@@ -297,12 +295,6 @@ The output of a predicate or function cannot be ghost.
 It is implicitly ghost if the function is ghost itself.
 ", Remove(true));
 
-    Add(ErrorId.p_ghost_function_output_not_ghost, // TODO errorId is never used in parser -- misplaced?
-    @"
-If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
-Any use of this construct will always be in ghost contexts.
-", Remove(true));
-
     Add(ErrorId.p_no_new_on_output_formals,
     @"
 The `new` modifier only applies to input parameters.
@@ -331,7 +323,7 @@ Because a mutable field does not have initializer, it must have a type (as in `v
     @"
 Dafny does not allow field declarations to have initializers. They are initialized in constructors.
 Local variable declarations (which also begin with `var`) may have initializers.
-"); // TODO - add action: remove := and expression
+", Remove(false, "remove := and expression"));
 
     Add(ErrorId.p_datatype_formal_is_not_id,
     @"
@@ -423,7 +415,7 @@ The adjectives `least` and `greatest` for lemmas and functions are more consiste
 Constructors are methods that initialize class instances. That is, when a new instance of a class is being created, 
 using the `new` object syntax, some constructor of the class is called, perhaps a default anonymous one.
 So, constructor declarations only make sense within classes.
-", Replace("method")); // TODO - remove whole declaration
+", Replace("method"));
 
     Add(ErrorId.p_method_missing_name,
     @"
@@ -519,7 +511,7 @@ except that the types used cannot be declared as ghost.
 
     Add(ErrorId.p_no_empty_type_parameter_list,
     @"
-This error message shiuld not be reachable. Please report the problem with the source code that shows it.
+This error message should not be reachable. Please report the problem with the source code that shows it.
 ");
 
     Add(ErrorId.p_formal_ktype_only_in_least_and_greatest_predicates,
@@ -578,7 +570,6 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
     See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
     ", range => new List<DafnyAction> {
     OneAction("remove 'method'", range, "predicate", false),
-    OneAction("use 'ghost predicate'", range, "ghost predicate", false) // TODO - invalid if predicate is already ghost
 });
 
     Add(ErrorId.p_deprecating_function_method,
@@ -589,7 +580,6 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
     See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
     ", range => new List<DafnyAction> {
     OneAction("remove 'method'", range, "function", false),
-    OneAction("use 'ghost function'", range, "ghost function", false)  // TODO - invalid if function is already ghost
 });
 
     Add(ErrorId.p_no_ghost_function_method,
@@ -654,7 +644,7 @@ If you mean to have a non-`bool` return type, use `function` instead of `predica
     OneAction("replace type with 'bool'", range, "bool", true) }
 );
 
-    Add(ErrorId.p_no_return_type_for_predicate,  // TODO - this is not correct
+    Add(ErrorId.p_no_return_type_for_predicate,
     @"
 A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.

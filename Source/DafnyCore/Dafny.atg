@@ -1703,7 +1703,12 @@ FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
   ( ":" Type<out ty> 
   | (. SemErr(ErrorId.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
-  [ ( ":=" | "=" ) (. SemErr(ErrorId.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
+  [ ( ":=" | "=" ) (. var optoken = t; Expression e; .)
+    Expression<out e, true, true> 
+      (.              var erange = new RangeToken(optoken, e.EndToken);
+                      SemErr(ErrorId.p_no_init_for_var_field, erange, "a mutable field may not have an initializer"); 
+      .) 
+  ]
   .
 
 CIdentType<out Name/*!*/ name, out Type ty>
