@@ -13,7 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using ErrorId = Microsoft.Dafny.Compilers.CompilerErrors.ErrorId;
+using static ErrorId = Microsoft.Dafny.Compilers.CompilerErrors.ErrorId;
 
 
 namespace Microsoft.Dafny.Compilers {
