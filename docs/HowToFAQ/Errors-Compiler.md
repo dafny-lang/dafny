@@ -109,7 +109,7 @@ class A { var j: int }
 
 The `--enforce-determinism` option prohibits all non-deterministic operations in a Dafny program.
 One of these operations is the arbitrary values assigned to non-explicitly-initialized fields in a default constructor.
-Consequently a non-default constructor is required.
+Consequently an explicit constructor is required.
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
