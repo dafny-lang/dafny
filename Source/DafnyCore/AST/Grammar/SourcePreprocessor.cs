@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -56,8 +58,55 @@ public static class SourcePreprocessor {
 
     return defines.Contains(arg) == sense;
   }
+
+  class ReaderFromQueue : TextReader {
+    private readonly AsyncQueue<string> queue;
+    private readonly StringBuilder buffer = new();
+
+    public ReaderFromQueue(AsyncQueue<string> queue) {
+      this.queue = queue;
+    }
+
+    public override async Task<int> ReadAsync(char[] buffer, int index, int count) {
+      while (this.buffer.Length < count) {
+        this.buffer.Append(await queue.Dequeue(CancellationToken.None));
+      }
+
+      var s = this.buffer.ToString();
+      s.CopyTo(0, buffer, index, count);
+      this.buffer.Clear();
+      if (s.Length > count) {
+        this.buffer.Append(s.Substring(count));
+      }
+      return base.Read(buffer, index, count);
+    }
+
+    public override int Read(char[] buffer, int index, int count) {
+      throw new NotSupportedException();
+    }
+  }
+
+  class WriterFromQueue : TextWriter {
+    private AsyncQueue<string> lineQueue;
+
+    public WriterFromQueue(AsyncQueue<string> lineQueue) {
+      this.lineQueue = lineQueue;
+    }
+
+    public override Encoding Encoding => Encoding.Unicode;
+
+    public override Task WriteAsync(string value) {
+      lineQueue.Enqueue(value);
+    }
+
+    public override Task WriteLineAsync(string value) {
+      lineQueue.Enqueue(value);
+      lineQueue.Enqueue(Environment.NewLine);
+      return Task.CompletedTask;
+    }
+  }
   
-  public static async Task ProcessDirectives(Stream source, Stream destination, List<string> /*!*/ defines) {
+  public static async Task ProcessDirectives(TextReader source, TextWriter destination, List<string> /*!*/ defines) {
     Contract.Requires(cce.NonNullElements(defines));
     Contract.Ensures(Contract.Result<string>() != null);
     var writer = new StreamWriter(destination);

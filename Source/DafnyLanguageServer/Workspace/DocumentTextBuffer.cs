@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class DocumentTextBuffer {
 
-  public Stream Content => Buffer.Content;
+  public TextReader Content => Buffer.Content;
   
   public TextDocumentItem TextDocumentItem { get; }
   public TextBuffer Buffer { get; }

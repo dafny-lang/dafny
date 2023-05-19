@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny; 
 
@@ -28,7 +30,12 @@ public class TextReaderStream : Stream
 
   private byte[] remainder = Array.Empty<byte>();
   private int remainderOffset;
-  
+
+
+  public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+    return base.ReadAsync(buffer, offset, count, cancellationToken);
+  }
+
   public override int Read(byte[] buffer, int offset, int count) {
     if (remainder.Length > remainderOffset) {
       var amount = remainder.Length - remainderOffset;

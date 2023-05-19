@@ -9,43 +9,12 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class TextBuffer {
-  public string Text { get; }
-  public Stream Content => Buffer.Content;
-
-  class StreamFromTextBuffer : Stream {
-    private TextBuffer buffer;
-    public override void Flush() {
-      throw new NotSupportedException();
-    }
-
-    public override int Read(byte[] buffer, int offset, int count) {
-      throw new NotImplementedException();
-    }
-
-    public override long Seek(long offset, SeekOrigin origin) {
-      throw new NotImplementedException();
-    }
-
-    public override void SetLength(long value) {
-      throw new NotSupportedException();
-    }
-
-    public override void Write(byte[] buffer, int offset, int count) {
-      throw new NotSupportedException();
-    }
-
-    public override bool CanRead { get; }
-    public override bool CanSeek => true;
-    public override bool CanWrite => false;
-    public override long Length { get; }
-    public override long Position { get; set; }
-  }
+  public TextReader Content => new TextReaderFromBuffer(this);
   
   private readonly IIntervalTree<int, BufferLine> indexToLineTree = new IntervalTree<int, BufferLine>();
   public readonly IReadOnlyList<BufferLine> Lines;
 
-  private TextBuffer(string text, IReadOnlyList<BufferLine> lines) {
-    Text = text;
+  private TextBuffer(IReadOnlyList<BufferLine> lines) {
     Lines = lines;
 
     foreach (var lineInfo in lines) {
@@ -53,7 +22,7 @@ public class TextBuffer {
     }
   }
 
-  public TextBuffer(string text) : this(text, ComputeLines(text, 0, 0, text.Length)) { }
+  public TextBuffer(string text) : this(ComputeLines(text, 0, 0, text.Length)) { }
 
   private static List<BufferLine> ComputeLines(string text, int lineIndexStart, int startIndex, int endIndex) {
     var lines = new List<BufferLine>();
@@ -135,5 +104,30 @@ public class TextBuffer {
     }
 
     return Text.Substring(start, length);
+  }
+
+  class TextReaderFromBuffer : TextReader {
+    private readonly TextBuffer buffer;
+    private int position;
+    private int lineIndex;
+
+    public TextReaderFromBuffer(TextBuffer buffer) {
+      this.buffer = buffer;
+    }
+
+    public override int Read() {
+      if (buffer.Lines.Count >= lineIndex) {
+        return -1;
+      }
+      var line = buffer.Lines[lineIndex];
+      if (line.Content.Length >= position) {
+        lineIndex++;
+        position = 0;
+        // TODO is the newline character part of the line content?
+        return Read();
+      }
+
+      return line.Content[position++];
+    }
   }
 }
