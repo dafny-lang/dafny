@@ -1332,10 +1332,10 @@ namespace Microsoft.Dafny {
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
 
       Bpl.Expr body, is_o;
-      string comment = string.Format("{0}: {1} ", fullName, dd.WhatKind);
+      string comment;
 
       if (is_alloc) {
-        comment += "$IsAlloc";
+        comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
         is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(dd.Var.Type));
@@ -1346,7 +1346,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
       } else {
-        comment += "$Is";
+        comment = $"$Is axiom for {dd.WhatKind} {fullName}";
         // $Is(o, ..)
         is_o = MkIs(o, o_ty, ModeledAsBoxType(dd.Var.Type));
         var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
