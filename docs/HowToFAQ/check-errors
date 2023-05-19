@@ -1,0 +1,29 @@
+#! /usr/bin/env bash
+
+csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
+./check-errors-a Errors-Compiler.md "$csfiles" ../../Source/DafnyCore/Compilers/CompilerErrors.cs
+
+exit 0
+
+mdfiles=Errors-Parser.md
+atgfile=../../Source/DafnyCore/Dafny.atg
+csfiles=../../Source/DafnyCore/AST/Grammar/ParseErrors.cs
+
+rm -rf tmp-ids tmp-ids2
+touch tmp-ids
+touch tmp-ids2
+for f in $atgfile ; do
+ echo FILE $f
+ grep -E 'SemErr|Deprecated[^C]|DeprecatedStyle' $f | grep -v ErrorId
+ grep -E 'SemErr|Deprecated[^C]|DeprecatedStyle' $f | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids
+done
+
+for f in $mdfiles ; do
+ echo FILE $f
+  grep -E '^[#][#]' $f  | grep -v -E '[*][*](Error|Warning)'
+  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' >> tmp-ids2
+done
+
+diff tmp-ids tmp-ids2
+
+

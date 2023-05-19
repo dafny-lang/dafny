@@ -1,0 +1,24 @@
+#! /usr/bin/env bash
+
+mdfiles=$1
+srcfile=$2
+errfiles=$3
+
+rm -rf tmp-ids tmp-ids2
+touch tmp-ids
+touch tmp-ids2
+for f in $srcfile ; do
+ echo FILE $f
+ grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
+ grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids
+done
+
+for f in $mdfiles ; do
+ echo FILE $f
+  grep -E '^[#][#]' $f  | grep -v -E '[*][*](Error|Warning)'
+  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' >> tmp-ids2
+done
+
+diff tmp-ids tmp-ids2
+
+
