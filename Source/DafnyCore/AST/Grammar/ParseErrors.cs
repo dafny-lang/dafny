@@ -175,7 +175,7 @@ Modules and the declarations within them are already always static.
     Add(ErrorId.p_no_opaque,
     @"
 Only some kinds of declarations can be declared 'opaque':
-const fields and the various kinds of functions.
+const fields and functions, which include predicates.
 ", Remove(true));
 
     // TODO - not used at present
