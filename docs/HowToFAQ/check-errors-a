@@ -1,0 +1,51 @@
+#! /usr/bin/env bash
+
+mdfiles=$1
+srcfile=$2
+errfiles=$3
+
+rm -rf tmp-ids-md tmp-ids-cs tmp-ids-enum tmp-ids-add
+touch tmp-ids-md
+touch tmp-ids-cs
+touch tmp-ids-enum
+touch tmp-ids-add
+
+for f in $srcfile ; do
+ echo FILE $f
+ grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
+ grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids-cs
+done
+
+## ErrorIds from md file
+
+for f in $mdfiles ; do
+ echo FILE $f
+  grep -E '^[#][#]' $f  | grep -v -E '[*][*](Error|Warning)'
+  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' >> tmp-ids-md
+done
+
+## ErrorIds from enum
+
+for f in $errfiles ; do
+  echo ENUM FILE $f
+  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,]?[ \t]*$//' | grep -v ' '  >> tmp-ids-enum
+done
+
+## ErrorIds from Add
+
+for f in $errfiles ; do
+  echo ENUM FILE $f
+  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,]?[ \t]*$//'   >> tmp-ids-add
+done
+
+## Diffs
+echo DIFFS CS
+diff tmp-ids-enum tmp-ids-cs
+echo DIFFS MD
+diff tmp-ids-enum tmp-ids-md
+echo DIFFS ADD
+diff tmp-ids-enum tmp-ids-add
+
+## TODOs
+echo TODOs
+grep TODO $mdfiles $srcfiles $errfiles
