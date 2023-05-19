@@ -1354,7 +1354,7 @@ namespace Microsoft.Dafny {
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
             headIsRoot = false; headIsLeaf = true;
-          } else if (cl is OpaqueTypeDecl) {
+          } else if (cl is AbstractTypeDecl) {
             headIsRoot = true; headIsLeaf = true;
           } else if (cl is InternalTypeSynonymDecl) {
             Contract.Assert(object.ReferenceEquals(t, t.NormalizeExpand())); // should be opaque in scope
@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny {
       } else if (super.IsObjectQ) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
-        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
+        // The only remaining cases are that "super" is a (co)datatype, abstract type, or non-object trait/class.
         // In each of these cases, "super" is a UserDefinedType.
         var udfSuper = (UserDefinedType)super;
         var clSuper = udfSuper.ResolvedClass;
@@ -2142,7 +2142,7 @@ namespace Microsoft.Dafny {
                   return false;  // not enough information
                 }
               }
-              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter || t.IsOpaqueType || u.IsOpaqueType)) {
+              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter || t.IsAbstractType || u.IsAbstractType)) {
                 return true;
               } else if (!moreExactThis.AllowSuperSub) {
                 resolver.ConstrainSubtypeRelation_Equal(t, u, errorMsg);
@@ -4816,8 +4816,8 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, t.tok, "expected type");
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
-            if (d is OpaqueTypeDecl) {
-              // resolve like a type parameter, and it may have type parameters if it's an opaque type
+            if (d is AbstractTypeDecl) {
+              // resolve like a type parameter, and it may have type parameters if it's an abstract type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;

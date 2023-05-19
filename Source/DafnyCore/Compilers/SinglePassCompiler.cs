@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
     protected virtual void FinishModule() { }
 
-    protected virtual void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
+    protected virtual void DeclareExternType(AbstractTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
 
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
       modules = program.CompileModules;
@@ -1364,8 +1364,8 @@ namespace Microsoft.Dafny.Compilers {
             continue;
           }
           var newLineWriter = wr.Fork();
-          if (d is OpaqueTypeDecl) {
-            var at = (OpaqueTypeDecl)d;
+          if (d is AbstractTypeDecl) {
+            var at = (AbstractTypeDecl)d;
             bool externP = Attributes.Contains(at.Attributes, "extern");
             if (externP) {
               var exprs = Attributes.FindExpressions(at.Attributes, "extern");
@@ -1751,8 +1751,8 @@ namespace Microsoft.Dafny.Compilers {
         reason = "the method has type parameters";
         return false;
       }
-      if (cl is OpaqueTypeDecl) {
-        reason = "the enclosing type is an opaque type";
+      if (cl is AbstractTypeDecl) {
+        reason = "the enclosing type is an abstract type";
         return false;
       }
       if (!m.IsStatic) {

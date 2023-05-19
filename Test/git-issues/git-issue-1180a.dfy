@@ -89,10 +89,10 @@ module StartingFromDatatype {
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a datatype with an opaque type
+    type Ty ... // error: cannot refine a datatype with an abstract type
   }
   module OpaqueType' refines A {
-    type Ty ... { } // error: cannot refine a datatype with an opaque type
+    type Ty ... { } // error: cannot refine a datatype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... {
@@ -124,7 +124,7 @@ module StartingFromCodatatype {
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a codatatype with an opaque type
+    type Ty ... // error: cannot refine a codatatype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a codatatype with a datatype
@@ -156,7 +156,7 @@ module StartingFromNewtype {
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a newtype with an opaque type
+    type Ty ... // error: cannot refine a newtype with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a newtype with a datatype
@@ -185,7 +185,7 @@ module StartingFromClass {
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a class with an opaque type
+    type Ty ... // error: cannot refine a class with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a class with a datatype
@@ -214,7 +214,7 @@ module StartingFromTrait {
     }
   }
   module OpaqueType refines A {
-    type Ty ... // error: cannot refine a trait with an opaque type
+    type Ty ... // error: cannot refine a trait with an abstract type
   }
   module Datatype refines A {
     datatype Ty ... // error: cannot refine a trait with a datatype
