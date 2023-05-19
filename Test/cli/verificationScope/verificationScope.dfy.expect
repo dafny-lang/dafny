@@ -1,20 +1,20 @@
 *** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything or --verification-scope=RootSources is used.
-verificationScope.dfy(12,9): Error: assertion might not hold
+verificationScope.dfy(11,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
-verificationScope.dfy(12,9): Error: assertion might not hold
+verificationScope.dfy(11,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
-verificationScope.dfy(12,9): Error: assertion might not hold
+verificationScope.dfy(11,9): Error: assertion might not hold
 includedByDirective.dfy(3,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 2 errors
-verificationScope.dfy(12,9): Error: assertion might not hold
+verificationScope.dfy(11,9): Error: assertion might not hold
 library.dfy(3,9): Error: assertion might not hold
 includedByDirective.dfy(3,9): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 3 errors
-verificationScope.dfy(12,9): Error: assertion might not hold
+verificationScope.dfy(11,9): Error: assertion might not hold
 library.doo(7,9): Error: assertion might not hold
 includedByDirective.dfy(3,9): Error: assertion might not hold
 
