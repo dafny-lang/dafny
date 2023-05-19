@@ -5425,22 +5425,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
-      TopLevelDecl cl;
-      var isHandle0 = true;
-      cl = (e0.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
-      if (cl == null || !Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle0)) {
-        isHandle0 = false;
-      }
-      var isHandle1 = true;
-      cl = (e1.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
-      if (cl == null || !Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle1)) {
-        isHandle1 = false;
-      }
-      if (isHandle0 && isHandle1) {
-        return true;
-      } else if (isHandle0 || isHandle1) {
-        Error(ErrorId.None, tok, "Comparison of a handle can only be with another handle", errorWr); // TODO - this should not be called anymore
-      }
+      // :handle no longer implemented
       return false;
     }
 

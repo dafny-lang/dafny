@@ -439,7 +439,7 @@ _The documentation of this problem is in progress._
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
-class A { var j: int }
+class A { constructor A(){}}
 
 method m(k: int, o: A) 
   modifies o
@@ -465,7 +465,8 @@ Note that a `modify` statement with a body is deprecated.
 <!-- TODO -->
 _The documentation of this problem is in progress._
 
-<!-- DafnyCore/Compilers/Synthesizer-Csharp.cs -->
+
+<!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->
 
 ## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_" {#c_possibly_unsatisfied_postconditions}
 
@@ -481,7 +482,14 @@ See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-syn
 This message relates to mocking methods in C# with the Moq framework. 
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-<!-- DafnyCore/Compilers/Compiler-Csharp.cs -->
+
+<!-- DafnyCore/Compilers/Cplusplus/CppCompilerBackend.cs -->
+
+## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
+
+<!-- TODO -->
+_The documentation of this problem is in progress._
+
 
 <!-- DafnyCore/Compilers/Compiler-go.cs -->
 # Errors specific to the Go compiler
