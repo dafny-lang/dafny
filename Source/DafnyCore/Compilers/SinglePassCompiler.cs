@@ -3007,7 +3007,7 @@ namespace Microsoft.Dafny.Compilers {
           var assignStmts = resolved.Cast<AssignStmt>().ToList();
           var lhss = assignStmts.Select(a => a.Lhs).ToList();
           var rhss = assignStmts.Select(a => a.Rhs).ToList();
-          
+
           // multi-assignment
           Contract.Assert(s.Lhss.Count == resolved.Count);
           Contract.Assert(s.Rhss.Count == resolved.Count);
