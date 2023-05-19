@@ -194,7 +194,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /deprecation:<n>
       0 - Don't give any warnings about deprecated features.
       1 (default) - Show warnings about deprecated features.
-      2 - Also point out where there's new simpler syntax.
   
   /warningsAsErrors
       Treat warnings as errors.
