@@ -5,8 +5,8 @@ git-issue-1172.dfy(30,12): Error: A '*' expression is not allowed here
 git-issue-1172.dfy(37,12): Error: A '*' expression is not allowed here
 git-issue-1172.dfy(44,12): Error: A '*' expression is not allowed here
 git-issue-1172.dfy(51,12): Error: A '*' expression is not allowed here
-git-issue-1172.dfy(80,26): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
-git-issue-1172.dfy(86,29): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+git-issue-1172.dfy(81,2): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
+git-issue-1172.dfy(87,2): Error: 'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed
 git-issue-1172.dfy(111,18): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 git-issue-1172.dfy(114,18): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
 git-issue-1172.dfy(118,12): Error: A 'decreases' clause that contains '*' is not allowed to contain any other expressions
