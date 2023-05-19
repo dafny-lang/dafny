@@ -1353,6 +1353,7 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /deprecation:<n>
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
+    2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
     Treat warnings as errors.

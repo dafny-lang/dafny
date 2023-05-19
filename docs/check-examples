@@ -234,7 +234,7 @@ do
         elif [ "$command" == "%check-test" ]; then
           com=test
           ec=2
-          ##if [ "$useHeadings" Calls with side-effects such as constructors are not allowed in expressions.== "1" ]; then ec=3; fi
+          ##if [ "$useHeadings" == "1" ]; then ec=3; fi
         elif [ "$command" == "%check-legacy" ]; then
           com=
           ec=0
