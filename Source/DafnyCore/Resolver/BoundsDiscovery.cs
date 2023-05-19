@@ -201,7 +201,7 @@ namespace Microsoft.Dafny {
                 var message =
                   $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
                   $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
-                if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
+                if (bv.Type.IsTypeParameter || bv.Type.IsAbstractType) {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
                 message += " (see documentation for 'older' parameters)";
