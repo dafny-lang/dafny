@@ -1093,7 +1093,7 @@ namespace Microsoft.Dafny {
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
-      argsJF.Add(bvThisExpr);
+      argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
       var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran, IsAllocType.NEVERALLOC);

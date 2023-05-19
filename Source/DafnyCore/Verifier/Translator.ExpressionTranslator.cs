@@ -455,10 +455,7 @@ namespace Microsoft.Dafny {
                     if (field.IsStatic) {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     } else {
-                      Boogie.Expr obj = TrExpr(e.Obj);
-                      if (e.Member.EnclosingClass is TraitDecl { IsReferenceTypeDecl: false }) {
-                        obj = BoxIfNecessary(e.tok, obj, e.Obj.Type);
-                      }
+                      Boogie.Expr obj = translator.BoxifyForTraitParent(e.tok, TrExpr(e.Obj), e.Member, e.Obj.Type);
                       args.Add(obj);
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)), args);
                     }
@@ -1693,7 +1690,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         }
         argsAreLit = true;
         if (!e.Function.IsStatic) {
-          var tr_ee = TrExpr(e.Receiver);
+          var tr_ee = translator.BoxifyForTraitParent(e.tok, TrExpr(e.Receiver), e.Function, e.Receiver.Type);
           argsAreLit = argsAreLit && translator.IsLit(tr_ee);
           args.Add(tr_ee);
         }

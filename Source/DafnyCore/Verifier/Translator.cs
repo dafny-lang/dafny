@@ -1115,6 +1115,10 @@ namespace Microsoft.Dafny {
             Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
             Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
 
+            var oj = BoxifyForTraitParent(c.tok, o,
+              ((UserDefinedType)parentType.NormalizeExpand()).ResolvedClass,
+              UserDefinedType.FromTopLevelDecl(c.tok, c));
+
             List<Bpl.Expr> tyexprs;
             var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
@@ -1122,27 +1126,29 @@ namespace Microsoft.Dafny {
             //     { $Is($o, C(T)) }
             //     $o != null && $Is($o, C(T)) ==> $Is($o, J(G(T)));
             var isC = MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c));
-            var isJ = MkIs(o, parentType);
+            var isJ = MkIsWithoutBox(oj, parentType);
             var bvs = new List<Bpl.Variable>();
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             var tr = BplTrigger(isC);
             var body = BplImp(BplAnd(oNotNull, isC), isJ);
 
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
+              $"type axiom for trait parent: {d} extends {parentType}"));
 
             // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
             //     { $IsAlloc($o, C(T), $Heap) }
             //     $o != null && $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
             var isAllocC = MkIsAlloc(o, UserDefinedType.FromTopLevelDecl(c.tok, c), heap);
-            var isAllocJ = MkIsAlloc(o, parentType, heap);
+            var isAllocJ = MkIsAllocWithoutBox(oj, parentType, heap);
             bvs = new List<Bpl.Variable>();
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             bvs.Add(heapVar);
             tr = BplTrigger(isAllocC);
             body = BplImp(BplAnd(oNotNull, isAllocC), isAllocJ);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
+              $"allocation axiom for trait parent: {d} extends {parentType}"));
           }
         }
       }
@@ -7276,6 +7282,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Boogie.Expr BoxifyForTraitParent(IToken tok, Boogie.Expr obj, MemberDecl member, Type fromType) {
+      return BoxifyForTraitParent(tok, obj, member.EnclosingClass, fromType);
+    }
+
+    public Boogie.Expr BoxifyForTraitParent(IToken tok, Boogie.Expr obj, TopLevelDecl topLevelDecl, Type fromType) {
+      if (topLevelDecl is TraitDecl { IsReferenceTypeDecl: false }) {
+        return BoxIfNecessary(tok, obj, fromType);
+      }
+      return obj;
+    }
+
     public static bool ModeledAsBoxType(Type t) {
       Contract.Requires(t != null);
       t = t.NormalizeExpand();
@@ -8362,6 +8379,10 @@ namespace Microsoft.Dafny {
       return MkIs(x, TypeToTy(t), true);
     }
 
+    Bpl.Expr MkIsWithoutBox(Bpl.Expr x, Type t) {
+      return MkIs(x, TypeToTy(t), false);
+    }
+
     // Boxes, if necessary
     Bpl.Expr MkIs(Bpl.Expr x, Type t) {
       return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
@@ -8382,6 +8403,10 @@ namespace Microsoft.Dafny {
 
     Bpl.Expr MkIsAllocBox(Bpl.Expr x, Type t, Bpl.Expr h) {
       return MkIsAlloc(x, TypeToTy(t), h, true);
+    }
+
+    Bpl.Expr MkIsAllocWithoutBox(Bpl.Expr x, Type t, Bpl.Expr h) {
+      return MkIsAlloc(x, TypeToTy(t), h, false);
     }
 
     Bpl.Expr MkIsAlloc(Bpl.Expr x, Bpl.Expr t, Bpl.Expr h, bool box = false) {

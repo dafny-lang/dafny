@@ -871,7 +871,11 @@ public abstract class Type : TokenNode {
   public bool IsOrdered {
     get {
       var ct = NormalizeExpand();
-      return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+      if (ct.IsTypeParameter || ct.IsOpaqueType || ct.IsInternalTypeSynonym || ct.IsCoDatatype || ct.IsArrowType || ct.IsIMapType || ct.IsISetType ||
+          ct is UserDefinedType { ResolvedClass: TraitDecl { IsReferenceTypeDecl: false } }) {
+        return false;
+      }
+      return true;
     }
   }
 
