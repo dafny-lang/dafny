@@ -157,7 +157,7 @@ class DatatypeInduction<T(!new)> {
   }
 }
 
-// --- opaque types with type parameters ---
+// --- abstract types with type parameters ---
 
 abstract module OpaqueTypesWithParameters {
   type P<A>
@@ -173,7 +173,7 @@ abstract module OpaqueTypesWithParameters {
     // would be different types, and then the types of 'a' and 'b' would be different,
     // which would imply that the following postcondition would hold.
     // However, it is NOT necessarily the case that the type parameters of an opaque
-    // type actually make the opaque type different.  For example, see the refinement
+    // type actually make the abstract type different.  For example, see the refinement
     // module CaseInPoint below.
     ensures a != b;  // error
   {
