@@ -343,7 +343,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr is_o = BplAnd(
         ReceiverNotNull(o),
-        !o.Type.Equals(predef.RefType) || c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
+        !o.Type.Equals(predef.RefType) || c is TraitDecl ? MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c)) : DType(o, o_ty)); // $Is(o, ..)  or  dtype(o) == o_ty
       ante = BplAnd(ante, is_o);
 
       ante = BplAnd(ante, indexBounds);
