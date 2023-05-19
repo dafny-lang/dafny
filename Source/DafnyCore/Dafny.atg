@@ -5430,7 +5430,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.Deprecated(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/

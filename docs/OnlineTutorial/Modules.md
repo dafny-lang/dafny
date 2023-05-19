@@ -31,7 +31,7 @@ A module body can consist of anything that you could put at the toplevel. This i
 ```dafny
 module Mod {
   class C {
-    var f: int;
+    var f: int
     method m()
   }
   datatype Option = A(int) | B(int)
@@ -49,7 +49,7 @@ module Mod {
   module Helpers {
     class C {
       method doIt()
-      var f: int;
+      var f: int
     }
   }
 }
@@ -65,7 +65,7 @@ module Mod {
     class C {
       constructor () { f := 0; }
       method doIt()
-      var f: int;
+      var f: int
     }
   }
   method m() {

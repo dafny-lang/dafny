@@ -1352,7 +1352,7 @@ or BigDecimal. Given the parser logic, that parsing should never fail.
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-resolve-warn -->
+<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
 ```dafny
 const c := 5;
 ```
