@@ -1642,7 +1642,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_main_method, program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
+                  ReportError(ErrorId.c_more_than_one_explicit_main_method, program.Reporter, m.tok, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
                     mainMethod.tok.TokenToString(program.Options));
                   hasMain = false;
                 }
@@ -1682,7 +1682,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_Main_method, program.Reporter, m.tok, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
+                  ReportError(ErrorId.c_more_than_one_default_Main_method, program.Reporter, m.tok, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
                     DefaultNameMain, mainMethod.tok.TokenToString(program.Options));
                   hasMain = false;
                 }

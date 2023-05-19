@@ -20,9 +20,9 @@ public class CompilerErrors {
     c_constructorless_class_forbidden,
     c_method_may_not_be_main_method,
     c_could_not_find_stipulated_main_method,
-    c_more_than_one_main_method,
+    c_more_than_one_explicit_main_method,
     c_method_not_permitted_as_main,
-    c_more_than_one_Main_method,
+    c_more_than_one_default_Main_method,
     c_Main_method_not_permitted,
     c_function_has_no_body,
     c_test_function_must_be_compilable,
@@ -91,7 +91,7 @@ public class CompilerErrors {
     @"
 ");
 
-    Add(ErrorId.c_more_than_one_main_method,
+    Add(ErrorId.c_more_than_one_explicit_main_method,
     @"
 ");
 
@@ -99,7 +99,7 @@ public class CompilerErrors {
     @"
 ");
 
-    Add(ErrorId.c_more_than_one_Main_method,
+    Add(ErrorId.c_more_than_one_default_Main_method,
     @"
 ");
 

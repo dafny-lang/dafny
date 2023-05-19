@@ -143,7 +143,7 @@ For instance. a method `m` in a (top-level) module `M` is named `M.m`
 or in a class `C` in a module `M` is named `M.C.m`.
 This error message indicates that dafny does not recognize the name given as the name of a method.
 
-## **Error: More than one method is marked {:main}. First declaration appeared at _location_.** {#c_more_than_one_main_method}
+## **Error: More than one method is marked {:main}. First declaration appeared at _location_.** {#c_more_than_one_explicit_main_method}
 
 <!-- %check-run -->
 ```dafny
@@ -171,7 +171,7 @@ The principal restrictions are these ([more details in the Dafny User Guide](#se
 - it must not be ghost
 - the method may be a class method, but then typically it is `static`
 
-## **Error: More than one method is declared as 'Main'. First declaration appeared at _location_.** {#c_more_than_one_Main_method}
+## **Error: More than one method is declared as 'Main'. First declaration appeared at _location_.** {#c_more_than_one_default_Main_method}
 
 <!-- %check-run -->
 ```dafny
