@@ -61,7 +61,7 @@ the type must be given an actual definition.
 If the definition really does not matter, just give it a definition like 
 `type T = bool` or `type T = `int`.
 
-Note that some properties of a type an be indicated using a [type charcteristic](../DafnyRef/DafnyRef#sec-type-characteristics).
+Note that some properties of a type an be indicated using a [type characteristic](../DafnyRef/DafnyRef#sec-type-characteristics).
 For example, [`type T(00)` indicates that the type `T` is non-empty](../DafnyRef/DafnyRef#sec-nonempty-types).
 
 ## **Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option** {#c_iterators_are_not_deterministic}
