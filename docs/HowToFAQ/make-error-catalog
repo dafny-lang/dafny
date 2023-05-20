@@ -11,7 +11,6 @@ diff Errors-Compiler.tmp Errors-Compiler.md || \
    { echo "Errors-Compiler.md has been altered -- check and commit the edits"; FAIL=1; }
 
 
-##if [ "$FAIL" != "0" ]; then exit 1; fi
-echo "END "  $FAIL
+if [ "$FAIL" != "0" ]; then echo FAILURE; exit 1; fi
 
 
