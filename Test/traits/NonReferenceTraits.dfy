@@ -116,3 +116,10 @@ module Exports {
     trait MyTrait extends G.Trait { } // error: G.Trait is not known to be a trait
   }
 }
+
+module HintInErrorMessage {
+  trait Trait { }
+
+  method M(t: Trait?) { // error: no such thing as 'Trait?' (nice error-message hint, huh?)
+  }
+}

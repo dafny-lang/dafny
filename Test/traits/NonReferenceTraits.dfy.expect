@@ -8,9 +8,9 @@ NonReferenceTraits.dfy(115,28): Error: a class can only extend traits (found 'G.
 NonReferenceTraits.dfy(116,28): Error: a trait can only extend traits (found 'G.Trait')
 8 resolution/type errors detected in NonReferenceTraits.dfy
 NonReferenceTraits.dfy(28,14): Error: module 'M' does not declare a type 'MX?'
-NonReferenceTraits.dfy(32,11): Error: Type or type parameter is not declared in this scope: Z? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
-NonReferenceTraits.dfy(33,11): Error: Type or type parameter is not declared in this scope: Q? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
-NonReferenceTraits.dfy(39,11): Error: Type or type parameter is not declared in this scope: E? (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)
+NonReferenceTraits.dfy(32,11): Error: Type or type parameter is not declared in this scope: Z? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'Z', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(33,11): Error: Type or type parameter is not declared in this scope: Q? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'Q', then you must declare that trait with 'extends object' to make it a reference type)
+NonReferenceTraits.dfy(39,11): Error: Type or type parameter is not declared in this scope: E? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'E', then you must declare that trait with 'extends object' to make it a reference type)
 NonReferenceTraits.dfy(52,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(56,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(59,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
@@ -20,4 +20,5 @@ NonReferenceTraits.dfy(88,27): Error: Raised while checking export set BadLibrar
 NonReferenceTraits.dfy(77,4): Error: This export set is not consistent: BadLibrary
 NonReferenceTraits.dfy(115,28): Error: a class can only extend traits (found 'G.Trait')
 NonReferenceTraits.dfy(116,28): Error: a trait can only extend traits (found 'G.Trait')
-13 resolution/type errors detected in NonReferenceTraits.dfy
+NonReferenceTraits.dfy(123,14): Error: Type or type parameter is not declared in this scope: Trait? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'Trait', then you must declare that trait with 'extends object' to make it a reference type)
+14 resolution/type errors detected in NonReferenceTraits.dfy

@@ -6127,7 +6127,19 @@ namespace Microsoft.Dafny {
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Type or type parameter is not declared in this scope: {0} (did you forget to qualify a name or declare a module import 'opened'? names in outer modules are not visible in nested modules)", expr.Name);
+        var hint0 = "(did you forget to qualify a name or declare a module import 'opened'?)";
+        var hint1 = " (note that names in outer modules are not visible in nested modules)";
+        var hint2 = "";
+        if (!Options.Get(CommonOptionBag.TraitsAreReferences) && expr.Name.EndsWith("?")) {
+          var nameWithoutQuestionMark = expr.Name.Substring(0, expr.Name.Length - 1);
+          if (nameWithoutQuestionMark.Length != 0 &&
+              moduleInfo.TopLevels.TryGetValue(nameWithoutQuestionMark, out decl) && decl is TraitDecl) {
+            hint2 =
+              $" (if you intended to refer to a possibly null '{nameWithoutQuestionMark}', " +
+              "then you must declare that trait with 'extends object' to make it a reference type)";
+          }
+        }
+        reporter.Error(MessageSource.Resolver, expr.tok, $"Type or type parameter is not declared in this scope: {expr.Name} {hint0}{hint1}{hint2}");
       }
 
       if (r == null) {
