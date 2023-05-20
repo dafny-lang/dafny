@@ -1463,6 +1463,8 @@ public class TraitDecl : ClassLikeDecl {
 public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat {
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
+  public override bool CanBeRevealed() { return true; }
+
   public bool IsObjectTrait {
     get => Name == "object";
   }
@@ -1565,7 +1567,6 @@ public class ClassDecl : ClassLikeDecl, IHasDocstring {
   public override bool IsReferenceTypeDecl => true;
   public override bool AcceptThis => true;
 
-  public override bool CanBeRevealed() { return true; }
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
   [ContractInvariantMethod]
   void ObjectInvariant() {
