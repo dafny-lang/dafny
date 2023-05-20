@@ -71,3 +71,48 @@ module MutableFields {
     var y: int
   }
 }
+
+module Exports {
+  module BadLibrary {
+    export // error: inconsistent export set
+      reveals Class, TraitSub
+      provides Trait
+
+    trait Trait { }
+
+    // The following is allowed if Trait is known to be a trait.
+    // However, in the export set, Trait is known only as an abstract type.
+    class Class extends Trait { } // error (in export set): a type can only extend traits
+
+    // Ditto.
+    trait TraitSub extends Trait { } // error (in export set): a type can only extend traits
+  }
+
+  module GoodLibrary {
+    export RevealThem
+      reveals Class, TraitSub, Trait
+    export ProvideThem
+      provides Class, TraitSub, Trait, AnotherClass
+
+    trait {:termination false} Trait { }
+
+    class Class extends Trait { }
+
+    trait TraitSub extends Trait { }
+    class AnotherClass extends TraitSub { }
+  }
+
+  module Client0 {
+    import G = GoodLibrary`RevealThem
+
+    class MyClass extends G.Trait { }
+    trait MyTrait extends G.Trait { }
+  }
+
+  module Client1 {
+    import G = GoodLibrary`ProvideThem
+
+    class MyClass extends G.Trait { } // error: G.Trait is not known to be a trait
+    trait MyTrait extends G.Trait { } // error: G.Trait is not known to be a trait
+  }
+}
