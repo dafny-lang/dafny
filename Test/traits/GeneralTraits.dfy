@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /traitsReferences:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /generalTraits:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {

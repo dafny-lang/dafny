@@ -142,10 +142,10 @@ true - Use an updated type-inference engine. Warning: This mode is under constru
     IsHidden = true
   };
 
-  public static readonly Option<bool> TraitsAreReferences = new("--traits-references", () => true,
+  public static readonly Option<bool> GeneralTraits = new("--general-traits", () => false,
     @"
-false - A trait is a reference type only if it or one of its ancestor traits is 'object'.
-true - Every trait implicitly extends 'object', and so is a reference type.".TrimStart()) {
+false - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+true - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
   };
 

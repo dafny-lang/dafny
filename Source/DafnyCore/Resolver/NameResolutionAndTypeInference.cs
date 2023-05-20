@@ -6130,7 +6130,7 @@ namespace Microsoft.Dafny {
         var hint0 = "(did you forget to qualify a name or declare a module import 'opened'?)";
         var hint1 = " (note that names in outer modules are not visible in nested modules)";
         var hint2 = "";
-        if (!Options.Get(CommonOptionBag.TraitsAreReferences) && expr.Name.EndsWith("?")) {
+        if (Options.Get(CommonOptionBag.GeneralTraits) && expr.Name.EndsWith("?")) {
           var nameWithoutQuestionMark = expr.Name.Substring(0, expr.Name.Length - 1);
           if (nameWithoutQuestionMark.Length != 0 &&
               moduleInfo.TopLevels.TryGetValue(nameWithoutQuestionMark, out decl) && decl is TraitDecl) {

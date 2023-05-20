@@ -1977,7 +1977,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          traitDecl.SetUpAsReferenceType(Options.Get(CommonOptionBag.TraitsAreReferences) ? true : inheritsFromObject);
+          traitDecl.SetUpAsReferenceType(Options.Get(CommonOptionBag.GeneralTraits) ? inheritsFromObject : true);
           traitsProgress[traitDecl] = true; // indicate that traitDecl.IsReferenceTypeDecl can now be called
           return inheritsFromObject;
         }

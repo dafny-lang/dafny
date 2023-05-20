@@ -1348,7 +1348,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
 = (. Type parentTrait;
   .)
-  "extends"                   (. if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.TraitsAreReferences)) {
+  "extends"                   (. if (requiresNonReferenceTraitsFor != null && !theOptions.Get(CommonOptionBag.GeneralTraits)) {
                                    SemErr(t, $"{requiresNonReferenceTraitsFor} using traits is a beta feature; use /traitsReferences:0 to engage");
                                  }
                               .)
