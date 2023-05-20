@@ -807,24 +807,23 @@ namespace Microsoft.Dafny {
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var based = base.CloneDeclaration(d, m);
+      var result = base.CloneDeclaration(d, m);
       if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-        var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
-        var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps,
-          (d as TopLevelDeclWithMembers)?.ParentTraits.ConvertAll(CloneType),
+        var members = result is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
+        // copy the parent traits only if "d" is already an AbstractTypeDecl and is being export-revealed
+        result = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps,
+          new List<Type>(), // omit the parent traits
           members, CloneAttributes(d.Attributes), d.IsRefining);
-        based = otd;
         if (d is ClassLikeDecl { IsReferenceTypeDecl: true } cl) {
-          reverseMap.Add(based, cl.NonNullTypeDecl);
-          return based;
+          reverseMap.Add(result, cl.NonNullTypeDecl);
+          return result;
         }
       }
 
-      reverseMap.Add(based, d);
-      return based;
-
+      reverseMap.Add(result, d);
+      return result;
     }
 
     public override Field CloneField(Field f) {
