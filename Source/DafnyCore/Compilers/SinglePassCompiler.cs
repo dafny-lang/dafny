@@ -76,6 +76,7 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
+      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
