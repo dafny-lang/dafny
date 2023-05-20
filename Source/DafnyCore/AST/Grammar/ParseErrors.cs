@@ -196,7 +196,7 @@ So use syntax either like `const i: int` or `const i:= 5` (or both together).
 
     Add(ErrorId.p_misplaced_ellipsis_in_newtype,
     @"
-There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
+There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an abstract type into a newtype, however.
 ");
 
     Add(ErrorId.p_output_of_function_not_ghost,
@@ -274,7 +274,7 @@ Such designations are allowed in generic type declarations but not in generic me
     Add(ErrorId.p_unexpected_type_characteristic,
     @"
 [Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
 The currently defined type characteristics are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 ", Replacements(new[] {
       ("==", "replace with '==' - this type supports equality"),
@@ -286,7 +286,7 @@ The currently defined type characteristics are designated by `==` (equality-supp
     Add(ErrorId.p_missing_type_characteristic,
     @"
 [Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
-state properties of the otherwise uninterpreted or opaque type.
+state properties of the otherwise uninterpreted or abstract type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 ");
@@ -294,7 +294,7 @@ The currently defined type characteristics are designated by `==` (equality - su
     Add(ErrorId.p_illegal_type_characteristic,
     @"
 [Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 Type parameters are given in a parentheses-enclosed, comma-separated list after the type name.
 ");

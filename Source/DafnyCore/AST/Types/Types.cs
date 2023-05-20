@@ -816,7 +816,7 @@ public abstract class Type : TokenNode {
       return ct?.ResolvedClass as TypeParameter;
     }
   }
-  public bool IsOpaqueType {
+  public bool IsAbstractType {
     get { return AsAbstractType != null; }
   }
   public AbstractTypeDecl AsAbstractType {
@@ -871,7 +871,7 @@ public abstract class Type : TokenNode {
   public bool IsOrdered {
     get {
       var ct = NormalizeExpand();
-      if (ct.IsTypeParameter || ct.IsOpaqueType || ct.IsInternalTypeSynonym || ct.IsCoDatatype || ct.IsArrowType || ct.IsIMapType || ct.IsISetType ||
+      if (ct.IsTypeParameter || ct.IsAbstractType || ct.IsInternalTypeSynonym || ct.IsCoDatatype || ct.IsArrowType || ct.IsIMapType || ct.IsISetType ||
           ct is UserDefinedType { ResolvedClass: TraitDecl { IsReferenceTypeDecl: false } }) {
         return false;
       }
@@ -1428,7 +1428,7 @@ public abstract class Type : TokenNode {
       var udtA = (UserDefinedType)a;
       return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1652,7 +1652,7 @@ public abstract class Type : TokenNode {
     } else if (a.IsObjectQ) {
       return b.IsRefType ? b : null;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -2387,9 +2387,7 @@ public class UserDefinedType : NonProxyType {
   }
 
   /// <summary>
-  /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, AbstractTypeDecl, List(Type))
-  /// constructor for that).
+  /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(IToken tok, TypeParameter tp) {
     Contract.Requires(tok != null);
@@ -2810,7 +2808,7 @@ public abstract class TypeProxy : Type {
       return Family.ValueType;
     } else if (t.IsRefType) {
       return Family.Ref;
-    } else if (t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym) {
+    } else if (t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym) {
       return Family.Opaque;
     } else if (t is TypeProxy) {
       return ((TypeProxy)t).family;
