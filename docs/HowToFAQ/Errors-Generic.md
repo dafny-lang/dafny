@@ -9,6 +9,6 @@
 include "TestA.dfy"
 ```
 
-This error is shown in a file A that includes another file B when B has errors of its own.
+This error is shown when parsing a file A that includes another file B when B has errors of its own.
 Without this message it can be easy to miss the fact that other errors in A are in fact caused
-by errors in B. Some of the error messages show may in fact pertain to B rather than to A.
+by errors in B. Some of the error messages shown may pertain to B rather than to A.

@@ -47,8 +47,9 @@ jobs:
       run: dotnet build dafny/Source/Dafny.sln
     - name: Check generated error catalog
       run: |
+        which java
         chmod +x dafny/docs/HowToFAQ/make-error-catalog
-        dafny/docs/HowToFAQ//make-error-catalog
+        ./dafny/docs/HowToFAQ/make-error-catalog
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs

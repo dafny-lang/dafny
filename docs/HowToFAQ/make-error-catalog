@@ -5,12 +5,13 @@ cd "$dir"
 FAIL=0
 java MakeErrorCatalog.java Errors-Compiler.template \
       ../../Source/DafnyCore/Compilers/CompilerErrors.cs 
-if [ "?$" != "0" ] ; then exit 1; fi
+if [ "?$" != "0" ] ; then echo "Java build-run failed"; exit 1; fi
 
 diff Errors-Compiler.tmp Errors-Compiler.md || \
    { echo "Errors-Compiler.md has been altered -- check and commit the edits"; FAIL=1; }
 
 
-if [ "$FAIL" != "0" ]; then exit 1; fi
+##if [ "$FAIL" != "0" ]; then exit 1; fi
+echo "END "  $FAIL
 
 

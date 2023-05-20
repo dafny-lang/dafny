@@ -3,6 +3,7 @@ import java.io.*;
 public class MakeErrorCatalog {
 
   public static void main(String ... args) {
+    System.out.println("STARTING");
     String template = args[0];
     List<String> ids = new LinkedList<>();
     Map<String,String> explanations = new HashMap<>();
@@ -96,7 +97,7 @@ public class MakeErrorCatalog {
         if (line.contains("INSERT-TEXT")) {
           var text = explanations.get(errorid);
           if (text != null) {
-            fileout.print(text); // text alreaqdy has trailing newline
+            fileout.print(text); // text already has trailing newline
           } else {
             fileout.println(line);
             System.out.println("Unknown errorid: " + errorid);
@@ -110,6 +111,8 @@ public class MakeErrorCatalog {
         e.printStackTrace(System.out);
         System.exit(1);
     }
+    System.out.println("ENDING");
+    System.exit(0);
 
   }
 }
