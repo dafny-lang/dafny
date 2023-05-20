@@ -1362,6 +1362,21 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     ParentTraits = traits ?? new List<Type>();
   }
 
+  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    // Instantiate with the actual type arguments
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => {
+      var ty = (UserDefinedType)traitType.Subst(subst);
+      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
+    });
+  }
+
+  public override List<Type> ParentTypes(List<Type> typeArgs) {
+    return RawTraitsWithArgument(typeArgs);
+  }
+
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
@@ -1526,21 +1541,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     }
 
     return true;
-  }
-
-  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-    // Instantiate with the actual type arguments
-    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => {
-      var ty = (UserDefinedType)traitType.Subst(subst);
-      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
-    });
-  }
-
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    return RawTraitsWithArgument(typeArgs);
   }
 
   protected override string GetTriviaContainingDocstring() {

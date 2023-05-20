@@ -1,0 +1,3 @@
+GeneralTraits.dfy(20,25): Error: datatype is not allowed to extend 'RefParent', because it is a reference type
+GeneralTraits.dfy(21,27): Error: abstract type is not allowed to extend 'RefParent', because it is a reference type
+2 resolution/type errors detected in GeneralTraits.dfy
