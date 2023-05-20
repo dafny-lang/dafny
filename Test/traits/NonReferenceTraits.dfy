@@ -123,3 +123,9 @@ module HintInErrorMessage {
   method M(t: Trait?) { // error: no such thing as 'Trait?' (nice error-message hint, huh?)
   }
 }
+
+module NameClash {
+  trait AA { } // error (but only for implicit "extends object"): name clash
+
+  type AA?
+}

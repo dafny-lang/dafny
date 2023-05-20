@@ -6,7 +6,9 @@ NonReferenceTraits.dfy(88,27): Error: Raised while checking export set BadLibrar
 NonReferenceTraits.dfy(77,4): Error: This export set is not consistent: BadLibrary
 NonReferenceTraits.dfy(115,28): Error: a class can only extend traits (found 'G.Trait')
 NonReferenceTraits.dfy(116,28): Error: a trait can only extend traits (found 'G.Trait')
-8 resolution/type errors detected in NonReferenceTraits.dfy
+NonReferenceTraits.dfy(128,8): Error: a module that already contains a top-level declaration 'AA?' is not allowed to declare a reference type (trait) 'AA'
+NonReferenceTraits.dfy(128,8): Error: type of 'null' is a reference type, but it is used as AA?
+10 resolution/type errors detected in NonReferenceTraits.dfy
 NonReferenceTraits.dfy(28,14): Error: module 'M' does not declare a type 'MX?'
 NonReferenceTraits.dfy(32,11): Error: Type or type parameter is not declared in this scope: Z? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'Z', then you must declare that trait with 'extends object' to make it a reference type)
 NonReferenceTraits.dfy(33,11): Error: Type or type parameter is not declared in this scope: Q? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in nested modules) (if you intended to refer to a possibly null 'Q', then you must declare that trait with 'extends object' to make it a reference type)
