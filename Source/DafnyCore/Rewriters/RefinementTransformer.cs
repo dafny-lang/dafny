@@ -238,7 +238,7 @@ namespace Microsoft.Dafny {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d.Name == "_default" || nw.IsRefining || d is OpaqueTypeDecl) {
+          if (d.Name == "_default" || nw.IsRefining || d is AbstractTypeDecl) {
             MergeTopLevelDecls(m, nw, d, index);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
@@ -318,18 +318,18 @@ namespace Microsoft.Dafny {
             Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
           }
         }
-      } else if (d is OpaqueTypeDecl) {
+      } else if (d is AbstractTypeDecl) {
         if (nw is ModuleDecl) {
           Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
-          var od = (OpaqueTypeDecl)d;
-          if (nw is OpaqueTypeDecl) {
-            if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
+          var od = (AbstractTypeDecl)d;
+          if (nw is AbstractTypeDecl) {
+            if (od.SupportsEquality != ((AbstractTypeDecl)nw).SupportsEquality) {
               Reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
+            if (od.Characteristics.HasCompiledValue != ((AbstractTypeDecl)nw).Characteristics.HasCompiledValue) {
               Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
-            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+            } else if (od.Characteristics.IsNonempty != ((AbstractTypeDecl)nw).Characteristics.IsNonempty) {
               Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
             CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
           }
         }
-      } else if (nw is OpaqueTypeDecl) {
+      } else if (nw is AbstractTypeDecl) {
         Reporter.Error(MessageSource.RefinementTransformer, nw,
           "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if ((d is IndDatatypeDecl && nw is IndDatatypeDecl) || (d is CoDatatypeDecl && nw is CoDatatypeDecl)) {

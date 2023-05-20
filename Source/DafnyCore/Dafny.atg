@@ -1661,7 +1661,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // opaque type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new OpaqueTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)

@@ -47,8 +47,8 @@ namespace Microsoft.Dafny.Compilers {
     const string TypeDescriptorMethodName = "_TypeDescriptor";
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
-      if (tp is OpaqueTypeDecl) {
+      Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
+      if (tp is AbstractTypeDecl) {
         // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
         // is apparently an :extern (or a compiler error has already been reported and we're just trying to get to
         // the end of compilation without crashing). It's difficult to say what the compiler could do in this situation, since
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;

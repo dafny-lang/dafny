@@ -755,8 +755,8 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
-        if (d is OpaqueTypeDecl) {
-          var dd = (OpaqueTypeDecl)d;
+        if (d is AbstractTypeDecl) {
+          var dd = (AbstractTypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
@@ -796,8 +796,8 @@ namespace Microsoft.Dafny {
       foreach (ModuleDefinition m in mods) {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
-          if (d is OpaqueTypeDecl) {
-            var dd = (OpaqueTypeDecl)d;
+          if (d is AbstractTypeDecl) {
+            var dd = (AbstractTypeDecl)d;
             AddTypeDecl(dd);
             AddClassMembers(dd, true, true);
           } else if (d is ModuleDecl) {
@@ -1218,7 +1218,7 @@ namespace Microsoft.Dafny {
       abstractTypes.Add(nm);
     }
 
-    void AddTypeDecl(OpaqueTypeDecl td) {
+    void AddTypeDecl(AbstractTypeDecl td) {
       Contract.Requires(td != null);
       AddTypeDecl_Aux(td.tok, nameTypeParam(td), td.TypeArgs, td.Characteristics);
     }
@@ -8319,7 +8319,7 @@ namespace Microsoft.Dafny {
     }
 
     static string nameTypeParam(TopLevelDecl x) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       if (x is TypeParameter tp && tp.Parent != null) {
         return tp.Parent.FullName + "$" + x.Name;
       } else {
@@ -8329,16 +8329,16 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.Expr trTypeParamOrOpaqueType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       Contract.Requires(!(x is TypeParameter) || tyArguments == null || tyArguments.Count == 0);
-      Contract.Requires(!(x is OpaqueTypeDecl) || tyArguments != null);
+      Contract.Requires(!(x is AbstractTypeDecl) || tyArguments != null);
       if (x is TypeParameter tp) {
         Contract.Assert(tyArguments == null || tyArguments.Count == 0);
         var nm = nameTypeParam(tp);
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
       } else {
-        var ot = (OpaqueTypeDecl)x;
+        var ot = (AbstractTypeDecl)x;
         var nm = nameTypeParam(ot);
         if (tyArguments.Count != 0) {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);

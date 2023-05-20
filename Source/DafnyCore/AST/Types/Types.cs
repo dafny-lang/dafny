@@ -174,7 +174,7 @@ public abstract class Type : TokenNode {
             Contract.Assert(cl.NonNullTypeDecl != null);
             Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
           } else {
-            Contract.Assert(rtd is OpaqueTypeDecl);
+            Contract.Assert(rtd is AbstractTypeDecl);
           }
         }
 
@@ -355,8 +355,8 @@ public abstract class Type : TokenNode {
     var udt = (UserDefinedType)t;
     var cl = udt.ResolvedClass;
     Contract.Assert(cl != null);
-    if (cl is OpaqueTypeDecl) {
-      var otd = (OpaqueTypeDecl)cl;
+    if (cl is AbstractTypeDecl) {
+      var otd = (AbstractTypeDecl)cl;
       return CharacteristicToAutoInitInfo(otd.Characteristics);
     } else if (cl is TypeParameter) {
       var tp = (TypeParameter)cl;
@@ -817,12 +817,12 @@ public abstract class Type : TokenNode {
     }
   }
   public bool IsOpaqueType {
-    get { return AsOpaqueType != null; }
+    get { return AsAbstractType != null; }
   }
-  public OpaqueTypeDecl AsOpaqueType {
+  public AbstractTypeDecl AsAbstractType {
     get {
       var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
-      return udt?.ResolvedClass as OpaqueTypeDecl;
+      return udt?.ResolvedClass as AbstractTypeDecl;
     }
   }
 
@@ -2388,7 +2388,7 @@ public class UserDefinedType : NonProxyType {
 
   /// <summary>
   /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
+  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, AbstractTypeDecl, List(Type))
   /// constructor for that).
   /// </summary>
   public UserDefinedType(IToken tok, TypeParameter tp) {
@@ -2590,8 +2590,8 @@ public class UserDefinedType : NonProxyType {
         }
       } else if (ResolvedClass is TypeParameter) {
         return ((TypeParameter)ResolvedClass).SupportsEquality;
-      } else if (ResolvedClass is OpaqueTypeDecl) {
-        return ((OpaqueTypeDecl)ResolvedClass).SupportsEquality;
+      } else if (ResolvedClass is AbstractTypeDecl) {
+        return ((AbstractTypeDecl)ResolvedClass).SupportsEquality;
       }
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
@@ -2675,7 +2675,7 @@ public class UserDefinedType : NonProxyType {
       } else {
         return !typeParameter.Characteristics.ContainsNoReferenceTypes;
       }
-    } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
+    } else if (ResolvedClass is AbstractTypeDecl opaqueTypeDecl) {
       return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
     }
     Contract.Assume(false);  // unexpected or not successfully resolved Type
