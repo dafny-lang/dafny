@@ -281,6 +281,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
+          PrintExtendsClause(at);
           if (at.Members.Count == 0) {
             wr.WriteLine();
           } else {
@@ -666,12 +667,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (c.IsRefining) {
         wr.Write(" ... ");
       } else {
-        string sep = " extends ";
-        foreach (var trait in c.ParentTraits) {
-          wr.Write(sep);
-          PrintType(trait);
-          sep = ", ";
-        }
+        PrintExtendsClause(c);
       }
 
       if (c.Members.Count == 0) {
@@ -691,6 +687,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("*/");
         }
+      }
+    }
+
+    private void PrintExtendsClause(TopLevelDeclWithMembers c) {
+      string sep = " extends ";
+      foreach (var trait in c.ParentTraits) {
+        wr.Write(sep);
+        PrintType(trait);
+        sep = ", ";
       }
     }
 
@@ -819,6 +824,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper(dt is IndDatatypeDecl ? "datatype" : "codatatype", dt.Attributes, dt.Name, dt.TypeArgs);
+      PrintExtendsClause(dt);
       wr.Write(" =");
       string sep = "";
       foreach (DatatypeCtor ctor in dt.Ctors) {

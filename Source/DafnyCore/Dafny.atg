@@ -1315,7 +1315,6 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      Name/*!*/ name;
      IToken tokenWithTrailingDocString = Token.NoToken;
-     Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
      bool isRefining = false;
@@ -1330,9 +1329,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   { Attribute<ref attrs> }
   ClassName<out name>                     (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
-  [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
   | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   SYNC
@@ -1348,13 +1345,23 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   .)
   .
 
+ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
+= (. Type parentTrait;
+  .)
+  "extends"                   (. if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.TraitsAreReferences)) {
+                                   SemErr(t, $"{requiresNonReferenceTraitsFor} using traits is a beta feature; use /traitsReferences:0 to engage");
+                                 }
+                              .)
+  Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
+  {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  .
+
 /*------------------------------------------------------------------------*/
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ tokenWithTrailingDocString;
-     Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
      bool isRefining = false;
@@ -1368,9 +1375,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   { Attribute<ref attrs> }
   ClassName<out var name>                         (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
-  [ "extends"
-    Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
-    {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
+  [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
   | ellipsis                    (. isRefining = true; tokenWithTrailingDocString = t; .)
   ]
   "{"                                            (. bodyStart = t; .)
@@ -1423,6 +1428,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      Name/*!*/ name;
      Attributes attrs = null;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
+     List<Type> parentTraits = new List<Type>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool isRefining = false;
@@ -1437,6 +1443,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   { Attribute<ref attrs> }
   DatatypeName<out name>
   [ GenericParameters<typeArgs, true> ]
+  [ ExtendsClause<parentTraits, out _, co ? "codatatype" : "datatype"> ]
   (
   "="                                      (. bodyStart = t; .)
   [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
@@ -1448,9 +1455,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new CoDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
      } else {
-       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, members, attrs, isRefining);
+       dt = new IndDatatypeDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ctors, parentTraits, members, attrs, isRefining);
      }
      dt.BodyStartTok = bodyStart;
      dt.TokenWithTrailingDocString = bodyStart;
@@ -1618,6 +1625,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Expression constraint;
      Expression witness = null;
      var kind = "abstract type";
+     List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
@@ -1654,6 +1662,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
     )
   | ellipsis                               (. isRefining = true; .)
     [ TypeMembers<module, members> ]
+  | ExtendsClause<parentTraits, out _, "abstract type">
+    [ TypeMembers<module, members> ]
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
@@ -1661,7 +1671,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, parentTraits, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)

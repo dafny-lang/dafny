@@ -1662,8 +1662,8 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   public override IEnumerable<Node> PreResolveChildren => Ctors.Concat<Node>(base.PreResolveChildren);
 
   public DatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -1832,8 +1832,8 @@ public class IndDatatypeDecl : DatatypeDecl {
   public ES EqualitySupport = ES.NotYetComputed;
 
   public IndDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, ctors, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -1851,8 +1851,8 @@ public class CoDatatypeDecl : DatatypeDecl {
   [FilledInDuringResolution] public CoDatatypeDecl SscRepr;
 
   public CoDatatypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, ctors, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -2116,8 +2116,9 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentTyp
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
+  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics,
+    List<TypeParameter> typeArgs, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
