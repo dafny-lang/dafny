@@ -1,0 +1,4 @@
+GeneralTraitsVerify.dfy(21,13): Error: value does not satisfy the subset constraints of 'Dt'
+GeneralTraitsVerify.dfy(24,13): Error: value does not satisfy the subset constraints of 'Abstract'
+
+Dafny program verifier finished with 1 verified, 2 errors

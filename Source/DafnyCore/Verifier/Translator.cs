@@ -5485,9 +5485,12 @@ namespace Microsoft.Dafny {
       } else if (toType.IsRefType) {
         Contract.Assert(fromType.IsTraitType);
         return UnboxIfBoxed(r, toType);
-      } else if (fromType.IsTraitType && toType.IsTraitType) {
-        // both are boxes already
-        return r;
+      } else if (toType.IsTraitType) {
+        // cast to a non-reference trait
+        return BoxIfNecessary(r.tok, r, fromType);
+      } else if (fromType.IsTraitType) {
+        // cast from a non-reference trait
+        return UnboxIfBoxed(r, toType);
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -5521,7 +5524,7 @@ namespace Microsoft.Dafny {
 
       // Lazily create a local variable "o" to hold the value of the from-expression
       Bpl.IdentifierExpr o = null;
-      System.Action PutSourceIntoLocal = () => {
+      void PutSourceIntoLocal() {
         if (o == null) {
           var oType = expr.Type.IsCharType ? Type.Int : expr.Type;
           var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType)));
@@ -5533,10 +5536,14 @@ namespace Microsoft.Dafny {
           }
           builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
         }
-      };
+      }
 
       Contract.Assert(!options.Get(CommonOptionBag.TraitsAreReferences) || expr.Type.IsRefType == toType.IsRefType);
       if (toType.IsRefType) {
+        PutSourceIntoLocal();
+        CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
+        return;
+      } else if (expr.Type.IsTraitType) {
         PutSourceIntoLocal();
         CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
         return;

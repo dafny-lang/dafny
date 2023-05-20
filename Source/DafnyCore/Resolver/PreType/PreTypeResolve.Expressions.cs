@@ -473,10 +473,12 @@ namespace Microsoft.Dafny {
             AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "ORDINAL") {
             AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (DPreType.IsReferenceTypeDecl(ancestorDecl) || ancestorDecl is TraitDecl) {
+          } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
             AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+          } else if (ancestorDecl is TraitDecl) {
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
-            ReportError(expr, "type conversions are not supported to this type (got {0})", e.ToType);
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
           }
           e.PreType = toPreType;
         } else {
@@ -499,8 +501,6 @@ namespace Microsoft.Dafny {
           } else if (fromPT == null || toPT == null || !IsSuperPreTypeOf(fromPT, toPT)) {
             // TODO: I think this line can never be reached, since we get here only if we get past the guarded Comparable constraint
             ReportError(e.tok, "a type test to '{0}' must be from a compatible type (got '{1}')", toPreType, e.E.PreType);
-          } else if (!DPreType.IsReferenceTypeDecl(toPT.Decl)) {
-            ReportError(e.tok, "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", toPreType, e.E.PreType);
           }
         });
 
