@@ -5047,12 +5047,13 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       allTypeParameters.PushMarker();
       ResolveTypeParameters(cl.TypeArgs, false, cl);
-      foreach (var tt in cl.ParentTraits) {
+      foreach (var parentTrait in cl.ParentTraits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(cl.tok, tt, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
+        ResolveType(cl.tok, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
+        var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.tok : cl.tok;
+        var tt = parentTrait.UseInternalSynonym();
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var udt = tt as UserDefinedType;
-          var trait = udt?.AsParentTraitDecl();
+          var trait = (tt as UserDefinedType)?.AsParentTraitDecl();
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
@@ -5063,10 +5064,12 @@ namespace Microsoft.Dafny {
                 parentRelation.AddEdge(cl, trait);
               }
             } else {
-              reporter.Error(MessageSource.Resolver, udt.tok, "{0} '{1}' is in a different module than trait '{2}'. A {0} may only extend a trait in the same module, unless the parent trait is annotated with {{:termination false}}.", cl.WhatKind, cl.Name, trait.FullName);
+              reporter.Error(MessageSource.Resolver, parentTypeToken,
+                $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
+                "in the same module, unless the parent trait is annotated with {:termination false}.");
             }
           } else {
-            reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a {0} can only extend traits (found '{1}')", cl.WhatKind, tt);
+            reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{tt}')");
           }
         }
       }
