@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
@@ -1516,7 +1516,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, IToken tok, string/*?*/ rhs, string className, ConcreteSyntaxTree wr, ConcreteSyntaxTree initWriter, ConcreteSyntaxTree concreteMethodWriter) {
       if (isExtern) {
-        Error(tok, "Unsupported field {0} in extern trait", wr, name);
+        Error(CompilerErrors.ErrorId.c_Go_unsupported_field, tok, "Unsupported field {0} in extern trait", wr, name);
       }
 
       if (isConst && rhs != null) {
@@ -3594,7 +3594,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
-        Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
+        Error(CompilerErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }
     }

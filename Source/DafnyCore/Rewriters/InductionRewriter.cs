@@ -170,7 +170,7 @@ public class InductionRewriter : IRewriter {
     }
 
     foreach (IVariable n in boundVars) {
-      if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null ||
+      if (!(n.Type.IsTypeParameter || n.Type.IsAbstractType || n.Type.IsInternalTypeSynonym) && (args != null ||
             searchExprs.Exists(expr => InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, expr, n)))) {
         inductionVariables.Add(new IdentifierExpr(n.Tok, n));
       }

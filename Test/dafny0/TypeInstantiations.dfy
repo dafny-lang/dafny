@@ -30,7 +30,7 @@ abstract module M0 {
 }
 module M1 refines M0 {
   type A = int
-  type B  // error: cannot change a type synonym into an opaque type
+  type B  // error: cannot change a type synonym into an abstract type
   datatype C = MakeC(ghost x: int, y: int)  // error: this type does not support equality
   type D = C  // error: this type does not support equality
   codatatype E = More(bool, E)  // error: this type does not support equality
