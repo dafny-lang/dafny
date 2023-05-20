@@ -958,10 +958,8 @@ namespace Microsoft.Dafny {
 
             decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
-            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
+            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } nn }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              var nn = ((ClassLikeDecl)tdecl).NonNullTypeDecl;
-              Contract.Assert(nn != null);
               reporter.Error(MessageSource.Resolver, export.Tok,
                 export.Opaque
                   ? "Type '{1}' can only be revealed, not provided"
