@@ -253,6 +253,10 @@ do
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f 
             echo " " >> $f
             cat $text >> $f
+          elif [ "$command" == "%check-cli" ]; then
+            echo "// RUN: %exits-with" $ec "%bare$text" " > /dev/null 2> /dev/null" > $f
+            echo GENERATING $f
+            cat $f
           else
             echo "// RUN: %exits-with" $ec "%baredafny" $com "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
@@ -335,8 +339,17 @@ do
         if [ "$lang" != "bash" ]; then
           echo EXPECTED A bash BLOCK, NOT $lang
           FAIL=1
+        elif [ "$coverage" == "1" ]; then
+          ec=1
+          if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
+          f=$outdir/$(basename $file)_${n}.dfy
+
+            echo "// RUN: %exits-with" $ec "%bare`cat $text`"  > $f
+            echo GENERATING $f
+            echo TEXT $text
+            cat $f
         else
-          . $text > actual
+          . $text > actual 2> errortext
           ec=$?
           if [ "$ec" != "1" ]; then
              echo EXPECTED EXIT CODE OF 1, GOT $ec

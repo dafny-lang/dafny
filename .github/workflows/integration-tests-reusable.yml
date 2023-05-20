@@ -136,7 +136,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         cd dafny/docs/HowToFAQ
-        ../check-examples -c Errors-Parser.md Errors-Compiler.md
+        ../check-examples -c Errors-Parser.md Errors-Compiler.md Errors-CommandLine.md
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
