@@ -1349,7 +1349,7 @@ ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, 
 = (. Type parentTrait;
   .)
   "extends"                   (. if (requiresNonReferenceTraitsFor != null && !theOptions.Get(CommonOptionBag.GeneralTraits)) {
-                                   SemErr(t, $"{requiresNonReferenceTraitsFor} using traits is a beta feature; use /traitsReferences:0 to engage");
+                                   SemErr(t, $"{requiresNonReferenceTraitsFor} using traits is a beta feature; use /generalTraits:1 to engage");
                                  }
                               .)
   Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
