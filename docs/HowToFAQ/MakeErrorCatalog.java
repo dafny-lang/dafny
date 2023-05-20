@@ -3,7 +3,6 @@ import java.io.*;
 public class MakeErrorCatalog {
 
   public static void main(String ... args) {
-    System.out.println("STARTING");
     String template = args[0];
     List<String> ids = new LinkedList<>();
     Map<String,String> explanations = new HashMap<>();
@@ -111,8 +110,6 @@ public class MakeErrorCatalog {
         e.printStackTrace(System.out);
         System.exit(1);
     }
-    System.out.println("ENDING");
     System.exit(0);
-
   }
 }
