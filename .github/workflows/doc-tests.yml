@@ -45,6 +45,10 @@ jobs:
         chmod +x dafny/Binaries/z3/bin/z3-*
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
+    - name: Check generated error catalog
+      run: |
+        chmod +x dafny/docs/HowToFAQ/make-error-catalog
+        ./make-error-catalog
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs

@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       if (tok.WasIncluded(OuterModule) && OuterModule != null) {
         var include = OuterModule.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
+          Message(source, ErrorLevel.Error, ParseErrors.ErrorId.g_include_has_errors.ToString(), include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;
         }
       }
@@ -149,7 +149,6 @@ namespace Microsoft.Dafny {
         Warning(source, errorId, tok, String.Format(msg, args));
       }
     }
-
 
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
