@@ -224,7 +224,7 @@ module SimpleClassesAndTraits {
   }
 }
 
-module TypeParameters {  // and opaque types
+module TypeParameters {  // and abstract types
   type A
   type B
   type C<T,U>

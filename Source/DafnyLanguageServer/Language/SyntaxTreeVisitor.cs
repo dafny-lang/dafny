@@ -39,7 +39,7 @@
           break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
