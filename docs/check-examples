@@ -200,7 +200,7 @@ do
          cp $text $save
          save=
       fi
-      if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
+      if [ "$lang" == "dafny" -o "$lang" == "cli" -o "$lang" == "bash" ]; then
         echo TESTING $n $file "$command" $expect
       fi
       if [ "$command" == "%no-check" ]; then
@@ -253,6 +253,11 @@ do
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f 
             echo " " >> $f
             cat $text >> $f
+<<<<<<< Updated upstream
+=======
+          elif [ "$command" == "%check-cli" ]; then
+            echo "// RUN: %exits-with" $ec "%bare$text" " > /dev/null 2> /dev/null" > $f
+>>>>>>> Stashed changes
           else
             echo "// RUN: %exits-with" $ec "%baredafny" $com "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
@@ -335,6 +340,15 @@ do
         if [ "$lang" != "bash" ]; then
           echo EXPECTED A bash BLOCK, NOT $lang
           FAIL=1
+<<<<<<< Updated upstream
+=======
+        elif [ "$coverage" == "1" ]; then
+          ec=1
+          if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
+          f=$outdir/$(basename $file)_${n}.dfy
+
+            echo "// RUN: %exits-with" $ec "%bare`cat $text`"  > $f
+>>>>>>> Stashed changes
         else
           . $text > actual
           ec=$?
