@@ -108,7 +108,7 @@ identified with the name `lib` on the command line. For example, to build multip
 Dafny files into a single build artifact for shared reuse, the command would look something like:
 
 ```bash
-dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
+dafny build -t:lib A.dfy B.dfy C.dfy --output:MyLib.doo
 ```
 
 The Dafny code contained in a `.doo` file is not re-verified when passed back to the `dafny` tool,

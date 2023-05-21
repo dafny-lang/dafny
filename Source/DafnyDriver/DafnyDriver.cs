@@ -283,6 +283,9 @@ namespace Microsoft.Dafny {
           }
           dafnyFiles.Add(df);
           isDafnyFile = true;
+        } catch (ArgumentException e) {
+          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + e.Message);
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         } catch (IllegalDafnyFile e) {
           if (e.ProcessingError) {
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
