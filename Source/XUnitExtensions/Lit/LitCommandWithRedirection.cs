@@ -36,8 +36,7 @@ namespace XUnitExtensions.Lit {
       }
       var redirectErrorIndex = argumentList.FindIndex(t => t.Value == "&>");
       if (redirectErrorIndex >= 0) {
-        outputFile = config.ApplySubstitutions(argumentList[redirectOutIndex + 1].Value).Single();
-        errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
+        outputFile = errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
         argumentList.RemoveRange(redirectErrorIndex, 2);
       }
       redirectErrorIndex = argumentList.FindIndex(t => t.Value == "2>");
@@ -87,7 +86,7 @@ namespace XUnitExtensions.Lit {
       TextWriter errWriter) {
       var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
-      var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : errWriter;
+      var errorWriter = errorFile == null ? errWriter : errorFile == outputFile ? outputWriter : new StreamWriter(errorFile, append);
       var result = command.Execute(inputReader, outputWriter, errorWriter);
       inputReader?.Close();
       outputWriter?.Close();
