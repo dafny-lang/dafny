@@ -765,10 +765,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.Rtd_ref";
-        } else if (cl is ClassDecl) {
+        if (cl is ClassDecl) {
           return "_dafny.Rtd_ref";
         } else if (cl is DatatypeDecl) {
           var dt = (DatatypeDecl)cl;
@@ -969,12 +966,7 @@ namespace Microsoft.Dafny.Compilers {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return "null";
-        }
+        return "null";
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
@@ -2034,9 +2026,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "===";
-            } else if (IsDirectlyComparable(eqType)) {
+            if (IsDirectlyComparable(eqType)) {
               opString = "===";
             } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
               callString = "isEqualTo";
@@ -2049,9 +2039,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!==";
-            } else if (IsDirectlyComparable(eqType)) {
+            if (IsDirectlyComparable(eqType)) {
               opString = "!==";
             } else if (eqType.IsIntegerType) {
               preOpString = "!";

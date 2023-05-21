@@ -5422,14 +5422,6 @@ namespace Microsoft.Dafny.Compilers {
       su = new Substituter(null, sm, new Dictionary<TypeParameter, Type>());
     }
 
-    protected bool IsHandleComparison(IToken tok, Expression e0, Expression e1, ConcreteSyntaxTree errorWr) {
-      Contract.Requires(tok != null);
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
-      // :handle no longer implemented
-      return false;
-    }
-
     protected ConcreteSyntaxTree StringLiteral(StringLiteralExpr str) {
       var result = new ConcreteSyntaxTree();
       TrStringLiteral(str, result);
