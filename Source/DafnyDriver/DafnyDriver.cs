@@ -286,6 +286,10 @@ namespace Microsoft.Dafny {
         } catch (ArgumentException e) {
           options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + e.Message);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+        } catch (IllegalDafnyFile e) {
+          if (e.ProcessingError) {
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
           // Fall through and try to handle the file as an "other file"
         }
 
