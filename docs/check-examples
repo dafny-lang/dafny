@@ -126,7 +126,7 @@ do
   ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[A-Za-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -354,8 +354,8 @@ do
              echo EXPECTED EXIT CODE OF $ec, GOT $actualec
              FAIL=1
           else
-            act=`cat actual | sed -e 's/^[*]*//'`
-	    dif=`echo "$act" | sed -e "s/$msg//"`
+            act=`cat actual | sed -e 's/^[*]*[ ]*//'`
+	    dif=`echo "$act" | tr "\n" " " | sed -e 's/ $//' -e "s@$msg@@"`
             if [ -n "$dif" ]; then
               echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
               FAIL=1

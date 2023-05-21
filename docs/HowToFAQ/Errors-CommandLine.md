@@ -30,13 +30,16 @@ The only exceptions are the special commands like `--help` and `--version`.
 
 <!-- %check-cli -->
 ```bash
-dafny resolve zzz.dfy
+dafny build -t:java testfiles/a.dfy zzz.java
 ```
 
 This error message simply states that the named file could not be found
 by the dafny tool. Note that files on the command-line are named
 relative to the current working directory of the shell in which the
-command is invoked or are absolute file paths.
+command is invoked or are absolute file paths. In particular, this
+instance of this error message identifies non-.dfy files that still
+have permitted extensions (according to the target platform) but
+cannot be found in the file system.
 
 ## **Error: Command-line argument '_arg_' is neither a recognized option nor a filename with a supported extension (_ext_).** {#cli_bad_option}
 
@@ -137,20 +140,84 @@ You can use `--print` to see the output. Also for an input file `test.dfy, the c
 <!-- TODO: Errors in PrintMode? -->
 <!-- TODO: Errors in diagnosticsFormat? -->
 
-## Error: Invalid argument _argument_ to option _option_
+## **dafny: Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
 
 <!-- %check-cli-err -->
 ```bash 
-dafny resolve --function-syntax:2 mod.dfy
+dafny -printMode:zzz
 ```
 
-This is a generic error message about command-line arguments,
-indicating that the value given (after the `:` or `=` or as the next command-line argument) is not recognized as a valid value for the given option.
+The `printMode` option has a number of alternative values that are spelled out in the help document (`dafny -?`).
+It is also recommended to use the new CLI, with the option `--print-mode`.
 
-The correct spellings of the valid values should be stated 
-in the help document (`dafny -?` or `dafny <command> -h`).
+## Unsupported diagnostic format: _format_; expecting one of 'json', 'text'.** {#cli_diagnostic_format}
 
-## Error: Invalid argument _argument_ to option --quantifier-syntax
+<!-- %check-cli -->
+```bash
+dafny /diagnosticsFormat:zzz
+```
+
+This option controls the format of error messages. Typically the 'text' format is used (and is the default).
+But 'json' is also an option. Any other choice is illegal and results in this error message.
+
+## **dafny: Error: Invalid argument _argument_ to option functionSyntax_help_** {#cli_function_syntax}
+
+<!-- %check-cli-err -->
+```bash 
+dafny -functionSyntax:z
+```
+
+The `functionSynax` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
+most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
+It is also recommended to use the new CLI, with the option `--function-syntax`.
+
+## **dafny: Error: Invalid argument _argument_ to option quantifierSyntax_help_** {#cli_quantifier_syntax}
+
+<!-- %check-cli-err -->
+```bash 
+dafny -quantifierSyntax:z
+```
+
+The `quantifierSyntax ` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
+most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
+It is also recommended to use the new CLI, with the option `--quantifier-syntax`.
+
+## **dafny: Error: Invalid argument _argument_ to option verificationLogger _help_** {#cli_verification_logger}
+
+<!-- %check-cli-err -->
+```bash 
+dafny -verificationLogger:z
+```
+
+The `verificationLogger` option has these alternatives: trx, csv, text.
+The option name in the new cli is `--log-format`.
+
+
+## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
+
+<!-- %check-cli-err -->
+```bash 
+dafny -testContracts:z
+```
+
+The `testContracts ` option has these alternatives: Externs, TestedExterns.
+The similar option in the new cli is `--test-assumptions`.
+
+## **dafny: Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
+
+<!-- %check-cli-err -->
+```bash 
+dafny -printIncludes:z
+```
+
+The `printIncludes` option has these alternatives: None, Immediate, Transitive.
+
+
+
+
+
+
+## **Argument '_argument_' not recognized. _Alternatives_** {#cli_quantifier_syntax}
 
 <!-- %check-cli-err -->
 ```bash 
