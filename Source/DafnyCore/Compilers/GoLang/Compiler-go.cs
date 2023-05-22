@@ -299,8 +299,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (includeRtd) {
-        ConcreteSyntaxTree wDefault;
-        CreateRTD(name, typeParameters, out wDefault, w);
+        CreateRTD(name, typeParameters, out var wDefault, w);
 
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
@@ -2567,8 +2566,7 @@ namespace Microsoft.Dafny.Compilers {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(sf.Type, expectedType, Token.NoToken, wr);
           obj(wr);
-          string compiledName;
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out _, out _);
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
           if (compiledName.Length != 0) {
             wr.Write(".{0}", Capitalize(compiledName));
           } else {

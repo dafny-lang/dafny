@@ -86,8 +86,7 @@ namespace Microsoft.Dafny.Triggers {
 
         // Check #1: does this term claiming ownership of all its variables cause another term to become useless?
         foreach (var v in varsInNewTerm) {
-          TriggerTerm originalOwner;
-          if (copy.termOwningAUniqueVar.TryGetValue(v, out originalOwner)) {
+          if (copy.termOwningAUniqueVar.TryGetValue(v, out var originalOwner)) {
             var alsoOwnedByOriginalOwner = copy.uniqueVarsOwnedByATerm[originalOwner];
             alsoOwnedByOriginalOwner.Remove(v);
             if (!alsoOwnedByOriginalOwner.Any()) {
@@ -277,8 +276,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static Expression PrepareExprForInclusionInTrigger(Expression expr) {
-      bool _;
-      return PrepareExprForInclusionInTrigger(expr, out _);
+      return PrepareExprForInclusionInTrigger(expr, out var @_);
     }
 
     internal static IEnumerable<Expression> MaybeWrapInOld(Expression expr, HashSet<OldExpr>/*?*/ wrap) {
