@@ -126,9 +126,16 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
+bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
+  if (attr.val == "ignore") {
+    errors.Warning(
+      attr,
+      $"attribute :{attr.val} is deprecated");
+    return false;
+  }
+  return true;
 }
 
 bool IsAssumeTypeKeyword(IToken la) {
@@ -1618,7 +1625,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Type ty = null;
      Expression constraint;
      Expression witness = null;
-     var kind = "opaque type";
+     var kind = "abstract type";
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
@@ -1659,10 +1666,10 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   ]
   (. if (td == null) {
        if (module is DefaultModuleDefinition) {
-         // opaque type declarations at the very outermost program scope get an automatic (!new)
+         // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new OpaqueTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)
@@ -5220,9 +5227,10 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
+     var rtok = new RangeToken(openBrace, t);
+     if (!CheckAttribute(errors, x, rtok)) return;
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken);
+     attrs.RangeToken = rtok;
   .)
   .
 

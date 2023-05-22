@@ -1092,7 +1092,7 @@ module MiscIterator {
 module {:myAttribute x} Modulette {  // error: x does not refer to anything
 }
 
-// --- opaque types with type parameters ---
+// --- abstract types with type parameters ---
 
 module OpaqueTypes0 {
   type P<AA>

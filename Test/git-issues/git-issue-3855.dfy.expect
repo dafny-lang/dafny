@@ -1,0 +1,10 @@
+git-issue-3855.dfy(800,2): Warning: attribute :ignore is deprecated
+git-issue-3855.dfy(800,11): Verification of 'Memory.dynMove (correctness)' timed out after 1 seconds
+git-issue-3855.dfy(943,17): Error: a precondition for this call could not be proved
+git-issue-3855.dfy(429,29): Related location: this is the precondition that could not be proved
+git-issue-3855.dfy(943,17): Error: a precondition for this call could not be proved
+git-issue-3855.dfy(433,36): Related location: this is the precondition that could not be proved
+git-issue-3855.dfy(1336,20): Error: a precondition for this call could not be proved
+git-issue-3855.dfy(433,36): Related location: this is the precondition that could not be proved
+
+Dafny program verifier finished with 69 verified, 3 errors, 1 time out
