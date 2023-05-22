@@ -275,16 +275,7 @@ namespace Microsoft.Dafny {
         try {
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
-            if (!df.IsPreverified) {
-              if (!options.Verify || options.VerificationScope == VerificationScope.Everything
-                                  /* Since RootSources is already an unsafe option, we also allow it to skip verification of libraries */
-                                  || options.VerificationScope == VerificationScope.RootSources) {
-                df.IsPreverified = true;
-              } else {
-                options.Printer.ErrorWriteLine(errorWriter, "*** Error: files passed to --library must have already been verified, such as a .doo file, unless the option --verification-scope=Everything or --verification-scope=RootSources is used.");
-                return CommandLineArgumentsResult.PREPROCESSING_ERROR;
-              }
-            }
+            df.IsPreverified = true;
             df.IsPrecompiled = true;
           }
           if (!filesSeen.Add(df.CanonicalPath)) {
@@ -366,7 +357,6 @@ namespace Microsoft.Dafny {
       ReadOnlyCollection<string> otherFileNames,
       DafnyOptions options, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
-
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;

@@ -1,2 +1,2 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char --verify-scope=RootSourcesAndIncludes --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char
 include "../../comp/Arrays.dfy"

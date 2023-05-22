@@ -1,4 +1,4 @@
-// RUN: %baredafny verify %args --verify-scope=RootSourcesAndIncludes --unicode-char "%s" > "%t"
+// RUN: %baredafny verify %args --unicode-char --verify-included-files "%s" > "%t"
 // RUN: ! %baredafny test %args --unicode-char --no-verify --target:cs "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char --no-verify --target:java "%s" >> "%t"
 // RUN: ! %baredafny test %args --unicode-char --no-verify --target:go "%s" >> "%t"

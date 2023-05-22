@@ -3,5 +3,5 @@ excludes = ["wrappersLib.dfy"]
 
 [options]
 library = [
-  "wrappersLib.doo"
+  "wrappersLib.dfy"
 ]
