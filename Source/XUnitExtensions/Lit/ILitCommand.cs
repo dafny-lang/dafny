@@ -64,26 +64,20 @@ namespace XUnitExtensions.Lit {
       var singleQuoted = false;
       var doubleQuoted = false;
       var kind = Kind.Verbatim;
+      var tokenStarted = false;
       foreach (var c in line) {
         if (c == '\'' && !doubleQuoted) {
           singleQuoted = !singleQuoted;
-          if (!singleQuoted) {
-            result.Add(new Token(inProgressArgument.ToString(), kind));
-            inProgressArgument.Clear();
-            kind = Kind.Verbatim;
-          }
+          tokenStarted = true;
         } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
-          if (!doubleQuoted) {
-            result.Add(new Token(inProgressArgument.ToString(), kind));
-            inProgressArgument.Clear();
-            kind = Kind.Verbatim;
-          }
+          tokenStarted = true;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          if (inProgressArgument.Length > 0) {
+          if (tokenStarted) {
             result.Add(new Token(inProgressArgument.ToString(), kind));
             inProgressArgument.Clear();
             kind = Kind.Verbatim;
+            tokenStarted = false;
           }
         } else {
           if (c is '?' && inProgressArgument.Length == 1 && inProgressArgument[0] == '-') {
@@ -92,10 +86,11 @@ namespace XUnitExtensions.Lit {
             kind = Kind.MustGlob;
           }
           inProgressArgument.Append(c);
+          tokenStarted = true;
         }
       }
 
-      if (inProgressArgument.Length > 1) {
+      if (tokenStarted) {
         result.Add(new Token(inProgressArgument.ToString(), kind));
       }
 
