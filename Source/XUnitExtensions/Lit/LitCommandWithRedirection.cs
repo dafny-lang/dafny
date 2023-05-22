@@ -88,12 +88,13 @@ namespace XUnitExtensions.Lit {
       var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
       var errorWriter = errorFile == null ? errWriter : errorFile == outputFile ? outputWriter : new StreamWriter(errorFile, append);
       var result = command.Execute(inputReader, outputWriter, errorWriter);
-      if (errorWriter == outputWriter) {
-        errorWriter = null;
-      }
       inputReader?.Close();
-      outputWriter?.Close();
-      errorWriter?.Close();
+      if (errorWriter == outputWriter) {
+        outputWriter?.Close();
+      } else {
+        outputWriter?.Close();
+        errorWriter?.Close();
+      }
       return result;
     }
 
