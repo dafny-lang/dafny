@@ -225,11 +225,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
 
-      if (i >= arguments.Length) {
-        return base.Parse(arguments);
+      try {
+        if (i >= arguments.Length) {
+          return base.Parse(arguments);
+        }
+        MainArgs = arguments.Skip(i + 1).ToList();
+        return base.Parse(arguments.Take(i).ToArray());
+      } catch (Exception e) {
+        ErrorWriter.WriteLine("Invalid filename: " + e.Message);
+        return false;
       }
-      MainArgs = arguments.Skip(i + 1).ToList();
-      return base.Parse(arguments.Take(i).ToArray());
     }
 
     public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
