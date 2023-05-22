@@ -955,10 +955,6 @@ namespace Microsoft.Dafny.Compilers {
         var udt = (UserDefinedType)xType;
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "ulong";
-        }
         if (class_name || xType.IsTypeParameter || xType.IsAbstractType || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
@@ -1086,21 +1082,16 @@ namespace Microsoft.Dafny.Compilers {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          if (cl is ArrayClassDecl) {
-            var arrayClass = (ArrayClassDecl)cl;
-            Type elType = UserDefinedType.ArrayElementType(xType);
-            if (arrayClass.Dims == 1) {
-              return string.Format("DafnyArray<{0}>::Null()", TypeName(elType, wr, tok));
-            } else {
-              throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
-            }
+        if (cl is ArrayClassDecl) {
+          var arrayClass = (ArrayClassDecl)cl;
+          Type elType = UserDefinedType.ArrayElementType(xType);
+          if (arrayClass.Dims == 1) {
+            return string.Format("DafnyArray<{0}>::Null()", TypeName(elType, wr, tok));
           } else {
-            return "nullptr";
+            throw new UnsupportedFeatureException(tok, Feature.MultiDimensionalArrays);
           }
+        } else {
+          return "nullptr";
         }
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
@@ -2106,9 +2097,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0.Type)) {
               opString = "==";
             } else if (e0.Type.IsRefType) {
               opString = "==";
@@ -2119,10 +2108,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-              postOpString = "/* handle */";
-            } else if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0.Type)) {
               opString = "!=";
             } else if (e0.Type.IsRefType) {
               opString = "!=";
