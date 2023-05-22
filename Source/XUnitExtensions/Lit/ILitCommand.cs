@@ -67,12 +67,21 @@ namespace XUnitExtensions.Lit {
       foreach (var c in line) {
         if (c == '\'' && !doubleQuoted) {
           singleQuoted = !singleQuoted;
+          if (!singleQuoted) {
+            result.Add(new Token(inProgressArgument.ToString(), kind));
+            inProgressArgument.Clear();
+            kind = Kind.Verbatim;
+          }
         } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
-        } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          {
+          if (!doubleQuoted) {
             result.Add(new Token(inProgressArgument.ToString(), kind));
-
+            inProgressArgument.Clear();
+            kind = Kind.Verbatim;
+          }
+        } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
+          if (inProgressArgument.Length > 0) {
+            result.Add(new Token(inProgressArgument.ToString(), kind));
             inProgressArgument.Clear();
             kind = Kind.Verbatim;
           }
