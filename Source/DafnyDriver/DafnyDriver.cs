@@ -120,13 +120,20 @@ namespace Microsoft.Dafny {
     private static int ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
       Contract.Requires(cce.NonNullElements(args));
 
-
       var cliArgumentsResult = ProcessCommandLineArguments(outputWriter, errorWriter, inputReader,
         args, out var dafnyOptions, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
 
       switch (cliArgumentsResult) {
         case CommandLineArgumentsResult.OK:
+
+          if (dafnyOptions.RunLanguageServer) {
+#pragma warning disable VSTHRD002
+            LanguageServer.Server.Start(dafnyOptions).Wait();
+#pragma warning restore VSTHRD002
+            return 0;
+          }
+
           var driver = new DafnyDriver(dafnyOptions);
 #pragma warning disable VSTHRD002
           exitValue = driver.ProcessFilesAsync(dafnyFiles, otherFiles.AsReadOnly(), dafnyOptions).Result;
@@ -138,13 +145,6 @@ namespace Microsoft.Dafny {
           return (int)ExitValue.SUCCESS;
         default:
           throw new ArgumentOutOfRangeException();
-      }
-
-      if (dafnyOptions.RunLanguageServer) {
-#pragma warning disable VSTHRD002
-        LanguageServer.Server.Start(dafnyOptions).Wait();
-#pragma warning restore VSTHRD002
-        return 0;
       }
 
       dafnyOptions.XmlSink?.Close();
@@ -242,10 +242,10 @@ namespace Microsoft.Dafny {
       }
 
       if (options.UseStdin) {
-        options.CliRootUris.Add(new Uri("stdin:///"));
-        dafnyFiles.Add(new DafnyFile(options, "<stdin>", true));
-      } else if (options.CliRootUris.Count == 0 && !options.Format) {
-        options.Printer.ErrorWriteLine(Console.Error, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
+        options.CliRootSourceUris.Add(new Uri("stdin:///"));
+        dafnyFiles.Add(new DafnyFile(options, "<stdin>", inputReader));
+      } else if (options.CliRootSourceUris.Count == 0 && !options.Format) {
+        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line " + string.Join("|", args) + ".");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
-      foreach (var file in options.CliRootUris.Where(u => u.IsFile).Select(u => u.LocalPath).
+      foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
                  Concat(SplitOptionValueIntoFiles(options.LibraryFiles))) {
         Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
@@ -391,13 +391,13 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
 
-      if (0 <= options.VerifySnapshots && lookForSnapshots) {
+      if (0 < options.VerifySnapshots && lookForSnapshots) {
         var snapshotsByVersion = ExecutionEngine.LookForSnapshots(dafnyFileNames);
         foreach (var s in snapshotsByVersion) {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             snapshots.Add(new DafnyFile(options, f));
-            options.CliRootUris.Add(new Uri(Path.GetFullPath(f)));
+            options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(f)));
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {

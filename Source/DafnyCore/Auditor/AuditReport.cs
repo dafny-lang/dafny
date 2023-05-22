@@ -190,7 +190,7 @@ public class AuditReport {
           continue;
         }
         foreach (var decl in topLevelDeclWithMembers.Members) {
-          if (decl.tok.WasIncluded(program)) {
+          if (decl.tok.FromIncludeDirective(program)) {
             // Don't audit included code
             continue;
           }

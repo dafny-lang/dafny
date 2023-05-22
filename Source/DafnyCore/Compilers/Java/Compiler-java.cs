@@ -74,9 +74,7 @@ namespace Microsoft.Dafny.Compilers {
     //RootImportWriter writes additional imports to the main file.
     private ConcreteSyntaxTree RootImportWriter;
 
-    private struct Import {
-      public string Name, Path;
-    }
+    private record Import(string Name, string Path);
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
@@ -365,7 +363,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      var import = new Import { Name = moduleName, Path = path };
+      var import = new Import(moduleName, path);
       ModuleName = IdProtect(moduleName);
       ModulePath = path;
       ModuleImport = import;
