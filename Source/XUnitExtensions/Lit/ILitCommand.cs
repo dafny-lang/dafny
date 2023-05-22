@@ -95,7 +95,9 @@ namespace XUnitExtensions.Lit {
         }
       }
 
-      result.Add(new Token(inProgressArgument.ToString(), kind));
+      if (inProgressArgument.Length > 1) {
+        result.Add(new Token(inProgressArgument.ToString(), kind));
+      }
 
       return result.ToArray();
     }
