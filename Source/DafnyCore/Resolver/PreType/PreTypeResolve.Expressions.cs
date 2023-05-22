@@ -464,21 +464,29 @@ namespace Microsoft.Dafny {
           var ancestorDecl = AncestorDecl(toPreType.Decl);
           var familyDeclName = ancestorDecl.Name;
           if (familyDeclName == "int") {
-            AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+              "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "real") {
-            AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+              "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (IsBitvectorName(familyDeclName)) {
-            AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+              "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "char") {
-            AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+              "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (familyDeclName == "ORDINAL") {
-            AddConfirmation("NumericOrBitvectorOrCharOrORDINAL", e.E.PreType, expr.tok, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+            AddConfirmation2("NumericOrBitvectorOrCharOrORDINALOrSuchTrait", e.E.PreType, e.ToType, expr.tok,
+              "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+              "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
           } else if (ancestorDecl is TraitDecl) {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+              "type cast to trait type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
-            AddComparableConstraint(toPreType, e.E.PreType, expr.tok, "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
+            AddComparableConstraint(toPreType, e.E.PreType, expr.tok,
+              "type cast to type '{0}' must be from an expression assignable to it (got '{1}')");
           }
           e.PreType = toPreType;
         } else {

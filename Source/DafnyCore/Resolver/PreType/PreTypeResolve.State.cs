@@ -742,7 +742,21 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(errorFormatString != null);
       confirmations.Add(() => {
-        if (!ConfirmConstraint(check, preType)) {
+        if (!ConfirmConstraint(check, preType, null)) {
+          ReportError(tok, errorFormatString, preType);
+        }
+      });
+    }
+
+    void AddConfirmation2(string check, PreType preType, Type toType, IToken tok, string errorFormatString) {
+      Contract.Requires(check != null);
+      Contract.Requires(preType != null);
+      Contract.Requires(toType is NonProxyType);
+      Contract.Requires(tok != null);
+      Contract.Requires(errorFormatString != null);
+      var toPreType = (DPreType)Type2PreType(toType);
+      confirmations.Add(() => {
+        if (!ConfirmConstraint(check, preType, toPreType)) {
           ReportError(tok, errorFormatString, preType);
         }
       });
@@ -758,7 +772,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool ConfirmConstraint(string check, PreType preType) {
+    private bool ConfirmConstraint(string check, PreType preType, DPreType auxPreType) {
       preType = preType.Normalize();
       if (preType is PreTypeProxy) {
         return false;
@@ -786,10 +800,12 @@ namespace Microsoft.Dafny {
         case "IntLikeOrBitvector":
           return familyDeclName == "int" || IsBitvectorName(familyDeclName);
         case "NumericOrBitvector":
-          return familyDeclName == "int" || familyDeclName == "real" || IsBitvectorName(familyDeclName);
-        case "NumericOrBitvectorOrCharOrORDINAL":
-          return familyDeclName == "int" || familyDeclName == "real" || IsBitvectorName(familyDeclName) || familyDeclName == "char" ||
-                 familyDeclName == "ORDINAL";
+          return familyDeclName is "int" or "real" || IsBitvectorName(familyDeclName);
+        case "NumericOrBitvectorOrCharOrORDINALOrSuchTrait":
+          if (familyDeclName is "int" or "real" or "char" or "ORDINAL" || IsBitvectorName(familyDeclName)) {
+            return true;
+          }
+          return IsSuperPreTypeOf(pt, auxPreType);
         case "BooleanBits":
           return familyDeclName == "bool" || IsBitvectorName(familyDeclName);
         case "IntOrORDINAL":

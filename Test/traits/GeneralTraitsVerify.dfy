@@ -21,7 +21,7 @@ module Tests {
     p := mc;
   }
 
-  method N(p: Parent) {
+  method N0(p: Parent) {
     if
     case true =>
       var x: Class;
@@ -35,13 +35,17 @@ module Tests {
     case true =>
       var x: Abstract;
       x := p as Abstract; // error
-/*    case true =>
+  }
+  
+  method N1(p: Parent) {
+    if
+    case true =>
       var x: MyInt;
       x := p as MyInt; // error
     case true =>
       var x: MyConstrainedInt;
       x := p as MyConstrainedInt; // error
-*/  }
+  }
 
   method P(p: Parent) {
     if
@@ -57,12 +61,35 @@ module Tests {
     case p is Abstract =>
       var x: Abstract;
       x := p as Abstract;
-/*    case p is MyInt =>
+    case p is MyInt =>
       var x: MyInt;
       x := p as MyInt;
     case p is MyConstrainedInt =>
       var x: MyConstrainedInt;
       x := p as MyConstrainedInt;
-*/    case true =>
+    case true =>
+  }
+
+  method Q(c: Class, d: Dt, co: CoDt, a: Abstract, mi: MyInt, mc: MyConstrainedInt) {
+    var c: Class, d: Dt, co: CoDt, a: Abstract, mi: MyInt, mc: MyConstrainedInt := c, d, co, a, mi, mc;
+    var p: Parent;
+
+    p := c;
+    c := p as Class;
+
+    p := d;
+    d := p as Dt;
+
+    p := co;
+    co := p as CoDt;
+
+    p := a;
+    a := p as Abstract;
+
+    p := mi;
+//    mi := p as MyInt;
+
+    p := mc;
+    mc := p as MyConstrainedInt;
   }
 }
