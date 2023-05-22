@@ -347,8 +347,8 @@ public class TypeParameter : TopLevelDecl {
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
     Contract.Requires(d != null);
     TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics(false);
-    if (d is OpaqueTypeDecl) {
-      var dd = (OpaqueTypeDecl)d;
+    if (d is AbstractTypeDecl) {
+      var dd = (AbstractTypeDecl)d;
       characteristics = dd.Characteristics;
     } else if (d is TypeSynonymDecl) {
       var dd = (TypeSynonymDecl)d;
@@ -2077,15 +2077,15 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
-  public override string WhatKind { get { return "opaque type"; } }
+public class AbstractTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
+  public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
 
-  public OpaqueTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
+  public AbstractTypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
