@@ -24,8 +24,7 @@ namespace Microsoft.Dafny {
     //By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
-        Tuple<int, bool> result;
-        if (cached.TryGetValue(other, out result)) {
+        if (cached.TryGetValue(other, out var result)) {
           if (result.Item1 == other.scopeTokens.Count) {
             return result.Item2;
           } else {
