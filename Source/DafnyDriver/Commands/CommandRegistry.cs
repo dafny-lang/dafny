@@ -53,7 +53,7 @@ public static class CommandRegistry {
 
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
-    foreach (var method in typeof(ParseResult).GetMethods()) {
+    foreach (var method in typeof(DfyParseResult).GetMethods()) {
       if (method.Name == "GetValueForOption" && method.GetGenericArguments().Length == 1) {
         GetValueForOptionMethod = method;
       }

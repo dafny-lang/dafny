@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using System.Xml;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -387,7 +388,6 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     return Signature;
   }
   public int Height;
-  public Token RootToken = new Token();
 
   public readonly bool Opened;
 
@@ -849,9 +849,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
-  // TODO move to Program once this list is no longer mutated by parsing.
-  public List<Include> Includes;
-
   [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
   [FilledInDuringResolution] public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new List<Tuple<List<IToken>, LiteralModuleDecl>>();  // filled in by the parser; emptied by the resolver
   [FilledInDuringResolution] public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();
@@ -860,14 +857,24 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
 
-  public int? ResolvedHash { get; set; }
-
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(TopLevelDecls));
     Contract.Invariant(CallGraph != null);
   }
 
+  public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
+    NameNode = name;
+    foreach (var d in original.TopLevelDecls) {
+      TopLevelDecls.Add(cloner.CloneDeclaration(d, this));
+    }
+    foreach (var tup in original.PrefixNamedModules) {
+      var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
+      PrefixNamedModules.Add(newTup);
+    }
+    Height = original.Height;
+  }
+  
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
     ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
@@ -879,9 +886,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.RefinementQId = refinementQId;
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
-    this.Includes = new List<Include>();
     this.IsBuiltinName = isBuiltinName;
+
+    if (Name != "_System") {
+      DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
+      TopLevelDecls.Add(DefaultClass);
+    }
   }
+
+  public DefaultClassDecl DefaultClass { get; set; }
 
   VisibilityScope visibilityScope;
   public VisibilityScope VisibilityScope =>
@@ -1111,7 +1124,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         includes[0].OwnedTokens.Any()) {
       return includes[0].OwnedTokens.First();
     }
-    IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany<TopLevelDecl, IToken>(decl => {
+    IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany(decl => {
       if (decl.StartToken.line > 0) {
         return new List<IToken>() { decl.StartToken };
       } else if (decl is TopLevelDeclWithMembers declWithMembers) {
@@ -1137,8 +1150,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
+
   public override IEnumerable<Node> PreResolveChildren =>
-    Includes.Concat<Node>(Attributes != null ?
+    //Includes.
+    Enumerable.Empty<Node>(). // TODO refactor
+      Concat<Node>(Attributes != null ?
       new List<Node> { Attributes } :
       Enumerable.Empty<Node>()).Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
     (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
@@ -1156,7 +1172,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
 
+  // TODO remove???
+  public List<Include> Includes { get; } = new();
   public IList<Uri> RootSourceUris { get; }
+
+  public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
+    RootSourceUris = original.RootSourceUris;
+  }
+
   public DefaultModuleDefinition(IList<Uri> rootSourceUris)
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true) {
     RootSourceUris = rootSourceUris;
@@ -1274,10 +1297,11 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   public readonly List<MemberDecl> Members;
 
-  public readonly ImmutableList<MemberDecl> MembersBeforeResolution;
+  // TODO remove this and instead clone the AST after parsing.
+  public ImmutableList<MemberDecl> MembersBeforeResolution;
 
   // The following fields keep track of parent traits
-  public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
+  public readonly List<MemberDecl> InheritedMembers = new();  // these are instance members declared in parent traits
   public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
   public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
@@ -1338,15 +1362,21 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     }
   }
 
-  protected TopLevelDeclWithMembers(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits = null)
+  protected TopLevelDeclWithMembers(RangeToken rangeToken, Name name, ModuleDefinition module, 
+    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, 
+    bool isRefining, List<Type>/*?*/ traits = null)
     : base(rangeToken, name, module, typeArgs, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
     Members = members;
-    MembersBeforeResolution = members.ToImmutableList();
     ParentTraits = traits ?? new List<Type>();
+    SetMembersBeforeResolution();
+  }
+
+  public void SetMembersBeforeResolution() {
+    MembersBeforeResolution = Members.ToImmutableList();
   }
 
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {

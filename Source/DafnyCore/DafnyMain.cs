@@ -84,10 +84,10 @@ namespace Microsoft.Dafny {
           Uri = dafnyFile.Uri,
           col = 1,
           line = 0
-        }, new Uri("cli://"), dafnyFile.FilePath) : null;
+        }, new Uri("cli://"), dafnyFile.Uri) : null;
         if (include != null) {
           // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
-          module.ModuleDef.Includes.Add(include);
+          defaultModuleDefinition.Includes.Add(include);
         }
         var err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter));
         if (err != null) {
@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
 
       if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
         DependencyMap dmap = new DependencyMap();
-        dmap.AddIncludes(module.ModuleDef.Includes);
+        dmap.AddIncludes(defaultModuleDefinition.Includes);
         dmap.PrintMap(options);
       }
 
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
 
     public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
       var includesFound = new SortedSet<Include>(new IncludeComparer());
-      var allIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
+      var allIncludes = ((DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef).Includes;
 
       var notCompiledResult = TraverseIncludesFrom(0);
       if (notCompiledResult != null) {
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
 
           DafnyFile file;
           try {
-            file = new DafnyFile(builtIns.Options, include.IncludedFilename);
+            file = new DafnyFile(builtIns.Options, include.IncludedFilename.LocalPath);
           } catch (IllegalDafnyFile) {
             return ($"Include of file \"{include.IncludedFilename}\" failed.");
           }
@@ -205,7 +205,8 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs) {
       var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Parser.Parse(dafnyFile.Content, dafnyFile.Uri, module, builtIns, errs);
+        var parseResult = ParseUtils.Parse(dafnyFile.Content, dafnyFile.Uri, builtIns, errs);
+        var errorCount = parseResult.ErrorCount;
         if (errorCount != 0) {
           return $"{errorCount} parse errors detected in {fn}";
         }

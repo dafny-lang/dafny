@@ -30,23 +30,11 @@ namespace Microsoft.Dafny {
     }
 
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
-      ModuleDefinition nw;
       if (m is DefaultModuleDefinition defaultModuleDefinition) {
-        nw = new DefaultModuleDefinition(defaultModuleDefinition.RootSourceUris);
-      } else {
-        nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
-          m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
-          true);
+        return new DefaultModuleDefinition(this, defaultModuleDefinition);
       }
-      foreach (var d in m.TopLevelDecls) {
-        nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
-      }
-      foreach (var tup in m.PrefixNamedModules) {
-        var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)CloneDeclaration(tup.Item2, nw));
-        nw.PrefixNamedModules.Add(newTup);
-      }
-      nw.Height = m.Height;
-      return nw;
+
+      return new ModuleDefinition(this, m, name);
     }
 
     public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {

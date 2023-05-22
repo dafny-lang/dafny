@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       if (tok.FromIncludeDirective(OuterModule) && OuterModule != null) {
-        var include = OuterModule.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
+        var include = OuterModule.Includes.First(i => i.IncludedFilename == tok.Uri);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
           include.ErrorReported = true;

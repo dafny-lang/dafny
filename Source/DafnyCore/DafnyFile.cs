@@ -16,6 +16,8 @@ public class DafnyFile {
   public bool IsPrecompiled { get; set; }
   public TextReader Content { get; }
   public Uri Uri { get; }
+  
+  // TODO take a Uri instead of a filePath
   public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) {
     UseStdin = contentOverride != null;
     Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);

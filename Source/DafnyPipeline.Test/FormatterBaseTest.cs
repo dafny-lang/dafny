@@ -59,7 +59,7 @@ namespace DafnyPipeline.Test {
         var module = new LiteralModuleDecl(outerModule, null);
         Microsoft.Dafny.Type.ResetScopes();
         BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programNotIndented, uri, module, builtIns, reporter);
+        ParseUtils.Parse(programNotIndented, uri, module, builtIns, reporter);
         var dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
         if (reporter.ErrorCount > 0) {
@@ -98,7 +98,7 @@ namespace DafnyPipeline.Test {
         module = new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>() { uri }), null);
         Microsoft.Dafny.Type.ResetScopes();
         builtIns = new BuiltIns(options);
-        Parser.Parse(reprinted, uri, module, builtIns, reporter);
+        ParseUtils.Parse(reprinted, uri, module, builtIns, reporter);
         dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
         var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
