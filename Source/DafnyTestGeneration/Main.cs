@@ -145,7 +145,7 @@ namespace DafnyTestGeneration {
       }
       if (Utils.AttributeFinder.ProgramHasAttribute(program,
             TestGenerationOptions.TestInlineAttribute)) {
-        options.VerifyAllModules = true;
+        options.VerificationScope = VerificationScope.RootSourcesAndIncludes;
         program = Utils.Parse(options, source, true, uri);
         if (program == null) {
           yield break;

@@ -10,6 +10,7 @@ public class MeasureComplexityCommand : ICommandSpec {
   public IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
+    CommonOptionBag.VerificationScope,
   }.Concat(ICommandSpec.VerificationOptions).
     Concat(ICommandSpec.ResolverOptions);
 
