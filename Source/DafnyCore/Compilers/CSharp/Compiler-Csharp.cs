@@ -47,15 +47,15 @@ namespace Microsoft.Dafny.Compilers {
     const string TypeDescriptorMethodName = "_TypeDescriptor";
 
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
-      if (tp is OpaqueTypeDecl) {
-        // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
+      Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
+      if (tp is AbstractTypeDecl) {
+        // This is unusual. Typically, the compiler never needs to compile an abstract type, but this abstract type
         // is apparently an :extern (or a compiler error has already been reported and we're just trying to get to
         // the end of compilation without crashing). It's difficult to say what the compiler could do in this situation, since
-        // it doesn't know how to generate code that produces a legal value of the opaque type. If we don't do
+        // it doesn't know how to generate code that produces a legal value of the abstract type. If we don't do
         // anything different from the common case (the "else" branch below), then the code emitted will not
         // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
-        // will only work when the opaque type is in the same module and has no type parameters.
+        // will only work when the abstract type is in the same module and has no type parameters.
         return $"default({tp.EnclosingModuleDefinition.GetCompileName(Options) + "." + tp.GetCompileName(Options)})";
       } else {
         // this is the common case
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
