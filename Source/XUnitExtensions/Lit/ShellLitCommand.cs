@@ -113,14 +113,10 @@ namespace XUnitExtensions.Lit {
       // FIXME the code below will deadlock if process fills the stderr buffer.
       string output = process.StandardOutput.ReadToEnd();
       outputWriter?.Write(output);
+      outputWriter?.Close();
       string error = process.StandardError.ReadToEnd();
       errorWriter?.Write(error);
-      if (outputWriter == errorWriter) {
-        outputWriter?.Close();
-      } else {
-        outputWriter?.Close();
-        errorWriter?.Close();
-      }
+      errorWriter?.Close();
       process.WaitForExit();
 
       return (process.ExitCode, output, error);
