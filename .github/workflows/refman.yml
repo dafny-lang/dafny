@@ -43,6 +43,7 @@ jobs:
       uses: xu-cheng/texlive-action/full@v1
     - name: install pandoc
       run: |
+      if: runner.os == 'Linux'
         #sudo apt-get install texlive texlive-xetex
         wget https://github.com/jgm/pandoc/releases/download/3.0.1/pandoc-3.0.1-1-amd64.deb
         sudo dpkg -i *.deb
