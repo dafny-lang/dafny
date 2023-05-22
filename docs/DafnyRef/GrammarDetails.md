@@ -214,7 +214,7 @@ TopDecl(isTopLevel, isAbstract) =
   | ClassDecl
   | DatatypeDecl
   | NewtypeDecl
-  | SynonymTypeDecl  // includes opaque types
+  | SynonymTypeDecl  // includes abstract types
   | IteratorDecl
   | TraitDecl
   | ClassMemberDecl(allowConstructors: false, isValueType: true, moduleLevelDecl: true)

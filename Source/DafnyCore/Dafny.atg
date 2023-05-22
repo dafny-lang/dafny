@@ -124,9 +124,16 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
+bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
+  if (attr.val == "ignore") {
+    errors.Warning(
+      attr,
+      $"attribute :{attr.val} is deprecated");
+    return false;
+  }
+  return true;
 }
 
 bool IsAssumeTypeKeyword(IToken la) {
@@ -393,19 +400,19 @@ bool IsExpliesOp() => IsExpliesOp(la);
 bool IsAndOp() => IsAndOp(la);
 bool IsOrOp() => IsOrOp(la);
 static bool IsEquivOp(IToken la) {
-  return la.val == "<==>" || la.val == "\u21d4";
+  return la.val == "<==>";
 }
 static bool IsImpliesOp(IToken la) {
-  return la.val == "==>" || la.val == "\u21d2";
+  return la.val == "==>";
 }
 static bool IsExpliesOp(IToken la) {
-  return la.val == "<==" || la.val == "\u21d0";
+  return la.val == "<==";
 }
 static bool IsAndOp(IToken la) {
-  return la.val == "&&" || la.val == "\u2227";
+  return la.val == "&&";
 }
 static bool IsOrOp(IToken la) {
-  return la.val == "||" || la.val == "\u2228";
+  return la.val == "||";
 }
 bool IsBitwiseAndOp() {
   return la.val == "&";
@@ -431,10 +438,7 @@ bool IsRelOp() {
       || la.val == "!="
       || la.val == "in"
       || la.kind == _notIn
-      || la.val =="!"
-      || la.val == "\u2260"
-      || la.val == "\u2264"
-      || la.val == "\u2265";
+      || la.val == "!";
 }
 bool IsShiftOp() {
   if (la.kind == _openAngleBracket) {
@@ -456,7 +460,7 @@ bool IsMulOp() {
   return la.kind == _star || la.val == "/" || la.val == "%";
 }
 bool IsQSep() {
-  return la.kind == _doublecolon || la.kind == _bullet;
+  return la.kind == _doublecolon;
 }
 
 bool IsNonFinalColon() {
@@ -605,7 +609,6 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _case:
     case _eq:
     case _neq:
-    case _neqAlt:
     case _as:
     case _is:
     case _darrow:
@@ -893,7 +896,6 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  bullet = '\u2022'. // •
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -958,7 +960,6 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
-  neqAlt = '\u2260'. // ≠
   star = '*'.
   at = '@'.
   notIn = "!in" CONTEXT (nonidchar).
@@ -1587,7 +1588,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Type ty = null;
      Expression constraint;
      Expression witness = null;
-     var kind = "opaque type";
+     var kind = "abstract type";
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
@@ -1628,10 +1629,10 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   ]
   (. if (td == null) {
        if (module is DefaultModuleDefinition) {
-         // opaque type declarations at the very outermost program scope get an automatic (!new)
+         // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new OpaqueTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)
@@ -3874,9 +3875,6 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
   | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
   | ">="           (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
   | "!="           (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2260'       (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
   | EquivOp        (. x = t;  binOp = BinaryExpr.Opcode.Iff; .)
   | ImpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Imp; .)
   | ExpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Exp; .)
@@ -3896,16 +3894,16 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
  * these operators, both in Is...() methods (defined above) and as grammar non-terminals (defined
  * here).  These pairs of definitions must be changed together.
  */
-EquivOp = "<==>" | '\u21d4'.
-ImpliesOp = "==>" | '\u21d2'.
-ExpliesOp = "<==" | '\u21d0'.
-AndOp = "&&" | '\u2227'.
-OrOp = "||" | '\u2228'.
+EquivOp = "<==>".
+ImpliesOp = "==>".
+ExpliesOp = "<==".
+AndOp = "&&".
+OrOp = "||".
 
-NegOp = "!" | '\u00ac'.
-Forall = "forall" | '\u2200'.
-Exists = "exists" | '\u2203'.
-QSep = "::" | '\u2022'.
+NegOp = "!".
+Forall = "forall".
+Exists = "exists".
+QSep = "::".
 
 /* The "allowLemma" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
@@ -4165,10 +4163,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
                         op = BinaryExpr.Opcode.Disjoint;
                       }
                    .)
-  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
-  )
+   )
   .
 
 /*------------------------------------------------------------------------*/
@@ -5195,9 +5190,10 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
+     var rtok = new RangeToken(openBrace, t);
+     if (!CheckAttribute(errors, x, rtok)) return;
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken);
+     attrs.RangeToken = rtok;
   .)
   .
 

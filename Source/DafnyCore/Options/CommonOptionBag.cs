@@ -156,8 +156,8 @@ true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
-  public static readonly Option<VerificationScope> VerificationScope = new("--verify-scope", () => Dafny.VerificationScope.RootSourcesAndIncludes,
-    "Controls what is verified. 'Root files' will only verify files that are passed to the command line or specified in the project files includes property. 'Include directives' will also verify files referenced by include directives. 'Libraries' will verify everything, including files specified with --library and .doo files.");
+  public static readonly Option<VerificationScope> VerificationScope = new("--verify-scope", () => Dafny.VerificationScope.RootSources,
+    "Controls what is verified. 'RootSources' will only verify files that are passed to the command line or specified in the project file's 'includes' property. 'RootSourcesAndIncludes' will also verify files referenced by include directives. 'Everything' will verify everything, including files specified with --library and .doo files.");
 
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {

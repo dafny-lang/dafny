@@ -760,7 +760,7 @@ abstract module M2 refines M1 {
   }
 }
 
-// Finally, this module defines any remaining opaque types and function bodies and proves any
+// Finally, this module defines any remaining abstract types and function bodies and proves any
 // remaining lemmas about these.  The actual definitions are not so interesting and are not meant
 // to suggest that a deployed CloudMake use these definitions.  Rather, these definitions are here
 // only to establish mathematical feasibility of previously axiomatized properties.
