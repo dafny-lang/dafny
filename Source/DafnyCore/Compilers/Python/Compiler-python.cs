@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
+      Contract.Requires(tp is TypeParameter or AbstractTypeDecl);
       return $"default_{tp.GetCompileName(Options)}";
     }
     protected override string StmtTerminator { get => ""; }
@@ -730,7 +730,7 @@ namespace Microsoft.Dafny.Compilers {
                   ? $"{TypeDescriptor(udt, wr, tok)}()"
                   : $"{FormatDefaultTypeParameterValue(tp)}()";
 
-              case OpaqueTypeDecl opaque:
+              case AbstractTypeDecl opaque:
                 return FormatDefaultTypeParameterValue(opaque);
 
               case ClassDecl:

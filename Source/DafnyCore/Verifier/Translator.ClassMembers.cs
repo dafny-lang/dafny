@@ -296,8 +296,7 @@ namespace Microsoft.Dafny {
         var ac = (ArrayClassDecl)c;
         var ixs = new List<Bpl.Expr>();
         for (int i = 0; i < ac.Dims; i++) {
-          Bpl.Expr e;
-          Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out e);
+          Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out var e);
           ixs.Add(e);
           bvsTypeAxiom.Add(v);
           bvsAllocationAxiom.Add(v);
@@ -446,8 +445,7 @@ namespace Microsoft.Dafny {
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
       if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
-        Boogie.Expr h;
-        var hVar = BplBoundVar("$h", predef.HeapType, out h);
+        var hVar = BplBoundVar("$h", predef.HeapType, out var h);
         bvsAllocationAxiom.Add(hVar);
         var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
         var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
@@ -588,8 +586,7 @@ namespace Microsoft.Dafny {
               };
               receiverSubst = ie;
             } else {
-              IdentifierExpr ie;
-              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out var ie);
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
@@ -997,7 +994,7 @@ namespace Microsoft.Dafny {
       }
       var typeMap = GetTypeArgumentSubstitutionMap(overriddenMember, member);
       foreach (var tp in Util.Concat(overriddenMember.EnclosingClass.TypeArgs, overriddenTypeParameters)) {
-        var local = BplLocalVar(nameTypeParam(tp), predef.Ty, out var lhs);
+        var local = BplLocalVar(NameTypeParam(tp), predef.Ty, out var lhs);
         localVariables.Add(local);
         var rhs = TypeToTy(typeMap[tp]);
         builder.Add(new Boogie.AssumeCmd(tp.tok, Boogie.Expr.Eq(lhs, rhs)));
@@ -1432,8 +1429,7 @@ namespace Microsoft.Dafny {
         etran = ordinaryEtran;
       }
 
-      List<Variable> outParams;
-      GenerateMethodParameters(m.tok, m, kind, etran, inParams, out outParams);
+      GenerateMethodParameters(m.tok, m, kind, etran, inParams, out var outParams);
 
       var req = new List<Boogie.Requires>();
       var mod = new List<Boogie.IdentifierExpr>();

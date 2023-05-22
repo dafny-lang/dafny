@@ -130,8 +130,7 @@ namespace Microsoft.Dafny {
     public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl> // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
-        ISet<TopLevelDecl> s;
-        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out s);
+        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out var s);
         return t ?? new AmbiguousTopLevelDecl(m, AmbiguousThingHelper<TopLevelDecl>.Name(s, tld => tld.Name), s);
       }
 
@@ -1744,7 +1743,7 @@ namespace Microsoft.Dafny {
           // nothing to do
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
-        } else if (d is NewtypeDecl || d is OpaqueTypeDecl) {
+        } else if (d is NewtypeDecl || d is AbstractTypeDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
@@ -3034,10 +3033,8 @@ namespace Microsoft.Dafny {
               }
             }
 
-            Expression recursiveCallReceiver;
-            List<Expression> recursiveCallArgs;
             Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
-              substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
             methodSel.TypeApplication_AtEnclosingClass =
@@ -4572,7 +4569,7 @@ namespace Microsoft.Dafny {
           return false;
         }
         var cl = (actual.Normalize() as UserDefinedType)?.ResolvedClass;
-        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as OpaqueTypeDecl;
+        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
         if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
           whatIsWrong = "auto-initialization";
           hint = tp == null ? "" :
@@ -4599,7 +4596,7 @@ namespace Microsoft.Dafny {
       string TypeEqualityErrorMessageHint(Type argType) {
         Contract.Requires(argType != null);
         var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
-        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as OpaqueTypeDecl;
+        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
         if (tp != null) {
           return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
         }
@@ -5418,7 +5415,7 @@ namespace Microsoft.Dafny {
         // treat a type parameter like a ground type
         typeParametersUsed.Add((TypeParameter)cl);
         return true;
-      } else if (cl is OpaqueTypeDecl) {
+      } else if (cl is AbstractTypeDecl) {
         // an opaque is like a ground type
         return true;
       } else if (cl is InternalTypeSynonymDecl) {

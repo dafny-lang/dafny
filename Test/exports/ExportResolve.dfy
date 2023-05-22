@@ -100,7 +100,7 @@ module NamesThatDontExist {
 }
 
 module ConsistencyErrors {
-  // Providing a type exports the type name as an opaque type, along with any
+  // Providing a type exports the type name as an abstract type, along with any
   // type characteristics, type parameters, and the variance of the type parameters.
   // In the case of a class C, only type C can be provided, not C? (but both can be revealed).
   // Export a type does not automatically export datatype constructors, discriminators, or
