@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -44,16 +43,6 @@ public class LibraryBackend : ExecutableBackend {
   }
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-    if (Options.VerificationScope == VerificationScope.RootSources) {
-      Reporter.Error(MessageSource.Compiler, dafnyProgram.Tok, $"The '{TargetId}' target can not be used together with the option --verify-scope=RootSources because that can lead to a not fully verified .doo file.");
-      return;
-    }
-
-    if (!Options.Verify) {
-      Reporter.Error(MessageSource.Compiler, dafnyProgram.Tok, $"The '{TargetId}' target can not be used together with the option `{BoogieOptionBag.NoVerify.Name}` because the contents of .doo files must be verified.");
-      return;
-    }
-
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetFirstTopLevelToken(), Feature.LegacyCLI);
     }

@@ -47,13 +47,6 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Update="..\..\Test\cli\verificationScope\dooTarget.dfy">
-          <Link>TestFiles\LitTests\LitTest\cli\verificationScope\dooTarget.dfy</Link>
-        </Content>
-        <Content Update="..\..\Test\cli\verificationScope\dooTarget.dfy.expect">
-          <LinkBase>TestFiles/LitTests/LitTest/</LinkBase>
-          <Link>TestFiles\LitTests\LitTest\cli\verificationScope\dooTarget.dfy.expect</Link>
-        </Content>
     </ItemGroup>
     
 </Project>

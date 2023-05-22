@@ -25,10 +25,6 @@ public static class ShouldCompileOrVerify {
   }
 
   public static bool ShouldVerify(this INode declaration, Program program) {
-    if (program.Options.VerificationScope == VerificationScope.Everything) {
-      return true;
-    }
-
     if (declaration.Tok == Token.NoToken) {
       // Required for DefaultModuleDefinition.
       return true;
@@ -40,7 +36,7 @@ public static class ShouldCompileOrVerify {
       return false;
     }
 
-    if (program.Options.VerificationScope == VerificationScope.RootSourcesAndIncludes) {
+    if (program.Options.VerifyAllModules) {
       return true;
     }
 
