@@ -273,10 +273,6 @@ namespace Microsoft.Dafny {
 
         bool isDafnyFile = false;
         try {
-          if (file == "") {
-            options.Printer.ErrorWriteLine(Console.Error, "*** Error: files or directories on the command-line may not be empty strings");
-            continue;
-          }
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
             df.IsPreverified = true;
