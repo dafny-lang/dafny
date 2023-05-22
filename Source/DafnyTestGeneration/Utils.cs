@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -79,10 +80,10 @@ namespace DafnyTestGeneration {
       var module = new LiteralModuleDecl(defaultModuleDefinition, null);
       var builtIns = new BuiltIns(options);
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-      var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
+      var success = Parser.Parse(new MemoryStream(Encoding.UTF8.GetBytes(source)), uri, module, builtIns,
+        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter);
+      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
       if (!resolve) {
         return program;

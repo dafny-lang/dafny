@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -36,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return new DafnyLangParser(options, logger);
     }
 
-    public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Dafny.Program CreateUnparsed(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       try {
         return NewDafnyProgram(document, errorReporter);
@@ -46,12 +47,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
       var program = NewDafnyProgram(document, errorReporter);
       try {
         var parseErrors = Parser.Parse(
-          document.Text,
+          document.Content,
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
           document.Uri.ToUri(),
           program.DefaultModule,
@@ -92,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         new LiteralModuleDecl(errorReporter.OuterModule, null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(errorReporter.Options),
-        errorReporter
+        errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
       );
     }
 
@@ -114,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
       var resolvedIncludes = new SortedSet<Include>();
-      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString(), false));
+      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString()));
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
@@ -140,13 +141,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
-          (TextReader)null!,
+          dafnyFile.Content,
           dafnyFile.Uri,
           module,
           builtIns,
-          errors,
-          verifyThisFile: false,
-          compileThisFile: false
+          errors
         );
         if (errorCount != 0) {
           return false;

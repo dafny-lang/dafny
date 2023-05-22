@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Text;
 using DafnyCore;
 
 namespace Microsoft.Dafny;
@@ -14,8 +15,73 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public string SourceFilePath { get; private set; }
-  public Uri Uri { get; private set; }
+  public Stream Content { get; }
+  public Uri Uri { get; }
+  public DafnyFile(DafnyOptions options, string filePath, Stream contentOverride = null) {
+    UseStdin = contentOverride != null;
+    Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
+    BaseName = contentOverride != null ? "<stdin>" : Path.GetFileName(filePath);
+
+    var extension = contentOverride != null ? ".dfy" : Path.GetExtension(filePath);
+    if (extension != null) { extension = extension.ToLower(); }
+
+    // Normalizing symbolic links appears to be not
+    // supported in .Net APIs, because it is very difficult in general
+    // So we will just use the absolute path, lowercased for all file systems.
+    // cf. IncludeComparer.CompareTo
+    CanonicalPath = contentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
+    filePath = CanonicalPath;
+
+    if (contentOverride != null) {
+      IsPreverified = false;
+      IsPrecompiled = false;
+      Content = contentOverride;
+    } else if (extension == ".dfy" || extension == ".dfyi") {
+      IsPreverified = false;
+      IsPrecompiled = false;
+      if (!File.Exists(filePath)) {
+        if (0 < options.VerifySnapshots) {
+          // For snapshots, we first create broken DafnyFile without content,
+          // then look for the real files and create DafnuFiles for them.
+          // TODO prevent creating the broken DafnyFiles for snapshots
+          return;
+        }
+
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
+        throw new IllegalDafnyFile(true);
+      } else {
+        Content = new StreamReader(filePath).BaseStream;
+      }
+    } else if (extension == ".doo") {
+      IsPreverified = true;
+      IsPrecompiled = false;
+
+      var dooFile = DooFile.Read(filePath);
+
+      var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+      if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
+        throw new IllegalDafnyFile(true);
+      }
+
+      // For now it's simpler to let the rest of the pipeline parse the
+      // program text back into the AST representation.
+      // At some point we'll likely want to serialize a program
+      // more efficiently inside a .doo file, at which point
+      // the DooFile class should encapsulate the serialization logic better
+      // and expose a Program instead of the program text.
+      Content = new MemoryStream(Encoding.ASCII.GetBytes(dooFile.ProgramText));
+    } else if (extension == ".dll") {
+      IsPreverified = true;
+      // Technically only for C#, this is for backwards compatability
+      IsPrecompiled = true;
+
+      var sourceText = GetDafnySourceAttributeText(filePath);
+      if (sourceText == null) { throw new IllegalDafnyFile(); }
+      Content = new MemoryStream(Encoding.ASCII.GetBytes(sourceText));
+    } else {
+      throw new IllegalDafnyFile();
+    }
+  }
 
   // Returns a canonical string for the given file path, namely one which is the same
   // for all paths to a given file and different otherwise. The best we can do is to
@@ -51,61 +117,6 @@ public class DafnyFile {
       sourceFiles.Add(f.FilePath);
     }
     return sourceFiles;
-  }
-  public DafnyFile(DafnyOptions options, string filePath, bool useStdin = false) {
-    UseStdin = useStdin;
-    Uri = useStdin ? new Uri("stdin:///") : new Uri(filePath);
-    BaseName = useStdin ? "<stdin>" : Path.GetFileName(filePath);
-
-    var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
-    if (extension != null) { extension = extension.ToLower(); }
-
-    // Normalizing symbolic links appears to be not
-    // supported in .Net APIs, because it is very difficult in general
-    // So we will just use the absolute path, lowercased for all file systems.
-    // cf. IncludeComparer.CompareTo
-    CanonicalPath = !useStdin ? Canonicalize(filePath).LocalPath : "<stdin>";
-    filePath = CanonicalPath;
-
-    if (extension == ".dfy" || extension == ".dfyi") {
-      IsPreverified = false;
-      IsPrecompiled = false;
-      SourceFilePath = filePath;
-    } else if (extension == ".doo") {
-      IsPreverified = true;
-      IsPrecompiled = false;
-
-      var dooFile = DooFile.Read(filePath);
-
-      var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
-      if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
-        throw new IllegalDafnyFile(true);
-      }
-
-      // For now it's simpler to let the rest of the pipeline parse the
-      // program text back into the AST representation.
-      // At some point we'll likely want to serialize a program
-      // more efficiently inside a .doo file, at which point
-      // the DooFile class should encapsulate the serialization logic better
-      // and expose a Program instead of the program text.
-      SourceFilePath = Path.GetTempFileName();
-      Uri = new Uri(SourceFilePath);
-      File.WriteAllText(SourceFilePath, dooFile.ProgramText);
-
-    } else if (extension == ".dll") {
-      IsPreverified = true;
-      // Technically only for C#, this is for backwards compatability
-      IsPrecompiled = true;
-
-      var sourceText = GetDafnySourceAttributeText(filePath);
-      if (sourceText == null) { throw new IllegalDafnyFile(); }
-      SourceFilePath = Path.GetTempFileName();
-      Uri = new Uri(SourceFilePath);
-      File.WriteAllText(SourceFilePath, sourceText);
-
-    } else {
-      throw new IllegalDafnyFile();
-    }
   }
 
   private static string GetDafnySourceAttributeText(string dllPath) {

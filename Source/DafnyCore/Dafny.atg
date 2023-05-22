@@ -28,8 +28,6 @@ readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
-readonly bool theVerifyThisFile;
-readonly bool theCompileThisFile;
 DafnyOptions theOptions;
 int anonymousIds = 0;
 
@@ -142,51 +140,42 @@ bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
 
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (TextReader fileReaderOverride, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse(Stream reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
-  string s;
-  if (fileReaderOverride != null) {
-    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(fileReaderOverride, new List<string>(), Environment.NewLine);
-    return Parse(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
-  } else {
-    var newline = SourcePreprocessor.GetNewlineStyle(uri.LocalPath);
-    using (System.IO.StreamReader reader = new System.IO.StreamReader(uri.LocalPath)) {
-      s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
-      return Parse(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
-    }
-  }
+  var memoryStream = new MemoryStream();
+  
+  var _ = SourcePreprocessor.ProcessDirectives(reader, memoryStream, new List<string>());
+  return Parse(memoryStream, uri, module, builtIns, errors);
 }
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true, bool compileThisFile=true) {
-  Contract.Requires(s != null);
+public static int Parse(Stream/*!*/ stream, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter) {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
+  return Parse(stream, uri, module, builtIns, errors);
 }
 
-public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Contract.Requires(s != null);
+public static Parser SetupParser(Stream/*!*/ stream, Uri/*!*/ uri, ModuleDecl module,
+                                 BuiltIns builtIns, Errors/*!*/ errors) {
   Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-  byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
-  MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
   if((module.RootToken.Filepath ?? "") == "") { // This is the first module
     module.RootToken.Uri = uri;
@@ -194,19 +183,8 @@ public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
   } else {
     firstToken = new Token(); // It's an included file
   }
-  Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-  return new Parser(scanner, errors, module, builtIns, verifyThisFile, compileThisFile);
-}
-
-public static Expression ParseExpression(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
+  Scanner scanner = new Scanner(stream, errors, uri, firstToken: firstToken);
+  return new Parser(scanner, errors, module, builtIns);
 }
 
 public void ApplyOptionsFromAttributes(Attributes attrs) {
@@ -247,20 +225,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-///<summary>
-/// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "module".
-/// Returns the number of parsing errors encountered.
-/// Note: first initialize the Scanner with the given Errors sink.
-///</summary>
-public static int Parse (string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors, verifyThisFile, compileThisFile);
-  parser.Parse();
-  return parser.errors.ErrorCount;
-}
-
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -272,8 +237,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
   theModule = module;
   theBuiltIns = builtIns;
-  theVerifyThisFile = verifyThisFile;
-  theCompileThisFile = compileThisFile;
   theOptions = new DafnyOptions(builtIns.Options);
 }
 
@@ -1031,7 +994,7 @@ Dafny
                                    string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
+                                 var oneInclude = new Include(t, parsedFile, includedFile);
                                  oneInclude.RangeToken = new RangeToken(startToken, t);
                                  defaultModule.Includes.Add(oneInclude);
                                }
@@ -1136,7 +1099,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false, theVerifyThisFile, theCompileThisFile);
+                                        false);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
