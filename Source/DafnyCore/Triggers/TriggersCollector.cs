@@ -188,8 +188,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private TriggerAnnotation Annotate(Expression expr) {
-      TriggerAnnotation cached;
-      if (cache.annotations.TryGetValue(expr, out cached)) {
+      if (cache.annotations.TryGetValue(expr, out var cached)) {
         return cached;
       }
 
@@ -359,8 +358,7 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      HashSet<OldExpr> oldExprSet;
-      if (cache.exprsInOldContext.TryGetValue(expr, out oldExprSet)) {
+      if (cache.exprsInOldContext.TryGetValue(expr, out var oldExprSet)) {
         // oldExpr has been set to the value found
       } else {
         oldExprSet = null;
