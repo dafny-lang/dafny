@@ -133,6 +133,8 @@ public class Compilation {
       throw new TaskCanceledException();
     }
 
+    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
+
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
 

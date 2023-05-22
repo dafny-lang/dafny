@@ -709,13 +709,9 @@ namespace Microsoft.Dafny.Compilers {
           return "String";
         }
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return boxed ? "java.lang.Long" : "long";
-        } else if (cl is TupleTypeDecl tupleDecl) {
+        if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.NonGhostDims);
         }
-
         // When accessing a static member, leave off the type arguments
         if (member != null) {
           return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok, erased);
@@ -2437,10 +2433,6 @@ namespace Microsoft.Dafny.Compilers {
         var s = FullTypeName(udt, null, true);
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return $"{DafnyTypeDescriptor}.LONG";
-        }
 
         if (cl.IsExtern(Options, out _, out _)) {
           var td = $"{DafnyTypeDescriptor}.<{BoxedTypeName(type, wr, tok)}> findType({s}.class";
@@ -2688,9 +2680,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               opString = "== (Object) ";
             } else if (IsDirectlyComparable(eqType)) {
               opString = "==";
@@ -2701,9 +2691,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               opString = "!= (Object) ";
             } else if (IsDirectlyComparable(eqType)) {
               opString = "!=";
@@ -3073,7 +3061,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return FormatDefaultTypeParameterValue(tp);
         }
-      } else if (cl is OpaqueTypeDecl opaque) {
+      } else if (cl is AbstractTypeDecl opaque) {
         return FormatDefaultTypeParameterValueName(opaque.GetCompileName(Options));
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -3130,12 +3118,7 @@ namespace Microsoft.Dafny.Compilers {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
-        }
+        return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
       } else if (cl is DatatypeDecl dt) {
         if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
           var typeSubstMap = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
