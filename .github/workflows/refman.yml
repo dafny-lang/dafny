@@ -42,10 +42,9 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/checkout@v2
       uses: xu-cheng/texlive-action/full@v1
-        with:
-          run: |
-            apk add make
-            make
+      run: |
+        apk add make
+        make
     - name: install pandoc
       run: |
         #sudo apt-get install texlive texlive-xetex
