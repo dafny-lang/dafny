@@ -22,8 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest ]
-        # os: [macos-latest, ubuntu-latest ]
+        # os: [ macos-latest ]
+        os: [macos-latest, ubuntu-latest ]
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -42,14 +42,14 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install texlive texlive-xetex
-        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb
+        wget https://github.com/jgm/pandoc/releases/download/3.0.1/pandoc-3.0.1-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
       # apt-get has pandoc, but it is outdated
     - name: Extra linux packages
       if: matrix.os == 'ubuntu-latest'
       run: |
-        sudo apt-get install texlive-science
+        sudo apt-get install texlive-science texlive-xetex
         sudo tlmgr init-usertree
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
