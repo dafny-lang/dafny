@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
       var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
-        // ClassDecl, DatatypeDecl, OpaqueTypeDecl, NewtypeDecl 
+        // ClassDecl, DatatypeDecl, AbstractTypeDecl, NewtypeDecl 
         if (tdm.Members.Any(memberDecl => Traverse(memberDecl, "Members", tdm))) {
           return true;
         }

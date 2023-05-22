@@ -1319,7 +1319,7 @@ additional forms for the `{:extern}` attribute.
 
 The form `{:extern <s1>}` instructs `dafny` to compile references to most
 declarations using the name `s1` instead of the Dafny name. For [opaque
-types](#sec-opaque-types), however, `s1` is sometimes used as a hint as
+types](#sec-abstract-types), however, `s1` is sometimes used as a hint as
 to how to declare that type when compiling. This hint is interpreted
 differently by each compiler.
 
@@ -1373,7 +1373,7 @@ would in turn need to be changed to `charseq.UnicodeFromString` to
 return the correct type.
 
 Most declarations, including those for modules, classes, traits, member
-variables, constructors, methods, function methods, and opaque types,
+variables, constructors, methods, function methods, and abstract types,
 can be marked with `{:extern}`.
 
 Marking a module with `{:extern}` indicates that the declarations
