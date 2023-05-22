@@ -458,7 +458,7 @@ namespace Microsoft.Dafny {
                     Boogie.Expr obj = TrExpr(e.Obj);
                     Boogie.Expr result;
                     if (field.IsMutable) {
-                      result = translator.ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)), field.Type);
+                      result = translator.ReadHeap(GetToken(expr), HeapExpr, obj, new Boogie.IdentifierExpr(GetToken(expr), translator.GetField(field)));
                       return translator.CondApplyUnbox(GetToken(expr), result, field.Type, expr.Type);
                     } else {
                       result = new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(translator.GetReadonlyField(field)),
@@ -524,7 +524,7 @@ namespace Microsoft.Dafny {
                 Boogie.Expr x;
                 if (seqType.IsArrayType) {
                   Boogie.Expr fieldName = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.IndexField, null, e0);
-                  x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName, null);
+                  x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Seq), fieldName);
                 } else if (seqType is SeqType) {
                   x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.SeqIndex, predef.BoxType, seq, e0);
                 } else if (seqType is MapType) {
@@ -592,12 +592,10 @@ namespace Microsoft.Dafny {
               Boogie.Type elType = translator.TrType(elmtType);
 
               Boogie.Expr fieldName = GetArrayIndexFieldName(GetToken(selectExpr), e.Indices);
-              Boogie.Expr x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName, elmtType);
-              /*
+              Boogie.Expr x = translator.ReadHeap(GetToken(selectExpr), HeapExpr, TrExpr(e.Array), fieldName);
               if (!ModeledAsBoxType(elmtType)) {
                 x = translator.FunctionCall(GetToken(selectExpr), BuiltinFunction.Unbox, elType, x);
               }
-              */
               return x;
             }
           case ApplyExpr applyExpr: {

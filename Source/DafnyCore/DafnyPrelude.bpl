@@ -169,9 +169,7 @@ const $ArbitraryBoxValue: Box;
 function $Box<T>(T): Box uses {
   axiom (forall<T> x : T :: { $Box(x) } $Unbox($Box(x)) == x);
 }
-function $Unbox<T>(Box): T uses {
-  axiom (forall<T> x : Box :: { $Unbox(x) : T } $Box($Unbox(x) : T) == x);
-}
+function $Unbox<T>(Box): T;
 
 // Corresponding entries for boxes...
 // This could probably be solved by having Box also inhabit Ty
@@ -547,8 +545,8 @@ function $IsGhostField<T>(Field T): bool uses {
    axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
       $HeapSuccGhost(h,k) ==>
         $HeapSucc(h,k) &&
-        (forall<alpha> o: ref, f: Field alpha :: { read(k, o, f) }
-          !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
+        (forall<alpha> o: ref, f: Field alpha :: { readUnbox(k, o, f) }
+          !$IsGhostField(f) ==> readUnbox(h, o, f) == readUnbox(k, o, f)));
 }
 
 // ---------------------------------------------------------------
@@ -593,7 +591,9 @@ function {:inline} _System.real.Floor(x: real): int { Int(x) }
 // ---------------------------------------------------------------
 type Heap = [ref]<alpha>[Field alpha]Box;
 function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): Box { H[r][f] }
+function {:inline} readUnbox<alpha>(H: Heap, r: ref, f: Field alpha) : alpha { $Unbox(read(H, r, f)) }
 function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:Box): Heap { H[r := H[r][f := v]] }
+function {:inline} updateBox<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := $Box(v)]] }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
@@ -607,13 +607,13 @@ const $OneHeap: Heap uses {
 }
 
 function $HeapSucc(Heap, Heap): bool;
-axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: Box :: { update(h, r, f, x) }
-  $IsGoodHeap(update(h, r, f, x)) ==>
-  $HeapSucc(h, update(h, r, f, x)));
+axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { updateBox(h, r, f, x) }
+  $IsGoodHeap(updateBox(h, r, f, x)) ==>
+  $HeapSucc(h, updateBox(h, r, f, x)));
 axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
-  $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } $Unbox(read(h, o, alloc)) ==> $Unbox(read(k, o, alloc))));
+  $HeapSucc(h,k) ==> (forall o: ref :: { readUnbox(k, o, alloc) } readUnbox(h, o, alloc) ==> readUnbox(k, o, alloc)));
 
 function $HeapSuccGhost(Heap, Heap): bool;
 
@@ -624,35 +624,35 @@ function $HeapSuccGhost(Heap, Heap): bool;
 // havoc everything in $Heap, except {this}+rds+nw
 procedure $YieldHavoc(this: ref, rds: Set Box, nw: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
-            $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { readUnbox($Heap, $o, $f) }
+            $o != null && readUnbox(old($Heap), $o, alloc) ==>
             $o == this || rds[$Box($o)] || nw[$Box($o)] ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+              readUnbox($Heap, $o, $f) == readUnbox(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc everything in $Heap, except rds-modi-{this}
 procedure $IterHavoc0(this: ref, rds: Set Box, modi: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
-            $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { readUnbox($Heap, $o, $f) }
+            $o != null && readUnbox(old($Heap), $o, alloc) ==>
             rds[$Box($o)] && !modi[$Box($o)] && $o != this ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f));
+              readUnbox($Heap, $o, $f) == readUnbox(old($Heap), $o, $f));
   ensures $HeapSucc(old($Heap), $Heap);
 
 // havoc $Heap at {this}+modi+nw
 procedure $IterHavoc1(this: ref, modi: Set Box, nw: Set Box);
   modifies $Heap;
-  ensures (forall<alpha> $o: ref, $f: Field alpha :: { read($Heap, $o, $f) }
-            $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
-              read($Heap, $o, $f) == read(old($Heap), $o, $f) ||
+  ensures (forall<alpha> $o: ref, $f: Field alpha :: { readUnbox($Heap, $o, $f) }
+            $o != null && readUnbox(old($Heap), $o, alloc) ==>
+              readUnbox($Heap, $o, $f) == readUnbox(old($Heap), $o, $f) ||
               $o == this || modi[$Box($o)] || nw[$Box($o)]);
   ensures $HeapSucc(old($Heap), $Heap);
 
 procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: Field (Set Box))
                         returns (s: Set Box);
   ensures (forall bx: Box :: { s[bx] } s[bx] <==>
-              ($Unbox(read(newHeap, this, NW)) : Set Box)[bx] ||
-              ($Unbox(bx) != null && !$Unbox(read(prevHeap, $Unbox(bx):ref, alloc)) && $Unbox(read(newHeap, $Unbox(bx):ref, alloc))));
+              (readUnbox(newHeap, this, NW) : Set Box)[bx] ||
+              ($Unbox(bx) != null && !readUnbox(prevHeap, $Unbox(bx):ref, alloc) && readUnbox(newHeap, $Unbox(bx):ref, alloc)));
 
 // ---------------------------------------------------------------
 // -- Axiomatizations --------------------------------------------
@@ -1118,12 +1118,12 @@ axiom (forall h: Heap, a: ref ::
     // it's important to include both triggers, so that assertions about the
     // the relation between the array and the sequence can be proved in either
     // direction
-    { read(h, a, IndexField(i)) }
+    { readUnbox(h, a, IndexField(i)) }
     { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
     0 <= i &&
     i < Seq#Length(Seq#FromArray(h, a))  // this will trigger the previous axiom to get a connection with _System.array.Length(a)
     ==>
-    Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
+    Seq#Index(Seq#FromArray(h, a), i) == readUnbox(h, a, IndexField(i))));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
   $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) && h0[a] == h1[a]
@@ -1131,7 +1131,7 @@ axiom (forall h0, h1: Heap, a: ref ::
   Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: Heap, i: int, v: Box, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
-    0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
+    0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(updateBox(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
 
 // Commutability of Take and Drop with Update.
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
@@ -1149,7 +1149,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: Heap, a: ref, n0, n1: int ::
         { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
-        n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field Box)) );
+        n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), readUnbox(h, a, IndexField(n0): Field Box)) );
 // drop commutes with build.
 axiom (forall<T> s: Seq T, v: T, n: int ::
         { Seq#Drop(Seq#Build(s, v), n) }

@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
           rhs.ResolvedOp = BinaryExpr.ResolvedOpcode.Concat;
           rhs.Type = ys.Type;  // resolve here
           var cmd = Bpl.Cmd.SimpleAssign(s.Tok, etran.HeapCastToIdentifierExpr,
-            UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs), ys.Type));
+            UpdateHeap(s.Tok, etran.HeapExpr, etran.TrExpr(th), new Bpl.IdentifierExpr(s.Tok, GetField(ys)), etran.TrExpr(rhs)));
           builder.Add(cmd);
         }
         // yieldCount := yieldCount + 1;  assume yieldCount == |ys|;
@@ -1325,7 +1325,7 @@ namespace Microsoft.Dafny {
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
 
       Type lhsType = lhs is MemberSelectExpr ? ((MemberSelectExpr)lhs).Type : null;
-      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field, lhsType);
+      var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
       g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
 
@@ -2118,7 +2118,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>() { updatedSetIE });
       builder.Add(cmd);
       // $Heap[this, _new] := $iter_newUpdate;
-      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE, iter.Member_New.Type));
+      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
       builder.Add(cmd);
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));
