@@ -384,7 +384,7 @@ module N1 refines N0 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ...  {
+  class {:autocontracts} C ... {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -486,7 +486,7 @@ module N2 refines N1 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ...  {
+  class {:autocontracts} C ... {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)

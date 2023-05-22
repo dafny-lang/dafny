@@ -620,7 +620,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
       if (iter.IsRefining) {
-        wr.Write(" ... ");
+        wr.Write(" ...");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -666,7 +666,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       if (c.IsRefining) {
-        wr.Write(" ... ");
+        wr.Write(" ...");
       } else {
         PrintExtendsClause(c);
       }
