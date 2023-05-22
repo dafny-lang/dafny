@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 LhsDuplicates.dfy(21,9): Error: left-hand sides for different forall-statement bound variables might refer to the same location
 LhsDuplicates.dfy(36,11): Error: left-hand sides for different forall-statement bound variables might refer to the same location
 LhsDuplicates.dfy(42,5): Error: left-hand sides a and a refer to the same location

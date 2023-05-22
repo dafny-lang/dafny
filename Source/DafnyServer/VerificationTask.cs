@@ -45,30 +45,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest(ExecutionEngine engine) {
+    internal static void SelfTest(DafnyOptions options, ExecutionEngine engine) {
       var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
-        task.Run(engine);
+        task.Run(options, engine);
         Interaction.EOM(Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
         Interaction.EOM(Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).Verify();
+    internal void Run(DafnyOptions options, ExecutionEngine engine) {
+      new DafnyHelper(options, engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).Symbols();
+    internal void Symbols(DafnyOptions options, ExecutionEngine engine) {
+      new DafnyHelper(options, engine, args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).CounterExample();
+    public void CounterExample(DafnyOptions options, ExecutionEngine engine) {
+      new DafnyHelper(options, engine, args, filename, ProgramSource).CounterExample();
     }
 
-    public void DotGraph(ExecutionEngine engine) {
-      new DafnyHelper(engine, args, filename, ProgramSource).DotGraph();
+    public void DotGraph(DafnyOptions options, ExecutionEngine engine) {
+      new DafnyHelper(options, engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

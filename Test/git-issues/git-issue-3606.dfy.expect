@@ -1,0 +1,3 @@
+git-issue-3606.dfy(9,8): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'c' (of type 'C') may contain references (see documentation for 'older' parameters)
+git-issue-3606.dfy(13,8): Error: a set comprehension involved in a function definition (implicitly by using a function in a reads clause) is not allowed to depend on the set of allocated references, but values of '_x0' (of type 'C') may contain references (see documentation for 'older' parameters)
+2 resolution/type errors detected in git-issue-3606.dfy

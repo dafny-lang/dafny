@@ -1,36 +1,36 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate ContainsNothingBut5(s: set<int>)
+ghost predicate ContainsNothingBut5(s: set<int>)
 {
   forall q :: q in s ==> q == 5
 }
 
-predicate YeahContains5(s: set<int>)
+ghost predicate YeahContains5(s: set<int>)
 {
   exists q :: q in s && q == 5
 }
 
-predicate ViaSetComprehension(s: set<int>) {
+ghost predicate ViaSetComprehension(s: set<int>) {
   |set q | q in s && q == 5| != 0
 }
 
-predicate LambdaTest(s: set<int>) {
+ghost predicate LambdaTest(s: set<int>) {
   (q => q in s)(5)
 }
 
-predicate ViaMapComprehension(s: set<int>) {
+ghost predicate ViaMapComprehension(s: set<int>) {
   |(map q | q in s && q == 5 :: true).Keys| != 0
 }
 
-predicate Contains5(s: set<int>)
+ghost predicate Contains5(s: set<int>)
 {
   var q := 5; q in s
 }
 
 datatype R = MakeR(int) | Other
 
-predicate RIs5(r: R) {
+ghost predicate RIs5(r: R) {
   match r case MakeR(q) => q == 5 case Other => false
 }
 

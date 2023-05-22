@@ -1,9 +1,9 @@
-// RUN: %dafny_0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 3 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
 
-    predicate P()
+    ghost predicate P()
 
     class C
     {

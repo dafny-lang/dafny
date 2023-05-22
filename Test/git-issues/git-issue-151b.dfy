@@ -1,17 +1,17 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
   method m() {}
   method p() {}
-  function f(): int { 0 }
-  function g(): int { 0 }
+  ghost function f(): int { 0 }
+  ghost function g(): int { 0 }
 }
 
 module B {
   method m() {}
-  function f(): int { 0 }
-  function g(): int { 0 }
+  ghost function f(): int { 0 }
+  ghost function g(): int { 0 }
 }
 
 module C {
@@ -19,11 +19,11 @@ module C {
   import opened B
 
   method p() {}
-  function g(): int { 0 }
+  ghost function g(): int { 0 }
 
   method Bam() { m(); } // Ambiguous
   method Bay() { p(); } // OK
-  function Baa(): int { f() } // Ambiguous
-  function Bag(): int { g() } // OK
+  ghost function Baa(): int { f() } // Ambiguous
+  ghost function Bag(): int { g() } // OK
 }
 

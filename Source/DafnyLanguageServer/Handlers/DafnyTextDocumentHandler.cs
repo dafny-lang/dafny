@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.OpenDocument(DocumentTextBuffer.From(notification.TextDocument));
+        documents.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received change notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         documents.UpdateDocument(notification);
       } catch (Exception e) {
@@ -106,7 +106,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         notificationPublisher.HideDiagnostics(documentId);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
-        logger.LogError(e, "error while closing the document");
       }
 
     }

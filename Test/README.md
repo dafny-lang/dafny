@@ -10,20 +10,39 @@ The xUnit LIT test interpreter is run through xUnit `Theory` parameterized tests
 hooks into the general-purpose `dotnet test` command:
 
 ```
-dotnet test -v:n Source/IntegrationTests
+dotnet test --logger "console;verbosity=normal" Source/IntegrationTests
 ```
 
-`-v:n` is optional, and increases the default logging verbosity so that you can see individual tests as the pass.
+`-logger "console;verbosity=normal"` is optional, and increases the default logging verbosity so that you can see individual tests as the pass.
 
 The file path of each test file, relative to the `Test` directory, is used as the display name of its corresponding test.
 This means you can use the `--filter` option to run a subset of tests, or even a single file:
 
 ```
-dotnet test -v:n Source/IntegrationTests --filter DisplayName~comp/Hello.dfy
+dotnet test --logger "console;verbosity=normal" Source/IntegrationTests --filter DisplayName~comp/Hello.dfy
 ```
 
 [See here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test) for more information about
 the `dotnet test` command and other supported options.
+
+## Writing tests
+
+Lit tests use a very restricted form of command-line: executables and their arguments, piping,
+`>` and `>>` redirections (for respectively writing and appending stdout to a file) 
+and `2>` and `2>>` redirections (for respectively writing and appending both stdout and stderr to a file).
+
+To work cross-platform, use a number of macros: %verify, %resolve, %build, %run, %translate (with %trargs),
+%exits-with, %diff, %sed and others you can find defined in lit.site.cfg
+
+`Any new macros defined here must also be defied in Source/IntegrationTetss/LitTests.cs`
+
+A typical simple test for a single source file that has verification errors is
+```
+// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+```
+
+There are many examples in the .dfy files under this directory.
 
 ## Executing Tests from JetBrains Rider
 

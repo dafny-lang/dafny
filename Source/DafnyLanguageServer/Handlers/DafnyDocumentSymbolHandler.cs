@@ -30,14 +30,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
+    public override async Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
       var document = await documents.GetResolvedDocumentAsync(request.TextDocument);
       if (document == null) {
         logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return EmptySymbols;
       }
-      var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
-      var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)
+      var visitor = new LspSymbolGeneratingVisitor(document.SignatureAndCompletionTable, cancellationToken);
+      var symbols = visitor.Visit(document.SignatureAndCompletionTable.CompilationUnit)
         .Select(symbol => new SymbolInformationOrDocumentSymbol(symbol))
         .ToArray();
       return symbols;

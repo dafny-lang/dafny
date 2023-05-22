@@ -13,7 +13,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function length(xs: List): nat
+ghost function length(xs: List): nat
 {
   match xs
   case Nil => 0
@@ -21,28 +21,28 @@ function length(xs: List): nat
 }
 
 // returns xs-backwards followed-by acc
-function method reverse(xs: List, acc: List): List
+function reverse(xs: List, acc: List): List
 {
   match xs
   case Nil => acc
   case Cons(a, ys) => reverse(ys, Cons(a, acc))
 }
 
-function multiset_of<T>(xs: List<T>): multiset<T>
+ghost function multiset_of<T>(xs: List<T>): multiset<T>
 {
   match xs
   case Nil => multiset{}
   case Cons(a, ys) => multiset{a} + multiset_of(ys)
 }
 
-function MultisetUnion<T>(xs: List<List<T>>): multiset<T>
+ghost function MultisetUnion<T>(xs: List<List<T>>): multiset<T>
 {
   match xs
   case Nil => multiset{}
   case Cons(a, ys) => multiset_of(a) + MultisetUnion(ys)
 }
 
-function append(xs: List, ys: List): List
+ghost function append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
@@ -59,7 +59,7 @@ lemma append_Nil(xs: List)
 {
 }
 
-function flatten(x: List<List>): List
+ghost function flatten(x: List<List>): List
 {
   match x
   case Nil => Nil
@@ -70,19 +70,19 @@ function flatten(x: List<List>): List
 
 // Everything is parametric in G and key
 type G
-function method key(g: G): int
+function key(g: G): int
 
-predicate method Below(a: G, b: G)
+predicate Below(a: G, b: G)
 {
   key(a) <= key(b)
 }
 
-function method sort(xs: List<G>): List<G>
+function sort(xs: List<G>): List<G>
 {
   mergeAll(sequences(xs))
 }
 
-function method sequences(xs: List<G>): List<List<G>>
+function sequences(xs: List<G>): List<List<G>>
   ensures sequences(xs) != Nil
   decreases xs, 0
 {
@@ -94,7 +94,7 @@ function method sequences(xs: List<G>): List<List<G>>
     case Cons(b, zs) => if !Below(a, b) then descending(b, Cons(a, Nil), zs) else ascending(b, Cons(a, Nil), zs)
 }
 
-function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+function descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
   ensures descending(a, xs, ys) != Nil
   decreases ys
 {
@@ -104,7 +104,7 @@ function method descending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(Cons(a, xs), sequences(ys))
 }
 
-function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
+function ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
   ensures ascending(a, xs, ys) != Nil
   decreases ys
 {
@@ -114,7 +114,7 @@ function method ascending(a: G, xs: List<G>, ys: List<G>): List<List<G>>
     Cons(reverse(Cons(a, xs), Nil), sequences(ys))
 }
 
-function method mergeAll(x: List<List<G>>): List<G>
+function mergeAll(x: List<List<G>>): List<G>
   requires x != Nil
   decreases length(x)
 {
@@ -124,7 +124,7 @@ function method mergeAll(x: List<List<G>>): List<G>
     mergeAll(mergePairs(x))
 }
 
-function method mergePairs(x: List<List<G>>): List<List<G>>
+function mergePairs(x: List<List<G>>): List<List<G>>
   ensures length(mergePairs(x)) <= length(x)
   ensures x.Cons? && x.tail.Cons? ==> length(mergePairs(x)) < length(x)
   ensures x != Nil ==> mergePairs(x) != Nil
@@ -135,7 +135,7 @@ function method mergePairs(x: List<List<G>>): List<List<G>>
     x
 }
 
-function method merge(xs: List<G>, ys: List<G>): List<G>
+function merge(xs: List<G>, ys: List<G>): List<G>
 {
   match xs
   case Nil => ys
@@ -148,7 +148,7 @@ function method merge(xs: List<G>, ys: List<G>): List<G>
 
 // the specification
 
-predicate sorted(xs: List<G>)
+ghost predicate sorted(xs: List<G>)
 {
   match xs
   case Nil => true
@@ -157,14 +157,14 @@ predicate sorted(xs: List<G>)
     sorted(ys)
 }
 
-function filter(g: G, xs: List<G>): List<G>
+ghost function filter(g: G, xs: List<G>): List<G>
 {
   match xs
   case Nil => Nil
   case Cons(b, ys) => if key(g) == key(b) then Cons(b, filter(g, ys)) else filter(g, ys)
 }
 
-predicate stable(xs: List<G>, ys: List<G>)
+ghost predicate stable(xs: List<G>, ys: List<G>)
 {
   forall g :: filter(g, xs) == filter(g, ys)  // I dropped the unnecessary antecedent "g in multiset_of(xs)" from the paper
 }
@@ -312,7 +312,7 @@ lemma sorted_sort(xs: List<G>)
   sorted_mergeAll(sequences(xs));
 }
 
-predicate AllSorted(x: List<List<G>>)
+ghost predicate AllSorted(x: List<List<G>>)
 {
   match x
   case Nil => true

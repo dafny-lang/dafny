@@ -1,15 +1,15 @@
-// RUN: %dafny_0 /compile:0 /induction:0 "%s" > "%t"
-// RUN: %dafny_0 /compile:0 /induction:1 "%s" >> "%t"
-// RUN: %dafny_0 /compile:0 /induction:2 "%s" >> "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /induction:0 "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify %args --manual-lemma-induction "%s" >> "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /induction:2 "%s" >> "%t"
 // RUN: %dafny /compile:0 /induction:3 "%s" >> "%t"
-// RUN: %dafny_0 /compile:0 /induction:4 "%s" >> "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /induction:4 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests the various /induction options
 
 datatype List = Nil | Cons(int, List)
 
-function Append(xs: List, ys: List): List
+ghost function Append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys

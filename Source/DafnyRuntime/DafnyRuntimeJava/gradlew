@@ -169,4 +169,4 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
   cd "$(dirname "$0")"
 fi
 
-exec "$JAVACMD" "$@"
+for i in 1 2 3 4 5; do "$JAVACMD" "$@" && break || sleep 15; done

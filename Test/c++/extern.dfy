@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" ExternDefs.h > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" ExternDefs.h > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
@@ -44,7 +44,7 @@ module TestMod {
   method TestClass(e:ExternClass) {
     var x := e.my_method0(0);
     var y := e.my_method1(1);
-    print x,y;
+    print x, y, "\n";
   }
 
   method TestExternClass2() {

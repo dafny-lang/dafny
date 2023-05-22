@@ -1,0 +1,2 @@
+ERROR_PostconditionLemma.dfy(4,15): Error: this symbol not expected in Dafny
+1 parse errors detected in ERROR_PostconditionLemma.dfy

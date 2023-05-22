@@ -1,14 +1,14 @@
 RefinementErrors.dfy(30,17): Error: a refining method is not allowed to add preconditions
 RefinementErrors.dfy(31,15): Error: a refining method is not allowed to extend the modifies clause
-RefinementErrors.dfy(34,14): Error: a predicate declaration (abc) can only refine a predicate
+RefinementErrors.dfy(34,20): Error: a predicate declaration (abc) can only refine a predicate
 RefinementErrors.dfy(35,8): Error: a field re-declaration (xyz) must be to ghostify the field
-RefinementErrors.dfy(37,13): Error: a compiled function cannot be changed into a ghost function in a refining module: F
+RefinementErrors.dfy(37,19): Error: a compiled function cannot be changed into a ghost function in a refining module: F
 RefinementErrors.dfy(38,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
 RefinementErrors.dfy(38,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')
 RefinementErrors.dfy(38,13): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'C', found 'B')
 RefinementErrors.dfy(39,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
 RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
-RefinementErrors.dfy(57,20): Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: G
+RefinementErrors.dfy(57,13): Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: G
 RefinementErrors.dfy(94,10): Error: refinement method cannot assign to a field defined in parent module ('a')
 RefinementErrors.dfy(114,7): Error: opaque type 'T' is declared with a different number of type parameters (3 instead of 2) than the corresponding opaque type in the module it refines
 RefinementErrors.dfy(121,11): Error: type parameter 'B' is not allowed to change the requirement of supporting auto-initialization

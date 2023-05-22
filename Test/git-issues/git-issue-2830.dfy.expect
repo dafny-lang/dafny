@@ -1,0 +1,3 @@
+git-issue-2830.dfy(6,9): Error: the phrase 'function method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'
+git-issue-2830.dfy(13,10): Error: the phrase 'predicate method' is not allowed when using --function-syntax:4; to declare a compiled predicate, use just 'predicate'
+2 parse errors detected in git-issue-2830.dfy

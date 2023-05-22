@@ -21,11 +21,11 @@ class Queue<T> {
     requires 0 < |contents|;
     modifies this;
     ensures contents == old(contents)[1..] && x == old(contents)[0];
-  function Head(): T
+  ghost function Head(): T
     requires 0 < |contents|;
     reads this;
   { contents[0] }
-  function Get(i: int): T
+  ghost function Get(i: int): T
     requires 0 <= i < |contents|;
     reads this;
   { contents[i] }
@@ -36,7 +36,7 @@ class Stream {
   var stream:seq<int>;
   var isOpen:bool;
 
-  function Valid():bool
+  ghost function Valid():bool
     reads this, footprint;
   {
     this in footprint && isOpen

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 type T {
-  predicate P(t: T)
-  predicate Q()
+  ghost predicate P(t: T)
+  ghost predicate Q()
     requires P(this)  // once got the bogus "type mismatch for argument (function expects T, got T)"
 }

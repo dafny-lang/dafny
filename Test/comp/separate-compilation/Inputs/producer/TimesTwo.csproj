@@ -2,12 +2,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
         <Reference Include="DafnyRuntime">
-            <HintPath>..\..\..\..\..\Binaries\DafnyRuntime.dll</HintPath>
             <HintPath>..\..\..\..\..\..\..\DafnyRuntime.dll</HintPath>
         </Reference>
     </ItemGroup>

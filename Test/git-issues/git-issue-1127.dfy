@@ -1,9 +1,9 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // -----
 
-function method Func<T(00)>(): int {
+function Func<T(00)>(): int {
   5
 }
 
@@ -17,7 +17,7 @@ method Test()
 
 // -----
 
-function GetInhabitant<T(0)>(): T {
+ghost function GetInhabitant<T(0)>(): T {
   var x: T :| true; x
 }
 

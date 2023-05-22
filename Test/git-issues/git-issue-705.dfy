@@ -6,7 +6,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype MyDataType = AAA {
- function method toString(): int { 222 }
+ function toString(): int { 222 }
 }
 
 method Main() {

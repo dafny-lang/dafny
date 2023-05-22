@@ -5,7 +5,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-predicate sorted(l: List<int>)
+ghost predicate sorted(l: List<int>)
 {
   match l
   case Nil => true
@@ -31,7 +31,7 @@ lemma sorted_inv(z: int, l: List<int>)
 }
 
 // Number of occurrences of z in l
-function nb_occ(z: int, l: List<int>): nat
+ghost function nb_occ(z: int, l: List<int>): nat
 {
   match l
   case Nil => 0
@@ -50,7 +50,7 @@ lemma example_nb_occ_1()
 }
 
 // list l' is a permutation of list l
-predicate equiv(l: List<int>, l': List<int>)
+ghost predicate equiv(l: List<int>, l': List<int>)
 {
   forall z :: nb_occ(z, l) == nb_occ(z, l')
 }
@@ -95,7 +95,7 @@ lemma equiv_perm(a: int, b: int, l: List<int>, l': List<int>)
 }
 
 // insertion of z into l at the right place (assuming l is sorted)
-function method aux(z: int, l: List<int>): List<int>
+function aux(z: int, l: List<int>): List<int>
 {
   match l
   case Nil => Cons(z, Nil)
@@ -139,7 +139,7 @@ lemma aux_sorted(l: List<int>, x: int)
 }
 
 // the sorting function
-function sort(l: List<int>): List<int>
+ghost function sort(l: List<int>): List<int>
   ensures var l' := sort(l); equiv(l, l') && sorted(l');
 {
   existence_proof(l);
@@ -167,7 +167,7 @@ lemma existence_proof(l: List<int>)
 }
 
 // to get a compilable function in Dafny
-function method Sort(l: List<int>): List<int>
+function Sort(l: List<int>): List<int>
   ensures equiv(l, Sort(l)) && sorted(Sort(l));
 {
   match l
@@ -180,14 +180,14 @@ function method Sort(l: List<int>): List<int>
     aux(x, m')
 }
 
-predicate p_aux_equiv(l: List<int>, x: int)
+ghost predicate p_aux_equiv(l: List<int>, x: int)
   ensures equiv(Cons(x, l), aux(x, l));
 {
   aux_equiv(l, x);
   true
 }
 
-predicate p_aux_sorted(l: List<int>, x: int)
+ghost predicate p_aux_sorted(l: List<int>, x: int)
   requires sorted(l);
   ensures sorted(aux(x, l));
 {

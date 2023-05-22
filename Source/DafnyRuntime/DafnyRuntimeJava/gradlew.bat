@@ -65,8 +65,15 @@ set CMD_LINE_ARGS=%*
 
 set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
-@rem Execute Gradle
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%
+@rem Execute Gradle, trying at least 5 times
+for %%i in (1 2 3 4 5) do (
+  "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%
+  if errorlevel 1 (
+    sleep 15
+  ) else (
+    goto end
+  )
+)
 
 :end
 @rem End local scope for the variables with windows NT shell

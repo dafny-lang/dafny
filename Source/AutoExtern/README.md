@@ -41,6 +41,20 @@ The tool takes six arguments:
   and classes are supported, and within those only fields and properties are
   exported.
 
+Additionally, the tool supports two optional flags:
+
+- `--rewrite A:B`, which may be repeated, indicates that the prefix `A` should
+be rewritten to `B` when translating names. This is useful when the template
+imports other modules, or when a model combines manually and automatically
+translated elements.  The [tutorial](../AutoExtern.Test/Tutorial/README.md) uses
+this flag.
+
+- `--skip-interface A.B.C`, which may be repeated, indicates that references to
+interface `A.B.C` should be omitted from `extends` lists in the generated Dafny
+file.  This is useful when the inheritance structure of a C# class hierarchy
+cannot be faithfully represented in Dafny (for example, Dafny does not allow a
+trait to transitively inherit from `ICloneable<T>` and `ICloneable<Q>`).
+
 ## Example
 
 This example is from [`../AutoExtern.Test/Minimal`](../AutoExtern.Test/Minimal/)

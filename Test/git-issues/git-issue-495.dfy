@@ -1,9 +1,9 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Dt = Make(d: int)
 
-function method GetNat(dt: Dt): nat {
+function GetNat(dt: Dt): nat {
   match dt
   // regression: the following declaration of y was once missing the subet-constraint check
   case Make(y: nat) => y  // error: dt.d is not a nat
@@ -16,7 +16,7 @@ method GetNatMethod(dt: Dt) returns (n: nat) {
     n := w;
 }
 
-function method Works(dt: Dt): nat {
+function Works(dt: Dt): nat {
   dt.d  // error: dt.d is not a nat
 }
 

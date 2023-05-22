@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function Transform(x:int) : int
+ghost function Transform(x:int) : int
 
 lemma TransformProperties()
     ensures forall x1, x2 {:trigger Transform(x1), Transform(x2)} :: Transform(x1) == Transform(x2) ==> x1 == x2;
 
-function {:opaque} Looper(input:seq<int>) : seq<int>
+ghost function {:opaque} Looper(input:seq<int>) : seq<int>
     ensures |Looper(input)| == |input|;
     ensures forall i :: 0 <= i < |input| ==> Looper(input)[i] == Transform(input[i])
 {

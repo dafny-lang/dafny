@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0  "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
@@ -64,7 +64,7 @@ method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
   case Nil =>
     xxs := Cons(Nil, Nil);  // bugx here is now fixed
   case Cons(h, t) =>
-  case Cons(h, Cons(ht, tt)) =>    // ERROR: redundant
+  case Cons(h, Cons(ht, tt)) =>
 }
 
 method DuplicateIdentifierInPattern0<T>(xs: List<T>)

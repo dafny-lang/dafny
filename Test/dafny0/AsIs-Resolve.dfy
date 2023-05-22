@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Types {
@@ -221,7 +221,7 @@ module IsTests {
     b := g is real --> nat; // error: LHS not assignable to type
   }
 
-  function method From(x: int): Stream<int> {
+  function From(x: int): Stream<int> {
     More(x, From(x + 1))
   }
 

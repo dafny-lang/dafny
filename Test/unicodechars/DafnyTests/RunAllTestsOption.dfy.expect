@@ -1,0 +1,72 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+TestModule.Passing1: PASSED
+Passing1: PASSED
+Passing2: PASSED
+Failing1: FAILED
+	RunAllTestsOption.dfy(21,2): expectation violation
+Passing3: PASSED
+Failing2: FAILED
+	RunAllTestsOption.dfy(29,2): expectation violation
+FailingReturnValue: FAILED
+	VoidOutcome.VoidFailure("Whoopsie")
+[Program halted] RunAllTestsOption.dfy(8,0): Test failures occurred: see above.
+
+
+Dafny program verifier did not attempt verification
+TestModule.Passing1: PASSED
+Passing1: PASSED
+Passing2: PASSED
+Failing1: FAILED
+	RunAllTestsOption.dfy(21,2): expectation violation
+Passing3: PASSED
+Failing2: FAILED
+	RunAllTestsOption.dfy(29,2): expectation violation
+FailingReturnValue: FAILED
+	VoidOutcome.VoidFailure("Whoopsie")
+[Program halted] RunAllTestsOption.dfy(8,0): Test failures occurred: see above.
+
+
+Dafny program verifier did not attempt verification
+TestModule.Passing1: PASSED
+Passing1: PASSED
+Passing2: PASSED
+Failing1: FAILED
+	RunAllTestsOption.dfy(21,2): expectation violation
+Passing3: PASSED
+Failing2: FAILED
+	RunAllTestsOption.dfy(29,2): expectation violation
+FailingReturnValue: FAILED
+	VoidOutcome.VoidFailure("Whoopsie")
+[Program halted] RunAllTestsOption.dfy(8,0): Test failures occurred: see above.
+
+
+Dafny program verifier did not attempt verification
+TestModule.Passing1: PASSED
+Passing1: PASSED
+Passing2: PASSED
+Failing1: FAILED
+	RunAllTestsOption.dfy(21,2): expectation violation
+Passing3: PASSED
+Failing2: FAILED
+	RunAllTestsOption.dfy(29,2): expectation violation
+FailingReturnValue: FAILED
+	VoidOutcome.VoidFailure("Whoopsie")
+[Program halted] RunAllTestsOption.dfy(8,0): Test failures occurred: see above.
+
+
+Dafny program verifier did not attempt verification
+TestModule.Passing1: PASSED
+Passing1: PASSED
+Passing2: PASSED
+Failing1: FAILED
+	RunAllTestsOption.dfy(21,2): expectation violation
+Passing3: PASSED
+Failing2: FAILED
+	RunAllTestsOption.dfy(29,2): expectation violation
+FailingReturnValue: FAILED
+	VoidOutcome.VoidFailure("Whoopsie")
+[Program halted] RunAllTestsOption.dfy(8,0): Test failures occurred: see above.
+

@@ -9,14 +9,14 @@
 // The property IsRelaxedPrefix is defined in terms of an auxiliary function.  The
 // auxiliary function allows a given number (here, 1) of elements to be dropped from
 // the pattern.
-predicate IsRelaxedPrefix<T>(pat: seq<T>, a: seq<T>)
+ghost predicate IsRelaxedPrefix<T>(pat: seq<T>, a: seq<T>)
 {
   IsRelaxedPrefixAux(pat, a, 1)
 }
 
 // This predicate returns whether or not "pat", dropping up to "slack" elements, is
 // a prefix of "a".
-predicate IsRelaxedPrefixAux<T>(pat: seq<T>, a: seq<T>, slack: nat)
+ghost predicate IsRelaxedPrefixAux<T>(pat: seq<T>, a: seq<T>, slack: nat)
 {
   // if "pat" is the empty sequence, the property holds trivially, regardless of the slack
   if pat == [] then true
@@ -73,7 +73,7 @@ method Main()
 
 // Here is an alternative definition of IsRelaxedPrefix.  Perhaps this definition more obviously
 // follows the English description of "relaxed prefix" given in the problem statement.
-predicate IRP_Alt<T>(pat: seq<T>, a: seq<T>)
+ghost predicate IRP_Alt<T>(pat: seq<T>, a: seq<T>)
 {
   // "pat" is a relaxed prefix of "a"
   // if "pat" is an actual prefix of "a"

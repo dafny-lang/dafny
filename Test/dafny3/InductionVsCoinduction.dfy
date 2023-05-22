@@ -13,7 +13,7 @@ codatatype Stream<T> = SNil | SCons(head: T, tail: Stream<T>)
   when the SCons is destructed (if ever).
 */
 
-function Up(n: int): Stream<int>
+ghost function Up(n: int): Stream<int>
 {
   SCons(n, Up(n+1))
 }
@@ -27,7 +27,7 @@ function Up(n: int): Stream<int>
   decrease the specific variant function.
  */
 
-function FivesUp(n: int): Stream<int>
+ghost function FivesUp(n: int): Stream<int>
   decreases 4 - (n-1) % 5;
 {
   if n % 5 == 0 then SCons(n, FivesUp(n+1))
@@ -44,7 +44,7 @@ greatest predicate Pos(s: Stream<int>)
 
 // SAppend looks almost exactly like Append, but cannot have 'decreases'
 // clause, as it is possible it will never terminate.
-function SAppend(xs: Stream, ys: Stream): Stream
+ghost function SAppend(xs: Stream, ys: Stream): Stream
 {
   match xs
   case SNil => ys

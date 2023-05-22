@@ -7,7 +7,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-function append(xs: List, ys: List): List
+ghost function append(xs: List, ys: List): List
 {
   match xs
   case Nil => ys
@@ -24,12 +24,12 @@ lemma AppendAssoc(xs: List, ys: List, zs: List)
 {
 }
 
-function Return<T>(a: T): List
+ghost function Return<T>(a: T): List
 {
   Cons(a, Nil)
 }
 
-function Bind<T,U>(xs: List<T>, f: T -> List<U>): List<U>
+ghost function Bind<T,U>(xs: List<T>, f: T -> List<U>): List<U>
 {
   match xs
   case Nil => Nil

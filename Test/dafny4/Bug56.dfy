@@ -1,10 +1,10 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function I(f:int->bool):int->bool
+ghost function I(f:int->bool):int->bool
     ensures I(f) == f;
 
-predicate G<S>(s:S)
+ghost predicate G<S>(s:S)
 
 type D<X>
 type E

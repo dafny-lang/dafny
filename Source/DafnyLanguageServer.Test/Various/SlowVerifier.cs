@@ -8,7 +8,6 @@ using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -16,13 +15,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, DafnyOptions options) {
     verifier = new DafnyProgramVerifier(logger, options);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
     var program = document.Program;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
@@ -35,8 +34,6 @@ class SlowVerifier : IProgramVerifier {
 
     return tasks;
   }
-
-  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
 
   class NeverVerifiesImplementationTask : IImplementationTask {
     private readonly IImplementationTask original;
@@ -55,8 +52,14 @@ class SlowVerifier : IProgramVerifier {
       return source;
     }
 
+    public bool IsIdle => false;
+
     public void Cancel() {
       source.OnError(new TaskCanceledException());
     }
+  }
+
+  public void Dispose() {
+    verifier?.Dispose();
   }
 }

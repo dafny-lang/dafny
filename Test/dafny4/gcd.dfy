@@ -9,11 +9,11 @@
 
 type pos = x | 1 <= x witness 1
 
-predicate IsFactor(p: pos, x: pos) {
+ghost predicate IsFactor(p: pos, x: pos) {
   exists q :: p * q == x
 }
 
-function Factors(x: pos): set<pos> {
+ghost function Factors(x: pos): set<pos> {
   set p: pos | p <= x && IsFactor(p, x)
 }
 
@@ -37,7 +37,7 @@ lemma FactorsContainsSelf(x: pos)
 }
 
 // This is a somewhat declarative definition of Max
-function Max(s: set<pos>): pos
+ghost function Max(s: set<pos>): pos
   requires s != {}
 {
   // To use the :| operator below, we need to prove that such a value exists
@@ -55,7 +55,7 @@ lemma MaxExists(s: set<pos>)
 }
 
 // Here is a recursive definition for computing the max
-function FindMax(s: set<pos>): (max: pos)
+ghost function FindMax(s: set<pos>): (max: pos)
   requires s != {}
   ensures max in s && forall y :: y in s ==> y <= max
 {
@@ -69,7 +69,7 @@ function FindMax(s: set<pos>): (max: pos)
     if x < y then y else x
 }
 
-function Gcd(x: pos, y: pos): pos {
+ghost function Gcd(x: pos, y: pos): pos {
   var common := Factors(x) * Factors(y);
   assert 1 in common by {
     FactorsContains1(x);

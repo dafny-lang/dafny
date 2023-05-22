@@ -6,35 +6,35 @@
 
 datatype List<T> = Nil | Cons(T, List)
 
-function length(l: List): nat
+ghost function length(l: List): nat
 {
   match l
   case Nil => 0
   case Cons(x, xs) => 1 + length(xs)
 }
 
-function concat(l: List, ys: List): List
+ghost function concat(l: List, ys: List): List
 {
   match l
   case Nil => ys
   case Cons(x, xs) => Cons(x, concat(xs, ys))
 }
 
-function reverse(l: List): List
+ghost function reverse(l: List): List
 {
   match l
   case Nil => Nil
   case Cons(x, xs) => concat(reverse(xs), Cons(x, Nil))
 }
 
-function revacc(l: List, acc: List): List
+ghost function revacc(l: List, acc: List): List
 {
   match l
   case Nil => acc
   case Cons(x, xs) => revacc(xs, Cons(x, acc))
 }
 
-function qreverse(l: List): List
+ghost function qreverse(l: List): List
 {
   revacc(l, Nil)
 }
@@ -135,7 +135,7 @@ lemma Lemma_Revacc(xs: List, ys: List)
 /* Fibonacci */
 // To further demonstrate what the "calc" construct can do, here are some proofs about the Fibonacci function.
 
-function Fib(n: nat): nat
+ghost function Fib(n: nat): nat
 {
   if n < 2 then n else Fib(n - 2) + Fib(n - 1)
 }
@@ -214,7 +214,7 @@ lemma Window(xs: List, ys: List)
 
 // In the following we use a combination of calc and forall
 
-function ith<a>(xs: List, i: nat): a
+ghost function ith<a>(xs: List, i: nat): a
   requires i < length(xs);
 {
   match xs

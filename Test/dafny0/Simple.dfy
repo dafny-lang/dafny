@@ -11,7 +11,7 @@ class MyClass<T,U> {
     requires s;
     modifies this, lotsaObjects;
     ensures t == t;
-    ensures old(null) != this;
+    ensures old(null) != this; // warning: old(null) is the same as null
   {
     x := 12;
     while (x < 100)
@@ -31,7 +31,7 @@ class MyClass<T,U> {
     }
   }
 
-  function F(x: int, y: int, h: WildData, k: WildData): WildData
+  ghost function F(x: int, y: int, h: WildData, k: WildData): WildData
   {
     if x < 0 then h else
     if (x == 0) then
@@ -67,12 +67,12 @@ greatest lemma M'(x': int)
 // modifiers on functions
 
 class CF {
-  static function F(): int
-  predicate method G()
+  static ghost function F(): int
+  predicate G()
   greatest predicate Co()
-  function H(): int
-  static function method I(): real
-  static predicate method J()
+  ghost function H(): int
+  static ghost function I(): real
+  static ghost predicate J()
 }
 
 // test printing of various if statements, including with omitted guards

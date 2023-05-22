@@ -7,7 +7,7 @@
 
 datatype Color = Blue | Red
 
-function method Foo(c: Color): int {
+function Foo(c: Color): int {
   match c
   case Blue => 4
   case Blue =>  // warning: redundant branch

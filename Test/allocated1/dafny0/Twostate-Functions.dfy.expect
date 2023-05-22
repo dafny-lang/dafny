@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Twostate-Functions.dfy(11,43): Error: target object might not be allocated
 Twostate-Functions.dfy(19,12): Error: target object might not be allocated
 Twostate-Functions.dfy(25,8): Error: insufficient reads clause to read field

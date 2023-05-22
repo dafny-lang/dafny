@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method m_unproven(x:int) returns (y:int)
@@ -6,14 +6,14 @@ method m_unproven(x:int) returns (y:int)
 {  // error: postcondition violation
 }
 
-function f(x:int) : int
+ghost function f(x:int) : int
 {
   2*x
 }
 
 abstract module Abstract
 {
-  function method inc(x:int) :int
+  function inc(x:int) :int
     ensures inc(x) > x;
 
   method M(x: int) returns (r: int)
@@ -24,5 +24,5 @@ abstract module Abstract
     assert r % 3 == 0;  // error
   }
 
-  function method G(x: int): int
+  function G(x: int): int
 }

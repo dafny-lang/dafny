@@ -41,12 +41,12 @@ method Main()
   print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
 }
 
-predicate method P(x: int)
+predicate P(x: int)
 {
   x == 157
 }
 
-predicate method Q(r: real)
+predicate Q(r: real)
 {
   r / 2.0 <= r
 }

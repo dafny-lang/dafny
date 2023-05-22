@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Comprehensions.dfy(6,17): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(22,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(24,7): Warning: /!\ No terms found to trigger on.

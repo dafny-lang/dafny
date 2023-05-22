@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -18,64 +19,48 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this verifier serializes all invocations.
   /// </remarks>
-  public class DafnyProgramVerifier : IProgramVerifier {
+  public class DafnyProgramVerifier : IProgramVerifier, IDisposable {
     private readonly VerificationResultCache cache = new();
     private readonly ExecutionEngine engine;
 
     public DafnyProgramVerifier(
       ILogger<DafnyProgramVerifier> logger,
-      IOptions<VerifierOptions> options
+      DafnyOptions options
       ) {
-      var engineOptions = DafnyOptions.O;
-      engineOptions.VcsCores = GetConfiguredCoreCount(options.Value);
-      engineOptions.TimeLimit = options.Value.TimeLimit;
-      engineOptions.VerifySnapshots = (int)options.Value.VerifySnapshots;
       // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
       //      A dash means write to the textwriter instead of a file.
       // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
-      engineOptions.ModelViewFile = "-";
-      BatchObserver = new AssertionBatchCompletedObserver(logger, options.Value.GutterStatus);
+      options.ModelViewFile = "-";
 
-      engineOptions.Printer = BatchObserver;
-      engine = new ExecutionEngine(engineOptions, cache);
-    }
-
-    private static int GetConfiguredCoreCount(VerifierOptions options) {
-      return options.VcsCores == 0
-        ? Math.Max(1, Environment.ProcessorCount / 2)
-        : Convert.ToInt32(options.VcsCores);
+      options.Printer = new OutputLogger(logger);
+      engine = new ExecutionEngine(options, cache);
     }
 
     private const int TranslatorMaxStackSize = 0x10000000; // 256MB
-    static readonly ThreadTaskScheduler TranslatorScheduler = new(TranslatorMaxStackSize);
-    public AssertionBatchCompletedObserver BatchObserver { get; }
 
-    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DafnyDocument document, CancellationToken cancellationToken) {
+    public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
+      CancellationToken cancellationToken) {
       var program = document.Program;
       var errorReporter = (DiagnosticErrorReporter)program.Reporter;
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var translated = await Task.Factory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags {
+      var translated = await DafnyMain.LargeStackFactory.StartNew(() => Translator.Translate(program, errorReporter, new Translator.TranslatorFlags(errorReporter.Options) {
         InsertChecksums = true,
         ReportRanges = true
-      }).ToList(), cancellationToken, TaskCreationOptions.None, TranslatorScheduler);
+      }).ToList(), cancellationToken);
 
       cancellationToken.ThrowIfCancellationRequested();
 
-      var tasks = translated.SelectMany(t => {
+      return translated.SelectMany(t => {
         var (_, boogieProgram) = t;
         var results = engine.GetImplementationTasks(boogieProgram);
         return results;
-      });
-      return tasks.
-        OrderBy(t => t.Implementation.Priority).
-        CreateOrderedEnumerable(
-          t => document.LastTouchedMethodPositions.IndexOf(t.Implementation.tok.GetLspPosition()),
-          null, true).
-        ToList();
+      }).ToList();
     }
 
-    public IObservable<AssertionBatchResult> BatchCompletions => BatchObserver.CompletedBatches;
+    public void Dispose() {
+      engine.Dispose();
+    }
   }
 }

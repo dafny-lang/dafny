@@ -16,59 +16,66 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private readonly DafnyOptions options;
     private readonly ExecutionEngine engine;
     private string[] args;
 
-    private readonly Dafny.ErrorReporter reporter;
-    private Dafny.Program dafnyProgram;
+    private ErrorReporter reporter;
+    private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
+    private readonly CounterExampleProvider counterExampleProvider = new();
 
-    public DafnyHelper(ExecutionEngine engine, string[] args, string fname, string source) {
+    public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
+      this.options = options;
       this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
-      this.reporter = new Dafny.ConsoleErrorReporter();
     }
 
     public bool Verify() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
       return Parse() && Resolve() && Translate() && Boogie();
     }
 
     private bool Parse() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
-      Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
-                     Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
+      var uri = new Uri("transcript:///" + fname);
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
+      reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
+      BuiltIns builtIns = new BuiltIns(options);
+      var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
+                     DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(Console.In, module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
+        dafnyProgram = new Program(fname, module, builtIns, reporter);
       }
       return success;
     }
 
     private bool Resolve() {
-      var resolver = new Dafny.Resolver(dafnyProgram);
+      var resolver = new Resolver(dafnyProgram);
       resolver.ResolveProgram(dafnyProgram);
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 
     private bool Translate() {
       boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+          new Translator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
       return true;
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(options) == 0 && boogieProgram.Typecheck(options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(options.OutputWriter, boogieProgram, new PipelineStatistics(),
+#pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
+#pragma warning restore VSTHRD002
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
@@ -87,9 +94,9 @@ namespace Microsoft.Dafny {
     }
 
     public void Symbols() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
       if (Parse() && Resolve()) {
-        var symbolTable = new SymbolTable(dafnyProgram);
+        var symbolTable = new LegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
         Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
@@ -99,15 +106,14 @@ namespace Microsoft.Dafny {
 
     public void CounterExample() {
       var listArgs = args.ToList();
-      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), DafnyOptions.O);
+      listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
         if (Parse() && Resolve() && Translate()) {
-          var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
-            var model = counterExampleProvider.LoadCounterModel();
+            var model = counterExampleProvider.LoadCounterModel(options);
             Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
@@ -117,13 +123,13 @@ namespace Microsoft.Dafny {
     }
 
     private void RemoveExistingModel() {
-      if (File.Exists(CounterExampleProvider.ModelBvd)) {
-        File.Delete(CounterExampleProvider.ModelBvd);
+      if (File.Exists(counterExampleProvider.ModelBvd)) {
+        File.Delete(counterExampleProvider.ModelBvd);
       }
     }
 
     public void DotGraph() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+      ServerUtils.ApplyArgs(args, options);
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {

@@ -2,6 +2,8 @@
 
 using System.Text;
 using System.Text.RegularExpressions;
+using System.CommandLine;
+using System.CommandLine.Parsing;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -59,12 +61,20 @@ abstract class PrettyPrintable {
   public abstract void Pp(TextWriter wr, string indent);
 }
 
+public interface INameRewriter {
+  string Rewrite(string name);
+}
+
 internal class SemanticModel {
-  private readonly string cSharpRootNS;
+  private readonly string rootModule;
+  private readonly INameRewriter nameRewriter;
+  private readonly IList<string> skippedInterfaces;
   private readonly CA.SemanticModel model;
 
-  public SemanticModel(string cSharpRootNS, CA.SemanticModel model) {
-    this.cSharpRootNS = cSharpRootNS;
+  public SemanticModel(string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces, CA.SemanticModel model) {
+    this.rootModule = rootModule;
+    this.nameRewriter = nameRewriter;
+    this.skippedInterfaces = skippedInterfaces;
     this.model = model;
   }
 
@@ -72,11 +82,14 @@ internal class SemanticModel {
     return model.GetDeclaredSymbol(syntax);
   }
 
+  public ISymbol? GetSymbolInfo(SyntaxNode syntax) {
+    return model.GetSymbolInfo(syntax).Symbol;
+  }
+
   public bool IsPublic(SyntaxNode syntax, bool fallback = true) {
     var symbol = GetSymbol(syntax);
     return symbol switch {
-      null => fallback,
-      { DeclaredAccessibility: Accessibility.Public } => true,
+      null => fallback, { DeclaredAccessibility: Accessibility.Public } => true,
       IPropertySymbol { ExplicitInterfaceImplementations: { IsEmpty: false } } => true,
       _ => false
     };
@@ -87,22 +100,15 @@ internal class SemanticModel {
       return new Name(fallback);
     }
 
-    string WithNs(string ns) => ns == "" ? symbol.Name : $"{ns}.{symbol.Name}";
-
     // Not ToString() because that includes type parameters (e.g. System.Collections.Generic.List<T>)
     var cs = symbol.ContainingSymbol;
     var ns = symbol is ITypeParameterSymbol || cs is INamespaceSymbol { IsGlobalNamespace: true }
-      ? ""
-      : cs.ToString() ?? "";
+      ? "" : cs.ToString() ?? "";
 
-    if (ns.StartsWith(cSharpRootNS)) {
-      // For local names return a complete path minus the current module prefix
-      var fullName = WithNs(ns.Substring(cSharpRootNS.Length).TrimStart('.'));
-      return new Name(fullName, fullName.Replace(".", "__"));
-    }
-
-    // For global names use the fully qualified name
-    return new Name(WithNs(ns));
+    var isLocalName = ns.StartsWith(rootModule);
+    var cSharpName = nameRewriter.Rewrite(ns == "" ? symbol.Name : $"{ns}.{symbol.Name}");
+    var dafnyName = isLocalName ? cSharpName.Replace(".", "__") : cSharpName;
+    return new Name(cSharpName, dafnyName);
   }
 
   public Name GetName(SyntaxNode node) {
@@ -110,21 +116,28 @@ internal class SemanticModel {
       EnumMemberDeclarationSyntax s => new Name(s.Identifier),
       EnumDeclarationSyntax s => GetName(GetSymbol(s), $"[UNKNOWN ENUM {s.Identifier.Text}]"),
       TypeDeclarationSyntax s => GetName(GetSymbol(s), $"[UNKNOWN DECL {s.Identifier.Text}]"),
-      _ => GetName(model.GetSymbolInfo(node).Symbol, $"[UNKNOWN {node.GetType()} {node}]")
+      _ => GetName(GetSymbolInfo(node), $"[UNKNOWN {node.GetType()} {node}]")
     };
+  }
+
+  public bool IsSkippedInterface(ISymbol symbol) {
+    var fullName = symbol.ContainingNamespace + "." + symbol.Name;
+    return skippedInterfaces.Contains(fullName);
   }
 }
 
-internal class AST : PrettyPrintable {
+internal class CSharpFile : PrettyPrintable {
   private readonly SyntaxTree syntax;
   private readonly SemanticModel model;
 
-  public AST(SyntaxTree syntax, SemanticModel model) {
+  private CSharpFile(SyntaxTree syntax, SemanticModel model) {
     this.syntax = syntax;
     this.model = model;
   }
 
-  public static IEnumerable<AST> FromFiles(string projectPath, IEnumerable<string> sourceFiles, string cSharpRootNS) {
+  public static IEnumerable<CSharpFile> FromFiles(
+    string projectPath, IEnumerable<string> sourceFiles,
+    string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces) {
     // https://github.com/dotnet/roslyn/issues/44586
     MSBuildLocator.RegisterDefaults();
     var workspace = Microsoft.CodeAnalysis.MSBuild.MSBuildWorkspace.Create();
@@ -132,7 +145,6 @@ internal class AST : PrettyPrintable {
 
     var project = workspace.OpenProjectAsync(projectPath).Result;
 
-    //var errors = workspace.Diagnostics.Select()
     if (!workspace.Diagnostics.IsEmpty) {
       foreach (var diagnostic in workspace.Diagnostics) {
         Console.Error.WriteLine("Error in project: {0}", diagnostic.Message);
@@ -141,11 +153,22 @@ internal class AST : PrettyPrintable {
     }
 
     var compilation = project.GetCompilationAsync().Result!;
+    var syntaxTrees = compilation.SyntaxTrees.ToDictionary(
+      st => Path.GetFullPath(st.FilePath),
+      st => st);
+
     return sourceFiles.Select(filePath => {
       var fullPath = Path.GetFullPath(filePath);
-      var syntax = compilation.SyntaxTrees.First(st => Path.GetFullPath(st.FilePath) == fullPath);
+      if (!syntaxTrees.TryGetValue(fullPath, out var syntax)) {
+        Console.WriteLine($"Error: No syntax tree found in project '{projectPath}' for file '{fullPath}'.");
+        Console.WriteLine($"Known paths in project ({syntaxTrees.Count} total):");
+        foreach (var key in syntaxTrees) {
+          Console.WriteLine($"  {key}");
+        }
+        throw new Exception("Unexpected errors while building project");
+      }
       var model = compilation.GetSemanticModel(syntax);
-      return new AST(syntax, new SemanticModel(cSharpRootNS, model));
+      return new CSharpFile(syntax, new SemanticModel(rootModule, nameRewriter, skippedInterfaces, model));
     });
   }
 
@@ -184,11 +207,22 @@ internal class TypeDecl : PrettyPrintable {
     syntax.ChildNodes().OfType<PropertyDeclarationSyntax>().Where(v => model.IsPublic(v))
       .Select(s => new Property(s, model, IsInterface ? this : null));
 
+  private bool IsSkippedBaseType(BaseTypeSyntax bt) {
+    return model.GetSymbolInfo(bt.Type) is { } baseType && model.IsSkippedInterface(baseType);
+  }
+
+  private IEnumerable<Type> BaseTypes =>
+    syntax.BaseList?.Types
+      .Where(bt => !IsSkippedBaseType(bt))
+      .Select(bt => new Type(bt.Type, model))
+    ?? Enumerable.Empty<Type>();
+
   public override void Pp(TextWriter wr, string indent) {
+    var baseTypes = BaseTypes.ToList();
     PpBlockOpen(wr, indent, "trait", IntfName,
       syntax.TypeParameterList?.Parameters.Select(s => new Name(s.Identifier).DafnyId),
       new Dictionary<string, string?> { { "compile", "false" } },
-      syntax.BaseList?.Types.Select(t => new Type(t.Type, model)));
+      baseTypes.Any() ? baseTypes : null);
     PpChildren(wr, indent, Fields);
     PpChildren(wr, indent, Properties);
     PpBlockClose(wr, indent);
@@ -213,7 +247,7 @@ internal class Enum : PrettyPrintable {
     var nm = Name.OfSyntax(syntax, model);
     PpBlockOpen(wr, indent, "class", nm, null, null, null);
     PpChildren(wr, indent, Members);
-    PpChild(wr, indent, $"function method {{:extern}} Equals(other: {nm.DafnyId}): bool");
+    PpChild(wr, indent, $"function {{:extern}} Equals(other: {nm.DafnyId}): bool");
     PpBlockClose(wr, indent);
   }
 }
@@ -271,7 +305,7 @@ internal class Property : PrettyPrintable {
     this.type = new Type(syntax.Type, model);
   }
 
-  private bool ExistsInAncestor(ITypeSymbol typeSymbol) {
+  private bool ExistsInAncestor(ITypeSymbol? typeSymbol) {
     var baseType = typeSymbol?.BaseType;
     return baseType != null &&
       (baseType.GetMembers(syntax.Identifier.Text).Length > 0 ||
@@ -285,7 +319,7 @@ internal class Property : PrettyPrintable {
     var prefix = "";
 
     if (parentInterface != null) {
-      name = new Name(name.CSharpID, $"{parentInterface.IntfName.DafnyId}_{name.DafnyId}");
+      name = new Name(name.CSharpId, $"{parentInterface.IntfName.DafnyId}_{name.DafnyId}");
       comment = " // interface property";
     } else if (symbol is not null && ExistsInAncestor(symbol.ContainingType)) {
       prefix = "// ";
@@ -360,12 +394,12 @@ internal class Name {
     new Regex($"^(_|({String.Join("|", DisallowedNameWords)})$)");
 
   public readonly string DafnyId;
-  public readonly string CSharpID;
+  public readonly string CSharpId;
 
-  public Name(string cSharpID, string dafnyID) {
-    this.CSharpID = cSharpID;
-    this.DafnyId = dafnyID.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyID) ?
-      EscapePrefix + dafnyID : dafnyID;
+  public Name(string cSharpId, string dafnyId) {
+    this.CSharpId = cSharpId;
+    this.DafnyId = dafnyId.StartsWith(EscapePrefix) || DisallowedNameRe.IsMatch(dafnyId) ?
+      EscapePrefix + dafnyId : dafnyId;
   }
 
   public Name(string cSharpId) : this(cSharpId, cSharpId) {
@@ -379,7 +413,7 @@ internal class Name {
   }
 
   public string AsDecl(bool forceExtern = false) {
-    var attr = CSharpID != DafnyId ? $"{{:extern \"{CSharpID}\"}} " : forceExtern ? "{:extern} " : "";
+    var attr = CSharpId != DafnyId ? $"{{:extern \"{CSharpId}\"}} " : forceExtern ? "{:extern} " : "";
     return $"{attr}{DafnyId}";
   }
 }
@@ -392,7 +426,7 @@ public static class Program {
     Environment.Exit(1);
   }
 
-  public static string ReadTemplate(string templatePath) {
+  private static string ReadTemplate(string templatePath) {
     var template = File.ReadAllText(templatePath, Encoding.UTF8);
     if (!template.Contains(Placeholder)) {
       Fail($"Template file {templatePath} does not contain {Placeholder} string.");
@@ -400,9 +434,11 @@ public static class Program {
     return template;
   }
 
-  public static string GenerateDafnyCode(string projectPath, IList<string> sourceFiles, string cSharpRootNS) {
+  private static string GenerateDafnyCode(
+    string projectPath, IList<string> sourceFiles,
+    string rootModule, INameRewriter nameRewriter, IList<string> skippedInterfaces) {
     var wr = new StringWriter();
-    var asts = AST.FromFiles(projectPath, sourceFiles, cSharpRootNS).ToList();
+    var asts = CSharpFile.FromFiles(projectPath, sourceFiles, rootModule, nameRewriter, skippedInterfaces).ToList();
     var last = asts.Last();
     foreach (var ast in asts) {
       ast.Pp(wr, "");
@@ -413,7 +449,7 @@ public static class Program {
     return wr.ToString();
   }
 
-  public static void CopyCSharpModel(string destPath) {
+  private static void CopyCSharpModel(string destPath) {
     if (destPath != "") {
       var exe = System.Reflection.Assembly.GetExecutingAssembly().Location;
       var sourcePath = Path.Join(Path.GetDirectoryName(exe), "CSharpModel.dfy");
@@ -421,18 +457,110 @@ public static class Program {
     }
   }
 
-  public static void Main(string[] args) {
-    if (args.Length < 6) {
-      Fail("Usage: AutoExtern {project.csproj} {Root.Namespace} {TemplateFile.dfy} {CSharpModel.dfy} {Output.dfy} {file.cs}*");
+  record SimpleNameRewriter(List<(string, string)> Rewrites) : INameRewriter {
+    public string Rewrite(string name) {
+      foreach (var (src, dst) in Rewrites) {
+        if (name.StartsWith(src)) {
+          name = dst + name.Substring(src.Length);
+          break;
+        }
+      }
+      return name;
+    }
+  }
+
+  public static int Main(string[] args) {
+    var rootCommand = new RootCommand("Generate Dafny models of C# types.");
+
+    var projectPathArgument = new Argument<string>(
+      name: "project",
+      description: "The C# project file that owns the files to translate to Dafny."
+    );
+    rootCommand.AddArgument(projectPathArgument);
+
+    var rootModuleArgument = new Argument<string>(
+      name: "root-module",
+      description: "The name of the Dafny module that will contain this code."
+    );
+    rootCommand.AddArgument(rootModuleArgument);
+
+    var templatePathArgument = new Argument<string>(
+      name: "template",
+      description: "The template file to copy translated definitions into.  " +
+                   $"This file must contain the string '{Placeholder}'.");
+    rootCommand.AddArgument(templatePathArgument);
+
+    var modelPathArgument = new Argument<string>(
+      name: "model-output",
+      description: "Where to write CSharpModel.dfy, a file containing shared C# definitions.");
+    rootCommand.AddArgument(modelPathArgument);
+
+    var outputPathArgument = new Argument<string>(
+      name: "output",
+      description: "Where to write the generated Dafny model.");
+    rootCommand.AddArgument(outputPathArgument);
+
+    var sourceFilesArgument = new Argument<List<string>>(
+      name: "input...",
+      description: "C# files to translate.") {
+      Arity = ArgumentArity.OneOrMore
+    };
+    rootCommand.AddArgument(sourceFilesArgument);
+
+    var nameRewritesOption = new Option<List<(string, string)>>(
+      name: "--rewrite",
+      description: "A name-rewriting specification, e.g. `--rewrite X.Y.:A.B.`.",
+      parseArgument: ParseRewrites) {
+      ArgumentHelpName = "before:after",
+      Arity = ArgumentArity.ExactlyOne,
+      AllowMultipleArgumentsPerToken = false
+    };
+    rootCommand.AddOption(nameRewritesOption);
+
+    var skipInterfaceOption = new Option<List<string>>(
+      name: "--skip-interface",
+      description: "An interface to ommit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
+      ArgumentHelpName = "interfaceName",
+      Arity = ArgumentArity.ZeroOrMore,
+      AllowMultipleArgumentsPerToken = false
+    };
+    rootCommand.AddOption(skipInterfaceOption);
+
+    Action<string, string, List<(string, string)>, List<string>, string, string, string, List<string>>
+      main = ParsedMain;
+    rootCommand.SetHandler(main,
+      projectPathArgument, rootModuleArgument, nameRewritesOption, skipInterfaceOption,
+      templatePathArgument, modelPathArgument, outputPathArgument, sourceFilesArgument);
+
+    return rootCommand.Invoke(args);
+  }
+
+  private static List<(string, string)> ParseRewrites(ArgumentResult result) {
+    var parsed = new List<(string, string)>();
+
+    foreach (var tok in result.Tokens) {
+      var split = tok.Value.Split(":");
+      if (split.Length != 2) {
+        result.ErrorMessage = "--rewrite takes a pair of strings separated by `:`";
+      }
+      parsed.Add((split[0], split[1]));
     }
 
-    var (projectPath, cSharpRootNS, templatePath, modelPath, outputPath) =
-      (args[0], args[1], args[2], args[3], args[4]);
-    var sourceFiles = args.Skip(5).ToList();
+    return parsed;
+  }
 
-    var dafnyCode = GenerateDafnyCode(projectPath, sourceFiles, cSharpRootNS);
+  private static void ParsedMain(
+    string projectPath, string rootModule, List<(string, string)> nameRewrites, IList<string> skippedInterfaces,
+    string templatePath, string modelPath, string outputPath, List<string> sourceFiles
+  ) {
+    nameRewrites.Add((rootModule + ".", ""));
+
+    var rewriter = new SimpleNameRewriter(nameRewrites);
+    var dafnyCode = GenerateDafnyCode(projectPath, sourceFiles, rootModule, rewriter, skippedInterfaces);
     var template = ReadTemplate(templatePath);
-    File.WriteAllText(outputPath, template.Replace(Placeholder, dafnyCode), Encoding.UTF8);
+
+    // Add \n to allow the line that contains the placeholder to be commented out
+    File.WriteAllText(outputPath, template.Replace(Placeholder, "\n" + dafnyCode), Encoding.UTF8);
 
     CopyCSharpModel(modelPath);
   }

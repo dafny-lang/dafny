@@ -1,3 +1,11 @@
+old-is-a-special-case-for-triggers.dfy(15,45): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(20,48): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(21,40): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(21,56): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(21,72): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(25,48): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(26,48): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+old-is-a-special-case-for-triggers.dfy(26,61): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 old-is-a-special-case-for-triggers.dfy(15,10): Info: Selected triggers:
    {old(f(c))}, {c in sc}
 old-is-a-special-case-for-triggers.dfy(20,10): Info: Selected triggers:
@@ -18,5 +26,25 @@ old-is-a-special-case-for-triggers.dfy(26,10): Info: Selected triggers:
  Rejected triggers:
    {g(f(c))} (more specific than {f(c)})
    {old(g(f(c)))} (more specific than {old(f(c))})
+old-is-a-special-case-for-triggers.dfy(38,10): Info: Selected triggers:
+   {old(ff(c))}, {c in sc}
+old-is-a-special-case-for-triggers.dfy(43,10): Info: Selected triggers:
+   {old(ff(ff(c)))}, {ff(c)}, {c in sc}
+ Rejected triggers: {old(ff(c))} (may loop with "old(ff(ff(c)))")
+old-is-a-special-case-for-triggers.dfy(44,10): Info: Selected triggers:
+   {ff(g(c))}, {g(ff(c))}, {old(ff(g(c)))}, {old(g(ff(c)))}, {old(ff(ff(c)))}, {c in sc}
+ Rejected triggers:
+   {g(c)} (may loop with "g(ff(c))")
+   {ff(c)} (may loop with "ff(g(c))")
+   {old(g(c))} (may loop with "old(g(ff(c)))")
+   {old(ff(c))} (may loop with "old(ff(ff(c)))", "old(ff(g(c)))")
+old-is-a-special-case-for-triggers.dfy(48,10): Info: Selected triggers:
+   {old(ff(c))}, {ff(c)}, {c in sc}
+ Rejected triggers: {old(g(ff(c)))} (more specific than {old(ff(c))})
+old-is-a-special-case-for-triggers.dfy(49,10): Info: Selected triggers:
+   {old(ff(c))}, {ff(c)}, {c in sc}
+ Rejected triggers:
+   {g(ff(c))} (more specific than {ff(c)})
+   {old(g(ff(c)))} (more specific than {old(ff(c))})
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 4 verified, 0 errors

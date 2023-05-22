@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:options "/quantifierSyntax:4"} NewSyntax {
@@ -16,7 +16,7 @@ module {:options "/quantifierSyntax:4"} NewSyntax {
     var _ := set x <- numbers | x < 3, y <- F(x) | 0 <= y :: y as nat; // Success
   }
 
-  function F(x: nat): seq<int> requires x < 3 {
+  ghost function F(x: nat): seq<int> requires x < 3 {
     [-5, 4, 0, -12]
   }
 }

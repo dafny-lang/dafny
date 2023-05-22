@@ -20,7 +20,8 @@ class Main {
   method RecursiveMark(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S
@@ -37,7 +38,8 @@ class Main {
 
   method RecursiveMarkWorker(root: Node, ghost S: set<Node>, ghost stackNodes: set<Node>)
     requires root in S
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S && n.marked ==>
                 n in stackNodes ||
@@ -85,7 +87,8 @@ class Main {
   method IterativeMark(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0
     modifies S
@@ -150,13 +153,13 @@ class Main {
 
   // ---------------------------------------------------------------------------------
 
-  predicate Reachable(from: Node, to: Node, S: set<Node>)
+  ghost predicate Reachable(from: Node, to: Node, S: set<Node>)
     reads S
   {
     exists via :: ReachableVia(from, via, to, S)
   }
 
-  predicate ReachableVia(from: Node, via: Path, to: Node, S: set<Node>)
+  ghost predicate ReachableVia(from: Node, via: Path, to: Node, S: set<Node>)
     reads S
     decreases via
   {
@@ -168,7 +171,8 @@ class Main {
   method SchorrWaite(root: Node, ghost S: set<Node>)
     requires root in S
     // S is closed under 'children':
-    requires forall n :: n in S ==> allocated(n) &&
+    requires forall n :: n in S ==>
+                allocated(n) &&
                 forall ch :: ch in n.children ==> ch == null || ch in S
     // the graph starts off with nothing marked and nothing being indicated as currently being visited:
     requires forall n :: n in S ==> !n.marked && n.childrenVisited == 0

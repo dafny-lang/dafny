@@ -21,8 +21,8 @@ module FunctionValues {
   }
 
   datatype Color = Red | Green | Blue {
-    function method F(): int { if this == Red then 5 else 2 }
-    static function method G(): int { 3 }
+    function F(): int { if this == Red then 5 else 2 }
+    static function G(): int { 3 }
   }
 }
 

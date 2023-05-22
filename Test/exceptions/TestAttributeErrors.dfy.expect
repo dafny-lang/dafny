@@ -1,4 +1,4 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-TestAttributeErrors.dfy(6,17): Error: Function _module._default.PassingTest must be compiled to use the {:test} attribute
-TestAttributeErrors.dfy(10,17): Error: Function _module._default.FailingTest must be compiled to use the {:test} attribute
+TestAttributeErrors.dfy(6,23): Error: Function _module._default.PassingTest must be compiled to use the {:test} attribute
+TestAttributeErrors.dfy(10,23): Error: Function _module._default.FailingTest must be compiled to use the {:test} attribute

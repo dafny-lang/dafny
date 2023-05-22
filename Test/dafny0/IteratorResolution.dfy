@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module SimplestIter {
@@ -180,7 +180,7 @@ module IteratorTypeParameters {
     MyMethod<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
   }
 
-  function method MyFunction<A(==),B(0)>(): int { 65 }
+  function MyFunction<A(==),B(0)>(): int { 65 }
   method TestFunction() {
     var x := MyFunction<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
     var y := MyFunction<Five,Six>();  // error: cannot pass in Six as type parameter B(0)

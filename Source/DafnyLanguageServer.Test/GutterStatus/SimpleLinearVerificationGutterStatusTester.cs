@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
-using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
-[TestClass]
 public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutterStatusTester {
   private const int MaxTestExecutionTimeMs = 10000;
 
@@ -20,8 +12,44 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact]
+  public async Task GitIssue3821GutterIgnoredProblem() {
+    await VerifyTrace(@"
+ | :function fib(n: nat): nat {
+ | :  if n <= 1 then n else fib(n-1) + fib(n-2)
+ | :}
+ | :
+[ ]:method {:rlimit 1} Test(s: seq<nat>)
+[=]:  requires |s| >= 1 && s[0] >= 0 {
+[=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
+[ ]:}", intermediates: false);
+  }
+
+  [Fact]
+  public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
+    var source = @"
+method Foo() ensures false { } ";
+    await SetUp(options => {
+      options.Set(ServerCommand.LineVerificationStatus, false);
+    });
+
+    var documentItem = CreateTestDocument(source);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.False(verificationStatusGutterReceiver.HasPendingNotifications);
+  }
+
+  [Fact]
+  public async Task EnsureEmptyMethodDisplayVerified() {
+    await VerifyTrace(@"
+ .  | :method x() {
+ .  | :  // Nothing here
+ .  | :}");
+  }
+
+  [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsureVerificationGutterStatusIsWorking() {
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  |  |  |  I  I  |  | :predicate Ok() {
  .  |  |  |  I  I  |  | :  true
@@ -41,13 +69,13 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  |  |  |  I  I  |  | :  false
  .  |  |  |  I  I  |  | :}");
   }
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsuresItWorksForSubsetTypes() {
     await VerifyTrace(@"
     |  |  |  I  I  |  |  |  I  I  |  |  | :
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost const maxId := 200;
     |  |  |  I  I  |  |  |  I  I  |  |  | :
- .  |  |  |  I  I  |  |  |  I  I  |  |  | :predicate isIssueIdValid(issueId: int) {
+ .  |  |  |  I  I  |  |  |  I  I  |  |  | :ghost predicate isIssueIdValid(issueId: int) {
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :  101 <= issueId < maxId
  .  |  |  |  I  I  |  |  |  I  I  |  |  | :}
     |  |  |  I  I  |  |  |  I  I  |  |  | :
@@ -55,7 +83,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S  |  |  I  .  S  | [=] I  .  S  |  | :  witness 101 //Next1:   witness 99 //Next2:   witness 101 ");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureItWorksForPostconditionsRelatedOutside() {
     await VerifyTrace(@"
  .  |  |  | :predicate F(i: int) {
@@ -68,7 +96,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [S][ ]:}");
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs * 10)]
+  [Fact(Timeout = MaxTestExecutionTimeMs * 10)]
   public async Task EnsureNoAssertShowsVerified() {
     for (var i = 0; i < 10; i++) {
       await VerifyTrace(@"
@@ -81,7 +109,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
     }
   }
 
-  [TestMethod, Timeout(MaxTestExecutionTimeMs)]
+  [Fact(Timeout = MaxTestExecutionTimeMs)]
   public async Task EnsureEmptyDocumentIsVerified() {
     await VerifyTrace(@"
  | :class A {
@@ -90,7 +118,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   }
 
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*, Timeout(MaxTestExecutionTimeMs)*/]
   public async Task EnsuresEmptyDocumentWithParseErrorShowsError() {
     await VerifyTrace(@"
 /!\:class A {/
@@ -98,13 +126,13 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
    :");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresDefaultArgumentsShowsError() {
     await VerifyTrace(@"
  .  S [~][=]:datatype D = T(i: nat := -2)");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task TopLevelConstantsHaveToBeVerifiedAlso() {
     await VerifyTrace(@"
     |  |  | :// The following should trigger only one error
@@ -113,36 +141,77 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  .  S [~][=]:ghost const b := a[-1];");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresAddingNewlinesMigratesPositions() {
     await VerifyTrace(@"
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:method f(x: int) {
- .  S [S][ ][I][S][S][ ][I][S][S][ ]:  //Next1:\n  //Next2:\n  
- .  S [=][=][I][S][S][ ][I][S][S][ ]:  assert x == 2; }
-            [-][~][=][=][I][S][S][ ]:
-                        [-][~][=][=]:");
+ .  S [S][ ][I][S][ ][I][S][ ]:method f(x: int) {
+ .  S [S][ ][I][S][ ][I][S][ ]:  //Next1:\n  //Next2:\n  
+ .  S [=][=][I][S][ ][I][S][ ]:  assert x == 2; }
+            [-][~][=][I][S][ ]:
+                     [-][~][=]:");
   }
 
-  [TestMethod/*, Timeout(MaxTestExecutionTimeMs)*/]
+  [Fact/*(Timeout = MaxTestExecutionTimeMs)*/]
   public async Task EnsuresWorkWithInformationsAsWell() {
+    await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
     await VerifyTrace(@"
  .  S [S][ ][I][S][S][ ]:method f(x: int) returns (y: int)
  .  S [S][ ][I][S][S][ ]:ensures
  .  S [=][=][-][~][=][=]:  x > 3 { y := x;
  .  S [S][ ][I][S][S][ ]:  //Next1:\n
  .  S [=][=][-][~][=][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [S][ ][-][~][=][=]:    y := y + 1;
+ .  S [S][ ][-][~][~][=]:    y := y + 1;
  .  S [S][ ][I][S][S][ ]:  }
  .  S [S][ ][I][S][S][ ]:}
             [I][S][S][ ]:");
   }
 
-  [TestMethod]
+  [Fact]
   public async Task EnsureMultilineAssertIsCorreclyHandled() {
     await VerifyTrace(@"
  .  S [S][ ]:method x() {
  .  S [=][=]:  assert false
  .  S [=][=]:    || false;
  .  S [S][ ]:}");
+  }
+
+  [Fact]
+  public async Task EnsureBodylessMethodsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:method {:extern} test3(a: nat, b: nat)
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
+  }
+
+
+  [Fact]
+  public async Task EnsureBodylessFunctionsAreCovered() {
+    await VerifyTrace(@"
+ .  |  |  | :method test() {
+ .  |  |  | :}
+    |  |  | :
+ .  S [S][ ]:function {:extern} test4(a: nat, b: nat): nat
+ .  S [S][ ]:  ensures true
+ .  S [=][=]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+ .  S [O][O]:  ensures test2(a - b)
+ .  S [S][ ]:  ensures true
+    |  |  | :
+ .  |  |  | :predicate test2(x: nat) {
+ .  |  |  | :  true
+ .  |  |  | :}");
+  }
+
+  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

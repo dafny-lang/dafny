@@ -12,9 +12,9 @@ module A {
   type T = T2
   datatype T2 = C(x: T2) | N
 
-  function f(x: T, y: int): T { if y <= 0 then x else f(x, y-1) }
+  ghost function f(x: T, y: int): T { if y <= 0 then x else f(x, y-1) }
 
-  function g(x: T): T
+  ghost function g(x: T): T
    decreases x
    { match x
      case C(x') => g(x')
@@ -44,12 +44,12 @@ module A {
 module B {
   import A`Specf
 
-  function h(x: A.T): A.T { A.f(x, 1) }
+  ghost function h(x: A.T): A.T { A.f(x, 1) }
 }
 
 module C {
   import A`Bodyg
-  function i(x: A.T): A.T { A.g(x) }
+  ghost function i(x: A.T): A.T { A.g(x) }
 }
 
 module D {

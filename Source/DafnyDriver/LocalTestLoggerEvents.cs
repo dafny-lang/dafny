@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       this.CheckDisposed();
 
       // Sending 0 size as this event is not expected to contain any data.
-      this.SafeInvokeAsync(() => this.TestRunMessage, args, 0, "InternalTestLoggerEvents.SendTestRunMessage");
+      this.SafeInvoke(() => this.TestRunMessage, args, 0, "InternalTestLoggerEvents.SendTestRunMessage");
     }
 
     internal void WaitForEventCompletion() {
@@ -189,7 +189,7 @@ namespace Microsoft.Dafny {
         resultSize = FindTestResultSize(args) * sizeof(char);
       }
 
-      this.SafeInvokeAsync(() => this.TestResult, args, resultSize, "InternalTestLoggerEvents.SendTestResult");
+      this.SafeInvoke(() => this.TestResult, args, resultSize, "InternalTestLoggerEvents.SendTestResult");
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ namespace Microsoft.Dafny {
 
       CheckDisposed();
 
-      this.SafeInvokeAsync(() => this.TestRunStart, args, 0, "InternalTestLoggerEvents.SendTestRunStart");
+      this.SafeInvoke(() => this.TestRunStart, args, 0, "InternalTestLoggerEvents.SendTestRunStart");
     }
 
     /// <summary>
@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
 
       CheckDisposed();
 
-      SafeInvokeAsync(() => this.DiscoveryStart, args, 0, "InternalTestLoggerEvents.SendDiscoveryStart");
+      SafeInvoke(() => this.DiscoveryStart, args, 0, "InternalTestLoggerEvents.SendDiscoveryStart");
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
       this.CheckDisposed();
 
       // Sending 0 size as this event is not expected to contain any data.
-      this.SafeInvokeAsync(() => this.DiscoveryMessage, args, 0, "InternalTestLoggerEvents.SendDiscoveryMessage");
+      this.SafeInvoke(() => this.DiscoveryMessage, args, 0, "InternalTestLoggerEvents.SendDiscoveryMessage");
     }
 
     /// <summary>
@@ -238,7 +238,7 @@ namespace Microsoft.Dafny {
 
       CheckDisposed();
 
-      SafeInvokeAsync(() => this.DiscoveredTests, args, 0, "InternalTestLoggerEvents.SendDiscoveredTests");
+      SafeInvoke(() => this.DiscoveredTests, args, 0, "InternalTestLoggerEvents.SendDiscoveredTests");
     }
 
     /// <summary>
@@ -251,7 +251,7 @@ namespace Microsoft.Dafny {
       CheckDisposed();
 
       // Sending 0 size as this event is not expected to contain any data.
-      SafeInvokeAsync(() => this.DiscoveryComplete, args, 0, "InternalTestLoggerEvents.SendDiscoveryComplete");
+      SafeInvoke(() => this.DiscoveryComplete, args, 0, "InternalTestLoggerEvents.SendDiscoveryComplete");
 
       // Wait for the loggers to finish processing the messages for the run.
       this.loggerEventQueue.Flush();
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
       CheckDisposed();
 
       // Size is being send as 0. (It is good to send the size as the job queue uses it)
-      SafeInvokeAsync(() => this.TestRunComplete, args, 0, "InternalTestLoggerEvents.SendTestRunComplete");
+      SafeInvoke(() => this.TestRunComplete, args, 0, "InternalTestLoggerEvents.SendTestRunComplete");
 
       // Wait for the loggers to finish processing the messages for the run.
       this.loggerEventQueue.Flush();
@@ -290,7 +290,7 @@ namespace Microsoft.Dafny {
       var args = new TestRunCompleteEventArgs(stats, isCanceled, isAborted, error, attachmentSet, elapsedTime);
 
       // Sending 0 size as this event is not expected to contain any data.
-      this.SafeInvokeAsync(() => this.TestRunComplete, args, 0, "InternalTestLoggerEvents.SendTestRunComplete");
+      this.SafeInvoke(() => this.TestRunComplete, args, 0, "InternalTestLoggerEvents.SendTestRunComplete");
 
       // Wait for the loggers to finish processing the messages for the run.
       this.loggerEventQueue.Flush();
@@ -305,7 +305,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     private void TestRunMessageHandler(object sender, TestRunMessageEventArgs e) {
       // Broadcast the message to the loggers.
-      this.SafeInvokeAsync(() => this.TestRunMessage, e, 0, "InternalTestLoggerEvents.SendMessage");
+      this.SafeInvoke(() => this.TestRunMessage, e, 0, "InternalTestLoggerEvents.SendMessage");
     }
 
     /// <summary>
@@ -313,7 +313,7 @@ namespace Microsoft.Dafny {
     /// ensuring that each handler is invoked even if one throws.
     /// The actual calling of the subscribers is done on a background thread.
     /// </summary>
-    private void SafeInvokeAsync(Func<MulticastDelegate> eventHandlersFactory, EventArgs args, int size,
+    private void SafeInvoke(Func<MulticastDelegate> eventHandlersFactory, EventArgs args, int size,
       string traceDisplayName) {
       ValidateArg.NotNull(eventHandlersFactory, nameof(eventHandlersFactory));
       ValidateArg.NotNull(args, nameof(args));

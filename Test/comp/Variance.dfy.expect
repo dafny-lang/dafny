@@ -47,10 +47,31 @@ _module.Int0[]0000
 Done
 
 Dafny program verifier did not attempt verification
-Variance.dfy(108,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(134,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(139,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(148,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(173,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Variance.dfy(178,9): Error: compilation does not support trait types as a type parameter (got 'X'); consider introducing a ghost
-Wrote textual form of partial target program to Variance-java/Variance.java
+Co.Co(_module.Int) and Co.Co(_module.Int)
+true0[]0000
+Non.Non(_module.Int) and Non.Non(_module.Int)
+true0[]0000
+0 and 0
+_module.Int0[]0000
+CCo.CCo and CCo.CCo
+true0[]0000
+CNon.CNon and CNon.CNon
+true0[]0000
+CCon.CCon and CCon.CCon
+_module.Int0[]0000
+Done
+
+Dafny program verifier did not attempt verification
+Co.Co(_module.Int) and Co.Co(_module.Int)
+true0[]0000
+Non.Non(_module.Int) and Non.Non(_module.Int)
+true0[]0000
+0 and 0
+_module.Int0[]0000
+CCo.CCo and CCo.CCo
+true0[]0000
+CNon.CNon and CNon.CNon
+true0[]0000
+CCon.CCon and CCon.CCon
+_module.Int0[]0000
+Done

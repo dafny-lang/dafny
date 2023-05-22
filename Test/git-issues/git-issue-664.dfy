@@ -1,10 +1,10 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
   static const X: int
   static method M() { }
-  static function method F(): int { 5 }
+  static ghost function F(): int { 5 }
 }
 
 method TestClass(c: C) {

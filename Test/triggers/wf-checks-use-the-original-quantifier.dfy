@@ -18,8 +18,8 @@
 
 // This test case is inspired by the example that Chris gave.
 
-predicate P(b: nat)
-function f(a: int): int
+ghost predicate P(b: nat)
+ghost function f(a: int): int
 class C { var x: int; }
 
 method M(s: set<C>)

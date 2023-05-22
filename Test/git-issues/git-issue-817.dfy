@@ -1,14 +1,9 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 datatype Result<T> = Failure(msg: string) | Success(value: T) {
-  predicate method IsFailure() { Failure? }
-  function method PropagateFailure(): Result<T> requires IsFailure() { this }
-  method Extract() returns (t: T) requires !IsFailure() ensures t == this.value { return this.value; }
+  predicate IsFailure() { Failure? }
+  function PropagateFailure(): Result<T> requires IsFailure() { this }
+  function Extract(): (t: T) requires !IsFailure() ensures t == this.value { this.value }
 }
 
 class D {
@@ -35,6 +30,7 @@ method m() returns (rr: Result<int>) {
   assert d.v == 42;
   assert dd.v == 100;
   expect d.v == 42 && dd.v == 100;
+  rr := *;
 }
 
 method mm() returns (rr: Result<int>) {
@@ -50,6 +46,7 @@ method mm() returns (rr: Result<int>) {
   print d[0], " ", dd[0], " ", d != dd, "\n"; // 42 100 true
   assert d[0] == 42 && dd[0] == 100;
   expect d[0] == 42 && dd[0] == 100;
+  rr := *;
 }
 
 method mmm() returns (rr: Result<int>) {
@@ -65,6 +62,7 @@ method mmm() returns (rr: Result<int>) {
   print d[0,0], " ", dd[0,0], " ", d != dd, "\n"; // 42 100 true
   assert d[0,0] == 42 && dd[0,0] == 100;
   expect d[0,0] == 42 && dd[0,0] == 100;
+  rr := *;
 }
 
 class C {

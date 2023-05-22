@@ -1,4 +1,6 @@
-// RUN: %dafny /print:"%t.print" /compile:3 /env:0 /dprint:- "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /env:0 /dprint:- "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = Red | Green | Blue
@@ -45,7 +47,7 @@ method M(c: Color, d: Color) {
 
 // ----- match expressions in top-level positions
 
-function Heat(c: Color): int
+ghost function Heat(c: Color): int
 {
   match c
   case Red => 10
@@ -53,7 +55,7 @@ function Heat(c: Color): int
   case Blue => 14
 }
 
-function IceCream(c: Color): int
+ghost function IceCream(c: Color): int
 {
   match c {
     case Red => 0
@@ -62,7 +64,7 @@ function IceCream(c: Color): int
   }
 }
 
-function Flowers(c: Color, d: Color): int
+ghost function Flowers(c: Color, d: Color): int
 {
   match c {
     case Red =>

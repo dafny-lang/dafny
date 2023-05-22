@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.CommandLine;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -17,12 +16,15 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using MediatR;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
+using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
+
     protected readonly string SlowToVerify = @"
 lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
@@ -47,20 +49,60 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;
+    protected readonly TextWriter output;
 
     public ILanguageServer Server { get; private set; }
 
     public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
 
-    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
+    public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
+    protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
+      return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
+        serviceProvider.GetRequiredService<DafnyOptions>()
+      ));
+    }
 
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
-      [CanBeNull] Action<LanguageServerOptions> serverOptionsAction = null) {
-      var client = CreateClient(clientOptionsAction, serverOptionsAction);
+      Action<DafnyOptions> modifyOptions = null) {
+      var dafnyOptions = DafnyOptions.Create(output);
+      modifyOptions?.Invoke(dafnyOptions);
+
+      void NewServerOptionsAction(LanguageServerOptions options) {
+        ApplyDefaultOptionValues(dafnyOptions);
+
+        ServerCommand.ConfigureDafnyOptionsForServer(dafnyOptions);
+        options.Services.AddSingleton(dafnyOptions);
+        ServerOptionsAction(options);
+      }
+
+      var client = CreateClient(clientOptionsAction, NewServerOptionsAction);
       await client.Initialize(CancellationToken).ConfigureAwait(false);
 
       return client;
+    }
+
+    private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
+      var testCommand = new System.CommandLine.Command("test");
+      foreach (var serverOption in ServerCommand.Instance.Options) {
+        testCommand.AddOption(serverOption);
+      }
+
+      var result = testCommand.Parse("test");
+      foreach (var option in ServerCommand.Instance.Options) {
+        if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
+          var value = result.GetValueForOption(option);
+
+          dafnyOptions.SetUntyped(option, value);
+        }
+
+        dafnyOptions.ApplyBinding(option);
+      }
     }
 
     protected virtual ILanguageClient CreateClient(
@@ -98,12 +140,11 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
       var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
       Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
         options => {
-          var configuration = CreateConfiguration();
           options
             .WithInput(serverPipe.Reader)
             .WithOutput(clientPipe.Writer)
             .ConfigureLogging(SetupTestLogging)
-            .WithDafnyLanguageServer(configuration, () => { });
+            .WithDafnyLanguageServer(() => { });
           serverOptionsAction?.Invoke(options);
         });
       // This is the style used in the LSP implementation itself:
@@ -111,19 +152,18 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 #pragma warning disable VSTHRD110 // Observe result of async calls
       Server.Initialize(CancellationToken);
 #pragma warning restore VSTHRD110 // Observe result of async calls
-      return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
-    }
 
-    protected virtual IConfiguration CreateConfiguration() {
-      var configurationBuilder = new ConfigurationBuilder();
-      return configurationBuilder.Build();
+      Disposable.Add(Server);
+      Disposable.Add((IDisposable)Server.Services); // Testing shows that the services are not disposed automatically when the server is disposed.
+      return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 
     private static void SetupTestLogging(ILoggingBuilder builder) {
       builder
-        .AddConsole()
+        .AddFilter("OmniSharp", LogLevel.Warning)
+        .AddFilter("Microsoft.Dafny", LogLevel.Debug)
         .SetMinimumLevel(LogLevel.Debug)
-        .AddFilter("OmniSharp", LogLevel.Warning);
+        .AddConsole();
     }
 
     protected static TextDocumentItem CreateTestDocument(string source, string filePath = null, int version = 1) {
@@ -158,13 +198,6 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       throw new NotImplementedException();
-    }
-
-    protected async Task WithNoopSolver(Func<Task> action) {
-      var oldProverOptions = DafnyOptions.O.ProverOptions.ToImmutableList();
-      DafnyOptions.O.ProverOptions.Add("SOLVER=noop");
-      await action();
-      DafnyOptions.O.ProverOptions = oldProverOptions.ToList();
     }
   }
 }

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
@@ -8,7 +8,7 @@ module ProtocolImpl {
 
     type ProtoT = bool
 
-    predicate Init(p:ProtoT) { !p }
+    ghost predicate Init(p:ProtoT) { !p }
 
     method orange(i:nat) returns (j:nat)
     {
@@ -24,7 +24,7 @@ module HostImpl {
 
     type HostT = int
 
-    function method foo(h:HostT) : P.ProtoT
+    function foo(h:HostT) : P.ProtoT
     {
         h > 0
     }

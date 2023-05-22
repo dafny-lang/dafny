@@ -5,9 +5,9 @@
 // annotating a quantifier, and that ths process does not interfere with cycle
 // detection.
 
-function f(x: int): int
-function g(x: int): int
-function h(x: int): int
+ghost function f(x: int): int
+ghost function g(x: int): int
+ghost function h(x: int): int
 
 method M()
   // In the following, only f(x) is kept. Note that the subset enumeration was

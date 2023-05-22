@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 Newtypes.dfy(76,44): Error: possible division by zero
 Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint for 'char8'

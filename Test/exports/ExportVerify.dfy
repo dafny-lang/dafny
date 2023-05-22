@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Lib {
@@ -16,7 +16,7 @@ module Lib {
 
   const Ten := 10
 
-  function method Two(): int
+  function Two(): int
     ensures Two() < 10
   { 2 }
 

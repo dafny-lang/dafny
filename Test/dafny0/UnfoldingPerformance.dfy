@@ -1,16 +1,16 @@
-// RUN: %dafny_0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
   var x: nat
-  function method IgnoreFuel(): nat
+  function IgnoreFuel(): nat
     reads this
   {
     x
   }
 }
 
-function method Fib(n: int): int
+function Fib(n: int): int
 {
   if n < 2 then n else Fib(n-2) + Fib(n-1)
 }

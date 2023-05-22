@@ -3,6 +3,7 @@
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -15,7 +16,7 @@ method Main() {
   TestImplicitTypeTests.Test();
 }
 
-function method FourMore(x: int): int { x + 4 }
+function FourMore(x: int): int { x + 4 }
 
 method Quantifier() {
   // Note, by making *two* assignments to "s" (instead of the obvious one), the direct translation
@@ -136,7 +137,7 @@ method SetComprehension2() {
 
 datatype Color = Red | Green | Blue
 
-predicate method True<G>(g: G) { true }
+predicate True<G>(g: G) { true }
 
 method SetComprehension3() {
   var s: set<bool> := {false, true};

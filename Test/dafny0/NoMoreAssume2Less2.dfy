@@ -1,4 +1,4 @@
-// RUN: %dafny_0 "%s" > "%t"
+// RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file tests various ways of writing the equivalent of "assume false;" or "assert false;" inside a loop.
@@ -72,10 +72,10 @@ method M5(n: nat) {
   assert n == 0; // error
 }
 
-predicate P() { true }
-predicate Q() { true }
-predicate R(n: nat) { true }
-predicate False() { false }
+ghost predicate P() { true }
+ghost predicate Q() { true }
+ghost predicate R(n: nat) { true }
+ghost predicate False() { false }
 
 method Conjuncts0(n: nat) {
   var i := 0;

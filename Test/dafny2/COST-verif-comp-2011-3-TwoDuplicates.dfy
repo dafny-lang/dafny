@@ -58,13 +58,13 @@ You may assume that the array contains values between 0 and n-1.
 // verifies and compiles the program (for this program in less than 11 seconds)
 // without further human intervention.
 
-predicate IsDuplicate(a: array<int>, p: int)
+ghost predicate IsDuplicate(a: array<int>, p: int)
   reads a
 {
   IsPrefixDuplicate(a, a.Length, p)
 }
 
-predicate IsPrefixDuplicate(a: array<int>, k: int, p: int)
+ghost predicate IsPrefixDuplicate(a: array<int>, k: int, p: int)
   requires 0 <= k <= a.Length;
   reads a;
 {

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NewSyntax {
@@ -25,7 +25,7 @@ module NewSyntax {
 
   // regression test (for a previous bug in the Translator.Substituter):
   datatype Dt = Ctor(x: int, y: bool)
-  function F(d: Dt): Dt
+  ghost function F(d: Dt): Dt
   {
     d.(x := 5)
   }

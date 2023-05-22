@@ -5,7 +5,7 @@ module SimpleBDD
 {
   class BDDNode
   {
-    static predicate bitfunc(f: map<seq<bool>, bool>, n: nat)
+    static ghost predicate bitfunc(f: map<seq<bool>, bool>, n: nat)
     {
        forall i:seq<bool> :: i in f <==> |i| == n
     }
@@ -14,7 +14,7 @@ module SimpleBDD
     ghost var n: nat
     var f: BDDNode?, t: BDDNode?
     var b: bool
-    predicate valid()
+    ghost predicate valid()
       reads this, Repr
     {
       bitfunc(Contents,n) &&
@@ -33,7 +33,7 @@ module SimpleBDD
   class BDD
   {
     var root: BDDNode
-    predicate valid()
+    ghost predicate valid()
       reads this, Repr
     {
       root in Repr && root.Repr <= Repr && root.valid() &&

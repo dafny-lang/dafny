@@ -8,7 +8,7 @@ TailCalls.dfy(171,13): Error: to be tail recursive, every use of this function m
 TailCalls.dfy(174,6): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
 TailCalls.dfy(178,13): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
 TailCalls.dfy(181,6): Error: to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call
-TailCalls.dfy(188,26): Error: tail recursion can be specified only for function that will be compiled, not for ghost functions
+TailCalls.dfy(188,32): Error: tail recursion can be specified only for function that will be compiled, not for ghost functions
 TailCalls.dfy(195,30): Error: tail recursion can be specified only for methods that will be compiled, not for ghost methods
 TailCalls.dfy(229,7): Error: if-then-else branches have different accumulator needs for tail recursion
 TailCalls.dfy(261,2): Error: if-then-else branches have different accumulator needs for tail recursion

@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
 // RUN: %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -57,7 +57,7 @@ method CalcTest2(x: int, y: int) {
 }
 
 // calc expression:
-function CalcTest3(s: seq<int>): int {
+ghost function CalcTest3(s: seq<int>): int {
   calc < {
     0;
     { assume |s| == 5; }

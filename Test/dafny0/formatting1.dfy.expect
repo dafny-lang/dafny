@@ -1,0 +1,58 @@
+// RUN: %baredafny format --use-basename-for-filename --print --verbose=true "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" > "%t"
+// RUN: %baredafny format --use-basename-for-filename --print --verbose=false "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
+module A {
+  class B {
+    method C(x: Included.X)
+      requires x.Z?
+    {
+      assert true;
+    }
+  }
+}
+// RUN: echo 'lit should ignore this file'
+
+module A {
+  class B {
+    method C(x: Included.X)
+      requires x.Z?
+    {
+      assert true;
+    }
+  }
+}
+formatting1-3.dfy(1,0): Warning: File contains no code
+// RUN: echo 'lit should ignore this file' 
+
+1 file needs formatting.
+1 file was empty:
+  formatting1-3.dfy
+1 file was already formatted.
+// RUN: %baredafny format --use-basename-for-filename --print --verbose=true "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" > "%t"
+// RUN: %baredafny format --use-basename-for-filename --print --verbose=false "%s" "%S/formatting1-2.dfy" "%S/formatting1-3.dfy" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
+module A {
+  class B {
+    method C(x: Included.X)
+      requires x.Z?
+    {
+      assert true;
+    }
+  }
+}
+// RUN: echo 'lit should ignore this file'
+
+module A {
+  class B {
+    method C(x: Included.X)
+      requires x.Z?
+    {
+      assert true;
+    }
+  }
+}
+formatting1-3.dfy(1,0): Warning: File contains no code
+// RUN: echo 'lit should ignore this file' 
+

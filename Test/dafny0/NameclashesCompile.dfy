@@ -31,7 +31,7 @@ codatatype NameclashCo = CoCtor(x: int)
 {
   const c: int := 94
   const d: int := 99
-  function method Computer(): real { 0.8 }
+  function Computer(): real { 0.8 }
   method Get() returns (u: int) { return 79; }
   method ToString() returns (o: real) { return 14.3; }
   method GetHashCode() returns (o: real) { return 14.4; }
