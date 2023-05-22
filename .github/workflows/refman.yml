@@ -40,7 +40,6 @@ jobs:
       run: dotnet build dafny/Source/Dafny.sln
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
-      uses: actions/checkout@v2
       uses: xu-cheng/texlive-action/full@v1
       run: |
         apk add make
