@@ -1565,11 +1565,13 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
+     List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out name>
+  [ ExtendsClause<parentTraits, out _, "newtype"> ]
   (
   "="
   [ ellipsis                               (. SemErr(ErrorId.p_misplaced_ellipsis_in_newtype, t, // Help users adjust to the new syntax
@@ -1595,16 +1597,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
          new BoundVar(bvId, bvId.val, baseType){ 
             IsTypeExplicit = true 
          }, 
-         constraint, witnessKind, witness, members, attrs, isRefining: false);
+         constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: false); .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 

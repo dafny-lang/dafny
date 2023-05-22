@@ -295,6 +295,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());
+          PrintExtendsClause(dd);
           wr.Write(" = ");
           if (dd.Var == null) {
             PrintType(dd.BaseType);

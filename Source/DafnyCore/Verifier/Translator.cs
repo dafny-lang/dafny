@@ -7292,11 +7292,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Boogie.Expr BoxifyForTraitParent(IToken tok, Boogie.Expr obj, MemberDecl member, Type fromType) {
+    public Boogie.Expr BoxifyForTraitParent(Bpl.IToken tok, Boogie.Expr obj, MemberDecl member, Type fromType) {
       return BoxifyForTraitParent(tok, obj, member.EnclosingClass, fromType);
     }
 
-    public Boogie.Expr BoxifyForTraitParent(IToken tok, Boogie.Expr obj, TopLevelDecl topLevelDecl, Type fromType) {
+    public Boogie.Expr BoxifyForTraitParent(Bpl.IToken tok, Boogie.Expr obj, TopLevelDecl topLevelDecl, Type fromType) {
       if (topLevelDecl is TraitDecl { IsReferenceTypeDecl: false }) {
         return BoxIfNecessary(tok, obj, fromType);
       }
@@ -9179,6 +9179,8 @@ namespace Microsoft.Dafny {
         cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
       } else if (ModeledAsBoxType(sourceType)) {
         cre = MkIs(bSource, TypeToTy(targetType), true);
+      } else if (targetType is UserDefinedType targetUdt) {
+        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType);
       } else {
         cre = MkIs(bSource, targetType);
       }

@@ -4,9 +4,12 @@
 module Tests {
   trait Parent { }
 
+  class Class extends Parent { }
   datatype Dt extends Parent = Blue | Red
-
+  codatatype CoDt extends Parent = InfiniteBlue | InfiniteRed
   type Abstract extends Parent
+  newtype MyInt extends Parent = int
+  newtype MyConstrainedInt extends Parent = x | 0 <= x < 10
 
   method M(d: Dt, a: Abstract) {
     var p: Parent;
@@ -16,21 +19,35 @@ module Tests {
 }
 
 module BadObjectExtensions {
-  trait RefParent extends object { }
-  datatype RefDt extends RefParent = Grey | Orange // error: datatype cannot extend object
-  type RefAbstract extends RefParent // error: abstract type cannot extend object
+  trait Parent extends object { }
+  class Class extends Parent { }
+  datatype RefDt extends Parent = Grey | Orange // error: datatype cannot extend object
+  codatatype CoDt extends Parent = InfiniteBlue | InfiniteRed // error: datatype cannot extend object
+  type RefAbstract extends Parent // error: abstract type cannot extend object
+  newtype MyInt extends Parent = int // error: abstract type cannot extend object
+  newtype MyConstrainedInt extends Parent = x | 0 <= x < 10 // error: abstract type cannot extend object
 }
 
 module ExportThings {
-  export ProvideThem
-    provides Class, Trait
-    provides TraitSub, AnotherClass
+  export Revealthem
+    reveals Trait, Class, Dt, CoDt, Abstract, MyInt, MyConstrainedInt
+    reveals TraitSub, AnotherClass
+    reveals ProvidedAbstractType
+    reveals RevealedAbstractType
+  export ProvideThem // error: inconsistent export set
+    provides Trait, Class, Dt, CoDt, Abstract, MyInt, MyConstrainedInt
+    provides  TraitSub, AnotherClass
     provides ProvidedAbstractType
     reveals RevealedAbstractType
 
-  trait {:termination false} Trait { }
+  trait Trait { }
 
   class Class extends Trait { }
+  datatype Dt extends Trait = Grey | Orange
+  codatatype CoDt extends Trait = InfiniteBlue | InfiniteRed
+  type Abstract extends Trait
+  newtype MyInt extends Trait = int
+  newtype MyConstrainedInt extends Trait = x | 0 <= x < 10
 
   trait TraitSub extends Trait { }
   class AnotherClass extends TraitSub { }

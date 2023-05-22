@@ -4,34 +4,65 @@
 module Tests {
   trait Parent { }
 
+  class Class extends Parent { }
   datatype Dt extends Parent = Blue | Red
-
+  codatatype CoDt extends Parent = InfiniteBlue | InfiniteRed
   type Abstract extends Parent
+  newtype MyInt extends Parent = int
+  newtype MyConstrainedInt extends Parent = x | 0 <= x < 10
 
-  method M(d: Dt, a: Abstract) {
+  method M(c: Class, d: Dt, co: CoDt, a: Abstract, mi: MyInt, mc: MyConstrainedInt) {
     var p: Parent;
+    p := c;
     p := d;
+    p := co;
     p := a;
+    p := mi;
+    p := mc;
   }
 
   method N(p: Parent) {
     if
     case true =>
-      var d: Dt;
-      d := p as Dt; // error: perhaps p isn't a Dt
+      var x: Class;
+      x := p as Class; // error
     case true =>
-      var a: Abstract;
-      a := p as Abstract; // error: perhaps p isn't an Abstract
-  }
+      var x: Dt;
+      x := p as Dt; // error
+    case true =>
+      var x: CoDt;
+      x := p as CoDt; // error
+    case true =>
+      var x: Abstract;
+      x := p as Abstract; // error
+/*    case true =>
+      var x: MyInt;
+      x := p as MyInt; // error
+    case true =>
+      var x: MyConstrainedInt;
+      x := p as MyConstrainedInt; // error
+*/  }
 
   method P(p: Parent) {
     if
+    case p is Class =>
+      var x: Class;
+      x := p as Class;
     case p is Dt =>
-      var d: Dt;
-      d := p as Dt;
+      var x: Dt;
+      x := p as Dt;
+    case p is CoDt =>
+      var x: CoDt;
+      x := p as CoDt;
     case p is Abstract =>
-      var a: Abstract;
-      a := p as Abstract;
-    case true =>
+      var x: Abstract;
+      x := p as Abstract;
+/*    case p is MyInt =>
+      var x: MyInt;
+      x := p as MyInt;
+    case p is MyConstrainedInt =>
+      var x: MyConstrainedInt;
+      x := p as MyConstrainedInt;
+*/    case true =>
   }
 }

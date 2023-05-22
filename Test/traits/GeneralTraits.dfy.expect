@@ -1,5 +1,8 @@
-GeneralTraits.dfy(20,25): Error: datatype is not allowed to extend 'RefParent', because it is a reference type
-GeneralTraits.dfy(21,27): Error: abstract type is not allowed to extend 'RefParent', because it is a reference type
-GeneralTraits.dfy(39,36): Error: Raised while checking export set ProvideThem: a abstract type can only extend traits (found 'Trait')
-GeneralTraits.dfy(25,9): Error: This export set is not consistent: ProvideThem
-4 resolution/type errors detected in GeneralTraits.dfy
+GeneralTraits.dfy(24,25): Error: datatype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(25,26): Error: codatatype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(26,27): Error: abstract type is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(27,24): Error: newtype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(28,35): Error: newtype is not allowed to extend 'Parent', because it is a reference type
+GeneralTraits.dfy(56,36): Error: Raised while checking export set ProvideThem: a abstract type can only extend traits (found 'Trait')
+GeneralTraits.dfy(37,9): Error: This export set is not consistent: ProvideThem
+7 resolution/type errors detected in GeneralTraits.dfy
