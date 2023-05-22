@@ -3006,26 +3006,27 @@ namespace Microsoft.Dafny.Compilers {
         if (resolved.Count == 1) {
           TrStmt(resolved[0], wr);
         } else {
-          var assignStmts = resolved.Cast<AssignStmt>().ToList();
-          var lhss = assignStmts.Select(a => a.Lhs).ToList();
-          var rhss = assignStmts.Select(a => a.Rhs).ToList();
+          var assignStmts = resolved.Cast<AssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
+          var lhss = new List<Expression>();
+          var rhss = new List<AssignmentRhs>();
 
           // multi-assignment
           Contract.Assert(s.Lhss.Count == resolved.Count);
           Contract.Assert(s.Rhss.Count == resolved.Count);
           var lhsTypes = new List<Type>();
           var rhsTypes = new List<Type>();
-          for (int i = 0; i < resolved.Count; i++) {
-            if (!resolved[i].IsGhost) {
-              var rhs = rhss[i];
-              if (rhs is HavocRhs) {
-                if (Options.ForbidNondeterminism) {
-                  Error(ErrorId.c_nondeterminism_forbidden, rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
-                }
-              } else {
-                lhsTypes.Add(lhss[i].Type);
-                rhsTypes.Add(TypeOfRhs(rhs));
+          foreach (var assignStmt in assignStmts) {
+            var rhs = assignStmt.Rhs;
+            if (rhs is HavocRhs) {
+              if (Options.ForbidNondeterminism) {
+                Error(ErrorId.c_nondeterminism_forbidden, rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
               }
+            } else {
+              var lhs = assignStmt.Lhs;
+              rhss.Add(rhs);
+              lhss.Add(lhs);
+              lhsTypes.Add(lhs.Type);
+              rhsTypes.Add(TypeOfRhs(rhs));
             }
           }
 
