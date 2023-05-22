@@ -70,7 +70,7 @@ namespace XUnitExtensions.Lit {
         } else if (c == '"' && !singleQuoted) {
           doubleQuoted = !doubleQuoted;
         } else if (Char.IsWhiteSpace(c) && !(singleQuoted || doubleQuoted)) {
-          if (inProgressArgument.Length != 0) {
+          {
             result.Add(new Token(inProgressArgument.ToString(), kind));
 
             inProgressArgument.Clear();
