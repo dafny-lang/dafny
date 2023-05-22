@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
@@ -10,6 +11,7 @@ using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -54,6 +56,7 @@ public class DocumentManager {
       document);
     Compilation = new Compilation(
       services,
+      DetermineDocumentOptions(options, document.Uri),
       document,
       null);
 
@@ -104,8 +107,11 @@ public class DocumentManager {
             relocator.RelocateRange(range, documentChange, CancellationToken.None))).
           Where(r => r != null).Take(MaxRememberedChanges).ToList()!;
     }
+
+    var dafnyOptions = DetermineDocumentOptions(options, documentChange.TextDocument.Uri);
     Compilation = new Compilation(
       services,
+      dafnyOptions,
       updatedText,
       // TODO do not pass this to CompilationManager but instead use it in FillMissingStateUsingLastPublishedDocument
       migratedVerificationTree
@@ -125,6 +131,40 @@ public class DocumentManager {
     logger.LogDebug($"Finished processing document update for version {documentChange.TextDocument.Version}");
 
     Compilation.Start();
+  }
+
+  private static DafnyOptions DetermineDocumentOptions(DafnyOptions serverOptions, DocumentUri uri) {
+    ProjectFile? projectFile = null;
+
+    var folder = Path.GetDirectoryName(uri.GetFileSystemPath());
+    while (!string.IsNullOrEmpty(folder)) {
+      var children = Directory.GetFiles(folder, "dfyconfig.toml");
+      if (children.Length > 0) {
+        var errorWriter = TextWriter.Null;
+        projectFile = ProjectFile.Open(new Uri(children[0]), errorWriter);
+        if (projectFile != null) {
+          break;
+        }
+      }
+      folder = Path.GetDirectoryName(folder);
+    }
+
+    if (projectFile != null) {
+      var result = new DafnyOptions(serverOptions);
+
+      foreach (var option in ServerCommand.Instance.Options) {
+        object? projectFileValue = null;
+        var hasProjectFileValue = projectFile?.TryGetValue(option, TextWriter.Null, out projectFileValue) ?? false;
+        if (hasProjectFileValue) {
+          result.Options.OptionArguments[option] = projectFileValue;
+          result.ApplyBinding(option);
+        }
+      }
+
+      return result;
+    }
+
+    return serverOptions;
   }
 
   private Dictionary<ImplementationId, IdeImplementationView> MigrateImplementationViews(DidChangeTextDocumentParams documentChange,

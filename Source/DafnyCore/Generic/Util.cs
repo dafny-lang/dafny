@@ -483,11 +483,11 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
         foreach (var callee in vertex.Successors) {
-          Console.Write("{0} ", callee.N.SanitizedName);
+          program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
         }
-        Console.Write("\n");
+        program.Options.OutputWriter.Write("\n");
       }
     }
 
@@ -514,8 +514,7 @@ namespace Microsoft.Dafny {
     /// Generic statistic counter
     /// </summary>
     static void IncrementStat(IDictionary<string, ulong> stats, string stat) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         stats[stat] += 1;
       } else {
         stats.Add(stat, 1);
@@ -526,8 +525,7 @@ namespace Microsoft.Dafny {
     /// Track the maximum value of some statistic
     /// </summary>
     static void UpdateMax(IDictionary<string, ulong> stats, string stat, ulong val) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         if (val > currentValue) {
           stats[stat] = val;
         }
@@ -581,9 +579,9 @@ namespace Microsoft.Dafny {
       }
 
       // Print out the results, with some nice formatting
-      Console.WriteLine("");
-      Console.WriteLine("Statistics");
-      Console.WriteLine("----------");
+      program.Options.OutputWriter.WriteLine("");
+      program.Options.OutputWriter.WriteLine("Statistics");
+      program.Options.OutputWriter.WriteLine("----------");
 
       int max_key_length = 0;
       foreach (var key in stats.Keys) {
@@ -594,7 +592,7 @@ namespace Microsoft.Dafny {
 
       foreach (var keypair in stats) {
         string keyString = keypair.Key.PadRight(max_key_length + 2);
-        Console.WriteLine("{0} {1,4}", keyString, keypair.Value);
+        program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
       }
     }
   }
@@ -608,7 +606,7 @@ namespace Microsoft.Dafny {
 
     public void AddInclude(Include include) {
       SortedSet<string> existingDependencies = null;
-      string key = include.IncluderFilename ?? "roots";
+      string key = include.IncluderFilename.LocalPath ?? "roots";
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
         existingDependencies.Add(include.CanonicalPath);
@@ -625,20 +623,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMap() {
+    public void PrintMap(DafnyOptions options) {
       SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
       foreach (string target in dependencies.Keys) {
-        System.Console.Write(target);
+        options.OutputWriter.Write(target);
         foreach (string dependency in dependencies[target]) {
-          System.Console.Write(";" + dependency);
+          options.OutputWriter.Write(";" + dependency);
           if (!dependencies.ContainsKey(dependency)) {
             leaves.Add(dependency);
           }
         }
-        System.Console.WriteLine();
+        options.OutputWriter.WriteLine();
       }
       foreach (string leaf in leaves) {
-        System.Console.WriteLine(leaf);
+        options.OutputWriter.WriteLine(leaf);
       }
     }
   }
@@ -775,7 +773,7 @@ namespace Microsoft.Dafny {
       var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
-        // ClassDecl, DatatypeDecl, OpaqueTypeDecl, NewtypeDecl 
+        // ClassDecl, DatatypeDecl, AbstractTypeDecl, NewtypeDecl 
         if (tdm.Members.Any(memberDecl => Traverse(memberDecl, "Members", tdm))) {
           return true;
         }

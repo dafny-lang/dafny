@@ -238,7 +238,8 @@ class MultiSet(Counter):
     def __dafnystr__(self) -> str:
         return 'multiset{' + ', '.join(map(string_of, self.elements())) + '}'
 
-    def __len__(self):
+    @property
+    def cardinality(self):
         return reduce(lambda acc, key: acc + self[key], self, 0)
 
     def union(self, other):
@@ -272,7 +273,7 @@ class MultiSet(Counter):
         return all(self[key] <= other[key] for key in frozenset(self).union(frozenset(other)))
 
     def ispropersubset(self, other):
-        return self.issubset(other) and len(self) < len(other)
+        return self.issubset(other) and self.cardinality < other.cardinality
 
     def set(self, key, value):
         set = Counter(self)
@@ -284,6 +285,9 @@ class MultiSet(Counter):
 
     def __eq__(self, other):
         return all(self[key] == other[key] for key in self.keys | other.keys)
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def __setattr__(self, key, value):
         raise TypeError("'Map' object is immutable")

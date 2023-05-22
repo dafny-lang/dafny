@@ -1,7 +1,7 @@
 using System.IO;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class ExitCommand : ILitCommand {
   private readonly int expectedExitCode;
@@ -12,8 +12,9 @@ public class ExitCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-    var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+  public (int, string, string) Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
+    var (exitCode, output, error) = operand.Execute(inputReader, outputWriter, errorWriter);
     if (exitCode == expectedExitCode) {
       return (0, output, error);
     } else {

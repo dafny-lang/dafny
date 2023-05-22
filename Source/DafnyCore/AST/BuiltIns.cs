@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class BuiltIns {
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, new Name("_System"), new List<IToken>(), false, false, null, null, null, true, true, true);
-  readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
+  internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
   public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -109,61 +109,70 @@ public class BuiltIns {
   /// </summary>
   public void CreateArrowTypeDecl(int arity) {
     Contract.Requires(0 <= arity);
-    if (!ArrowTypeDecls.ContainsKey(arity)) {
-      IToken tok = Token.NoToken;
-      var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
-      var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+    if (ArrowTypeDecls.ContainsKey(arity)) {
+      // The work has already been done.
+      return;
+    }
+
+    IToken tok = Token.NoToken;
+    var tps = Util.Map(Enumerable.Range(0, arity + 1),
+      x => x < arity
+        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+    var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+
+    Function createMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
-            (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
+        (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var req = new Function(RangeToken.NoToken, new Name("requires"), false, true, false,
-        new List<TypeParameter>(), args, null, Type.Bool,
+      var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
+        new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),
         null, null, null, null, null);
-      var reads = new Function(RangeToken.NoToken, new Name("reads"), false, true, false,
-        new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
-        new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null),
-        null, null, null, null, null);
-      readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
-      readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
-      readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
-      var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
-      ArrowTypeDecls.Add(arity, arrowDecl);
-      SystemModule.TopLevelDecls.Add(arrowDecl);
-
-      // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
-      tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
-      tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-      var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
-      var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
-        new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
-      PartialArrowTypeDecls.Add(arity, partialArrow);
-      SystemModule.TopLevelDecls.Add(partialArrow);
-
-      // declaration of total arrow-type
-
-      tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-        new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance) :
-        new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
-      tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-      id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
-      var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
-        new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
-        id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
-      TotalArrowTypeDecls.Add(arity, totalArrow);
-      SystemModule.TopLevelDecls.Add(totalArrow);
+      readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved
+      readsIS.TypeApplication_AtEnclosingClass = tys; // ditto
+      readsIS.TypeApplication_JustFunction = new List<Type>(); // ditto
+      return function;
     }
+
+    var reads = createMember("reads", new SetType(true, ObjectQ()), null);
+    var req = createMember("requires", Type.Bool, reads);
+
+    var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
+    ArrowTypeDecls.Add(arity, arrowDecl);
+    SystemModule.TopLevelDecls.Add(arrowDecl);
+
+    // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
+    tps = Util.Map(Enumerable.Range(0, arity + 1),
+      x => x < arity
+        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+    tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+    var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
+    var partialArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.PartialArrowTypeName(arity)),
+      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
+    PartialArrowTypeDecls.Add(arity, partialArrow);
+    SystemModule.TopLevelDecls.Add(partialArrow);
+
+    // declaration of total arrow-type
+
+    tps = Util.Map(Enumerable.Range(0, arity + 1),
+      x => x < arity
+        ? new TypeParameter(RangeToken.NoToken, new Name("T" + x), TypeParameter.TPVarianceSyntax.Contravariance)
+        : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
+    tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
+    id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
+    var totalArrow = new SubsetTypeDecl(RangeToken.NoToken, new Name(ArrowType.TotalArrowTypeName(arity)),
+      new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
+      id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
+    TotalArrowTypeDecls.Add(arity, totalArrow);
+    SystemModule.TopLevelDecls.Add(totalArrow);
   }
 
   /// <summary>

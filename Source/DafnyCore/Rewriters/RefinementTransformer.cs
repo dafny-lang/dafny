@@ -60,10 +60,7 @@ namespace Microsoft.Dafny {
       return rtok != null && rtok.InheritingModule == m;
     }
 
-    public override string Filename {
-      get => WrappedToken.Filename + "[" + InheritingModule.Name + "]";
-      set => throw new NotSupportedException();
-    }
+    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
   }
 
   /// <summary>
@@ -73,7 +70,7 @@ namespace Microsoft.Dafny {
   /// there are four kinds of transformations.
   /// 
   ///   0. "Y" can fill in some definitions that "X" omitted. For example, if "X" defines
-  ///      an opaque type "type T", then "Y" can define "T" to be a particular type, like
+  ///      an abstract type "type T", then "Y" can define "T" to be a particular type, like
   ///      "type T = int". As another example, if "X" omits the body of a function, then
   ///      "Y" can give it a body.
   /// 
@@ -235,13 +232,12 @@ namespace Microsoft.Dafny {
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
       foreach (var d in prev.TopLevelDecls) {
-        int index;
         processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out index)) {
+        if (!declaredNames.TryGetValue(d.Name, out var index)) {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d.Name == "_default" || nw.IsRefining || d is OpaqueTypeDecl) {
+          if (d.Name == "_default" || nw.IsRefining || d is AbstractTypeDecl) {
             MergeTopLevelDecls(m, nw, d, index);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
@@ -257,8 +253,7 @@ namespace Microsoft.Dafny {
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
-        int index;
-        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out index)) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var index)) {
           // if it is redefined, we need to merge them.
           var nw = m.TopLevelDecls[index];
           MergeTopLevelDecls(m, nw, d, index);
@@ -302,7 +297,7 @@ namespace Microsoft.Dafny {
     }
 
     private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
-      var commonMsg = "a {0} declaration ({1}) in a refinement module can only refine a {0} declaration or replace an opaque type declaration";
+      var commonMsg = "a {0} declaration ({1}) in a refinement module can only refine a {0} declaration or replace an abstract type declaration";
 
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
@@ -321,18 +316,18 @@ namespace Microsoft.Dafny {
             Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
           }
         }
-      } else if (d is OpaqueTypeDecl) {
+      } else if (d is AbstractTypeDecl) {
         if (nw is ModuleDecl) {
           Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
-          var od = (OpaqueTypeDecl)d;
-          if (nw is OpaqueTypeDecl) {
-            if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
+          var od = (AbstractTypeDecl)d;
+          if (nw is AbstractTypeDecl) {
+            if (od.SupportsEquality != ((AbstractTypeDecl)nw).SupportsEquality) {
               Reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
+            if (od.Characteristics.HasCompiledValue != ((AbstractTypeDecl)nw).Characteristics.HasCompiledValue) {
               Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
-            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+            } else if (od.Characteristics.IsNonempty != ((AbstractTypeDecl)nw).Characteristics.IsNonempty) {
               Reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
@@ -348,7 +343,7 @@ namespace Microsoft.Dafny {
                 var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
                 postTasks.Enqueue(() => {
                   if (!udt.SupportsEquality) {
-                    Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an opaque type with equality support", udt.Name);
+                    Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support equality, is used to refine an abstract type with equality support", udt.Name);
                   }
                 });
               }
@@ -359,7 +354,7 @@ namespace Microsoft.Dafny {
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.HasCompilableValue) {
-                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
+                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization", udt.Name);
                 }
               });
             } else if (od.Characteristics.IsNonempty) {
@@ -368,7 +363,7 @@ namespace Microsoft.Dafny {
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.IsNonempty) {
-                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
+                  Reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an abstract type expected to be nonempty", udt.Name);
                 }
               });
             }
@@ -377,15 +372,15 @@ namespace Microsoft.Dafny {
             m.TopLevelDecls[index] = MergeClass((TopLevelDeclWithMembers)nw, od);
           } else if (od.Members.Count != 0) {
             Reporter.Error(MessageSource.RefinementTransformer, nw,
-              "a {0} ({1}) cannot declare members, so it cannot refine an opaque type with members",
+              "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
               nw.WhatKind, nw.Name);
           } else {
             CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
           }
         }
-      } else if (nw is OpaqueTypeDecl) {
+      } else if (nw is AbstractTypeDecl) {
         Reporter.Error(MessageSource.RefinementTransformer, nw,
-          "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
+          "an abstract type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if ((d is IndDatatypeDecl && nw is IndDatatypeDecl) || (d is CoDatatypeDecl && nw is CoDatatypeDecl)) {
         var (dd, nwd) = ((DatatypeDecl)d, (DatatypeDecl)nw);
         Contract.Assert(!nwd.Ctors.Any());
@@ -731,8 +726,7 @@ namespace Microsoft.Dafny {
 
       // Merge the declarations of prev into the declarations of m
       foreach (var member in prev.Members) {
-        int index;
-        if (!declaredNames.TryGetValue(member.Name, out index)) {
+        if (!declaredNames.TryGetValue(member.Name, out var index)) {
           var nwMember = refinementCloner.CloneMember(member, false);
           nwMember.RefinementBase = member;
           nw.Members.Add(nwMember);
@@ -1003,8 +997,7 @@ namespace Microsoft.Dafny {
       if (skeleton is DividedBlockStmt) {
         var sbsSkeleton = (DividedBlockStmt)skeleton;
         var sbsOldStmt = (DividedBlockStmt)oldStmt;
-        string hoverText;
-        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out hoverText);
+        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
         }
@@ -1014,8 +1007,7 @@ namespace Microsoft.Dafny {
         }
         return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
-        string hoverText;
-        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
+        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
         }

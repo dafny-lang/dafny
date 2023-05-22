@@ -4,7 +4,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
-    public object Node { get; }
+    public INode Node { get; }
     public readonly IToken BodyStartToken;
     public readonly IToken BodyEndToken;
     public List<ISymbol> Symbols { get; } = new();

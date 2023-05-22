@@ -108,6 +108,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
     readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
     readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
+    readonly Dictionary<Function, Bpl.Expr> functionReveals = new();
     readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string, Constant>();
@@ -168,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (d.tok is IncludeToken && !options.VerifyAllModules) {
+      if (!options.VerifyAllModules && d.tok.WasIncluded(program)) {
         return false;
       }
 
@@ -433,7 +434,7 @@ namespace Microsoft.Dafny {
     PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
       if (prog.Resolve(options) != 0) {
-        Console.WriteLine("Error: resolution errors encountered in Dafny prelude");
+        options.OutputWriter.WriteLine("Error: resolution errors encountered in Dafny prelude");
         return null;
       }
 
@@ -576,85 +577,85 @@ namespace Microsoft.Dafny {
         }
       }
       if (seqTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Set");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Set");
       } else if (isetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
       } else if (mapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Map");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Map");
       } else if (imapTypeCtor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (ORDINAL_isLimit == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
       } else if (ORDINAL_offset == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
       } else if (ORDINAL_isNat == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
       } else if (mapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
       } else if (imapDomain == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
       } else if (mapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
       } else if (imapValues == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
       } else if (mapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
       } else if (imapItems == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
       } else if (tuple2Constructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Field");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Field");
       } else if (classNameType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
       } else if (tyTagFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
       } else if (handleType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
       } else if (layerType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
       } else if (dtCtorId == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
       } else if (charType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type char");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type char");
       } else if (refType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type Box");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Box");
       } else if (tickType == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TickType");
       } else if (heap == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
       } else if (objectTypeConstructor == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
         return new PredefinedDecls(charType, refType, boxType, tickType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
@@ -682,7 +683,6 @@ namespace Microsoft.Dafny {
         preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
       }
 
-      Bpl.Program prelude;
       var defines = new List<string>();
       if (6 <= options.ArithMode) {
         defines.Add("ARITH_DISTR");
@@ -700,7 +700,7 @@ namespace Microsoft.Dafny {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
-      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
+      int errorCount = BplParser.Parse(preludePath, defines, out var prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
@@ -754,8 +754,8 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
-        if (d is OpaqueTypeDecl) {
-          var dd = (OpaqueTypeDecl)d;
+        if (d is AbstractTypeDecl) {
+          var dd = (AbstractTypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
@@ -795,8 +795,8 @@ namespace Microsoft.Dafny {
       foreach (ModuleDefinition m in mods) {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
-          if (d is OpaqueTypeDecl) {
-            var dd = (OpaqueTypeDecl)d;
+          if (d is AbstractTypeDecl) {
+            var dd = (AbstractTypeDecl)d;
             AddTypeDecl(dd);
             AddClassMembers(dd, true, true);
           } else if (d is ModuleDecl) {
@@ -1063,10 +1063,25 @@ namespace Microsoft.Dafny {
                   Bpl.Expr startFuelAssert_expr = new Bpl.IdentifierExpr(f.tok, startFuelAssert);
                   this.functionFuel.Add(new FuelConstant(f, baseFuel_expr, startFuel_expr, startFuelAssert_expr));
                 }
+
+                if (f.IsOpaque) {
+                  CreateRevealableConstant(f);
+                }
               }
             }
           }
         }
+      }
+    }
+
+    private void CreateRevealableConstant(Function f) {
+      if (!this.functionReveals.ContainsKey(f)) {
+        // const reveal_FunctionA : bool
+        Bpl.Constant revealTrigger =
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
+        sink.AddTopLevelDeclaration(revealTrigger);
+        Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
+        this.functionReveals[f] = revealTrigger_expr;
       }
     }
 
@@ -1196,9 +1211,9 @@ namespace Microsoft.Dafny {
       abstractTypes.Add(nm);
     }
 
-    void AddTypeDecl(OpaqueTypeDecl td) {
+    void AddTypeDecl(AbstractTypeDecl td) {
       Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, nameTypeParam(td), td.TypeArgs, td.Characteristics);
+      AddTypeDecl_Aux(td.tok, NameTypeParam(td), td.TypeArgs, td.Characteristics);
     }
 
 
@@ -1651,7 +1666,7 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
       AddVerboseName(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
@@ -2090,6 +2105,14 @@ namespace Microsoft.Dafny {
         layer = null;
       }
 
+      Bpl.BoundVariable reveal;
+      if (f.IsOpaque) {
+        reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(reveal);
+      } else {
+        reveal = null;
+      }
+
       Bpl.Expr ante = Bpl.Expr.True;
       Bpl.Expr anteIsAlloc = Bpl.Expr.True;
       if (f is TwoStateFunction) {
@@ -2164,6 +2187,10 @@ namespace Microsoft.Dafny {
          */
         if (layer != null) {
           funcArgs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+        }
+
+        if (reveal != null) {
+          funcArgs.Add(new Bpl.IdentifierExpr(f.tok, reveal));
         }
 
         funcArgs.AddRange(args);
@@ -2385,6 +2412,7 @@ namespace Microsoft.Dafny {
       var reqFuncArguments = new List<Bpl.Expr>(tyargs);
 
       Bpl.BoundVariable layer;
+      Bpl.BoundVariable reveal;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         forallFormals.Add(layer);
@@ -2393,6 +2421,15 @@ namespace Microsoft.Dafny {
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
       } else {
         layer = null;
+      }
+
+      if (f.IsOpaque) {
+        reveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        //funcFormals.Add(reveal);
+        //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, reveal));
+        // Note, "reveal" is not added to "args" here; rather, that's done below, as needed
+      } else {
+        reveal = null;
       }
 
       Bpl.Expr ante = Bpl.Expr.True;
@@ -2558,6 +2595,10 @@ namespace Microsoft.Dafny {
           //} else {
           //  funcArgs.Add(ly);
           //}
+        }
+
+        if (reveal != null) {
+          funcArgs.Add(new Bpl.LiteralExpr(f.tok, true));
         }
 
         funcArgs.AddRange(args);
@@ -2835,6 +2876,13 @@ namespace Microsoft.Dafny {
       var s = new Bpl.IdentifierExpr(f.tok, bv);
       args1.Add(FunctionCall(f.tok, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
+      if (f.IsOpaque) {
+        var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
@@ -2899,6 +2947,14 @@ namespace Microsoft.Dafny {
       args2.Add(FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.tok, "$LZ", predef.LayerType)); // $LZ
+      if (f.IsOpaque) {
+        var bvReveal = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool));
+        formals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.tok, bvReveal);
+        args2.Add(sReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
@@ -2972,8 +3028,7 @@ namespace Microsoft.Dafny {
       var tok = pp.tok;
       var etran = new ExpressionTranslator(this, predef, tok);
 
-      List<Bpl.Expr> tyexprs;
-      var tyvars = MkTyParamBinders(GetTypeParams(pp), out tyexprs);
+      var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
       var bvs = new List<Variable>(tyvars);
       var coArgs = new List<Bpl.Expr>(tyexprs);
@@ -3183,6 +3238,7 @@ namespace Microsoft.Dafny {
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
     readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string, Bpl.IdentifierExpr>();
     bool assertAsAssume = false; // generate assume statements instead of assert statements
+    Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
@@ -3414,6 +3470,34 @@ namespace Microsoft.Dafny {
         var desc = new PODesc.DefiniteAssignment($"field '{field.Name}'",
           atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc));
+      }
+    }
+
+    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
+      if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
+          method.Ens.Count == 1 &&
+          method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
+        // fnCall == (m.Ens[0].E as BinaryExpr).E1;
+        // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+        Bpl.IdentifierExpr canCallFuncID =
+          new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        var etran = new ExpressionTranslator(this, predef, method.tok);
+        List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
+        var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
+        if (options.AlwaysUseHeap || method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
+          Contract.Assert(etran.HeapExpr != null);
+          tyargs.Add(etran.HeapExpr);
+        }
+
+        if (!method.IsStatic) {
+          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
+          tyargs.Add(th);
+        }
+        Bpl.Expr boogieAssumeCanCall =
+          new Bpl.NAryExpr(method.tok, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+        builder.Add(new AssumeCmd(method.tok, boogieAssumeCanCall));
+      } else {
+        Contract.Assert(false, "Error in shape of by-method");
       }
     }
 
@@ -3924,6 +4008,11 @@ namespace Microsoft.Dafny {
       // This is the general case
       Bpl.Expr prevH = null;
       Bpl.BoundVariable prevHVar = null;
+      Bpl.Expr reveal = null;
+      Bpl.BoundVariable revealVar = null;
+      if (f.IsOpaque) {
+        revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
+      }
       if (f is TwoStateFunction) {
         // The previous-heap argument is the same for both function arguments.  That is,
         // the frame axiom says nothing about functions invoked with different previous heaps.
@@ -3962,6 +4051,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr s; var sV = BplBoundVar("$ly", predef.LayerType, out s);
         bvars.Add(sV);
         f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
+      }
+
+      if (reveal != null) {
+        bvars.Add(revealVar);
+        f0args.Add(reveal); f1args.Add(reveal);
       }
 
       if (prevH != null) {
@@ -4205,7 +4299,7 @@ namespace Microsoft.Dafny {
       }
       var proc = new Bpl.Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
         Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
-        req, mod, ens, etran.TrAttributes(f.Attributes, null));
+        false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4256,7 +4350,12 @@ namespace Microsoft.Dafny {
       // of them), do the postponed reads checks.
       wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (AttributedExpression p in f.Req) {
-        CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+        if (p.Label != null) {
+          p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
+          CheckWellformed(p.E, wfo, locals, builder, etran);
+        } else {
+          CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
+        }
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
@@ -4286,10 +4385,14 @@ namespace Microsoft.Dafny {
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParamOrOpaqueType(p));
+          args.Add(TrTypeParamOrAbstractType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        if (f.IsOpaque) {
+          args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
           args.Add(etran.Old.HeapExpr);
@@ -4325,10 +4428,14 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParamOrOpaqueType(p));
+          args.Add(TrTypeParamOrAbstractType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
+        }
+
+        if (f.IsOpaque) {
+          args.Add(GetRevealConstant(f));
         }
         if (f is TwoStateFunction) {
           args.Add(etran.Old.HeapExpr);
@@ -4428,7 +4535,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+        false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4581,7 +4688,7 @@ namespace Microsoft.Dafny {
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
       var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       AddVerboseName(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4652,7 +4759,7 @@ namespace Microsoft.Dafny {
       var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
       AddVerboseName(proc, ctor.FullName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -4822,7 +4929,7 @@ namespace Microsoft.Dafny {
         if (!(e.Function is SpecialFunction)) {
           // get to assume canCall
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null, null);
           Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
           r = BplAnd(r, canCallFuncAppl);
         }
@@ -6523,7 +6630,7 @@ namespace Microsoft.Dafny {
         // Here are some built-in functions defined in "predef" (so there's no need to cache them in "fieldFunctions")
         if (f.EnclosingClass is ArrayClassDecl && f.Name == "Length") {
           return predef.ArrayLength;
-        } else if (f.EnclosingClass == null && f.Name == "Floor") {
+        } else if (f.EnclosingClass is ValuetypeDecl { Name: "real" } && f.Name == "Floor") {
           return predef.RealFloor;
         } else if (f is SpecialField && !(f is DatatypeDestructor)) {
           if (f.Name is "Keys" or "Values" or "Items") {
@@ -6629,6 +6736,10 @@ namespace Microsoft.Dafny {
         formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
         if (f.IsFuelAware()) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType), true));
+        }
+
+        if (f.IsOpaque) {
+          formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$reveal", Boogie.Type.Bool), true));
         }
         if (f is TwoStateFunction) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType), true));
@@ -7052,7 +7163,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
         return predef.HandleType;
-      } else if (type.IsTypeParameter || type.IsOpaqueType) {
+      } else if (type.IsTypeParameter || type.IsAbstractType) {
         return predef.BoxType;
       } else if (type.IsInternalTypeSynonym) {
         return predef.BoxType;
@@ -7075,7 +7186,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Bpl.Expr CondApplyBox(IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+    public Bpl.Expr CondApplyBox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(fromType != null);
@@ -7103,7 +7214,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Bpl.Expr BoxIfNecessary(IToken tok, Bpl.Expr e, Type fromType) {
+    public Bpl.Expr BoxIfNecessary(Bpl.IToken tok, Bpl.Expr e, Type fromType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       Contract.Requires(fromType != null);
@@ -7158,7 +7269,7 @@ namespace Microsoft.Dafny {
         // unresolved proxy
         return false;
       }
-      var res = t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym;
+      var res = t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }
@@ -7194,7 +7305,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (assertAsAssume || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      if (assertAsAssume
+          || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
+          || (RefinementToken.IsInherited(refinesToken, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce an assume instead
         return TrAssumeCmd(tok, condition, kv);
       } else {
@@ -7213,7 +7326,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      if (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if ((assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+          (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         return TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
@@ -7330,7 +7444,7 @@ namespace Microsoft.Dafny {
         }
         w = BplOr(body, w);
       }
-      builder.Add(Assert(tok, w, new PODesc.LetSuchThanExists()));
+      builder.Add(Assert(tok, w, new PODesc.LetSuchThatExists(bvars, expr)));
     }
 
     private void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder, BoogieStmtListBuilder builderOutsideIfConstruct, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
@@ -7640,7 +7754,7 @@ namespace Microsoft.Dafny {
       } else if (typ is ArrowType) {
         // TODO: do better than just returning null
         return null;
-      } else if (typ.IsOpaqueType || typ.IsInternalTypeSynonym) {
+      } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
         return null;
       } else {
         Contract.Assume(false);  // unexpected type
@@ -7942,7 +8056,7 @@ namespace Microsoft.Dafny {
       } else if (t is BigOrdinalType) {
         return u is BigOrdinalType;
       } else {
-        Contract.Assert(t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym);
+        Contract.Assert(t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
       }
     }
@@ -8076,7 +8190,7 @@ namespace Microsoft.Dafny {
         less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
         atmost = BplOr(eq, less);
 
-      } else if (ty0.IsTypeParameter || ty0.IsOpaqueType) {
+      } else if (ty0.IsTypeParameter || ty0.IsAbstractType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.False;
         atmost = BplOr(less, eq);
@@ -8096,7 +8210,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
-      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filename, stmt.Tok.line, stmt.Tok.col)));
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Tok.Filepath, stmt.Tok.line, stmt.Tok.col)));
     }
 
     /// <summary>
@@ -8131,9 +8245,9 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeExpandKeepConstraints();
 
-      if (type.IsTypeParameter || type.IsOpaqueType) {
+      if (type.IsTypeParameter || type.IsAbstractType) {
         var udt = (UserDefinedType)type;
-        return trTypeParamOrOpaqueType(udt.ResolvedClass, udt.TypeArgs);
+        return TrTypeParamOrAbstractType(udt.ResolvedClass, udt.TypeArgs);
       } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
         var args = type.TypeArgs.ConvertAll(TypeToTy);
@@ -8164,14 +8278,14 @@ namespace Microsoft.Dafny {
       } else if (type is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
       } else if (type is ParamTypeProxy) {
-        return trTypeParamOrOpaqueType(((ParamTypeProxy)type).orig);
+        return TrTypeParamOrAbstractType(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
-    static string nameTypeParam(TopLevelDecl x) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+    static string NameTypeParam(TopLevelDecl x) {
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       if (x is TypeParameter tp && tp.Parent != null) {
         return tp.Parent.FullName + "$" + x.Name;
       } else {
@@ -8180,18 +8294,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr trTypeParamOrOpaqueType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+    Bpl.Expr TrTypeParamOrAbstractType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       Contract.Requires(!(x is TypeParameter) || tyArguments == null || tyArguments.Count == 0);
-      Contract.Requires(!(x is OpaqueTypeDecl) || tyArguments != null);
+      Contract.Requires(!(x is AbstractTypeDecl) || tyArguments != null);
       if (x is TypeParameter tp) {
         Contract.Assert(tyArguments == null || tyArguments.Count == 0);
-        var nm = nameTypeParam(tp);
+        var nm = NameTypeParam(tp);
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
       } else {
-        var ot = (OpaqueTypeDecl)x;
-        var nm = nameTypeParam(ot);
+        var ot = (AbstractTypeDecl)x;
+        var nm = NameTypeParam(ot);
         if (tyArguments.Count != 0) {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
           return FunctionCall(x.tok, nm, predef.Ty, args);
@@ -9018,8 +9132,13 @@ namespace Microsoft.Dafny {
         return null;
       }
       targetType = targetType.NormalizeExpandKeepConstraints();
-      var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
+      Bpl.Expr cre;
+      if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl && ModeledAsBoxType(redirectingTypeDecl.Var.Type)) {
+        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+      } else {
+        cre = MkIs(bSource, targetType);
+      }
       if (udt != null && udt.IsRefType) {
         var s = sourceType.NormalizeExpandKeepConstraints();
         var certain = false;
@@ -9357,7 +9476,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(translator != null);
         var vv = new List<Variable>();
         // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(nameTypeParam(tp), translator.predef.Ty, wantFormals)));
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), translator.predef.Ty, wantFormals)));
         typeAntecedents = Bpl.Expr.True;
         if (UsesHeap) {
           var nv = NewVar("$heap", translator.predef.HeapType, wantFormals);
@@ -9619,11 +9738,11 @@ namespace Microsoft.Dafny {
       /// </summary>
       public Bpl.Expr GetFunctionFuel(Function f) {
         Contract.Requires(f != null);
+        Bpl.Expr finalFuel;
         if (customFuelSettings != null && customFuelSettings.ContainsKey(f)) {
-          return customFuelSettings[f].GetFunctionFuel(f);
-        }
-        if (this.amount == (int)FuelAmount.NONE) {
-          return this.ToExpr();
+          finalFuel = customFuelSettings[f].GetFunctionFuel(f);
+        } else if (this.amount == (int)FuelAmount.NONE) {
+          finalFuel = this.ToExpr();
         } else {
           FuelSettingPair setting = null;
           var found = translator.fuelContext.TryGetValue(f, out setting);
@@ -9634,14 +9753,15 @@ namespace Microsoft.Dafny {
 
           FuelConstant fuelConstant = translator.functionFuel.Find(x => x.f == f);
           if (this.amount == (int)FuelAmount.LOW) {
-            return GetFunctionFuel(setting.low > 0 ? setting.low : this.amount, found, fuelConstant);
+            finalFuel = GetFunctionFuel(setting.low > 0 ? setting.low : this.amount, found, fuelConstant);
           } else if (this.amount >= (int)FuelAmount.HIGH) {
-            return GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
+            finalFuel = GetFunctionFuel(setting.high > 0 ? setting.high : this.amount, found, fuelConstant);
           } else {
             Contract.Assert(false); // Should not reach here
-            return null;
+            finalFuel = null;
           }
         }
+        return finalFuel;
       }
 
       private Bpl.Expr GetFunctionFuel(int amount, bool hasFuel, FuelConstant fuelConstant) {
@@ -9942,355 +10062,376 @@ namespace Microsoft.Dafny {
       Contract.Requires(splits != null);
       Contract.Requires(etran != null);
 
-      if (expr is BoxingCastExpr) {
-        var bce = (BoxingCastExpr)expr;
-        var ss = new List<SplitExprInfo>();
-        if (TrSplitExpr(bce.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
-          foreach (var s in ss) {
-            splits.Add(new SplitExprInfo(s.Kind, CondApplyBox(s.Tok, s.E, bce.FromType, bce.ToType)));
-          }
-          return true;
-        }
-
-      } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-      } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        if (!e.Exact) {
-          var d = LetDesugaring(e);
-          return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-        } else {
-          var ss = new List<SplitExprInfo>();
-          if (TrSplitExpr(e.Body, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
-            // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
-            // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
-            // uses of the same let variable may end up needing different Layer constants. The following code will
-            // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
-            // LetExpr sits in a position for which TrSplitExpr is invoked.
-            List<Bpl.Variable> lhss;
-            List<Bpl.Expr> rhss;
-            etran.LayerOffset(1).TrLetExprPieces(e, out lhss, out rhss);
-            foreach (var s in ss) {
-              // as the source location in the following let, use that of the translated "s"
-              splits.Add(new SplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
-            }
-            return true;
-          }
-        }
-
-      } else if (expr is UnchangedExpr) {
-        var e = (UnchangedExpr)expr;
-        if (position && e.Frame.Count > 1) {
-          // split into a number of UnchangeExpr's, one for each FrameExpression
-          foreach (var fe in e.Frame) {
-            var tok = new NestedToken(GetToken(e), fe.tok);
-            Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
-            ee.Type = Type.Bool;  // resolve here
-            TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          }
-          return true;
-        }
-
-      } else if (expr is UnaryOpExpr) {
-        var e = (UnaryOpExpr)expr;
-        if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
-          var ss = new List<SplitExprInfo>();
-          if (TrSplitExpr(e.E, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
-            foreach (var s in ss) {
-              splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Unary(s.E.tok, UnaryOperator.Opcode.Not, s.E)));
-            }
-            return true;
-          }
-        }
-
-      } else if (expr is BinaryExpr) {
-        var bin = (BinaryExpr)expr;
-        if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          return true;
-
-        } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
-          TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          return true;
-
-        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
-          // non-conditionally split these, so we get the source location to point to a subexpression
-          if (position) {
-            var lhs = etran.TrExpr(bin.E0);
+      switch (expr) {
+        case BoxingCastExpr castExpr: {
+            var bce = castExpr;
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E1, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-            foreach (var s in ss) {
-              // as the source location in the following implication, use that of the translated "s"
-              splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
+            if (TrSplitExpr(bce.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+              foreach (var s in ss) {
+                splits.Add(new SplitExprInfo(s.Kind, CondApplyBox(s.Tok, s.E, bce.FromType, bce.ToType)));
+              }
+              return true;
             }
-          } else {
-            var ss = new List<SplitExprInfo>();
-            TrSplitExpr(bin.E0, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-            var rhs = etran.TrExpr(bin.E1);
-            foreach (var s in ss) {
-              // as the source location in the following implication, use that of the translated "s"
-              splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
-            }
+
+            break;
           }
-          return true;
-        }
-
-      } else if (expr is TernaryExpr) {
-        var e = (TernaryExpr)expr;
-        if ((e.Op == TernaryExpr.Opcode.PrefixEqOp && position) || (e.Op == TernaryExpr.Opcode.PrefixNeqOp && !position)) {
-          var e1type = e.E1.Type.NormalizeExpand();
-          var e2type = e.E2.Type.NormalizeExpand();
-          var codecl = e1type.AsCoDatatype;
-          Contract.Assert(codecl != null);
-          var k = etran.TrExpr(e.E0);
-          var A = etran.TrExpr(e.E1);
-          var B = etran.TrExpr(e.E2);
-          // split as shown here for possibly infinite lists:
-          //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Nil? ==> B.Nil?)
-          //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
-          //   checked $PrefixEqual#Dt(k, A, B) || (k != 0 && k.IsLimit ==> $Equal#Dt(A, B))  // (*)
-          //   free $PrefixEqual#Dt(k, A, B);
-          // Note:  First off, (*) is used only when ORDINAL is involved. Moreover, if there's an error among the first checked
-          // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
-          // the conjunction of all the previous RHSs.
-          var kAsORD = !e.E0.Type.IsBigOrdinalType && !TernaryExpr.PrefixEqUsesNat ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
-          var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
-          Bpl.Expr kHasSuccessor, kMinusOne;
-          if (e.E0.Type.IsBigOrdinalType) {
-            kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
-            kMinusOne = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType, k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(1)));
-          } else {
-            kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
-            kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-            if (!TernaryExpr.PrefixEqUsesNat) {
-              kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
-            }
+        case ConcreteSyntaxExpression expression: {
+            var e = expression;
+            return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
           }
-          // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
-          var etran2 = etran.LayerOffset(1);
-          var A2 = etran2.TrExpr(e.E1);
-          var B2 = etran2.TrExpr(e.E2);
-          var needsTokenAdjust = TrSplitNeedsTokenAdjustment(expr);
-          var tok = needsTokenAdjust ? new ForceCheckToken(expr.tok) : expr.tok;
-          Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
-          Bpl.Expr eqComponents = Bpl.Expr.True;
-          foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
-            eqComponents = BplAnd(eqComponents, c);
-            var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kHasSuccessor, c));
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
-          }
-          if (e.E0.Type.IsBigOrdinalType) {
-            var kIsNonZeroLimit = BplAnd(
-              Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))),
-              FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k));
-            var eq = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, null, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B);
-            var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), Bpl.Expr.Imp(kIsNonZeroLimit, eq)));
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
-          }
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
-          return true;
-        }
-
-      } else if (expr is ITEExpr) {
-        var ite = (ITEExpr)expr;
-
-        var ssThen = new List<SplitExprInfo>();
-        var ssElse = new List<SplitExprInfo>();
-
-        TrSplitExpr(ite.Thn, ssThen, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-        TrSplitExpr(ite.Els, ssElse, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
-        var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
-        var test = etran.TrExpr(ite.Test);
-        foreach (var s in ssThen) {
-          // as the source location in the following implication, use that of the translated "s"
-          splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, test, s.E)));
-        }
-
-        var negatedTest = Bpl.Expr.Not(test);
-        foreach (var s in ssElse) {
-          // as the source location in the following implication, use that of the translated "s"
-          splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
-        }
-
-        return true;
-
-      } else if (expr is MatchExpr) {
-        var e = (MatchExpr)expr;
-        var ite = etran.DesugarMatchExpr(e);
-        return TrSplitExpr(ite, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
-      } else if (expr is StmtExpr) {
-        var e = (StmtExpr)expr;
-        // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
-        // this assumption is not generated in non-split positions (because I don't know how.)
-        // So, treat "S; E" like "SConclusion ==> E".
-        if (position) {
-          var conclusion = etran.TrExpr(e.GetSConclusion());
-          var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          foreach (var s in ss) {
-            // as the source location in the following implication, use that of the translated "s"
-            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, conclusion, s.E)));
-          }
-        } else {
-          var ss = new List<SplitExprInfo>();
-          TrSplitExpr(e.GetSConclusion(), ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-          var rhs = etran.TrExpr(e.E);
-          foreach (var s in ss) {
-            // as the source location in the following implication, use that of the translated "s"
-            splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
-          }
-        }
-        return true;
-
-      } else if (expr is OldExpr) {
-        var e = (OldExpr)expr;
-        return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran.OldAt(e.AtLabel));
-
-      } else if (expr is FunctionCallExpr && position) {
-        var fexp = (FunctionCallExpr)expr;
-        if (TrSplitFunctionCallExpr(expr, splits, heightLimit, inlineProtectedFunctions, apply_induction, etran, fexp)) {
-          return true;
-        }
-
-      } else if (expr is QuantifierExpr && ((QuantifierExpr)expr).SplitQuantifier != null) {
-        return TrSplitExpr(((QuantifierExpr)expr).SplitQuantifierExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-      } else if (((position && expr is ForallExpr) || (!position && expr is ExistsExpr))) {
-        var e = (QuantifierExpr)expr;
-        var inductionVariables = ApplyInduction(e.BoundVars, e.Attributes);
-        if (apply_induction && inductionVariables.Count != 0) {
-          // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
-          //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
-          // For an existential (exists n :: P(n)), it is
-          //   (exists n :: (forall k :: k < n ==> !P(k)) && P(n))
-          //    ^^^^^^                             ^      ^^        <--- note these 3 differences
-          var kvars = new List<BoundVar>();
-          var kk = new List<Bpl.Expr>();
-          var nn = new List<Bpl.Expr>();
-          var toks = new List<IToken>();
-          var types = new List<Type>();
-          var substMap = new Dictionary<IVariable, Expression>();
-          foreach (var n in inductionVariables) {
-            toks.Add(n.tok);
-            types.Add(n.Type.NormalizeExpandKeepConstraints());
-            BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
-            kvars.Add(k);
-
-            IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
-            ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
-            kk.Add(etran.TrExpr(ieK));
-
-            IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
-            ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
-            nn.Add(etran.TrExpr(ieN));
-
-            substMap.Add(n, ieK);
-          }
-          Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
-          Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
-
-          Bpl.Expr ihBody = etran.TrExpr(bodyK);
-          if (!position) {
-            ihBody = Bpl.Expr.Not(ihBody);
-          }
-          ihBody = Bpl.Expr.Imp(less, ihBody);
-          List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
-          Bpl.Expr ih;
-          var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
-          ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
-
-          // More precisely now:
-          //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
-          //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
-          // or similar for existentials.
-          var caseProduct = new List<Bpl.Expr>() {
-            // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
-            new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
-          };
-          var i = 0;
-          foreach (var n in inductionVariables) {
-            var newCases = new List<Bpl.Expr>();
-            foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
-              foreach (var cs in caseProduct) {
-                if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                  newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
-                } else {
-                  newCases.Add(cs);
+        case NestedMatchExpr nestedMatchExpr:
+          return TrSplitExpr(nestedMatchExpr.Flattened, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        case LetExpr letExpr: {
+            var e = letExpr;
+            if (!e.Exact) {
+              var d = LetDesugaring(e);
+              return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+            } else {
+              var ss = new List<SplitExprInfo>();
+              if (TrSplitExpr(e.Body, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+                // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
+                // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
+                // uses of the same let variable may end up needing different Layer constants. The following code will
+                // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
+                // LetExpr sits in a position for which TrSplitExpr is invoked.
+                List<Bpl.Variable> lhss;
+                List<Bpl.Expr> rhss;
+                etran.LayerOffset(1).TrLetExprPieces(e, out lhss, out rhss);
+                foreach (var s in ss) {
+                  // as the source location in the following let, use that of the translated "s"
+                  splits.Add(new SplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
                 }
+                return true;
               }
             }
-            caseProduct = newCases;
-            i++;
-          }
-          List<bool> freeOfAlloc = null;
-          if (options.FrugalHeapUseX) {
-            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-          }
-          bvars = new List<Variable>();
-          typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
-          foreach (var kase in caseProduct) {
-            var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
-            var etranBody = etran.LayerOffset(1);
-            var bdy = etranBody.TrExpr(e.LogicalBody());
-            Bpl.Expr q;
-            var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
-            if (position) {
-              q = new Bpl.ForallExpr(kase.tok, bvars, trig, Bpl.Expr.Imp(ante, bdy));
-            } else {
-              q = new Bpl.ExistsExpr(kase.tok, bvars, trig, Bpl.Expr.And(ante, bdy));
-            }
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, q));
-          }
 
-          // Finally, assume the original quantifier (forall/exists n :: P(n))
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));
-          return true;
-        } else {
-          // Don't use induction on these quantifiers.
-          // Nevertheless, produce two translated versions of the quantifier, one that uses #2 functions (that is, layerOffset 1)
-          // for checking and one that uses #1 functions (that is, layerOffset 0) for assuming.
-          var etranBoost = etran.LayerOffset(1);
-          var r = etranBoost.TrExpr(expr);
-          var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
-          if (needsTokenAdjustment) {
-            r.tok = new ForceCheckToken(expr.tok);
+            break;
           }
-          if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
-            // apparently, the LayerOffset(1) we did had no effect
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, r));
-            return needsTokenAdjustment;
-          } else {
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, r));  // check the boosted expression
-            splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));  // assume the ordinary expression
+        case UnchangedExpr unchangedExpr: {
+            var e = unchangedExpr;
+            if (position && e.Frame.Count > 1) {
+              // split into a number of UnchangeExpr's, one for each FrameExpression
+              foreach (var fe in e.Frame) {
+                var tok = new NestedToken(GetToken(e), fe.tok);
+                Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
+                ee.Type = Type.Bool;  // resolve here
+                TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              }
+              return true;
+            }
+
+            break;
+          }
+        case UnaryOpExpr opExpr: {
+            var e = opExpr;
+            if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
+              var ss = new List<SplitExprInfo>();
+              if (TrSplitExpr(e.E, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+                foreach (var s in ss) {
+                  splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Unary(s.E.tok, UnaryOperator.Opcode.Not, s.E)));
+                }
+                return true;
+              }
+            }
+
+            break;
+          }
+        case BinaryExpr binaryExpr: {
+            var bin = binaryExpr;
+            if (position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+              TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              return true;
+
+            } else if (!position && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+              TrSplitExpr(bin.E0, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              TrSplitExpr(bin.E1, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              return true;
+
+            } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+              // non-conditionally split these, so we get the source location to point to a subexpression
+              if (position) {
+                var lhs = etran.TrExpr(bin.E0);
+                var ss = new List<SplitExprInfo>();
+                TrSplitExpr(bin.E1, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+                foreach (var s in ss) {
+                  // as the source location in the following implication, use that of the translated "s"
+                  splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, lhs, s.E)));
+                }
+              } else {
+                var ss = new List<SplitExprInfo>();
+                TrSplitExpr(bin.E0, ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+                var rhs = etran.TrExpr(bin.E1);
+                foreach (var s in ss) {
+                  // as the source location in the following implication, use that of the translated "s"
+                  splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
+                }
+              }
+              return true;
+            }
+
+            break;
+          }
+        case TernaryExpr ternaryExpr: {
+            var e = ternaryExpr;
+            if ((e.Op == TernaryExpr.Opcode.PrefixEqOp && position) || (e.Op == TernaryExpr.Opcode.PrefixNeqOp && !position)) {
+              var e1type = e.E1.Type.NormalizeExpand();
+              var e2type = e.E2.Type.NormalizeExpand();
+              var codecl = e1type.AsCoDatatype;
+              Contract.Assert(codecl != null);
+              var k = etran.TrExpr(e.E0);
+              var A = etran.TrExpr(e.E1);
+              var B = etran.TrExpr(e.E2);
+              // split as shown here for possibly infinite lists:
+              //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Nil? ==> B.Nil?)
+              //   checked $PrefixEqual#Dt(k, A, B) || (k_has_successor ==> A.Cons? ==> B.Cons? && A.head == B.head && $PrefixEqual#2#Dt(k - 1, A.tail, B.tail))  // note the #2 in the recursive call, just like for user-defined predicates that are inlined by TrSplitExpr
+              //   checked $PrefixEqual#Dt(k, A, B) || (k != 0 && k.IsLimit ==> $Equal#Dt(A, B))  // (*)
+              //   free $PrefixEqual#Dt(k, A, B);
+              // Note:  First off, (*) is used only when ORDINAL is involved. Moreover, if there's an error among the first checked
+              // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
+              // the conjunction of all the previous RHSs.
+              var kAsORD = !e.E0.Type.IsBigOrdinalType && !TernaryExpr.PrefixEqUsesNat ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
+              var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
+              Bpl.Expr kHasSuccessor, kMinusOne;
+              if (e.E0.Type.IsBigOrdinalType) {
+                kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), FunctionCall(k.tok, "ORD#Offset", Bpl.Type.Int, k));
+                kMinusOne = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType, k, FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, Bpl.Expr.Literal(1)));
+              } else {
+                kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
+                kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
+                if (!TernaryExpr.PrefixEqUsesNat) {
+                  kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
+                }
+              }
+              // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
+              var etran2 = etran.LayerOffset(1);
+              var A2 = etran2.TrExpr(e.E1);
+              var B2 = etran2.TrExpr(e.E2);
+              var needsTokenAdjust = TrSplitNeedsTokenAdjustment(ternaryExpr);
+              var tok = needsTokenAdjust ? new ForceCheckToken(ternaryExpr.tok) : ternaryExpr.tok;
+              Bpl.Expr layer = etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH);
+              Bpl.Expr eqComponents = Bpl.Expr.True;
+              foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
+                eqComponents = BplAnd(eqComponents, c);
+                var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kHasSuccessor, c));
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+              if (e.E0.Type.IsBigOrdinalType) {
+                var kIsNonZeroLimit = BplAnd(
+                  Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))),
+                  FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k));
+                var eq = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, null, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B);
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), Bpl.Expr.Imp(kIsNonZeroLimit, eq)));
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, p));
+              }
+              splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
+              return true;
+            }
+
+            break;
+          }
+        case ITEExpr iteExpr: {
+            var ite = iteExpr;
+
+            var ssThen = new List<SplitExprInfo>();
+            var ssElse = new List<SplitExprInfo>();
+
+            TrSplitExpr(ite.Thn, ssThen, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+            TrSplitExpr(ite.Els, ssElse, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+
+            var op = position ? BinaryOperator.Opcode.Imp : BinaryOperator.Opcode.And;
+            var test = etran.TrExpr(ite.Test);
+            foreach (var s in ssThen) {
+              // as the source location in the following implication, use that of the translated "s"
+              splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, test, s.E)));
+            }
+
+            var negatedTest = Bpl.Expr.Not(test);
+            foreach (var s in ssElse) {
+              // as the source location in the following implication, use that of the translated "s"
+              splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, op, negatedTest, s.E)));
+            }
+
             return true;
           }
-        }
-      } else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
-        // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
-        // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
-        adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
-        var etranBoost = etran.LayerOffset(1);
-        var r = etran.TrExpr(expr);
-        var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
-        if (needsTokenAdjustment) {
-          r.tok = new ForceCheckToken(expr.tok);
-        }
-        if (etran.Statistics_CustomLayerFunctionCount == 0) {
-          // apparently, doesn't use layer
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, r));
-          return needsTokenAdjustment;
-        } else {
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, r));  // check the ordinary expression
-          splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etranBoost.TrExpr(expr)));  // assume the boosted expression
-          return true;
-        }
+        case MatchExpr matchExpr: {
+            var e = matchExpr;
+            var ite = etran.DesugarMatchExpr(e);
+            return TrSplitExpr(ite, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+          }
+        case StmtExpr stmtExpr: {
+            var e = stmtExpr;
+            // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
+            // this assumption is not generated in non-split positions (because I don't know how.)
+            // So, treat "S; E" like "SConclusion ==> E".
+            if (position) {
+              var conclusion = etran.TrExpr(e.GetSConclusion());
+              var ss = new List<SplitExprInfo>();
+              TrSplitExpr(e.E, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              foreach (var s in ss) {
+                // as the source location in the following implication, use that of the translated "s"
+                splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, conclusion, s.E)));
+              }
+            } else {
+              var ss = new List<SplitExprInfo>();
+              TrSplitExpr(e.GetSConclusion(), ss, !position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+              var rhs = etran.TrExpr(e.E);
+              foreach (var s in ss) {
+                // as the source location in the following implication, use that of the translated "s"
+                splits.Add(new SplitExprInfo(s.Kind, Bpl.Expr.Binary(s.E.tok, BinaryOperator.Opcode.Imp, s.E, rhs)));
+              }
+            }
+            return true;
+          }
+        case OldExpr oldExpr: {
+            var e = oldExpr;
+            return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran.OldAt(e.AtLabel));
+          }
+        case FunctionCallExpr callExpr when position: {
+            var fexp = callExpr;
+            if (TrSplitFunctionCallExpr(callExpr, splits, heightLimit, inlineProtectedFunctions, apply_induction, etran, fexp)) {
+              return true;
+            }
+
+            break;
+          }
+        case QuantifierExpr quantifierExpr when quantifierExpr.SplitQuantifier != null:
+          return TrSplitExpr(quantifierExpr.SplitQuantifierExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        default: {
+            if (((position && expr is ForallExpr) || (!position && expr is ExistsExpr))) {
+              var e = (QuantifierExpr)expr;
+              var inductionVariables = ApplyInduction(e.BoundVars, e.Attributes);
+              if (apply_induction && inductionVariables.Count != 0) {
+                // From the given quantifier (forall n :: P(n)), generate the seemingly weaker proof obligation
+                //   (forall n :: (forall k :: k < n ==> P(k)) ==> P(n))
+                // For an existential (exists n :: P(n)), it is
+                //   (exists n :: (forall k :: k < n ==> !P(k)) && P(n))
+                //    ^^^^^^                             ^      ^^        <--- note these 3 differences
+                var kvars = new List<BoundVar>();
+                var kk = new List<Bpl.Expr>();
+                var nn = new List<Bpl.Expr>();
+                var toks = new List<IToken>();
+                var types = new List<Type>();
+                var substMap = new Dictionary<IVariable, Expression>();
+                foreach (var n in inductionVariables) {
+                  toks.Add(n.tok);
+                  types.Add(n.Type.NormalizeExpandKeepConstraints());
+                  BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
+                  kvars.Add(k);
+
+                  IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
+                  ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+                  kk.Add(etran.TrExpr(ieK));
+
+                  IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
+                  ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+                  nn.Add(etran.TrExpr(ieN));
+
+                  substMap.Add(n, ieK);
+                }
+                Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
+                Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
+
+                Bpl.Expr ihBody = etran.TrExpr(bodyK);
+                if (!position) {
+                  ihBody = Bpl.Expr.Not(ihBody);
+                }
+                ihBody = Bpl.Expr.Imp(less, ihBody);
+                List<Variable> bvars = new List<Variable>();
+                Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
+                Bpl.Expr ih;
+                var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
+                ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
+
+                // More precisely now:
+                //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
+                //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
+                // or similar for existentials.
+                var caseProduct = new List<Bpl.Expr>() {
+                // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
+                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckToken(expr.tok) : expr.tok, true)
+              };
+                var i = 0;
+                foreach (var n in inductionVariables) {
+                  var newCases = new List<Bpl.Expr>();
+                  foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
+                    foreach (var cs in caseProduct) {
+                      if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
+                        newCases.Add(Bpl.Expr.Binary(new NestedToken(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                      } else {
+                        newCases.Add(cs);
+                      }
+                    }
+                  }
+                  caseProduct = newCases;
+                  i++;
+                }
+                List<bool> freeOfAlloc = null;
+                if (options.FrugalHeapUseX) {
+                  freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+                }
+                bvars = new List<Variable>();
+                typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
+                foreach (var kase in caseProduct) {
+                  var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
+                  var etranBody = etran.LayerOffset(1);
+                  var bdy = etranBody.TrExpr(e.LogicalBody());
+                  Bpl.Expr q;
+                  var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
+                  if (position) {
+                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, Bpl.Expr.Imp(ante, bdy));
+                  } else {
+                    q = new Bpl.ExistsExpr(kase.tok, bvars, trig, Bpl.Expr.And(ante, bdy));
+                  }
+                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, q));
+                }
+
+                // Finally, assume the original quantifier (forall/exists n :: P(n))
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));
+                return true;
+              } else {
+                // Don't use induction on these quantifiers.
+                // Nevertheless, produce two translated versions of the quantifier, one that uses #2 functions (that is, layerOffset 1)
+                // for checking and one that uses #1 functions (that is, layerOffset 0) for assuming.
+                var etranBoost = etran.LayerOffset(1);
+                var r = etranBoost.TrExpr(expr);
+                var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
+                if (needsTokenAdjustment) {
+                  r.tok = new ForceCheckToken(expr.tok);
+                }
+                if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
+                  // apparently, the LayerOffset(1) we did had no effect
+                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, r));
+                  return needsTokenAdjustment;
+                } else {
+                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, r));  // check the boosted expression
+                  splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));  // assume the ordinary expression
+                  return true;
+                }
+              }
+            } else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
+              // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
+              // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
+              adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
+              var etranBoost = etran.LayerOffset(1);
+              var r = etran.TrExpr(expr);
+              var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
+              if (needsTokenAdjustment) {
+                r.tok = new ForceCheckToken(expr.tok);
+              }
+              if (etran.Statistics_CustomLayerFunctionCount == 0) {
+                // apparently, doesn't use layer
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Both, r));
+                return needsTokenAdjustment;
+              } else {
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Checked, r));  // check the ordinary expression
+                splits.Add(new SplitExprInfo(SplitExprInfo.K.Free, etranBoost.TrExpr(expr)));  // assume the boosted expression
+                return true;
+              }
+            }
+
+            break;
+          }
       }
 
       Bpl.Expr translatedExpression;
@@ -10344,7 +10485,7 @@ namespace Microsoft.Dafny {
 
           // F#canCall(args)
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
           Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
 
           Bpl.Expr fargs;
@@ -10724,7 +10865,7 @@ namespace Microsoft.Dafny {
       var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        vars.Add(BplBoundVar(nameTypeParam(v), predef.Ty, out var e));
+        vars.Add(BplBoundVar(NameTypeParam(v), predef.Ty, out var e));
         exprs.Add(e);
       }
       return vars;
@@ -10740,8 +10881,8 @@ namespace Microsoft.Dafny {
       var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        var whereClause = includeWhereClause ? GetTyWhereClause(new Bpl.IdentifierExpr(v.tok, nameTypeParam(v), predef.Ty), v.Characteristics) : null;
-        vars.Add(BplFormalVar(named ? nameTypeParam(v) : null, predef.Ty, true, out var e, whereClause));
+        var whereClause = includeWhereClause ? GetTyWhereClause(new Bpl.IdentifierExpr(v.tok, NameTypeParam(v), predef.Ty), v.Characteristics) : null;
+        vars.Add(BplFormalVar(named ? NameTypeParam(v) : null, predef.Ty, true, out var e, whereClause));
         exprs.Add(e);
       }
       return vars;
@@ -10764,5 +10905,10 @@ namespace Microsoft.Dafny {
     }
 
     static readonly List<Boolean> Bools = new List<Boolean> { false, true };
+
+    public Expr GetRevealConstant(Function f) {
+      this.CreateRevealableConstant(f);
+      return this.functionReveals[f];
+    }
   }
 }

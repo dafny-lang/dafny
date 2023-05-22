@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
+
 
 public interface INode {
   RangeToken RangeToken { get; }
@@ -19,6 +21,11 @@ public interface ICanFormat : INode {
   /// the new indentation set by the tokens preceding this node
   /// Returns if further traverse needs to occur (true) or if it already happened (false)
   bool SetIndent(int indentBefore, TokenNewIndentCollector formatter);
+}
+
+// A node that can have a docstring attached to it
+public interface IHasDocstring : INode {
+  string GetDocstring(DafnyOptions options);
 }
 
 public abstract class Node : INode {
@@ -59,8 +66,14 @@ public abstract class Node : INode {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
   }
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions() {
-    return Enumerable.Empty<AssumptionDescription>();
+  // <summary>
+  // Returns all assumptions contained in this node or its descendants.
+  // For each one, the decl field will be set to the closest containing declaration.
+  // Likewise, the decl parameter to this method must be the closest declaration
+  // containing this node, or null if it is not contained in any.
+  // </summary>
+  public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
+    return Enumerable.Empty<Assumption>();
   }
 
   public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {
@@ -107,6 +120,9 @@ public abstract class Node : INode {
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
+  private static readonly Regex StartDocstringExtractor =
+    new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
@@ -148,7 +164,7 @@ public abstract class Node : INode {
         while (tmpToken != null && tmpToken != EndToken.Next) {
           if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
-          } else if (tmpToken.filename != null) {
+          } else if (tmpToken.Uri != null) {
             result.Add(tmpToken);
           }
 
@@ -164,6 +180,103 @@ public abstract class Node : INode {
   }
 
   public abstract RangeToken RangeToken { get; set; }
+
+  // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
+  protected string GetTriviaContainingDocstringFromStartTokenOrNull() {
+    var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
+    if (matches.Count > 0) {
+      return matches[^1].Value;
+    }
+
+    if (StartToken.Prev.val is "|" or "{") {
+      matches = StartDocstringExtractor.Matches(StartToken.Prev.TrailingTrivia);
+      if (matches.Count > 0) {
+        return matches[^1].Value;
+      }
+    }
+    return null;
+  }
+
+  // Applies plugin-defined docstring filters
+  public string GetDocstring(DafnyOptions options) {
+    var plugins = options.Plugins;
+    string trivia = GetTriviaContainingDocstring();
+    if (string.IsNullOrEmpty(trivia)) {
+      return null;
+    }
+
+    var rawDocstring = ExtractDocstring(trivia);
+    foreach (var plugin in plugins) {
+      foreach (var docstringRewriter in plugin.GetDocstringRewriters(options)) {
+        rawDocstring = docstringRewriter.RewriteDocstring(rawDocstring) ?? rawDocstring;
+      }
+    }
+
+    return rawDocstring;
+  }
+
+  private string ExtractDocstring(string trivia) {
+    var extraction = new Regex(
+      $@"(?<multiline>(?<indentation>[ \t]*)/\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/)" +
+      $@"|(?<singleline>// ?(?<singlelinecontent>[^\r\n]*?)[ \t]*(?:{TriviaFormatterHelper.AnyNewline}|$))");
+    var rawDocstring = new List<string>() { };
+    var matches = extraction.Matches(trivia);
+    for (var i = 0; i < matches.Count; i++) {
+      var match = matches[i];
+      if (match.Groups["multiline"].Success) {
+        // For each line except the first,
+        // we need to remove the indentation on every line.
+        // The length of removed indentation is maximum the space before the first "/*" + 3 characters
+        // Additionally, if there is a "* " or a " *" or a "  * ", we remove it as well
+        // provided it always started with a star.
+        var indentation = match.Groups["indentation"].Value;
+        var multilineContent = match.Groups["multilinecontent"].Value;
+        var newlineRegex = new Regex(TriviaFormatterHelper.AnyNewline);
+        var contentLines = newlineRegex.Split(multilineContent);
+        var starRegex = new Regex(@"^[ \t]*\*\ ?(?<remaining>.*)$");
+        var wasNeverInterrupted = true;
+        var localDocstring = "";
+        for (var j = 0; j < contentLines.Length; j++) {
+          if (j != 0) {
+            localDocstring += "\n";
+          }
+          var contentLine = contentLines[j];
+          var lineMatch = starRegex.Match(contentLine);
+          if (lineMatch.Success && wasNeverInterrupted) {
+            localDocstring += lineMatch.Groups["remaining"].Value;
+          } else {
+            if (j == 0) {
+              localDocstring += contentLine.TrimStart();
+            } else {
+              wasNeverInterrupted = false;
+              if (contentLine.StartsWith(indentation)) {
+                var trimmedIndentation =
+                  contentLine.Substring(0, Math.Min(indentation.Length + 3, contentLine.Length)).TrimStart();
+                var remaining = (contentLine.Length >= indentation.Length + 3
+                  ? contentLine.Substring(indentation.Length + 3)
+                  : "");
+                localDocstring += trimmedIndentation + remaining;
+              } else {
+                localDocstring += contentLine.Trim();
+              }
+            }
+          }
+        }
+
+        localDocstring = localDocstring.Trim();
+        rawDocstring.Add(localDocstring);
+      } else if (match.Groups["singleline"].Success) {
+        rawDocstring.Add(match.Groups["singlelinecontent"].Value);
+      }
+    }
+
+    return string.Join("\n", rawDocstring);
+  }
+
+  // Unfiltered version that only returns the trivia containing the docstring
+  protected virtual string GetTriviaContainingDocstring() {
+    return null;
+  }
 }
 
 public abstract class TokenNode : Node {
@@ -189,7 +302,7 @@ public abstract class TokenNode : Node {
         var endTok = tok;
 
         void UpdateStartEndToken(IToken token1) {
-          if (token1.Filename != tok.Filename) {
+          if (token1.Filepath != tok.Filepath) {
             return;
           }
 
@@ -207,7 +320,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

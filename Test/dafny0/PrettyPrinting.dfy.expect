@@ -189,18 +189,7 @@ module New {
     a := new [] [20, 50, 70];
   }
 }
-PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
-PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
-PrettyPrinting.dfy(14,4): Warning: note, this loop has no body
-PrettyPrinting.dfy(16,4): Warning: note, this loop has no body (loop frame: $Heap)
 PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(18,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(33,4): Warning: note, this forall statement has no body
-PrettyPrinting.dfy(52,4): Warning: note, this loop has no body (loop frame: i)
-PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i)
-PrettyPrinting.dfy(54,4): Warning: note, this loop has no body (loop frame: i, a)
-PrettyPrinting.dfy(57,4): Warning: note, this loop has no body (loop frame: i, a)
-PrettyPrinting.dfy(69,4): Warning: note, this loop has no body (loop frame: i)
 PrettyPrinting.dfy(73,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 3 resolution/type errors detected in PrettyPrinting.dfy
