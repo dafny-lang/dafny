@@ -324,6 +324,7 @@ Because a mutable field does not have initializer, it must have a type (as in `v
 Dafny does not allow field declarations to have initializers. They are initialized in constructors.
 Local variable declarations (which also begin with `var`) may have initializers.
 ", Remove(false, "remove := and expression"));
+    // TODO - when there is capability to find constructors, enhance this with a code action that moves the initialization to the constructor
 
     Add(ErrorId.p_datatype_formal_is_not_id,
     @"
