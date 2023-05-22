@@ -1476,10 +1476,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      return ReadHeap(tok, heapExpr, e, predef.Alloc(tok), Type.Bool);
+      return ReadHeap(tok, heapExpr, e, predef.Alloc(tok));
     }
 
-    public Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f, Type ft) {
+    public Bpl.Expr ReadHeap(IToken tok, Expr heap, Expr r, Expr f) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1493,9 +1493,9 @@ namespace Microsoft.Dafny {
       Bpl.Type t = (f.Type != null) ? f.Type : f.ShallowType;
       Bpl.Expr readCall =
         new Bpl.NAryExpr(tok,
-          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "read", t.AsCtor.Arguments[0])),
+          new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "readUnbox", t.AsCtor.Arguments[0])),
           args);
-      return ft is null ? readCall : UnboxIfBoxed(readCall, ft);
+      return readCall;
     }
 
     public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r) {
@@ -1512,7 +1512,7 @@ namespace Microsoft.Dafny {
         args);
     }
 
-    public Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v, Type t) {
+    public Boogie.NAryExpr UpdateHeap(IToken tok, Expr heap, Expr r, Expr f, Expr v) {
       Contract.Requires(tok != null);
       Contract.Requires(heap != null);
       Contract.Requires(r != null);
@@ -1524,9 +1524,9 @@ namespace Microsoft.Dafny {
       args.Add(heap);
       args.Add(r);
       args.Add(f);
-      args.Add(t is null ? v : BoxIfUnboxed(v, t));
+      args.Add(v);
       return new Boogie.NAryExpr(tok,
-        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "update", heap.Type)),
+        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "updateBox", heap.Type)),
         args);
     }
 
@@ -1902,7 +1902,7 @@ namespace Microsoft.Dafny {
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
           ReadHeap(iter.tok, etran.HeapExpr,
             new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
-            new Bpl.IdentifierExpr(iter.tok, GetField(ys)), ys.Type))));
+            new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
       }
       return wh;
     }
@@ -4031,7 +4031,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr field; var fieldVar = BplBoundVar("$f", predef.FieldName(f.tok, alpha), out field);
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
       Bpl.Expr oNotNullAlloced = oNotNull;
-      Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field, null), ReadHeap(f.tok, h1, o, field, null));
+      Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.tok, h0, o, field), ReadHeap(f.tok, h1, o, field));
 
       Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
       Bpl.Expr heapSucc = HeapSucc(h0, h1);
@@ -6164,7 +6164,7 @@ namespace Microsoft.Dafny {
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
               ),
-              Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld, null), ReadHeap(tok, h1, o, fld, null))));
+              Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
             Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
@@ -7107,8 +7107,8 @@ namespace Microsoft.Dafny {
         var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
         f = new Bpl.IdentifierExpr(tok, fVar);
         quantifiedVars = new List<Variable> { oVar, fVar };
-        heapOF = ReadHeap(tok, etran.HeapExpr, o, f, null);
-        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f, null);
+        heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
+        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
       } else {
         // object granularity
         typeVars = new List<TypeVariable>();
@@ -7148,8 +7148,8 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
 
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f, null);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f, null);
+      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
+      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
@@ -8783,7 +8783,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(fseField != null);
                 Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs, fseField.Type));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
                 bldr.Add(cmd);
                 // assume $IsGoodHeap($Heap);
                 bldr.Add(AssumeGoodHeap(tok, et));
@@ -8811,7 +8811,7 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs, null /* TODO */));
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, et));
@@ -8834,7 +8834,7 @@ namespace Microsoft.Dafny {
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
               var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
-              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs, null /* TODO */));
+              Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, fieldName, rhs));
               bldr.Add(cmd);
               // assume $IsGoodHeap($Heap);
               bldr.Add(AssumeGoodHeap(tok, etran));
@@ -8992,7 +8992,7 @@ namespace Microsoft.Dafny {
                 // assert EE_ii satisfies any subset-type constraints;
                 CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
                 // assume nw[ii] == EE_ii;
-                var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }), null);
+                var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
                 builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxIfBoxed(ai, tRhs.EType), EE_ii)));
                 ii++;
               }
@@ -9004,9 +9004,9 @@ namespace Microsoft.Dafny {
             // $Heap[this, _new] := Set#UnionOne<BoxType>($Heap[this, _new], $Box($nw));
             var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
             var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-            var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField, iter.Member_New.Type);
+            var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
             var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
-            var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne, iter.Member_New.Type);
+            var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
             heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
           }
           CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
@@ -9102,7 +9102,7 @@ namespace Microsoft.Dafny {
         // Assume that array elements have initial values according to the given initialization function.  That is:
         // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
         //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
-        var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices), null);
+        var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
         var ai_prime = UnboxIfBoxed(ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
         q = new Bpl.ForallExpr(tok, bvs, tr,
@@ -9145,7 +9145,7 @@ namespace Microsoft.Dafny {
       // $Heap[$nw, alloc] := true;
       Bpl.Expr alloc = predef.Alloc(tok);
       Bpl.IdentifierExpr heap = etran.HeapCastToIdentifierExpr;
-      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True, Type.Bool));
+      Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(tok, heap, UpdateHeap(tok, heap, nw, alloc, Bpl.Expr.True));
       builder.Add(cmd);
       if (extraCmd != null) {
         builder.Add(extraCmd);
@@ -9239,7 +9239,7 @@ namespace Microsoft.Dafny {
         // Assignments to an iterator _new field is only allowed to shrink the set, so:
         // assert Set#Subset(rhs, obj._new);
         var fId = new Bpl.IdentifierExpr(tok, GetField(f));
-        var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs, ReadHeap(tok, etran.HeapExpr, obj, fId, iter.Member_New.Type));
+        var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs, ReadHeap(tok, etran.HeapExpr, obj, fId));
         builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(f.Name)));
       }
     }
