@@ -3,10 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
 
@@ -19,14 +21,42 @@ namespace DafnyPipeline.Test {
   // Every test is performed with all three newline styles
   // Every formatted program is formatted again to verify that it stays the same.
   public class DocstringTest {
+    private readonly ITestOutputHelper output;
+
     enum Newlines {
       LF,
       CR,
       CRLF
     };
 
+    public DocstringTest(ITestOutputHelper output) {
+      this.output = output;
+    }
+
     private Newlines currentNewlines;
 
+    [Fact]
+    void DocstringWorksForPredicates() {
+      DocstringWorksFor(@"
+predicate p1()
+  // Always true. Every time.
+  ensures p1() == true
+{ true }
+
+predicate p2(): (y: bool)
+  // Always true.
+  ensures y == true
+{ true }
+
+predicate p3(): (y: bool)
+  // Always true every time.
+  ensures y == true
+", new List<(string nodeTokenValue, string? expectedDocstring)>(){
+          ("p1", "Always true. Every time."),
+          ("p2", "Always true."),
+          ("p3", "Always true every time."),
+      });
+    }
     [Fact]
     public void DocstringWorksForFunctions() {
       DocstringWorksFor(@"
@@ -205,13 +235,13 @@ type ZeroOrMore = nat
 type ZeroOrMore2 = nat
 
 // Unattached comment
-type OpaqueType
-// OpaqueType has opaque methods so you don't see them
+type AbstractType
+// AbstractType has opaque methods so you don't see them
 {
 }
 
-/** OpaqueType2 has opaque methods so you don't see them */
-type OpaqueType2
+/** AbstractType2 has opaque methods so you don't see them */
+type AbstractType2
 {
 }
 ", new List<(string nodeTokenValue, string? expectedDocstring)> {
@@ -223,8 +253,8 @@ type OpaqueType2
         ("BinDigit", "A binary digit"),
         ("ZeroOrMore", "ZeroOrMore is the same as nat"),
         ("ZeroOrMore2", "ZeroOrMore2 is the same as nat"),
-        ("OpaqueType", "OpaqueType has opaque methods so you don't see them"),
-        ("OpaqueType2", "OpaqueType2 has opaque methods so you don't see them")
+        ("AbstractType", "AbstractType has opaque methods so you don't see them"),
+        ("AbstractType2", "AbstractType2 has opaque methods so you don't see them")
       });
     }
 
@@ -396,19 +426,16 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
-      var options = DafnyOptions.Create();
-      BatchErrorReporter reporter = new BatchErrorReporter(options);
+      var options = DafnyOptions.Create(new WriterFromOutputHelper(output));
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
         // This formatting test will remove all the spaces at the beginning of the line
         // and then recompute it. The result should be the same string.
         var programString = AdjustNewlines(source);
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+
+        var dafnyProgram = Utils.Parse(options, programString, false);
+        BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

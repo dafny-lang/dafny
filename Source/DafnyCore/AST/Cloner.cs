@@ -31,8 +31,8 @@ namespace Microsoft.Dafny {
 
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
       ModuleDefinition nw;
-      if (m is DefaultModuleDefinition) {
-        nw = new DefaultModuleDefinition();
+      if (m is DefaultModuleDefinition defaultModuleDefinition) {
+        nw = new DefaultModuleDefinition(defaultModuleDefinition.RootUris);
       } else {
         nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
@@ -53,9 +53,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
-      if (d is OpaqueTypeDecl) {
-        var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
+      if (d is AbstractTypeDecl) {
+        var dd = (AbstractTypeDecl)d;
+        return new AbstractTypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
@@ -804,7 +804,7 @@ namespace Microsoft.Dafny {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
-        var otd = new OpaqueTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
+        var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
         based = otd;
         if (d is ClassDecl) {
           reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);

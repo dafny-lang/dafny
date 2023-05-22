@@ -1276,7 +1276,7 @@ A _quantifier expression_ is a boolean expression that specifies that a
 given expression (the one following the `::`) is true for all (for
 **forall**) or some (for **exists**) combination of values of the
 quantified variables, namely those in the given quantifier domain.
-See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.7.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 Here are some examples:
 <!-- %no-check -->
@@ -1354,7 +1354,7 @@ The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
 various expressions. The `<- C` domain expressions are also optional and default to
 `iset x: T` (i.e. all values of the variable's type), as are the `| P` expressions which
-default to `true`. See also [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+default to `true`. See also [Section 2.7.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 If a finite set was specified ("set" keyword used), Dafny must be able to prove that the
 result is finite otherwise the set comprehension expression will not be
@@ -1514,7 +1514,7 @@ imap x : int | 10 < x :: x * x;
 A _map comprehension expression_  defines a finite or infinite map value
 by defining a domain and for each value in the domain,
 giving the mapped value using the expression following the "::".
-See [Section 2.6.4](#sec-quantifier-domains) for more details on quantifier domains.
+See [Section 2.7.4](#sec-quantifier-domains) for more details on quantifier domains.
 
 For example:
 <!-- %check-resolve -->
@@ -1825,6 +1825,21 @@ Method calls, object-allocation calls (`new`), function calls, and
 datatype constructors can be called with both positional arguments
 and named arguments.
 
+Formal parameters have three ways to indicate how they are to be passed in:
+- nameonly: the only way to give a specific argument value is to name the parameter
+- positional only: these are nameless parameters (which are allowed only for datatype constructor parameters)
+- either positional or by name: this is the most common parameter
+
+A parameter is either required or optional:
+- required: a caller has to supply an argument
+- optional: the parameter has a default value that is used if a caller omits passing a specific argument
+
+The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so a positional-only parameter is always required.
+
+At a call site, positional arguments are not allowed to follow named arguments. Therefore, if `x` is a nameonly parameter, then there is no way to supply the parameters after `x` by position. 
+Thus, any parameter that follows `x` must either be passed by name or have a default value. 
+That is, if a later (in the formal parameter declaration) parameter does not have a default value, it is effectively nameonly. 
+
 Positional arguments must be given before any named arguments.
 Positional arguments are passed to the formals in the corresponding
 position. Named arguments are passed to the formal of the given
@@ -1837,32 +1852,7 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 9.37. Formal Parameters and Default-Value Expressions
-
-The formal parameters of a method, constructor in a class, iterator,
-function, or datatype constructor can be declared with an expression
-denoting a _default value_. This makes the parameter _optional_,
-as opposed to _required_. All required parameters must be declared
-before any optional parameters. All nameless parameters in a datatype
-constructor must be declared before any `nameonly` parameters.
-
-The default-value expression for a parameter is allowed to mention the
-other parameters, including `this` (for instance methods and instance
-functions), but not the implicit `_k` parameter in least and greatest
-predicates and lemmas. The default value of a parameter may mention
-both preceding and subsequent parameters, but there may not be any
-dependent cycle between the parameters and their default-value
-expressions.
-
-The well-formedness of default-value expressions is checked independent
-of the precondition of the enclosing declaration. For a function, the
-parameter default-value expressions may only read what the function's
-`reads` clause allows. For a datatype constructor, parameter default-value
-expressions may not read anything. A default-value expression may not be
-involved in any recursive or mutually recursive calls with the enclosing
-declaration.
-
-## 9.38. Compile-Time Constants {#sec-compile-time-constants}
+## 9.37. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -1903,7 +1893,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 9.39. List of specification expressions {#sec-list-of-specification-expressions}
+## 9.38. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 

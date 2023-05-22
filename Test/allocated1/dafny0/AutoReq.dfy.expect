@@ -20,4 +20,4 @@ AutoReq.dfy(45,11): Error: assertion might not hold
 AutoReq.dfy(31,12): Related location
 AutoReq.dfy(7,4): Related location
 
-Dafny program verifier finished with 29 verified, 8 errors
+Dafny program verifier finished with 30 verified, 8 errors

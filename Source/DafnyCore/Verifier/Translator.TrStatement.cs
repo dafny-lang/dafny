@@ -58,6 +58,11 @@ namespace Microsoft.Dafny {
           var method = (IMethodCodeContext)codeContext;
           method.Outs.Iter(p => CheckDefiniteAssignmentReturn(stmt.Tok, p, builder));
         }
+
+        if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
+          AssumeCanCallForByMethodDecl(method2, builder);
+        }
+
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -155,7 +160,7 @@ namespace Microsoft.Dafny {
             var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
             typeAntecedent = BplAnd(typeAntecedent, wh);
           } else {
-            havocLHSs.Add(lhs.Resolved);
+            havocLHSs.Add(lvalue);
             havocRHSs.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
           }
         }
@@ -212,11 +217,9 @@ namespace Microsoft.Dafny {
           TrStmt(resolved[0], builder, locals, etran);
         } else {
           AddComment(builder, s, "update statement");
-          var lhss = new List<Expression>();
-          foreach (var lhs in s.Lhss) {
-            lhss.Add(lhs.Resolved);
-          }
-
+          var assignStmts = resolved.Cast<AssignStmt>().ToList();
+          var lhss = assignStmts.Select(a => a.Lhs).ToList();
+          var rhss = assignStmts.Select(a => a.Rhs).ToList();
           // note: because we have more than one expression, we always must assign to Boogie locals in a two
           // phase operation. Thus rhssCanAffectPreviouslyKnownExpressions is just true.
           Contract.Assert(1 < lhss.Count);
@@ -226,7 +229,7 @@ namespace Microsoft.Dafny {
           // generate a new local, i.e. bLhss is just all nulls.
           Contract.Assert(Contract.ForAll(bLhss, lhs => lhs == null));
           // This generates the assignments, and gives them to us as finalRhss.
-          var finalRhss = ProcessUpdateAssignRhss(lhss, s.Rhss, builder, locals, etran);
+          var finalRhss = ProcessUpdateAssignRhss(lhss, rhss, builder, locals, etran);
           // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
           // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
           // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
@@ -1497,7 +1500,7 @@ namespace Microsoft.Dafny {
       // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
       // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
       // Test/dafny0/DirtyLoops.dfy.)
-      var isBodyLessLoop = s is OneBodyLoopStmt && ((OneBodyLoopStmt)s).BodySurrogate != null;
+      var isBodyLessLoop = s is OneBodyLoopStmt { BodySurrogate: { } };
       var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this, options) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {
@@ -1556,7 +1559,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
-      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
+      builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
@@ -1931,7 +1934,9 @@ namespace Microsoft.Dafny {
       // Make the call
       AddReferencedMember(callee);
       Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
-      if (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify)) {
+      if (
+        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
         // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
         // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,

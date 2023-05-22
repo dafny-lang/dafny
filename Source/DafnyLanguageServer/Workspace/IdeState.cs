@@ -57,7 +57,7 @@ public static class Util {
   }
 
   private static Location CreateLocation(IToken token) {
-    var uri = DocumentUri.Parse(token.filename);
+    var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {
       Range = token.GetLspRange(),
       // During parsing, we store absolute paths to make reconstructing the Uri easier

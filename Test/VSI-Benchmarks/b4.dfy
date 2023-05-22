@@ -136,7 +136,7 @@ class Map<Key(==),Value> {
   }
 
   // Removes key from the domain of M (and does nothing if key wasn't in M to begin with)
-  method Remove(key: Key)
+  method {:rlimit 3000} {:vcs_split_on_every_assert} Remove(key: Key)
     requires Valid()
     modifies Repr
     ensures Valid() && fresh(Repr - old(Repr))
@@ -145,46 +145,66 @@ class Map<Key(==),Value> {
     var prev, p := FindIndex(key);
     if p != null {
       if prev == null {
-        Spine, head := head.Spine, head.next;
-        M := map k | k in M && k != key :: M[k];
-        forall k | k in M
-          ensures exists n :: n in Spine && n.key == k
-        {
-          if k != key {
-            assert k in old(M);
-            var n :| n in old(Spine) && old(n.key) == k;
-            assert n.key == old(n.key);
-          }
-        }
+        RemoveFirst(key, p);
       } else {
-        SpineValidSplit(Spine, head);
-
-        prev.next := p.next;
-        forall n | n in Spine {
-          n.Spine := n.Spine - {p};
-        }
-        Spine := Spine - {p};
-        M := map k | k in M && k != key :: M[k];
-
-        forall k | k in M
-          ensures exists n :: n in Spine && n.key == k
-        {
-          assert k in old(M) && k != key;
-          var n :| n in old(Spine) && old(n.key) == k;
-          assert n.key == old(n.key);
-        }
-
-        forall n | n in Spine
-          ensures SpineValid_One(n.Spine, n.next)
-        {
-          if n != prev && n.next != null {
-            assert n.next in n.Spine && n.next.Spine == n.Spine - {n.next};
-          }
-        }
-        SpineValidCombine(Spine, head);
+        RemoveNonFirst(key, prev, p);
       }
     }
   }
+
+  /*private*/ method RemoveFirst(key: Key, p: Node<Key,Value>)
+    requires Valid()
+    requires key in M && p == head
+    requires p in Spine && p.key == key
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures M == map k | k in old(M) && k != key :: old(M)[k]
+  {
+    Spine, head := head.Spine, head.next;
+    M := map k | k in M && k != key :: M[k];
+    forall k | k in M
+      ensures exists n :: n in Spine && n.key == k
+    {
+      if k != key {
+        assert k in old(M);
+        var n :| n in old(Spine) && old(n.key) == k;
+        assert n.key == old(n.key);
+      }
+    }
+  }
+
+  /*private*/ method RemoveNonFirst(key: Key, prev: Node<Key,Value>, p: Node<Key,Value>)
+    requires Valid()
+    requires key in M && p != head
+    requires p in Spine && p.key == key
+    requires prev in Spine && prev.next == p
+    modifies Repr
+    ensures Valid() && fresh(Repr - old(Repr))
+    ensures M == map k | k in old(M) && k != key :: old(M)[k]
+
+  {
+    SpineValidSplit(Spine, head);
+
+    prev.next := p.next;
+    forall n | n in Spine {
+      n.Spine := n.Spine - {p};
+    }
+    Spine := Spine - {p};
+    M := map k | k in M && k != key :: M[k];
+
+    forall k | k in M
+      ensures exists n :: n in Spine && n.key == k
+    {
+      assert k in old(M) && k != key;
+      var n :| n in old(Spine) && old(n.key) == k;
+      assert n.key == old(n.key);
+    }
+
+    assert SpineValid(Spine, head) by {
+      SpineValidCombine(Spine, head);
+    }
+  }
+
 }
 
 class Node<Key,Value> {

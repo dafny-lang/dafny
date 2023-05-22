@@ -15,7 +15,7 @@ public interface ICommandSpec {
   static ICommandSpec() {
     FilesArgument = new("file", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
-    }, true, "input files");
+    }, true, "Dafny input files and/or a Dafny project file");
   }
 
   public static Argument<List<FileInfo>> FilesArgument { get; }
@@ -31,15 +31,18 @@ public interface ICommandSpec {
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
     CommonOptionBag.ManualLemmaInduction,
-    CommonOptionBag.SolverPath,
+    BoogieOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
-    CommonOptionBag.IsolateAssertions,
+    BoogieOptionBag.IsolateAssertions,
     BoogieOptionBag.BoogieArguments,
     CommonOptionBag.VerificationLogFormat,
-    CommonOptionBag.SolverResourceLimit,
-    CommonOptionBag.SolverPlugin,
-    CommonOptionBag.SolverLog,
-    CommonOptionBag.JsonDiagnostics
+    BoogieOptionBag.SolverResourceLimit,
+    BoogieOptionBag.SolverOption,
+    BoogieOptionBag.SolverOptionHelp,
+    BoogieOptionBag.SolverPlugin,
+    BoogieOptionBag.SolverLog,
+    CommonOptionBag.JsonDiagnostics,
+    BoogieOptionBag.VerificationErrorLimit,
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -75,7 +78,8 @@ public interface ICommandSpec {
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.TypeSystemRefresh,
-    CommonOptionBag.ErrorLimit,
+    CommonOptionBag.TypeInferenceDebug,
+    CommonOptionBag.NewTypeInferenceDebug,
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

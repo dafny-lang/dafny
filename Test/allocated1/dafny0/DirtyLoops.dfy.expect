@@ -1,4 +1,5 @@
 The /allocated:<n> option is deprecated
+DirtyLoops.dfy(515,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy(26,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy(35,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy(46,2): Warning: note, this loop has no body (loop frame: i)
@@ -36,7 +37,6 @@ DirtyLoops.dfy(497,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy(504,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy(512,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy(515,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy(515,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy(531,2): Warning: note, this loop has no body (loop frame: x)
 DirtyLoops.dfy(427,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy(436,4): Warning: note, this loop has no body (loop frame: $Heap)
@@ -94,6 +94,7 @@ DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modif
 
 Dafny program verifier finished with 22 verified, 46 errors
 The /allocated:<n> option is deprecated
+DirtyLoops.dfy.tmp.dprint.dfy(410,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy.tmp.dprint.dfy(446,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(455,4): Warning: note, this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(471,6): Warning: note, this loop has no body (loop frame: i, $Heap)
@@ -136,7 +137,6 @@ DirtyLoops.dfy.tmp.dprint.dfy(392,2): Warning: note, this forall statement has n
 DirtyLoops.dfy.tmp.dprint.dfy(399,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy.tmp.dprint.dfy(408,2): Warning: note, this forall statement has no body
 DirtyLoops.dfy.tmp.dprint.dfy(410,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(410,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 DirtyLoops.dfy.tmp.dprint.dfy(416,2): Warning: note, this loop has no body (loop frame: x)
 DirtyLoops.dfy.tmp.dprint.dfy(410,2): Warning: /!\ No terms found to trigger on.
 

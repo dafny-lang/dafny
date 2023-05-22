@@ -66,6 +66,9 @@ namespace Microsoft.Dafny {
       protected override bool VisitOneStatement(Statement stmt, BoundsDiscoveryContext context) {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
+          if (forallStmt.Body == null) {
+            reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+          }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
             var varLhss = new List<IVariable>();
@@ -75,6 +78,8 @@ namespace Microsoft.Dafny {
             }
             assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
+        } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
+          oneBodyLoopStmt.ComputeBodySurrogate(reporter);
         }
 
         return base.VisitOneStatement(stmt, context);
@@ -196,7 +201,7 @@ namespace Microsoft.Dafny {
                 var message =
                   $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
                   $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
-                if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
+                if (bv.Type.IsTypeParameter || bv.Type.IsAbstractType) {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
                 message += " (see documentation for 'older' parameters)";

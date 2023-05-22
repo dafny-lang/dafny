@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.IO;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny.Compilers {
@@ -96,15 +97,15 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
       foreach (var header in this.headers) {
-        wr.WriteLine("#include \"{0}\"", header);
+        wr.WriteLine("#include \"{0}\"", Path.GetFileName(header));
       }
 
       // For "..."s string literals, to avoid interpreting /0 as the C end of the string, cstring-style
       wr.WriteLine("using namespace std::literals;");
 
       var filenameNoExtension = program.Name.Substring(0, program.Name.Length - 4);
-      var headerFileName = String.Format("{0}.h", filenameNoExtension);
-      wr.WriteLine("#include \"{0}\"", headerFileName);
+      var headerFileName = $"{filenameNoExtension}.h";
+      wr.WriteLine("#include \"{0}\"", Path.GetFileName(headerFileName));
 
       var headerFileWr = wr.NewFile(headerFileName);
       headerFileWr.WriteLine("// Dafny program {0} compiled into a Cpp header file", program.Name);
@@ -900,7 +901,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected void Warn(string msg, IToken tok) {
-      Console.Error.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filename, tok.line, tok.col, msg);
+      Options.ErrorWriter.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.Filepath, tok.line, tok.col, msg);
     }
 
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs
@@ -954,7 +955,7 @@ namespace Microsoft.Dafny.Compilers {
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "ulong";
         }
-        if (class_name || xType.IsTypeParameter || xType.IsOpaqueType || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
+        if (class_name || xType.IsTypeParameter || xType.IsAbstractType || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
           return TypeName_UDT(s, udt, wr, udt.tok);
@@ -1030,8 +1031,8 @@ namespace Microsoft.Dafny.Compilers {
       var udt = (UserDefinedType)xType;
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is TypeParameter || cl is OpaqueTypeDecl) {
-        var hasCompiledValue = (cl is TypeParameter ? ((TypeParameter)cl).Characteristics : ((OpaqueTypeDecl)cl).Characteristics).HasCompiledValue;
+      if (cl is TypeParameter || cl is AbstractTypeDecl) {
+        var hasCompiledValue = (cl is TypeParameter ? ((TypeParameter)cl).Characteristics : ((AbstractTypeDecl)cl).Characteristics).HasCompiledValue;
         if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
@@ -1129,11 +1130,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     // ----- Declarations -------------------------------------------------------------
-    protected override void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) {
+    protected override void DeclareExternType(AbstractTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1319,7 +1320,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw DafnyHaltException(");
       if (tok != null) {
-        wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
+        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
       }
 
       if (messageExpr.Type.IsStringType) {

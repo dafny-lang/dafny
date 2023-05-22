@@ -66,8 +66,14 @@ public abstract class Node : INode {
     return Children.Concat(Children.SelectMany(n => n.Descendants()));
   }
 
-  public virtual IEnumerable<AssumptionDescription> Assumptions() {
-    return Enumerable.Empty<AssumptionDescription>();
+  // <summary>
+  // Returns all assumptions contained in this node or its descendants.
+  // For each one, the decl field will be set to the closest containing declaration.
+  // Likewise, the decl parameter to this method must be the closest declaration
+  // containing this node, or null if it is not contained in any.
+  // </summary>
+  public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
+    return Enumerable.Empty<Assumption>();
   }
 
   public ISet<Node> Visit(Func<Node, bool> beforeChildren = null, Action<Node> afterChildren = null) {
@@ -158,7 +164,7 @@ public abstract class Node : INode {
         while (tmpToken != null && tmpToken != EndToken.Next) {
           if (startToEndTokenNotOwned.TryGetValue(tmpToken.pos, out var endNotOwnedToken)) {
             tmpToken = endNotOwnedToken;
-          } else if (tmpToken.filename != null) {
+          } else if (tmpToken.Uri != null) {
             result.Add(tmpToken);
           }
 
@@ -296,7 +302,7 @@ public abstract class TokenNode : Node {
         var endTok = tok;
 
         void UpdateStartEndToken(IToken token1) {
-          if (token1.Filename != tok.Filename) {
+          if (token1.Filepath != tok.Filepath) {
             return;
           }
 
@@ -314,7 +320,7 @@ public abstract class TokenNode : Node {
             return;
           }
 
-          if (node.RangeToken.Filename != tok.Filename || node is Expression { IsImplicit: true } ||
+          if (node.RangeToken.Filepath != tok.Filepath || node is Expression { IsImplicit: true } ||
               node is DefaultValueExpression) {
             // Ignore any auto-generated expressions.
           } else {

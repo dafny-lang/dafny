@@ -289,7 +289,7 @@ module X refines P {
 
 Types can be refined in two ways:
 
-- Turning an opaque type into a concrete type;
+- Turning an abstract type into a concrete type;
 - Adding members to a datatype or a newtype.
 
 For example, consider the following abstract module:
@@ -359,7 +359,7 @@ refinement.  This means that a type declaration `type T(!new)` cannot be refined
 by a `class T`, for example. Similarly, a `type T(00)` cannot be refined by a
 subset type with a `witness *` clause.
 
-The refinement of an opaque type with body-less members can include both a definition
+The refinement of an abstract type with body-less members can include both a definition
 for the type along with a body for the member, as in this example:
 <!-- %check-verify -->
 ```dafny

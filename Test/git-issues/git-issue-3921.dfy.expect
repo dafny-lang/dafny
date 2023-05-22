@@ -1,0 +1,5 @@
+git-issue-3921.dfy(8,8): Error: the type of this local variable is underspecified
+git-issue-3921.dfy(16,16): Error: the type of this bound variable is underspecified
+git-issue-3921.dfy(31,12): Error: match source type 'object' not assignable to bound variable (of type 'MyClx<U>')
+git-issue-3921.dfy(62,14): Error: the type of this bound variable is underspecified
+4 resolution/type errors detected in git-issue-3921.dfy

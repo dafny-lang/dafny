@@ -86,13 +86,13 @@ module _System {
     function RotateRight(w: nat): selftype
   }
 
-  type map<T, U> {
+  type map<+T, +U> {
     var Keys: set<T>  // immutable
     var Values: set<U>  // immutable
     var Items: set<(T, U)>  // immutable
   }
 
-  type imap<T, U> {
+  type imap<*T, +U> {
     var Keys: iset<T>  // immutable
     var Values: iset<U>  // immutable
     var Items: iset<(T, U)>  // immutable
