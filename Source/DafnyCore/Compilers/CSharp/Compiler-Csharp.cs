@@ -1409,10 +1409,6 @@ namespace Microsoft.Dafny.Compilers {
         }
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "ulong";
-        }
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
@@ -1550,12 +1546,7 @@ namespace Microsoft.Dafny.Compilers {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return $"(({TypeName(xType, wr, udt.tok)})null)";
-        }
+        return $"(({TypeName(xType, wr, udt.tok)})null)";
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt, ignoreInterface: true);
         var nonGhostTypeArgs = SelectNonGhost(dt, udt.TypeArgs);
@@ -1650,10 +1641,6 @@ namespace Microsoft.Dafny.Compilers {
       } else if (type is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "Dafny.Helpers.INT64";
-        }
 
         List<Type> relevantTypeArgs;
         if (cl is DatatypeDecl dt) {
@@ -2027,12 +2014,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
         var cl = (e.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          wr.Write("0");
-        } else {
-          wr.Write("({0})null", TypeName(e.Type, wr, e.tok));
-        }
+        wr.Write("({0})null", TypeName(e.Type, wr, e.tok));
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
@@ -2841,9 +2823,7 @@ namespace Microsoft.Dafny.Compilers {
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
@@ -2857,9 +2837,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
@@ -3032,8 +3010,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write("new BigInteger");
             TrParenExpr(e.E, wr, inLetExprBody, wStmts);
           } else {
-            bool toNativeNeedsCast;
-            GetNativeInfo(toNative.Sel, out string toNativeName, out string toNativeSuffix, out toNativeNeedsCast);
+            GetNativeInfo(toNative.Sel, out string toNativeName, out string toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
             wr.Write("({0})", toNativeName);
