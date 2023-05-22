@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using System.IO;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -30,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var uri = new Uri("file:///" + TestFilePath);
       var outerModule = new DefaultModuleDefinition(new List<Uri> { uri });
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options, outerModule);
-      parser.Parse(documentItem, errorReporter, default);
+      parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
       Assert.Equal($"encountered an exception while parsing {uri}", lastDebugLogger.LastDebugMessage);
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }

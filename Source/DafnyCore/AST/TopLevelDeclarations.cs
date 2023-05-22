@@ -1116,32 +1116,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IToken GetFirstTopLevelToken() {
-    if (StartToken.line > 0) {
-      return StartToken;
-    }
-    if (this is DefaultModuleDefinition { Includes: { Count: > 0 } includes } &&
-        includes[0].OwnedTokens.Any()) {
-      return includes[0].OwnedTokens.First();
-    }
-    IEnumerable<IToken> topTokens = TopLevelDecls.SelectMany(decl => {
-      if (decl.StartToken.line > 0) {
-        return new List<IToken>() { decl.StartToken };
-      } else if (decl is TopLevelDeclWithMembers declWithMembers) {
-        return declWithMembers.Members.Where(
-            member => member.tok.line > 0)
-          .Select(member => member.StartToken);
-      } else if (decl is LiteralModuleDecl literalModuleDecl) {
-        return literalModuleDecl.ModuleDef.PrefixNamedModules.Select(module =>
-          module.Item2.ModuleDef.GetFirstTopLevelToken()).Where((IToken t) => t is { line: > 0 });
-      } else {
-        return new List<IToken>() { };
-      }
-    });
-
-    return topTokens.MinBy(token => token.pos);
-  }
-
   public IToken NameToken => tok;
   public override IEnumerable<Node> Children => (Attributes != null ?
       new List<Node> { Attributes } :
@@ -1163,7 +1137,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
     preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
   }
-
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return TopLevelDecls.SelectMany(m => m.Assumptions(decl));

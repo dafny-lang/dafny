@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -47,72 +48,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
-      var program = NewDafnyProgram(document, errorReporter);
+
       try {
-        var parseResult = ParseUtils.Parse(
-          document.Text,
-          // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
-          document.Uri.ToUri(),
-          program.BuiltIns,
-          errorReporter
-        );
-        if (parseResult.ErrorCount != 0) {
-          logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseResult.ErrorCount, document.Uri);
-        }
-
-        AddFileModuleToProgram(parseResult.Module, program);
-        program.DefaultModule.RangeToken = parseResult.Module.RangeToken;
-        
-        var includedModules = TryParseIncludesOfModule(document.Uri, parseResult.Module, 
-          program.BuiltIns, errorReporter, cancellationToken);
-
-        foreach (var module in includedModules) {
-          AddFileModuleToProgram(module, program);
-        }
-
-        return program;
-      } catch (Exception e) {
-        logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
-        var internalErrorDummyToken = new Token {
-          Uri = document.Uri.ToUri(),
-          line = 1,
-          col = 1,
-          pos = 0,
-          val = string.Empty
-        };
-        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
-        return program;
+        return ParseUtils.ParseFiles(document.Uri.ToString(),
+          new DafnyFile[]
+          {
+            new(errorReporter.Options, document.Uri.ToUri(), document.Content) 
+          },
+          errorReporter, cancellationToken);
       }
       finally {
         mutex.Release();
       }
-    }
-
-    private static void AddFileModuleToProgram(FileModuleDefinition module, Dafny.Program program)
-    {
-      foreach (var topLevelDecl in module.TopLevelDecls)
-      {
-        if (topLevelDecl is DefaultClassDecl defaultClassDecl)
-        {
-          foreach (var member in defaultClassDecl.Members)
-          {
-            program.DefaultModuleDef.DefaultClass.Members.Add(member);
-          }
-        }
-        else
-        {
-          program.DefaultModuleDef.TopLevelDecls.Add(topLevelDecl);
-        }
-      }
-
-      foreach (var include in module.Includes)
-      {
-        program.Includes.Add(include);
-      }
-      
-      program.DefaultModuleDef.DefaultClass.SetMembersBeforeResolution();
     }
 
     private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
@@ -129,81 +78,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public void Dispose() {
       mutex.Dispose();
-    }
-
-    // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
-    //      It could be convenient to adapt them in the main-repo so location info could be extracted.
-    private IList<FileModuleDefinition> TryParseIncludesOfModule(
-      DocumentUri root,
-      FileModuleDefinition rootModule,
-      BuiltIns builtIns,
-      ErrorReporter errorReporter,
-      CancellationToken cancellationToken
-    ) {
-      var errors = new Errors(errorReporter);
-
-      var result = new List<FileModuleDefinition>();
-      var resolvedIncludes = new HashSet<Uri>();
-      resolvedIncludes.Add(root.ToUri());
-
-      var stack = new Stack<DafnyFile>();
-      foreach (var include in rootModule.Includes) {
-        var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, include);
-        if (dafnyFile != null) {
-          stack.Push(dafnyFile);
-        }
-      }
-      
-      while (stack.Any()) {
-        var top = stack.Pop();
-        if (!resolvedIncludes.Add(top.Uri)) {
-          continue;
-        }
-        
-        cancellationToken.ThrowIfCancellationRequested();
-        var parseIncludeResult = TryParseDocument(top, builtIns, errorReporter, errors);
-        result.Add(parseIncludeResult.Module);
-        
-        foreach (var include in parseIncludeResult.Module.Includes) {
-          var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, include);
-          if (dafnyFile != null) {
-            stack.Push(dafnyFile);
-          }
-        }
-      }
-
-      return result;
-    }
-
-    private DafnyFile? IncludeToDafnyFile(BuiltIns builtIns, ErrorReporter errorReporter, Include include)
-    {
-      try
-      {
-        return new DafnyFile(builtIns.Options, include.IncludedFilename.LocalPath);
-      }
-      catch (IllegalDafnyFile e)
-      {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
-        logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.IncludedFilename);
-        return null;
-      }
-      catch (IOException e)
-      {
-        errorReporter.Error(MessageSource.Parser, include.tok,
-          $"Unable to open the include {include.IncludedFilename}.");
-        logger.LogDebug(e, "could not open file {Filename}", include.IncludedFilename);
-        return null;
-      }
-    }
-
-    private DfyParseResult TryParseDocument(DafnyFile dafnyFile, BuiltIns builtIns, ErrorReporter errorReporter,
-      Errors errors) {
-      return ParseUtils.Parse(
-        dafnyFile.Content,
-        dafnyFile.Uri,
-        builtIns,
-        errors
-      );
     }
   }
 }

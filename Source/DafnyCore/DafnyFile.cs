@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using DafnyCore;
@@ -8,20 +9,26 @@ using DafnyCore;
 namespace Microsoft.Dafny;
 
 public class DafnyFile {
-  public bool UseStdin { get; private set; }
   public string FilePath => Uri.LocalPath;
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public TextReader Content { get; }
+  public TextReader Content { get; set; }
   public Uri Uri { get; }
-  
+
+
   // TODO take a Uri instead of a filePath
-  public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) {
-    UseStdin = contentOverride != null;
+  public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) : this(options, contentOverride != null ? new Uri("stdin:///") : new Uri(filePath)) {
     Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
     BaseName = contentOverride != null ? "<stdin>" : Path.GetFileName(filePath);
+  }
+
+  public DafnyFile(DafnyOptions options, Uri uri, TextReader contentOverride = null) {
+    Uri = uri;
+    var filePath = uri.LocalPath;
+    // TODO fix
+    BaseName = uri.IsFile ? Path.GetFileName(uri.LocalPath) : "<stdin>";
 
     var extension = contentOverride != null ? ".dfy" : Path.GetExtension(filePath);
     if (extension != null) { extension = extension.ToLower(); }
@@ -112,7 +119,7 @@ public class DafnyFile {
     }
     return new Uri(filePath.Substring("file:".Length));
   }
-  public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
+  public static List<string> FileNames(IReadOnlyList<DafnyFile> dafnyFiles) {
     var sourceFiles = new List<string>();
     foreach (DafnyFile f in dafnyFiles) {
       sourceFiles.Add(f.FilePath);

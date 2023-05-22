@@ -40,11 +40,11 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(TextReader stdIn, IList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
+    public static string ParseCheck(TextReader stdIn, IReadOnlyList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
         DafnyOptions options, out Program program)
     //modifies Bpl.options.XmlSink.*;
     {
-      string err = Parse(stdIn, files, programName, options, out program);
+      string err = Parse(files, programName, options, out program);
       if (err != null) {
         return err;
       }
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       return Resolve(program);
     }
 
-    public static string Parse(TextReader stdIn, IList<DafnyFile> files, string programName, DafnyOptions options,
+    public static string Parse(IReadOnlyList<DafnyFile> files, string programName, DafnyOptions options,
       out Program program) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
@@ -66,55 +66,8 @@ namespace Microsoft.Dafny {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      LiteralModuleDecl module = new LiteralModuleDecl(defaultModuleDefinition, null);
-      BuiltIns builtIns = new BuiltIns(options);
-
-      foreach (DafnyFile dafnyFile in files) {
-        Contract.Assert(dafnyFile != null);
-        if (options.XmlSink is { IsOpen: true } && !dafnyFile.UseStdin) {
-          options.XmlSink.WriteFileFragment(dafnyFile.FilePath);
-        }
-
-        if (options.Trace) {
-          options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
-        }
-
-        // We model a precompiled file, a library, as an include
-        var include = dafnyFile.IsPrecompiled ? new Include(new Token {
-          Uri = dafnyFile.Uri,
-          col = 1,
-          line = 0
-        }, new Uri("cli://"), dafnyFile.Uri) : null;
-        if (include != null) {
-          // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
-          defaultModuleDefinition.Includes.Add(include);
-        }
-        var err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter));
-        if (err != null) {
-          return err;
-        }
-      }
-
-      if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-        string errString = ParseIncludes(module, builtIns, files.Select(f => f.FilePath).ToHashSet(), new Errors(reporter));
-        if (errString != null) {
-          return errString;
-        }
-      }
-
-      if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
-        DependencyMap dmap = new DependencyMap();
-        dmap.AddIncludes(defaultModuleDefinition.Includes);
-        dmap.PrintMap(options);
-      }
-
-      var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
-      var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
-      program = new Program(programName, module, builtIns, reporter, verifiedRoots, compiledRoots);
-
-      MaybePrintProgram(program, options.DafnyPrintFile, false);
-
-      return null; // success
+      program = ParseUtils.ParseFiles(programName, files, reporter, CancellationToken.None);
+      return null;
     }
 
     private static readonly TaskScheduler largeThreadScheduler =
@@ -140,84 +93,22 @@ namespace Microsoft.Dafny {
       return null; // success
     }
 
-    // Lower-case file names before comparing them, since Windows uses case-insensitive file names
-    private class IncludeComparer : IComparer<Include> {
-      public int Compare(Include x, Include y) {
-        return x.CompareTo(y);
-      }
-    }
-
-    public static string ParseIncludes(ModuleDecl module, BuiltIns builtIns, ISet<string> excludeFiles, Errors errs) {
-      var includesFound = new SortedSet<Include>(new IncludeComparer());
-      var allIncludes = ((DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef).Includes;
-
-      var notCompiledResult = TraverseIncludesFrom(0);
-      if (notCompiledResult != null) {
-        return notCompiledResult;
-      }
-
-      if (builtIns.Options.PrintIncludesMode != DafnyOptions.IncludesModes.None) {
-        var dependencyMap = new DependencyMap();
-        dependencyMap.AddIncludes(allIncludes);
-        dependencyMap.PrintMap(builtIns.Options);
-      }
-
-      return null; // Success
-
-      string TraverseIncludesFrom(int startingIndex) {
-        var includeIndex = startingIndex;
-        var stack = new Stack<Include>();
-
-        while (true) {
-          var addedItems = allIncludes.Skip(includeIndex);
-          foreach (var addedItem in addedItems.Reverse()) {
-            stack.Push(addedItem);
-          }
-
-          includeIndex = allIncludes.Count;
-
-          if (stack.Count == 0) {
-            break;
-          }
-
-          var include = stack.Pop();
-          if (!includesFound.Add(include) || excludeFiles.Contains(include.CanonicalPath)) {
-            continue;
-          }
-
-          DafnyFile file;
-          try {
-            file = new DafnyFile(builtIns.Options, include.IncludedFilename.LocalPath);
-          } catch (IllegalDafnyFile) {
-            return ($"Include of file \"{include.IncludedFilename}\" failed.");
-          }
-
-          string result = ParseFile(file, include, module, builtIns, errs);
-          if (result != null) {
-            return result;
-          }
-        }
-
-        return null;
-      }
-    }
-
-    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs) {
-      var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
-      try {
-        var parseResult = ParseUtils.Parse(dafnyFile.Content, dafnyFile.Uri, builtIns, errs);
-        var errorCount = parseResult.ErrorCount;
-        if (errorCount != 0) {
-          return $"{errorCount} parse errors detected in {fn}";
-        }
-      } catch (IOException e) {
-        IToken tok = include == null ? Token.NoToken : include.tok;
-        errs.SemErr(tok, "Unable to open included file");
-        return $"Error opening file \"{fn}\": {e.Message}";
-      }
-
-      return null; // Success
-    }
+    // private static string ParseFile(DafnyFile dafnyFile, Include include, BuiltIns builtIns, ErrorReporter errorReporter) {
+    //   var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
+    //   try {
+    //     var parseResult = ParseUtils.Parse(dafnyFile.Content, dafnyFile.Uri, builtIns, errorReporter);
+    //     var errorCount = parseResult.ErrorCount;
+    //     if (errorCount != 0) {
+    //       return $"{errorCount} parse errors detected in {fn}";
+    //     }
+    //   } catch (IOException e) {
+    //     IToken tok = include == null ? Token.NoToken : include.tok;
+    //     errorReporter.Error(MessageSource.Parser, tok, "Unable to open included file");
+    //     return $"Error opening file \"{fn}\": {e.Message}";
+    //   }
+    //
+    //   return null; // Success
+    // }
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
       DafnyOptions options,

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading;
 using Microsoft.Boogie;
 using DafnyServer;
 using Bpl = Microsoft.Boogie;
@@ -41,13 +42,13 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
-      BuiltIns builtIns = new BuiltIns(options);
-      var success = (ParseUtils.Parse(source, uri, module, builtIns, reporter) == 0 &&
-                     DafnyMain.ParseIncludes(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
+      var program = ParseUtils.ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri.LocalPath, new StringReader(source))}, 
+        reporter, CancellationToken.None);
+
+      var success = reporter.ErrorCount == 0;
       if (success) {
-        dafnyProgram = new Program(fname, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+        dafnyProgram = program;
       }
       return success;
     }

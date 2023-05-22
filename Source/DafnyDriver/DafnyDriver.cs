@@ -18,16 +18,12 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.CommandLine;
-using System.CommandLine.IO;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
-using System.Threading;
-using DafnyCore;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -353,7 +349,7 @@ namespace Microsoft.Dafny {
       return CommandLineArgumentsResult.OK;
     }
 
-    private async Task<ExitValue> ProcessFilesAsync(IList<DafnyFile/*!*/>/*!*/ dafnyFiles,
+    private async Task<ExitValue> ProcessFilesAsync(IReadOnlyList<DafnyFile/*!*/>/*!*/ dafnyFiles,
       ReadOnlyCollection<string> otherFileNames,
       DafnyOptions options, bool lookForSnapshots = true, string programId = null) {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
@@ -452,7 +448,7 @@ namespace Microsoft.Dafny {
       return exitValue;
     }
 
-    private static ExitValue DoFormatting(IList<DafnyFile> dafnyFiles, DafnyOptions options, string programName, TextWriter errorWriter) {
+    private static ExitValue DoFormatting(IReadOnlyList<DafnyFile> dafnyFiles, DafnyOptions options, string programName, TextWriter errorWriter) {
       var exitValue = ExitValue.SUCCESS;
       Contract.Assert(dafnyFiles.Count > 0 || options.FoldersToFormat.Count > 0);
       dafnyFiles = dafnyFiles.Concat(options.FoldersToFormat.SelectMany(folderPath => {
@@ -468,24 +464,23 @@ namespace Microsoft.Dafny {
       var neededFormatting = 0;
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
-        if (dafnyFile.UseStdin && !doCheck && !doPrint) {
+        if (!dafnyFile.Uri.IsFile && !doCheck && !doPrint) {
           errorWriter.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
           exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;
         }
 
         string tempFileName = null;
-        if (dafnyFile.UseStdin) {
+        if (!dafnyFile.Uri.IsFile) {
           tempFileName = Path.GetTempFileName() + ".dfy";
           WriteFile(tempFileName, Console.In.ReadToEnd());
           dafnyFile = new DafnyFile(options, tempFileName);
         }
 
+        var originalText = dafnyFile.Content.ReadToEnd();
+        dafnyFile.Content = new StringReader(originalText);
         // Might not be totally optimized but let's do that for now
-        var err = DafnyMain.Parse(options.Input, new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
-        var originalText = dafnyFile.UseStdin ? Console.In.ReadToEnd() :
-          File.Exists(dafnyFile.FilePath) ?
-          File.ReadAllText(dafnyFile.FilePath) : null;
+        var err = DafnyMain.Parse(new List<DafnyFile> { dafnyFile }, programName, options, out var dafnyProgram);
         if (err != null) {
           exitValue = ExitValue.DAFNY_ERROR;
           errorWriter.WriteLine(err);
