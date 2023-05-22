@@ -1,8 +1,8 @@
-GeneralTraitsVerify.dfy(28,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Class'
-GeneralTraitsVerify.dfy(31,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Dt'
-GeneralTraitsVerify.dfy(34,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'CoDt'
-GeneralTraitsVerify.dfy(37,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Abstract'
-GeneralTraitsVerify.dfy(44,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'MyInt'
-GeneralTraitsVerify.dfy(47,13): Error: value does not satisfy the subset constraints of 'MyConstrainedInt'
+GeneralTraitsVerify.dfy(34,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Class'
+GeneralTraitsVerify.dfy(37,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Dt'
+GeneralTraitsVerify.dfy(40,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'CoDt'
+GeneralTraitsVerify.dfy(43,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'Abstract'
+GeneralTraitsVerify.dfy(50,13): Error: value of expression (of type 'Parent') is not known to be an instance of type 'MyInt'
+GeneralTraitsVerify.dfy(53,13): Error: value does not satisfy the subset constraints of 'MyConstrainedInt'
 
 Dafny program verifier finished with 4 verified, 6 errors

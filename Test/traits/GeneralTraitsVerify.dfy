@@ -14,11 +14,17 @@ module Tests {
   method M(c: Class, d: Dt, co: CoDt, a: Abstract, mi: MyInt, mc: MyConstrainedInt) {
     var p: Parent;
     p := c;
+    assert p is Class;
     p := d;
+    assert p is Dt;
     p := co;
+    assert p is CoDt;
     p := a;
+    assert p is Abstract;
     p := mi;
+    assert p is MyInt;
     p := mc;
+    assert p is MyConstrainedInt;
   }
 
   method N0(p: Parent) {
@@ -87,7 +93,7 @@ module Tests {
     a := p as Abstract;
 
     p := mi;
-//    mi := p as MyInt;
+    mi := p as MyInt;
 
     p := mc;
     mc := p as MyConstrainedInt;
