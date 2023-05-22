@@ -3674,8 +3674,10 @@ namespace Microsoft.Dafny {
       Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads) {
-        var newE = Substitute(e.E, null, substMap, typeMap);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassDecl)func.EnclosingClass);
+        var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
       }
