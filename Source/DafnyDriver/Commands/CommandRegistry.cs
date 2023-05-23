@@ -162,7 +162,7 @@ public static class CommandRegistry {
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, Console.Error, out projectFileValue) ?? false;
+        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, errorWriter, out projectFileValue) ?? false;
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -246,15 +246,15 @@ public static class CommandRegistry {
   private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       if (dafnyOptions.ProjectFile != null) {
-        Console.Error.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
+        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
         return false;
       }
 
       if (!File.Exists(singleFile.FullName)) {
-        Console.Error.WriteLine($"Error: file {singleFile.FullName} not found");
+        dafnyOptions.ErrorWriter.WriteLine($"Error: file {singleFile.FullName} not found");
         return false;
       }
-      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
@@ -262,7 +262,7 @@ public static class CommandRegistry {
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
-      dafnyOptions.CliRootUris.Add(new Uri(singleFile.FullName));
+      dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }
     return true;
   }

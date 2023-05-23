@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
         ResultPreType = Type2PreType(resultType)
       };
       rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
-      bitvectorTypeDecl.Members.Add(name, rotateMember);
+      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -354,7 +354,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// For every declaration in "declarations", resolve names and determine pre-types.
     /// </summary>
-    public void ResolveDeclarations(List<TopLevelDecl> declarations, string moduleName) {
+    public void ResolveDeclarations(List<TopLevelDecl> declarations) {
       // under construction... (the CLI option --type-system-refresh has informed the user that this mode is not yet ready)
     }
 

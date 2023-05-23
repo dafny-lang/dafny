@@ -38,7 +38,7 @@ public class StaticReceiverExpr : LiteralExpr {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-    Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
+    Type = new UserDefinedType(tok, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
