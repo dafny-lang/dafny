@@ -1,8 +1,8 @@
 <!-- %default %useHeadings -->
 
-<!-- DafnyCore/Compilers/SinglePassCompiler.cs -->
+<!-- DafnyCore/Compilers/ExecutableBackend.cs -->
 
-## **Error: _process_ Process exited with exit code _code_**
+## **Error: _process_ Process exited with exit code _code_** {#c_process_exit}
 
 The dafny compiler prepares a representation of the Dafny program in the desired target programming
 language and then invokes the target language's compiler on those files as a subsidiary process.
@@ -16,7 +16,7 @@ There may be additional error messages from the underlying compiler that can hel
 You can also attempt to run the target programming language compiler manually in your system 
 to make sure it is functional.
 
-## **Error: Unable to start _target_**
+## **Error: Unable to start _target_** {#c_process_failed_to_start}
 
 The dafny compiler prepares a representation of the Dafny program in the desired target programming
 language and then invokes the target language's compiler on those files as a subsidiary process.
@@ -26,8 +26,9 @@ it gives some additional information about what the invoking process was told ab
 Typically this error happens when the installation of the underlying compiler is not present or is incomplete,
 such as the proper files not having the correct permissions.
 
+<!-- DafnyCore/Compilers/SinglePassCompiler.cs -->
 
-## **Error: Error: '_feature_' is not an element of the _target_ compiler's UnsupportedFeatures set**
+## **Error: Error: '_feature_' is not an element of the _target_ compiler's UnsupportedFeatures set** {#c_unsupported_feature}
 
 This messages indicates two problems:
 - the given feature is not supported in the compiler for the target language but is present in the program,
@@ -36,12 +37,17 @@ so the program will need to be revised to avoid this feature;
 The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 
-## **Error: Abstract type ('_type_') with extern attribute requires a compile hint.  Expected {:extern compile_type_hint}**
+## **Error: Abstract type ('_type_') with extern attribute requires a compile hint. Expected {:extern _hint_}** {#c_abstract_type_needs_hint}
 
-<!-- TODO -->
-_Documentation of extern and compile hints is in progress._
+<!-- %check-run -->
+```dafny
+type {:extern } T
+```
 
-## **Error: Abstract type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.**
+The type needs a name given to know which type in the target language it is associated with.
+
+## **Error: Abstract type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.** {#c_abstract_type_cannot_be_compiled}
+
 <!-- %check-run -->
 ```dafny
 type T
@@ -55,10 +61,10 @@ the type must be given an actual definition.
 If the definition really does not matter, just give it a definition like 
 `type T = bool` or `type T = `int`.
 
-Note that some properties of a type an be indicated using a [type charcteristic](../DafnyRef/DafnyRef#sec-type-characteristics).
+Note that some properties of a type an be indicated using a [type characteristic](../DafnyRef/DafnyRef#sec-type-characteristics).
 For example, [`type T(00)` indicates that the type `T` is non-empty](../DafnyRef/DafnyRef#sec-nonempty-types).
 
-## **Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option**
+## **Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option** {#c_iterators_are_not_deterministic}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -80,7 +86,7 @@ In an iterator, the yield parameters are initialized with arbitary values and ca
 they are set with actual values, so there is a bit of nondeterminism.
 Consequently, iterators in general are not permitted along with `--enforce-determinism`.
 
-## **Error: iterator _name_ has no body**
+## **Error: iterator _name_ has no body** {#c_iterator_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -94,7 +100,18 @@ Consequently, like body-less functions and loops, dafny will not
 compile a program containing an iterator without a body.
 Furthermore, if the iterator is non-ghost, it cannot be executed if it does not have a body.
 
-## **Error: The method '_name_' is not permitted as a main method (_reason_).**
+## **Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option** {#c_constructorless_class_forbidden}
+
+<!-- %check-run %options --enforce-determinism -->
+```dafny
+class A { var j: int }
+```
+
+The `--enforce-determinism` option prohibits all non-deterministic operations in a Dafny program.
+One of these operations is the arbitrary values assigned to non-explicitly-initialized fields in a default constructor.
+Consequently an explicit constructor is required.
+
+## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
 <!-- %check-legacy %options -compile:2 -Main:mmm -->
 ```dafny
@@ -113,7 +130,7 @@ Most importantly
 
 Most commonly and for clarity, the intended main method is marked with the attribute `{:main}`.
 
-## **Error: Could not find the method named by the -Main option: _name_**
+## **Error: Could not find the method named by the -Main option: _name_** {#c_could_not_find_stipulated_main_method}
 
 <!-- %check-legacy %options /compile:2 -Main:m -->
 ```dafny
@@ -126,7 +143,7 @@ For instance. a method `m` in a (top-level) module `M` is named `M.m`
 or in a class `C` in a module `M` is named `M.C.m`.
 This error message indicates that dafny does not recognize the name given as the name of a method.
 
-## **Error: More than one method is marked {:main}. First declaration appeared at _location_.**
+## **Error: More than one method is marked {:main}. First declaration appeared at _location_.** {#c_more_than_one_explicit_main_method}
 
 <!-- %check-run -->
 ```dafny
@@ -141,7 +158,7 @@ The solution is to remove the `{:main}` attribute from all but one.
 
 Note that entry points that are intended as unit tests can be marked with `{:test}` instead.
 
-## **Error: This method marked {:main} is not permitted as a main method (_name_).**
+## **Error: This method marked {:main} is not permitted as a main method (_name_).** {#c_method_not_permitted_as_main}
 
 <!-- %check-run -->
 ```dafny
@@ -154,7 +171,7 @@ The principal restrictions are these ([more details in the Dafny User Guide](#se
 - it must not be ghost
 - the method may be a class method, but then typically it is `static`
 
-## **Error: More than one method is declared as 'Main'. First declaration appeared at _location_.**
+## **Error: More than one method is declared as 'Main'. First declaration appeared at _location_.** {#c_more_than_one_default_Main_method}
 
 <!-- %check-run -->
 ```dafny
@@ -171,7 +188,7 @@ The solution is to mark one of them as `{:main}`.
 
 Note that entry points that are intended as unit tests can be marked with `{:test}` instead.
 
-## **Error: This method 'Main' is not permitted as a main method (_reason_).**
+## **Error: This method 'Main' is not permitted as a main method (_reason_).** {#c_Main_method_not_permitted}
 
 <!-- %check-run -->
 ```dafny
@@ -184,7 +201,7 @@ This error occurs if the `Main` method that is found
 does not qualify as a main entry point because it violates one or more of the [rules](#sec-user-guide-main),
 as given by the reason in the error message.
 
-## **Error: Function _name_ has no body**
+## **Error: Function _name_ has no body** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -195,7 +212,7 @@ The given function has no body, which is OK for verification, but not OK for com
 --- the compiler does not know what content to give it.
 Even ghost functions must have bodies because body-less ghost functions are a form of unchecked assumptions.
 
-## **Error: Function _name_ must be compiled to use the {:test} attribute**
+## **Error: Function _name_ must be compiled to use the {:test} attribute** {#c_test_function_must_be_compilable}
 
 <!-- %check-run -->
 ```dafny
@@ -209,7 +226,7 @@ If you want the function to be compiled,
 declare the function as a `function` instead of `ghost function` in Dafny 4 
 or as `function method` instead of `function` in Dafny 3.
 
-## **Error: Method _name_ is annotated with :synthesize but is not static, has a body, or does not return anything**
+## **Error: Method _name_ is annotated with :synthesize but is not static, has a body, or does not return anything** {#c_invalid_synthesize_method}
 
 <!-- TODO: Need example? -->
 
@@ -219,7 +236,7 @@ a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-## **Error: Method _name_ has no body**
+## **Error: Method _name_ has no body** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -230,15 +247,7 @@ To be part of a compiled program, each method must have a body.
 Ghost methods are the equivalent of unchecked assumptions
 so they too must have bodies.
 
-## **Error: _kind_ '_name_' is marked as :handle, so all the traits it extends must be marked as :handle as well: _trait_**
-
-The `:handle` attribute is deprecated.
-
-## **Error: _kind '_name_' is marked as :handle, so all its non-static members must be ghost: _trait_**
-
-The `:handle` attribute is deprecated.
-
-## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)**
+## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)** {#c_assume_statement_may_not_be_compiled}
 
 <!-- %check-run -->
 ```dafny
@@ -255,7 +264,7 @@ externally verified _axiom_, with the program author taking responsibility for i
 
 If the assumption marked with `{:axiom}` is not actually valid, then the validity of the entire program is in question.
 
-## **Error: a forall statement without a body cannot be compiled**
+## **Error: a forall statement without a body cannot be compiled** {#c_forall_statement_has_no_body}
 
 <!-- %no-check  FIX: now has multiple lines of error messages -->
 ```dafny
@@ -271,7 +280,7 @@ However, the body must be supplied before the program can be compiled,
 even if the method is `ghost`. Body-less foralls in ghost methods are 
 similar to unchecked assumptions.
 
-## **Error: a loop without a body cannot be compiled**
+## **Error: a loop without a body cannot be compiled** {#c_loop_has_no_body}
 
 <!-- %no-check  FIX: now has multiple lines of error messages -->
 ```dafny
@@ -288,7 +297,7 @@ However, the body must be supplied before the program can be compiled,
 even if the method is `ghost`. 
 Body-less loops in ghost methods are similar to unchecked assumptions.
 
-## **Error: nondeterministic assignment forbidden by the --enforce-determinism option**
+## **Error: nondeterministic assignment forbidden by the --enforce-determinism option** {#c_nondeterminism_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -307,7 +316,9 @@ There are a few different forms of this kind of assignment:
 - `x, y, z := 3, *, 42;`
 - `forall i | 0 <= i < a.Length { a[i] := *; }`
 
-## **Error: assign-such-that statement forbidden by the --enforce-determinism option**
+<!-- TODO - test all 3 instances -->
+
+## **Error: assign-such-that statement forbidden by the --enforce-determinism option** {#c_assign_such_that_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -325,12 +336,12 @@ even if there is only one such possible value.
 whether there is a reasonable way to compute it.)
 
 
-## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
+## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_assign_such_that_is_too_complex}
 
 <!-- TODO -->
 _The documentation of this problem is in progress._
 
-## **Error: nondeterministic if statement forbidden by the --enforce-determinism option**
+## **Error: nondeterministic if statement forbidden by the --enforce-determinism option** {#c_nondeterministic_if_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -344,7 +355,7 @@ The `--enforce-determinism` option requires a target program to be deterministic
 there may be no program statements that have an arbitrary, even if deterministic, result.
 Hence this 'non-deterministic if' (`if *`) statement is not permitted with `--enforce-determinism`.
 
-## **Error: binding if statement forbidden by the --enforce-determinism option**
+## **Error: binding if statement forbidden by the --enforce-determinism option** {#c_binding_if_forbidden}
 
 <!-- TODO: a binding guard is a ghost statement so how could this situation ever happen? -->
 
@@ -367,7 +378,7 @@ even if there is exactly one value that satisfies the predicate.
 (The tool does not try to determine whether there is just one value and
 whether there is a reasonable way to compute it.)
 
-## **Error: case-based if statement forbidden by the --enforce-determinism option**
+## **Error: case-based if statement forbidden by the --enforce-determinism option** {#c_case_based_if_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -390,7 +401,7 @@ Hence the case-based if is not permitted with `--enforce-determinism`.
 To enforce a deterministic order to the evaluation, use a chain of if-then-else statements.
 
 
-## **Error: nondeterministic loop forbidden by the --enforce-determinism option**
+## **Error: nondeterministic loop forbidden by the --enforce-determinism option** {#c_non_deterministic_loop_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -405,7 +416,7 @@ The `--enforce-determinism` option requires a target program to be deterministic
 there may be no program statements that have an arbitrary, even if deterministic, result.
 Hence this 'non-deterministic while' (`while *`) statement is not permitted with `--enforce-determinism`.
 
-## **Error: case-based loop forbidden by the --enforce-determinism option**
+## **Error: case-based loop forbidden by the --enforce-determinism option** {#c_case_based_loop_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
@@ -429,16 +440,16 @@ Hence the case-based loop is not permitted with `--enforce-determinism`.
 To enforce a deterministic order to the evaluation, use a chain of if-then-else statements
 or series of `if` statements in which the then-branch ends in a continue statement.
 
-## **Error: compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements**
+## **Error: compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements** {#c_no_assignments_to_seven_d_arrays}
 
 <!-- TODO -->
 _The documentation of this problem is in progress._
 
-## **Error: modify statement without a body forbidden by the --enforce-determinism option**
+## **Error: modify statement without a body forbidden by the --enforce-determinism option** {#c_bodyless_modify_statement_forbidden}
 
 <!-- %check-run %options --enforce-determinism -->
 ```dafny
-class A { var j: int }
+class A { constructor A(){}}
 
 method m(k: int, o: A) 
   modifies o
@@ -459,43 +470,51 @@ Hence such a statement is not permitted with `--enforce-determinism`.
 Note that a `modify` statement with a body is deprecated.
 
 
-## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'**
+## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_let_such_that_is_too_complex}
 
 <!-- TODO -->
 _The documentation of this problem is in progress._
 
-## **Error: Comparison of a handle can only be with another handle**
 
-<!-- TODO -->
-_The documentation of the {:handle} attribute is in progress._
+<!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->
 
-<!-- DafnyCore/Compilers/Synthesizer-Csharp.cs -->
-
-## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_"
+## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_" {#c_possibly_unsatisfied_postconditions}
 
 <!-- TODO: Example? Say more? Better documentation? -->
 
 This message relates to mocking methods in C# with the Moq framework. 
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-## **Error: Stubbing fields is not recommended (field _name_ of object _object_ inside method _method_)**
+## **Error: Stubbing fields is not recommended (field _name_ of object _object_ inside method _method_)** {#c_stubbing_fields_not_recommended}
 
 <!-- TODO: Example? Say more? Better documentation? -->
 
 This message relates to mocking methods in C# with the Moq framework. 
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
-<!-- DafnyCore/Compilers/Compiler-Csharp.cs -->
+
+<!-- DafnyCore/Compilers/Cplusplus/Compiler-Cpp.cs -->
+
+ 
+## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
+
+<!-- %check-run %options --enforce-determinism --target cpp --unicode-char:false -->
+```dafny
+type {:extern "class" } T
+```
+
+The C++ compiler must be told how to translate an abstract type. Typically the value of the extern attribute is "struct".
+Note that Dafny's C++ compiler is very preliminary, partial and experimental.
 
 <!-- DafnyCore/Compilers/Compiler-go.cs -->
 # Errors specific to the Go compiler
 
-## **Error: Unsupported field _name_ in extern trait**
+## **Error: Unsupported field _name_ in extern trait** {#c_Go_unsupported_field}
 
 <!-- TODO -->
 _Documentation of the Go compiler errors is in progress._
 
-## **Error: Cannot convert from _type_ to _target-type_**
+## **Error: Cannot convert from _type_ to _target-type_** {#c_Go_infeasible_conversion}
 
 <!-- TODO - may not be feasible -->
 _Documentation of the Go compiler errors is in progress._
