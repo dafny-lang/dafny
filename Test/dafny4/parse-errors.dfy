@@ -12,10 +12,13 @@ method m2() returns (d: D) {
   var x := (var B() :| D.CCC; 0);
   var m := map x, y :: x+y;
   var n := ( z := 0 );
-  var s := seq<int,int>[1,2,3];
+  var s := seq<int,int>(1, _=>0);
+  var s := seq<int>(1, 2);
+  var s := seq<int>(1);
+  var s := [1,2,3,];
 }
 
 method m3() {
-  var x := (var x ^:= 0; 0);
+  var x := (var x := 0; 0);
 }
 
