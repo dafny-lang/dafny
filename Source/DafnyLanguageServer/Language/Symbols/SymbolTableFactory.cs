@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(moduleDefinition, moduleDefinition.tok, () => base.Visit(moduleDefinition));
       }
 
-      public override void Visit(ClassDecl classDeclaration) {
+      public override void Visit(TopLevelDeclWithMembers classDeclaration) {
         VisitTopLevelDeclarationWithMembers(classDeclaration, () => base.Visit(classDeclaration));
       }
 
