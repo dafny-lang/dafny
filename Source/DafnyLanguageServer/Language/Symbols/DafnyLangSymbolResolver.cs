@@ -90,8 +90,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
         switch (topLevelDeclaration) {
-          case ClassDecl classDeclaration:
+          case ClassLikeDecl classDeclaration:
             return ProcessClass(moduleSymbol, classDeclaration);
+          case DefaultClassDecl defaultClassDecl:
+            return ProcessClass(moduleSymbol, defaultClassDecl);
           case LiteralModuleDecl literalModuleDeclaration:
             return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
           case ValuetypeDecl valueTypeDeclaration:
@@ -104,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
+      private ClassSymbol ProcessClass(Symbol scope, TopLevelDeclWithMembers classDeclaration) {
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         ProcessAndAddAllMembers(classSymbol, classDeclaration);
         return classSymbol;

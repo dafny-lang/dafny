@@ -626,6 +626,30 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
+When an actual type is substituted for a type parameter in a generic type instantiation,
+the actual type must have the declared or inferred type characteristics of the type parameter.
+These characteristics might also be inferred for the actual type. For example, a numeric-based
+subset or newtype automatically has the `==` relationship of its base type. Similarly, 
+type synonyms have the characteristics of the type they represent.
+
+An abstract type has no known characteristics. If it is intended to be defined only as types
+that have certain characteristics, then those characteristics must be declared.
+For example,
+<!-- %check-resolve Types.26.expect -->
+```dafny
+class A<T(00)> {}
+type Q
+const a: A<Q>
+```
+will give an error because it is not known whether the type `Q` is non-empty (`00`).
+Instead, one needs to write
+<!-- %check-resolve -->
+```dafny
+class A<T(00)> {}
+type Q(00)
+const a: A?<Q> := null
+```
+
 #### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
@@ -1424,8 +1448,12 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
-The new type name itself may have type characteristics declared, though these are typically
-inferred from the definition, if there is one.
+The new type name itself may have [type characteristics](#sec-type-characteristics) declared, and may need to if there is no definition.
+If there is a definition, the type characteristics are typically inferred from the definition. The syntax is like this:
+<!-- %no-check -->
+```dafny
+type Z(==)<T(0)>
+```
 
 As already described in [Section 5.5.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
