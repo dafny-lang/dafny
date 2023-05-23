@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
-        if (e.Obj.Type.IsRefType && !(e.Member is ConstantField)) {
+        if (e.Member is not Field { IsMutable: false }) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {
