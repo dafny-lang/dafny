@@ -235,13 +235,13 @@ type ZeroOrMore = nat
 type ZeroOrMore2 = nat
 
 // Unattached comment
-type OpaqueType
-// OpaqueType has opaque methods so you don't see them
+type AbstractType
+// AbstractType has opaque methods so you don't see them
 {
 }
 
-/** OpaqueType2 has opaque methods so you don't see them */
-type OpaqueType2
+/** AbstractType2 has opaque methods so you don't see them */
+type AbstractType2
 {
 }
 ", new List<(string nodeTokenValue, string? expectedDocstring)> {
@@ -253,8 +253,8 @@ type OpaqueType2
         ("BinDigit", "A binary digit"),
         ("ZeroOrMore", "ZeroOrMore is the same as nat"),
         ("ZeroOrMore2", "ZeroOrMore2 is the same as nat"),
-        ("OpaqueType", "OpaqueType has opaque methods so you don't see them"),
-        ("OpaqueType2", "OpaqueType2 has opaque methods so you don't see them")
+        ("AbstractType", "AbstractType has opaque methods so you don't see them"),
+        ("AbstractType2", "AbstractType2 has opaque methods so you don't see them")
       });
     }
 
