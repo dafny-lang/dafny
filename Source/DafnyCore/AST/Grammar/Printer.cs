@@ -153,16 +153,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public static string ModuleDefinitionToString(DafnyOptions options, ModuleDefinition m, PrintModes printMode = PrintModes.Everything) {
-      Contract.Requires(m != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr, options, printMode);
-        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null, null);
-        return ToStringWithoutNewline(wr);
-      }
-    }
-
-
     /// <summary>
     /// Returns a string for all attributes on the list "a".  Each attribute is
     /// followed by a space.
@@ -211,7 +201,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog, prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -221,10 +211,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
+      PrintTopLevelDecls(prog, prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
       foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
         var decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
+        PrintTopLevelDecls(prog, decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
       }
       wr.Flush();
     }
@@ -270,7 +260,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(Program program, List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -322,35 +312,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent);
             wr.WriteLine("}");
           }
-        } else if (d is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)d;
+        } else if (d is SubsetTypeDecl subsetTypeDecl) {
           if (i++ != 0) { wr.WriteLine(); }
-          Indent(indent);
-          PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
-          wr.Write(" = ");
-          wr.Write(dd.Var.DisplayName);
-          if (ShowType(dd.Var.Type)) {
-            wr.Write(": ");
-            PrintType(dd.Rhs);
-          }
-          if (dd is NonNullTypeDecl) {
-            wr.Write(" ");
-          } else {
-            wr.WriteLine();
-            Indent(indent + IndentAmount);
-          }
-          wr.Write("| ");
-          PrintExpression(dd.Constraint, true);
-          if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
-            if (dd is NonNullTypeDecl) {
-              wr.Write(" ");
-            } else {
-              wr.WriteLine();
-              Indent(indent + IndentAmount);
-            }
-            PrintWitnessClause(dd);
-          }
-          wr.WriteLine();
+
+          PrintSubsetTypeDecl(subsetTypeDecl, indent);
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -389,7 +354,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (i++ != 0) { wr.WriteLine(); }
             PrintMembers(defaultClassDecl.Members, indent, fileBeingPrinted);
           }
-
         } else if (d is ClassLikeDecl) {
           var cl = (ClassLikeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -413,7 +377,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
-            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.IsToBeCompiled) {
+            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(program)) {
               // This mode is used to losslessly serialize the source program by the C# and Library backends.
               // Backends don't compile any code for modules not marked for compilation,
               // so it's consistent to skip those modules here too. 
@@ -424,7 +388,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
-            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
+            PrintModuleDefinition(program, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
@@ -483,7 +447,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
 
             wr.WriteLine();
-            PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
+            PrintModuleExportDecl(program, e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
           } else {
             Contract.Assert(false); // unexpected ModuleDecl
@@ -492,6 +456,39 @@ NoGhost - disable printing of functions, ghost methods, and proof
           Contract.Assert(false); // unexpected TopLevelDecl
         }
       }
+    }
+
+    private void PrintSubsetTypeDecl(SubsetTypeDecl dd, int indent) {
+      Indent(indent);
+      PrintClassMethodHelper("type", dd.Attributes, dd.Name + TPCharacteristicsSuffix(dd.Characteristics), dd.TypeArgs);
+      wr.Write(" = ");
+      wr.Write(dd.Var.DisplayName);
+      if (ShowType(dd.Var.Type)) {
+        wr.Write(": ");
+        PrintType(dd.Rhs);
+      }
+
+      if (dd is NonNullTypeDecl) {
+        wr.Write(" ");
+      } else {
+        wr.WriteLine();
+        Indent(indent + IndentAmount);
+      }
+
+      wr.Write("| ");
+      PrintExpression(dd.Constraint, true);
+      if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
+        if (dd is NonNullTypeDecl) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent + IndentAmount);
+        }
+
+        PrintWitnessClause(dd);
+      }
+
+      wr.WriteLine();
     }
 
     private void PrintWitnessClause(RedirectingTypeDecl dd) {
@@ -519,7 +516,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
+    void PrintModuleExportDecl(Program program, ModuleExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
       if (m.RevealAll) {
@@ -550,7 +547,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           for (int j = start; j < i; j++) {
             var id = m.Exports[j];
             if (id.Decl is TopLevelDecl) {
-              PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
+              PrintTopLevelDecls(program, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
             } else if (id.Decl is MemberDecl) {
               PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
             }
@@ -563,7 +560,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(Program program, ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -587,14 +584,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else {
         wr.WriteLine("{");
         PrintCallGraph(module, indent + IndentAmount);
-        PrintTopLevelDeclsOrExportedView(module, indent, fileBeingPrinted);
+        PrintTopLevelDeclsOrExportedView(program, module, indent, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
       }
       Type.PopScope(scope);
     }
 
-    void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
+    void PrintTopLevelDeclsOrExportedView(Program program, ModuleDefinition module, int indent, string fileBeingPrinted) {
       var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
@@ -607,10 +604,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
         }
       }
-      PrintTopLevelDecls(decls, indent + IndentAmount, null, fileBeingPrinted);
+      PrintTopLevelDecls(program, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
         decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+        PrintTopLevelDecls(program, decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
       }
     }
 
@@ -655,7 +652,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Indent(indent); wr.WriteLine("}");
 
       Contract.Assert(iter.NonNullTypeDecl != null);
-      PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, null, fileBeingPrinted);
+      PrintSubsetTypeDecl(iter.NonNullTypeDecl, indent);
     }
 
     public void PrintClass(ClassLikeDecl c, int indent, string fileBeingPrinted) {
@@ -687,7 +684,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("/*-- non-null type");
         }
-        PrintTopLevelDecls(new List<TopLevelDecl> { c.NonNullTypeDecl }, indent, null, fileBeingPrinted);
+        PrintSubsetTypeDecl(c.NonNullTypeDecl, indent);
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("*/");
         }

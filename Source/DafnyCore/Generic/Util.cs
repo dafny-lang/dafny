@@ -14,6 +14,12 @@ using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  public static class Sets {
+    public static ISet<T> Empty<T>() {
+      return new HashSet<T>();
+    }
+  }
   public static class Util {
 
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
