@@ -213,7 +213,6 @@ namespace DafnyTestGeneration {
         func.ByMethodBody = new BlockStmt(
           new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
-        func.ByMethodTok = new Token();
       }
     }
 
