@@ -1478,7 +1478,7 @@ The build and run steps are
 - `./A`
 
 The uncompiled code can be compiled and run by `go` itself using
-- `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
+- ``(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run src/A.go)``
 
 The one-step process is
 - `dafny run --target:go A.dfy`

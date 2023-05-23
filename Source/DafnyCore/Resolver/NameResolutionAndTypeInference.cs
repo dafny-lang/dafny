@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
         var e = (NegationExpression)expr;
         ResolveExpression(e.E, resolutionContext);
         e.Type = e.E.Type;
-        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
+        AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "the argument of a unary minus must have numeric or bitvector type (instead got {0})");
         // Note, e.ResolvedExpression will be filled in during CheckTypeInference, at which time e.Type has been determined
 
       } else if (expr is LiteralExpr) {
@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
             "non-function expression (of type {0}) is called with parameters", e.Function.Type);
         } else if (fnType.Arity != e.Args.Count) {
           reporter.Error(MessageSource.Resolver, e.tok,
-            "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType,
+            "wrong number of arguments for function application (function type '{0}' expects {1}, got {2})", fnType,
             fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
