@@ -1,7 +1,9 @@
 git-issue-1989.dfy(22,31): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(89,17): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(95,24): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(97,20): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(98,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-1989.dfy(122,25): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(124,23): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(125,28): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 git-issue-1989.dfy(49,7): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
