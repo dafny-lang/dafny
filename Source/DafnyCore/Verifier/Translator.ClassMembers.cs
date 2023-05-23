@@ -23,7 +23,9 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(null, null, (ArrayClassDecl)c, true);
         }
 
-        AddIsAndIsAllocForClassLike(c);
+        if (c is ClassLikeDecl) {
+          AddIsAndIsAllocForClassLike(c);
+        }
 
         if (c is TraitDecl) {
           //this adds: function implements$J(Ty, typeArgs): bool;
@@ -87,7 +89,7 @@ namespace Microsoft.Dafny {
             $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
      */
     private void AddIsAndIsAllocForClassLike(TopLevelDeclWithMembers c) {
-      MapM(c is ClassDecl ? Bools : new List<bool>(), is_alloc => {
+      MapM(c is ClassLikeDecl ? Bools : new List<bool>(), is_alloc => {
         var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
         var o = BplBoundVar("$o", predef.RefType, vars);
@@ -271,7 +273,7 @@ namespace Microsoft.Dafny {
 
       var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
       Bpl.Expr isalloc_o;
-      if (!(c is ClassDecl)) {
+      if (!(c is ClassLikeDecl)) {
         var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
         isalloc_o = MkIsAlloc(o, udt, h);
       } else if (RevealedInScope(c)) {
@@ -296,8 +298,7 @@ namespace Microsoft.Dafny {
         var ac = (ArrayClassDecl)c;
         var ixs = new List<Bpl.Expr>();
         for (int i = 0; i < ac.Dims; i++) {
-          Bpl.Expr e;
-          Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out e);
+          Bpl.Variable v = BplBoundVar("$i" + i, Bpl.Type.Int, out var e);
           ixs.Add(e);
           bvsTypeAxiom.Add(v);
           bvsAllocationAxiom.Add(v);
@@ -446,8 +447,7 @@ namespace Microsoft.Dafny {
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
       if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
-        Boogie.Expr h;
-        var hVar = BplBoundVar("$h", predef.HeapType, out h);
+        var hVar = BplBoundVar("$h", predef.HeapType, out var h);
         bvsAllocationAxiom.Add(hVar);
         var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
         var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
@@ -588,8 +588,7 @@ namespace Microsoft.Dafny {
               };
               receiverSubst = ie;
             } else {
-              IdentifierExpr ie;
-              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out var ie);
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
@@ -1220,7 +1219,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassDecl)m.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(m.tok, s.E, new PODesc.EnsuresStronger()));
         }
@@ -1237,7 +1236,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var req in m.OverriddenMethod.Req) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassDecl)m.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
         builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(sub.Substitute(req.E))));
       }
       //generating class pre-conditions
@@ -1432,8 +1431,7 @@ namespace Microsoft.Dafny {
         etran = ordinaryEtran;
       }
 
-      List<Variable> outParams;
-      GenerateMethodParameters(m.tok, m, kind, etran, inParams, out outParams);
+      GenerateMethodParameters(m.tok, m, kind, etran, inParams, out var outParams);
 
       var req = new List<Boogie.Requires>();
       var mod = new List<Boogie.IdentifierExpr>();
