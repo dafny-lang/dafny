@@ -169,7 +169,7 @@ public class MultiBackendTest {
       return RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyDriver.DefaultArgumentsForTesting);
+    var argumentsWithDefaults = arguments.Concat(DafnyDriver.NewDefaultArgumentsForTesting);
     ILitCommand command = new ShellLitCommand(dafnyCLIPath, argumentsWithDefaults, DafnyDriver.ReferencedEnvironmentVariables);
 
     return command.Execute(TextReader.Null, TextWriter.Null, TextWriter.Null);

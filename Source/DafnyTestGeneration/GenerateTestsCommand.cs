@@ -66,7 +66,7 @@ public class GenerateTestsCommand : ICommandSpec {
     copy.Compile = options.Compile;
     copy.RunAfterCompile = options.RunAfterCompile;
     copy.ForceCompile = options.ForceCompile;
-    copy.CompileVerbose = options.CompileVerbose;
+    copy.Verbose = options.Verbose;
     copy.DeprecationNoise = options.DeprecationNoise;
     copy.ForbidNondeterminism = options.ForbidNondeterminism;
     copy.DefiniteAssignmentLevel = options.DefiniteAssignmentLevel;
@@ -95,7 +95,7 @@ path - Prints path-coverage tests for the given program.");
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.CompileVerbose = false;
+    dafnyOptions.Verbose = false;
     dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;

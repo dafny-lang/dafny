@@ -139,9 +139,9 @@ namespace Microsoft.Dafny {
     [Pure]
     bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
-      if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
+      if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         // "provides" is recorded in the non-null type declaration, not the class
-        return cl.NonNullTypeDecl.IsVisibleInScope(currentScope);
+        return nntd.IsVisibleInScope(currentScope);
       }
       return d.IsVisibleInScope(currentScope);
     }
@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (!options.VerifyAllModules && d.tok.WasIncluded(program)) {
+      if (!d.ShouldVerify(program)) {
         return false;
       }
 
@@ -683,7 +683,6 @@ namespace Microsoft.Dafny {
         preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
       }
 
-      Bpl.Program prelude;
       var defines = new List<string>();
       if (6 <= options.ArithMode) {
         defines.Add("ARITH_DISTR");
@@ -701,7 +700,7 @@ namespace Microsoft.Dafny {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       }
-      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
+      int errorCount = BplParser.Parse(preludePath, defines, out var prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
@@ -755,8 +754,8 @@ namespace Microsoft.Dafny {
 
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
-        if (d is OpaqueTypeDecl) {
-          var dd = (OpaqueTypeDecl)d;
+        if (d is AbstractTypeDecl) {
+          var dd = (AbstractTypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
         } else if (d is NewtypeDecl) {
@@ -775,8 +774,8 @@ namespace Microsoft.Dafny {
           var ad = (ArrowTypeDecl)d;
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
           AddClassMembers(cl, true, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
@@ -796,8 +795,8 @@ namespace Microsoft.Dafny {
       foreach (ModuleDefinition m in mods) {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
-          if (d is OpaqueTypeDecl) {
-            var dd = (OpaqueTypeDecl)d;
+          if (d is AbstractTypeDecl) {
+            var dd = (AbstractTypeDecl)d;
             AddTypeDecl(dd);
             AddClassMembers(dd, true, true);
           } else if (d is ModuleDecl) {
@@ -839,8 +838,8 @@ namespace Microsoft.Dafny {
     }
 
     // Don't verify modules which only contain other modules
-    private static bool ShouldVerifyModule(DafnyOptions options, ModuleDefinition m) {
-      if (!m.IsToBeVerified && !options.VerifyAllModules) {
+    private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
+      if (!m.ShouldVerify(program)) {
         return false;
       }
 
@@ -857,7 +856,7 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<ModuleDefinition> VerifiableModules(Program p) {
-      return p.RawModules().Where(m => ShouldVerifyModule(p.Options, m));
+      return p.RawModules().Where(m => ShouldVerifyModule(p, m));
     }
 
     public static IEnumerable<Tuple<string, Bpl.Program>> Translate(Program p, ErrorReporter reporter, TranslatorFlags flags = null) {
@@ -1212,9 +1211,9 @@ namespace Microsoft.Dafny {
       abstractTypes.Add(nm);
     }
 
-    void AddTypeDecl(OpaqueTypeDecl td) {
+    void AddTypeDecl(AbstractTypeDecl td) {
       Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, nameTypeParam(td), td.TypeArgs, td.Characteristics);
+      AddTypeDecl_Aux(td.tok, NameTypeParam(td), td.TypeArgs, td.Characteristics);
     }
 
 
@@ -1231,8 +1230,10 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true, true);
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          AddClassMembers(defaultClassDecl, options.OptimizeResolution < 1, true);
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
           AddClassMembers(cl, options.OptimizeResolution < 1, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
@@ -3029,8 +3030,7 @@ namespace Microsoft.Dafny {
       var tok = pp.tok;
       var etran = new ExpressionTranslator(this, predef, tok);
 
-      List<Bpl.Expr> tyexprs;
-      var tyvars = MkTyParamBinders(GetTypeParams(pp), out tyexprs);
+      var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
       var bvs = new List<Variable>(tyvars);
       var coArgs = new List<Bpl.Expr>(tyexprs);
@@ -3478,7 +3478,8 @@ namespace Microsoft.Dafny {
     void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
       if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
           method.Ens.Count == 1 &&
-          method.Ens[0].E is BinaryExpr { E1: FunctionCallExpr { Args: var arguments } fnCall }) {
+          method.Ens[0].E is BinaryExpr { E1: var e1 } &&
+          e1.Resolved is FunctionCallExpr { Args: var arguments } fnCall) {
         // fnCall == (m.Ens[0].E as BinaryExpr).E1;
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
         Bpl.IdentifierExpr canCallFuncID =
@@ -3628,7 +3629,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in f.OverriddenFunction.Ens) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
@@ -3723,7 +3724,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var req in f.OverriddenFunction.Req) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassDecl)f.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(sub.Substitute(req.E))));
       }
       //generating class pre-conditions
@@ -3734,7 +3735,7 @@ namespace Microsoft.Dafny {
 
     private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables) {
       Contract.Requires(m != null);
-      Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassDecl);
+      Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
       // play havoc with the heap according to the modifies clause
       builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
@@ -4387,7 +4388,7 @@ namespace Microsoft.Dafny {
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParamOrOpaqueType(p));
+          args.Add(TrTypeParamOrAbstractType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -4430,7 +4431,7 @@ namespace Microsoft.Dafny {
         var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParamOrOpaqueType(p));
+          args.Add(TrTypeParamOrAbstractType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -6468,7 +6469,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Function func;
-      if (td is ClassDecl cl && cl.IsObjectTrait) {
+      if (td is TraitDecl { IsObjectTrait: true }) {
         // the type constructor for "object" is in DafnyPrelude.bpl
         func = predef.ObjectTypeConstructor;
       } else if (td is TupleTypeDecl ttd && ttd.Dims == 2 && ttd.NonGhostDims == 2) {
@@ -6564,7 +6565,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cc != null);
       } else {
         var name = cl.FullSanitizedName;
-        if (cl is ClassDecl && ((ClassDecl)cl).NonNullTypeDecl != null) {
+        if (cl is ClassLikeDecl { NonNullTypeDecl: { } }) {
           name = name + "?";  // TODO: this doesn't seem like the best place to do this name transformation
         }
         cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + name, predef.ClassNameType), !cl.EnclosingModuleDefinition.IsFacade);
@@ -7165,7 +7166,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
         return predef.HandleType;
-      } else if (type.IsTypeParameter || type.IsOpaqueType) {
+      } else if (type.IsTypeParameter || type.IsAbstractType) {
         return predef.BoxType;
       } else if (type.IsInternalTypeSynonym) {
         return predef.BoxType;
@@ -7271,7 +7272,7 @@ namespace Microsoft.Dafny {
         // unresolved proxy
         return false;
       }
-      var res = t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym;
+      var res = t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }
@@ -7756,7 +7757,7 @@ namespace Microsoft.Dafny {
       } else if (typ is ArrowType) {
         // TODO: do better than just returning null
         return null;
-      } else if (typ.IsOpaqueType || typ.IsInternalTypeSynonym) {
+      } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
         return null;
       } else {
         Contract.Assume(false);  // unexpected type
@@ -8058,7 +8059,7 @@ namespace Microsoft.Dafny {
       } else if (t is BigOrdinalType) {
         return u is BigOrdinalType;
       } else {
-        Contract.Assert(t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym);
+        Contract.Assert(t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
       }
     }
@@ -8192,7 +8193,7 @@ namespace Microsoft.Dafny {
         less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
         atmost = BplOr(eq, less);
 
-      } else if (ty0.IsTypeParameter || ty0.IsOpaqueType) {
+      } else if (ty0.IsTypeParameter || ty0.IsAbstractType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.False;
         atmost = BplOr(less, eq);
@@ -8247,9 +8248,9 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeExpandKeepConstraints();
 
-      if (type.IsTypeParameter || type.IsOpaqueType) {
+      if (type.IsTypeParameter || type.IsAbstractType) {
         var udt = (UserDefinedType)type;
-        return trTypeParamOrOpaqueType(udt.ResolvedClass, udt.TypeArgs);
+        return TrTypeParamOrAbstractType(udt.ResolvedClass, udt.TypeArgs);
       } else if (type is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
         var args = type.TypeArgs.ConvertAll(TypeToTy);
@@ -8280,14 +8281,14 @@ namespace Microsoft.Dafny {
       } else if (type is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
       } else if (type is ParamTypeProxy) {
-        return trTypeParamOrOpaqueType(((ParamTypeProxy)type).orig);
+        return TrTypeParamOrAbstractType(((ParamTypeProxy)type).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
-    static string nameTypeParam(TopLevelDecl x) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+    static string NameTypeParam(TopLevelDecl x) {
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       if (x is TypeParameter tp && tp.Parent != null) {
         return tp.Parent.FullName + "$" + x.Name;
       } else {
@@ -8296,18 +8297,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr trTypeParamOrOpaqueType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
-      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+    Bpl.Expr TrTypeParamOrAbstractType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
+      Contract.Requires(x is TypeParameter || x is AbstractTypeDecl);
       Contract.Requires(!(x is TypeParameter) || tyArguments == null || tyArguments.Count == 0);
-      Contract.Requires(!(x is OpaqueTypeDecl) || tyArguments != null);
+      Contract.Requires(!(x is AbstractTypeDecl) || tyArguments != null);
       if (x is TypeParameter tp) {
         Contract.Assert(tyArguments == null || tyArguments.Count == 0);
-        var nm = nameTypeParam(tp);
+        var nm = NameTypeParam(tp);
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
       } else {
-        var ot = (OpaqueTypeDecl)x;
-        var nm = nameTypeParam(ot);
+        var ot = (AbstractTypeDecl)x;
+        var nm = NameTypeParam(ot);
         if (tyArguments.Count != 0) {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
           return FunctionCall(x.tok, nm, predef.Ty, args);
@@ -8331,7 +8332,7 @@ namespace Microsoft.Dafny {
     }
 
     static public List<TypeParameter> GetTypeParams(TopLevelDecl d) {
-      Contract.Requires(d is ClassDecl || d is DatatypeDecl || d is NewtypeDecl || d is ValuetypeDecl);
+      Contract.Requires(d is ClassLikeDecl || d is DatatypeDecl || d is NewtypeDecl || d is ValuetypeDecl);
       return d.TypeArgs;
     }
 
@@ -9478,7 +9479,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(translator != null);
         var vv = new List<Variable>();
         // first, add the type variables
-        vv.AddRange(Map(FTVs, tp => NewVar(nameTypeParam(tp), translator.predef.Ty, wantFormals)));
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), translator.predef.Ty, wantFormals)));
         typeAntecedents = Bpl.Expr.True;
         if (UsesHeap) {
           var nv = NewVar("$heap", translator.predef.HeapType, wantFormals);
@@ -10867,7 +10868,7 @@ namespace Microsoft.Dafny {
       var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        vars.Add(BplBoundVar(nameTypeParam(v), predef.Ty, out var e));
+        vars.Add(BplBoundVar(NameTypeParam(v), predef.Ty, out var e));
         exprs.Add(e);
       }
       return vars;
@@ -10883,8 +10884,8 @@ namespace Microsoft.Dafny {
       var vars = new List<Bpl.Variable>();
       exprs = new List<Bpl.Expr>();
       foreach (TypeParameter v in args) {
-        var whereClause = includeWhereClause ? GetTyWhereClause(new Bpl.IdentifierExpr(v.tok, nameTypeParam(v), predef.Ty), v.Characteristics) : null;
-        vars.Add(BplFormalVar(named ? nameTypeParam(v) : null, predef.Ty, true, out var e, whereClause));
+        var whereClause = includeWhereClause ? GetTyWhereClause(new Bpl.IdentifierExpr(v.tok, NameTypeParam(v), predef.Ty), v.Characteristics) : null;
+        vars.Add(BplFormalVar(named ? NameTypeParam(v) : null, predef.Ty, true, out var e, whereClause));
         exprs.Add(e);
       }
       return vars;
