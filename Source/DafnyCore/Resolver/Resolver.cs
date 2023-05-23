@@ -559,7 +559,8 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile"));
+            var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
+            var nw = cloner.CloneModuleDefinition(m, compileName);
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -2010,19 +2011,15 @@ namespace Microsoft.Dafny {
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
         false);
       mod.Height = Height;
-      bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
-        hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
           var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name, compilationModuleClones);
           mod.SourceDecls.Add(clone);
         }
       }
 
-      if (!hasDefaultClass) {
-        var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-        mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name, compilationModuleClones);
-      }
+      var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
+      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name, compilationModuleClones);
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;

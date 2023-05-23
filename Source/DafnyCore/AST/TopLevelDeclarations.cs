@@ -859,9 +859,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution] 
   public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public IEnumerable<TopLevelDecl> TopLevelDecls => (DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] {DefaultClass}).
-    Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
-  
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => SourceDecls.
+    Concat(DefaultClasses).
+    Concat(ResolvedPrefixNamedModules);
+
+  protected IEnumerable<TopLevelDecl> DefaultClasses
+  {
+    get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] {DefaultClass}; }
+  }
+
   [FilledInDuringResolution] 
   public readonly Graph<ICallable> CallGraph = new();
   [FilledInDuringResolution] 
@@ -875,7 +881,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
     NameNode = name;
-    IsBuiltinName = original.IsBuiltinName;
+    IsBuiltinName = true;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
@@ -1155,6 +1161,10 @@ public class DefaultModuleDefinition : ModuleDefinition {
     RootSourceUris = rootSourceUris;
   }
 
+  // TODO added to get similar compilation behavior. Probably not useful.
+  public override IEnumerable<TopLevelDecl> TopLevelDecls =>
+    DefaultClasses.Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
+  
   public override bool IsDefaultModule => true;
 }
 
