@@ -476,11 +476,7 @@ Note that a `modify` statement with a body is deprecated.
 _The documentation of this problem is in progress._
 
 
-<<<<<<< HEAD
-The `{:handle}` attribute is no longer supported.
-=======
 <!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->
->>>>>>> master
 
 ## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_" {#c_possibly_unsatisfied_postconditions}
 
