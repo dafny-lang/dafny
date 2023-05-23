@@ -571,7 +571,7 @@ The `<<` and `>>` operators are left- and right-shift operations.
 They shift a bit-vector value by a given integer number of bits.
 The left-hand operand must be a value of a bit-vector type.
 Even int literals are not implicitly converted to bitvectors 
-(because Dafny wuld not know which bit-vector type to use).
+(because Dafny would not know which bit-vector type to use).
 An explicit conversion is required.
 
 ## **Error: type of left argument to _op_ (_type_) must agree with the result type (_type_)**
