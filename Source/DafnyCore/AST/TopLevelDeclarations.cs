@@ -1413,8 +1413,12 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     Contract.Requires(s != null);
     foreach (var parent in ParentTraits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
-      var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
-      var tr = (TraitDecl)nntd.Class;
+      TraitDecl tr;
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        tr = (TraitDecl)nntd.Class;
+      } else {
+        tr = (TraitDecl)udt.ResolvedClass;
+      }
       s.Add(tr);
       tr.AddTraitAncestors(s);
     }
