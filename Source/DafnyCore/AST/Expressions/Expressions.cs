@@ -7,6 +7,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Security.AccessControl;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -749,7 +750,15 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateFieldSelect(IToken tok, Expression receiver, Field field) {
     var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
-    return new ExprDotName(tok, receiver, field.Name, null) {
+    return WrapResolvedMemberSelect(memberSelectExpr);
+  }
+
+  /// <summary>
+  /// Wrap the resolved MemberSelectExpr in the usual unresolved structure, in case the expression is cloned and re-resolved.
+  /// </summary>
+  public static Expression WrapResolvedMemberSelect(MemberSelectExpr memberSelectExpr) {
+    List<Type> optTypeArguments = memberSelectExpr.TypeApplication_JustMember.Count == 0 ? null : memberSelectExpr.TypeApplication_JustMember;
+    return new ExprDotName(memberSelectExpr.tok, memberSelectExpr.Obj, memberSelectExpr.MemberName, optTypeArguments) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
     };
@@ -838,10 +847,10 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateIdentExpr(IVariable v) {
     Contract.Requires(v != null);
-    var e = new IdentifierExpr(v.Tok, v.Name);
-    e.Var = v;  // resolve here
-    e.type = v.Type;  // resolve here
-    return e;
+    return new IdentifierExpr(v.Tok, v.Name) {
+      Var = v,
+      type = v.Type
+    };
   }
 
   public static Expression VarSubstituter(List<NonglobalVariable> oldVars, List<BoundVar> newVars, Expression e, Dictionary<TypeParameter, Type> typeMap = null) {
