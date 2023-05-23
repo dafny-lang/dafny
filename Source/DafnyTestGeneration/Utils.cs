@@ -126,7 +126,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Turns each function-method into a function-by-method.
+    /// Turns each function into a function-by-method.
     /// Copies body of the function into the body of the corresponding method.
     /// </summary>
     private class AddByMethodRewriter : IRewriter {
@@ -172,8 +172,9 @@ namespace DafnyTestGeneration {
           return;
         }
         var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
+          new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+        func.ByMethodBody = new BlockStmt(
+          new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
       }
     }

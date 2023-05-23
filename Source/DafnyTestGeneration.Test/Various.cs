@@ -599,5 +599,26 @@ module M {
       Assert.True(methods.All(m => m.ToString().Contains("expect instance0.i == 10")));
     }
 
+    /// <summary>
+    /// This test may fail if function to method translation implemented by AddByMethodRewriter
+    /// does not use the cloner to copy the body of the function
+    /// </summary>
+    [Fact]
+    public async Task FunctionToMethodTranslation() {
+      var source = @"
+module M {
+
+  function test(b: bool): bool {
+      assert true by {
+        calc { true; }
+      }
+      true
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      await Main.GetTestMethodsForProgram(program).ToListAsync();
+    }
+
   }
 }
