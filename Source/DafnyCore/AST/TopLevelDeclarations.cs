@@ -1163,7 +1163,7 @@ public class DefaultModuleDefinition : ModuleDefinition {
 
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
-  public readonly ModuleDefinition EnclosingModuleDefinition;
+  public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {

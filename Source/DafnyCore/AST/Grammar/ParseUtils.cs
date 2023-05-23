@@ -186,11 +186,16 @@ public class ParseUtils {
   {
     foreach (var topLevelDecl in module.TopLevelDecls)
     {
+      topLevelDecl.EnclosingModuleDefinition = defaultModule;
+      if (topLevelDecl is LiteralModuleDecl literalModuleDecl) {
+        literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
+      }
       if (topLevelDecl is DefaultClassDecl defaultClassDecl)
       {
         foreach (var member in defaultClassDecl.Members)
         {
           defaultModule.DefaultClass.Members.Add(member);
+          member.EnclosingClass = defaultModule.DefaultClass;
         }
       }
       else

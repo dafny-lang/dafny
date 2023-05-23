@@ -11,6 +11,4 @@ public class FileModuleDefinition : ModuleDefinition {
     {
     }
   }
-
-  public override bool IsDefaultModule => true;
 }

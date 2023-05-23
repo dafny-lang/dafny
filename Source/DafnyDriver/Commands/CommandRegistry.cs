@@ -7,6 +7,7 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -53,11 +54,12 @@ public static class CommandRegistry {
 
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
-    foreach (var method in typeof(DfyParseResult).GetMethods()) {
+    foreach (var method in typeof(ParseResult).GetMethods()) {
       if (method.Name == "GetValueForOption" && method.GetGenericArguments().Length == 1) {
         GetValueForOptionMethod = method;
       }
     }
+    Debug.Assert(GetValueForOptionMethod != null);
   }
 
   public static Argument<FileInfo> FileArgument { get; }
