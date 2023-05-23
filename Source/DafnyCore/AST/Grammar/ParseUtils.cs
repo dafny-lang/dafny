@@ -141,8 +141,15 @@ public class ParseUtils {
           defaultModule.RangeToken = parseResult.Module.RangeToken;
         }
 
-      } catch (Exception) {
-        // ignored
+      } catch (Exception e) {
+        var internalErrorDummyToken = new Token {
+          Uri = dafnyFile.Uri,
+          line = 1,
+          col = 1,
+          pos = 0,
+          val = string.Empty
+        };
+        errorReporter.Error(MessageSource.Parser, internalErrorDummyToken, "[internal error] Parser exception: " + e.Message);
       }
     }
       
@@ -199,8 +206,6 @@ public class ParseUtils {
     defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
   
-  // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
-  //      It could be convenient to adapt them in the main-repo so location info could be extracted.
   public static IList<FileModuleDefinition> TryParseIncludes(
     IEnumerable<Include> roots,
     BuiltIns builtIns,

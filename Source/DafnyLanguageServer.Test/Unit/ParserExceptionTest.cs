@@ -32,7 +32,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var outerModule = new DefaultModuleDefinition(new List<Uri> { uri });
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options, outerModule);
       parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
-      Assert.Equal($"encountered an exception while parsing {uri}", lastDebugLogger.LastDebugMessage);
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
