@@ -162,6 +162,7 @@ path - Prints path-coverage tests for the given program.");
       Target,
       Verbose,
       PrintBpl,
+      PrintCfg,
       DisablePrune
     );
   }
