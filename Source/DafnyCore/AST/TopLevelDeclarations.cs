@@ -1542,18 +1542,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     return true;
   }
 
-  public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(typeArgs.Count == TypeArgs.Count);
-    // Instantiate with the actual type arguments
-    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
-  }
-
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    return PossiblyNullTraitsWithArgument(typeArgs);
-  }
-
   protected override string GetTriviaContainingDocstring() {
     IToken candidate = null;
     foreach (var token in OwnedTokens) {
