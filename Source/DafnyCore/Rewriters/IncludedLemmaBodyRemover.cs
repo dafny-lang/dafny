@@ -22,7 +22,7 @@ public class IncludedLemmaBodyRemover : IRewriter {
   internal override void PostResolve(ModuleDefinition moduleDefinition) {
     foreach (var method in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
                SelectMany(withMembers => withMembers.Members.OfType<Method>())) {
-      if (method.Body != null && method.IsLemmaLike && method.Tok.WasIncluded(program)) {
+      if (method.Body != null && method.IsLemmaLike && method.Tok.FromIncludeDirective(program)) {
         method.Body = EmptyBody;
       }
     }

@@ -8,9 +8,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 // The following example should produce a compilation error, since there's
-// an opaque type. It should not, however, crash.
+// an abstract type. It should not, however, crash.
 
-type Opaque(0) // compilation error: this is an opaque type
+type Opaque(0) // compilation error: this is an abstract type
 
 datatype E = E(Opaque)
 

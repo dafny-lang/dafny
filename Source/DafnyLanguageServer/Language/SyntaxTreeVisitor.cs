@@ -28,8 +28,11 @@
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch (topLevelDeclaration) {
-        case ClassDecl classDeclaration:
+        case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
+          break;
+        case DefaultClassDecl defaultClassDecl:
+          Visit(defaultClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
@@ -39,7 +42,7 @@
           break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
@@ -48,7 +51,7 @@
       }
     }
 
-    public virtual void Visit(ClassDecl classDeclaration) {
+    public virtual void Visit(TopLevelDeclWithMembers classDeclaration) {
       foreach (var member in classDeclaration.Members) {
         Visit(member);
       }

@@ -4,12 +4,12 @@ using System.Linq;
 namespace Microsoft.Dafny {
   public class FunctionCallSubstituter : Substituter {
     public readonly TraitDecl Tr;
-    public readonly ClassDecl Cl;
+    public readonly ClassLikeDecl Cl;
 
     // We replace all occurrences of the trait version of the function with the class version. This is only allowed if
     // the receiver is `this`. We underapproximate this by looking for a `ThisExpr`, which misses more complex
     // expressions that evaluate to one.
-    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassDecl Cl)
+    public FunctionCallSubstituter(Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap, TraitDecl Tr, ClassLikeDecl Cl)
       : base(null, substMap, typeMap) {
       this.Tr = Tr;
       this.Cl = Cl;

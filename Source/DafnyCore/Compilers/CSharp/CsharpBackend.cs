@@ -97,7 +97,7 @@ public class CsharpBackend : ExecutableBackend {
 
     if (emitResult.Success) {
       tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-      if (Options.CompileVerbose) {
+      if (Options.Verbose) {
         outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
       }
 

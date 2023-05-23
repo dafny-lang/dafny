@@ -394,7 +394,7 @@ module ScopeRegressions {
     }
   }
   module B {
-    // To the outside world, "BType" is just an opaque type
+    // To the outside world, "BType" is just an abstract type
     export provides BType
     datatype BType = X | Y
   }
