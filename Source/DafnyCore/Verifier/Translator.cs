@@ -9130,10 +9130,10 @@ namespace Microsoft.Dafny {
       if (includeHavoc) {
         // havoc $nw;
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { nw }));
-        // assume $nw != null && dtype($nw) == RHS;
+        // assume $nw != null && $Is($nw, type);
         var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
-        // drop the dtype conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
-        var rightType = type.IsObjectQ ? Bpl.Expr.True : DType(nw, TypeToTy(type));
+        // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
+        var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
       }
       // assume !$Heap[$nw, alloc];
