@@ -203,7 +203,7 @@ const a: int
 const x: ORDINAL
 method m() 
 {  
-var c := a[0,0];
+  var c := a[0,0];
 }
 ```
 
@@ -366,7 +366,7 @@ const x: int := true as int
 Not all pairs of types have implicit or even explicit conversions. But there are conversions
 to int types from numeric types, including the ORDINAL type; for any source type, the value of 
 the numeric expression must be in the range for the int type (if it is a subset type or a newtype).
-Even `char` values have an integer representation (and thus a represetnation as a `real`) 
+Even `char` values have an integer representation 
 corresponding to their unicode value.
 
 ## **Error: type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
@@ -377,8 +377,8 @@ const x: real := true as real
 
 Not all pairs of types have implicit or even explicit conversions. But there are conversions
 to real types from numeric types, including the ORDINAL type; for any source type, the value of 
-the numeric expression must be in the range for the int type (if it is a subset type or a newtype).
-Even `char` values have an integer representation corresponding to their unicode value.
+the numeric expression must be in the range for the real type (if it is a subset type or a newtype).
+Even `char` values have an real representation corresponding to their (integer) unicode value.
 
 
 ## **Error: type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
@@ -389,8 +389,8 @@ const x: bv1 := true as bv1
 
 Not all pairs of types have implicit or even explicit conversions. But there are explicit conversions
 to bitvector types from numeric types, including the ORDINAL type; for any source type, the value of 
-the numeric expression must be in the range for the bitvector type. Even `char` values have an
-integer representation corresponding to their unicode value.
+the numeric expression must be in the range for the bitvector type. Even `char` values have a
+bitvector representation corresponding to their (integer) unicode value.
 
 ## **Error: type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
 
@@ -401,8 +401,8 @@ const x: char := true as char
 Not all pairs of types have implicit or even explicit conversions. But there are explicit conversions
 to the char type from numeric types, including the ORDINAL type; for any source type, the value of 
 the numeric expression must be in the range for the char type. The numeric values for a given
-`char` is its numeric unicode representation, which (for `--unicode-char=true`) is the range 
-0 to 0x10FFFF, inclusive.
+`char` is its numeric unicode representation, which (for `--unicode-char=true`) is in the range 
+0 to 0x10FFFF, inclusive, though there are some sub-ranges that are not valid unicode characters.
 
 ## **Error: type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
 
@@ -477,9 +477,9 @@ Dafny does not have any implicit conversion to or from `bool` values.
 
 ## **Error: range of quantified variable must be of type bool (instead got _type_)**
 
-<!-- %no-check TODO - fix - different error message for this example -->
+<!-- %no-check - TODO - this is a slight variation of the error message that is proving tricky to elicit -->
 ```dafny
-const c := forall i: int | true && (i==0) :: true
+const c := forall i: int | i :: true
 ```
 
 In a quantified expression, the expression between the `|` and the `::` is the 

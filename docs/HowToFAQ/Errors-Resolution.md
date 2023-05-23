@@ -144,9 +144,9 @@ method m(a: A) returns (b: bool) {
 }
 ```
 
-The `old` construct is only used in ghost contexts. Typically using `old`
+The `fresh` construct is only used in ghost contexts. Typically using `fresh`
 forces an expression to be ghost.
-So `old` cannot be used in situations where it is definitely not a ghost context, such as
+So `fresh` cannot be used in situations where it is definitely not a ghost context, such as
 assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter.
 
