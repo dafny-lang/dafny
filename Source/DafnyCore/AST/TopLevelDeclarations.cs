@@ -717,8 +717,7 @@ public class ModuleSignature {
 
   // Qualified accesses follow module imports
   public bool FindImport(string name, out ModuleDecl decl) {
-    TopLevelDecl top;
-    if (TopLevels.TryGetValue(name, out top) && top is ModuleDecl) {
+    if (TopLevels.TryGetValue(name, out var top) && top is ModuleDecl) {
       decl = (ModuleDecl)top;
       return true;
     } else {
@@ -849,6 +848,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
+  // TODO move to Program once this list is no longer mutated by parsing.
   public List<Include> Includes;
 
   [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
@@ -858,8 +858,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-  public readonly bool IsToBeVerified;
-  public readonly bool IsToBeCompiled;
 
   public int? ResolvedHash { get; set; }
 
@@ -870,8 +868,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
-    bool isToBeVerified, bool isToBeCompiled) : base(tok) {
+    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -883,8 +880,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsFacade = isFacade;
     this.Includes = new List<Include>();
     this.IsBuiltinName = isBuiltinName;
-    this.IsToBeVerified = isToBeVerified;
-    this.IsToBeCompiled = isToBeCompiled;
   }
 
   VisibilityScope visibilityScope;
@@ -1164,10 +1159,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
 
-  public IList<Uri> RootUris { get; }
-  public DefaultModuleDefinition(IList<Uri> rootUris)
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true, true, true) {
-    RootUris = rootUris;
+  public IList<Uri> RootSourceUris { get; }
+  public DefaultModuleDefinition(IList<Uri> rootSourceUris)
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true) {
+    RootSourceUris = rootSourceUris;
   }
 
   public override bool IsDefaultModule => true;
@@ -1545,6 +1540,18 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     }
 
     return true;
+  }
+
+  public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs != null);
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    // Instantiate with the actual type arguments
+    var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
+    return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)traitType.Subst(subst)));
+  }
+
+  public override List<Type> ParentTypes(List<Type> typeArgs) {
+    return PossiblyNullTraitsWithArgument(typeArgs);
   }
 
   protected override string GetTriviaContainingDocstring() {

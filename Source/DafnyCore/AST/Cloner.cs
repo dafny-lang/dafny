@@ -32,11 +32,11 @@ namespace Microsoft.Dafny {
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
       ModuleDefinition nw;
       if (m is DefaultModuleDefinition defaultModuleDefinition) {
-        nw = new DefaultModuleDefinition(defaultModuleDefinition.RootUris);
+        nw = new DefaultModuleDefinition(defaultModuleDefinition.RootSourceUris);
       } else {
         nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
           m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
-          true, m.IsToBeVerified, m.IsToBeCompiled);
+          true);
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
@@ -944,29 +944,25 @@ namespace Microsoft.Dafny {
       sig.VisibilityScope.Augment(newSig.VisibilityScope);
 
       foreach (var kv in org.TopLevels) {
-        TopLevelDecl d;
-        if (newSig.TopLevels.TryGetValue(kv.Key, out d)) {
+        if (newSig.TopLevels.TryGetValue(kv.Key, out var d)) {
           sig.TopLevels.Add(kv.Key, d);
         }
       }
 
       foreach (var kv in org.ExportSets) {
-        ModuleExportDecl d;
-        if (newSig.ExportSets.TryGetValue(kv.Key, out d)) {
+        if (newSig.ExportSets.TryGetValue(kv.Key, out var d)) {
           sig.ExportSets.Add(kv.Key, d);
         }
       }
 
       foreach (var kv in org.Ctors) {
-        Tuple<DatatypeCtor, bool> pair;
-        if (newSig.Ctors.TryGetValue(kv.Key, out pair)) {
+        if (newSig.Ctors.TryGetValue(kv.Key, out var pair)) {
           sig.Ctors.Add(kv.Key, pair);
         }
       }
 
       foreach (var kv in org.StaticMembers) {
-        MemberDecl md;
-        if (newSig.StaticMembers.TryGetValue(kv.Key, out md)) {
+        if (newSig.StaticMembers.TryGetValue(kv.Key, out var md)) {
           sig.StaticMembers.Add(kv.Key, md);
         }
       }

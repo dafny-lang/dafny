@@ -101,7 +101,7 @@ public class JavaBackend : ExecutableBackend {
       }
     }
 
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       // For the sake of tests, just write out the filename and not the directory path
       var fileKind = callToMain != null ? "executable" : "library";
       outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
@@ -165,7 +165,7 @@ public class JavaBackend : ExecutableBackend {
     Directory.CreateDirectory(tgtDir);
     FileInfo file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;

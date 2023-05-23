@@ -74,9 +74,7 @@ namespace Microsoft.Dafny.Compilers {
     //RootImportWriter writes additional imports to the main file.
     private ConcreteSyntaxTree RootImportWriter;
 
-    private struct Import {
-      public string Name, Path;
-    }
+    private record Import(string Name, string Path);
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
@@ -220,8 +218,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       wr.Write("(");
       var lhs = (SeqSelectExpr)s0.Lhs;
-      ConcreteSyntaxTree wColl, wIndex, wValue;
-      EmitIndexCollectionUpdate(lhs.Seq.Type, out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: NativeObjectType, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
       wCoerce.Write($"({TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok)})");
       EmitTupleSelect(tup, 0, wCoerce);
@@ -365,7 +362,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      var import = new Import { Name = moduleName, Path = path };
+      var import = new Import(moduleName, path);
       ModuleName = IdProtect(moduleName);
       ModulePath = path;
       ModuleImport = import;
@@ -709,13 +706,9 @@ namespace Microsoft.Dafny.Compilers {
           return "String";
         }
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return boxed ? "java.lang.Long" : "long";
-        } else if (cl is TupleTypeDecl tupleDecl) {
+        if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.NonGhostDims);
         }
-
         // When accessing a static member, leave off the type arguments
         if (member != null) {
           return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok, erased);
@@ -793,8 +786,8 @@ namespace Microsoft.Dafny.Compilers {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
-      string qualification;
-      if (member != null && member.IsExtern(Options, out qualification, out _) && qualification != null) {
+
+      if (member != null && member.IsExtern(Options, out var qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
@@ -1484,8 +1477,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<ConcreteSyntaxTree> wIndices;
-      var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
+      var w = EmitArraySelect(indices.Count, out var wIndices, elmtType, wr);
       for (int i = 0; i < indices.Count; i++) {
         if (!int.TryParse(indices[i], out _)) {
           wIndices[i].Write($"{DafnyHelpersClass}.toInt({indices[i]})");
@@ -1499,8 +1491,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<ConcreteSyntaxTree> wIndices;
-      var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
+      var w = EmitArraySelect(indices.Count, out var wIndices, elmtType, wr);
 
       for (int i = 0; i < indices.Count; i++) {
         TrParenExprAsInt(indices[i], wIndices[i], inLetExprBody, wStmts);
@@ -2439,10 +2430,6 @@ namespace Microsoft.Dafny.Compilers {
         var s = FullTypeName(udt, null, true);
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return $"{DafnyTypeDescriptor}.LONG";
-        }
 
         if (cl.IsExtern(Options, out _, out _)) {
           var td = $"{DafnyTypeDescriptor}.<{BoxedTypeName(type, wr, tok)}> findType({s}.class";
@@ -2690,9 +2677,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               opString = "== (Object) ";
             } else if (IsDirectlyComparable(eqType)) {
               opString = "==";
@@ -2703,9 +2688,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               opString = "!= (Object) ";
             } else if (IsDirectlyComparable(eqType)) {
               opString = "!=";
@@ -3132,12 +3115,7 @@ namespace Microsoft.Dafny.Compilers {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
-        }
+        return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
       } else if (cl is DatatypeDecl dt) {
         if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
           var typeSubstMap = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);

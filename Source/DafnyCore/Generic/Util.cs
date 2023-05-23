@@ -14,6 +14,12 @@ using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  public static class Sets {
+    public static ISet<T> Empty<T>() {
+      return new HashSet<T>();
+    }
+  }
   public static class Util {
 
     public static Task<U> SelectMany<T, U>(this Task<T> task, Func<T, Task<U>> f) {
@@ -514,8 +520,7 @@ namespace Microsoft.Dafny {
     /// Generic statistic counter
     /// </summary>
     static void IncrementStat(IDictionary<string, ulong> stats, string stat) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         stats[stat] += 1;
       } else {
         stats.Add(stat, 1);
@@ -526,8 +531,7 @@ namespace Microsoft.Dafny {
     /// Track the maximum value of some statistic
     /// </summary>
     static void UpdateMax(IDictionary<string, ulong> stats, string stat, ulong val) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         if (val > currentValue) {
           stats[stat] = val;
         }

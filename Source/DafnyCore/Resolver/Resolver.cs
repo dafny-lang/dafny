@@ -130,8 +130,7 @@ namespace Microsoft.Dafny {
     public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl> // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
-        ISet<TopLevelDecl> s;
-        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out s);
+        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out var s);
         return t ?? new AmbiguousTopLevelDecl(m, AmbiguousThingHelper<TopLevelDecl>.Name(s, tld => tld.Name), s);
       }
 
@@ -542,7 +541,7 @@ namespace Microsoft.Dafny {
 
           if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
-            CheckModuleExportConsistency(m);
+            CheckModuleExportConsistency(prog, m);
           }
 
           var tempVis = new VisibilityScope();
@@ -1162,7 +1161,7 @@ namespace Microsoft.Dafny {
 
     //check for export consistency by resolving internal modules
     //this should be effect-free, as it only operates on clones
-    private void CheckModuleExportConsistency(ModuleDefinition m) {
+    private void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
@@ -1199,7 +1198,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 
@@ -1314,8 +1313,7 @@ namespace Microsoft.Dafny {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
-          true, true);
+        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1731,6 +1729,9 @@ namespace Microsoft.Dafny {
             anonymousImportCount++;
           } else if (toplevels.ContainsKey(d.Name)) {
             reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+          } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+            registerThisDecl = nntd;
+            registerUnderThisName = d.Name;
           } else {
             // Register each class and trait C under its own name, C. Below, we will change this for reference types (which includes all classes
             // and some of the traits), so that C? maps to the class/trait and C maps to the corresponding NonNullTypeDecl. We will need these
@@ -2141,8 +2142,7 @@ namespace Microsoft.Dafny {
       var errCount = reporter.Count(ErrorLevel.Error);
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false,
-        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+        false);
       mod.Height = Height;
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
@@ -3196,10 +3196,8 @@ namespace Microsoft.Dafny {
               }
             }
 
-            Expression recursiveCallReceiver;
-            List<Expression> recursiveCallArgs;
             Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
-              substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
             methodSel.TypeApplication_AtEnclosingClass =
