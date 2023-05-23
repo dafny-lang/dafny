@@ -849,8 +849,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
-  [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
-  [FilledInDuringResolution] public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new List<Tuple<List<IToken>, LiteralModuleDecl>>();  // filled in by the parser; emptied by the resolver
+  [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
+  [FilledInDuringResolution] public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
   [FilledInDuringResolution] public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();
   [FilledInDuringResolution] public int Height;  // height in the topological sorting of modules;
   public readonly bool IsAbstract;
@@ -866,14 +866,23 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
     NameNode = name;
     IsBuiltinName = original.IsBuiltinName;
+    PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+    IsFacade = original.IsFacade;
+    Attributes = original.Attributes;
+    IsAbstract = original.IsAbstract;
+    RefinementQId = original.RefinementQId;
+    EnclosingModule = original.EnclosingModule;
     foreach (var d in original.TopLevelDecls) {
       TopLevelDecls.Add(cloner.CloneDeclaration(d, this));
     }
-    foreach (var tup in original.PrefixNamedModules) {
-      var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
-      PrefixNamedModules.Add(newTup);
+
+    if (cloner.CloneResolvedFields) {
+      Height = original.Height;
+      foreach (var tup in original.PrefixNamedModules) {
+        var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
+        PrefixNamedModules.Add(newTup);
+      }
     }
-    Height = original.Height;
   }
   
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
