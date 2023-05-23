@@ -79,7 +79,7 @@ public class TranslatorTest {
     var module = new LiteralModuleDecl(defaultModuleDefinition, null);
     BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
     var builtIns = new BuiltIns(options);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter);
+    var dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
     Parser.Parse(program, uri, module, builtIns, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
