@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -30,7 +29,7 @@ module C {
 }
 
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(new WriterFromOutputHelper(testOutputHelper)), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
@@ -75,7 +74,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(new WriterFromOutputHelper(testOutputHelper)), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       if (methods.Count != 3) { // This sometimes occurs on Windows
         testOutputHelper.WriteLine("methods.Count != 3, printing methods");

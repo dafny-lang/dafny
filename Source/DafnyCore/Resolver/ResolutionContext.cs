@@ -28,6 +28,10 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
     return new ResolutionContext(codeContext, isTwoState);
   }
 
+  public IMethodCodeContext AsMethodCodeContext => CodeContext as IMethodCodeContext;
+
+  public Method AsMethod => CodeContext as Method;
+
   public ResolutionContext WithGhost(bool isGhost) {
     if (CodeContext.IsGhost == isGhost) {
       return this;

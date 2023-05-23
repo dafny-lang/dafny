@@ -53,8 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var parseErrors = Parser.Parse(
           document.Text,
           // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
-          document.Uri.ToString(),
-          document.Uri.ToString(),
+          document.Uri.ToUri(),
           program.DefaultModule,
           program.BuiltIns,
           errorReporter
@@ -71,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       } catch (Exception e) {
         logger.LogDebug(e, "encountered an exception while parsing {DocumentUri}", document.Uri);
         var internalErrorDummyToken = new Token {
-          Filename = document.Uri.ToString(),
+          Uri = document.Uri.ToUri(),
           line = 1,
           col = 1,
           pos = 0,
@@ -90,10 +89,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       Type.ResetScopes();
       return new Dafny.Program(
         document.Uri.ToString(),
-        new LiteralModuleDecl(new DefaultModuleDefinition(), null),
+        new LiteralModuleDecl(errorReporter.OuterModule, null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
         new BuiltIns(errorReporter.Options),
-        errorReporter
+        errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
       );
     }
 
@@ -115,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
       // In contrast, the compareTo-Method treats them as the same.
       var resolvedIncludes = new SortedSet<Include>();
-      resolvedIncludes.Add(new Include(Token.NoToken, "root", root.ToString(), false));
+      resolvedIncludes.Add(new Include(Token.NoToken, root.ToUri(), root.ToString()));
 
       bool newIncludeParsed = true;
       while (newIncludeParsed) {
@@ -139,19 +138,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
-        var dafnyFile = new DafnyFile(include.IncludedFilename);
+        var dafnyFile = new DafnyFile(builtIns.Options, include.IncludedFilename);
         int errorCount = Parser.Parse(
-          useStdin: false,
-          dafnyFile.SourceFileName,
-          include,
+          dafnyFile.Content,
+          dafnyFile.Uri,
           module,
           builtIns,
-          errors,
-          verifyThisFile: false,
-          compileThisFile: false
+          errors
         );
         if (errorCount != 0) {
-          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.IncludedFilename}");
           return false;
         }
       } catch (IllegalDafnyFile e) {

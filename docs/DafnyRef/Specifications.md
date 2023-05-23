@@ -381,7 +381,7 @@ o`a
 
 Frame expressions are used to denote the set of memory locations
 that a Dafny program element may read or write. 
-They are used in `reaqds` and `modifies` clauses.
+They are used in `reads` and `modifies` clauses.
 A frame expression is a set expression. The form `{}` is the empty set.
 The type of the frame expression is `set<object>`.
 

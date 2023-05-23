@@ -397,8 +397,7 @@ public class IdCtx : MatchingContext {
           newArguments.Add(curr);
           break;
         case IdCtx argId:
-          MatchingContext newarg;
-          foundHole = argId.ReplaceLeftmost(curr, out newarg);
+          foundHole = argId.ReplaceLeftmost(curr, out var newarg);
           newArguments.Add(newarg);
           break;
         default:
@@ -420,8 +419,7 @@ public class IdCtx : MatchingContext {
   }
 
   public override MatchingContext FillHole(MatchingContext curr) {
-    MatchingContext newContext;
-    ReplaceLeftmost(curr, out newContext);
+    ReplaceLeftmost(curr, out var newContext);
     return newContext;
   }
 }

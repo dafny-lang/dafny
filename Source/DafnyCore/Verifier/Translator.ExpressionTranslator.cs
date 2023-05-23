@@ -364,8 +364,7 @@ namespace Microsoft.Dafny {
                 args.Add(Old.HeapExpr);
               }
               foreach (var heapAtLabel in e.HeapAtLabels) {
-                Boogie.Expr ve;
-                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
+                var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out var ve);
                 args.Add(ve);
               }
               foreach (var arg in e.Args) {
@@ -483,6 +482,9 @@ namespace Microsoft.Dafny {
                   var args = GetTypeParams(fn).ConvertAll(tp => translator.TypeToTy(typeMap[tp]));
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
+                  }
+                  if (fn.IsOpaque) {
+                    args.Add(translator.GetRevealConstant(fn));
                   }
                   if (fn is TwoStateFunction) {
                     args.Add(Old.HeapExpr);
@@ -639,6 +641,7 @@ namespace Microsoft.Dafny {
                 return TrExprSpecialFunctionCall(e);
               } else {
                 Boogie.Expr layerArgument;
+                Boogie.Expr revealArgument;
                 var etran = this;
                 if (e.Function.ContainsQuantifier && translator.stmtContext == StmtType.ASSUME && translator.adjustFuelForExists) {
                   // we need to increase fuel functions that contain quantifier expr in the assume context.
@@ -659,11 +662,16 @@ namespace Microsoft.Dafny {
                   layerArgument = null;
                 }
 
+                if (e.Function.IsOpaque) {
+                  revealArgument = translator.GetRevealConstant(e.Function);
+                } else {
+                  revealArgument = null;
+                }
+
                 var ty = translator.TrType(e.Type);
                 var id = new Boogie.IdentifierExpr(GetToken(e), e.Function.FullSanitizedName, ty);
 
-                bool argsAreLit;
-                var args = FunctionInvocationArguments(e, layerArgument, false, out argsAreLit);
+                var args = FunctionInvocationArguments(e, layerArgument, revealArgument, false, out var argsAreLit);
                 Expr result = new Boogie.NAryExpr(GetToken(e), new Boogie.FunctionCall(id), args);
                 result = translator.CondApplyUnbox(GetToken(e), result, e.Function.ResultType, e.Type);
 
@@ -759,8 +767,7 @@ namespace Microsoft.Dafny {
                     Boogie.Variable oVar = new Boogie.BoundVariable(GetToken(opExpr), new Boogie.TypedIdent(GetToken(opExpr), "$o", predef.RefType));
                     Boogie.Expr o = new Boogie.IdentifierExpr(GetToken(opExpr), oVar);
                     Boogie.Expr oNotNull = Boogie.Expr.Neq(o, predef.Null);
-                    bool performedInSetRewrite;
-                    Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out performedInSetRewrite);
+                    Boogie.Expr oInSet = TrInSet(GetToken(opExpr), o, e.E, ((SetType)eeType).Arg, true, out var performedInSetRewrite);
                     Boogie.Expr oNotFresh = OldAt(freshLabel).IsAlloced(GetToken(opExpr), o);
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
                     Boogie.Expr body = Boogie.Expr.Imp(oInSet, Boogie.Expr.And(oNotNull, oIsFresh));
@@ -810,11 +817,9 @@ namespace Microsoft.Dafny {
               int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
               Boogie.Expr e0 = TrExpr(e.E0);
               if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-                bool pr;
-                return TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out pr);  // let TrInSet translate e.E1
+                return TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-                bool pr;
-                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out pr);  // let TrInSet translate e.E1
+                Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false, out var pr);  // let TrInSet translate e.E1
                 return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
               } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
                 return TrInMultiSet(GetToken(binaryExpr), e0, e.E1, cce.NonNull(e.E0.Type), false); // let TrInMultiSet translate e.E1
@@ -1216,9 +1221,7 @@ namespace Microsoft.Dafny {
                 var d = translator.LetDesugaring(e);
                 return TrExpr(d);
               } else {
-                List<Boogie.Variable> lhss;
-                List<Boogie.Expr> rhss;
-                TrLetExprPieces(e, out lhss, out rhss);
+                TrLetExprPieces(e, out var lhss, out var rhss);
                 // in the translation of body, treat a let-bound variable as IsLit if its RHS definition is IsLit
                 Contract.Assert(lhss.Count == rhss.Count);  // this is a postcondition of TrLetExprPieces
                 var previousCount = translator.letBoundVariablesWithLitRHS.Count;
@@ -1370,9 +1373,8 @@ namespace Microsoft.Dafny {
                   var isAlloc = translator.MkIsAllocBox(w, t.Type, HeapExpr);
                   typeAntecedent = BplAnd(typeAntecedent, isAlloc);
                 }
-                List<Boogie.Variable> bvs;
-                List<Boogie.Expr> args;
-                translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
+
+                translator.CreateBoundVariables(e.BoundVars, out var bvs, out var args);
                 Contract.Assert(e.BoundVars.Count == bvs.Count);
                 var subst = new Dictionary<IVariable, Expression>();
                 for (var i = 0; i < e.BoundVars.Count; i++) {
@@ -1451,8 +1453,8 @@ namespace Microsoft.Dafny {
           Expression arg = expr.Args[0];
           return TrToFunctionCall(GetToken(expr), "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
         } else {
-          bool argsAreLit_dummy;
-          var args = FunctionInvocationArguments(expr, null, true, out argsAreLit_dummy);
+          bool argsAreLitDummy;
+          var args = FunctionInvocationArguments(expr, null, null, true, out argsAreLitDummy);
           var id = new Boogie.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, translator.TrType(expr.Type));
           return new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(id), args);
         }
@@ -1523,8 +1525,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         rhss = new List<Boogie.Expr>();
         foreach (var v in let.BoundVars) {
           var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
-          Boogie.Expr bvIde;  // unused
-          var bv = BplBoundVar(v.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(v.Type), out bvIde);
+          var bv = BplBoundVar(v.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(v.Type), out var bvIde);
           lhss.Add(bv);
           rhss.Add(TrExpr(rhs));
         }
@@ -1642,12 +1643,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         return typeAntecedent;
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument) {
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, Boogie.Expr revealArgument) {
         bool dummy;
-        return FunctionInvocationArguments(e, layerArgument, false, out dummy);
+        return FunctionInvocationArguments(e, layerArgument, revealArgument, false, out dummy);
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, bool omitHeapArgument, out bool argsAreLit) {
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, Boogie.Expr revealArgument, bool omitHeapArgument, out bool argsAreLit) {
         Contract.Requires(e != null);
         Contract.Ensures(Contract.Result<List<Boogie.Expr>>() != null);
 
@@ -1660,6 +1661,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
         if (layerArgument != null) {
           args.Add(layerArgument);
+        }
+        if (revealArgument != null) {
+          args.Add(revealArgument);
         }
         if (e.Function is TwoStateFunction) {
           args.Add(OldAt(e.AtLabel).HeapExpr);
@@ -1924,7 +1928,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           if (attr.Name == skipThisAttribute
               || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
               || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
-              || (options.DisallowExterns && (attr.Name == "extern" || attr.Name == "dllimport")) // omit the extern attribute when /noExterns option is specified.
+              || (options.DisallowExterns && attr.Name == "extern") // omit the extern attribute when /noExterns option is specified.
               || attr.Name == "timeLimitMultiplier"  // This is a Dafny-specific attribute
               || (attr.Name == "timeLimit" && hasNewTimeLimit)
               || (attr.Name == "rlimit" && hasNewRLimit)

@@ -120,8 +120,7 @@ namespace Microsoft.Dafny {
     /// Returns the vertex for 'n' if 'n' is in the graph.  Otherwise, returns null.
     /// </summary>
     public Vertex FindVertex(Node n) {
-      Vertex v;
-      if (vertices.TryGetValue(n, out v)) {
+      if (vertices.TryGetValue(n, out var v)) {
         Contract.Assert(v != null);  // follows from postcondition of TryGetValue (since 'vertices' maps to the type Vertex!)
         return v;
       } else {

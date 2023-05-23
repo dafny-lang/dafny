@@ -32,12 +32,11 @@ public class ProvideRevealAllRewriter : IRewriter {
               continue;
             }
 
-            if (!(newt is DefaultClassDecl)) {
+            if (newt is not DefaultClassDecl) {
               me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
             }
 
-            if (newt is TopLevelDeclWithMembers) {
-              var cl = (TopLevelDeclWithMembers)newt;
+            if (newt is TopLevelDeclWithMembers cl) {
               var newtIsRevealed = revealAll || explicitlyRevealedTopLevelIDs.Contains(newt.Name);
 
               foreach (var mem in cl.Members) {

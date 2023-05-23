@@ -54,8 +54,14 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
         yield return e;
       }
       yield return Source;
+      foreach (var mc in Cases) {
+        foreach (var ee in mc.Pat.SubExpressions) {
+          yield return ee;
+        }
+      }
     }
   }
+
   public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(rangeToken, attrs) {
     Contract.Requires(source != null);
@@ -79,7 +85,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
+        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
         return;
       }
     }

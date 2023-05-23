@@ -124,8 +124,8 @@ namespace Microsoft.Dafny {
           scope.PushMarker();
           scope.AllowInstance = false;
           ctor.Formals.ForEach(p => scope.Push(p.Name, p));
-          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           ResolveAttributes(ctor, new ResolutionContext(new NoContext(topd.EnclosingModuleDefinition), false), true);
+          ResolveParameterDefaultValues(ctor.Formals, ResolutionContext.FromCodeContext(dt));
           scope.PopMarker();
         }
       }
@@ -224,18 +224,18 @@ namespace Microsoft.Dafny {
       if (!Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         return;
       }
-      Console.WriteLine("DEBUG: ---------- type constraints ---------- {0} {1}", lbl, lbl == 0 && currentMethod != null ? currentMethod.Name : "");
+      Options.OutputWriter.WriteLine("DEBUG: ---------- type constraints ---------- {0} {1}", lbl, lbl == 0 && currentMethod != null ? currentMethod.Name : "");
       foreach (var constraint in AllTypeConstraints) {
         var super = constraint.Super.Normalize();
         var sub = constraint.Sub.Normalize();
-        Console.WriteLine("    {0} :> {1}", super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(), sub);
+        Options.OutputWriter.WriteLine("    {0} :> {1}", super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(), sub);
       }
       foreach (var xc in AllXConstraints) {
-        Console.WriteLine("    {0}", xc);
+        Options.OutputWriter.WriteLine("    {0}", xc);
       }
-      Console.WriteLine();
+      Options.OutputWriter.WriteLine();
       if (lbl % 2 == 1) {
-        Console.WriteLine("DEBUG: --------------------------------------");
+        Options.OutputWriter.WriteLine("DEBUG: --------------------------------------");
       }
     }
 
@@ -257,8 +257,7 @@ namespace Microsoft.Dafny {
         }
       }
       foreach (var xc in AllXConstraints) {
-        bool convertedIntoOtherTypeConstraints, moreXConstraints;
-        if (xc.Confirm(this, true, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+        if (xc.Confirm(this, true, out var convertedIntoOtherTypeConstraints, out var moreXConstraints)) {
           // unexpected condition -- PartiallySolveTypeConstraints is supposed to have continued until no more XConstraints were confirmable
           Contract.Assume(false, string.Format("DEBUG: Unexpectedly confirmed XConstraint: {0} |||| ", xc));
         } else if (xc.CouldBeAnything()) {
@@ -327,6 +326,7 @@ namespace Microsoft.Dafny {
         // expression has already been resolved
         return;
       }
+      DominatingStatementLabels.PushMarker();
 
       // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
@@ -388,7 +388,7 @@ namespace Microsoft.Dafny {
         if (!scope.AllowInstance) {
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
+        if (currentClass is DefaultClassDecl) {
           // there's no type
         } else {
           if (currentClass == null) {
@@ -409,8 +409,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
-        TopLevelDecl d;
-        if (!moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out d)) {
+        if (!moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out var d)) {
           reporter.Error(MessageSource.Resolver, expr.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
         } else if (d is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)d;
@@ -481,8 +480,7 @@ namespace Microsoft.Dafny {
         var e = (MemberSelectExpr)expr;
         ResolveExpression(e.Obj, resolutionContext);
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
-        NonProxyType tentativeReceiverType;
-        var member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out tentativeReceiverType);
+        var member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out var tentativeReceiverType);
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (member is Function) {
@@ -1091,6 +1089,8 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+
+      DominatingStatementLabels.PopMarker();
     }
 
     void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
@@ -1159,8 +1159,7 @@ namespace Microsoft.Dafny {
             sameHead = udtLhs.ResolvedClass == (udtRhs.ResolvedClass as NonNullTypeDecl)?.Class;
           }
           if (sameHead) {
-            bool more2;
-            ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
+            ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out var more2);
             moreXConstraints = moreXConstraints || more2;
           }
         }
@@ -1223,14 +1222,14 @@ namespace Microsoft.Dafny {
       var proxy = a.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(b, proxy, 1, new HashSet<TypeProxy>())) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
+          Options.OutputWriter.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
         }
         proxy.T = b;
       }
       proxy = b.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(a, proxy, 1, new HashSet<TypeProxy>())) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
+          Options.OutputWriter.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
         }
         proxy.T = a;
       }
@@ -1351,7 +1350,7 @@ namespace Microsoft.Dafny {
             headIsRoot = false; headIsLeaf = false;
           } else if (cl is ClassDecl) {
             headIsRoot = false; headIsLeaf = true;
-          } else if (cl is OpaqueTypeDecl) {
+          } else if (cl is AbstractTypeDecl) {
             headIsRoot = true; headIsLeaf = true;
           } else if (cl is InternalTypeSynonymDecl) {
             Contract.Assert(object.ReferenceEquals(t, t.NormalizeExpand())); // should be opaque in scope
@@ -1449,7 +1448,7 @@ namespace Microsoft.Dafny {
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+                Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
               followedRequestedAssignment = false;
@@ -1457,7 +1456,7 @@ namespace Microsoft.Dafny {
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
+              Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
             }
             t = Type.Int;
             followedRequestedAssignment = false;
@@ -1470,7 +1469,7 @@ namespace Microsoft.Dafny {
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+                Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
               followedRequestedAssignment = false;
@@ -1478,7 +1477,7 @@ namespace Microsoft.Dafny {
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular real variety now
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Console.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
+              Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
             }
             t = Type.Real;
             followedRequestedAssignment = false;
@@ -1488,7 +1487,7 @@ namespace Microsoft.Dafny {
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
+        Options.OutputWriter.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
 
@@ -1630,7 +1629,11 @@ namespace Microsoft.Dafny {
         case TypeProxy.Family.Ordinal:
         case TypeProxy.Family.BitVector:
           if (super.Equals(sub)) {
-            return new List<int>();
+            if (sub is UserDefinedType subUserDefinedType) {
+              return subUserDefinedType.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Direction(tp.Variance));
+            } else {
+              return new List<int>();
+            }
           } else {
             return null;
           }
@@ -1659,7 +1662,7 @@ namespace Microsoft.Dafny {
       } else if (super.IsObjectQ) {
         return sub.IsRefType ? new List<int>() : null;
       } else {
-        // The only remaining cases are that "super" is a (co)datatype, opaque type, or non-object trait/class.
+        // The only remaining cases are that "super" is a (co)datatype, abstract type, or non-object trait/class.
         // In each of these cases, "super" is a UserDefinedType.
         var udfSuper = (UserDefinedType)super;
         var clSuper = udfSuper.ResolvedClass;
@@ -1789,7 +1792,6 @@ namespace Microsoft.Dafny {
           }
         }
         bool satisfied;
-        Type tUp, uUp;
         switch (ConstraintName) {
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
@@ -1816,7 +1818,7 @@ namespace Microsoft.Dafny {
                 resolver.ConstrainSubtypeRelation(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
-              } else if (Type.FromSameHead(t, u, out tUp, out uUp)) {
+              } else if (Type.FromSameHead(t, u, out var tUp, out var uUp)) {
                 resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
                 return true;
               } else if (fullstrength && t is NonProxyType) {
@@ -2083,8 +2085,8 @@ namespace Microsoft.Dafny {
                   return false;  // not enough information
                 }
               }
-              Type a, b;
-              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
+
+              satisfied = Type.FromSameHead_Subtype(t, u, out var a, out var b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -2135,16 +2137,16 @@ namespace Microsoft.Dafny {
                   return false;  // not enough information
                 }
               }
-              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter || t.IsOpaqueType || u.IsOpaqueType)) {
+              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter || t.IsAbstractType || u.IsAbstractType)) {
                 return true;
               } else if (!moreExactThis.AllowSuperSub) {
                 resolver.ConstrainSubtypeRelation_Equal(t, u, errorMsg);
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               }
-              Type a, b;
+
               // okay if t<:u or u<:t (this makes type inference more manageable, though it is more liberal than one might wish)
-              satisfied = Type.FromSameHead_Subtype(t, u, out a, out b);
+              satisfied = Type.FromSameHead_Subtype(t, u, out var a, out var b);
               if (satisfied) {
                 Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
                 var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
@@ -2269,11 +2271,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(visited != null);
         t = t.NormalizeExpand();
         if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
+          options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
         }
         if (t is CollectionType) {
           if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Console.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
+            options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
           }
           return ((CollectionType)t).Arg;
         }
@@ -2370,8 +2372,7 @@ namespace Microsoft.Dafny {
                 var allXConstraints = AllXConstraints;
                 AllXConstraints = new List<XConstraint>();
                 foreach (var xc in allXConstraints) {
-                  bool convertedIntoOtherTypeConstraints, moreXConstraints;
-                  if (xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+                  if (xc.Confirm(this, fullStrength, out var convertedIntoOtherTypeConstraints, out var moreXConstraints)) {
                     if (convertedIntoOtherTypeConstraints) {
                       anyNewConstraints = true;
                     } else {
@@ -2480,8 +2481,7 @@ namespace Microsoft.Dafny {
                 var allXConstraints = AllXConstraints;
                 AllXConstraints = new List<XConstraint>();
                 foreach (var xc in allXConstraints) {
-                  bool convertedIntoOtherTypeConstraints, moreXConstraints;
-                  if ((xc.ConstraintName == "Equatable" || xc.ConstraintName == "EquatableArg") && xc.Confirm(this, fullStrength, out convertedIntoOtherTypeConstraints, out moreXConstraints)) {
+                  if ((xc.ConstraintName == "Equatable" || xc.ConstraintName == "EquatableArg") && xc.Confirm(this, fullStrength, out var convertedIntoOtherTypeConstraints, out var moreXConstraints)) {
                     if (convertedIntoOtherTypeConstraints) {
                       anyNewConstraints = true;
                     } else {
@@ -2532,7 +2532,7 @@ namespace Microsoft.Dafny {
                 } else if (super is TypeProxy && sub is TypeProxy) {
                   var proxy = (TypeProxy)super;
                   if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                    Console.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
+                    Options.OutputWriter.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
                   }
                   proxy.T = sub;
                   anyNewConstraints = true;  // signal a change in the constraints
@@ -2731,13 +2731,13 @@ namespace Microsoft.Dafny {
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         Console.Write("DEBUG: ProcessAssignable: {0} with rhss:", lhs);
         foreach (var rhs in rhss) {
-          Console.Write(" {0}", rhs);
+          Options.OutputWriter.Write(" {0}", rhs);
         }
-        Console.Write(" subtypes:");
+        Options.OutputWriter.Write(" subtypes:");
         foreach (var sub in lhs.SubtypesKeepConstraints) {
-          Console.Write(" {0}", sub);
+          Options.OutputWriter.Write(" {0}", sub);
         }
-        Console.WriteLine();
+        Options.OutputWriter.WriteLine();
       }
       Type join = null;
       foreach (var rhs in rhss) {
@@ -2755,7 +2755,7 @@ namespace Microsoft.Dafny {
         return false;
       } else {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
+          Options.OutputWriter.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
         }
         lhs.T = join;
         return true;
@@ -3035,7 +3035,7 @@ namespace Microsoft.Dafny {
             CloseOverAssignableRhss(proxySubs);
             if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Console.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
+                Options.OutputWriter.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
               }
               AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
               return true;
@@ -3265,6 +3265,7 @@ namespace Microsoft.Dafny {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(function.TypeArgs, false, function);
+
           function.Resolve(this);
           allTypeParameters.PopMarker();
           if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate } && ec == reporter.Count(ErrorLevel.Error)) {
@@ -3377,8 +3378,7 @@ namespace Microsoft.Dafny {
           "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
       }
       if (fe.FieldName != null) {
-        NonProxyType tentativeReceiverType;
-        var member = ResolveMember(fe.E.tok, eventualRefType, fe.FieldName, out tentativeReceiverType);
+        var member = ResolveMember(fe.E.tok, eventualRefType, fe.FieldName, out var tentativeReceiverType);
         var ctype = (UserDefinedType)tentativeReceiverType;  // correctness of cast follows from the DenotesClass test above
         if (member == null) {
           // error has already been reported by ResolveMember
@@ -3911,9 +3911,8 @@ namespace Microsoft.Dafny {
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
         sig = GetSignature(sig);
         // For 0:
-        TopLevelDecl decl;
 
-        if (sig.TopLevels.TryGetValue(expr.SuffixName, out decl)) {
+        if (sig.TopLevels.TryGetValue(expr.SuffixName, out var decl)) {
           // ----- 0. Member of the specified module
           if (decl is AmbiguousTopLevelDecl) {
             var ad = (AmbiguousTopLevelDecl)decl;
@@ -3930,7 +3929,7 @@ namespace Microsoft.Dafny {
           if (ReallyAmbiguousThing(ref member)) {
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ((AmbiguousMemberDecl)member).ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+            var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
             r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
           }
 #endif
@@ -4004,6 +4003,17 @@ namespace Microsoft.Dafny {
           } else {
             var rr = DominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+          }
+        }
+
+        if (assertStmt != null && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
+            "Assertion with {:only} temporarily transforms other assertions into assumptions");
+          if (attribute.Args.Count >= 1
+              && attribute.Args[0] is LiteralExpr { Value: string value }
+              && value != "before" && value != "after") {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+              "{:only} only accepts \"before\" or \"after\" as an optional argument");
           }
         }
         ResolveExpression(s.Expr, resolutionContext);
@@ -4225,19 +4235,6 @@ namespace Microsoft.Dafny {
         if (s.Update is AssignSuchThatStmt assignSuchThatStmt) {
           assignSuchThatStmt.Resolve(this, resolutionContext);
         }
-        // Check on "assumption" variables
-        foreach (var local in s.Locals) {
-          if (Attributes.Contains(local.Attributes, "assumption")) {
-            if (currentMethod != null) {
-              ConstrainSubtypeRelation(Type.Bool, local.type, local.Tok, "assumption variable must be of type 'bool'");
-              if (!local.IsGhost) {
-                reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
-              }
-            } else {
-              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
-            }
-          }
-        }
       } else if (stmt is VarDeclPattern) {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
@@ -4356,12 +4353,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
-        var fvs = new HashSet<IVariable>();
-        var usesHeap = false;
         if (s is WhileStmt whileS && whileS.Guard != null) {
           ResolveExpression(whileS.Guard, resolutionContext);
           Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          FreeVariablesUtil.ComputeFreeVariables(Options, whileS.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else if (s is ForLoopStmt forS) {
           var loopIndex = forS.LoopIndex;
@@ -4369,14 +4363,11 @@ namespace Microsoft.Dafny {
           ResolveType(loopIndex.Tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           var err = new TypeConstraint.ErrorMsgWithToken(loopIndex.Tok, "index variable is expected to be of an integer type (got {0})", loopIndex.Type);
           ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
-          fvs.Add(loopIndex);
 
           ResolveExpression(forS.Start, resolutionContext);
-          FreeVariablesUtil.ComputeFreeVariables(Options, forS.Start, fvs, ref usesHeap);
           AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.End != null) {
             ResolveExpression(forS.End, resolutionContext);
-            FreeVariablesUtil.ComputeFreeVariables(Options, forS.End, fvs, ref usesHeap);
             AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
             if (forS.Decreases.Expressions.Count != 0) {
               reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
@@ -4395,7 +4386,7 @@ namespace Microsoft.Dafny {
           ResolveAttributes(s, resolutionContext);
         }
 
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, fvs, ref usesHeap);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
@@ -4403,20 +4394,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           DominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
-        } else {
-          Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
-          var loopFrame = new List<IVariable>();
-          if (s is ForLoopStmt forLoopStmt) {
-            loopFrame.Add(forLoopStmt.LoopIndex);
-          }
-          loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
-          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
-          var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
-          if (s.BodySurrogate.UsesHeap) {
-            text += text.Length == 0 ? "$Heap" : ", $Heap";
-          }
-          text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, s.Tok, text);
         }
 
         if (s is ForLoopStmt) {
@@ -4426,8 +4403,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         ResolveAlternatives(s.Alternatives, s, resolutionContext);
-        var usesHeapDontCare = false;
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext, null, ref usesHeapDontCare);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -4459,8 +4435,6 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.Body, resolutionContext);
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
-        } else {
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, s.Tok, "note, this forall statement has no body");
         }
         scope.PopMarker();
 
@@ -4538,26 +4512,7 @@ namespace Microsoft.Dafny {
         if (s.UserSuppliedOp != null) {
           s.Op = s.UserSuppliedOp;
         } else {
-          // Usually, we'd use == as the default main operator.  However, if the calculation
-          // begins or ends with a boolean literal, then we can do better by selecting ==>
-          // or <==.  Also, if the calculation begins or ends with an empty set, then we can
-          // do better by selecting <= or >=.
-          if (s.Lines.Count == 0) {
-            s.Op = CalcStmt.DefaultOp;
-          } else {
-            bool b;
-            if (Expression.IsBoolLiteral(s.Lines.First(), out b)) {
-              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
-            } else if (Expression.IsBoolLiteral(s.Lines.Last(), out b)) {
-              s.Op = new CalcStmt.BinaryCalcOp(b ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
-            } else if (Expression.IsEmptySetOrMultiset(s.Lines.First())) {
-              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Ge);
-            } else if (Expression.IsEmptySetOrMultiset(s.Lines.Last())) {
-              s.Op = new CalcStmt.BinaryCalcOp(BinaryExpr.Opcode.Le);
-            } else {
-              s.Op = CalcStmt.DefaultOp;
-            }
-          }
+          s.Op = s.GetInferredDefaultOp() ?? CalcStmt.DefaultOp;
           reporter.Info(MessageSource.Resolver, s.Tok, s.Op.ToString());
         }
 
@@ -4623,7 +4578,7 @@ namespace Microsoft.Dafny {
     }
 
     private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants, Specification<Expression> decreases,
-      Specification<FrameExpression> modifies, ResolutionContext resolutionContext, HashSet<IVariable> fvs, ref bool usesHeap) {
+      Specification<FrameExpression> modifies, ResolutionContext resolutionContext) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
@@ -4633,9 +4588,6 @@ namespace Microsoft.Dafny {
         ResolveAttributes(inv, resolutionContext);
         ResolveExpression(inv.E, resolutionContext);
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(Options, inv.E, fvs, ref usesHeap);
-        }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
 
@@ -4645,15 +4597,11 @@ namespace Microsoft.Dafny {
         if (e is WildcardExpr && !resolutionContext.CodeContext.AllowsNontermination) {
           reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
-        if (fvs != null) {
-          FreeVariablesUtil.ComputeFreeVariables(Options, e, fvs, ref usesHeap);
-        }
         // any type is fine
       }
 
       ResolveAttributes(modifies, resolutionContext);
       if (modifies.Expressions != null) {
-        usesHeap = true;  // bearing a modifies clause counts as using the heap
         foreach (FrameExpression fe in modifies.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext);
         }
@@ -4673,26 +4621,53 @@ namespace Microsoft.Dafny {
 
       Contract.Assume(AllTypeConstraints.Count == 0);
 
+      // Formal parameters have three ways to indicate how they are to be passed in:
+      //   * nameonly: the only way to give a specific argument value is to name the parameter
+      //   * positional only: these are nameless parameters (which are allowed only for datatype constructor parameters)
+      //   * either positional or by name: this is the most common parameter
+      // A parameter is either required or optional:
+      //   * required: a caller has to supply an argument
+      //   * optional: the parameter has a default value that is used if a caller omits passing a specific argument
+      //
+      // The syntax for giving a positional-only (i.e., nameless) parameter does not allow a default-value expression, so
+      // a positional-only parameter is always required.
+      //
+      // At a call site, positional arguments are not allowed to follow named arguments. Therefore, if "x" is
+      // a nameonly parameter, then there is no way to supply the parameters after "x" by position. Thus, any
+      // parameter that follows "x" must either be passed by name or have a default value. That is, if a later
+      // parameter does not have a default value, it is _effectively_ nameonly. We impose the rule that
+      //   * an effectively nameonly parameter must be declared as nameonly
+      //
+      // For a positional-only parameter "x", every parameter preceding "x" is _effectively_ required. We impose
+      // the rule that
+      //   * an effectively required parameter must not have a default-value expression
       var dependencies = new Graph<IVariable>();
-      var allowMoreRequiredParameters = true;
-      var allowNamelessParameters = true;
+      string nameOfMostRecentNameonlyParameter = null;
+      var previousParametersWithDefaultValue = new HashSet<Formal>();
       foreach (var formal in formals) {
+        if (!formal.HasName) {
+          foreach (var previousFormal in previousParametersWithDefaultValue) {
+            reporter.Error(MessageSource.Resolver, previousFormal.DefaultValue.tok,
+              $"because of a later nameless parameter, this default value is never used; remove it or name all subsequent parameters");
+          }
+          previousParametersWithDefaultValue.Clear();
+        }
         var d = formal.DefaultValue;
         if (d != null) {
-          allowMoreRequiredParameters = false;
           ResolveExpression(d, resolutionContext);
           AddAssignableConstraint(d.tok, formal.Type, d.Type, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in FreeVariables(d)) {
             dependencies.AddEdge(formal, v);
           }
-        } else if (!allowMoreRequiredParameters) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a required parameter must precede all optional parameters");
-        }
-        if (!allowNamelessParameters && !formal.HasName) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "a nameless parameter must precede all nameonly parameters");
+          previousParametersWithDefaultValue.Add(formal);
+        } else if (nameOfMostRecentNameonlyParameter != null && !formal.IsNameOnly) {
+          // "formal" is preceded by a nameonly parameter, but itself is neither nameonly nor has a default value
+          reporter.Error(MessageSource.Resolver, formal.tok,
+            $"this parameter is effectively nameonly (because of the earlier nameonly parameter '{nameOfMostRecentNameonlyParameter}'); " +
+            "declare it as nameonly or give it a default-value expression");
         }
         if (formal.IsNameOnly) {
-          allowNamelessParameters = false;
+          nameOfMostRecentNameonlyParameter = formal.Name;
         }
       }
       SolveAllTypeConstraints();
@@ -4832,8 +4807,8 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, t.tok, "expected type");
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
-            if (d is OpaqueTypeDecl) {
-              // resolve like a type parameter, and it may have type parameters if it's an opaque type
+            if (d is AbstractTypeDecl) {
+              // resolve like a type parameter, and it may have type parameters if it's an abstract type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;
@@ -5069,10 +5044,12 @@ namespace Microsoft.Dafny {
           if (rr.EType.IsRefType) {
             var udt = rr.EType.NormalizeExpand() as UserDefinedType;
             if (udt != null) {
-              var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-              if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType && (cl.HasConstructor || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
-                reporter.Error(MessageSource.Resolver, stmt, "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
-                  cl.HasConstructor ? "" : "imported ");
+              var cl = (ClassLikeDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
+              if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType &&
+                  (cl is ClassDecl { HasConstructor: true } || cl.EnclosingModuleDefinition != currentClass.EnclosingModuleDefinition)) {
+                reporter.Error(MessageSource.Resolver, stmt,
+                  "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
+                  cl is ClassDecl { HasConstructor: true } ? "" : "imported ");
               }
             }
           }
@@ -5109,8 +5086,7 @@ namespace Microsoft.Dafny {
 
       foreach (var valuet in valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
-          MemberDecl member;
-          if (valuet.Members.TryGetValue(memberName, out member)) {
+          if (classMembers[valuet].TryGetValue(memberName, out var member)) {
             SelfType resultType = null;
             if (member is SpecialFunction) {
               resultType = ((SpecialFunction)member).ResultType as SelfType;
@@ -5133,8 +5109,7 @@ namespace Microsoft.Dafny {
       var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
-        MemberDecl member;
-        if (!classMembers[cd].TryGetValue(memberName, out member)) {
+        if (!classMembers[cd].TryGetValue(memberName, out var member)) {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
@@ -5185,14 +5160,14 @@ namespace Microsoft.Dafny {
             var r = GetBaseTypeFromProxy((TypeProxy)t, new Dictionary<TypeProxy, Type>());
             if (r != null) {
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Console.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
+                Options.OutputWriter.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
               }
               return r;
             }
           }
 
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Console.WriteLine("  ----> found no improvement, giving up");
+            Options.OutputWriter.WriteLine("  ----> found no improvement, giving up");
           }
           return t;
         }
@@ -5205,7 +5180,7 @@ namespace Microsoft.Dafny {
         return t;  // simplification did the trick
       }
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Console.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+        Options.OutputWriter.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
           memberName == null ? "" : " (" + memberName + ")");
@@ -5217,14 +5192,14 @@ namespace Microsoft.Dafny {
         DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Console.WriteLine("  ----> join is a datatype: {0}", joinType);
+            Options.OutputWriter.WriteLine("  ----> join is a datatype: {0}", joinType);
           }
           ConstrainSubtypeRelation(t, joinType, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, joinType);
           return joinType;
         } else if (headIsRoot) {
           // we're good to go -- by picking "join" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Console.WriteLine("  ----> improved to {0} through join", joinType);
+            Options.OutputWriter.WriteLine("  ----> improved to {0} through join", joinType);
           }
           AssignProxyAndHandleItsConstraints(proxy, joinType, true);
           return proxy.NormalizeExpand();  // we return proxy.T instead of join, in case the assignment gets hijacked
@@ -5233,7 +5208,7 @@ namespace Microsoft.Dafny {
           if (generalArrowType != null) {
             // pick the supertype "generalArrowType" of "join"
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Console.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
+              Options.OutputWriter.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
             }
             ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
             return generalArrowType;
@@ -5243,7 +5218,7 @@ namespace Microsoft.Dafny {
           if (joinType.IsRefType) {
             var joinExpanded = joinType.NormalizeExpand();  // go all the way to the base type, to get to the class
             if (!joinExpanded.IsObjectQ) {
-              var cl = ((UserDefinedType)joinExpanded).ResolvedClass as ClassDecl;
+              var cl = ((UserDefinedType)joinExpanded).ResolvedClass as ClassLikeDecl;
               if (cl != null) {
                 // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
                 var plausibleMembers = new HashSet<MemberDecl>();
@@ -5252,7 +5227,7 @@ namespace Microsoft.Dafny {
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
                     if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                      Console.WriteLine("  ----> improved to {0} through member-selection join", joinType);
+                      Options.OutputWriter.WriteLine("  ----> improved to {0} through member-selection join", joinType);
                     }
                     var joinRoot = joinType.NormalizeExpand();  // blow passed any constraints
                     ConstrainSubtypeRelation(joinRoot, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", joinRoot, t);
@@ -5275,7 +5250,7 @@ namespace Microsoft.Dafny {
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                      Console.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
+                      Options.OutputWriter.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
                     }
                     ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
                     return pickItFromHere;
@@ -5286,7 +5261,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("  ----> found no improvement, because join does not determine type enough");
+          Options.OutputWriter.WriteLine("  ----> found no improvement, because join does not determine type enough");
         }
       }
 
@@ -5301,12 +5276,12 @@ namespace Microsoft.Dafny {
           if (proxy == meet.Normalize()) {
             // can this really ever happen?
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Console.WriteLine("  ----> found no improvement (other than the proxy itself)");
+              Options.OutputWriter.WriteLine("  ----> found no improvement (other than the proxy itself)");
             }
             return t;
           } else {
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
+              Options.OutputWriter.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
             Contract.Assert(proxy != meet);
             proxy.T = meet;
@@ -5316,7 +5291,7 @@ namespace Microsoft.Dafny {
         }
         if (!(meet is ArtificialType)) {
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Console.WriteLine("  ----> improved to {0} through meet", meet);
+            Options.OutputWriter.WriteLine("  ----> improved to {0} through meet", meet);
           }
           if (memberName != null) {
             AssignProxyAndHandleItsConstraints(proxy, meet, true);
@@ -5331,14 +5306,14 @@ namespace Microsoft.Dafny {
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
       if (artificialSuper != null) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
+          Options.OutputWriter.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
         }
         return artificialSuper;
       }
 
       // we weren't able to do it
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Console.WriteLine("  ----> found no improvement using simple things, trying harder once more");
+        Options.OutputWriter.WriteLine("  ----> found no improvement using simple things, trying harder once more");
       }
       return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
     }
@@ -5346,8 +5321,7 @@ namespace Microsoft.Dafny {
     private Type/*?*/ GetBaseTypeFromProxy(TypeProxy proxy, Dictionary<TypeProxy, Type/*?*/> determinedProxies) {
       Contract.Requires(proxy != null);
       Contract.Requires(determinedProxies != null);
-      Type t;
-      if (determinedProxies.TryGetValue(proxy, out t)) {
+      if (determinedProxies.TryGetValue(proxy, out var t)) {
         // "t" may be null (meaning search for "proxy" is underway or was unsuccessful) or non-null (search for
         // "proxy" has completed successfully), but we return it in either case
         return t;
@@ -5434,7 +5408,7 @@ namespace Microsoft.Dafny {
         return;
       }
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Console.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
+        Options.OutputWriter.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
       }
       proxies.Add(proxy);
       // close over interesting constraints
@@ -5702,8 +5676,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, entry.Item1, "duplicate update member '{0}'", destructor_str);
         } else {
           memberNames.Add(destructor_str);
-          MemberDecl member;
-          if (!classMembers[dt].TryGetValue(destructor_str, out member)) {
+          if (!classMembers[dt].TryGetValue(destructor_str, out var member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
@@ -5800,7 +5773,7 @@ namespace Microsoft.Dafny {
           }
           ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.line, tok.col) {
-            Filename = tok.Filename,
+            Uri = tok.Uri,
             val = f.Name
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
@@ -5885,13 +5858,10 @@ namespace Microsoft.Dafny {
       // For 0:
       IVariable v;
       // For 1:
-      Dictionary<string, MemberDecl> members;
       // For 1 and 4:
       MemberDecl member = null;
       // For 2 and 5:
-      Tuple<DatatypeCtor, bool> pair;
       // For 3:
-      TopLevelDecl decl;
 
       var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
       v = scope.Find(name);
@@ -5906,7 +5876,7 @@ namespace Microsoft.Dafny {
           }
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out members) && members.TryGetValue(name, out member)) {
+      } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out var members) && members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
@@ -5925,12 +5895,12 @@ namespace Microsoft.Dafny {
           receiver.Type = GetThisType(expr.tok, currentClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
-      } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
+      } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out var pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
           return null;
         }
-      } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
+      } else if (moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
         // ----- 3. Member of the enclosing module
 
         // Record which imported module, if any, was shadowed by `name` in the current module.
@@ -5950,7 +5920,7 @@ namespace Microsoft.Dafny {
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
           if (!isLastNameSegment) {
-            if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+            if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
               if (complain) {
@@ -5976,7 +5946,7 @@ namespace Microsoft.Dafny {
             return null;
           }
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
+          var receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
@@ -5989,7 +5959,11 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          if (resolutionContext.InReveal) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label, or requires label in the current scope is named '{0}'", expr.Name);
+          } else {
+            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          }
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -6078,7 +6052,6 @@ namespace Microsoft.Dafny {
       MemberDecl member = null;
 #endif
       // For 2:
-      TopLevelDecl decl;
 
       tp = allTypeParameters.Find(expr.Name);
       if (tp != null) {
@@ -6093,18 +6066,18 @@ namespace Microsoft.Dafny {
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
         } else {
           if (!scope.AllowInstance) {
             reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context");
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+          receiver.Type = GetThisType(expr.tok, (ClassLikeDecl)member.EnclosingClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
 #endif
-      } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
+      } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out var decl)) {
         // ----- 2. Member of the enclosing module
         if (decl is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)decl;
@@ -6124,7 +6097,7 @@ namespace Microsoft.Dafny {
         if (ReallyAmbiguousThing(ref member)) {
           reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ((AmbiguousMemberDecl)member).ModuleNames());
         } else {
-          var receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass);
+          var receiver = new StaticReceiverExpr(expr.tok, (ClassLikeDecl)member.EnclosingClass);
           r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.resolutionContext, allowMethodCall);
         }
 #endif
@@ -6203,11 +6176,9 @@ namespace Microsoft.Dafny {
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
         sig = GetSignature(sig);
         // For 0:
-        Tuple<DatatypeCtor, bool> pair;
         // For 1:
-        TopLevelDecl decl;
 
-        if (isLastNameSegment && sig.Ctors.TryGetValue(name, out pair)) {
+        if (isLastNameSegment && sig.Ctors.TryGetValue(name, out var pair)) {
           // ----- 0. datatype constructor
           if (pair.Item2) {
             // there is more than one constructor with this name
@@ -6226,7 +6197,7 @@ namespace Microsoft.Dafny {
               rWithArgs = rr;
             }
           }
-        } else if (sig.TopLevels.TryGetValue(name, out decl)) {
+        } else if (sig.TopLevels.TryGetValue(name, out var decl)) {
           // ----- 1. Member of the specified module
           if (decl is AmbiguousTopLevelDecl) {
             var ad = (AmbiguousTopLevelDecl)decl;
@@ -6237,7 +6208,7 @@ namespace Microsoft.Dafny {
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
             if (!isLastNameSegment) {
-              if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
+              if (decl is ClassLikeDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
                 // the name of the class, C. Report an error and continue.
                 reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
@@ -6252,7 +6223,7 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (AmbiguousMemberDecl)member;
             reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (ClassDecl)member.EnclosingClass, false);
+            var receiver = new StaticReceiverExpr(expr.Lhs.tok, (TopLevelDeclWithMembers)member.EnclosingClass, false);
             receiver.ContainerExpression = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
@@ -6268,8 +6239,7 @@ namespace Microsoft.Dafny {
         if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
-          DatatypeCtor ctor;
-          if (dt.ConstructorsByName != null && dt.ConstructorsByName.TryGetValue(name, out ctor)) {
+          if (dt.ConstructorsByName != null && dt.ConstructorsByName.TryGetValue(name, out var ctor)) {
             if (expr.OptTypeArguments != null) {
               reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
             }
@@ -6286,8 +6256,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
         if (cd != null) {
           // ----- LHS is a type with members
-          Dictionary<string, MemberDecl> members;
-          if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(name, out member)) {
+          if (classMembers.TryGetValue(cd, out var members) && members.TryGetValue(name, out member)) {
             if (!VisibleInScope(member)) {
               reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
@@ -6305,8 +6274,7 @@ namespace Microsoft.Dafny {
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        NonProxyType tentativeReceiverType;
-        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out tentativeReceiverType);
+        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out var tentativeReceiverType);
         if (member != null) {
           Expression receiver;
           if (!member.IsStatic) {
@@ -6581,8 +6549,7 @@ namespace Microsoft.Dafny {
       // Construct a resolved type directly, as we know the declaration is dt.
       dtv.Type = new UserDefinedType(dtv.tok, dt.Name, dt, gt);
 
-      DatatypeCtor ctor;
-      if (!dt.ConstructorsByName.TryGetValue(dtv.MemberName, out ctor)) {
+      if (!dt.ConstructorsByName.TryGetValue(dtv.MemberName, out var ctor)) {
         ok = false;
         if (complain) {
           reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
@@ -6611,8 +6578,7 @@ namespace Microsoft.Dafny {
       ResolveReceiver(e.Receiver, resolutionContext);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
 
-      NonProxyType tentativeReceiverType;
-      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out tentativeReceiverType);
+      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out var tentativeReceiverType);
 #if !NO_WORK_TO_BE_DONE
       var ctype = (UserDefinedType)tentativeReceiverType;
 #endif

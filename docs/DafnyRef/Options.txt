@@ -172,15 +172,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       Treat all export sets as 'export reveal *'. i.e. don't hide function
       bodies or type definitions during translation.
   
-  /allowGlobals
-      Allow the implicit class '_default' to contain fields, instance
-      functions, and instance methods. These class members are declared at
-      the module scope, outside of explicit classes. This command-line
-      option is provided to simplify a transition from the behavior in the
-      language prior to version 1.9.3, from which point onward all
-      functions and methods declared at the module scope are implicitly
-      static and fields declarations are not allowed at the module scope.
-  
   ---- Warning selection -----------------------------------------------------
   
   /warnShadowing
@@ -235,17 +226,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       `/vcsSplitOnEveryAssert` option, it will provide approximate time
       and resource use costs for each assertion, allowing identification
       of especially expensive assertions.
-  
-  /mimicVerificationOf:<Dafny version>
-      Let Dafny attempt to mimic the verification as it was in a previous
-      version of Dafny. Useful during migration to a newer version of
-      Dafny when a Dafny program has proofs, such as methods or lemmas,
-      that are unstable in the sense that their verification may become
-      slower or fail altogether after logically irrelevant changes are
-      made in the verification input.
-  
-      Accepted versions are: 3.3 (note that this turns off features that
-      prevent classes of verification instability)
   
   /noCheating:<n>
       0 (default) - Allow assume statements and free invariants.
@@ -384,10 +364,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       than <n>. 0 (default) indicates no limit.
   /generateTestTargetMethod:<methodName>
       If specified, only this method will be tested.
-  /generateTestInlineDepth:<n>
-      0 is the default. When used in conjunction with /testTargetMethod,
-      this argument specifies the depth up to which all non-tested methods
-      should be inlined.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
   /generateTestVerbose

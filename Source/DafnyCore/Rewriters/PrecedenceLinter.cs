@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
       foreach (var moduleDefinition in program.Modules()) {
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
           foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
-            var visitor = new PrecedenceLinterVisitor(this.Reporter);
+            var visitor = new PrecedenceLinterVisitor(program, Reporter);
             visitor.Visit(callable, null);
           }
         }
@@ -69,10 +69,11 @@ namespace Microsoft.Dafny {
   /// an ordinary in-parameter to VisitOneExpr, since the method would only need to return a bool.
   /// </summary>
   class PrecedenceLinterVisitor : TopDownVisitor<LeftMargin> {
-
+    private readonly Program program;
     private readonly ErrorReporter reporter;
 
-    public PrecedenceLinterVisitor(ErrorReporter reporter) {
+    public PrecedenceLinterVisitor(Program program, ErrorReporter reporter) {
+      this.program = program;
       this.reporter = reporter;
     }
 
@@ -242,13 +243,13 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken is IncludeToken) {
+      if (expr is ParensExpression || errorToken.FromIncludeDirective(program)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);
         Visit(expr, st);
         if (st.Column < rightMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, errorToken,
+          this.reporter.Warning(MessageSource.Rewriter, NoneId, errorToken,
             $"unusual indentation in {what} (which ends at {LineCol(expr.RangeToken.EndToken)}); do you perhaps need parentheses?");
         }
       }

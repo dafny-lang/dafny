@@ -1,25 +1,31 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
+using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Trivia")]
   public class Trivia {
+
+    private readonly TextWriter output;
+
+    public Trivia(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
+
     enum Newlines { LF, CR, CRLF };
 
     private Newlines currentNewlines;
 
     [Fact]
     public void TriviaSplitWorksOnLinuxMacAndWindows() {
-      var options = DafnyOptions.Create();
-      ErrorReporter reporter = new ConsoleErrorReporter(options);
+      var options = DafnyOptions.Create(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"
@@ -71,11 +77,8 @@ ensures true
 ";
         programString = AdjustNewlines(programString);
 
-        ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-        Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programString, "virtual", "virtual", module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var dafnyProgram = Utils.Parse(options, programString, false);
+        var reporter = dafnyProgram.Reporter;
         Assert.Equal(0, reporter.ErrorCount);
         Assert.Equal(6, dafnyProgram.DefaultModuleDef.TopLevelDecls.Count);
         var moduleTest = dafnyProgram.DefaultModuleDef.TopLevelDecls[0] as LiteralModuleDecl;
@@ -83,7 +86,7 @@ ensures true
         var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
         var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[3];
         var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
-        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as ClassDecl;
+        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as DefaultClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);

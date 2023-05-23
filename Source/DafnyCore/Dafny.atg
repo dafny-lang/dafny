@@ -26,11 +26,8 @@ readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
-readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
-readonly bool theVerifyThisFile;
-readonly bool theCompileThisFile;
 DafnyOptions theOptions;
 int anonymousIds = 0;
 
@@ -127,9 +124,16 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
   }
 }
 
-void CheckAttribute(Errors errors, IToken attr, RangeToken range) {
+bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
+  if (attr.val == "ignore") {
+    errors.Warning(
+      attr,
+      $"attribute :{attr.val} is deprecated");
+    return false;
+  }
+  return true;
 }
 
 bool IsAssumeTypeKeyword(IToken la) {
@@ -142,58 +146,51 @@ bool IsAssumeTypeKeyword(IToken la) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (bool useStdin, string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
-  Contract.Requires(filename != null);
+public static int Parse(TextReader reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
+  Contract.Requires(uri != null);
   Contract.Requires(module != null);
-  string s;
-  if (useStdin) {
-    s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(System.Console.In, new List<string>(), Environment.NewLine);
-    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-  } else {
-    var newline = SourcePreprocessor.GetNewlineStyle(filename);
-    using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
-      s = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>(), newline);
-      return Parse(s, filename, builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
-    }
-  }
+  var text = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+  return Parse(text, uri, module, builtIns, errors);
 }
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members)
 /// and appends them in appropriate form to "module".
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true, bool compileThisFile=true) {
+public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter) {
   Contract.Requires(s != null);
-  Contract.Requires(filename != null);
+  Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile, compileThisFile);
+  return Parse(s, uri, module, builtIns, errors);
 }
 
-public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
+public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
+                                 BuiltIns builtIns, Errors/*!*/ errors) {
   Contract.Requires(s != null);
-  Contract.Requires(filename != null);
+  Contract.Requires(uri != null);
   Contract.Requires(module != null);
   Contract.Requires(errors != null);
   System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
+  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Token firstToken;
-  if((module.RootToken.Filename ?? "") == "") { // This is the first module
-    module.RootToken.Filename = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(fullFilename) : fullFilename;
+  if((module.RootToken.Filepath ?? "") == "") { // This is the first module
+    module.RootToken.Uri = uri;
     firstToken = module.RootToken;
   } else {
     firstToken = new Token(); // It's an included file
   }
-  Scanner scanner = new Scanner(ms, errors, fullFilename, filename, firstToken: firstToken);
-  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
+  Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
+  return new Parser(scanner, errors, module, builtIns);
 }
 
-public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+public static Expression ParseExpression(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
+                                         BuiltIns builtIns, Errors/*!*/ errors) {
+  Parser parser = SetupParser(s, uri, module, builtIns, errors);
   parser.la = new Token();
   parser.la.val = "";
   parser.Get();
@@ -246,14 +243,14 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
+public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
+                         BuiltIns builtIns, Errors/*!*/ errors) {
+  Parser parser = SetupParser(s, uri, module, builtIns, errors);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
 
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -263,11 +260,8 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
   var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
-  theInclude = include; // the "include" that includes this file
   theModule = module;
   theBuiltIns = builtIns;
-  theVerifyThisFile = verifyThisFile;
-  theCompileThisFile = compileThisFile;
   theOptions = new DafnyOptions(builtIns.Options);
 }
 
@@ -431,19 +425,19 @@ bool IsExpliesOp() => IsExpliesOp(la);
 bool IsAndOp() => IsAndOp(la);
 bool IsOrOp() => IsOrOp(la);
 static bool IsEquivOp(IToken la) {
-  return la.val == "<==>" || la.val == "\u21d4";
+  return la.val == "<==>";
 }
 static bool IsImpliesOp(IToken la) {
-  return la.val == "==>" || la.val == "\u21d2";
+  return la.val == "==>";
 }
 static bool IsExpliesOp(IToken la) {
-  return la.val == "<==" || la.val == "\u21d0";
+  return la.val == "<==";
 }
 static bool IsAndOp(IToken la) {
-  return la.val == "&&" || la.val == "\u2227";
+  return la.val == "&&";
 }
 static bool IsOrOp(IToken la) {
-  return la.val == "||" || la.val == "\u2228";
+  return la.val == "||";
 }
 bool IsBitwiseAndOp() {
   return la.val == "&";
@@ -469,10 +463,7 @@ bool IsRelOp() {
       || la.val == "!="
       || la.val == "in"
       || la.kind == _notIn
-      || la.val =="!"
-      || la.val == "\u2260"
-      || la.val == "\u2264"
-      || la.val == "\u2265";
+      || la.val == "!";
 }
 bool IsShiftOp() {
   if (la.kind == _openAngleBracket) {
@@ -494,7 +485,7 @@ bool IsMulOp() {
   return la.kind == _star || la.val == "/" || la.val == "%";
 }
 bool IsQSep() {
-  return la.kind == _doublecolon || la.kind == _bullet;
+  return la.kind == _doublecolon;
 }
 
 bool IsNonFinalColon() {
@@ -643,7 +634,6 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _case:
     case _eq:
     case _neq:
-    case _neqAlt:
     case _as:
     case _is:
     case _darrow:
@@ -931,7 +921,6 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  bullet = '\u2022'. // •
   dot = '.'.
   backtick = "`".
   semicolon = ';'.
@@ -996,7 +985,6 @@ TOKENS
   singleeq = "=".
   eq = "==".
   neq = "!=".
-  neqAlt = '\u2260'. // ≠
   star = '*'.
   at = '@'.
   notIn = "!in" CONTEXT (nonidchar).
@@ -1022,16 +1010,16 @@ Dafny
   .)
   { "include"                 (. startToken = t; .)
     stringToken               (. {
-                                 string parsedFile = scanner.FullFilename;
+                                 Uri parsedFile = scanner.Uri;
                                  bool isVerbatimString;
                                  string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                  Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
                                  includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
-                                   string basePath = Path.GetDirectoryName(parsedFile);
+                                   string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, includedFile, theCompileThisFile);
+                                 var oneInclude = new Include(t, parsedFile, includedFile);
                                  oneInclude.RangeToken = new RangeToken(startToken, t);
                                  defaultModule.Includes.Add(oneInclude);
                                }
@@ -1043,10 +1031,7 @@ Dafny
     // find the default class in the default module, then append membersDefaultClass to its member list
 		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
 		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
-		   var fileName = theOptions.UseBaseNameForFileName
-                   ? Path.GetFileName(scanner.FullFilename) 
-                   : Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename);
-		   errors.Warning(new Token(1, 1) { Filename = la.Filename }, "File contains no code");
+		   errors.Warning(new Token(1, 1) { Uri = la.Uri }, "File contains no code");
 		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
@@ -1095,7 +1080,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !theOptions.AllowGlobals>
+  | ClassMemberDecl<dmod, membersDefaultClass, false, true, true>
   )
   .
 
@@ -1139,7 +1124,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    ]
    (. module = new ModuleDefinition(RangeToken.NoToken, name, prefixIds, isAbstract, false,
                                         idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                        false, theVerifyThisFile, theCompileThisFile);
+                                        false);
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
@@ -1539,9 +1524,12 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   SYNC
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
-  CIdentType<out var name, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
-  [ ellipsis ]
-  [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
+  ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
+    (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
+  |
+    CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+    [ ellipsis ]
+    [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
@@ -1549,7 +1537,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                                 var c = new ConstantField(new RangeToken(dmod.FirstToken, t), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, attrs);
                                                 mm.Add(c);
                                              .)
-  OldSemi                                    (. c.TokenWithTrailingDocString = t; .)
+    OldSemi                                  (. c.TokenWithTrailingDocString = t; .)
+  )
   .
 
 /*------------------------------------------------------------------------*/
@@ -1624,7 +1613,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Type ty = null;
      Expression constraint;
      Expression witness = null;
-     var kind = "opaque type";
+     var kind = "abstract type";
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
@@ -1665,10 +1654,10 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   ]
   (. if (td == null) {
        if (module is DefaultModuleDefinition) {
-         // opaque type declarations at the very outermost program scope get an automatic (!new)
+         // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new OpaqueTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
+       td = new AbstractTypeDecl(new RangeToken(dmod.FirstToken, t), name, module, characteristics, typeArgs, members, attrs, isRefining);
      }
      td.TokenWithTrailingDocString = t;
   .)
@@ -2195,12 +2184,12 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
-                        { RangeToken = range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
     { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
-                        { RangeToken = range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
     }
   ]
@@ -2923,7 +2912,7 @@ OneStmt<out Statement/*!*/ s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | ForLoopStmt<out s>
-  | AssertStmt<out s, false>
+  | AssertStmt<out s>
   | AssumeStmt<out s>
   | BreakStmt<out s>
   | CalcStmt<out s>
@@ -3639,7 +3628,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
   .
 
 /*------------------------------------------------------------------------*/
-AssertStmt<out Statement/*!*/ s, bool inExprContext>
+AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
@@ -3650,13 +3639,16 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   .)
   "assert"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( [ IF(IsLabel(!inExprContext))
+  ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
+    | (.
+        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+      .)
     )
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
@@ -3908,9 +3900,6 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
   | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
   | ">="           (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
   | "!="           (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2260'       (. x = t;  binOp = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  binOp = BinaryExpr.Opcode.Ge; .)
   | EquivOp        (. x = t;  binOp = BinaryExpr.Opcode.Iff; .)
   | ImpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Imp; .)
   | ExpliesOp      (. x = t;  binOp = BinaryExpr.Opcode.Exp; .)
@@ -3930,16 +3919,16 @@ CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
  * these operators, both in Is...() methods (defined above) and as grammar non-terminals (defined
  * here).  These pairs of definitions must be changed together.
  */
-EquivOp = "<==>" | '\u21d4'.
-ImpliesOp = "==>" | '\u21d2'.
-ExpliesOp = "<==" | '\u21d0'.
-AndOp = "&&" | '\u2227'.
-OrOp = "||" | '\u2228'.
+EquivOp = "<==>".
+ImpliesOp = "==>".
+ExpliesOp = "<==".
+AndOp = "&&".
+OrOp = "||".
 
-NegOp = "!" | '\u00ac'.
-Forall = "forall" | '\u2200'.
-Exists = "exists" | '\u2203'.
-QSep = "::" | '\u2022'.
+NegOp = "!".
+Forall = "forall".
+Exists = "exists".
+QSep = "::".
 
 /* The "allowLemma" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
@@ -4199,10 +4188,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
                         op = BinaryExpr.Opcode.Disjoint;
                       }
                    .)
-  | '\u2260'       (. x = t;  op = BinaryExpr.Opcode.Neq; .)
-  | '\u2264'       (. x = t;  op = BinaryExpr.Opcode.Le; .)
-  | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
-  )
+   )
   .
 
 /*------------------------------------------------------------------------*/
@@ -4677,7 +4663,7 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 /*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
-  ( AssertStmt<out s, true>
+  ( AssertStmt<out s>
   | ExpectStmt<out s>
   | AssumeStmt<out s>
   | RevealStmt<out s>
@@ -5229,9 +5215,10 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
+     var rtok = new RangeToken(openBrace, t);
+     if (!CheckAttribute(errors, x, rtok)) return;
      attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
-     attrs.RangeToken = new RangeToken(openBrace, t);
-     CheckAttribute(errors, x, attrs.RangeToken);
+     attrs.RangeToken = rtok;
   .)
   .
 
@@ -5283,13 +5270,13 @@ DotSuffix<out IToken x, out IToken y>
                           y.val = x.val.Substring(0, dot);
                           y.col = x.col;
                           y.line = x.line;
-                          y.Filename = x.Filename;
+                          y.Uri = x.Uri;
                           y.kind = x.kind;
                           
                           var dotTok = new Token();
                           dotTok.pos = x.pos + dot;
                           dotTok.val = ".";
-                          dotTok.Filename = x.Filename;
+                          dotTok.Uri = x.Uri;
                           dotTok.line = x.line;
                           dotTok.kind = x.kind;
                           dotTok.col = x.col + dot;
