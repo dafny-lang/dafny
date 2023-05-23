@@ -366,7 +366,7 @@ const x: int := true as int
 Not all pairs of types have implicit or even explicit conversions. But there are conversions
 to int types from numeric types, including the ORDINAL type; for any source type, the value of 
 the numeric expression must be in the range for the int type (if it is a subset type or a newtype).
-Even `char` values have an integer representation (and thus a represetnation as a `real`) 
+Even `char` values have an integer representation (and thus a representation as an `int`) 
 corresponding to their unicode value.
 
 ## **Error: type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
