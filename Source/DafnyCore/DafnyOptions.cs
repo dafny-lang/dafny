@@ -301,7 +301,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public string CompilerName;
     public IExecutableBackend Backend;
-    public bool CompileVerbose = true;
+    public bool Verbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
@@ -316,7 +316,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int ArithMode = 1; // [0..10]
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
-    public bool AllowGlobals = false;
     public bool Optimize = false;
     public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
@@ -472,7 +471,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "compileVerbose": {
             int verbosity = 0;
             if (ps.GetIntArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
+              Verbose = verbosity == 1;
             }
 
             return true;
@@ -593,37 +592,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (ps.GetIntArgument(ref a, 11)) {
               ArithMode = a;
             }
-
             return true;
           }
-
-        case "mimicVerificationOf":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "3.3") {
-              Prune = false;
-              NormalizeNames = false;
-              EmitDebugInformation = true;
-              NormalizeDeclarationOrder = false;
-            } else {
-              ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
-            }
-          }
-
-          return true;
 
         case "autoReqPrint":
           if (ps.ConfirmArgumentCount(1)) {
             AutoReqPrintFile = args[ps.i];
           }
-
           return true;
 
         case "noAutoReq":
           ignoreAutoReq = true;
-          return true;
-
-        case "allowGlobals":
-          AllowGlobals = true;
           return true;
 
         case "stats":
@@ -1336,15 +1315,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Treat all export sets as 'export reveal *'. i.e. don't hide function
     bodies or type definitions during translation.
 
-/allowGlobals
-    Allow the implicit class '_default' to contain fields, instance
-    functions, and instance methods. These class members are declared at
-    the module scope, outside of explicit classes. This command-line
-    option is provided to simplify a transition from the behavior in the
-    language prior to version 1.9.3, from which point onward all
-    functions and methods declared at the module scope are implicitly
-    static and fields declarations are not allowed at the module scope.
-
 ---- Warning selection -----------------------------------------------------
 
 /warnShadowing
@@ -1399,17 +1369,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     `/vcsSplitOnEveryAssert` option, it will provide approximate time
     and resource use costs for each assertion, allowing identification
     of especially expensive assertions.
-
-/mimicVerificationOf:<Dafny version>
-    Let Dafny attempt to mimic the verification as it was in a previous
-    version of Dafny. Useful during migration to a newer version of
-    Dafny when a Dafny program has proofs, such as methods or lemmas,
-    that are unstable in the sense that their verification may become
-    slower or fail altogether after logically irrelevant changes are
-    made in the verification input.
-
-    Accepted versions are: 3.3 (note that this turns off features that
-    prevent classes of verification instability)
 
 /noCheating:<n>
     0 (default) - Allow assume statements and free invariants.

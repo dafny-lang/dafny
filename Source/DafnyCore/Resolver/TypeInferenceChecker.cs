@@ -286,7 +286,7 @@ partial class Resolver {
                       // these two types have the same number of type arguments.
                       var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
                       var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
-                      var possiblyNullTypeDecl = (ClassDecl)possiblyNullUdf.ResolvedClass;
+                      var possiblyNullTypeDecl = (ClassLikeDecl)possiblyNullUdf.ResolvedClass;
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
                       var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);

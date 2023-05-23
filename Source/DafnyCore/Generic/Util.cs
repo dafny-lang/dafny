@@ -550,8 +550,8 @@ namespace Microsoft.Dafny {
         foreach (var decl in module.TopLevelDecls) {
           if (decl is DatatypeDecl) {
             IncrementStat(stats, "Datatypes");
-          } else if (decl is ClassDecl) {
-            var c = (ClassDecl)decl;
+          } else if (decl is ClassLikeDecl) {
+            var c = (ClassLikeDecl)decl;
             if (c.Name != "_default") {
               IncrementStat(stats, "Classes");
             }
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
         return false;
       }
 
-      var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
+      var d = topd is ClassLikeDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
         // ClassDecl, DatatypeDecl, AbstractTypeDecl, NewtypeDecl 
@@ -825,10 +825,6 @@ namespace Microsoft.Dafny {
         }
       } else if (d is ModuleDecl md) {
         return Traverse(md);
-      } else if (d is ValuetypeDecl vd) {
-        if (vd.Members.Any(pair => Traverse(pair.Value, "Members.Value", vd))) {
-          return true;
-        }
       } else if (d is TypeSynonymDecl tsd) {
         // Nothing here.
       }
