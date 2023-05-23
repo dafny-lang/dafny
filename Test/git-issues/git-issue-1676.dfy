@@ -34,7 +34,7 @@ module M0 {
     assert v >= 0;
   }
 
-  function Id<T>(t: T): T { t }
+  ghost function Id<T>(t: T): T { t }
 
   method Test3() {
     var v := Id<seq<nat>>(Id<seq<nat>>([0]) + Id<seq<int>>([-1]))[1]; // error: wrong type arg to Id<seq<nat>>
@@ -239,9 +239,9 @@ module ReferenceTypes {
 
   trait IllegalArgumentException extends RuntimeException {}
 
-  function method F(): Result<int>
+  function F(): Result<int>
 
-  function method Test0(): int {
+  function Test0(): int {
     var x := F();
     match x {
       case Failure(e) =>
@@ -251,7 +251,7 @@ module ReferenceTypes {
     }
   }
 
-  function method Test1(): int {
+  function Test1(): int {
     var x := F();
     match x {
       case Failure(e: Exception) =>
@@ -261,7 +261,7 @@ module ReferenceTypes {
     }
   }
 
-  function method Test2(): int {
+  function Test2(): int {
     var x := F();
     match x {
       case Failure(e) =>

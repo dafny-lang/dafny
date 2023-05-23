@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Global {
-  static function G(x: int): int { x+x }
+  static ghost function G(x: int): int { x+x }
   static method N(ghost x: int) returns (ghost r: int)
     ensures r == Global.G(x)
   {
@@ -48,13 +48,13 @@ method TestCalls(k: nat) {
 
 // ---------- chaining operators ------------------------------------
 
-function UpTruth(j: int, k: int): bool
+ghost function UpTruth(j: int, k: int): bool
   requires 10 <= j < 180 < 220 <= k
 {
   0 < 2 <= 2 < j != 200 < k < k + 1
 }
 
-function DownTruth(j: int, k: int): bool
+ghost function DownTruth(j: int, k: int): bool
   requires k >= 220 > 180 > j >= 10
 {
   k + 1 > k > 200 != j > 2 >= 2 > 0
@@ -222,7 +222,7 @@ method SwapEm(a: int, b: int) returns (x: int, y: int)
   x, y := b, a;
 }
 
-function method abs(a:int): int
+function abs(a:int): int
 {
    if a <= 0 then -a else a
 }
@@ -292,7 +292,7 @@ method notQuiteSwap3(c: CC, d: CC)
 
 method InlineMultisetFormingExpr(s: seq<int>)
   ensures MSFE(s)
-predicate MSFE(s: seq<int>)
+ghost predicate MSFE(s: seq<int>)
 {
   multiset(s) == multiset(s)
 }
@@ -479,7 +479,7 @@ method {:selective_checking} MySelectiveChecking1(x: int, y: int, z: int)
 // ------------- regression test: make sure havoc and assign-such-that statements include type assumptions --
 
 module AssumeTypeAssumptions {
-  predicate f(p: seq<int>)
+  ghost predicate f(p: seq<int>)
 
   method M2() {
     var path: seq<int>, other: int :| true;  // previously, the 2-or-more variable case was broken

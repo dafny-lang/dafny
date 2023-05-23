@@ -130,38 +130,38 @@ module Methods {
 
 module Functions {
   newtype Newtype = x | 0 <= x < 500 {
-    function method InstanceN<Bn(0)>(b: Bn): Bn { b }
-    static function method StaticN<Bn(0)>(b: Bn): Bn { b }
+    function InstanceN<Bn(0)>(b: Bn): Bn { b }
+    static function StaticN<Bn(0)>(b: Bn): Bn { b }
   }
 
   datatype Datatype<Ad(0)> = Dt0 | Dt1 {
-    function method InstanceD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
-    static function method StaticD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
+    function InstanceD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
+    static function StaticD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
   }
 
   trait UberTrait<Au(0)> {
-    function method InstanceU0<Bu(0)>(a: Au, b: Bu): (Au, Bu) { (a, b) }
-    function method InstanceU1<Bu(0)>(a: Au, b: Bu): (Au, Bu)
-    function method InstanceU2<Bu(0)>(a: Au, b: Bu): (Au, Bu)
-    function method InstanceU3<Bu(0)>(a: Au, b: Bu): (Au, Bu)
+    function InstanceU0<Bu(0)>(a: Au, b: Bu): (Au, Bu) { (a, b) }
+    function InstanceU1<Bu(0)>(a: Au, b: Bu): (Au, Bu)
+    function InstanceU2<Bu(0)>(a: Au, b: Bu): (Au, Bu)
+    function InstanceU3<Bu(0)>(a: Au, b: Bu): (Au, Bu)
   }
 
   trait InBetween<Ai(0)> extends UberTrait<Ai> {
-    function method InstanceU1<Bi(0)>(a: Ai, b: Bi): (Ai, Bi) { (a, b) }
+    function InstanceU1<Bi(0)>(a: Ai, b: Bi): (Ai, Bi) { (a, b) }
   }
 
   trait Trait<At(0)> extends InBetween<At> {
-    function method InstanceU2<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
-    function method InstanceT<Bt(0)>(a: At, b: Bt): (At, Bt)
-    function method InstanceTBody<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
-    static function method StaticT<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    function InstanceU2<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    function InstanceT<Bt(0)>(a: At, b: Bt): (At, Bt)
+    function InstanceTBody<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    static function StaticT<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
   }
 
   class Class<Ac(0)> extends Trait<Ac> {
-    function method InstanceU3<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
-    function method InstanceT<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
-    function method InstanceC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
-    static function method StaticC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    function InstanceU3<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    function InstanceT<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    function InstanceC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    static function StaticC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
   }
 
   datatype Uni = Uni
@@ -331,9 +331,9 @@ module Consts {
 
 module FunctionsAsValues {
   trait Trait<G(0), H, J(0)> {
-    function method Select(g: G, h: H, j: J): G { g }
+    function Select(g: G, h: H, j: J): G { g }
 
-    function method ApplySelect(g: G, h: H, j: J): G {
+    function ApplySelect(g: G, h: H, j: J): G {
       var f := Select;
       f(g, h, j)
     }

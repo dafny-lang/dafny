@@ -3,7 +3,7 @@
 
 datatype Color = Blue | Red
 
-function method Foo(c: Color): int {
+function Foo(c: Color): int {
   match c
   case Blue => 4
   case Blue =>  // warning: redundant branch, not shown because of other resolution errors.
@@ -21,7 +21,7 @@ method Moo(c: Color) returns (x: int) {
 }
 
 datatype Bar = Bar(value: int)
-function method Zoo(b: Bar, x: real): int requires b.value == 4 {
+function Zoo(b: Bar, x: real): int requires b.value == 4 {
   match b
   case Bar(_) => 4
   case Bar(x) => assert x == 4; 5

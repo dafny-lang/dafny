@@ -14,7 +14,7 @@ public class ProvideRevealAllRewriter : IRewriter {
 
     foreach (var d in declarations) {
       if (d is ModuleExportDecl me) {
-        var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
+        var revealAll = me.RevealAll || Reporter.Options.DisableScopes;
 
         HashSet<string> explicitlyRevealedTopLevelIDs = null;
         if (!revealAll) {

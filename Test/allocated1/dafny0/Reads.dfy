@@ -5,40 +5,40 @@
 
 class C { var u : int; }
 
-function nope1(c : C):()
+ghost function nope1(c : C):()
      requires allocated(c) && c.u > 0;
 {()}
 
-function ok1(c : C):()
+ghost function ok1(c : C):()
      requires allocated(c) && c.u > 0;
      reads c;
 {()}
 
-function nope2(c : C?):()
+ghost function nope2(c : C?):()
      requires c != null && allocated(c) && c.u > 0;
      reads if c != null then {} else {c};
 {()}
 
-function ok2(c : C?):()
+ghost function ok2(c : C?):()
      requires c != null && allocated(c) && c.u > 0;
      reads if c != null then {c} else {};
 {()}
 
-function nope3(xs : seq<C?>):()
+ghost function nope3(xs : seq<C?>):()
      requires |xs| > 0 && xs[0] != null && allocated(xs[0]) && xs[0].u > 0;
 {()}
 
-function ok3(xs : seq<C?>):()
+ghost function ok3(xs : seq<C?>):()
      requires |xs| > 0 && xs[0] != null && allocated(xs[0]) && xs[0].u > 0;
      reads xs;
 {()}
 
-function nope4(c : C, xs : set<C>):()
+ghost function nope4(c : C, xs : set<C>):()
      requires allocated(c) && c !in xs ==> c.u > 0;
      reads xs;
 {()}
 
-function ok4(c : C, xs : set<C>):()
+ghost function ok4(c : C, xs : set<C>):()
      requires allocated(c) && c in xs ==> c.u > 0;
      reads xs;
 {()}
@@ -47,11 +47,11 @@ function ok4(c : C, xs : set<C>):()
 
 class R { var r : R? }
 
-function nope5(r : R?):()
+ghost function nope5(r : R?):()
   reads if r != null && allocated(r) then {r.r} else {};
 {()}
 
-function ok5(r : R?):()
+ghost function ok5(r : R?):()
   reads if r != null && allocated(r) then {r, r.r} else {};
 {()}
 
@@ -60,31 +60,31 @@ function ok5(r : R?):()
 class CircularChecking {
   ghost var Repr: set<object>
 
-  function F(): int
+  ghost function F(): int
     reads this, Repr
 
-  function F'(): int
+  ghost function F'(): int
     reads Repr, this  // this is also fine
 
-  function G0(): int
+  ghost function G0(): int
     reads this
     requires Repr == {} && F() == 100
 
-  function G1(): int
+  ghost function G1(): int
     reads this
     requires F() == 100  // fine, since the next line tells us that Repr is empty
     requires Repr == {}
 
-  function H0(cell: Cell): int
+  ghost function H0(cell: Cell): int
     reads Repr  // by itself, this reads is not self-framing
     requires this in Repr  // lo and behold!  So, reads clause is fine after all
 
-  function H1(cell: Cell): int
+  ghost function H1(cell: Cell): int
     reads this, Repr
     requires cell in Repr
     requires allocated(cell) && cell.data == 10
 
-  function H2(cell: Cell): int
+  ghost function H2(cell: Cell): int
     reads this, Repr
     requires allocated(cell) && cell.data == 10  // this is okay, too, since reads checks are postponed
     requires cell in Repr
@@ -92,9 +92,9 @@ class CircularChecking {
 
 class Cell { var data: int }
 
-// Test the benefits of the new reads checking for function checking
+// Test the benefits of the new reads checking for ghost function checking
 
-function ApplyToSet<X>(S: set<X>, f: X ~> X): set<X>
+ghost function ApplyToSet<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.reads(x) == {} && f.requires(x)
 {
   if S == {} then {} else
@@ -102,24 +102,24 @@ function ApplyToSet<X>(S: set<X>, f: X ~> X): set<X>
     ApplyToSet(S - {x}, f) + {f(x)}
 }
 
-function ApplyToSet_AltSignature0<X>(S: set<X>, f: X ~> X): set<X>
+ghost function ApplyToSet_AltSignature0<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.requires(x) && f.reads(x) == {}
 
-function ApplyToSet_AltSignature1<X>(S: set<X>, f: X ~> X): set<X>
+ghost function ApplyToSet_AltSignature1<X>(S: set<X>, f: X ~> X): set<X>
   requires forall x :: x in S ==> f.reads(x) == {}
   requires forall x :: x in S ==> f.requires(x)
 
-function ApplyToSet_AltSignature2<X>(S: set<X>, f: X ~> X): set<X>
+ghost function ApplyToSet_AltSignature2<X>(S: set<X>, f: X ~> X): set<X>
   requires (forall x :: x in S ==> f.reads(x) == {}) ==> forall x :: x in S ==> f.requires(x)
   // (this precondition would not be good enough to check the body above)
 
-function FunctionInQuantifier0(): int
+ghost function FunctionInQuantifier0(): int
   requires exists f: int ~> int :: f(10) == 100  // error (x2): precondition violation and insufficient reads
 
-function FunctionInQuantifier1(): int
+ghost function FunctionInQuantifier1(): int
   requires exists f: int ~> int :: f.requires(10) && f(10) == 100  // error: insufficient reads
 
-function FunctionInQuantifier2(): int
+ghost function FunctionInQuantifier2(): int
   requires exists f: int ~> int :: f.reads(10) == {} && f.requires(10) && f(10) == 100
   ensures FunctionInQuantifier2() == 100
 {
@@ -129,11 +129,11 @@ function FunctionInQuantifier2(): int
 
 class DynamicFramesIdiom {
   ghost var Repr: set<object>
-  predicate IllFormed_Valid()
+  ghost predicate IllFormed_Valid()
     reads Repr  // error: reads is not self framing (notice the absence of "this")
   {
-    this in Repr  // this says that the predicate returns true if "this in Repr", but the
-                  // predicate can also be invoked in a state where its body will evaluate to false
+    this in Repr  // this says that the ghost predicate returns true if "this in Repr", but the
+                  // ghost predicate can also be invoked in a state where its body will evaluate to false
   }
 }
 
@@ -143,7 +143,7 @@ class ConstInitializers {
   const u: int := x // error: insufficient reads clause
 
   const v: int := F() // error: insufficient reads clause
-  function method F(): int
+  function F(): int
     reads this
   {
     x + x

@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 ModifyStmt.dfy(135,4): Warning: the modify statement with a block statement is deprecated
 ModifyStmt.dfy(143,4): Warning: the modify statement with a block statement is deprecated
 ModifyStmt.dfy(150,4): Warning: the modify statement with a block statement is deprecated

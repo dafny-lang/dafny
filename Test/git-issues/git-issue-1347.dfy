@@ -12,7 +12,7 @@ module Foo {
 module Bar {
   datatype T = TY()
   datatype U = U
-  function V(): int
+  ghost function V(): int
   datatype W0 = W0
   datatype W1 = W1
 }

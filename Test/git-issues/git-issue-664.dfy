@@ -4,7 +4,7 @@
 class C {
   static const X: int
   static method M() { }
-  static function method F(): int { 5 }
+  static ghost function F(): int { 5 }
 }
 
 method TestClass(c: C) {

@@ -3,6 +3,6 @@
 
 datatype KeyValues<T> = Store(underlying: map<string, T> := map[])
 
-function method CreateStore<T>(): (r: KeyValues<T>) {
+function CreateStore<T>(): (r: KeyValues<T>) {
   Store()
 }

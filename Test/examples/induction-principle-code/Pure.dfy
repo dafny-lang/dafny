@@ -12,7 +12,7 @@ module Pure refines Induction {
 
   import opened Interp
 
-  predicate method IsPure(e: Expr, locals: set<string> := {})
+  predicate IsPure(e: Expr, locals: set<string> := {})
     decreases e
     // `locals`: the set of local variables which have been introduced by outer
     // let-bindings (if the expression only updates those variables then it is
@@ -36,7 +36,7 @@ module Pure refines Induction {
         IsPure_Es(es, locals)
   }
 
-  predicate method IsPure_Es(es: seq<Expr>, locals: set<string> := {})
+  predicate IsPure_Es(es: seq<Expr>, locals: set<string> := {})
     decreases es, 0
   {
     if es == [] then true
@@ -45,7 +45,7 @@ module Pure refines Induction {
       && IsPure_Es(es[1..], locals)
   }
 
-  predicate ResultSameCtx<V>(locals: set<string>, ctx: Context, res: Result<(V,Context)>)
+  ghost predicate ResultSameCtx<V>(locals: set<string>, ctx: Context, res: Result<(V,Context)>)
   {
     match res
       case Success((_, ctx')) =>
@@ -59,7 +59,7 @@ module Pure refines Induction {
         true
   }
 
-  predicate ResultSameState<V>(st: S, res: Result<(V,Context)>)
+  ghost predicate ResultSameState<V>(st: S, res: Result<(V,Context)>)
   {
     ResultSameCtx(st.locals, st.ctx, res)
   }
@@ -82,25 +82,25 @@ module Pure refines Induction {
 
   ghost const Zero: V := 0
 
-  predicate Pre(st: S, e: Expr)
+  ghost predicate Pre(st: S, e: Expr)
   {
     && IsPure(e, st.locals)
     && st.ctx.Keys >= st.locals
   }
 
-  predicate PreEs(st: S, es: seq<Expr>)
+  ghost predicate PreEs(st: S, es: seq<Expr>)
   {
     && IsPure_Es(es, st.locals)
     && st.ctx.Keys >= st.locals
   }
 
-  predicate P ...
+  ghost predicate P ...
   {
     var res := InterpExpr(e, st.ctx);
     Pre(st, e) ==> ResultSameState(st, res)
   }
 
-  predicate P_Succ ...
+  ghost predicate P_Succ ...
   {
     var res := InterpExpr(e, st.ctx);
     && Pre(st, e)
@@ -109,19 +109,19 @@ module Pure refines Induction {
     && st'.locals == st.locals
   }
 
-  predicate P_Fail ...
+  ghost predicate P_Fail ...
   {
     var res := InterpExpr(e, st.ctx);
     Pre(st, e) ==> res.Failure?
   }
 
-  predicate Pes ...
+  ghost predicate Pes ...
   {
     var res := InterpExprs(es, st.ctx);
     PreEs(st, es) ==> ResultSameState(st, res)
   }
 
-  predicate Pes_Succ ...
+  ghost predicate Pes_Succ ...
   {
     var res := InterpExprs(es, st.ctx);
     && PreEs(st, es)
@@ -130,30 +130,30 @@ module Pure refines Induction {
     && st'.locals == st.locals
   }
 
-  predicate Pes_Fail ...
+  ghost predicate Pes_Fail ...
   {
     var res := InterpExprs(es, st.ctx);
     PreEs(st, es) ==> res.Failure?
   }
 
-  function AppendValue ...
+  ghost function AppendValue ...
   {
     [v] + vs
   }
 
   ghost const NilVS: VS := []
 
-  function VS_Last ...
+  ghost function VS_Last ...
   {
     vs[|vs| - 1]
   }
 
-  predicate UpdateState_Pre ...
+  ghost predicate UpdateState_Pre ...
   {
     && |vars| == |argvs|
   }
 
-  function AssignState ...
+  ghost function AssignState ...
   {
     var MState(x, ctx) := st;
     var bindings := VarsAndValuesToContext(vars, vals);
@@ -162,7 +162,7 @@ module Pure refines Induction {
     st'
   }
 
-  function BindStartScope ...
+  ghost function BindStartScope ...
   {
     var MState(locals, ctx) := st;
     var locals' := (set x | x in vars) + locals;
@@ -172,7 +172,7 @@ module Pure refines Induction {
     st'
   }
 
-  function BindEndScope ...
+  ghost function BindEndScope ...
   {
     var MState(x0, ctx0) := st0;
     var MState(x, ctx) := st;
@@ -181,7 +181,7 @@ module Pure refines Induction {
     st'
   }
 
-  function P_Step ...
+  ghost function P_Step ...
   {
     var Success((v, ctx1)) := InterpExpr(e, st.ctx);
     (MState(st.locals, ctx1), v)

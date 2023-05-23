@@ -1,20 +1,20 @@
 // RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function SimpleAssert(n: int): int
+ghost function SimpleAssert(n: int): int
   ensures n < 100;
 {
   assert n == 58;  // error: assert violation
   n  // but postcondition is fine
 }
 
-function SimpleAssume(n: int): int
+ghost function SimpleAssume(n: int): int
   ensures n < 100;
 {
   assume n == 58; n  // all is fine
 }
 
-function Subonacci(n: nat): nat
+ghost function Subonacci(n: nat): nat
 {
   if 2 <= n then
     // proving that this case is a nat requires more information,
@@ -25,13 +25,13 @@ function Subonacci(n: nat): nat
     n
 }
 
-function F(n: int): nat
+ghost function F(n: int): nat
 {
   Subonacci(assume 0 <= n; n) -
   Subonacci(n)
 }
 
-function G(n: int, b: bool): nat
+ghost function G(n: int, b: bool): nat
 {
   if b then
     Subonacci(assume 0 <= n; n) + n  // the last n is also affected by the assume
@@ -58,9 +58,9 @@ method M1(j: int) returns (n: nat)
   assert n == 2*j;
 }
 
-function SpecOnly(): bool { true }
+ghost function SpecOnly(): bool { true }
 
-function method FuncMeth(): int {
+function FuncMeth(): int {
   assert SpecOnly();  // this call is allowed, because the .Guard of a
                       // PredicateExpr is not included in compilation
   15

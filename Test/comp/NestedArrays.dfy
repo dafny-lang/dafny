@@ -62,7 +62,7 @@ method TestDefaultArrayValues<X>() {
   print lengths, "\n"; // 0
 }
 
-function method MLen(m: array2): nat {
+function MLen(m: array2): nat {
   m.Length0 + m.Length1
 }
 

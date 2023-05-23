@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait O {
-  function method F(): int { 2 }
+  function F(): int { 2 }
 }
 class X extends O { }
 class Y extends O { }

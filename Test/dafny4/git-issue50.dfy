@@ -9,18 +9,18 @@ module cm1 refines am {
  export reveals f
  type T = int
 
- function f(i:int) : int { i }
+ ghost function f(i:int) : int { i }
 }
 
 module cm2 refines am {
  import opened cm1
  type T = bool
 
- function g(b:T) : T { !b } // Error incorrectly reported here
+ ghost function g(b:T) : T { !b } // Error incorrectly reported here
 }
 
 module m {
  import opened cm1
 
- function h(t:T) : int { t + 1 } // Error correctly reported here
+ ghost function h(t:T) : int { t + 1 } // Error correctly reported here
 }

@@ -11,11 +11,11 @@ method g(x: int) {
   f();
 }
 
-function gf(): int
+ghost function gf(): int
   requires forall y :: y > 0 && y < 0 {
     1
 }
 
-function gg(x: int): int {
+ghost function gg(x: int): int {
   gf()
 }

@@ -11,7 +11,7 @@ class BuildCommand : ICommandSpec {
     CommonOptionBag.Verbose,
   }.Concat(ICommandSpec.ExecutionOptions).
     Concat(ICommandSpec.ConsoleOutputOptions).
-    Concat(ICommandSpec.CommonOptions);
+    Concat(ICommandSpec.ResolverOptions);
 
   public Command Create() {
     var result = new Command("build", "Produce an executable binary or a library.");

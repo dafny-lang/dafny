@@ -24,19 +24,19 @@ method Main() {
 
 datatype List<X> = Nil | Cons(head: X, tail: List<X>)
 
-function method Length(xs: List): nat
+function Length(xs: List): nat
 {
   match xs
   case Nil => 0
   case Cons(_, tail) => 1 + Length(tail)
 }
 
-function method SmallestMissingNumber(xs: List<nat>): nat
+function SmallestMissingNumber(xs: List<nat>): nat
 {
   SMN(xs, 0, Length(xs))
 }
 
-function method SMN(xs: List<nat>, n: nat, len: nat): nat
+function SMN(xs: List<nat>, n: nat, len: nat): nat
   requires len == Length(xs)
   decreases len
 {
@@ -56,7 +56,7 @@ function method SMN(xs: List<nat>, n: nat, len: nat): nat
 // Here is an alternative version, with a different splitting
 // condition (using the ceiling of len/2.0 instead of the floor)
 // and only two cases.
-function method SMN'(xs: List<nat>, n: nat, len: nat): nat
+function SMN'(xs: List<nat>, n: nat, len: nat): nat
   requires len == Length(xs)
   decreases len
 {
@@ -75,7 +75,7 @@ function method SMN'(xs: List<nat>, n: nat, len: nat): nat
 // Here is yet one more version. This time, the splitting condition
 // is 1 more than then floor of len/2.0. This is the version of the
 // algorithm in Richard Bird's book.
-function method SMN''(xs: List<nat>, n: nat, len: nat): nat
+function SMN''(xs: List<nat>, n: nat, len: nat): nat
   requires len == Length(xs)
   decreases len
 {
@@ -91,7 +91,7 @@ function method SMN''(xs: List<nat>, n: nat, len: nat): nat
       SMN''(R, n + llen, len - llen)
 }
 
-function method Split(xs: List<nat>, b: nat): (List<nat>, List<nat>)
+function Split(xs: List<nat>, b: nat): (List<nat>, List<nat>)
   ensures var r := Split(xs, b); Length(xs) == Length(r.0) + Length(r.1)
 {
   match xs
@@ -115,14 +115,14 @@ lemma SmallestMissingNumber_Correct(xs: List<nat>)
   SMN_Correct(xs, 0, Length(xs));
 }
 
-function Elements(xs: List): set
+ghost function Elements(xs: List): set
 {
   match xs
   case Nil => {}
   case Cons(x, tail) => {x} + Elements(tail)
 }
 
-predicate NoDuplicates(xs: List)
+ghost predicate NoDuplicates(xs: List)
 {
   match xs
   case Nil => true
@@ -207,7 +207,7 @@ lemma Elements_Property(xs: List)
 {
 }
 
-function IntRange(lo: nat, len: nat): set<nat>
+ghost function IntRange(lo: nat, len: nat): set<nat>
   ensures |IntRange(lo, len)| == len
 {
   var S := set x | lo <= x < lo + len;
@@ -217,7 +217,7 @@ function IntRange(lo: nat, len: nat): set<nat>
 
 // ----- Proofs of alternative versions
 
-lemma SMN'_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:vcs_split_on_every_assert} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
@@ -252,7 +252,7 @@ lemma SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   }
 }
 
-lemma SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:vcs_split_on_every_assert} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)

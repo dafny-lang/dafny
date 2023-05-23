@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt> {
+public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
   public Expression Message;
 
   public ExpectStmt Clone(Cloner cloner) {
@@ -31,5 +31,9 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt> {
         yield return Message;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }

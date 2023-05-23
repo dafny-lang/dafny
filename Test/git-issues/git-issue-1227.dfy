@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait T {
-  function method F(): int
+  function F(): int
 }
 
 class C extends T {
@@ -12,11 +12,11 @@ class C extends T {
 }
 
 class C' extends T {
-  function F(): int { 5 } // error: overwrite makes a change
+  ghost function F(): int { 5 } // error: overwrite makes a change
 }
 
 class C'' extends T {
-  static function method F(): int { 5 } // error: overwrite makes a change
+  static ghost function F(): int { 5 } // error: overwrite makes a change
 }
 
 trait U {
@@ -24,7 +24,7 @@ trait U {
 }
 
 class D extends U {
-  function method M(): int{ // error: overwrite makes a change
+  function M(): int{ // error: overwrite makes a change
     5
   }
 }

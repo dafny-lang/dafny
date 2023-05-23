@@ -6,16 +6,16 @@ method m(x:int)
   assert {:error "m: x must be positive"}  x > 0;
 }
 
-function f(x:int):int {
+ghost function f(x:int):int {
   assert {:error "f: x must be positive"}  x > 0;
   x
 }
 
-function f1():int {
+ghost function f1():int {
   foo(-1)
 }
 
-function foo(x:int) : (y:int)
+ghost function foo(x:int) : (y:int)
   requires {:error "when calling foo, you must supply a positive x"} x > 0
   ensures  {:error "cannot establish that return value of foo is always negative"} y < 0
 {

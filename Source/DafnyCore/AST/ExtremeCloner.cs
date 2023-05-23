@@ -17,7 +17,7 @@ abstract class ExtremeCloner : Cloner {
     Contract.Requires(reporter != null);
     this.k = k;
     this.reporter = reporter;
-    this.suffix = string.Format("#[{0}]", Printer.ExprToString(k));
+    this.suffix = string.Format("#[{0}]", Printer.ExprToString(reporter.Options, k));
   }
   protected Expression CloneCallAndAddK(ApplySuffix e) {
     Contract.Requires(e != null);

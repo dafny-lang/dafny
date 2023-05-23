@@ -91,7 +91,7 @@ class MyClass {
     error := new MyClassException;
   }
 
-  function method Foo(u: int): Result<int, Exception> {
+  function Foo(u: int): Result<int, Exception> {
     if u < 8 then
       Success(8)
     else
@@ -205,7 +205,7 @@ module Regression {
     codatatype Stream<T> = Next(shead: T, stail: Stream)
   }
 
-  function method CoUp(n: int, b: bool): M.Stream<int>
+  function CoUp(n: int, b: bool): M.Stream<int>
   {
     if b then
       CoUp(n, false)  // recursive, not co-recursive, call

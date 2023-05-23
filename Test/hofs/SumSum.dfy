@@ -5,7 +5,7 @@
 // Many of these currently require far more effort than one would like.
 // KRML, 2 May 2016
 
-function Sum(n: nat, f: int -> int): int
+ghost function Sum(n: nat, f: int -> int): int
 {
   if n == 0 then 0 else f(n-1) + Sum(n-1, f)
 }

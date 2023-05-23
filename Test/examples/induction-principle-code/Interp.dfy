@@ -13,7 +13,7 @@ module Interp {
   type InterpResult = Result<(int, Context)>
   type InterpResultSeq = Result<(seq<int>, Context)>
 
-  function method InterpBinOp(op: BinOp, x: int, y: int): int
+  function InterpBinOp(op: BinOp, x: int, y: int): int
   {
     match op
       case Add => x + y
@@ -21,7 +21,7 @@ module Interp {
       case Mul => x * y
   }
 
-  function method InterpExpr(e: Expr, ctx: Context): Result<(int, Context)>
+  function InterpExpr(e: Expr, ctx: Context): Result<(int, Context)>
     decreases e, 1
   {
     match e {
@@ -66,7 +66,7 @@ module Interp {
     }
   }
 
-  function method InterpExprs(es: seq<Expr>, ctx: Context): (r:Result<(seq<int>, Context)>)
+  function InterpExprs(es: seq<Expr>, ctx: Context): (r:Result<(seq<int>, Context)>)
     ensures r.Success? ==> |r.value.0| == |es|
     decreases es, 0
   {
@@ -77,7 +77,7 @@ module Interp {
       Success(([v] + vs, ctx2))
   }
 
-  function method VarsAndValuesToContext(vars: seq<string>, values: seq<int>): (ctx:Context)
+  function VarsAndValuesToContext(vars: seq<string>, values: seq<int>): (ctx:Context)
     requires |vars| == |values|
     ensures ctx.Keys == set x | x in vars
   {

@@ -26,7 +26,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
       return services
         .AddSingleton<IDocumentDatabase>(serviceProvider => new DocumentManagerDatabase(serviceProvider))
-        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
+        .AddSingleton<IDafnyParser>(serviceProvider => {
+          var options = serviceProvider.GetRequiredService<DafnyOptions>();
+          return DafnyLangParser.Create(options,
+            serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>());
+        })
         .AddSingleton<ITextDocumentLoader>(CreateTextDocumentLoader)
         .AddSingleton<INotificationPublisher, NotificationPublisher>()
         .AddSingleton<ITextChangeProcessor, TextChangeProcessor>()
@@ -38,6 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public static TextDocumentLoader CreateTextDocumentLoader(IServiceProvider services) {
       return TextDocumentLoader.Create(
+        services.GetRequiredService<DafnyOptions>(),
         services.GetRequiredService<IDafnyParser>(),
         services.GetRequiredService<ISymbolResolver>(),
         services.GetRequiredService<ISymbolTableFactory>(),

@@ -1,2 +1,2 @@
-git-issue-2106.dfy(5,27): Error: wrong number of arguments (predicate 'P' expects 1, got 0)
+git-issue-2106.dfy(5,27): Error: wrong number of arguments (got 0, but predicate 'P' expects 1: (x: bool))
 1 resolution/type errors detected in git-issue-2106.dfy

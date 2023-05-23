@@ -5,7 +5,7 @@
 // CHECK-L:Verifying posIdMeth (correctness) ...
 newtype smallPrime = x: int | x in {2, 3, 5, 7} witness 2
 
-function method posId(x: smallPrime): smallPrime {
+function posId(x: smallPrime): smallPrime {
   x
 }
 

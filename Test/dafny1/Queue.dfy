@@ -13,7 +13,7 @@ class Queue<T(0)> {
   ghost var footprint: set<object>
   ghost var spine: set<Node<T>>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint && spine <= footprint &&
@@ -128,7 +128,7 @@ class Node<T(0)> {
   ghost var tailContents: seq<T>
   ghost var footprint: set<object>
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, footprint
   {
     this in footprint &&

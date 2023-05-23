@@ -4,7 +4,7 @@
 module ImportByName {
   module A {
     type T(0)
-    function method P(): T
+    function P(): T
     method M(t: T)
   }
 
@@ -59,7 +59,7 @@ module ImportByName {
 module ImportOpened {
   module A {
     type T(0)
-    function method P(): T
+    function P(): T
     method M(t: T)
   }
 
@@ -125,12 +125,12 @@ module ImportOpened {
 module AmbiguousModuleReference {
   module A {
     module Inner {
-      predicate Q()
+      ghost predicate Q()
     }
   }
   module B {
     module Inner {
-      predicate Q()
+      ghost predicate Q()
     }
   }
   module Client {

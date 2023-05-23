@@ -3,7 +3,7 @@
 
 module M0 {
   trait TrX<X> {
-    function F(x: X): int { 15 }
+    ghost function F(x: X): int { 15 }
   }
   trait Tr<X> extends TrX<X> {
   }
@@ -34,7 +34,7 @@ module M1 {
 
 module M2 {
   trait TrX<X, W> {
-    function method F(x: X, w: W): bv10 { 15 }
+    function F(x: X, w: W): bv10 { 15 }
   }
   trait Tr<X, W> extends TrX<X, W> {
   }
@@ -50,12 +50,12 @@ module M2 {
 
 module M3 {
   trait TrX<X, W> {
-    function method F(x: X, w: W): bv10 { 15 }
+    function F(x: X, w: W): bv10 { 15 }
   }
   trait Tr<X, W> extends TrX<X, W> {
   }
   class Cl<Y> extends Tr<(Y,Y), real> {
-    function method H(y: Y): bv10 {
+    function H(y: Y): bv10 {
       F((y, y), 5.0)
     }
   }
@@ -139,23 +139,23 @@ module CannotRedeclareMembers {
     static const csc: object
     ghost static const gsc: object
 
-    function method cif0(): int
-    function gif0(): int
-    function method cif1(): int
-    function gif1(): int
-    function method cif2(): int { 5 }
-    function gif2(): int { 5 }
-    function method cif3(): int { 5 }
-    function gif3(): int { 5 }
+    function cif0(): int
+    ghost function gif0(): int
+    function cif1(): int
+    ghost function gif1(): int
+    function cif2(): int { 5 }
+    ghost function gif2(): int { 5 }
+    function cif3(): int { 5 }
+    ghost function gif3(): int { 5 }
 
-    static function method csf0(): int
-    static function gsf0(): int
-    static function method csf1(): int
-    static function gsf1(): int
-    static function method csf2(): int { 2 }
-    static function gsf2(): int { 2 }
-    static function method csf3(): int { 2 }
-    static function gsf3(): int { 2 }
+    static ghost function csf0(): int
+    static ghost function gsf0(): int
+    static ghost function csf1(): int
+    static ghost function gsf1(): int
+    static ghost function csf2(): int { 2 }
+    static ghost function gsf2(): int { 2 }
+    static ghost function csf3(): int { 2 }
+    static ghost function gsf3(): int { 2 }
 
     method cim0()
     ghost method gim0()
@@ -185,23 +185,23 @@ module CannotRedeclareMembers {
     static const csc: object  // error: cannot redeclare
     ghost static const gsc: object  // error: cannot redeclare
 
-    function method cif0(): int
-    function gif0(): int
-    function method cif1(): int { 5 }
-    function gif1(): int { 5 }
-    function method cif2(): int  // error: cannot redeclare member that already has a body
-    function gif2(): int  // error: cannot redeclare member that already has a body
-    function method cif3(): int { 5 }  // error: cannot redeclare member that already has a body
-    function gif3(): int { 5 }  // error: cannot redeclare member that already has a body
+    function cif0(): int
+    ghost function gif0(): int
+    function cif1(): int { 5 }
+    ghost function gif1(): int { 5 }
+    function cif2(): int  // error: cannot redeclare member that already has a body
+    ghost function gif2(): int  // error: cannot redeclare member that already has a body
+    function cif3(): int { 5 }  // error: cannot redeclare member that already has a body
+    ghost function gif3(): int { 5 }  // error: cannot redeclare member that already has a body
 
-    static function method csf0(): int  // error: cannot redeclare static member
-    static function gsf0(): int  // error: cannot redeclare static member
-    static function method csf1(): int { 2 }  // error: cannot redeclare static member
-    static function gsf1(): int { 2 }  // error: cannot redeclare static member
-    static function method csf2(): int  // error: cannot redeclare static member
-    static function gsf2(): int  // error: cannot redeclare static member
-    static function method csf3(): int { 2 }  // error: cannot redeclare static member
-    static function gsf3(): int { 2 }  // error: cannot redeclare static member
+    static ghost function csf0(): int  // error: cannot redeclare static member
+    static ghost function gsf0(): int  // error: cannot redeclare static member
+    static ghost function csf1(): int { 2 }  // error: cannot redeclare static member
+    static ghost function gsf1(): int { 2 }  // error: cannot redeclare static member
+    static ghost function csf2(): int  // error: cannot redeclare static member
+    static ghost function gsf2(): int  // error: cannot redeclare static member
+    static ghost function csf3(): int { 2 }  // error: cannot redeclare static member
+    static ghost function gsf3(): int { 2 }  // error: cannot redeclare static member
 
     method cim0()
     ghost method gim0()
@@ -225,8 +225,8 @@ module CannotRedeclareMembers {
 
 module MemberMismatch {
   trait AAA {
-    function method F(): bool
-    function G(): bool
+    function F(): bool
+    ghost function G(): bool
     twostate function H(): bool
 
     method M()
@@ -242,8 +242,8 @@ module MemberMismatch {
   trait A3 extends AAA {
   }
   class SwitchGhostStatus extends A3 {
-    function F(): bool  // error: ghost mismatch
-    function method G(): bool  // error: ghost mismatch
+    ghost function F(): bool  // error: ghost mismatch
+    function G(): bool  // error: ghost mismatch
     twostate function H(): bool
 
     ghost method M()  // error: ghost mismatch
@@ -258,8 +258,8 @@ module MemberMismatch {
   }
 
   class SwitchLemma extends A3 {
-    function method F(): bool
-    function G(): bool
+    function F(): bool
+    ghost function G(): bool
     twostate function H(): bool
 
     method M()
@@ -274,8 +274,8 @@ module MemberMismatch {
   }
 
   class SwitchTwoState extends A3 {
-    function method F(): bool
-    function G(): bool
+    function F(): bool
+    ghost function G(): bool
     twostate function H(): bool
 
     method M()
@@ -290,8 +290,8 @@ module MemberMismatch {
   }
 
   class SwitchExtreme0 extends A3 {
-    function method F(): bool
-    function G(): bool
+    function F(): bool
+    ghost function G(): bool
     twostate function H(): bool
 
     method M()
@@ -306,8 +306,8 @@ module MemberMismatch {
   }
 
   class SwitchExtreme1 extends A3 {
-    function method F(): bool
-    function G(): bool
+    function F(): bool
+    ghost function G(): bool
     twostate function H(): bool
 
     method M()
@@ -315,8 +315,8 @@ module MemberMismatch {
     least lemma L()  // error: extreme lemma vs lemma
     twostate lemma K()
 
-    predicate P()  // error: extreme predicate vs predicate
-    predicate Q()  // error: extreme predicate vs predicate
+    ghost predicate P()  // error: extreme predicate vs predicate
+    ghost predicate Q()  // error: extreme predicate vs predicate
     lemma R()  // error: extreme lemma vs lemma
     lemma S()  // error: extreme lemma vs lemma
   }
@@ -324,19 +324,19 @@ module MemberMismatch {
 
 module PredicateFunctionBool {
   trait A4 {
-    function F(): bool
+    ghost function F(): bool
     twostate function G(): bool
 
-    predicate M()
+    ghost predicate M()
     twostate predicate N()
   }
   trait AAA extends A4 {
   }
   class C extends AAA {
-    predicate F() { true }
+    ghost predicate F() { true }
     twostate predicate G() { true }
 
-    function M(): bool { true }
+    ghost function M(): bool { true }
     twostate function N(): bool { true }
   }
 }

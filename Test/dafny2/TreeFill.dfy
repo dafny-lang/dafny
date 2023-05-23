@@ -3,7 +3,7 @@
 
 datatype Tree<T> = Leaf | Node(Tree, T, Tree)
 
-function Contains<T>(t: Tree, v: T): bool
+ghost function Contains<T>(t: Tree, v: T): bool
 {
   match t
   case Leaf => false

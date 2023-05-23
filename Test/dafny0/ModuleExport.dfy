@@ -9,8 +9,8 @@ module A {
 	export Fruit reveals Data
 
   method h() {}
-  function f(): int { 818 }
-  function g() : int { 819 }
+  ghost function f(): int { 818 }
+  ghost function g() : int { 819 }
 	function k() : int { 820 }
 
 	class T
@@ -57,7 +57,7 @@ module D {
 module E {
   import opened A`Fruit
 
-  function G(d: Data): int
+  ghost function G(d: Data): int
     requires d != Data.Lemon
   {
     match d
@@ -75,8 +75,8 @@ module F {
 	export Fruit provides Data
 
   method h() {}
-  function f(): int { 818 }
-  function g() : int { 819 }
+  ghost function f(): int { 818 }
+  ghost function g() : int { 819 }
 	function k() : int { 820 }
 
 	class T
@@ -91,8 +91,8 @@ module G {
   export Public reveals f provides h
 
 	method h() {}
-  function f(): int { 818 }
-  function g() : int { 819 }
+  ghost function f(): int { 818 }
+  ghost function g() : int { 819 }
 	function k() : int { 820 }
 }
 
@@ -135,10 +135,10 @@ module K {
       reveals C provides C.Valid, C.Init, C.Print, C.G
 
     class C {
-      predicate Valid() { true }
+      ghost predicate Valid() { true }
       constructor Init() ensures Valid() { }
       method Print() requires Valid() { }
-      function G(): nat requires Valid() { 5 }
+      ghost function G(): nat requires Valid() { 5 }
     }
   }
 
@@ -156,10 +156,10 @@ module L {
       reveals C, C.Valid, C.G
 
     class C {
-      predicate Valid() { true }
+      ghost predicate Valid() { true }
       constructor Init() ensures Valid() { }
       method Print() requires Valid() { }
-      function G(): nat requires Valid() { 5 }
+      ghost function G(): nat requires Valid() { 5 }
     }
   }
 
@@ -177,10 +177,10 @@ module M {
       reveals C  // by revealing a class, the anonymous constructor (if any) is also provided
 
     class C {
-      predicate Valid() { true }
+      ghost predicate Valid() { true }
       constructor () ensures Valid() { }  // anonymous constructor
       method Print() requires Valid() { }
-      function G(): nat requires Valid() { 5 }
+      ghost function G(): nat requires Valid() { 5 }
     }
   }
 
@@ -199,9 +199,9 @@ module N {
     export
       reveals 300, C.7
       provides C
-    function 300(): int { 297 }
+    ghost function 300(): int { 297 }
     class C {
-      function 4(): int { 4 }
+      ghost function 4(): int { 4 }
       static const 7 := 6
     }
   }
@@ -237,7 +237,7 @@ module ModuleName2 {
 module ModuleName3 {
   export X reveals pi
   const pi := 3.14
-  function X(): int { 17 }  // fine, because export names are in a different name space than other module contents
+  ghost function X(): int { 17 }  // fine, because export names are in a different name space than other module contents
 }
 module ModuleName4 {
   export X reveals pi

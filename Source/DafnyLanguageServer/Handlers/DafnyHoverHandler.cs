@@ -20,14 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO add the range of the name to the hover.
     private readonly ILogger logger;
     private readonly IDocumentDatabase documents;
+    private DafnyOptions options;
 
     private const int RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents, DafnyOptions options) {
       this.logger = logger;
       this.documents = documents;
+      this.options = options;
     }
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
@@ -70,6 +72,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
+      foreach (var diagnostic in state.Diagnostics) {
+        if (diagnostic.Range.Contains(position)) {
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
+          if (detail is not null) {
+            return detail;
+          }
+        }
+      }
+
       if (state.Diagnostics.Any(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error && (
             diagnostic.Source == MessageSource.Parser.ToString() ||
@@ -112,8 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line &&
-            node.Filename == state.Uri.ToString()) {
+        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }
@@ -136,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchesToReport.Count == 0 && node.Finished) {
         information += "No assertions.";
       } else if (assertionBatchesToReport.Count >= 1) {
-        information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
+        information += $"- Total resource usage: {FormatResourceCount(node.ResourceCount)}";
         if (node.ResourceCount > RuLimitToBeOverCostly) {
           information += OverCostlyMessage;
         }
@@ -159,7 +169,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
               costlierAssertionBatch.Children.Count + "",
               costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-              formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
+              FormatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
           }
 
           var maxIndexLength = result.Select(item => item.index.Length).Max();
@@ -246,8 +256,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
-            deltaInformation += "  \n" + CouldProveOrNotPrefix + ideState.TextDocumentItem.Text.Substring(rangeToken.StartToken.pos,
-              rangeToken.EndToken.pos + rangeToken.EndToken.val.Length - rangeToken.StartToken.pos);
+            var originalText = rangeToken.PrintOriginal();
+            deltaInformation += "  \n" + CouldProveOrNotPrefix + originalText;
           }
 
           hoveringPostcondition = false;
@@ -281,10 +291,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchCount > 1) {
         information += AddAssertionBatchDocumentation("Batch") +
                        $" #{assertionBatch.RelativeNumber} resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       } else {
         information += "Resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       }
 
       // Not the main error displayed in diagnostics
@@ -303,7 +313,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string formatResourceCount(int nodeResourceCount) {
+    private string FormatResourceCount(int nodeResourceCount) {
       var suffix = 0;
       while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
         nodeResourceCount /= 1000;
@@ -334,8 +344,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    private static string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```";
+    private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
+      var docString = symbol.Node is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
+      return (docString + $"\n```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
     }
   }
 }

@@ -1,0 +1,7 @@
+*** Error: 'zzzz': The first input must be a command or a legacy option or file with supported extension
+*** Error: 'test.d': Filename extension '.d' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files (.cs, .dll)
+*** Error: Command-line argument '--zzzz' is neither a recognized option nor a filename with a supported extension (.dfy).
+*** Error: Command-line argument 'test' is neither a recognized option nor a filename with a supported extension (.dfy).
+*** Error: 'test.d': Filename extension '.d' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ()
+*** Error: 'test.d': Filename extension '.d' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files (.cs, .dll)
+*** Error: Command-line argument 'zzzz' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).

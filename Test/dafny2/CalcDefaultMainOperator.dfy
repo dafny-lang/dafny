@@ -58,17 +58,17 @@ lemma TestMultiset(Empty: multiset<int>, Nonempty: multiset<int>)
 
 // Print test for /rprint. Note, this same class is tested with /dprint in Test/dafny0/Twostate-Resolution.dfy.
 module PrintTest {
-  function method Five(): int { 5 }
-  function Six(): int { 6 }
+  function Five(): int { 5 }
+  ghost function Six(): int { 6 }
 
-  function method Ten(): int {
+  function Ten(): int {
     var f := Five();
     ghost var s := Six();
     assert s == 6;
     f + f
   }
 
-  function method TenAgain(): int {
+  function TenAgain(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -77,7 +77,7 @@ module PrintTest {
     ten
   }
 
-  function TenOnceMore(): int {
+  ghost function TenOnceMore(): int {
     var ten :=
       var f := Five();
       ghost var s := Six();
@@ -86,28 +86,28 @@ module PrintTest {
     ten
   }
 
-  function Eleven(): int {
+  ghost function Eleven(): int {
     var f, s := Five(), Six();
     f + s
   }
 
-  function Twelve(): int {
+  ghost function Twelve(): int {
     var s, t := Six(), Six();
     s + t
   }
 
-  function method Twenty(): int {
+  function Twenty(): int {
     var x :| x == 10;
     x + x
   }
 
-  function method TwentyOne(): int {
+  function TwentyOne(): int {
     ghost var x :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
   }
 
-  predicate Yes(x: int) { true }
+  ghost predicate Yes(x: int) { true }
 
   type Odd = x |
     var rr := 2; x % rr == 1

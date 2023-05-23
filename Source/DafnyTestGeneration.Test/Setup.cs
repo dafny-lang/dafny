@@ -1,11 +1,13 @@
+using System.IO;
 using Microsoft.Dafny;
 
 namespace DafnyTestGeneration.Test {
 
   public class Setup {
 
-    public static void SetupDafnyOptions(string[] extraArgs = null) {
-      var options = DafnyOptions.Create(extraArgs ?? System.Array.Empty<string>());
+
+    public static DafnyOptions GetDafnyOptions(TextWriter writer, params string[] arguments) {
+      var options = DafnyOptions.Create(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;
@@ -13,8 +15,8 @@ namespace DafnyTestGeneration.Test {
       options.TestGenOptions.SeqLengthLimit = 3;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
       options.TestGenOptions.WarnDeadCode = false;
-      options.TestGenOptions.TestInlineDepth = 0;
-      DafnyOptions.Install(options);
+      options.TimeLimit = 10;
+      return options;
     }
 
   }

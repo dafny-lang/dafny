@@ -19,21 +19,15 @@ public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration
   public override IEnumerable<Node> Children =>
     (Attributes != null ? new Node[] { Attributes } : Enumerable.Empty<Node>()).Concat(new Node[] { Body, Pat });
 
+  public override IEnumerable<Node> PreResolveChildren => Children;
+
   public void Resolve(Resolver resolver,
     ResolutionContext resolutionContext,
     Type resultType,
     Type sourceType) {
     var beforeResolveErrorCount = resolver.reporter.ErrorCount;
 
-    var boundVars = Pat.ReplaceTypesWithBoundVariables(resolver, resolutionContext).ToList();
-    if (boundVars.Any()) {
-      var lhss = boundVars.Select(b => new CasePattern<BoundVar>(Token.NoToken, b.var)).ToList();
-      var rhss = boundVars.Select(b => b.usage).ToList();
-
-      Body = new LetExpr(Token.NoToken, lhss, rhss, Body, true);
-    }
-
-    Pat.Resolve(resolver, resolutionContext, sourceType, false, false, false, false);
+    Pat.Resolve(resolver, resolutionContext, sourceType, resolutionContext.IsGhost, false, false, false);
 
     resolver.ResolveAttributes(this, resolutionContext);
     var afterResolveErrorCount = resolver.reporter.ErrorCount;

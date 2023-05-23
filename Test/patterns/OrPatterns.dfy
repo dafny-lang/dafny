@@ -2,17 +2,17 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype Enum = One | Two | Three {
-  predicate method Even() {
+  predicate Even() {
     this.Two?
   }
 
-  predicate method Even'() {
+  predicate Even'() {
     match this
       case One | Three => false
       case Two => true
   }
 
-  predicate method Even''() {
+  predicate Even''() {
     match this
       case Two => true
       case One | Three => false
@@ -34,20 +34,20 @@ module Constants {
 
 module Lists {
   datatype List<T> = Nil | Cons(car: T, cdr: List<T>) {
-    function {:fuel 5} Length(): nat {
+    ghost function {:fuel 5} Length(): nat {
       match this
         case Nil => 0
         case Cons(_, t) => 1 + t.Length()
     }
   }
 
-  predicate method ContainsOne(l: List<int>)
+  predicate ContainsOne(l: List<int>)
     requires l.Length() == 3
   {
     l.car == 1 || l.cdr.car == 1 || l.cdr.cdr.car == 1
   }
 
-  predicate method ContainsOne'(l: List<int>)
+  predicate ContainsOne'(l: List<int>)
     requires l.Length() == 3
   {
     match l
@@ -86,13 +86,13 @@ module TestVariables {
     }
   }
 
-  function method F(dt: DT): int {
+  function F(dt: DT): int {
     match dt {
       case C => 0
       case A | B => var x := (y => y)(1); assert x == 1; x
     }
   }
-  function method F2(dt: DT): int {
+  function F2(dt: DT): int {
     match dt {
       case C => 0
       case _ => var x := (y => y)(1); assert x == 1; x

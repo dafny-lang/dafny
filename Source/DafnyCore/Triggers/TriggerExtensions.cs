@@ -40,9 +40,9 @@ namespace Microsoft.Dafny.Triggers {
     ///  variations. If any of these tests does match, this term likely won't cause a loop.
     ///  The boundVars list is useful to determine that forall x :: P(x) == P(y+z) does not loop.
     /// </summary>
-    internal bool CouldCauseLoops(List<TriggerTerm> terms, ISet<BoundVar> boundVars) {
+    internal bool CouldCauseLoops(List<TriggerTerm> terms, ISet<BoundVar> boundVars, DafnyOptions options) {
       var expr = Expr;
-      return !terms.Any(term => term.Expr.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(expr, boundVars));
+      return !terms.Any(term => term.Expr.ExpressionEqModuloExpressionsNotInvolvingBoundVariables(expr, boundVars, options));
     }
   }
 
@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.Triggers {
       return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, expr2.SubExpressions, (e1, e2) => ExpressionEq(e1, e2));
     }
 
-    internal static bool ExpressionEqModuloExpressionsNotInvolvingBoundVariables(this Expression expr1, Expression expr2, ISet<BoundVar> boundVars) {
+    internal static bool ExpressionEqModuloExpressionsNotInvolvingBoundVariables(this Expression expr1, Expression expr2, ISet<BoundVar> boundVars, DafnyOptions options) {
       expr1 = expr1.Resolved;
       expr2 = expr2.Resolved;
 
@@ -114,14 +114,14 @@ namespace Microsoft.Dafny.Triggers {
         if (expr2 is IdentifierExpr) {
           return true;
         } else {
-          var freeInE2 = FreeVariablesUtil.ComputeFreeVariables(expr2);
+          var freeInE2 = FreeVariablesUtil.ComputeFreeVariables(options, expr2);
           freeInE2.IntersectWith(boundVars);
           return !freeInE2.Any();
         }
       }
 
       return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions,
-        expr2.SubExpressions, (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars));
+        expr2.SubExpressions, (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars, options));
     }
 
     internal static bool MatchesTrigger(this Expression expr, Expression trigger, ISet<BoundVar> holes, Dictionary<IVariable, Expression> bindings) {

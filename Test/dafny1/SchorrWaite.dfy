@@ -151,13 +151,13 @@ method IterativeMark(root: Node, ghost S: set<Node>)
 
 // ---------------------------------------------------------------------------------
 
-predicate Reachable(source: Node, sink: Node, S: set<Node>)
+ghost predicate Reachable(source: Node, sink: Node, S: set<Node>)
   reads S
 {
   exists via :: ReachableVia(source, via, sink, S)
 }
 
-predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
+ghost predicate ReachableVia(source: Node, older p: Path, sink: Node, S: set<Node>)
   reads S
   decreases p
 {

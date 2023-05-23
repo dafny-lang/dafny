@@ -2,22 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class CalcStmt : Statement, ICloneable<CalcStmt> {
+public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public abstract class CalcOp {
     /// <summary>
     /// Resulting operator "x op z" if "x this y" and "y other z".
     /// Returns null if this and other are incompatible.
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public abstract CalcOp ResultOp(CalcOp other);
 
     /// <summary>
     /// Returns an expression "line0 this line1".
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public abstract Expression StepExpr(Expression line0, Expression line1);
   }
 
@@ -32,7 +33,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     /// <summary>
     /// Is op a valid calculation operator?
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static bool ValidOp(BinaryExpr.Opcode op) {
       return
         op == BinaryExpr.Opcode.Eq || op == BinaryExpr.Opcode.Neq
@@ -44,7 +45,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     /// <summary>
     /// Is op a valid operator only for Boolean lines?
     /// </summary>
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public static bool LogicOp(BinaryExpr.Opcode op) {
       return op == BinaryExpr.Opcode.Iff || op == BinaryExpr.Opcode.Imp || op == BinaryExpr.Opcode.Exp;
     }
@@ -84,7 +85,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     public override CalcOp ResultOp(CalcOp other) {
       if (other is BinaryCalcOp) {
         var o = (BinaryCalcOp)other;
-        if (this.Subsumes(o)) {
+        if (Subsumes(o)) {
           return this;
         } else if (o.Subsumes(this)) {
           return other;
@@ -153,6 +154,48 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
 
   }
 
+  /// <summary>
+  /// This method infers a default operator to be used between the steps.
+  /// Usually, we'd use == as the default operator.  However, if the calculation
+  /// begins or ends with a boolean literal, then we can do better by selecting ==>
+  /// or <==.  Also, if the calculation begins or ends with an empty set, then we can
+  /// do better by selecting <= or >=.
+  /// Note, these alternative operators are chosen only if they don't clash with something
+  /// supplied by the user.
+  /// If the rules come up with a good inferred default operator, then that default operator
+  /// is returned; otherwise, null is returned.
+  /// </summary>
+  [CanBeNull]
+  public CalcOp GetInferredDefaultOp() {
+    CalcOp alternativeOp = null;
+    if (Lines.Count == 0) {
+      return null;
+    }
+
+    if (Expression.IsBoolLiteral(Lines.First(), out var firstOperatorIsBoolLiteral)) {
+      alternativeOp = new BinaryCalcOp(firstOperatorIsBoolLiteral ? BinaryExpr.Opcode.Imp : BinaryExpr.Opcode.Exp);
+    } else if (Expression.IsBoolLiteral(Lines.Last(), out var lastOperatorIsBoolLiteral)) {
+      alternativeOp = new BinaryCalcOp(lastOperatorIsBoolLiteral ? BinaryExpr.Opcode.Exp : BinaryExpr.Opcode.Imp);
+    } else if (Expression.IsEmptySetOrMultiset(Lines.First())) {
+      alternativeOp = new BinaryCalcOp(BinaryExpr.Opcode.Ge);
+    } else if (Expression.IsEmptySetOrMultiset(Lines.Last())) {
+      alternativeOp = new BinaryCalcOp(BinaryExpr.Opcode.Le);
+    } else {
+      return null;
+    }
+
+    // Check that the alternative operator is compatible with anything supplied by the user.
+    var resultOp = alternativeOp;
+    foreach (var stepOp in StepOps.Where(stepOp => stepOp != null)) {
+      resultOp = resultOp.ResultOp(stepOp);
+      if (resultOp == null) {
+        // no go
+        return null;
+      }
+    }
+    return alternativeOp;
+  }
+
   public readonly List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
   public readonly List<BlockStmt> Hints;     // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
   public readonly CalcOp UserSuppliedOp;     // may be null, if omitted by the user
@@ -163,7 +206,8 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
 
   public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
-  public override IEnumerable<Node> Children => Steps.Concat(new Node[] { Result }).Concat(Hints);
+  public override IEnumerable<Node> Children => Steps.Concat(Result != null ? new Node[] { Result } : new Node[] { }).Concat(Hints);
+  public override IEnumerable<Node> PreResolveChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<Node>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -188,13 +232,13 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     Contract.Requires(cce.NonNullElements(hints));
     Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
     Contract.Requires(stepOps.Count == hints.Count);
-    this.UserSuppliedOp = userSuppliedOp;
-    this.Lines = lines;
-    this.Hints = hints;
+    UserSuppliedOp = userSuppliedOp;
+    Lines = lines;
+    Hints = hints;
     Steps = new List<Expression>();
-    this.StepOps = stepOps;
-    this.Result = null;
-    this.Attributes = attrs;
+    StepOps = stepOps;
+    Result = null;
+    Attributes = attrs;
   }
 
   public CalcStmt Clone(Cloner cloner) {
@@ -283,5 +327,101 @@ public class CalcStmt : Statement, ICloneable<CalcStmt> {
     } else {
       return ((TernaryExpr)step).E2;
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var inCalc = false;
+    var inOrdinal = false;
+    var innerCalcIndent = indentBefore + formatter.SpaceTab;
+    var extraHintIndent = 0;
+    var ownedTokens = OwnedTokens;
+    // First phase: We get the alignment
+    foreach (var token in ownedTokens) {
+      if (formatter.SetIndentLabelTokens(token, indentBefore)) {
+        continue;
+      }
+      switch (token.val) {
+        case "calc":
+        case ";":
+        case "}": {
+            break;
+          }
+        case "{": {
+            inCalc = true;
+            break;
+          }
+        default: {
+            if (inCalc) {
+              if (token.val == "[") {
+                inOrdinal = true;
+              }
+              if (token.val == "]") {
+                inOrdinal = false;
+              }
+              if (!TokenNewIndentCollector.IsFollowedByNewline(token) &&
+                  (token.val != "==" || token.Next.val != "#") &&
+                  token.val != "#" &&
+                  !inOrdinal) {
+                if (token.Next.val != "{") {
+                  formatter.SetIndentations(token, inline: indentBefore);
+                  innerCalcIndent = Math.Max(innerCalcIndent, formatter.GetRightAlignIndentAfter(token, indentBefore));
+                } else {// It's an hint! If there is no comment and no newline between them, we align the hints as well.
+                  if ((token.TrailingTrivia + token.Next.LeadingTrivia).Trim() == "" &&
+                      token.line == token.Next.line) {
+                    extraHintIndent = Math.Max(extraHintIndent, formatter.GetRightAlignIndentAfter(token, indentBefore) - (indentBefore + formatter.SpaceTab));
+                  }
+                }
+              }
+            }
+
+            break;
+          }
+      }
+    }
+
+    inCalc = false;
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "calc": {
+            break;
+          }
+        case "{": {
+            formatter.SetIndentations(token, indentBefore, indentBefore, innerCalcIndent);
+            inCalc = true;
+            break;
+          }
+        case "}": {
+            formatter.SetIndentations(token, innerCalcIndent, indentBefore, indentBefore);
+            break;
+          }
+        case ";": {
+            formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+            break;
+          }
+        default: {
+            // It has to be an operator
+            if (inCalc) {
+              formatter.SetIndentations(token, innerCalcIndent, indentBefore, innerCalcIndent);
+            }
+
+            break;
+          }
+      }
+    }
+
+    foreach (var hint in Hints) {
+      // This block
+      if (hint.Tok.pos != hint.EndToken.pos) {
+        foreach (var hintStep in hint.Body) {
+          formatter.SetOpeningIndentedRegion(hintStep.StartToken, indentBefore + formatter.SpaceTab + extraHintIndent);
+        }
+      }
+    }
+
+    foreach (var expression in Lines) {
+      formatter.SetIndentations(expression.StartToken, innerCalcIndent, innerCalcIndent, innerCalcIndent);
+    }
+
+    return true;
   }
 }

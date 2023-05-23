@@ -11,26 +11,26 @@ module Equiv refines Induction {
 
   import opened Interp
 
-  // Introducing predicates to make reasoning harder and mimick the "real" Dind
+  // Introducing ghost predicates to make reasoning harder and mimick the "real" Dind
   // proofs.
-  predicate EqValue(x: int, y: int)
+  ghost predicate EqValue(x: int, y: int)
   {
     x == y
   }
 
-  predicate EqSeqValue(x: seq<int>, y: seq<int>)
+  ghost predicate EqSeqValue(x: seq<int>, y: seq<int>)
   {
     && |x| == |y|
     && forall i | 0 <= i < |x| :: EqValue(x[i], y[i])
   }
 
-  predicate {:opaque} EqCtx(ctx: Context, ctx': Context)
+  ghost predicate {:opaque} EqCtx(ctx: Context, ctx': Context)
   {
     && ctx.Keys == ctx'.Keys
     && forall x | x in ctx.Keys :: ctx[x] == ctx'[x]
   }
 
-  predicate EqResult(res: InterpResult, res': InterpResult)
+  ghost predicate EqResult(res: InterpResult, res': InterpResult)
   {
     match (res, res')
       case (Success((v, ctx)), Success((v', ctx'))) =>
@@ -42,7 +42,7 @@ module Equiv refines Induction {
         false
   }
 
-  predicate EqResultSeq(res: InterpResultSeq, res': InterpResultSeq)
+  ghost predicate EqResultSeq(res: InterpResultSeq, res': InterpResultSeq)
   {
     match (res, res')
       case (Success((vs, ctx)), Success((vs', ctx'))) =>
@@ -69,12 +69,12 @@ module Equiv refines Induction {
 
   ghost const Zero: V := MValue(0, 0)
 
-  predicate Inv(st: MState)
+  ghost predicate Inv(st: MState)
   {
     && EqCtx(st.ctx, st.ctx')
   }
 
-  predicate P ...
+  ghost predicate P ...
   {
     var res := InterpExpr(e, st.ctx);
     var res' := InterpExpr(e, st.ctx');
@@ -82,7 +82,7 @@ module Equiv refines Induction {
     EqResult(res, res')
   }
 
-  predicate P_Succ ...
+  ghost predicate P_Succ ...
   {
     var res := InterpExpr(e, st.ctx);
     var res' := InterpExpr(e, st.ctx');
@@ -92,12 +92,12 @@ module Equiv refines Induction {
     && res' == Success((v.v', st'.ctx'))
   }
 
-  predicate P_Fail ...
+  ghost predicate P_Fail ...
   {
     Inv(st) ==> InterpExpr(e, st.ctx).Failure?
   }
 
-  predicate Pes ...
+  ghost predicate Pes ...
   {
     var res := InterpExprs(es, st.ctx);
     var res' := InterpExprs(es, st.ctx');
@@ -105,7 +105,7 @@ module Equiv refines Induction {
     EqResultSeq(res, res')
   }
 
-  predicate Pes_Succ ...
+  ghost predicate Pes_Succ ...
   {
     var res := InterpExprs(es, st.ctx);
     var res' := InterpExprs(es, st.ctx');
@@ -115,26 +115,26 @@ module Equiv refines Induction {
     && res' == Success((vs.vs', st'.ctx'))
   }
 
-  predicate Pes_Fail ...
+  ghost predicate Pes_Fail ...
   {
     Inv(st) ==> InterpExprs(es, st.ctx).Failure?
   }
 
-  function AppendValue ...
+  ghost function AppendValue ...
   {
     MSeqValue([v.v] + vs.vs, [v.v'] + vs.vs')
   }
 
   ghost const NilVS: VS := MSeqValue([], [])
 
-  function VS_Last ...
+  ghost function VS_Last ...
   {
     var v := vs.vs[|vs.vs| - 1];
     var v' := vs.vs'[|vs.vs| - 1];
     MValue(v, v')
   }
 
-  predicate UpdateState_Pre ...
+  ghost predicate UpdateState_Pre ...
   {
     && Inv(st)
     && |vars| == |argvs.vs| == |argvs.vs'|
@@ -157,7 +157,7 @@ module Equiv refines Induction {
     }
   }
 
-  function AssignState ...
+  ghost function AssignState ...
     ensures Inv(st')
   {
     var MState(ctx, ctx') := st;
@@ -176,13 +176,13 @@ module Equiv refines Induction {
     st'
   }
 
-  function BindStartScope ...
+  ghost function BindStartScope ...
     ensures Inv(st')
   {
     AssignState(st, vars, vals)
   }
 
-  function BindEndScope ...
+  ghost function BindEndScope ...
     ensures Inv(st0) && Inv(st) ==> Inv(st')
   {
     var MState(ctx0, ctx0') := st0;
@@ -201,14 +201,14 @@ module Equiv refines Induction {
     st'
   }
 
-  function P_Step ...
+  ghost function P_Step ...
   {
     var Success((v, ctx1)) := InterpExpr(e, st.ctx);
     var Success((v', ctx1')) := InterpExpr(e, st.ctx');
     (MState(ctx1, ctx1'), MValue(v, v'))
   }
 
-  function Pes_Step ...
+  ghost function Pes_Step ...
   {
     var Success((vs, ctx1)) := InterpExprs(es, st.ctx);
     var Success((vs', ctx1')) := InterpExprs(es, st.ctx');

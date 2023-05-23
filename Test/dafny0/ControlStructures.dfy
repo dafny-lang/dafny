@@ -49,7 +49,7 @@ method M4(d: D)
   }
 }
 
-function F0(d: D): int
+ghost function F0(d: D): int
 {
   match (d)  // error: missing cases Red
   case Purple => 80
@@ -57,7 +57,7 @@ function F0(d: D): int
   case Blue => 2
 }
 
-function F1(d: D, x: int): int
+ghost function F1(d: D, x: int): int
   requires x < 100;
   requires d == D.Red ==> x == 200;  // (an impossibility, given the first precondition, so d != Red)
 {

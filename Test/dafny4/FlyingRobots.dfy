@@ -17,7 +17,7 @@ class Point {
   ghost var Value: (int, int, int)
 
   ghost var Repr: set<object>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -55,7 +55,7 @@ class Arm {
   ghost var Value: (int, int)
 
   ghost var Repr: set<object>
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -91,7 +91,7 @@ class Arm {
 
 class Bot {
   ghost var Repr: set<object>
-  predicate {:opaque} Valid()
+  ghost predicate {:opaque} Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
   {
@@ -118,21 +118,21 @@ class Bot {
     reveal Valid();
   }
 
-  predicate flying()
+  ghost predicate flying()
     requires (reveal Valid(); Valid())
     reads Repr
   {
     pos.z.val > 0
   }
 
-  predicate arms_up()
+  ghost predicate arms_up()
     requires (reveal Valid(); Valid())
     reads Repr
   {
     left.polar.val == right.polar.val == 0
   }
 
-  predicate robot_inv()
+  ghost predicate robot_inv()
     requires (reveal Valid(); Valid())
     reads Repr
   {
@@ -174,14 +174,14 @@ method FlyRobots(b0:Bot, b1:Bot)
 // ----- robot armies ----------
 
 // The union of .Repr for the robots in "bots"
-function ArmyRepr(bots:seq<Bot>) : set<object>
+ghost function ArmyRepr(bots:seq<Bot>) : set<object>
   reads set b | b in bots
 {
   set b,o | b in bots && o in b.Repr :: o
 }
 
 // An army is a sequence of disjoint, valid robots
-predicate ValidArmy(bots:seq<Bot>)
+ghost predicate ValidArmy(bots:seq<Bot>)
   reads set b | b in bots
   reads ArmyRepr(bots)
 {

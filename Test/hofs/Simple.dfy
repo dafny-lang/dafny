@@ -1,33 +1,33 @@
 // RUN: %exits-with 4 %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method MkId<A>() : A -> A {
+function MkId<A>() : A -> A {
   x => x
 }
 
-function method IntId() : int ~> int {
+function IntId() : int ~> int {
   y => y
 }
 
-function method DivZero() : int ~> int
+function DivZero() : int ~> int
 {
   z => 5 / z  // div by zero
 }
 
-function method DivZeroWithReq() : int ~> int
+function DivZeroWithReq() : int ~> int
 {
   (z) requires z != 0 => 5 / z
 }
 
-function method DivZero2() : (int, int) ~> int {
+function DivZero2() : (int, int) ~> int {
   (x, y) requires y != 0 => x / y
 }
 
-function method DivZero3() : int ~> int {
+function DivZero3() : int ~> int {
   z => z / 0   // div by zero
 }
 
-function method Shadow() : int ~> real ~> real {
+function Shadow() : int ~> real ~> real {
   x => x => x
 }
 
@@ -49,7 +49,7 @@ method Main() {
   print divvy(2,0); // precond violation
 }
 
-function method succ(x : int) : int
+function succ(x : int) : int
   requires x > 0
 {
   x + 1
@@ -61,7 +61,7 @@ method Main2() {
   assert suc(-1) == 0; // precond violation
 }
 
-function method Id<A>(x : A) : A {
+function Id<A>(x : A) : A {
   x
 }
 
@@ -74,7 +74,7 @@ method Main3() {
 }
 
 
-function P<A,B>(f: A ~> B, x : A): B
+ghost function P<A,B>(f: A ~> B, x : A): B
   reads (f.reads)(x)
   requires (f.requires)(x)
 {
@@ -82,14 +82,14 @@ function P<A,B>(f: A ~> B, x : A): B
 }
 
 
-function Q<U,V>(f: U ~> V, x : U): V
+ghost function Q<U,V>(f: U ~> V, x : U): V
   reads P.reads(f,x)
   requires f.requires(x)  // would be nice to be able to write P.requires(f,x)
 {
   P(f,x)
 }
 
-function QQ<U,V>(f: U ~> V, x : U): V
+ghost function QQ<U,V>(f: U ~> V, x : U): V
   reads ((() => ((()=>f)()).reads)())((()=>x)())
   requires ((() => ((()=>f)()).requires)())((()=>x)())
 {

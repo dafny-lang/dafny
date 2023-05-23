@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /unicodeChar:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class CharChar {
@@ -14,7 +14,7 @@ class CharChar {
     }
   }
 
-  function Recurse(ch: char): bool
+  ghost function Recurse(ch: char): bool
     reads this;
   {
     if c < ch then Recurse(c)
@@ -22,7 +22,7 @@ class CharChar {
     else ch == ' '
   }
 
-  function MinChar(s: string): char
+  ghost function MinChar(s: string): char
     requires s != "";
   {
     var ch := s[0];
@@ -67,7 +67,7 @@ class CharChar {
 
 // arithmetic with char's
 
-function toLower(ch: char): char
+ghost function toLower(ch: char): char
 {
   if 'A' <= ch <= 'Z' then
     ch - 'A' + 'a'
@@ -75,7 +75,7 @@ function toLower(ch: char): char
     ch
 }
 
-function BadToLower_Overflow(ch: char): char
+ghost function BadToLower_Overflow(ch: char): char
 {
   if 'A' <= ch then
     ch - 'A' + 'a'  // error: possible overvlow
@@ -83,7 +83,7 @@ function BadToLower_Overflow(ch: char): char
     ch
 }
 
-function BadToLower_Underflow(ch: char): char
+ghost function BadToLower_Underflow(ch: char): char
 {
   if ch <= 'Z' then
     ch - 'A' + 'a'  // error: possible overvlow

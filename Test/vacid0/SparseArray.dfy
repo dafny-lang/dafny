@@ -14,7 +14,7 @@ class SparseArray<T(0)> {
   /*private*/ var n: int;
   /*private*/ ghost var d: seq<int>;  // would be better as an array
   /*private*/ ghost var e: seq<int>;  // would be better as an array
-  function Valid(): bool
+  ghost function Valid(): bool
     reads this;
   {
     |a| == |Contents| &&

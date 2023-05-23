@@ -1,0 +1,3 @@
+text.dfy(4,2): Warning: note, this loop has no body (loop frame: i)
+
+Dafny program verifier did not attempt verification

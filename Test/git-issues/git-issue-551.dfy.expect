@@ -1,2 +1,2 @@
-git-issue-551.dfy(27,15): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate with 'predicate method')
+git-issue-551.dfy(27,15): Error: a call to a ghost predicate is allowed only in specification contexts (consider declaring the predicate without the 'ghost' keyword)
 1 resolution/type errors detected in git-issue-551.dfy

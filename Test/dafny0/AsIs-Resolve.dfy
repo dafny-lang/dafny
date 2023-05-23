@@ -221,7 +221,7 @@ module IsTests {
     b := g is real --> nat; // error: LHS not assignable to type
   }
 
-  function method From(x: int): Stream<int> {
+  function From(x: int): Stream<int> {
     More(x, From(x + 1))
   }
 

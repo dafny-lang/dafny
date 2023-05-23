@@ -71,15 +71,15 @@ namespace Microsoft.Dafny {
       iteratorDecl.Requires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
-      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
       iteratorDecl.YieldRequires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
-      iteratorDecl.YieldEnsures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.YieldEnsures.Iter(aexpr => VisitExpression(aexpr.E, context));
 
-      iteratorDecl.Ensures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Ensures.Iter(aexpr => VisitExpression(aexpr.E, context));
 
       VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModuleDefinition);
       iteratorDecl.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
 
       function.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
-      function.Reads.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      function.Reads.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       function.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       method.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
-      method.Mod.Expressions.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      method.Mod.Expressions.Iter(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
       method.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
@@ -254,9 +254,8 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (expr is NestedMatchExpr nestedMatchExpr) {
-          foreach (IdPattern mc in nestedMatchExpr.Cases.SelectMany(c => c.Pat.DescendantsAndSelf).OfType<IdPattern>()
-                     .Where(id => id.BoundVar != null)) {
-            VisitUserProvidedType(mc.BoundVar.Type, context);
+          foreach (var mc in nestedMatchExpr.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
         }
 
@@ -270,6 +269,41 @@ namespace Microsoft.Dafny {
 
         PostVisitOneExpression(expr, context);
       }
+    }
+
+    protected virtual void VisitExtendedPattern(ExtendedPattern pattern, VisitorContext context) {
+      switch (pattern) {
+        case DisjunctivePattern disjunctivePattern:
+          foreach (var alternative in disjunctivePattern.Alternatives) {
+            VisitExtendedPattern(alternative, context);
+          }
+          break;
+        case LitPattern:
+          break;
+        case IdPattern idPattern:
+          if (idPattern.BoundVar != null) {
+            VisitUserProvidedType(idPattern.BoundVar.Type, context);
+          }
+          if (idPattern.Arguments != null) {
+            foreach (var argument in idPattern.Arguments) {
+              VisitExtendedPattern(argument, context);
+            }
+          }
+          break;
+        default:
+          Contract.Assert(false); // unexpected case
+          break;
+      }
+    }
+
+    /// <summary>
+    /// This method is called only for FrameExpression's that are part of top-level or member declarations.
+    /// Some statements (modifies clauses of loops) and expressions (reads clauses of lambda expressions, unchanged expressions)
+    /// also have FrameExpression's, but the ASTVisitor does not automatically call VisitTopLevelFrameExpression on those, only
+    /// VisitExpression.
+    /// </summary>
+    public virtual void VisitTopLevelFrameExpression(FrameExpression frameExpression, VisitorContext context) {
+      VisitExpression(frameExpression.E, context);
     }
 
     /// <summary>
@@ -314,6 +348,11 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForallStmt forallStmt) {
           foreach (BoundVar v in forallStmt.BoundVars) {
             VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+          foreach (var mc in nestedMatchStmt.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
 
         } else if (stmt is MatchStmt matchStmt) {

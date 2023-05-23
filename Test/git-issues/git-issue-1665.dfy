@@ -17,8 +17,8 @@ module ConcreteModule
     | Success
     | Failure(error: nat)
   {
-    predicate method IsFailure() { this.Failure? }
-    function method PropagateFailure(): Status
+    predicate IsFailure() { this.Failure? }
+    function PropagateFailure(): Status
       requires IsFailure()
     {
       Failure(this.error)
@@ -44,5 +44,33 @@ module ConcreteModule
   method Func1() returns (r:Status)
   {
     return Success;
+  }
+
+  method AdditionalWildcardTests(n: nat) {
+    match n {
+      case _ =>
+    }
+    match n {
+      case _: int =>
+    }
+    match n {
+      case _: nat =>
+    }
+    match n {
+      case 3 =>
+      case _: int =>
+    }
+    match n {
+      case x =>
+    }
+    match n {
+      case n => // bound variable shadows parameter n
+    }
+    match n {
+      case x: int =>
+    }
+    match n {
+      case n: int => // bound variable shadows parameter n
+    }
   }
 }

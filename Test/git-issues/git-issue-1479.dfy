@@ -7,7 +7,7 @@ module A {
   type T
   datatype BaseType = BaseType(t: T)
 
-  predicate P(d: BaseType)
+  ghost predicate P(d: BaseType)
   type SubsetType = d: BaseType | P(d) witness *
 
   method m0(dp: SubsetType)
@@ -21,13 +21,13 @@ module B {
   type R = r: R_ | r.i() witness *
 
   datatype R_ = R(v: nat) {
-    predicate i() { v == 0 }
+    ghost predicate i() { v == 0 }
   }
 
   datatype S = S(rep: map<nat, R>) {
-    function launder(r: R) : R { r }
+    ghost function launder(r: R) : R { r }
 
-    function cpy(r: nat, v: nat): R
+    ghost function cpy(r: nat, v: nat): R
       requires r in rep
     {
       launder(rep[r].(v := v)) // Error: `v` does not satisfy subtype constraints

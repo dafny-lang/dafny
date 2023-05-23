@@ -13,8 +13,8 @@ method B(x: int) {
   A(x);
 }
 
-function fA(x: int): int
+ghost function fA(x: int): int
   requires x > 0
   requires x < 0 { 1 }
 
-function fB(x: int): int { fA(x) }
+ghost function fB(x: int): int { fA(x) }

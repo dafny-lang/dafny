@@ -2,7 +2,7 @@
 // RUN: %sed 's/^.*[\/\\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate Test(y: int) {
+ghost predicate Test(y: int) {
   y >= 1
 }
 

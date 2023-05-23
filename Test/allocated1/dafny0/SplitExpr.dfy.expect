@@ -1,4 +1,5 @@
+The /allocated:<n> option is deprecated
 SplitExpr.dfy(96,14): Error: loop invariant violation
-SplitExpr.dfy(90,43): Related location
+SplitExpr.dfy(90,49): Related location
 
 Dafny program verifier finished with 8 verified, 1 error

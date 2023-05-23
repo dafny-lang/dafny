@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
 Basics.dfy(45,13): Error: assertion might not hold
 Basics.dfy(69,41): Error: assertion might not hold

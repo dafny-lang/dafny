@@ -4,12 +4,12 @@
 module M0 {
   class MyClass<T(==),U(==)> {
     var s: map<T,set<U>>;
-    static function F<W>(w: W, w': W, t: T, u: U): int
+    static ghost function F<W>(w: W, w': W, t: T, u: U): int
     {
       if w == w' then 5 else 7
     }
-    function G<Y>(y: Y): Y { y }
-    static function H<Y>(y: Y): (T, U, Y)
+    ghost function G<Y>(y: Y): Y { y }
+    static ghost function H<Y>(y: Y): (T, U, Y)
 
     ghost method M() {
       var f0 := F<int>;
@@ -37,7 +37,7 @@ module M0 {
 
 module M1 {
   class C0 {
-    function method F(x: bool, y: bool): () { () }
+    function F(x: bool, y: bool): () { () }
     method M0(a: int, b: int, c: int, d: int) {
       var u := F( a < b , (c > (d)) );
       var v := F( a < b , c > d );
@@ -47,8 +47,8 @@ module M1 {
     }
   }
   class C1 {
-    function method F(x: int): () { () }
-    function method a<T,U>(x: int): int { x }
+    function F(x: int): () { () }
+    function a<T,U>(x: int): int { x }
     method M<b, c>(d: int) {
       var u;
       u := F( a < b , c > (d) );
@@ -61,7 +61,7 @@ module M1 {
 
 module M2 {
   class ClassA {
-    function F<A>(a: A): int
+    ghost function F<A>(a: A): int
 
     lemma Lem<Y>() returns (y: Y)
 
@@ -83,14 +83,14 @@ module M2 {
       LemmaR<A>(5);
     }
 
-    function FuncX<A>(y: A): real
-    function FuncY<A>(x: int): real
+    ghost function FuncX<A>(y: A): real
+    ghost function FuncY<A>(x: int): real
     {
       FuncX<A>(x)  // error: The given type instantiation A does not agree with the type of parameter x
     }
 
-    function FuncR<T>(x: int): real
-    function FuncS<A>(): real
+    ghost function FuncR<T>(x: int): real
+    ghost function FuncS<A>(): real
     {
       FuncR<A>(5)
     }

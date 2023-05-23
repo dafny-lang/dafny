@@ -166,7 +166,7 @@ method ParallelGcd(A: int, B: int) returns (gcd: int)
   gcd := a;
 }
 
-function FinalStretch(pcThis: int, pcThat: int, a0: int, b0: int, b: int): int
+ghost function FinalStretch(pcThis: int, pcThat: int, a0: int, b0: int, b: int): int
 {
   if pcThat != 3 then 10  // we're not yet in the final stretch
   else if pcThis == 3 then 0
@@ -190,7 +190,7 @@ method BudgetUpdate(inThis: int, inThat: int, pcThat: int) returns (outThis: int
   }
 }
 
-function Gcd(a: int, b: int): int
+ghost function Gcd(a: int, b: int): int
   requires a > 0 && b > 0
 {
   Exists(a, b);
@@ -198,18 +198,18 @@ function Gcd(a: int, b: int): int
   d
 }
 
-predicate DividesBoth(d: int, a: int, b: int)
+ghost predicate DividesBoth(d: int, a: int, b: int)
   requires a > 0 && b > 0
 {
   d > 0 && Divides(d, a) && Divides(d, b)
 }
 
-predicate {:opaque} Divides(d: int, a: int)
+ghost predicate {:opaque} Divides(d: int, a: int)
   requires d > 0 && a > 0
 {
   exists n :: n > 0 && MulTriple(n, d, a)
 }
-predicate MulTriple(n: int, d: int, a: int)
+ghost predicate MulTriple(n: int, d: int, a: int)
   requires n > 0 && d > 0
 {
   n * d == a
@@ -228,9 +228,9 @@ lemma ShowExists(a: int, b: int) returns (d: int)
   requires a > 0 && b > 0
   ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
 {
-  forall
-    ensures exists d :: DividesBoth(d, a, b)
-  {
+  assert
+    exists d :: DividesBoth(d, a, b)
+  by {
     OneDividesAnything(a);
     OneDividesAnything(b);
     assert Divides(1, a);

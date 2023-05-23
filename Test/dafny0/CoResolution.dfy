@@ -84,7 +84,7 @@ module Mojul0 {
 
 module Mojul1 {
   greatest predicate A() { B() }  // error: SCC of a greatest predicate must include only greatest predicates
-  predicate B() { A() }
+  ghost predicate B() { A() }
 
   greatest predicate X() { Y() }
   greatest predicate Y() { X#[10]() }  // error: X is not allowed to depend on X#
@@ -155,12 +155,12 @@ module CallGraph {
     G1(n)  // error
   }
 
-  function G0(n: ORDINAL): int
+  ghost function G0(n: ORDINAL): int
   {
     calc { true; { assert P(n); } }
     100
   }
-  function G1(n: ORDINAL): int
+  ghost function G1(n: ORDINAL): int
   {
     calc { true; { assert P#[n](n); } }
     101
@@ -170,7 +170,7 @@ module CallGraph {
   {
     var f := JF();  // error: cannot call non-greatest lemma recursively from greatest lemma
   }
-  function JF(): int
+  ghost function JF(): int
   {
     J();
     5
@@ -183,28 +183,28 @@ module CrashRegression {
   // The following functions (where A ends up being the representative in the
   // SCC and B, which is also in the same SCC, has no body) once crashed the
   // resolver.
-  function A(): Stream
+  ghost function A(): Stream
   {
     B()
   }
-  function B(): Stream
+  ghost function B(): Stream
     ensures A() == S();
 
-  function S(): Stream
+  ghost function S(): Stream
 }
 
 module AmbiguousTypeParameters {
   codatatype Stream<T> = Cons(T, Stream)
 
-  function A(): Stream
+  ghost function A(): Stream
   {
     B()
   }
 
   // Here, the type arguments to A and S cannot be resolved
-  function B(): Stream
+  ghost function B(): Stream
     ensures A() == S();
 
-  function S(): Stream
+  ghost function S(): Stream
 }
 

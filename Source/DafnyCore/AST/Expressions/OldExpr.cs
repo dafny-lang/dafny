@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class OldExpr : Expression, ICloneable<OldExpr> {
+public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
   [Peer]
   public readonly Expression E;
   public readonly string/*?*/ At;
@@ -14,13 +14,17 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
     Contract.Invariant(E != null);
   }
 
-  public OldExpr Clone(Cloner cloner) {
-    var result = new OldExpr(cloner.Tok(tok), cloner.CloneExpr(E), At);
+  public OldExpr(Cloner cloner, OldExpr original) : base(cloner, original) {
+    E = cloner.CloneExpr(original.E);
+    At = original.At;
     if (cloner.CloneResolvedFields) {
-      result.AtLabel = AtLabel;
-      result.Useless = Useless;
+      AtLabel = original.AtLabel;
+      Useless = original.Useless;
     }
-    return result;
+  }
+
+  public OldExpr Clone(Cloner cloner) {
+    return new OldExpr(cloner, this);
   }
 
   [Captured]
@@ -35,5 +39,9 @@ public class OldExpr : Expression, ICloneable<OldExpr> {
 
   public override IEnumerable<Expression> SubExpressions {
     get { yield return E; }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);
   }
 }

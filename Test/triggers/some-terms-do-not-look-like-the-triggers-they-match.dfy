@@ -60,7 +60,7 @@ method RewriteSet(s: set<int>, t: set<int>) {
   ghost var h4 := forall x :: x in F(s) ==> x < 200;
 }
 
-function F<X>(s: X): X { s }
+ghost function F<X>(s: X): X { s }
 
 method RewriteMultiSet(s: multiset<int>, t: multiset<int>) {
   // multiset union

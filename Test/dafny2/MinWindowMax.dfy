@@ -94,7 +94,7 @@ method MinimumWindowMax(a: array<int>, W: int) returns (m: int, start: int)
 }
 
 // Function Max returns the maximum value in a[s..s+len]
-function Max(a: array<int>, s: int, len: int): int
+ghost function Max(a: array<int>, s: int, len: int): int
   requires 0 <= s && 1 <= len && s + len <= a.Length
   reads a
 {
@@ -121,7 +121,7 @@ lemma MaxProperty(a: array<int>, s: int, len: int)
 // The following predicate says that a[x] is the maximum in a[lo..hi].
 // More precisely, if a[lo..hi] contains several copies of the value
 // a[x], then the rightmost of these values is a index "x".
-predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
+ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
   requires 0 <= lo <= x < hi <= a.Length
   reads a
 {
@@ -140,7 +140,7 @@ lemma Maxes(a: array<int>, lo: int, x: int, hi: int)
 
 // StrictlyIncreasing states that the numbers in b[k..l] are in strictly
 // increasing order and each one lies in the range lo..hi.
-predicate StrictlyIncreasing(b: array<int>, k: int, l: int, lo: int, hi: int)
+ghost predicate StrictlyIncreasing(b: array<int>, k: int, l: int, lo: int, hi: int)
   requires 0 <= k <= l <= b.Length
   reads b
 {

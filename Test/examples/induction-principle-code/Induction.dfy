@@ -31,44 +31,44 @@ abstract module Induction {
   // One important property to enforce is that:
   // `P(st, e) <==> P_Fail(st, e) || exists st', v :: P_Succ(st, e, st', v)`
   // This is enforced by: ``P_Fail_Sound``, ``P_Succ_Sound`` and ``P_Step``.
-  predicate P(st: S, e: Expr)
-  predicate P_Succ(st: S, e: Expr, st': S, v: V) // Success
-  predicate P_Fail(st: S, e: Expr) // Failure
+  ghost predicate P(st: S, e: Expr)
+  ghost predicate P_Succ(st: S, e: Expr, st': S, v: V) // Success
+  ghost predicate P_Fail(st: S, e: Expr) // Failure
 
   // ``Pes`` is the property of interest over sequences of expressions.
-  predicate Pes(st: S, es: seq<Expr>)
-  predicate Pes_Succ(st: S, es: seq<Expr>, st': S, vs: VS) // Success
-  predicate Pes_Fail(st: S, es: seq<Expr>) // Failure
+  ghost predicate Pes(st: S, es: seq<Expr>)
+  ghost predicate Pes_Succ(st: S, es: seq<Expr>, st': S, vs: VS) // Success
+  ghost predicate Pes_Fail(st: S, es: seq<Expr>) // Failure
 
-  function AppendValue(v: V, vs: VS): VS // Returns: [v] + vs
+  ghost function AppendValue(v: V, vs: VS): VS // Returns: [v] + vs
 
   // Empty sequence of values
   ghost const NilVS: VS
 
-  function VS_Last(vs: VS): V
+  ghost function VS_Last(vs: VS): V
     requires vs != NilVS
 
-  predicate UpdateState_Pre(st: S, vars: seq<string>, argvs: VS)
+  ghost predicate UpdateState_Pre(st: S, vars: seq<string>, argvs: VS)
 
   // For the ``Assign`` case
-  function AssignState(st: S, vars: seq<string>, vals: VS): (st':S)
+  ghost function AssignState(st: S, vars: seq<string>, vals: VS): (st':S)
     requires UpdateState_Pre(st, vars, vals)
 
   // For the ``Bind`` case
-  function BindStartScope(st: S, vars: seq<string>, vals: VS): (st':S)
+  ghost function BindStartScope(st: S, vars: seq<string>, vals: VS): (st':S)
     requires UpdateState_Pre(st, vars, vals)
 
   // For ``Bind``: used to remove from the context the variables introduced by the bind, while
   // preserving the mutation. `st0` is the state just before we introduce the let-bounded variables,
   // `st1 is the state resulting from evaluating the body.
-  function BindEndScope(st0: S, st: S, vars: seq<string>): (st':S)
+  ghost function BindEndScope(st0: S, st: S, vars: seq<string>): (st':S)
 
-  function P_Step(st: S, e: Expr): (res: (S, V))
+  ghost function P_Step(st: S, e: Expr): (res: (S, V))
     requires P(st, e)
     requires !P_Fail(st, e)
     ensures P_Succ(st, e, res.0, res.1)
 
-  function Pes_Step(st: S, es: seq<Expr>): (res: (S, VS))
+  ghost function Pes_Step(st: S, es: seq<Expr>): (res: (S, VS))
     requires Pes(st, es)
     requires !Pes_Fail(st, es)
     ensures Pes_Succ(st, es, res.0, res.1)

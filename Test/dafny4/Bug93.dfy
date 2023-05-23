@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Fuel {
-    function FunctionA(x:int) : int
+    ghost function FunctionA(x:int) : int
     {
         x + 2
     }
 
-    function FunctionB(y:int) : int
+    ghost function FunctionB(y:int) : int
     {
         FunctionA(y - 2)
     }
@@ -19,12 +19,12 @@ module Fuel {
 }
 
 module Opaque {
-    function {:opaque} FunctionA(x:int) : int
+    ghost function {:opaque} FunctionA(x:int) : int
     {
         x + 2
     }
 
-    function FunctionB(y:int) : int
+    ghost function FunctionB(y:int) : int
     {
         FunctionA(y - 2)
     }

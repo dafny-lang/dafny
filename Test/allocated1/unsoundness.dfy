@@ -5,7 +5,7 @@
 
 class Class { var data: int }
 
-function F(): set<Class>
+ghost function F(): set<Class>
 {
   set c: Class | allocated(c)
 }

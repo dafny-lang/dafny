@@ -4,7 +4,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
+public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   public AssumeStmt Clone(Cloner cloner) {
     return new AssumeStmt(cloner, this);
   }
@@ -24,7 +24,12 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt> {
     }
   }
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
-    yield return AssumptionDescription.AssumeStatement;
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    yield return new Assumption(decl, tok, AssumptionDescription.AssumeStatement(
+      Attributes.Contains(Attributes, Attributes.AxiomAttributeName)));
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentAssertLikeStatement(this, indentBefore);
   }
 }

@@ -5,7 +5,7 @@
 
 method GenericMethod<X>(x: X) { }
 method GenericMethodWithResult<X>(x: X) returns (y: int) { }
-function method GenericFunction<X>(x: X): int { 5 }
+function GenericFunction<X>(x: X): int { 5 }
 
 method Main() {
   var r: int;

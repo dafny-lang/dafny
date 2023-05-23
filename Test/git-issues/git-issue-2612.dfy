@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait T {
-  predicate {:opaque} True() { true }
+  ghost predicate {:opaque} True() { true }
 }
 
 class C extends T {}

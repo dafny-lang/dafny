@@ -40,8 +40,8 @@ lemma TestsWhereTriggersMatter<T>(t: T, uu: seq<T>) returns (z: bool)
   }
 }
 
-function Id<T>(t: T): T { t }
-predicate Even(x: int) { x % 2 == 0 }
+ghost function Id<T>(t: T): T { t }
+ghost predicate Even(x: int) { x % 2 == 0 }
 
 class Container<T> {
   ghost var Contents: set<T>

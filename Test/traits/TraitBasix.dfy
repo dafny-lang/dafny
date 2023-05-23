@@ -5,7 +5,7 @@ module m1
 {
   trait I1
   {
-    function M1(x:int,y:int) :int
+    ghost function M1(x:int,y:int) :int
     {
       x*y
     }
@@ -16,13 +16,13 @@ module m1
   {
     var x: int
 
-    function method Twice(): int
+    function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    function F(z: int): int
       reads this
 
 
@@ -69,7 +69,7 @@ module m1
 
   class I0Child extends I2  //errors, body-less methods/functions in the parent have not implemented here
   {
-    function method F(z: int): int
+    function F(z: int): int
       reads this
     {
        z
@@ -106,7 +106,7 @@ module MoreTests {
 
   trait I1
   {
-    function M1(x:int,y:int) :int
+    ghost function M1(x:int,y:int) :int
     {
       x*y
     }
@@ -121,13 +121,13 @@ module MoreTests {
   {
     var x: int
 
-    function method Twice(): int
+    function Twice(): int
       reads this
     {
       x + x
     }
 
-    function method F(z: int): int
+    function F(z: int): int
       reads this
 
 

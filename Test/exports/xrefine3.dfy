@@ -9,7 +9,7 @@ module AlphaImpl {
 
     type Alpha(00) = bool
 
-    predicate IsValid(a:Alpha) {
+    ghost predicate IsValid(a:Alpha) {
         a
     }
 
@@ -30,7 +30,7 @@ module BetaImpl {
     import A = AlphaImpl
     type Beta = seq<ASpec.Alpha>
 
-    predicate IsValid(b:Beta) {
+    ghost predicate IsValid(b:Beta) {
         forall i :: 0 <= i < |b| ==> A.IsValid(b[i])
     }
 

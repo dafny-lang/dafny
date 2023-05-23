@@ -6,7 +6,7 @@
 
 codatatype Stream<T> = Nil | Cons(head: T, tail: Stream)
 
-function Tail(s: Stream, n: nat): Stream
+ghost function Tail(s: Stream, n: nat): Stream
 {
   if n == 0 then s else
     var t := Tail(s, n-1);
@@ -47,7 +47,7 @@ greatest predicate IsNeverEndingStream<S>(s: Stream<S>)
 
 // Here is an example of an infinite stream.
 
-function AnInfiniteStream(): Stream<int>
+ghost function AnInfiniteStream(): Stream<int>
 {
   Cons(0, AnInfiniteStream())
 }
@@ -64,7 +64,7 @@ datatype Tree = Node(children: Stream<Tree>)
 // holds if there is, for every path down from the root, a common bound on the height of each such path.
 // Note that the definition needs a co-predicate in order to say something about all of a node's children.
 
-predicate HasBoundedHeight(t: Tree)
+ghost predicate HasBoundedHeight(t: Tree)
 {
   exists n :: 0 <= n && LowerThan(t.children, n)
 }
@@ -98,7 +98,7 @@ lemma LowerThan_Lemma(s: Stream<Tree>, n: nat, h: nat)
 // with less than infinite width.  Such a tree may or may not be of finite height, as we'll see in an
 // example below.
 
-predicate IsFiniteSomewhere(t: Tree)
+ghost predicate IsFiniteSomewhere(t: Tree)
 {
   !InfiniteEverywhere(t.children)
 }
@@ -112,7 +112,7 @@ greatest predicate InfiniteEverywhere(s: Stream<Tree>)
 // Here is a tree where every node has exactly 1 child.  Such a tree is finite in width (which implies
 // it is finite somewhere) and infinite in height (which implies there is no bound on its height).
 
-function SkinnyTree(): Tree
+ghost function SkinnyTree(): Tree
 {
   Node(Cons(SkinnyTree(), Nil))
 }
@@ -152,7 +152,7 @@ lemma FindNil(s: Stream<Tree>, n: nat) returns (k: nat)
 // If we had an InfiniteHeightSomewhere property, then we could negate it to obtain a predicate
 // HasFiniteHeightEverywhere.  Consider the following definitions:
 
-predicate HasFiniteHeightEverywhere_Bad(t: Tree)
+ghost predicate HasFiniteHeightEverywhere_Bad(t: Tree)
 {
   !InfiniteHeightSomewhere_Bad(t.children)
 }
@@ -170,11 +170,11 @@ greatest predicate InfiniteHeightSomewhere_Bad(s: Stream<Tree>)
 // node whose list of children satisfy the property.  The following example shows that a
 // shallow, infinitely wide tree satisfies the negation of HasFiniteHeightEverywhere_Bad.
 
-function ATree(): Tree
+ghost function ATree(): Tree
 {
   Node(ATreeChildren())
 }
-function ATreeChildren(): Stream<Tree>
+ghost function ATreeChildren(): Stream<Tree>
 {
   Cons(Node(Nil), ATreeChildren())
 }
@@ -205,7 +205,7 @@ greatest lemma Proposition2_Lemma1(s: Stream<Tree>)
 // a definition like the following:
 
 /*
-predicate HasFiniteHeightEverywhere_Attempt(t: Tree)
+ghost predicate HasFiniteHeightEverywhere_Attempt(t: Tree)
 {
   !InfiniteHeightSomewhere_Attempt(t.children)
 }
@@ -255,7 +255,7 @@ lemma ValidPath_Lemma(p: Stream<int>)
 
 // A tree has finite height (everywhere) if it has no valid infinite paths.
 
-predicate HasFiniteHeight(t: Tree)
+ghost predicate HasFiniteHeight(t: Tree)
 {
   forall p :: ValidPath(t, p) ==> !IsNeverEndingStream(p)
 }
@@ -297,7 +297,7 @@ lemma Theorem1_Lemma(t: Tree, n: nat, p: Stream<int>)
 // In fact, HasBoundedHeight is strictly strong than HasFiniteHeight, as we'll show with an example.
 // Define SkinnyFiniteTree(n) to be a skinny (that is, of width 1) tree of height n.
 
-function SkinnyFiniteTree(n: nat): Tree
+ghost function SkinnyFiniteTree(n: nat): Tree
   ensures forall k: nat :: LowerThan(SkinnyFiniteTree(n).children, k) <==> n <= k;
 {
   if n == 0 then Node(Nil) else Node(Cons(SkinnyFiniteTree(n-1), Nil))
@@ -306,11 +306,11 @@ function SkinnyFiniteTree(n: nat): Tree
 // Next, we define a tree whose root has an infinite number of children, child i of which
 // is a SkinnyFiniteTree(i).
 
-function FiniteUnboundedTree(): Tree
+ghost function FiniteUnboundedTree(): Tree
 {
   Node(EverLongerSkinnyTrees(0))
 }
-function EverLongerSkinnyTrees(n: nat): Stream<Tree>
+ghost function EverLongerSkinnyTrees(n: nat): Stream<Tree>
 {
   Cons(SkinnyFiniteTree(n), EverLongerSkinnyTrees(n+1))
 }
@@ -463,7 +463,7 @@ greatest predicate ValidPath_Alt'(s: Stream<Tree>, num: Number)
 // Here is the alternative definition of a tree that has finite height everywhere, using the
 // new paths.
 
-predicate HasFiniteHeight_Alt(t: Tree)
+ghost predicate HasFiniteHeight_Alt(t: Tree)
 {
   forall r :: ValidPath_Alt(t, r) ==> !InfinitePath(r)
 }
@@ -472,26 +472,26 @@ predicate HasFiniteHeight_Alt(t: Tree)
 // first definite functions S2N and N2S to map between the path representations
 // Stream<int> and CoOption<Number>, and then prove some lemmas about this correspondence.
 
-function S2N(p: Stream<int>): CoOption<Number>
+ghost function S2N(p: Stream<int>): CoOption<Number>
   decreases 0;
 {
   match p
   case Nil => None
   case Cons(n, tail) => Some(S2N'(if n < 0 then 0 else n, tail))
 }
-function S2N'(n: nat, tail: Stream<int>): Number
+ghost function S2N'(n: nat, tail: Stream<int>): Number
   decreases n + 1;
 {
   if n <= 0 then Zero(S2N(tail)) else Succ(S2N'(n-1, tail))
 }
 
-function N2S(r: CoOption<Number>): Stream<int>
+ghost function N2S(r: CoOption<Number>): Stream<int>
 {
   match r
   case None => Nil
   case Some(num) => N2S'(0, num)
 }
-function N2S'(n: nat, num: Number): Stream<int>
+ghost function N2S'(n: nat, num: Number): Stream<int>
   decreases num;
 {
   match num

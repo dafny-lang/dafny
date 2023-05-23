@@ -57,7 +57,7 @@ method CalcTest2(x: int, y: int) {
 }
 
 // calc expression:
-function CalcTest3(s: seq<int>): int {
+ghost function CalcTest3(s: seq<int>): int {
   calc < {
     0;
     { assume |s| == 5; }

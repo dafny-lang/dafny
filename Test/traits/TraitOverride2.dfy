@@ -6,7 +6,7 @@ trait Spec<U> {
   var hasFailed: bool
   ghost const Repr: set<object>
 
-  predicate Valid()
+  ghost predicate Valid()
     requires done || hasFailed || (!done && !hasFailed)  // tantamount to "true"
     reads this, Repr
     ensures Valid() ==> this in Repr
@@ -32,7 +32,7 @@ class Impl<T> extends Spec<T> {
     assert this in Repr;
   }
 
-  predicate Valid()
+  ghost predicate Valid()
     requires done || hasFailed || (!done && !hasFailed)
     reads this, Repr
     ensures Valid() ==> this in Repr
@@ -70,7 +70,7 @@ class AnotherImpl<T> extends Spec<seq<T>> {
     assert this in Repr;  // this had once failed
   }
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
     decreases Repr
@@ -91,7 +91,7 @@ class FixedImpl extends Spec<int> {
     Repr := {this, arr};
   }
 
-  predicate Valid()
+  ghost predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
     decreases Repr

@@ -27,14 +27,15 @@ namespace Microsoft.Dafny {
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(List<string> loggerConfigs) {
+    public static void RaiseTestLoggerEvents(DafnyOptions options) {
+      var loggerConfigs = options.VerificationLoggerConfigs;
       // Provide just enough configuration for the loggers to work
       var parameters = new Dictionary<string, string> {
         ["TestRunDirectory"] = Constants.DefaultResultsDirectory
       };
 
       var events = new LocalTestLoggerEvents();
-      var verificationResults = (DafnyOptions.O.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+      var verificationResults = (options.Printer as DafnyConsolePrinter).VerificationResults.ToList();
       foreach (var loggerConfig in loggerConfigs) {
         string loggerName;
         int semiColonIndex = loggerConfig.IndexOf(";");
@@ -57,12 +58,12 @@ namespace Microsoft.Dafny {
           var logger = new TrxLogger();
           logger.Initialize(events, parameters);
         } else if (loggerName == "csv") {
-          var csvLogger = new CSVTestLogger();
+          var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger();
+          var textLogger = new TextLogger(options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
           return;
@@ -92,7 +93,7 @@ namespace Microsoft.Dafny {
 
       foreach (var (implementation, result) in verificationResults) {
         var vcResults = result.VCResults.OrderBy(r => r.vcNum);
-        var currentFile = implementation.tok.filename;
+        var currentFile = ((IToken)implementation.tok).Uri;
         foreach (var vcResult in vcResults) {
           var verbName = implementation.VerboseName;
           var name = vcResults.Count() > 1
@@ -101,7 +102,7 @@ namespace Microsoft.Dafny {
           var testCase = new TestCase {
             FullyQualifiedName = name,
             ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = currentFile
+            Source = currentFile.LocalPath
           };
           var testResult = new TestResult(testCase) {
             StartTime = vcResult.startTime,

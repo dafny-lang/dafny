@@ -1,5 +1,5 @@
-naked-function-in-recursive-setting.dfy(4,9): Info: auto-accumulator tail recursive
-naked-function-in-recursive-setting.dfy(4,9): Info: decreases n
+naked-function-in-recursive-setting.dfy(4,15): Info: auto-accumulator tail recursive
+naked-function-in-recursive-setting.dfy(4,15): Info: decreases n
 naked-function-in-recursive-setting.dfy(10,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 
 Dafny program verifier finished with 0 verified, 1 error

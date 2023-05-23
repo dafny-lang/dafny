@@ -38,7 +38,7 @@ module A {  // Note, this has the effect of importing two different T's,
   import NN = N
   class X {
     var t: MM.T;  // error: use of the ambiguous name T
-    function F(x: MM.T):  // error: use of the ambiguous name T
+    ghost function F(x: MM.T):  // error: use of the ambiguous name T
                MM.T  // error: use of the ambiguous name T
     { x }
     method M(x: NN.T)  // error: use of the ambiguous name T
@@ -97,7 +97,7 @@ module YY {
 module Misc {
 class ClassG {
   method T() { }
-  function method TFunc(): int { 10 }
+  function TFunc(): int { 10 }
   method V(y: MyClassY) {
     y.M();
   }
@@ -153,7 +153,7 @@ class AClassWithSomeField {
 
 datatype Tree = Nil | Cons(int, Tree, Tree)
 
-function NestedMatch0(tree: Tree): int
+ghost function NestedMatch0(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -163,7 +163,7 @@ function NestedMatch0(tree: Tree): int
     case Cons(hh,ll,rr) => hh
 }
 
-function NestedMatch1(tree: Tree): int
+ghost function NestedMatch1(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -176,7 +176,7 @@ function NestedMatch1(tree: Tree): int
       case Cons(h1,l1,r1) => h + h0 + h1
 }
 
-function NestedMatch2(tree: Tree): int
+ghost function NestedMatch2(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -189,7 +189,7 @@ function NestedMatch2(tree: Tree): int
       case Cons(h1,l1,r1) => h + h1
 }
 
-function NestedMatch3(tree: Tree): int
+ghost function NestedMatch3(tree: Tree): int
 {
   match tree
   case Nil => 0
@@ -330,7 +330,7 @@ module Q_M {
 // ------- top-level statics -----------------
 
 module TopLevelStatics {
-  static function F(): int  // error/warning: static keyword does not belong here
+  static ghost function F(): int  // error/warning: static keyword does not belong here
   { 0 }
   static method M()  // error/warning: static keyword does not belong here
   { }

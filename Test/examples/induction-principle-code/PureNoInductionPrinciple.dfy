@@ -15,7 +15,7 @@ module PureNoInductionPrinciple {
   import opened Interp
   import Pure
 
-  predicate ResultSameCtx<V>(locals: set<string>, ctx: Context, res: Result<(V,Context)>)
+  ghost predicate ResultSameCtx<V>(locals: set<string>, ctx: Context, res: Result<(V,Context)>)
   {
     Pure.ResultSameCtx(locals, ctx, res)
   }

@@ -9,11 +9,11 @@
 // a trigger.   This would create  an invalid trigger,  so Dafny doesn't  let it
 // happen.
 
-function sum(a: int, b: int): int {
+ghost function sum(a: int, b: int): int {
   a + b
 }
 
-predicate sum_is_sum(b: int, c: int) {
+ghost predicate sum_is_sum(b: int, c: int) {
   forall a: int :: sum(a, b) + c == a + b + c
 }
 

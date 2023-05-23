@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class PrintStmt : Statement, ICloneable<PrintStmt> {
+public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
   public readonly List<Expression> Args;
 
   public static readonly Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
@@ -14,6 +15,11 @@ public class PrintStmt : Statement, ICloneable<PrintStmt> {
     DafnyOptions.RegisterLegacyBinding(TrackPrintEffectsOption, (options, value) => {
       options.EnforcePrintEffects = value;
     });
+
+    DooFile.RegisterLibraryChecks(
+      checks: new Dictionary<Option, DooFile.OptionCheck> {
+        { TrackPrintEffectsOption, DooFile.CheckOptionMatches }
+      });
   }
 
   [ContractInvariantMethod]
@@ -43,5 +49,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt> {
         yield return arg;
       }
     }
+  }
+
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 }

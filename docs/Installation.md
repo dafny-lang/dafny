@@ -2,7 +2,7 @@
 title: Installation Instructions
 -------
 
-This page has instructions for installing Dafny, by typical users:
+This page has instructions for installing Dafny by typical users:
 
 * Using IDEs: [VSCode](#Visual-studio-code), [Emacs](#Emacs)
 * Installing a binary build ([Windows](#windows-binary), [Linux](#linux-binary), or [Mac](#Mac-binary))
@@ -16,7 +16,7 @@ System Requirements
 ===================
 
 The `dafny tool` is a .NET 6.0 artifact, but it compiles to native executables on supported platforms.
-That and the Z3 tool are all that ns needed to use dafny for verification; additional tools are 
+That and the Z3 tool are all that is needed to use dafny for verification; additional tools are 
 need for compilation, as described below.
 
 ## Operating Systems
@@ -49,12 +49,12 @@ and any user code in one project.
 
 - Dafny targeting Java produces Java 8-compatible source.
 - The 'javac', 'jar, and 'java' executables are needed on the host system to compile and run Dafny-generated Java source code.
-- A Dafny-produced Java program must be run with the supplied DafnyRuntime.jar. This jar is compiled to run with TBD????
+- A Dafny-produced Java program must be run with the supplied DafnyRuntime.jar. This jar is compiled to run with Java 8.
 
 ### Javascript
 
-- Dafny targeting Javascript produces 
-TBD
+- Dafny targeting Javascript produces Javascript source consistent with Node.js v 16.0.0
+
 
 ### Python
 
@@ -65,7 +65,7 @@ with the user's choice of python tool (that compiles at least 3.7).
 
 ### Go
 
-TBD
+- Dafny targeting Go produces Go source content consistent with Go 1.18.
 
 ### C++
 
@@ -104,8 +104,8 @@ Do look at the README, though! It's full of useful tips.
 
 
 
-Install the binaries
-====================
+Install the binaries from the github releases
+=============================================
 
 The following instructions
 tell you how to install Dafny so that you can run it from various operating systems as a command-line tool.
@@ -118,7 +118,7 @@ install the correct dependencies for the desired language.
 To install Dafny on your own machine, 
 
 * Install (if not already present) .NET Core 6.0: `https://dotnet.microsoft.com/download/dotnet/6.0`
-* download the windows zip file from the [releases page](https://github.com/dafny-lang/dafny/releases/latest) and **save** it to your disk. 
+* Download the windows zip file from the [releases page](https://github.com/dafny-lang/dafny/releases/latest) and **save** it to your disk. 
 * Then, **before you open or unzip it**, right-click on it and select Properties; at the bottom of the dialog, click the **Unblock** button and then the OK button. 
 * Now, open the zip file and copy its contents into a directory on your machine. (You can now delete the zip file.)
 
@@ -144,13 +144,12 @@ After the compiler dependencies are installed, you can run a quick test of the i
 
 To install a binary installation of dafny on Mac OS, do one of the following:
 Either
-   * install the Mac binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
    * Install the Mac binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
    * Unzip the downloaded file in a (empty) location of your choice ($INSTALL)
    * cd into the installation directory (`$INSTALL/dafny`) and run the script `./allow_on_mac.sh`
    * dafny is run with the command `$INSTALL/dafny/dafny`
 or
-   * install dafny using brew, with the command `brew install dafny` (updating this version sometimes lags the
+   * install dafny using brew, with the command `brew install dafny` (the version on brew sometimes lags the
      project release page)
    * run dafny with the command `dafny`
 
@@ -164,7 +163,7 @@ After the compiler dependencies are installed, you can run a quick test of the i
 The .NET [NuGet](https://www.nuget.org/) repository collects .NET libraries and tools for easy installation. Dafny is available on NuGet, and can be installed as follows:
 
 * Install .NET 6.0 as described for your platform in one of the subsections above.
-* Install a binary version of Z3 4.8.5 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.8.5) and put the `z3` executable in your `PATH`.
+* Install a binary version of Z3 4.12.1 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.1) and put the `z3` executable in your `PATH`.
 * Install Dafny using `dotnet tool install --global dafny` (or leave out the `--global` to use with `dotnet tool run` from the source directory of a .NET project).
 
 
@@ -174,7 +173,8 @@ The instructions here describe the dependencies needed to have the tools to comp
 and the procedure to use for simple programs.
 
 Note that a pure Dafny program (say `A.dfy`) can be compiled and run in one step using `dafny run A.dfy`
-and can be run for a particular programming language with the `--target` option. 
+and can be run for a particular programming language with the `--target` option (the default target is C#). 
+Additional instructions are found in the [Dafny User Guide](DafnyRef/DafnyRef#sec-dafny-run).
 
 ### C# (.Net)
 
@@ -183,11 +183,11 @@ Install .NET 6.0:
 * Linux) Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-6.0`
 * Mac) Install .NET 6.0: `brew install dotnet-sdk` or from `https://docs.microsoft.com/dotnet/core/install/macos`
 
-<!--
+
 To separately compile and run your program for .NET:
 - `dafny build -t:cs MyProgram.dfy`
 - `MyProgram.exe`
--->
+
 
 ### Javascript
 
@@ -224,7 +224,7 @@ To set up Dafny to compile to Java:
 
 To separately compile and run your program for Java:
 - `dafny build -t:java MyProgram.dfy`
-- `java -cp "MyProgram-java:MyProgram-java/DafnyRuntime.jar`" MyProgram
+- `java -jar MyProgram.jar`
 
 ### Python
 

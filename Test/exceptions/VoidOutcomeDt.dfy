@@ -6,10 +6,10 @@ datatype VoidOutcome =
 | VoidSuccess
 | VoidFailure(error: string)
 {
-    predicate method IsFailure() {
+    predicate IsFailure() {
         this.VoidFailure?
     }
-    function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }

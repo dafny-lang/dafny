@@ -1,7 +1,7 @@
-// RUN: ! %dafny /compile:3 /compileTarget:cs "%s" > "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:go "%s" >> "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:java "%s" >> "%t"
-// RUN: ! %dafny /compile:3 /compileTarget:js "%s" >> "%t"
+// RUN: ! %dafny /compile:3 /compileTarget:cs /unicodeChar:0 "%s" > "%t"
+// RUN: ! %dafny /compile:3 /compileTarget:go /unicodeChar:0 "%s" >> "%t"
+// RUN: ! %dafny /compile:3 /compileTarget:java /unicodeChar:0 "%s" >> "%t"
+// RUN: ! %dafny /compile:3 /compileTarget:js /unicodeChar:0 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../exceptions/NatOutcomeDt.dfy"

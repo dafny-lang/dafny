@@ -30,7 +30,7 @@ method catch(do: int) returns (finally: int) {
 
 module enum {
   datatype goto = switch
-  function method do(): goto {
+  function do(): goto {
     switch
   }
   method catch(do: int) returns (finally: int) {

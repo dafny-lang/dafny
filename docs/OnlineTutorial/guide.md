@@ -2,6 +2,8 @@
 
 # Getting Started with Dafny: A Guide
 
+(_The examples use Dafny 4 syntax._)
+
 ## Introduction
 
 Dafny is a language that is designed to make it easy to

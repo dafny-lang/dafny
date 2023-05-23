@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Numerics;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -21,7 +23,7 @@ namespace Microsoft.Dafny;
 /// LambdaExpr also inherits from this base class but isn't really a comprehension,
 /// and should be considered implementation inheritance.
 /// </summary>
-public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression {
+public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICanFormat {
   public virtual string WhatKind => "comprehension";
   public readonly List<BoundVar> BoundVars;
   public readonly Expression Range;
@@ -30,7 +32,6 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public IToken BodyStartTok = Token.NoToken;
-  public IToken BodyEndTok = Token.NoToken;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -72,6 +73,7 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     ///
     /// 10: CollectionBoundedPool
     ///     - SetBoundedPool
+    ///     - MultiSetBoundedPool
     ///     - MapBoundedPool
     ///     - SeqBoundedPool
     ///
@@ -81,19 +83,36 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     /// </summary>
     public abstract int Preference(); // higher is better
 
-    public static BoundedPool GetBest(List<BoundedPool> bounds, PoolVirtues requiredVirtues) {
+    public static BoundedPool GetBest(List<BoundedPool> bounds) {
       Contract.Requires(bounds != null);
       bounds = CombineIntegerBounds(bounds);
       BoundedPool best = null;
       foreach (var bound in bounds) {
-        if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
-          if (best == null || bound.Preference() > best.Preference()) {
-            best = bound;
-          }
+        if (best is IntBoundedPool ibp0 && bound is IntBoundedPool ibp1) {
+          best = new IntBoundedPool(
+            ChooseBestIntegerBound(ibp0.LowerBound, ibp1.LowerBound, true),
+            ChooseBestIntegerBound(ibp0.UpperBound, ibp1.UpperBound, false));
+        } else if (best == null || bound.Preference() > best.Preference()) {
+          best = bound;
         }
       }
       return best;
     }
+
+    [CanBeNull]
+    static Expression ChooseBestIntegerBound([CanBeNull] Expression a, [CanBeNull] Expression b, bool pickMax) {
+      if (a == null || b == null) {
+        return a ?? b;
+      }
+
+      if (Expression.IsIntLiteral(Expression.StripParensAndCasts(a), out var aa) &&
+          Expression.IsIntLiteral(Expression.StripParensAndCasts(b), out var bb)) {
+        var x = pickMax ? BigInteger.Max(aa, bb) : BigInteger.Min(aa, bb);
+        return new LiteralExpr(a.tok, x) { Type = a.Type };
+      }
+      return a; // we don't know how to determine which of "a" or "b" is better, so we'll just return "a"
+    }
+
     public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
       Contract.Requires(vars != null);
       Contract.Requires(bounds == null || vars.Count == bounds.Count);
@@ -423,6 +442,10 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
     }
   }
   public override IEnumerable<Node> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(SubExpressions);
+  public override IEnumerable<Node> PreResolveChildren =>
+    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
+    .Concat<Node>(Range != null && Range.tok.line > 0 ? new List<Node>() { Range } : new List<Node>())
+    .Concat(Term != null && Term.tok.line > 0 ? new List<Node> { Term } : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -435,4 +458,43 @@ public abstract class ComprehensionExpr : Expression, IAttributeBearingDeclarati
   }
 
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
+  public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    var alreadyAligned = false;
+    var assignOpIndent = indentBefore;
+
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "forall":
+        case "exists":
+        case "map":
+        case "set":
+        case "imap":
+        case "iset": {
+            indentBefore = formatter.ReduceBlockiness ? indentBefore : formatter.GetNewTokenVisualIndent(token, indentBefore);
+            assignOpIndent = formatter.ReduceBlockiness ? indentBefore + formatter.SpaceTab : indentBefore;
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+
+            break;
+          }
+        case ":=":
+        case "::": {
+            var afterAssignIndent = (formatter.ReduceBlockiness && token.Prev.line == token.line) || token.line == token.Next.line ? assignOpIndent : assignOpIndent + formatter.SpaceTab;
+            if (alreadyAligned) {
+              formatter.SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
+            } else {
+              if (TokenNewIndentCollector.IsFollowedByNewline(token)) {
+                formatter.SetIndentations(token, afterAssignIndent, assignOpIndent, afterAssignIndent);
+              } else {
+                alreadyAligned = true;
+                formatter.SetAlign(assignOpIndent, token, out afterAssignIndent, out assignOpIndent);
+                assignOpIndent -= 1; // because "::" or ":=" has one more char than a comma 
+              }
+            }
+            break;
+          }
+      }
+    }
+
+    return true;
+  }
 }

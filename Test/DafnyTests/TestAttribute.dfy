@@ -1,5 +1,5 @@
 // RUN: %exits-with 3 %dafny /compileVerbose:1 /compile:0 /spillTargetCode:3 /noVerify "%s" > "%t"
-// RUN: ! dotnet test -v:q %S >> %t
+// RUN: ! dotnet test -v:q %S 2>> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Error: Post-conditions on function Identity might be unsatisfied when synthesizing code for method mockUnsafe.*
@@ -16,7 +16,7 @@
 include "../exceptions/VoidOutcomeDt.dfy"
 include "../exceptions/NatOutcomeDt.dfy"
 
-function method SafeDivide(a: nat, b: nat): NatOutcome {
+function SafeDivide(a: nat, b: nat): NatOutcome {
   if b == 0 then
     NatFailure("Divide by zero")
   else
@@ -36,11 +36,11 @@ method FailUnless(p: bool) returns (r: VoidOutcome) ensures r.VoidSuccess? ==> p
   }
 }
 
-function method {:test} PassingTest(): VoidOutcome {
+function {:test} PassingTest(): VoidOutcome {
   VoidSuccess
 }
 
-function method {:test} FailingTest(): VoidOutcome {
+function {:test} FailingTest(): VoidOutcome {
   VoidFailure("Whoopsie")
 }
 
@@ -83,7 +83,7 @@ class Even {
 
   var value:int;
     
-  function method IsValid():bool reads this {
+  function IsValid():bool reads this {
     this.value % 2 == 0
   }
     
@@ -94,11 +94,11 @@ class Even {
     this.value := value;
   }
     
-  function method Next():Even? {
+  function Next():Even? {
     null // not implemented yet but can be mocked
   }
     
-  function method Sum(a:int, b:int):int {
+  function Sum(a:int, b:int):int {
     a + b
   }
     
@@ -106,7 +106,7 @@ class Even {
     this.value := this.value + 1;
   }
     
-  function method Identity(a:int):(b:int)
+  function Identity(a:int):(b:int)
     ensures b == a {
     a
   }
@@ -252,17 +252,17 @@ class StringMap {
 
   var m:map<string, string>;
 
-  function method Contains(key:string):bool reads this {
+  function Contains(key:string):bool reads this {
     key in m
   }
 
-  function method Get(key:string):string reads this
+  function Get(key:string):string reads this
     requires Contains(key)
   {
     m[key]
   }
 
-  static function method GetOrDefault(m:StringMap, key:string, default:string):string reads m
+  static function GetOrDefault(m:StringMap, key:string, default:string):string reads m
   {
     if m.Contains(key) then m.Get(key) else default
   }

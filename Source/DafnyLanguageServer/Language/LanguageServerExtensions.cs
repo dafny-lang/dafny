@@ -26,7 +26,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
-        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
+        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(
+          serviceProvider.GetRequiredService<DafnyOptions>(),
+          serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton(CreateVerifier)
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()

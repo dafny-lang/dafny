@@ -4,7 +4,7 @@
 module Tests {
 
 class C {
-  function F(c: C, d: D): bool { true }
+  ghost function F(c: C, d: D): bool { true }
   method M(x: int) returns (y: int, c: C)
     requires F(D.A, this);  // 2 errors
     requires F(4, 5);  // 2 errors
@@ -67,7 +67,7 @@ method ScopeTests()
   e.c := new MyClass.Init(e);  // also fine
 }
 
-function IntTransform(w: int): int
+ghost function IntTransform(w: int): int
 
 class MyClass {
   var c: MyClass;
@@ -143,7 +143,7 @@ method K() {
   Expl_Module.E<nat>.N(0, 0);
 }
 method Expl_M<T>(x: T) returns (y: T)
-function method Expl_F<T>(x: T): T
+function Expl_F<T>(x: T): T
 class Expl_Class<T> {
   method Init<U>(t: T, u: U)
   static method DoIt<U>(t: T, u: U)
@@ -204,7 +204,7 @@ module ProxyCycles {
     dt := Ctor(f);  // error: cannot infer a type for f
   }
 
-  function method F<X>(x: X): set<X>
+  function F<X>(x: X): set<X>
   method N()
   {
     var x;
@@ -248,5 +248,5 @@ module OtherCycles1 {
 module OtherCycles2 {
   datatype CycleW = CycleW(CycW)
   type CycW = c: CycleW | true witness W()  // error: dependency cycle W -> CycW -> CycleW
-  function method W(): CycleW
+  function W(): CycleW
 }

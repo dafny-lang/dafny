@@ -28,8 +28,8 @@ namespace Microsoft.Dafny {
       public abstract IToken Tok { get; }
       bool reported;
       public void FlagAsError(Resolver resolver) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+        if (resolver.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+          resolver.Options.OutputWriter.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
         }
         resolver.TypeConstraintErrorsToBeReported.Add(this);
       }

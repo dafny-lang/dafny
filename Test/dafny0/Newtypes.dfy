@@ -53,7 +53,7 @@ module Constraints {
   newtype B = x: A | x < 100
   newtype C = B  // the constraints 0 <= x < 100 still apply
 
-  predicate IsEven(x: int)  // note that this is a ghost predicate
+  ghost predicate IsEven(x: int)  // note that this is a ghost predicate
   {
     x % 2 == 0
   }

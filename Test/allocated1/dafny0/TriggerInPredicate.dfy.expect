@@ -1,4 +1,5 @@
-TriggerInPredicate.dfy(6,32): Info: Not generating triggers for "A(x, y) && z".
+The /allocated:<n> option is deprecated
+TriggerInPredicate.dfy(6,38): Info: Not generating triggers for "A(x, y) && z".
 TriggerInPredicate.dfy(9,20): Info: Some instances of this call are not inlined.
 TriggerInPredicate.dfy(9,20): Info: Some instances of this call are not inlined.
 

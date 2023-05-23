@@ -43,7 +43,7 @@ method NumericSlice<T>(x: seq<T>, two: MyNumeric) returns (y: seq<T>)
   return middle(slices);
 }
 
-function method middle<G>(s: seq<G>): G
+function middle<G>(s: seq<G>): G
   requires |s| % 2 == 1
 {
   s[|s| / 2]

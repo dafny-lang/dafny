@@ -3,7 +3,7 @@
 
 // This file ensures that trigger splitting picks the right tokens
 
-function Id(i: int): int { i }
+ghost function Id(i: int): int { i }
 
 method MSuchThat()
   requires forall x | x > 0 :: Id(x) > 1 && x > 2 && x > -1 { }

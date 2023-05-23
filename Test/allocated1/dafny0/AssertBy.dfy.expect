@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 // AssertBy.dfy
 
 method M0(x: int, y: int)

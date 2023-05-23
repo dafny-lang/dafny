@@ -1,4 +1,4 @@
-git-issue-283c.dfy(19,6): Error: missing case in match expression: Success(C2(c: string)) (not all possibilities for constant 'c' in context have been covered)
-git-issue-283c.dfy(27,6): Error: missing case in match expression: Failure(c: string) (not all possibilities for constant 'c' in context have been covered)
+git-issue-283c.dfy(19,6): Error: missing case in match expression: Success(C2(c: string)) (not all possibilities for constant 'c' have been covered)
+git-issue-283c.dfy(27,6): Error: missing case in match expression: Failure(c: string) (not all possibilities for constant 'c' have been covered)
 
 Dafny program verifier finished with 0 verified, 2 errors

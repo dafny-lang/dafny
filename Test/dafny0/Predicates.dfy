@@ -7,14 +7,14 @@ abstract module Loose {
   class MyNumber {
     var N: int
     ghost var Repr: set<object>
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
     {
       this in Repr &&
       0 <= N &&
       CustomValid()
     }
-    predicate CustomValid()
+    ghost predicate CustomValid()
       reads this, Repr
     constructor Init()
       ensures Valid() && fresh(Repr)
@@ -44,7 +44,7 @@ abstract module Loose {
 
 module Tight refines Loose {
   class MyNumber ... {
-    predicate CustomValid...
+    ghost predicate CustomValid...
     {
       N % 2 == 0
     }
@@ -84,7 +84,7 @@ module AwareClient {
 module Q0 {
   class C {
     var x: int
-    predicate P()
+    ghost predicate P()
       reads this
     {
       true
@@ -94,7 +94,7 @@ module Q0 {
       ensures forall c: C :: allocated(c) ==> c.P()
     {
     }
-    predicate Q()
+    ghost predicate Q()
       reads this
     {
       x < 100
@@ -105,19 +105,19 @@ module Q0 {
     {  // error: fails to establish postcondition (but this error should not be repeated in Q1 or Q2 below)
       x := 102;
     }
-    predicate R()  // a body-less predicate
+    ghost predicate R()  // a body-less predicate
       reads this
   }
 }
 
 module Q1 refines Q0 {
   class C ... {
-    predicate R...  // no body yet
+    ghost predicate R...  // no body yet
   }
 }
 
 module Q2 refines Q1 {
   class C ... {
-    predicate R... { x % 3 == 2 }  // finally, give it a body
+    ghost predicate R... { x % 3 == 2 }  // finally, give it a body
   }
 }

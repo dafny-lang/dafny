@@ -61,7 +61,7 @@ class C {
     assert false; // error: this statement is reachable
   }
 
-  function {:opaque} OpaqueData(x: int): int
+  ghost function {:opaque} OpaqueData(x: int): int
     reads this
   {
     x + data

@@ -11,7 +11,7 @@ module WithWarning {
       case A => print "A";
       case B => print "B";
   }
-  function method Foo(value: Identity<Colors>): bool {
+  function Foo(value: Identity<Colors>): bool {
     match value {
       case Identity(Yellow()) => true
       case Identity(Blue) => false
@@ -23,7 +23,7 @@ module WithWarning {
       case Green => true
       case anythingElse => false;
   }
-  function method MonochromaticFunction(c: Color) : bool {
+  function MonochromaticFunction(c: Color) : bool {
     match c
       case ShadesOfGray => true
       case Green => true
@@ -53,7 +53,7 @@ module WithoutWarning {
         case A() => print "A";
         case B() => print "B";
     }
-  function method Foo(value: Identity<Colors>): bool {
+  function Foo(value: Identity<Colors>): bool {
     match value {
       case Identity(Yellow()) => true
       case Identity(Blue()) => false
@@ -65,7 +65,7 @@ module WithoutWarning {
           case Green() => true
           case anythingElse => false;
   }
-  function method MonochromaticFunction(c: Color) : bool {
+  function MonochromaticFunction(c: Color) : bool {
         match c
           case ShadesOfGray(_) => true
           case Green() => true

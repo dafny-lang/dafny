@@ -1,12 +1,12 @@
 // RUN: %exits-with 4 %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate {:opaque} p(i:int)
+ghost predicate {:opaque} p(i:int)
 {
   i == 3
 }
 
-predicate {:opaque} q(x:int)
+ghost predicate {:opaque} q(x:int)
   requires p(x)
   ensures  p(x)
 {

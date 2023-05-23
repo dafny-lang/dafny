@@ -74,7 +74,7 @@ module C_AnonymousClass refines B_AnonymousClass {
 // ------------------------------------------------
 
 module BodyFree {
-  function F(x: int): int
+  ghost function F(x: int): int
     ensures 0 <= F(x);
   method TestF() {
     assert F(6) == F(7);  // error: no information about F so far
@@ -84,7 +84,7 @@ module BodyFree {
 }
 
 module SomeBody refines BodyFree {
-  function F(x: int): int
+  ghost function F(x: int): int
   { if x < 0 then 2 else 3 }
   method TestFAgain() {
     assert F(6) == F(7);
@@ -96,7 +96,7 @@ module SomeBody refines BodyFree {
 }
 
 module FullBodied refines BodyFree {
-  function F(x: int): int
+  ghost function F(x: int): int
   { x } // error: does not meet the inherited postcondition
   method M() returns (a: int, b: int)
   {  // error: does not establish postcondition
@@ -110,7 +110,7 @@ module Abstract {
   class MyNumber {
     ghost var N: int
     ghost var Repr: set<object>
-    predicate Valid()
+    ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
     constructor Init()
@@ -144,7 +144,7 @@ module Concrete refines Abstract {
   class MyNumber ... {
     var a: int
     var b: int
-    predicate Valid...
+    ghost predicate Valid...
     {
       this in Repr &&
       N == a - b
@@ -186,7 +186,7 @@ module IncorrectConcrete refines Abstract {
   class MyNumber ... {
     var a: int
     var b: int
-    predicate Valid...
+    ghost predicate Valid...
     {
       this in Repr &&
       N == 2*a - b

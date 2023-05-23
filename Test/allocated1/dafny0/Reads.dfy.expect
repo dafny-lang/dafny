@@ -1,3 +1,4 @@
+The /allocated:<n> option is deprecated
 Reads.dfy(133,10): Error: insufficient reads clause to read field
 Reads.dfy(143,18): Error: insufficient reads clause to read field
 Reads.dfy(145,18): Error: insufficient reads clause to invoke function

@@ -35,7 +35,7 @@ module M1 {
     p := set o: object | allocated(o);  // allowed, since the whole method is ghost
   }
 
-  function F(p: object): int
+  ghost function F(p: object): int
     requires p in set o: object | allocated(o)  // error: function is not allowed to depend on allocation state
     ensures p in set o: object | allocated(o)  // error: ditto (although one could argue that this would be okay)
     reads set o: object | allocated(o)  // error: same as for 'requires'
@@ -47,7 +47,7 @@ module M1 {
       0
   }
 
-  function method G(p: object): int
+  function G(p: object): int
     requires p in set o: object | allocated(o)  // error (see F)
     ensures p in set o: object | allocated(o)  // error (see F)
     reads set o: object | allocated(o)  // error (see F)
@@ -61,7 +61,7 @@ module M1 {
 }
 
 module M2 {
-  function method G(p: object): int
+  function G(p: object): int
 
   method M0() returns (ghost r: int, s: int)
     requires null in set o: object? | allocated(o)  // allowed

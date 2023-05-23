@@ -12,13 +12,13 @@ trait Universe {
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe,
   // without having to check the object invariants.
-  predicate globalBaseInv() reads this, content {
+  ghost predicate globalBaseInv() reads this, content {
     && (forall o: Object | o in content :: && o.universe == this && o as object != this)
     && (forall o: OwnedObject | o in content :: o.owner in content && (!o.closed ==> o.owner is Thread))
   }
 
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate globalInv() reads * {
+  ghost predicate globalInv() reads * {
     && globalBaseInv()
     && (forall o: Object | o in content :: o.inv())
   }
@@ -77,7 +77,7 @@ trait Object {
   const universe: Universe
   
   // Base invariant: we're in the universe, and the universe satisfies its base.
-  predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
+  ghost predicate baseInv() reads * { this in universe.content && universe.globalBaseInv() }
 
   // Join the universe
   ghost method join()
@@ -104,38 +104,38 @@ trait Object {
   }
 
   // Global invariant (from o's perspective) - I am in the universe and the universe is good. (This implies I am good also.)
-  predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
+  ghost predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
   twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { baseInv() && universe.globalInv2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
-  predicate localInv() reads *
+  ghost predicate localInv() reads *
   twostate predicate localInv2() reads *
-  predicate inv() ensures inv() ==> localInv() reads *
+  ghost predicate inv() ensures inv() ==> localInv() reads *
   twostate predicate inv2() ensures inv2() ==> localInv2() reads *
   twostate lemma admissibility(running: Thread) requires goodPreAndLegalChanges(running) ensures inv2() && inv()
   
   // To prevent a class from extending both OwnedObject and NonOwnedObject
-  predicate instanceOfOwnedObject()
+  ghost predicate instanceOfOwnedObject()
 }
 
 trait NonOwnedObject extends Object {
   // To prevent a class from extending both OwnedObject and NonOwnedObject
-  predicate instanceOfOwnedObject() { false }
+  ghost predicate instanceOfOwnedObject() { false }
 }
 
 trait OwnedObject extends Object {
   ghost var owner: Object
   ghost var closed: bool
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
     && owner.universe == universe && owner in universe.content
     && baseUserInv()
     && (closed ==> localUserInv())
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
     && (closed ==> userInv())
   }
@@ -179,15 +179,15 @@ trait OwnedObject extends Object {
   }
 
   // To prevent a class from extending both OwnedObject and NonOwnedObject
-  predicate instanceOfOwnedObject() { true }
+  ghost predicate instanceOfOwnedObject() { true }
 
-  predicate userFieldsOwnedBy(owner: Object) reads *
+  ghost predicate userFieldsOwnedBy(owner: Object) reads *
   twostate predicate userFieldsUnchanged() reads *
 
-  predicate baseUserInv() reads *
-  predicate localUserInv() reads *
+  ghost predicate baseUserInv() reads *
+  ghost predicate localUserInv() reads *
   twostate predicate localUserInv2() reads *
-  predicate userInv() reads * ensures userInv() ==> localUserInv()
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv()
   twostate predicate userInv2() reads * ensures userInv2() ==> localUserInv2()
 }
 
@@ -205,10 +205,10 @@ lemma TypingAxiom4(b: OwnedObject)
 class Thread extends NonOwnedObject {
   // ghost var ownedObjects: set<OwnedObject> // It seems useless
 
-  predicate localInv() reads * {
+  ghost predicate localInv() reads * {
     && baseInv()
   }
-  predicate inv() reads * ensures inv() ==> localInv() {
+  ghost predicate inv() reads * ensures inv() ==> localInv() {
     && localInv()
   }
 
@@ -238,21 +238,21 @@ class Thread extends NonOwnedObject {
 
 // An example of type without fields
 class EmptyType extends OwnedObject {
-  predicate userFieldsOwnedBy(owner: Object) reads * {
+  ghost predicate userFieldsOwnedBy(owner: Object) reads * {
     true
   }
   twostate predicate userFieldsUnchanged() reads * {
     true
   }
   
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && true
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && true
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 
@@ -290,21 +290,21 @@ class EmptyType extends OwnedObject {
 class AtomicCounter extends OwnedObject {
   var value: int
 
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && true
   }
 
-  predicate userFieldsOwnedBy(owner: Object) reads * {
+  ghost predicate userFieldsOwnedBy(owner: Object) reads * {
     true
   }
   twostate predicate userFieldsUnchanged() reads * {
     old(value) == value
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     && true
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 
@@ -351,7 +351,7 @@ class DoubleReadMethod extends OwnedObject {
   var initial_value: int
   var final_value: int
 
-  predicate userFieldsOwnedBy(owner: Object) reads * {
+  ghost predicate userFieldsOwnedBy(owner: Object) reads * {
     && counter.owner == owner
   }
   twostate predicate userFieldsUnchanged() reads * {
@@ -361,11 +361,11 @@ class DoubleReadMethod extends OwnedObject {
     && old(final_value) == final_value
   }
   
-  predicate baseUserInv() reads * {
+  ghost predicate baseUserInv() reads * {
     && counter in universe.content && counter.universe == universe
   }
 
-  predicate localUserInv() reads * {
+  ghost predicate localUserInv() reads * {
     // && closed // This is meaningless here
     // && owner == universe.runningThread // Cannot mention the running thread in an invariant
     // && counter.closed // Not admissible
@@ -374,7 +374,7 @@ class DoubleReadMethod extends OwnedObject {
     && (1 <= programCounter ==> initial_value <= counter.value)
     && (2 <= programCounter ==> initial_value <= final_value <= counter.value)
   }
-  predicate userInv() reads * ensures userInv() ==> localUserInv() {
+  ghost predicate userInv() reads * ensures userInv() ==> localUserInv() {
     && localUserInv()
   }
 

@@ -4,7 +4,7 @@
 module NestedMatch {
   datatype Nat = Zero | Suc(Nat)
 
-  predicate Even(n: Nat)
+  ghost predicate Even(n: Nat)
   {
     match n
     case Zero => true
@@ -21,7 +21,7 @@ module NestedMatch {
 
   datatype List<T> = Nil | Cons(T, List<T>)
 
-  function last<T>(xs: List<T>): T
+  ghost function last<T>(xs: List<T>): T
     requires xs != Nil
   {
     match xs
@@ -35,7 +35,7 @@ module NestedMatch {
   }
 
 
-  function minus(x: Nat, y: Nat): Nat
+  ghost function minus(x: Nat, y: Nat): Nat
   {
     match (x, y)
     case (Zero, _) => Zero
@@ -62,9 +62,9 @@ module NestedMatch {
 
 module MatchInCalc_Module {  // regression tests
   datatype T = Leaf(h: int) | Node(g: int)
-  predicate P(t: T)
-  predicate Q(t: T)
-  function F(t: T): int {
+  ghost predicate P(t: T)
+  ghost predicate Q(t: T)
+  ghost function F(t: T): int {
     match t
     case Leaf(r0) => r0
     case Node(r1) => 2 * r1

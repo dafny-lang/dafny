@@ -21,21 +21,21 @@ method Main() {
 
 datatype List<T> = Nil | Cons(T, List<T>)
 
-function method length(xs: List): nat
+function length(xs: List): nat
 {
   match xs
   case Nil => 0
   case Cons(_, tail) => 1 + length(tail)
 }
 
-function method SeqToList(s: seq): List
+function SeqToList(s: seq): List
 {
   if s == [] then Nil else Cons(s[0], SeqToList(s[1..]))
 }
 
 // ----- foldr ----------
 
-function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
+function foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 {
   match xs
   case Nil => b
@@ -44,7 +44,7 @@ function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 
 // The following predicate says that "inv" is invariant under "stp".
 // "stp" is really just a relational version of the function "f" passed to fold.
-predicate InvR<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
+ghost predicate InvR<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
 {
   forall x, xs, b, b' ::
   inv(xs, b) && stp(x, b, b') ==> inv(Cons(x, xs), b')
@@ -93,7 +93,7 @@ method FoldR_Use(xs: List<int>)
 
 // The (inv,stp) method of proof above is general, in the sense that it can be instantiated with (inv,stp).
 // For a particular function, like F23, one can also prove a lemma about foldr directly.
-function method F23(a: int, b: int): int {
+function F23(a: int, b: int): int {
   2*a + 3*b
 }
 
@@ -140,7 +140,7 @@ lemma FoldingIncR(xs: List<int>)
 
 // ----- foldl ----------
 
-function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
+function foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 {
   match xs
   case Nil => b
@@ -149,7 +149,7 @@ function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 
 // InvL is like InvR above, but the implication goes from larger lists to smaller ones (which is
 // in the opposite direction from in InvR).
-predicate InvL<A(!new),B(!new)>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
+ghost predicate InvL<A(!new),B(!new)>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
 {
   forall x, xs, b, b' ::
   inv(b, Cons(x, xs)) && stp(b, x, b') ==> inv(b', xs)
@@ -216,7 +216,7 @@ lemma FoldL_Property_inv_f<A,B>(inv: (B,List<A>) -> bool, f: (B,A) -> B, b: B, x
 }
 
 // And as in the case of foldr, one can also use a specialized lemma for a particular function to be folded.
-function method F32(b: int, a: int): int
+function F32(b: int, a: int): int
 {
   3*b + 2*a
 }
@@ -234,7 +234,7 @@ method FoldL_Use_Direct(xs: List<int>)
   assert r % 2 == 0;
 }
 
-method FoldL_Use_Direct_lambda(xs: List<int>)
+method {:vcs_split_on_every_assert} FoldL_Use_Direct_lambda(xs: List<int>)
 {
   var f := (b,a) => 3*b + 2*a;
   var r := foldl(f, 0, xs);

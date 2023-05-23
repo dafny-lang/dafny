@@ -1,8 +1,8 @@
 // RUN: %exits-with 4 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate P(i: int)
-predicate Q(i: int)
+ghost predicate P(i: int)
+ghost predicate Q(i: int)
 
 /* This file demonstrates a case where automatic trigger splitting is useful to
    prevent loop detection from reducing expressivity too much. */

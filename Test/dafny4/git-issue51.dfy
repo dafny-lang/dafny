@@ -6,7 +6,7 @@ class C {
   var x: int
 }
 
-function F(c: C): int
+ghost function F(c: C): int
   reads c
 {
   c.x

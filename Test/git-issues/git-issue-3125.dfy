@@ -6,6 +6,6 @@ method Foo() returns (i: int) {
     return "implicit assignment";
 }
 
-function foo(): int {
+ghost function foo(): int {
     "hello"
 }

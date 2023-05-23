@@ -3,8 +3,9 @@
 
 <!-- ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
-## **Warning: timeLimitMultiplier annotation overrides " + name + " annotation**
+## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation**
 
+<!-- %check-resolve-warn -->
 ```dafny
 method {:timeLimitMultiplier 10} {:timeLimit 5} m() {}
 ```
@@ -202,7 +203,7 @@ It is likely to be removed in a future version of `dafny`.
 
 <!-- %check-resolve -->
 ```dafny
-function method {:print} f(): int { 0 }
+function {:print} f(): int { 0 }
 ```
 
 The `{:print}` attribute is used to mark methods that have a side-effect of

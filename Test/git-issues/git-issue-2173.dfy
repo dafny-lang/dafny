@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:4 /compileTarget:cs "%s" >> "%t"
 
 datatype T = Leaf(x: int) | T(t: T) {
-  function method {:tailrecursion} TR() : int {
+  function {:tailrecursion} TR() : int {
     if Leaf? then 0
     else t.TR()
   }

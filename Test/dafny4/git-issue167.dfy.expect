@@ -2,4 +2,4 @@
 Dafny program verifier finished with 4 verified, 0 errors
 30
 {6, 7}
-{Alfons, Milla}
+{['M', 'i', 'l', 'l', 'a'], ['A', 'l', 'f', 'o', 'n', 's']}

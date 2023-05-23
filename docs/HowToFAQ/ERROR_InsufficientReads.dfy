@@ -1,5 +1,5 @@
 class {:autocontracts} A {
-    predicate Valid() {
+    ghost predicate Valid() {
         true
     }
 
@@ -11,7 +11,7 @@ class {:autocontracts} A {
 class {:autocontracts} B {
     var things: set<A>
 
-    predicate Valid()
+    ghost predicate Valid()
         reads things
     {
         forall thing | thing in things :: thing.Valid()
