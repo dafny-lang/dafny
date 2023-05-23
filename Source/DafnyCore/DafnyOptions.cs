@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     public TextReader Input { get; }
     public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
-    public IList<Uri> CliRootUris = new List<Uri>();
+    public IList<Uri> CliRootSourceUris = new List<Uri>();
 
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
@@ -150,7 +150,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
-      this.CliRootUris.Add(new Uri(Path.GetFullPath(file)));
+      this.CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
       base.AddFile(file, ps);
     }
 

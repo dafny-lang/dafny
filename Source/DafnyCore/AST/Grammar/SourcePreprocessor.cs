@@ -56,20 +56,11 @@ public static class SourcePreprocessor {
     return defines.Contains(arg) == sense;
   }
 
-  public static string ProcessDirectives(Stream stream, List<string> /*!*/ defines, string newline) {
-    Contract.Requires(stream != null);
-    Contract.Requires(cce.NonNullElements(defines));
-    Contract.Ensures(Contract.Result<string>() != null);
-    StreamReader /*!*/
-      reader = new StreamReader(stream);
-    var o = stream.CanSeek;
-    return ProcessDirectives(reader, defines, newline);
-  }
-
-  public static string ProcessDirectives(TextReader reader, List<string> /*!*/ defines, string newline) {
+  public static string ProcessDirectives(TextReader reader, List<string> /*!*/ defines) {
     Contract.Requires(reader != null);
     Contract.Requires(cce.NonNullElements(defines));
     Contract.Ensures(Contract.Result<string>() != null);
+    string newline = null;
     StringBuilder sb = new StringBuilder();
     List<IfDirectiveState> /*!*/
       ifDirectiveStates = new List<IfDirectiveState>(); // readState.Count is the current nesting level of #if's
@@ -78,7 +69,12 @@ public static class SourcePreprocessor {
     while (true)
     //invariant -1 <= ignoreCutoff && ignoreCutoff < readState.Count;
     {
-      string line = reader.ReadLine();
+      string line;
+      if (newline == null) {
+        line = ReadLineAndDetermineNewline(reader, out newline);
+      } else {
+        line = reader.ReadLine();
+      }
       if (line == null) {
         if (ifDirectiveStates.Count != 0) {
           sb.AppendLine("#MalformedInput: missing #endif");
@@ -163,6 +159,39 @@ public static class SourcePreprocessor {
     }
 
     return sb.ToString();
+  }
+
+  public static string ReadLineAndDetermineNewline(TextReader reader, out string newline) {
+
+    StringBuilder sb = new StringBuilder();
+    newline = null;
+    while (true) {
+      int ch = reader.Read();
+      if (ch == -1) {
+        break;
+      }
+
+      if (ch == '\r' || ch == '\n') {
+        if (ch == '\r') {
+          if (reader.Peek() == '\n') {
+            newline = "\r\n";
+            reader.Read();
+          } else {
+            newline = "\r";
+          }
+        } else {
+          newline = "\n";
+        }
+
+        return sb.ToString();
+      }
+      sb.Append((char)ch);
+    }
+    if (sb.Length > 0) {
+      return sb.ToString();
+    }
+
+    return null;
   }
 
   /// <summary>
