@@ -366,7 +366,7 @@ const x: int := true as int
 Not all pairs of types have implicit or even explicit conversions. But there are conversions
 to int types from numeric types, including the ORDINAL type; for any source type, the value of 
 the numeric expression must be in the range for the int type (if it is a subset type or a newtype).
-Even `char` values have an integer representation 
+Even `char` values have an integer representation (and thus a representation as an `int`) 
 corresponding to their unicode value.
 
 ## **Error: type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
@@ -571,7 +571,7 @@ The `<<` and `>>` operators are left- and right-shift operations.
 They shift a bit-vector value by a given integer number of bits.
 The left-hand operand must be a value of a bit-vector type.
 Even int literals are not implicitly converted to bitvectors 
-(because Dafny wuld not know which bit-vector type to use).
+(because Dafny would not know which bit-vector type to use).
 An explicit conversion is required.
 
 ## **Error: type of left argument to _op_ (_type_) must agree with the result type (_type_)**
