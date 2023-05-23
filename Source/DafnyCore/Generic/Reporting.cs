@@ -188,13 +188,6 @@ namespace Microsoft.Dafny {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace("\n", "\n ");
 
-        string snippet = null;
-        if (Options.Get(DafnyConsolePrinter.ShowSnippets)) {
-          TextWriter tw = new StringWriter();
-          new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
-          snippet = tw.ToString();
-        }
-
         ConsoleColor previousColor = Console.ForegroundColor;
         if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = ColorForLevel(level);
@@ -217,9 +210,13 @@ namespace Microsoft.Dafny {
             errorLine += "\n" + info;
           }
         }
-        if (snippet != null) {
-          Options.OutputWriter.Write(snippet);
+
+        if (Options.Get(DafnyConsolePrinter.ShowSnippets)) {
+          TextWriter tw = new StringWriter();
+          new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
+          Options.OutputWriter.Write(tw.ToString());
         }
+
         Options.OutputWriter.WriteLine(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
