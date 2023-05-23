@@ -136,7 +136,7 @@ public static class CommandRegistry {
       rootCommand.AddCommand(command);
     }
 
-    var failedToProcessFile = false;
+    var errorOccurred = false;
     void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
@@ -145,7 +145,7 @@ public static class CommandRegistry {
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
         if (!ProcessFile(dafnyOptions, singleFile)) {
-          failedToProcessFile = true;
+          errorOccurred = true;
           return;
         }
       }
@@ -153,7 +153,7 @@ public static class CommandRegistry {
       if (files != null) {
         foreach (var file in files) {
           if (!ProcessFile(dafnyOptions, file)) {
-            failedToProcessFile = true;
+            errorOccurred = true;
             return;
           }
         }
@@ -188,7 +188,14 @@ public static class CommandRegistry {
         }
 
         options.OptionArguments[option] = value;
-        dafnyOptions.ApplyBinding(option);
+        try {
+          dafnyOptions.ApplyBinding(option);
+        } catch (Exception e) {
+          errorOccurred = true;
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+            $"Invalid value for option {option.Name}: {e.Message}");
+          return;
+        }
       }
 
       dafnyOptions.CurrentCommand = command;
@@ -203,7 +210,7 @@ public static class CommandRegistry {
     var exitCode = builder.Build().InvokeAsync(arguments, console).Result;
 #pragma warning restore VSTHRD002
 
-    if (failedToProcessFile) {
+    if (errorOccurred) {
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
 

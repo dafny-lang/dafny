@@ -520,8 +520,7 @@ namespace Microsoft.Dafny {
     /// Generic statistic counter
     /// </summary>
     static void IncrementStat(IDictionary<string, ulong> stats, string stat) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         stats[stat] += 1;
       } else {
         stats.Add(stat, 1);
@@ -532,8 +531,7 @@ namespace Microsoft.Dafny {
     /// Track the maximum value of some statistic
     /// </summary>
     static void UpdateMax(IDictionary<string, ulong> stats, string stat, ulong val) {
-      ulong currentValue;
-      if (stats.TryGetValue(stat, out currentValue)) {
+      if (stats.TryGetValue(stat, out var currentValue)) {
         if (val > currentValue) {
           stats[stat] = val;
         }
@@ -558,8 +556,8 @@ namespace Microsoft.Dafny {
         foreach (var decl in module.TopLevelDecls) {
           if (decl is DatatypeDecl) {
             IncrementStat(stats, "Datatypes");
-          } else if (decl is ClassDecl) {
-            var c = (ClassDecl)decl;
+          } else if (decl is ClassLikeDecl) {
+            var c = (ClassLikeDecl)decl;
             if (c.Name != "_default") {
               IncrementStat(stats, "Classes");
             }
@@ -778,7 +776,7 @@ namespace Microsoft.Dafny {
         return false;
       }
 
-      var d = topd is ClassDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
+      var d = topd is ClassLikeDecl classDecl && classDecl.NonNullTypeDecl != null ? classDecl.NonNullTypeDecl : topd;
 
       if (d is TopLevelDeclWithMembers tdm) {
         // ClassDecl, DatatypeDecl, AbstractTypeDecl, NewtypeDecl 
@@ -833,10 +831,6 @@ namespace Microsoft.Dafny {
         }
       } else if (d is ModuleDecl md) {
         return Traverse(md);
-      } else if (d is ValuetypeDecl vd) {
-        if (vd.Members.Any(pair => Traverse(pair.Value, "Members.Value", vd))) {
-          return true;
-        }
       } else if (d is TypeSynonymDecl tsd) {
         // Nothing here.
       }
