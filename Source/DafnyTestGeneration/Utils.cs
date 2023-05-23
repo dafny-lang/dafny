@@ -137,7 +137,9 @@ namespace DafnyTestGeneration {
 
       private static void AddByMethod(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+          foreach (var topLevelDecl in moduleDecl.ModuleDef.TopLevelDecls) {
+            AddByMethod(topLevelDecl);
+          }
         } else if (d is TopLevelDeclWithMembers withMembers) {
           withMembers.Members.OfType<Function>().Iter(AddByMethod);
         }

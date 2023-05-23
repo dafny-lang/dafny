@@ -717,7 +717,7 @@ namespace Microsoft.Dafny {
       return Traverse(moduleDefinition.TopLevelDecls);
     }
 
-    public bool Traverse(List<TopLevelDecl> topLevelDecls) {
+    public bool Traverse(IEnumerable<TopLevelDecl> topLevelDecls) {
       if (topLevelDecls == null) {
         return false;
       }

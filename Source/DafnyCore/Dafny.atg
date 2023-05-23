@@ -979,15 +979,15 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(tup);
                                                   } else {
-                                                    module.TopLevelDecls.Add(submodule);
+                                                    module.SourceDecls.Add(submodule);
                                                   }
                                                .)
-  | ClassDecl<dmod, module, out td>            (. module.TopLevelDecls.Add(td); .)
-  | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
-  | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
-  | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
-  | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
-  | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
+  | ClassDecl<dmod, module, out td>            (. module.SourceDecls.Add(td); .)
+  | DatatypeDecl<dmod, module, out dt>         (. module.SourceDecls.Add(dt); .)
+  | NewtypeDecl<dmod, module, out td>          (. module.SourceDecls.Add(td); .)
+  | SynonymTypeDecl<dmod, module, out td>      (. module.SourceDecls.Add(td); .)
+  | IteratorDecl<dmod, module, out iter>       (. module.SourceDecls.Add(iter); .)
+  | TraitDecl<dmod, module, out trait>         (. module.SourceDecls.Add(trait); .)
   | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, !theOptions.AllowGlobals>
   )
   .

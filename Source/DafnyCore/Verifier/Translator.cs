@@ -794,7 +794,7 @@ namespace Microsoft.Dafny {
       mods.Insert(0, forModule);
 
       foreach (ModuleDefinition m in mods) {
-        foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
+        foreach (TopLevelDecl d in m.TopLevelDecls.Where(VisibleInScope)) {
           currentDeclaration = d;
           if (d is AbstractTypeDecl) {
             var dd = (AbstractTypeDecl)d;

@@ -848,14 +848,24 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
   public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
-
-  [FilledInDuringResolution] public readonly List<TopLevelDecl> TopLevelDecls = new();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
-  [FilledInDuringResolution] public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  [FilledInDuringResolution] public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();
-  [FilledInDuringResolution] public int Height;  // height in the topological sorting of modules;
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+
+  public DefaultClassDecl DefaultClass { get; set; }
+
+  public readonly List<TopLevelDecl> SourceDecls = new();
+  [FilledInDuringResolution]
+  public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
+  [FilledInDuringResolution] 
+  public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+  public IEnumerable<TopLevelDecl> TopLevelDecls => (DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] {DefaultClass}).
+    Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
+  
+  [FilledInDuringResolution] 
+  public readonly Graph<ICallable> CallGraph = new();
+  [FilledInDuringResolution] 
+  public int Height;  // height in the topological sorting of modules;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -872,9 +882,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId;
     EnclosingModule = original.EnclosingModule;
-    foreach (var d in original.TopLevelDecls) {
-      TopLevelDecls.Add(cloner.CloneDeclaration(d, this));
+    foreach (var d in original.SourceDecls) {
+      SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
+
+    DefaultClass = (DefaultClassDecl)cloner.CloneDeclaration(original.DefaultClass, this);
 
     if (cloner.CloneResolvedFields) {
       Height = original.Height;
@@ -900,21 +912,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
-      TopLevelDecls.Add(DefaultClass);
     }
   }
 
-  public DefaultClassDecl DefaultClass { get; set; }
-
-  VisibilityScope visibilityScope;
+  private VisibilityScope visibilityScope;
   public VisibilityScope VisibilityScope =>
     visibilityScope ??= new VisibilityScope(this.SanitizedName);
 
-  public virtual bool IsDefaultModule {
-    get {
-      return false;
-    }
-  }
+  public virtual bool IsDefaultModule => false;
 
   private string sanitizedName = null;
 
@@ -1004,24 +1009,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  public static IEnumerable<Field> AllFields(List<TopLevelDecl> declarations) {
+  public static IEnumerable<Field> AllFields(IEnumerable<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
-      var cl = d as TopLevelDeclWithMembers;
-      if (cl != null) {
+      if (d is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members) {
-          var fn = member as Field;
-          if (fn != null) {
+          if (member is Field fn) {
             yield return fn;
           }
         }
-      }
-    }
-  }
-
-  public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
-    foreach (var d in declarations) {
-      if (d is ClassDecl cl) {
-        yield return cl;
       }
     }
   }
@@ -1042,7 +1037,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// extreme predicates/lemmas but not their associated prefix predicates/lemmas (which are tucked
   /// into the extreme predicate/lemma's PrefixPredicate/PrefixLemma field).
   /// </summary>
-  public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
+  public static IEnumerable<ICallable> AllCallables(IEnumerable<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       if (d is TopLevelDeclWithMembers cl) {
         foreach (var member in cl.Members.Where(member => member is ICallable and not ConstantField)) {
@@ -1059,7 +1054,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// Yields all functions and methods that are members of some type in the given list of
   /// declarations, including prefix lemmas and prefix predicates.
   /// </summary>
-  public static IEnumerable<ICallable> AllCallablesIncludingPrefixDeclarations(List<TopLevelDecl> declarations) {
+  public static IEnumerable<ICallable> AllCallablesIncludingPrefixDeclarations(IEnumerable<TopLevelDecl> declarations) {
     foreach (var decl in AllCallables(declarations)) {
       yield return decl;
       if (decl is ExtremeLemma extremeLemma) {
@@ -1074,7 +1069,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// Yields all functions and methods that are members of some non-iterator type in the given
   /// list of declarations, as well as any IteratorDecl's in that list.
   /// </summary>
-  public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
+  public static IEnumerable<ICallable> AllItersAndCallables(IEnumerable<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       if (d is IteratorDecl) {
         yield return (IteratorDecl)d;
@@ -1089,19 +1084,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  public static IEnumerable<IteratorDecl> AllIteratorDecls(List<TopLevelDecl> declarations) {
-    foreach (var d in declarations) {
-      if (d is IteratorDecl iter) {
-        yield return iter;
-      }
-    }
-  }
-
   /// <summary>
   /// Emits the declarations in "declarations", but for each such declaration that is a class with
   /// a corresponding non-null type, also emits that non-null type *after* the class declaration.
   /// </summary>
-  public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(List<TopLevelDecl> declarations) {
+  public static IEnumerable<TopLevelDecl> AllDeclarationsAndNonNullTypeDecls(IEnumerable<TopLevelDecl> declarations) {
     foreach (var d in declarations) {
       yield return d;
       if (d is ClassDecl { NonNullTypeDecl: { } } cl) {

@@ -61,7 +61,7 @@ public class ParseUtils {
     Parser parser = SetupParser(s, uri, builtIns, errors);
     parser.Parse();
     
-    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && parser.theModule.TopLevelDecls.Count == 1
+    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
         && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
       errors.Warning(new Token(1, 1) { Uri = uri }, "File contains no code");
     }
@@ -182,15 +182,15 @@ public class ParseUtils {
     return program;
   }
   
-  public static void AddFileModuleToProgram(FileModuleDefinition module, DefaultModuleDefinition defaultModule)
+  public static void AddFileModuleToProgram(FileModuleDefinition fileModule, DefaultModuleDefinition defaultModule)
   {
-    foreach (var topLevelDecl in module.TopLevelDecls)
+    foreach (var declToMove in fileModule.TopLevelDecls)
     {
-      topLevelDecl.EnclosingModuleDefinition = defaultModule;
-      if (topLevelDecl is LiteralModuleDecl literalModuleDecl) {
+      declToMove.EnclosingModuleDefinition = defaultModule;
+      if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
       }
-      if (topLevelDecl is DefaultClassDecl defaultClassDecl)
+      if (declToMove is DefaultClassDecl defaultClassDecl)
       {
         foreach (var member in defaultClassDecl.Members)
         {
@@ -200,11 +200,11 @@ public class ParseUtils {
       }
       else
       {
-        defaultModule.TopLevelDecls.Add(topLevelDecl);
+        defaultModule.SourceDecls.Add(declToMove);
       }
     }
 
-    foreach (var include in module.Includes)
+    foreach (var include in fileModule.Includes)
     {
       defaultModule.Includes.Add(include);
     }

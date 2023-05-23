@@ -260,7 +260,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(Program program, List<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(Program program, IEnumerable<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -576,9 +576,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.Write("{0} ", module.Name);
       if (module.RefinementQId != null) {
-        wr.Write("refines {0} ", module.RefinementQId.ToString());
+        wr.Write("refines {0} ", module.RefinementQId);
       }
-      if (module.TopLevelDecls.Count == 0) {
+      if (!module.TopLevelDecls.Any()) {
         wr.WriteLine("{ }");
       } else {
         wr.WriteLine("{");
@@ -591,7 +591,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     void PrintTopLevelDeclsOrExportedView(Program program, ModuleDefinition module, int indent, string fileBeingPrinted) {
-      var decls = module.TopLevelDecls;
+      var decls = module.TopLevelDecls.ToList();
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
         decls = new List<TopLevelDecl>();

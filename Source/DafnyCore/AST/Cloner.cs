@@ -771,7 +771,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      basem.TopLevelDecls.RemoveAll(t => {
+      basem.SourceDecls.RemoveAll(t => { // TODO What about the prefix ones?
         if (t is AliasModuleDecl aliasModuleDecl) {
           var def = aliasModuleDecl.Signature.ModuleDef;
           return def != null && vismap[def].IsEmpty();
@@ -871,7 +871,7 @@ namespace Microsoft.Dafny {
 
     public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
       var basem = base.CloneModuleDefinition(m, name);
-      basem.TopLevelDecls.RemoveAll(t => t is ModuleExportDecl);
+      basem.SourceDecls.RemoveAll(t => t is ModuleExportDecl); // TODO What about the prefix ones?
       return basem;
     }
 
