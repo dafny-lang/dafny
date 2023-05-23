@@ -138,13 +138,9 @@ partial class Resolver {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          if (stexpr.ObjectToDiscard != null) {
-            VisitExpression(stexpr.ObjectToDiscard, context);
-          } else {
-            foreach (Type t in stexpr.Type.TypeArgs) {
-              if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
-                resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
-              }
+          foreach (Type t in stexpr.Type.TypeArgs) {
+            if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
+              resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
             }
           }
         }
@@ -372,6 +368,14 @@ partial class Resolver {
       base.PostVisitOneExpression(expr, context);
     }
 
+    protected override void VisitExtendedPattern(ExtendedPattern pattern, TypeInferenceCheckingContext context) {
+      base.VisitExtendedPattern(pattern, context);
+
+      if (pattern is IdPattern { BoundVar: { } bv }) {
+        CheckTypeIsDetermined(bv.Tok, bv.Type, "bound variable");
+      }
+    }
+
     public static bool IsDetermined(Type t) {
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
@@ -385,7 +389,7 @@ partial class Resolver {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Requires(what != null);
-      t = t.NormalizeExpand();
+      t = t.NormalizeExpandKeepConstraints();
 
       if (t is TypeProxy) {
         var proxy = (TypeProxy)t;

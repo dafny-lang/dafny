@@ -129,9 +129,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     }
   }
 
-  public override IEnumerable<AssumptionDescription> Assumptions() {
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     if (Body is null) {
-      yield return AssumptionDescription.ForallWithoutBody;
+      yield return new Assumption(decl, tok, AssumptionDescription.ForallWithoutBody);
     }
   }
 
@@ -143,6 +143,9 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetIndentLikeLoop(OwnedTokens, Body, indentBefore);
+    if (Range != null) {
+      formatter.Visit(Range, indentBefore + formatter.SpaceTab);
+    }
     foreach (var ens in Ens) {
       formatter.SetAttributedExpressionIndentation(ens, indentBefore + formatter.SpaceTab);
     }
