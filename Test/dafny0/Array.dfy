@@ -29,7 +29,7 @@ class A {
   method N3(a: array<int>)
     requires 5 < a.Length
     modifies a
-    ensures (forall i :: 0 <= i && i < a.Length ==> a[i] == old(a[i]) || (i == 5 && a[i] == 12));
+    ensures (forall i :: 0 <= i && i < a.Length ==> a[i] == old(a[i]) || (i == 5 && a[i] == 12))
   {
     a[5] := 12;  // all is good
   }

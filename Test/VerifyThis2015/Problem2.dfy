@@ -219,14 +219,14 @@ ghost predicate MulTriple(n: int, d: int, a: int)
 
 lemma Exists(a: int, b: int)
   requires a > 0 && b > 0
-  ensures exists d :: DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
+  ensures exists d :: DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d
 {
   var d := ShowExists(a, b);
 }
 
 lemma ShowExists(a: int, b: int) returns (d: int)
   requires a > 0 && b > 0
-  ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d;
+  ensures DividesBoth(d, a, b) && forall m :: DividesBoth(m, a, b) ==> m <= d
 {
   assert
     exists d :: DividesBoth(d, a, b)
