@@ -217,7 +217,9 @@ namespace Microsoft.Dafny {
             errorLine += "\n" + info;
           }
         }
-        if (snippet != null) Options.OutputWriter.Write(snippet);
+        if (snippet != null) {
+          Options.OutputWriter.Write(snippet);
+        }
         Options.OutputWriter.WriteLine(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
