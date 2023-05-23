@@ -380,13 +380,20 @@ The currently defined type characteristics are designated by `==` (equality-supp
 state properties of the otherwise uninterpreted or abstract type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
 The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
-", range => new List<DafnyAction> {
-    OneAction("remove comma", range, range.PrintOriginal()[1..]),
-    OneAction("insert '=='", range, "==" + range.PrintOriginal()),
-    OneAction("insert '0'", range, "0" + range.PrintOriginal()),
-    OneAction("insert '00'", range, "00" + range.PrintOriginal()),
-    OneAction("insert '!new'", range, "!new" + range.PrintOriginal())
-  }); // TODO - needs fixing for variations: T() T(0,) T(0,,0) T(,) 
+", range =>
+    range.Prev.val == "," ?
+      new List<DafnyAction> {
+      OneAction("remove comma", range.Prev.ToRange(), ""),
+      OneAction("insert '=='", range, "==" + range.PrintOriginal()),
+      OneAction("insert '0'", range, "0" + range.PrintOriginal()),
+      OneAction("insert '00'", range, "00" + range.PrintOriginal()),
+      OneAction("insert '!new'", range, "!new" + range.PrintOriginal()) }
+   : new List<DafnyAction> {
+      OneAction("insert '=='", range, "==" + range.PrintOriginal()),
+      OneAction("insert '0'", range, "0" + range.PrintOriginal()),
+      OneAction("insert '00'", range, "00" + range.PrintOriginal()),
+      OneAction("insert '!new'", range, "!new" + range.PrintOriginal())
+  });
 
     Add(ErrorId.p_illegal_type_characteristic,
     @"
