@@ -57,7 +57,7 @@ public class PythonBackend : ExecutableBackend {
     var file = new FileInfo(externFilename);
     Directory.CreateDirectory(Path.GetDirectoryName(tgtFilename)!);
     file.CopyTo(tgtFilename, true);
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;

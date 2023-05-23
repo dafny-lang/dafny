@@ -502,7 +502,7 @@ namespace Microsoft.Dafny {
                 exitValue = exitValue != ExitValue.DAFNY_ERROR ? ExitValue.FORMAT_ERROR : exitValue;
               }
 
-              if (doCheck && (!doPrint || options.CompileVerbose)) {
+              if (doCheck && (!doPrint || options.Verbose)) {
                 options.OutputWriter.WriteLine("The file " +
                                                (options.UseBaseNameForFileName
                                                  ? Path.GetFileName(dafnyFile.FilePath)
@@ -514,7 +514,7 @@ namespace Microsoft.Dafny {
               }
             }
           } else {
-            if (options.CompileVerbose) {
+            if (options.Verbose) {
               options.ErrorWriter.WriteLine(dafnyFile.BaseName + " was empty.");
             }
 
@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
         options.OutputWriter.WriteLine(neededFormatting > 0
           ? $"Error: {reportMsg}"
           : "All files are correctly formatted");
-      } else if (failedToParseFiles.Count > 0 || options.CompileVerbose) {
+      } else if (failedToParseFiles.Count > 0 || options.Verbose) {
         // We don't display anything if we just format files without verbosity and there was no parse error
         options.OutputWriter.WriteLine($"{reportMsg}");
       }
@@ -790,16 +790,16 @@ namespace Microsoft.Dafny {
       if (targetProgramHasErrors) {
         // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
         // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
-        // of the CompileVerbose settings.
+        // of the Verbose settings.
         outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
-      } else if (options.CompileVerbose) {
+      } else if (options.Verbose) {
         outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
       foreach (var entry in otherFiles) {
         var filename = entry.Key;
         WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
-        if (options.CompileVerbose) {
+        if (options.Verbose) {
           outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
@@ -912,7 +912,7 @@ namespace Microsoft.Dafny {
         hasMain && options.RunAfterCompile, outputWriter, out var compilationResult);
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
-          if (options.CompileVerbose) {
+          if (options.Verbose) {
             await outputWriter.WriteLineAsync("Running...");
             await outputWriter.WriteLineAsync();
           }
@@ -921,7 +921,7 @@ namespace Microsoft.Dafny {
             paths.Filename, otherFileNames, compilationResult, outputWriter, errorWriter);
         } else {
           // make sure to give some feedback to the user
-          if (options.CompileVerbose) {
+          if (options.Verbose) {
             await outputWriter.WriteLineAsync("Program compiled successfully");
           }
         }

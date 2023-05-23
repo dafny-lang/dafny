@@ -53,6 +53,6 @@ class RunCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.CompileVerbose = false;
+    dafnyOptions.Verbose = false;
   }
 }
