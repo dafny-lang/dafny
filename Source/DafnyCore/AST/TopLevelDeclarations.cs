@@ -865,6 +865,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
   public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
     NameNode = name;
+    IsBuiltinName = original.IsBuiltinName;
     foreach (var d in original.TopLevelDecls) {
       TopLevelDecls.Add(cloner.CloneDeclaration(d, this));
     }
