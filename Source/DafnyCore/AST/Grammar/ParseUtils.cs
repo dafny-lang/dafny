@@ -69,7 +69,7 @@ public class ParseUtils {
     return new DfyParseResult(parser.errors.ErrorCount, parser.theModule);
   }
 
-  public static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, 
+  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, 
     BuiltIns builtIns, Errors /*!*/ errors) {
     Contract.Requires(s != null);
     Contract.Requires(uri != null);
@@ -137,7 +137,7 @@ public class ParseUtils {
         }
 
         AddFileModuleToProgram(parseResult.Module, defaultModule);
-        if (defaultModule.RangeToken == null) {
+        if (defaultModule.RangeToken.StartToken.Uri == null) {
           defaultModule.RangeToken = parseResult.Module.RangeToken;
         }
 
@@ -242,7 +242,7 @@ public class ParseUtils {
             stack.Push(dafnyFile);
           }
         }
-      } catch (Exception e) {
+      } catch (Exception) {
         // ignored
       }
     }
@@ -250,18 +250,18 @@ public class ParseUtils {
     return result;
   }
 
-  private static DafnyFile? IncludeToDafnyFile(BuiltIns builtIns, ErrorReporter errorReporter, Include include)
+  private static DafnyFile IncludeToDafnyFile(BuiltIns builtIns, ErrorReporter errorReporter, Include include)
   {
     try
     {
       return new DafnyFile(builtIns.Options, include.IncludedFilename.LocalPath);
     }
-    catch (IllegalDafnyFile e)
+    catch (IllegalDafnyFile)
     {
       errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
       return null;
     }
-    catch (IOException e)
+    catch (IOException)
     {
       errorReporter.Error(MessageSource.Parser, include.tok,
         $"Unable to open the include {include.IncludedFilename}.");

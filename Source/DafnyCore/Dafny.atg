@@ -943,7 +943,7 @@ Dafny
                                    string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, includedFile);
+                                 var oneInclude = new Include(t, parsedFile, new Uri(includedFile));
                                  oneInclude.RangeToken = new RangeToken(startToken, t);
                                  theModule.Includes.Add(oneInclude);
                                }

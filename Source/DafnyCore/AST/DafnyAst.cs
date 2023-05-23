@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
