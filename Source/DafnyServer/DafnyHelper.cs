@@ -45,9 +45,9 @@ namespace Microsoft.Dafny {
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
       BuiltIns builtIns = new BuiltIns(options);
       var success = (Parser.Parse(source, uri, module, builtIns, new Errors(reporter)) == 0 &&
-                     DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(Console.In, module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
+                     DafnyMain.ParseIncludes(module, builtIns, new HashSet<string>(), new Errors(reporter)) == null);
       if (success) {
-        dafnyProgram = new Program(fname, module, builtIns, reporter);
+        dafnyProgram = new Program(fname, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
       }
       return success;
     }
