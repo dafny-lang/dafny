@@ -347,17 +347,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
             Indent(indent); wr.WriteLine("---------- iterator members ----------*/");
           }
 
-        } else if (d is ClassDecl) {
-          ClassDecl cl = (ClassDecl)d;
-          if (!cl.IsDefaultClass) {
-            if (i++ != 0) { wr.WriteLine(); }
-            PrintClass(cl, indent, fileBeingPrinted);
-          } else if (cl.Members.Count == 0) {
-            // Do nothing
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          if (defaultClassDecl.Members.Count == 0) {
+            // print nothing
           } else {
             if (i++ != 0) { wr.WriteLine(); }
-            PrintMembers(cl.Members, indent, fileBeingPrinted);
+            PrintMembers(defaultClassDecl.Members, indent, fileBeingPrinted);
           }
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          PrintClass(cl, indent, fileBeingPrinted);
+
         } else if (d is ValuetypeDecl) {
           var vtd = (ValuetypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -367,7 +368,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine(" { }");
           } else {
             wr.WriteLine(" {");
-            PrintMembers(new List<MemberDecl>(vtd.Members.Values), indent + IndentAmount, fileBeingPrinted);
+            PrintMembers(vtd.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
             wr.WriteLine("}");
           }
@@ -654,7 +655,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintSubsetTypeDecl(iter.NonNullTypeDecl, indent);
     }
 
-    public void PrintClass(ClassDecl c, int indent, string fileBeingPrinted) {
+    public void PrintClass(ClassLikeDecl c, int indent, string fileBeingPrinted) {
       Contract.Requires(c != null);
 
       Indent(indent);

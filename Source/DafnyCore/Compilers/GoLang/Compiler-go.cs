@@ -208,7 +208,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      var isDefaultClass = cls is ClassDecl c && c.IsDefaultClass;
+      var isDefaultClass = cls is DefaultClassDecl;
 
       bool isSequence = superClasses.Any(superClass => superClass is UserDefinedType udt && IsDafnySequence(udt.ResolvedClass));
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: !isDefaultClass, includeEquals: !isSequence, includeString: !isSequence);
@@ -299,8 +299,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (includeRtd) {
-        ConcreteSyntaxTree wDefault;
-        CreateRTD(name, typeParameters, out wDefault, w);
+        CreateRTD(name, typeParameters, out var wDefault, w);
 
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
@@ -1326,7 +1325,7 @@ namespace Microsoft.Dafny.Compilers {
         var tp = type.AsTypeParameter;
         Contract.Assert(tp != null);
         string th;
-        if (thisContext != null && tp.Parent is ClassDecl and not TraitDecl) {
+        if (thisContext != null && tp.Parent is ClassDecl) {
           th = "_this.";
         } else if (thisContext == null && tp.Parent is SubsetTypeDecl) {
           th = "_this.";
@@ -1339,10 +1338,6 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.Int64Type";
-        }
 
         var w = new ConcreteSyntaxTree();
         w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
@@ -1431,10 +1426,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
-        bool isHandle = true;
-        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "ulong";
-        } else if (xType is ArrowType at) {
+        if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
         } else if (udt.IsTypeParameter) {
           return AnyType;
@@ -1549,13 +1541,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "0";
-        } else {
-          return nil();
-        }
+      } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
+        return nil();
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
         if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {
@@ -2047,7 +2034,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is ClassDecl clsDecl && clsDecl.IsObjectTrait) {
+      if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
@@ -2446,7 +2433,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(Options, out _, out _);
+      return cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+             member != null && member.IsExtern(Options, out _, out _);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
@@ -2579,8 +2567,7 @@ namespace Microsoft.Dafny.Compilers {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(sf.Type, expectedType, Token.NoToken, wr);
           obj(wr);
-          string compiledName;
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out _, out _);
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
           if (compiledName.Length != 0) {
             wr.Write(".{0}", Capitalize(compiledName));
           } else {
@@ -3083,7 +3070,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsArrayType ||
-             (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && !t.IsTraitType && udt.ResolvedClass is ClassDecl);
+             t.NormalizeExpand() is UserDefinedType { ResolvedClass: ClassDecl };
     }
 
     private bool IsOrderedByCmp(Type t) {
@@ -3142,9 +3129,7 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
@@ -3160,10 +3145,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-              postOpString = "/* handle */";
-            } else if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
               preOpString = "!";
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsDirectlyComparable(eqType)) {

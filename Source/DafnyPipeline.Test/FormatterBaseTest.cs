@@ -57,7 +57,7 @@ namespace DafnyPipeline.Test {
         var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
         BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
         Microsoft.Dafny.Type.ResetScopes();
-        
+
         var dafnyProgram = ParseUtils.Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
@@ -94,7 +94,7 @@ namespace DafnyPipeline.Test {
 
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
-        dafnyProgram = ParseUtils.Parse(reprinted, uri, reporter);;
+        dafnyProgram = ParseUtils.Parse(reprinted, uri, reporter); ;
 
         var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
         Assert.Equal(initErrorCount, newReporter.ErrorCount);

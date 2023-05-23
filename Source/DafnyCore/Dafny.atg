@@ -988,7 +988,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
   | SynonymTypeDecl<dmod, module, out td>      (. module.SourceDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.SourceDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.SourceDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, !theOptions.AllowGlobals>
+  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, true>
   )
   .
 

@@ -78,8 +78,8 @@ namespace DafnyTestGeneration {
       uri ??= new Uri(Path.GetTempPath());
       var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-      
-      var program = ParseUtils.ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source))}, 
+
+      var program = ParseUtils.ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       if (!resolve) {

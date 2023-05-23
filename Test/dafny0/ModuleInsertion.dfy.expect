@@ -137,7 +137,7 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+  type {:compile false} /*_#Func1*/ -T0 ~> +R {
     ghost function requires(x0: T0): bool
       reads reads(x0)
 
@@ -153,7 +153,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  class {:compile false} /*_#Func0*/ () ~> +R {
+  type {:compile false} /*_#Func0*/ () ~> +R {
     ghost function requires(): bool
       reads reads()
 

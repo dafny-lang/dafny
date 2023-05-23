@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         return ParseUtils.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
-            new(errorReporter.Options, document.Uri.ToUri(), document.Content) 
+            new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
       }
