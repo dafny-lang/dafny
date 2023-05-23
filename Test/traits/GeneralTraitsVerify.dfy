@@ -99,3 +99,273 @@ module Tests {
     mc := p as MyConstrainedInt;
   }
 }
+
+// ----- test inheritance of instance members
+
+module InstanceMemberInheritance {
+  method Test() {
+    var p;
+    p := TestClass();
+    TestParent(p);
+    p := TestDatatype();
+    TestParent(p);
+    p := TestCoDatatype();
+    TestParent(p);
+    // note, can't call TestAbstract, since it's abstract
+    p := TestMyInt();
+    TestParent(p);
+    p := TestMyConstrainedInt();
+    TestParent(p);
+  }
+
+  trait Parent {
+    const m: nat := 18
+    const n: nat
+    function F(): int {
+      10
+    }
+    function G(): int
+    method M() {
+      print "hello M, ";
+    }
+    method P()
+  }
+
+  method TestParent(p: Parent) {
+    assert p.m == 18 && p.F() == 10;
+    print p.m, " ", p.n, " ", p.F(), " ", p.G(), "\n"; // 18 0 10 <...11>
+    p.M(); // hello M,
+    p.P(); // hello <...Class>.P
+    print "-----\n";
+  }
+
+  // ----- class
+
+  class Class extends Parent {
+    function G(): int {
+      11
+    }
+    method P() {
+      print "hello Class.P\n";
+    }
+  }
+
+  method TestClass() returns (p: Parent) {
+    var x := new Class;
+    assert x.m == 18 && x.F() == 10 && x.G() == 11;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 11
+    x.M(); // hello M,
+    x.P(); // hello Class.P
+    return x;
+  }
+
+  // ----- datatype
+
+  datatype Datatype extends Parent = DtOne
+  {
+    function G(): int {
+      12
+    }
+    method P() {
+      print "hello Dt.P\n";
+    }
+  }
+
+  method TestDatatype() returns (p: Parent) {
+    var x := DtOne;
+    assert x.m == 18 && x.F() == 10 && x.G() == 12;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 12
+    x.M(); // hello M,
+    x.P(); // hello Datatype.P
+    return x;
+  }
+
+  // ----- codatatype
+
+  codatatype CoDatatype extends Parent = CoOne
+  {
+    function G(): int {
+      13
+    }
+    method P() {
+      print "hello CoDatatype.P\n";
+    }
+  }
+
+  method TestCoDatatype() returns (p: Parent) {
+    var x := CoOne;
+    assert x.m == 18 && x.F() == 10 && x.G() == 13;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 13
+    x.M(); // hello M,
+    x.P(); // hello CoDatatype.P
+    return x;
+  }
+
+  // ----- abstract type
+
+  type Abstract extends Parent
+  {
+    function G(): int {
+      14
+    }
+    method P() {
+      print "hello Abstract.P\n";
+    }
+  }
+
+  method TestAbstract(x: Abstract) returns (p: Parent) {
+    assert x.m == 18 && x.F() == 10 && x.G() == 14;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 14
+    x.M(); // hello M,
+    x.P(); // hello Class.P
+    return x;
+  }
+
+  // ----- newtype without constraint
+
+  newtype MyInt extends Parent = int {
+    function G(): int {
+      15
+    }
+    method P() {
+      print "hello MyInt.P\n";
+    }
+  }
+
+  method TestMyInt() returns (p: Parent) {
+    var x: MyInt := 100;
+    assert x.m == 18 && x.F() == 10 && x.G() == 15;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 15
+    x.M(); // hello M,
+    x.P(); // hello MyInt.P
+    return x;
+  }
+
+  // ----- newtype with constraint
+
+  newtype MyConstrainedInt extends Parent = x: int | 0 <= x < 10
+  {
+    function G(): int {
+      16
+    }
+    method P() {
+      print "hello MyConstrainedInt.P\n";
+    }
+  }
+
+  method TestMyConstrainedInt() returns (p: Parent) {
+    var x: MyConstrainedInt := 7;
+    assert x.m == 18 && x.F() == 10 && x.G() == 16;
+    print x.m, " ", x.n, " ", x.F(), " ", x.G(), "\n"; // 18 0 10 16
+    x.M(); // hello M,
+    x.P(); // hello MyConstrainedInt.P
+    return x;
+  }
+}
+
+module StaticMemberInheritance {
+  method Test() {
+    var p;
+    p := TestClass();
+    TestParent(p);
+    p := TestDatatype();
+    TestParent(p);
+    p := TestCoDatatype();
+    TestParent(p);
+    // note, can't call TestAbstract, since it's abstract
+    p := TestMyInt();
+    TestParent(p);
+    p := TestMyConstrainedInt();
+    TestParent(p);
+  }
+
+  trait Parent {
+    static const m: nat := 18
+    static const n: nat
+    static function F(): int {
+      10
+    }
+    static method M() {
+      print "hello M, ";
+    }
+  }
+
+  method TestParent(p: Parent) {
+    assert p.m == 18 && p.F() == 10;
+    print p.m, " ", p.n, " ", p.F(), "\n"; // 18 0 10
+    p.M(); // hello M,
+    print "-----\n";
+  }
+
+  // ----- class
+
+  class Class extends Parent {
+  }
+
+  method TestClass() returns (p: Parent) {
+    var x := new Class;
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+
+  // ----- datatype
+
+  datatype Datatype extends Parent = DtOne
+
+  method TestDatatype() returns (p: Parent) {
+    var x := DtOne;
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+
+  // ----- codatatype
+
+  codatatype CoDatatype extends Parent = CoOne
+
+  method TestCoDatatype() returns (p: Parent) {
+    var x := CoOne;
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+
+  // ----- abstract type
+
+  type Abstract extends Parent
+
+  method TestAbstract(x: Abstract) returns (p: Parent) {
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+
+  // ----- newtype without constraint
+
+  newtype MyInt extends Parent = int
+
+  method TestMyInt() returns (p: Parent) {
+    var x: MyInt := 100;
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(), "\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+
+  // ----- newtype with constraint
+
+  newtype MyConstrainedInt extends Parent = x: int | 0 <= x < 10
+
+  method TestMyConstrainedInt() returns (p: Parent) {
+    var x: MyConstrainedInt := 7;
+    assert x.m == 18 && x.F() == 10;
+    print x.m, " ", x.n, " ", x.F(),"\n"; // 18 0 10
+    x.M(); // hello M,
+    return x;
+  }
+}

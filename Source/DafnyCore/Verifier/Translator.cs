@@ -8436,7 +8436,8 @@ namespace Microsoft.Dafny {
     /// To do this in Dafny, Dafny would have to compute loop targets, which is better done in Boogie (which
     /// already has to do it).
     /// </summary>
-    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc, bool allocatednessOnly = false) {
+    Bpl.Expr GetWhereClause(IToken tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc,
+      bool allocatednessOnly = false, bool alwaysUseSymbolicName = false) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
       Contract.Requires(type != null);
@@ -8464,7 +8465,10 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr isPred = null;
-      if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
+      if (alwaysUseSymbolicName) {
+        // go for the symbolic name
+        isPred = MkIs(x, normType);
+      } else if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;

@@ -1098,7 +1098,8 @@ namespace Microsoft.Dafny {
       argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
-      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran, IsAllocType.NEVERALLOC);
+      var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
+        IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
       Bpl.Expr ante = Boogie.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype);
 
