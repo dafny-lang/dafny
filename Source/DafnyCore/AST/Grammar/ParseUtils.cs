@@ -95,8 +95,9 @@ public class ParseUtils {
     return new Parser(scanner, errors, builtIns);
   }
 
-  public static int Parse(string source, Uri uri, LiteralModuleDecl builtIns, BuiltIns reporter, ErrorReporter errorReporter) {
-    throw new NotImplementedException();
+  public static Program Parse(string source, Uri uri, ErrorReporter reporter) {
+    var files = new[] { new DafnyFile(reporter.Options, uri, new StringReader(source)) };
+    return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 
   public static Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,

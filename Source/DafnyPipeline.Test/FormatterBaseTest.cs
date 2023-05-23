@@ -56,11 +56,9 @@ namespace DafnyPipeline.Test {
         var uri = new Uri("virtual:virtual");
         var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
         BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
-        var module = new LiteralModuleDecl(outerModule, null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        ParseUtils.Parse(programNotIndented, uri, module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+        
+        var dafnyProgram = ParseUtils.Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
@@ -95,11 +93,8 @@ namespace DafnyPipeline.Test {
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>() { uri }), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns(options);
-        ParseUtils.Parse(reprinted, uri, module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+        dafnyProgram = ParseUtils.Parse(reprinted, uri, reporter);;
 
         var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
         Assert.Equal(initErrorCount, newReporter.ErrorCount);
