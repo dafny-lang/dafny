@@ -367,7 +367,7 @@ module M {
     }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "M.LoopingList.getValue";
