@@ -1136,7 +1136,7 @@ method m() {
 ```
 
 Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
-In Dafny `=` is used only in type definitions.
+In Dafny, `=` is used only in type definitions.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 

@@ -145,12 +145,29 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
 
       foreach (var req in f.Req) {
-        Substituter sub = new Substituter(f_this, substMap, typeMap, null, builtIns);
+        var sub = new AutoReqSubstituter(f_this, substMap, typeMap, builtIns);
         translated_f_reqs.Add(sub.Substitute(req.E));
       }
     }
 
     return translated_f_reqs;
+  }
+
+  class AutoReqSubstituter : Substituter {
+    public AutoReqSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      BuiltIns builtIns)
+      : base(receiverReplacement, substMap, typeMap, null, builtIns) {
+    }
+
+    public override Expression Substitute(Expression expr) {
+      var r = base.Substitute(expr);
+      if (r is MemberSelectExpr memberSelectExpr) {
+        return Expression.WrapResolvedMemberSelect(memberSelectExpr);
+      } else if (r is FunctionCallExpr functionCallExpr) {
+        return Expression.WrapResolvedCall(functionCallExpr, builtIns);
+      }
+      return r;
+    }
   }
 
   List<Expression> GenerateAutoReqs(Expression expr) {
@@ -262,7 +279,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is true, since And short-circuits
-            reqs.Add(Expression.CreateImplies(e.E0, req));
+            var cloner = new Cloner(true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(e0, req));
           }
           break;
 
@@ -270,7 +289,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is false, since Or short-circuits
-            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e.E0), req));
+            var cloner = new Cloner(true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e0), req));
           }
           break;
 

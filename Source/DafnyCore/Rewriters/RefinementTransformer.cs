@@ -232,9 +232,8 @@ namespace Microsoft.Dafny {
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
       foreach (var d in prev.TopLevelDecls) {
-        int index;
         processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out index)) {
+        if (!declaredNames.TryGetValue(d.Name, out var index)) {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
@@ -254,8 +253,7 @@ namespace Microsoft.Dafny {
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
-        int index;
-        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out index)) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var index)) {
           // if it is redefined, we need to merge them.
           var nw = m.TopLevelDecls[index];
           MergeTopLevelDecls(m, nw, d, index);
@@ -334,7 +332,11 @@ namespace Microsoft.Dafny {
             }
           } else {
             if (od.SupportsEquality) {
-              if (nw is ClassDecl || nw is NewtypeDecl) {
+              if (nw is TraitDecl traitDecl) {
+                if (!traitDecl.IsReferenceTypeDecl) {
+                  Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by this trait");
+                }
+              } else if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
                 Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
@@ -416,8 +418,14 @@ namespace Microsoft.Dafny {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
-        if (d is ClassDecl && !(d is TraitDecl)) {
+        if (d is ClassDecl) {
           m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+        } else {
+          Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        }
+      } else if (nw is DefaultClassDecl) {
+        if (d is DefaultClassDecl) {
+          m.TopLevelDecls[index] = MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
@@ -728,8 +736,7 @@ namespace Microsoft.Dafny {
 
       // Merge the declarations of prev into the declarations of m
       foreach (var member in prev.Members) {
-        int index;
-        if (!declaredNames.TryGetValue(member.Name, out index)) {
+        if (!declaredNames.TryGetValue(member.Name, out var index)) {
           var nwMember = refinementCloner.CloneMember(member, false);
           nwMember.RefinementBase = member;
           nw.Members.Add(nwMember);
@@ -1000,8 +1007,7 @@ namespace Microsoft.Dafny {
       if (skeleton is DividedBlockStmt) {
         var sbsSkeleton = (DividedBlockStmt)skeleton;
         var sbsOldStmt = (DividedBlockStmt)oldStmt;
-        string hoverText;
-        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out hoverText);
+        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
         }
@@ -1011,8 +1017,7 @@ namespace Microsoft.Dafny {
         }
         return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
-        string hoverText;
-        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
+        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
         }
