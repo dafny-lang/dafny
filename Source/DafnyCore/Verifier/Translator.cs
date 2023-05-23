@@ -8926,10 +8926,10 @@ namespace Microsoft.Dafny {
           builder.Add(cmd);
           return bGivenLhs;
         } else {
-          // do the assignment, then box the result
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, bRhs);
+          // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
           builder.Add(cmd);
-          return CondApplyBox(tok, bLhs, e.Expr.Type, lhsType);
+          return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
         }
 
       } else if (rhs is HavocRhs) {
