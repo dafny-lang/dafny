@@ -903,7 +903,10 @@ Use parentheses if necessary. Such expressions are usually not type-correct in a
     @"
 const s : set<int>
 const r := s ! s
-", Replace("!="));
+", range => new List<DafnyAction> {
+    OneAction("replace with `!=`", range, "!=", false),
+    OneAction("replace with `!!`", range, "!!", false),
+});
 
     Add(ErrorId.p_invalid_relational_op,
     @"
@@ -963,21 +966,21 @@ That type parameter is the type of the sequence elements.
     Add(ErrorId.p_map_comprehension_must_have_term_expression,
     @"
 A map comprehension defines a map, which associates a value with each member of a set of keys.
-The full syntax for a map comprehension looks like `map x | 0 <= x < 5:: x*2 => x*3`
+The full syntax for a map comprehension looks like `map x | 0 <= x < 5 :: x*2 := x*3`
 which maps the keys `0, 2, 4, 6, 8` to the values `0, 3, 6, 9, 12` respectively.
 
 One can abbreviate the above syntax to expressions like `map x | 0 <= x < 5 :: x*3`,
-which is equivalent to `map x | 0 <= x < 5 :: x => x*3`. The missing expression before
-the `=>` is just the declared identifier.
+which is equivalent to `map x | 0 <= x < 5 :: x := x*3`. The missing expression before
+the `:=` is just the declared identifier.
 
-One can also have multiple variables involved as in `map x, y | 0 < x < y < 5 :: 10*x+y => 10*y+x`,
+One can also have multiple variables involved as in `map x, y | 0 < x < y < 5 :: 10*x+y := 10*y+x`,
 which defines the mappings `(12=>21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
 
-But when there are multiple variables, one cannot abbreviate the `=>` syntax with just its right-hand expression,
+But when there are multiple variables, one cannot abbreviate the `:=` syntax with just its right-hand expression,
 because it is not clear what the left-hand expression should be. 
 
 Incorrect text like `const s := map x, y  | 0 <= x < y < 10 :: x*y` should be written
- as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) => x*y` for some `f(x,y)` that gives
+ as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) := x*y` for some `f(x,y)` that gives
 a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10`).
 ");
 

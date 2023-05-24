@@ -684,7 +684,7 @@ longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: there is no such thing as a 'ghost _what_ method'** {#p_no_ghost_function_method}
+## **Error: there is no such thing as a 'ghost function method'** {#p_no_ghost_function_method}
 
 ```dafny
 module {:options "--function-syntax:experimentalDefaultGhost"} M {
@@ -702,7 +702,7 @@ and there is no longer any declaration of the form `function method`, and simila
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: there is no such thing as a 'ghost _what_ method'** {#p_no_ghost_predicate_method}
+## **Error: there is no such thing as a 'ghost predicate method'** {#p_no_ghost_predicate_method}
 
 ```dafny
 module {:options "--function-syntax:experimentalDefaultGhost"} M {
