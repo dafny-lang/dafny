@@ -1,5 +1,5 @@
-// RUN: %baredafny build -t:lib "%s" --output "%S/test" > "%t"
-// RUN: %baredafny resolve "%s"  "%S/test.doo" >> "%t"
+// RUN: %baredafny build -t:lib --use-basename-for-filename "%s" --output "%S/test2" > "%t"
+// RUN: %baredafny resolve --use-basename-for-filename "%s"  "%S/test2.doo" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 // XFAIL: *
 
