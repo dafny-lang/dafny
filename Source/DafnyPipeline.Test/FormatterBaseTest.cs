@@ -94,10 +94,11 @@ namespace DafnyPipeline.Test {
 
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
-        dafnyProgram = ParseUtils.Parse(reprinted, uri, reporter); ;
+        var newOuterModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
+        var newReporter = new BatchErrorReporter(options, newOuterModule);
+        dafnyProgram = ParseUtils.Parse(reprinted, uri, newReporter); ;
 
-        var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
-        Assert.Equal(initErrorCount, newReporter.ErrorCount);
+        Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,
