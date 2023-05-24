@@ -6,7 +6,7 @@
 // RUN: %diff "%s.md.expect" "%t.md"
 // RUN: %diff "%s-ietf.md.expect" "%t-ietf.md"
 // RUN: %diff "%s.html.expect" "%t.html"
-// RUN: %diff "%s.expect" %t.expect"
+// RUN: %diff "%s.expect" "%t.expect"
 
 include "IgnoredAssumptions.dfy"
 
