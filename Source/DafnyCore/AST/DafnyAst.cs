@@ -116,7 +116,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var firstToken = rootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
       while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;

@@ -1559,7 +1559,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
-       if (module is DefaultModuleDefinition) {
+       if (module is DefaultModuleDefinition or FileModuleDefinition) {
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }

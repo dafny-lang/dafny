@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
 
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
       reporter = new ConsoleErrorReporter(options, defaultModuleDefinition);
       var program = ParseUtils.ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri.LocalPath, new StringReader(source)) },
         reporter, CancellationToken.None);

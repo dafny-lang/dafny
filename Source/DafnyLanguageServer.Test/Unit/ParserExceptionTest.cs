@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var options = new DafnyOptions(DafnyOptions.DefaultImmutableOptions);
       var documentItem = CreateTestDocument(source, TestFilePath);
       var uri = new Uri("file:///" + TestFilePath);
-      var outerModule = new DefaultModuleDefinition(new List<Uri> { uri });
+      var outerModule = new DefaultModuleDefinition(new List<Uri> { uri }, false);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options, outerModule);
       parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);

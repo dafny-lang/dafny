@@ -58,8 +58,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(files != null);
       program = null;
 
+      var defaultClassFirst = options.VerifyAllModules;
       var defaultModuleDefinition =
-        new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList());
+        new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), defaultClassFirst);
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
@@ -67,6 +68,10 @@ namespace Microsoft.Dafny {
       };
 
       program = ParseUtils.ParseFiles(programName, files, reporter, CancellationToken.None);
+      var errorCount = program.Reporter.ErrorCount;
+      if (errorCount != 0) {
+        return $"{errorCount} parse errors detected in {program.Name}";
+      }
       return null;
     }
 

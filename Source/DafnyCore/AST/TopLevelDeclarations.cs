@@ -850,6 +850,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly bool IsAbstract;
   public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
+  private readonly bool defaultClassFirst;
 
   public DefaultClassDecl DefaultClass { get; set; }
 
@@ -858,9 +859,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => SourceDecls.
-    Concat(DefaultClasses).
-    Concat(ResolvedPrefixNamedModules);
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => 
+    defaultClassFirst ? DefaultClasses.
+        Concat(SourceDecls).
+        Concat(ResolvedPrefixNamedModules) 
+      : SourceDecls.
+        Concat(DefaultClasses).
+        Concat(ResolvedPrefixNamedModules);
 
   protected IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }
@@ -886,6 +891,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId;
     EnclosingModule = original.EnclosingModule;
+    defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
     }
@@ -902,7 +908,8 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName) : base(tok) {
+    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, 
+    bool isBuiltinName, bool defaultClassFirst = false) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     this.NameNode = name;
@@ -913,6 +920,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     this.IsAbstract = isAbstract;
     this.IsFacade = isFacade;
     this.IsBuiltinName = isBuiltinName;
+    this.defaultClassFirst = defaultClassFirst;
 
     if (Name != "_System") {
       DefaultClass = new DefaultClassDecl(this, new List<MemberDecl>());
@@ -1154,14 +1162,15 @@ public class DefaultModuleDefinition : ModuleDefinition {
     RootSourceUris = original.RootSourceUris;
   }
 
-  public DefaultModuleDefinition(IList<Uri> rootSourceUris)
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, null, null, null, true) {
+  public DefaultModuleDefinition(IList<Uri> rootSourceUris, bool defaultClassFirst)
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, 
+      null, null, null, true, defaultClassFirst) {
     RootSourceUris = rootSourceUris;
   }
 
   // TODO added to get similar compilation behavior. Probably not useful.
-  public override IEnumerable<TopLevelDecl> TopLevelDecls =>
-    DefaultClasses.Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
+  // public override IEnumerable<TopLevelDecl> TopLevelDecls =>
+  //   DefaultClasses.Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
 
   public override bool IsDefaultModule => true;
 }
@@ -2087,7 +2096,7 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public class AbstractTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl, ICanFormat, IHasDocstring {
+public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
   public readonly TypeParameter.TypeParameterCharacteristics Characteristics;

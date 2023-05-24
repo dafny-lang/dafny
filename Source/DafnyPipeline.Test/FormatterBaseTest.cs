@@ -54,7 +54,7 @@ namespace DafnyPipeline.Test {
           : removeTrailingNewlineRegex.Replace(programString, "");
 
         var uri = new Uri("virtual:virtual");
-        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
+        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
         BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
         Microsoft.Dafny.Type.ResetScopes();
 

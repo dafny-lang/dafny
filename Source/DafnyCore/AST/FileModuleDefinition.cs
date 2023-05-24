@@ -13,7 +13,7 @@ public class FileModuleDefinition : ModuleDefinition {
 
   public FileModuleDefinition() :
     base(RangeToken.NoToken, new Name("_module"), new List<IToken>(),
-      false, false, null, null, null, true) {
+      false, false, null, null, null, true, false) {
     {
     }
   }
