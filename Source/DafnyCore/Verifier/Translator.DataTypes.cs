@@ -650,6 +650,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr conj = Bpl.Expr.True;
       for (var i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
+        conj = BplAnd(conj, MkIsAlloc(args[i], arg.Type, h));
       }
 
       {
