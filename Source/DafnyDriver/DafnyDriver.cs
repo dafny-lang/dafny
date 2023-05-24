@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
         var nameToShow = useRelative ? relative
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
-          if (!File.Exists(file)) {
+          if (!File.Exists(file) && !Directory.Exists(file)) {
             options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: Could not find input file: {0}", nameToShow);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
