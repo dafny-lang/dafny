@@ -484,7 +484,12 @@ namespace Microsoft.Dafny.Compilers {
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
       // ContreteSyntaxTree for the interface
-      var interfaceTree = wr.NewNamedBlock($"public interface _I{dt.GetCompileName(Options)}{TypeParameters(nonGhostTypeArgs, true)}");
+      wr.Write($"public interface _I{dt.GetCompileName(Options)}{TypeParameters(nonGhostTypeArgs, true)}");
+      var superTraits = dt.ParentTypeInformation.UniqueParentTraits();
+      if (superTraits.Any()) {
+        wr.Write($" : {superTraits.Comma(trait => TypeName(trait, wr, dt.tok))}");
+      }
+      var interfaceTree = wr.NewBlock();
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("public{0} class {1} : {2}", dt.IsRecordType ? "" : " abstract", DtT_protected, DtTypeName(dt));
@@ -2664,7 +2669,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || from.IsRefType == to.IsRefType);
 
       var w = new ConcreteSyntaxTree();
-      if (to.IsRefType) {
+      if (to.IsRefType || to.IsTraitType || from.IsTraitType) {
         wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));

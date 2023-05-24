@@ -246,7 +246,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var DtT = dt.GetCompileName(Options);
 
-      var btw = wr.NewBlockPy($"class {DtT}:", close: BlockStyle.Newline);
+      var baseClasses = dt.ParentTypeInformation.UniqueParentTraits().Any()
+        ? $"({dt.ParentTypeInformation.UniqueParentTraits().Comma(trait => TypeName(trait, wr, dt.tok))})"
+        : "";
+      var btw = wr.NewBlockPy($"class {DtT}{baseClasses}:", close: BlockStyle.Newline);
 
       if (dt.HasFinitePossibleValues) {
         btw.WriteLine($"@{DafnyRuntimeModule}.classproperty");

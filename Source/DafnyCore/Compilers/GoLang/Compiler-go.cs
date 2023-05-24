@@ -920,6 +920,8 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.tok)}.Default({arguments});");
       }
 
+      EmitParentTraits(dt.tok, name, false, dt.ParentTraits, wr);
+
       return new ClassWriter(this, dt, name, dt.IsExtern(Options, out _, out _), null,
         wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
     }
@@ -1155,7 +1157,7 @@ namespace Microsoft.Dafny.Compilers {
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
         string receiver = isStatic || customReceiver ? FormatCompanionTypeName(ownerName) : ownerName;
-        if (member != null && member.EnclosingClass is DatatypeDecl) {
+        if (member != null && ownerContext is DatatypeDecl) {
           wr.Write("func ({0} {1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
         } else {
           wr.Write("func ({0} *{1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
@@ -3482,11 +3484,11 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(fromType.IsRefType);
       Contract.Requires(toType.IsRefType);
 
-      if (!fromType.IsNonNullRefType) {
+      if (fromType.IsRefType && !fromType.IsNonNullRefType) {
         if (toType.IsNonNullRefType) {
           wr.Write($"!_dafny.IsDafnyNull({localName}) && ");
         } else {
-          wr.Write($"_dafny.IsDafnyNull({localName}) || (");
+          wr.Write($"_dafny.IsDafnyNull({localName}) || ");
         }
       }
 
@@ -3494,18 +3496,16 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write("true");
       } else if (toType.IsTraitType) {
         wr.Write($"{HelperModulePrefix}InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
-      } else {
+      } else if (toType.IsRefType) {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, ({TypeName(toType, wr, tok)})(nil))");
+      } else {
+        wr.Write($"{HelperModulePrefix}InstanceOf({localName}, {TypeName(toType, wr, tok)}{{}})");
       }
 
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
         throw new UnsupportedFeatureException(tok, Feature.SubsetTypeTests);
-      }
-
-      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
-        wr.Write(")");
       }
     }
 

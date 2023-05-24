@@ -1867,20 +1867,23 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
             var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
-            if (cf.Rhs == null) {
+            if (cf.Rhs == null && c is ClassLikeDecl) {
+              // create a backing field, since this constant field may be assigned in constructors
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.GetCompileName(Options), c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
             }
             var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs == null) {
+            if (cf.Rhs != null) {
+              EmitCallToInheritedConstRHS(cf, w);
+            } else if (!cf.IsStatic && c is ClassLikeDecl) {
               var sw = EmitReturnExpr(w);
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
               sw.Write("._{0}", cf.GetCompileName(Options));
             } else {
-              EmitCallToInheritedConstRHS(cf, w);
+              EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.tok, true), w);
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
@@ -4941,7 +4944,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || e.ToType.IsRefType == e.E.Type.IsRefType);
-        if (e.ToType.IsRefType) {
+        if (e.ToType.IsRefType || e.ToType.IsTraitType || e.E.Type.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           w.Append(Expr(e.E, inLetExprBody, wStmts));

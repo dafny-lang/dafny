@@ -1797,7 +1797,12 @@ namespace Microsoft.Dafny.Compilers {
       //TODO: Figure out how to resolve type checking warnings
       // from here on, write everything into the new block created here:
       EmitSuppression(wr);
-      var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      wr.Write("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      var superTraits = dt.ParentTypeInformation.UniqueParentTraits();
+      if (superTraits.Any()) {
+        wr.Write($" implements {superTraits.Comma(trait => TypeName(trait, wr, dt.tok))}");
+      }
+      var btw = wr.NewBlock();
       wr = btw;
 
       // constructor

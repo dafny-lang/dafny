@@ -1,0 +1,232 @@
+
+Dafny program verifier finished with 34 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+done
+
+Dafny program verifier did not attempt verification
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+done
+
+Dafny program verifier did not attempt verification
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+done
+
+Dafny program verifier did not attempt verification
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+done
+
+Dafny program verifier did not attempt verification
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+18 0 10
+hello static M
+18 0 10
+hello static M
+-----
+done
