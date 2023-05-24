@@ -1988,7 +1988,6 @@ namespace Microsoft.Dafny {
 
       // Now, for each reference type (class and some traits), register its possibly-null type.
       // In the big loop above, each class and trait was registered under its own name. We're now going to change that for the reference types.
-      // Also, now that we know which traits are reference types, forbid mutable fields in all non-reference types.
       foreach (TopLevelDecl d in declarations) {
         if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
           var name = d.Name + "?";
@@ -2004,14 +2003,6 @@ namespace Microsoft.Dafny {
             // map the name d.Name+"?" to d
             toplevels[name] = d;
             sig.TopLevels[name] = d;
-          }
-        }
-
-        if (d is TopLevelDeclWithMembers and not ClassLikeDecl { IsReferenceTypeDecl: true }) {
-          foreach (var member in ((TopLevelDeclWithMembers)d).Members.Where(member => member is Field and not SpecialField)) {
-            var traitHint = d is TraitDecl ? " or declaring the trait with 'extends object'" : "";
-            reporter.Error(MessageSource.Resolver, member,
-              $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
           }
         }
       }
@@ -2890,28 +2881,42 @@ namespace Microsoft.Dafny {
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
-          if (cl is not ClassDecl and not TraitDecl) {
+          // only reference types (classes and reference-type traits) are allowed to declare mutable fields
+          if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
+            foreach (var member in cl.Members.Where(member => member is Field and not SpecialField)) {
+              var traitHint = cl is TraitDecl ? " or declaring the trait with 'extends object'" : "";
+              reporter.Error(MessageSource.Resolver, member,
+                $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
+            }
+          }
+
+          if (cl is not ClassLikeDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
-              // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
+              // non-reference, non-trait types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                  CheckIsOkayWithoutRHS(f);
+                  CheckIsOkayWithoutRHS(f, false);
                 }
               }
             }
             continue;
           }
-          if (cl is TraitDecl) {
+          if (cl is TraitDecl traitDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
-              // traits never have constructors, but check for static consts
+              // check for static consts, and check for instance fields in non-reference traits
               foreach (var member in cl.Members) {
-                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                  CheckIsOkayWithoutRHS(f);
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+                  if (f.IsStatic) {
+                    CheckIsOkayWithoutRHS(f, false);
+                  } else if (!traitDecl.IsReferenceTypeDecl) {
+                    CheckIsOkayWithoutRHS(f, true);
+                  }
                 }
               }
             }
             continue;
           }
+
           var hasConstructor = false;
           Field fieldWithoutKnownInitializer = null;
           foreach (var member in cl.Members) {
@@ -2924,7 +2929,7 @@ namespace Microsoft.Dafny {
             } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
               if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
-                CheckIsOkayWithoutRHS(f);
+                CheckIsOkayWithoutRHS(f, false);
               }
             } else if (member is Field && fieldWithoutKnownInitializer == null) {
               var f = (Field)member;
@@ -3246,15 +3251,18 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckIsOkayWithoutRHS(ConstantField f) {
+    private void CheckIsOkayWithoutRHS(ConstantField f, bool giveNonReferenceTypeTraitHint) {
+      var hint = giveNonReferenceTypeTraitHint && !f.IsStatic
+        ? " (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')"
+        : "";
+      var statik = f.IsStatic ? "static " : "";
+
       if (f.IsGhost && !f.Type.IsNonempty) {
         reporter.Error(MessageSource.Resolver, f.tok,
-          "{0}ghost const field '{1}' of type '{2}' (which may be empty) must give a defining value",
-          f.IsStatic ? "static " : "", f.Name, f.Type);
+          $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
       } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
         reporter.Error(MessageSource.Resolver, f.tok,
-          "{0}non-ghost const field '{1}' of type '{2}' (which does not have a default compiled value) must give a defining value",
-          f.IsStatic ? "static " : "", f.Name, f.Type);
+          $"{statik}non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) must give a defining value{hint}");
       }
     }
 

@@ -209,7 +209,7 @@ module UninitializedConsts {
     ghost const S: PossiblyEmpty // error: requires initialization
     ghost const T: PossiblyEmpty := 15
   }
-/*
+
   trait NonReferenceTrait {
     const a: AutoInit
     const b: AutoInit := 15
@@ -226,7 +226,7 @@ module UninitializedConsts {
     ghost const S: PossiblyEmpty // error: requires initialization
     ghost const T: PossiblyEmpty := 15
   }
-*/
+
   trait ReferenceTrait extends object {
     // the implementing class will provide initialization as needed
     const a: AutoInit

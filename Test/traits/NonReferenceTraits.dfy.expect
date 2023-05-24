@@ -50,5 +50,8 @@ NonReferenceTraits.dfy(192,16): Error: ghost const field 'S' of type 'PossiblyEm
 NonReferenceTraits.dfy(202,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value
 NonReferenceTraits.dfy(207,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value
 NonReferenceTraits.dfy(209,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value
+NonReferenceTraits.dfy(219,10): Error: non-ghost const field 'g' of type 'Nonempty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
+NonReferenceTraits.dfy(224,10): Error: non-ghost const field 's' of type 'PossiblyEmpty' (which does not have a default compiled value) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
+NonReferenceTraits.dfy(226,16): Error: ghost const field 'S' of type 'PossiblyEmpty' (which may be empty) must give a defining value (consider changing the field to be a function, or restricting the enclosing trait to be a reference type by adding 'extends object')
 NonReferenceTraits.dfy(279,8): Error: class 'ClassWithParentWithoutConstructor' with fields without known initializers, like 'g' of type 'Nonempty', must declare a constructor
-28 resolution/type errors detected in NonReferenceTraits.dfy
+31 resolution/type errors detected in NonReferenceTraits.dfy
