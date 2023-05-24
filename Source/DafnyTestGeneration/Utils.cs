@@ -80,9 +80,9 @@ namespace DafnyTestGeneration {
       var builtIns = new BuiltIns(options);
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
       var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
+        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter);
+      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
       if (!resolve) {
         return program;
