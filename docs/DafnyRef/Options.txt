@@ -616,8 +616,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 do not verify layers <n> and below
   /trustLayersDownto:<n>
                 do not verify layers <n> and above
-  /trustInductiveSequentialization
-                do not perform inductive sequentialization checks
+  /trustSequentialization
+                do not perform sequentialization checks
   /civlDesugaredFile:<file>
                 print plain Boogie program to <file>
 
