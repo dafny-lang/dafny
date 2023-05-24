@@ -932,7 +932,7 @@ PRODUCTIONS
 Dafny
 = (. IToken startToken = t;
   .)
-  { "include"                 (. startToken = t; .)
+  { "include"                 
     stringToken               (. {
                                  Uri parsedFile = scanner.Uri;
                                  bool isVerbatimString;
