@@ -308,22 +308,29 @@ namespace Microsoft.Dafny.Compilers {
 
       if (superClasses != null) {
         superClasses = superClasses.Where(trait => !trait.IsObject).ToList();
-
-        // Emit a method that returns the ID of each parent trait
-        var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*{HelperModulePrefix}TraitID");
-        parentTraitsWriter.WriteLine("return [](*{0}TraitID){{{1}}};", HelperModulePrefix, Util.Comma(superClasses, parent => {
-          var trait = ((UserDefinedType)parent).ResolvedClass;
-          return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
-        }));
-
-        foreach (Type typ in superClasses) {
-          // Emit a compile-time sanity check that the class emitted does indeed have the methods required by the parent trait
-          w.WriteLine("var _ {0} = &{1}{{}}", TypeName(typ, w, tok), name);
-        }
-
-        w.WriteLine("var _ {0}TraitOffspring = &{1}{{}}", HelperModulePrefix, name);
+        EmitParentTraits(tok, name, true, superClasses, w);
       }
       return cw;
+    }
+
+    private void EmitParentTraits(IToken tok, string childName, bool childIsUsedAsPointer, List<Type> parentTraits, ConcreteSyntaxTree wr) {
+      var star = childIsUsedAsPointer ? "*" : "";
+      var addressOf = childIsUsedAsPointer ? "&" : "";
+      // Emit a method that returns the ID of each parent trait
+      var parentTraitsWriter = wr.NewBlock($"func (_this {star}{childName}) ParentTraits_() []*{HelperModulePrefix}TraitID");
+      parentTraitsWriter.WriteLine("return [](*{0}TraitID){{{1}}};", HelperModulePrefix, Util.Comma(parentTraits, parent => {
+        var trait = ((UserDefinedType)parent).ResolvedClass;
+        return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
+      }));
+
+      foreach (Type typ in parentTraits) {
+        // Emit a compile-time sanity check that the class emitted does indeed have the methods required by the parent trait
+        wr.WriteLine($"var _ {TypeName(typ, wr, tok)} = {addressOf}{childName}{{}}");
+      }
+
+      wr.WriteLine($"var _ {HelperModulePrefix}TraitOffspring = {addressOf}{childName}{{}}");
+
+      wr.WriteLine();
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters /*?*/,
