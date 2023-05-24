@@ -112,6 +112,9 @@ public abstract class MemberDecl : Declaration {
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    foreach (var a in base.Assumptions(this)) {
+      yield return a;
+    }
     if (HasOnlyAttribute()) {
       yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
     }

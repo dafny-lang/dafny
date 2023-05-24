@@ -76,4 +76,8 @@
 
 ### Member `AssertOnly`
 
-* Assertion has explicit temporary `{:only}` attribute. Must remove the `{:only}` attribute
+* Assertion has explicit temporary `{:only}` attribute. Must remove the `{:only}` attribute.
+
+### Member `MethodOnly`
+
+* Member has explicit temporary `{:only}` attribute. Must remove the `{:only}` attribute.

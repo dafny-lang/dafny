@@ -312,6 +312,31 @@ lemma Correspondence()
 }
 ```
 
+### 11.2.8. `{:only}` {#sec-only-functions-methods}
+
+`method {:only} X() {}` or `function {:only} X() {}`  temporarily disables the verification of all other non-`{:only}` members, e.g. other functions and methods, in the same file, even if they contain [assertions with `{:only}`](#sec-only).
+
+<!-- %no-check -->
+```dafny
+method {:only} TestVerified() {
+  assert true;                  // Unchecked
+  assert {:only} true by {      // Checked
+    assert true;                // Checked
+  }
+  assert true;                  // Unchecked
+}
+
+method TestUnverified() {
+  assert true;                  // Unchecked
+  assert {:only} true by {      // Unchecked because of {:only} Test()
+    assert true;                // Unchecked
+  }
+  assert true;                  // Unchecked
+}
+```
+
+`{:only}` can help focusing on a particular member, for example a lemma or a function, as it simply disables the verification of all other lemmas, methods and functions in the same file. It's equivalent to adding [`{:verify false}`](#sec-verify) to all other declarations simulatenously on the same file. Since it's meant to be a temporary construct, it always emits a warning.
+
 ### 11.2.8. `{:opaque}` {#sec-opaque}
 
 _This attribute is replaced by the keyword `opaque`; the attribute is deprecated._
@@ -463,6 +488,8 @@ not even trying to verify the well-formedness of postconditions and precondition
 We discourage using this attribute and prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies the postconditions.
 
+If you simply want to temporarily disable all verification except on a single function or method, use the [`{:only}`](#sec-only-functions-methods) attribute on that function or method.
+
 ### 11.2.18. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
@@ -577,6 +604,8 @@ The start of an asserted expression is used to determines if it's inside a verif
 For example, in `assert B ==> (assert {:only "after"} true; C)`, `C` is actually the start of the asserted expression, so it is verified because it's after `assert {:only "after"} true`.
 
 As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to make them explicit with assertions if you wanted to verify them at the same time.
+
+You can also isolate the verification of a single member using [a similar `{:only}` attribute](#sec-only-functions-methods).
 
 ### 11.3.2. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
