@@ -107,15 +107,11 @@ public abstract class MemberDecl : Declaration {
 
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
 
-  public bool HasOnlyAttribute() {
-    return Attributes.Find(Attributes, "only") is UserSuppliedAttributes;
-  }
-
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
-    if (HasOnlyAttribute()) {
+    if (this.HasUserAttribute("only", out _)) {
       yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
     }
   }

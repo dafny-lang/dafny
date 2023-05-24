@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
       foreach (MemberDecl member in c.Members.FindAll(VisibleInScope)) {
         Contract.Assert(isAllocContext == null);
         currentDeclaration = member;
-        if (!filterOnlyMembers || member.HasOnlyAttribute()) {
+        if (!filterOnlyMembers || member.HasUserAttribute("only", out _)) {
           SetAssertionOnlyFilter(member);
         } else {
           assertionOnlyFilter = _ => false;

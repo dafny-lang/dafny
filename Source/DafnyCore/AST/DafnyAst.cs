@@ -178,6 +178,18 @@ namespace Microsoft.Dafny {
     Attributes Attributes { get; }
   }
 
+  public static class IAttributeBearingDeclarationExtensions {
+    public static bool HasUserAttribute(this IAttributeBearingDeclaration decl, string name, out Attributes attribute) {
+      if (Attributes.Find(decl.Attributes, name) is UserSuppliedAttributes attr) {
+        attribute = attr;
+        return true;
+      }
+
+      attribute = null;
+      return false;
+    }
+  }
+
   public class Attributes : TokenNode {
     [ContractInvariantMethod]
     void ObjectInvariant() {

@@ -106,7 +106,7 @@ public record AssumptionDescription(
   public static readonly AssumptionDescription AssertOnly = new(
     issue: "Assertion has explicit temporary [{:only}] attribute.",
     mitigation: "Remove the [{:only}] attribute.",
-    mitigationIETF: "Must remove the [{:only}] attribute.",
+    mitigationIETF: "MUST remove the [{:only}] attribute.",
     isExplicit: true,
     allowedInLibraries: false
   );
@@ -114,7 +114,7 @@ public record AssumptionDescription(
   public static readonly AssumptionDescription MemberOnly = new(
     issue: "Member has explicit temporary [{:only}] attribute.",
     mitigation: "Remove the [{:only}] attribute.",
-    mitigationIETF: "Must remove the [{:only}] attribute.",
+    mitigationIETF: "MUST remove the [{:only}] attribute.",
     isExplicit: true,
     allowedInLibraries: false
   );

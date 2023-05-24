@@ -3252,7 +3252,7 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
-        if (Attributes.Find(member.Attributes, "only") is UserSuppliedAttributes attribute) {
+        if (member.HasUserAttribute("only", out var attribute)) {
           reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken.ToToken(),
             "Members with {:only} temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
@@ -4014,7 +4014,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (assertStmt != null && Attributes.Find(assertStmt.Attributes, "only") is UserSuppliedAttributes attribute) {
+        if (assertStmt != null && assertStmt.HasUserAttribute("only", out var attribute)) {
           reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.RangeToken.ToToken(),
             "Assertion with {:only} temporarily transforms other assertions into assumptions");
           if (attribute.Args.Count >= 1
