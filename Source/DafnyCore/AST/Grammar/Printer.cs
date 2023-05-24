@@ -246,10 +246,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
           return string.CompareOrdinal(m.NameRelativeToModule, n.NameRelativeToModule);
         });
-        foreach (var clbl in SCCs) {
+        foreach (var callable in SCCs) {
           Indent(indent);
-          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(clbl));
-          var r = module.CallGraph.GetSCC(clbl);
+          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(callable));
+          var r = module.CallGraph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
             var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";

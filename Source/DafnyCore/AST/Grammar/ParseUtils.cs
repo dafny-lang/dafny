@@ -183,10 +183,17 @@ public class ParseUtils {
   }
 
   public static void AddFileModuleToProgram(FileModuleDefinition fileModule, DefaultModuleDefinition defaultModule) {
-    foreach (var declToMove in fileModule.TopLevelDecls) {
+    foreach (var declToMove in fileModule.TopLevelDecls.
+               Where(d => d != null) // Can occur when there are parse errors. Error correction is at fault but we workaround it here
+             ) 
+    {
       declToMove.EnclosingModuleDefinition = defaultModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;
+      }
+
+      if (declToMove is ClassLikeDecl classDecl) {
+        classDecl.NonNullTypeDecl.EnclosingModuleDefinition = defaultModule;
       }
       if (declToMove is DefaultClassDecl defaultClassDecl) {
         foreach (var member in defaultClassDecl.Members) {
