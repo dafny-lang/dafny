@@ -647,8 +647,9 @@ namespace Microsoft.Dafny.Compilers {
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.tok, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
-      Func<DatatypeCtor, string> structOfCtor = ctor =>
-        string.Format("{0}{1}_{2}", dt is CoDatatypeDecl ? "*" : "", name, ctor.GetCompileName(Options));
+      string StructOfCtor(DatatypeCtor ctor) {
+        return string.Format("{0}{1}_{2}", dt is CoDatatypeDecl ? "*" : "", name, ctor.GetCompileName(Options));
+      }
 
       // from here on, write everything into the new block created here:
       wr = CreateDescribedSection("{0} {1}", wr, dt.WhatKind, name);
@@ -730,7 +731,7 @@ namespace Microsoft.Dafny.Compilers {
 
         wr.WriteLine();
         var wCheck = wr.NewNamedBlock("func (_this {0}) {1}() bool", name, FormatDatatypeConstructorCheckName(ctor.GetCompileName(Options)));
-        wCheck.WriteLine("_, ok := _this.Get().({0})", structOfCtor(ctor));
+        wCheck.WriteLine("_, ok := _this.Get().({0})", StructOfCtor(ctor));
         wCheck.WriteLine("return ok");
 
         if (dt is CoDatatypeDecl) {
@@ -789,7 +790,7 @@ namespace Microsoft.Dafny.Compilers {
               var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
+                wDtor.WriteLine("return _this.Get().({0}).{1}", StructOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
                 var compiledConstructorsProcessed = 0;
@@ -800,9 +801,9 @@ namespace Microsoft.Dafny.Compilers {
                     continue;
                   }
                   if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
-                    wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
+                    wDtor.WriteLine("case {0}: return data.{1}", StructOfCtor(ctor_i), DatatypeFieldName(arg));
                   } else {
-                    wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
+                    wDtor.WriteLine("default: return data.({0}).{1}", StructOfCtor(ctor_i), DatatypeFieldName(arg));
                   }
                   compiledConstructorsProcessed++;
                 }
@@ -821,7 +822,7 @@ namespace Microsoft.Dafny.Compilers {
         w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
-          var wCase = w.NewNamedBlock("case {0}:", structOfCtor(ctor));
+          var wCase = w.NewNamedBlock("case {0}:", StructOfCtor(ctor));
           var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
           if (dt is CoDatatypeDecl) {
             wCase.WriteLine("return \"{0}\"", nm);
@@ -866,11 +867,11 @@ namespace Microsoft.Dafny.Compilers {
 
         wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
-          var wCase = wEquals.NewNamedBlock("case {0}:", structOfCtor(ctor));
+          var wCase = wEquals.NewNamedBlock("case {0}:", StructOfCtor(ctor));
 
           var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
 
-          wCase.WriteLine("{0}, ok := other.Get().({1})", needData2 ? "data2" : "_", structOfCtor(ctor));
+          wCase.WriteLine("{0}, ok := other.Get().({1})", needData2 ? "data2" : "_", StructOfCtor(ctor));
           wCase.Write("return ok");
           var k = 0;
           foreach (Formal arg in ctor.Formals) {
