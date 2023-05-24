@@ -55,9 +55,12 @@ public class DafnyFile {
       IsPreverified = true;
       IsPrecompiled = false;
 
-      var dooFile = DooFile.Read(filePath);
-
       var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
+      if (!File.Exists(filePath)) {
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
+        throw new IllegalDafnyFile(true);
+      }
+      var dooFile = DooFile.Read(filePath);
       if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
         throw new IllegalDafnyFile(true);
       }
