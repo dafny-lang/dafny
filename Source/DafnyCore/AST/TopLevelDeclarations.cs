@@ -901,12 +901,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
       PrefixNamedModules.Add(newTup);
     }
+    
+    // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.  
+    foreach (var tup in original.ResolvedPrefixNamedModules) {
+      ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
+    }
 
     if (cloner.CloneResolvedFields) {
       Height = original.Height;
-      foreach (var tup in original.ResolvedPrefixNamedModules) {
-        ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
-      }
     }
   }
 
@@ -1170,10 +1172,6 @@ public class DefaultModuleDefinition : ModuleDefinition {
       null, null, null, true, defaultClassFirst) {
     RootSourceUris = rootSourceUris;
   }
-
-  // TODO added to get similar compilation behavior. Probably not useful.
-  // public override IEnumerable<TopLevelDecl> TopLevelDecls =>
-  //   DefaultClasses.Concat(SourceDecls).Concat(ResolvedPrefixNamedModules);
 
   public override bool IsDefaultModule => true;
 }

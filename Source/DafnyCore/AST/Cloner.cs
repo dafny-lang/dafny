@@ -898,7 +898,7 @@ namespace Microsoft.Dafny {
   class CompilationCloner : DeepModuleSignatureCloner {
     Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
     public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
-      : base(true) {
+      : base(false) {
       this.compilationModuleClones = compilationModuleClones;
     }
 
