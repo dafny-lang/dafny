@@ -14,7 +14,7 @@ QuantificationNewSyntaxResolution.dfy(35,37): Error: range of quantified variabl
 QuantificationNewSyntaxResolution.dfy(36,25): Error: range of quantified variable must be of type bool (instead got string)
 QuantificationNewSyntaxResolution.dfy(37,18): Error: range restriction in forall statement must be of type bool (instead got string)
 QuantificationNewSyntaxResolution.dfy(44,19): Error: arguments to < must have a common supertype (got set<?> and seq<int>)
-QuantificationNewSyntaxResolution.dfy(44,23): Error: type of unary - must be of a numeric or bitvector type (instead got seq<int>)
+QuantificationNewSyntaxResolution.dfy(44,23): Error: the argument of a unary minus must have numeric or bitvector type (instead got seq<int>)
 QuantificationNewSyntaxResolution.dfy(9,22): Error: domain of quantified variable must be a set, multiset, or sequence with elements of type ?, or a map with domain ? (instead got int)
 QuantificationNewSyntaxResolution.dfy(10,32): Error: domain of quantified variable must be a set, multiset, or sequence with elements of type ?, or a map with domain ? (instead got int)
 QuantificationNewSyntaxResolution.dfy(15,22): Error: domain of quantified variable must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got int)

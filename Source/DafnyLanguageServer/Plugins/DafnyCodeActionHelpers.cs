@@ -130,27 +130,30 @@ public static class DafnyCodeActionHelpers {
   private static IToken? GetMatchingEndToken(Dafny.Program program, string documentUri, int line, int col) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
-    foreach (var module in program.Modules()) {
-      foreach (var topLevelDecl in module.TopLevelDecls) {
-        if (topLevelDecl is ClassDecl classDecl && (classDecl.StartToken.line == 0 || (classDecl.StartToken.Filepath == documentUri && classDecl.StartToken.line <= line && line <= classDecl.EndToken.line))) {
-          foreach (var member in classDecl.Members) {
-            if (member is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
-                method.StartToken.line <= line && line <= method.EndToken.line &&
-                GetMatchingEndToken(line, col, method.Body) is { } token) {
-              return token;
-            }
-
-            if (member is Function { ByMethodBody: { } } function &&
-                function.StartToken.line <= line && line <= function.EndToken.line &&
-                GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
-              return token2;
-            }
-          }
-        }
+    IToken? tokenFound = null;
+    program.Visit((Node n) => {
+      if (tokenFound != null) {
+        return false;
       }
-    }
 
-    return null;
+      if (n.StartToken.line != 0 &&
+          (n.StartToken.Uri.ToString() != documentUri
+           || n.StartToken.line > line || line > n.EndToken.line)) {
+        return false; // Outside of the current scope
+      }
+
+      if (n is Method method && method.tok.Uri == new Uri(documentUri) && method.Body != null &&
+          method.StartToken.line <= line && line <= method.EndToken.line &&
+          GetMatchingEndToken(line, col, method.Body) is { } token) {
+        tokenFound = token;
+      } else if (n is Function { ByMethodBody: { } } function &&
+                 function.StartToken.line <= line && line <= function.EndToken.line &&
+                 GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
+        tokenFound = token2;
+      }
+      return tokenFound == null;
+    }, node => { });
+    return tokenFound;
   }
 
   /// <summary>

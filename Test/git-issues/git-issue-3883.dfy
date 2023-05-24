@@ -5,7 +5,7 @@ type MyInt<T> = x: int | true witness *
 
 method Main() {
   var a: MyType<int> := 13; // this used to not verify (issue #3891)
-  TestMyTest(a, 14); // 13 14 // this used to crash the resolved
+  TestMyTest(a, 14); // 13 14 // this used to crash the resolver
   var b: MyType<bool> := true;
   TestMyTest(b, false); // true false
   print a, " ", b, "\n"; // 13 true

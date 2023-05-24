@@ -92,10 +92,8 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult,
         "Datatype extensional equality declaration"));
 
-      Bpl.Expr a;
-      var aVar = BplBoundVar("a", predef.DatatypeType, out a);
-      Bpl.Expr b;
-      var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+      var aVar = BplBoundVar("a", predef.DatatypeType, out var a);
+      var bVar = BplBoundVar("b", predef.DatatypeType, out var b);
 
       var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
 
@@ -169,10 +167,8 @@ namespace Microsoft.Dafny {
             Map(codecl.TypeArgs, tp =>
               new TypeParameter(tp.RangeToken, tp.NameNode.Append("#" + s), tp.PositionalIndex, tp.Parent));
           List<TypeParameter> typaramsL = renew("l"), typaramsR = renew("r");
-          List<Bpl.Expr> lexprs;
-          var lvars = MkTyParamBinders(typaramsL, out lexprs);
-          List<Bpl.Expr> rexprs;
-          var rvars = MkTyParamBinders(typaramsR, out rexprs);
+          var lvars = MkTyParamBinders(typaramsL, out var lexprs);
+          var rvars = MkTyParamBinders(typaramsR, out var rexprs);
           Func<List<TypeParameter>, List<Type>> Types = l => Map(l, tp => (Type)new UserDefinedType(tp));
           var tyargs = Tuple.Create(Types(typaramsL), Types(typaramsR));
 
@@ -367,8 +363,7 @@ namespace Microsoft.Dafny {
 
       sink.AddTopLevelDeclaration(cases_fn);
       // and here comes the actual axiom:
-      Bpl.Expr d;
-      var dVar = BplBoundVar("d", predef.DatatypeType, out d);
+      var dVar = BplBoundVar("d", predef.DatatypeType, out var d);
       var lhs = FunctionCall(dt.tok, cases_fn.Name, Bpl.Type.Bool, d);
       Bpl.Expr cases_body = Bpl.Expr.False;
       foreach (DatatypeCtor ctor in dt.Ctors) {
@@ -460,9 +455,7 @@ namespace Microsoft.Dafny {
       if (dt is IndDatatypeDecl) {
         // Add Lit axiom:
         // axiom (forall p0, ..., pn :: #dt.ctor(Lit(p0), ..., Lit(pn)) == Lit(#dt.ctor(p0, .., pn)));
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        CreateBoundVariables(ctor.Formals, out var bvs, out var args);
         var litargs = new List<Bpl.Expr>();
         foreach (Bpl.Expr arg in args) {
           litargs.Add(Lit(arg));
@@ -492,9 +485,7 @@ namespace Microsoft.Dafny {
         }
 
         // axiom (forall params :: ##dt.ctor#i(#dt.ctor(params)) == params_i);
-        List<Bpl.Variable> bvs;
-        List<Bpl.Expr> args;
-        CreateBoundVariables(ctor.Formals, out bvs, out args);
+        CreateBoundVariables(ctor.Formals, out var bvs, out var args);
         var inner = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
         var outer = FunctionCall(ctor.tok, fn.Name, TrType(arg.Type), inner);
         var q = BplForall(bvs, BplTrigger(inner), Bpl.Expr.Eq(outer, args[i]));
@@ -739,8 +730,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < ctor.Formals.Count; i++) {
         var arg = ctor.Formals[i];
         var dtor = GetReadonlyField(ctor.Destructors[i]);
-        Bpl.Expr dId;
-        var dBv = BplBoundVar("d", predef.DatatypeType, out dId);
+        var dBv = BplBoundVar("d", predef.DatatypeType, out var dId);
         var isGoodHeap = FunctionCall(ctor.tok, BuiltinFunction.IsGoodHeap, null, h);
         Bpl.Expr dtq = FunctionCall(ctor.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, dId);
         var c_alloc = MkIsAlloc(dId, c_ty, h);
@@ -800,9 +790,7 @@ namespace Microsoft.Dafny {
 
     private Axiom CreateConstructorIdentifierAxiom(DatatypeCtor ctor, Expr c) {
       // Add:  axiom (forall params :: DatatypeCtorId(#dt.ctor(params)) == ##dt.ctor);
-      List<Bpl.Variable> bvs;
-      List<Bpl.Expr> args;
-      CreateBoundVariables(ctor.Formals, out bvs, out args);
+      CreateBoundVariables(ctor.Formals, out var bvs, out var args);
       var constructor_call = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
       var lhs = FunctionCall(ctor.tok, BuiltinFunction.DatatypeCtorId, null, constructor_call);
       Bpl.Expr q = Bpl.Expr.Eq(lhs, c);
