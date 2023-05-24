@@ -42,6 +42,7 @@ namespace DafnyPipeline.Test {
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
       var options = DafnyOptions.Create(output);
+      options.DisallowIncludes = true;
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;

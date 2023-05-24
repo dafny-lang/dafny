@@ -78,7 +78,7 @@ public static class SourcePreprocessor {
 
       var addedNewline = string.IsNullOrEmpty(newline) ? Environment.NewLine : newline;
       string trimmedLine = line.Trim();
-      
+
       if (trimmedLine.StartsWith("#if")) {
         IfDirectiveState rs = new IfDirectiveState(false, false);
         if (ignoreCutoff != -1) {
@@ -150,7 +150,7 @@ public static class SourcePreprocessor {
     return sb.ToString();
   }
 
-  
+
   public static (string content, string newline) ReadLineAndDetermineNewline(TextReader reader) {
 
     StringBuilder sb = new StringBuilder();

@@ -683,8 +683,7 @@ namespace Microsoft.Dafny {
   /// This cloner copies the origin module signatures to their cloned declarations
   /// </summary>
   class DeepModuleSignatureCloner : Cloner {
-    public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(cloneResolvedFields)
-    {
+    public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(cloneResolvedFields) {
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {

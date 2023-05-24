@@ -861,10 +861,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
   public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
-  public virtual IEnumerable<TopLevelDecl> TopLevelDecls => 
+  public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
     defaultClassFirst ? DefaultClasses.
         Concat(SourceDecls).
-        Concat(ResolvedPrefixNamedModules) 
+        Concat(ResolvedPrefixNamedModules)
       : SourceDecls.
         Concat(DefaultClasses).
         Concat(ResolvedPrefixNamedModules);
@@ -909,7 +909,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
       PrefixNamedModules.Add(newTup);
     }
-    
+
     // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.  
     foreach (var tup in original.ResolvedPrefixNamedModules) {
       ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
@@ -921,7 +921,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   }
 
   public ModuleDefinition(RangeToken tok, Name name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
-    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, 
+    ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes,
     bool isBuiltinName, bool defaultClassFirst = false) : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -1148,7 +1148,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   private IEnumerable<Node> preResolvePrefixNamedModules;
 
   public override IEnumerable<Node> PreResolveChildren =>
-    //Includes.
     Enumerable.Empty<Node>(). // TODO refactor
       Concat<Node>(Attributes != null ?
       new List<Node> { Attributes } :
@@ -1176,12 +1175,13 @@ public class DefaultModuleDefinition : ModuleDefinition {
   }
 
   public DefaultModuleDefinition(IList<Uri> rootSourceUris, bool defaultClassFirst)
-    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false, 
+    : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false,
       null, null, null, true, defaultClassFirst) {
     RootSourceUris = rootSourceUris;
   }
 
   public override bool IsDefaultModule => true;
+  public override IEnumerable<Node> PreResolveChildren => Includes.Concat(base.PreResolveChildren);
 }
 
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {

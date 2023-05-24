@@ -930,9 +930,10 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. IToken startToken = t;
+= (. IToken includeStartToken;
+     IToken fileStartToken = t;
   .)
-  { "include"                 
+  { "include"                 (. includeStartToken = t; .)
     stringToken               (. {
                                  Uri parsedFile = scanner.Uri;
                                  bool isVerbatimString;
@@ -943,15 +944,15 @@ Dafny
                                    string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, new Uri(includedFile));
-                                 oneInclude.RangeToken = new RangeToken(startToken, t);
+                                 var oneInclude = new Include(t, parsedFile, new Uri("file://" + includedFile));
+                                 oneInclude.RangeToken = new RangeToken(includeStartToken, t);
                                  theModule.Includes.Add(oneInclude);
                                }
                             .)
   }
   { TopDecl<theModule, /* isTopLevel */ true, /* isAbstract */ false> }
   (. 
-    theModule.RangeToken = new RangeToken(startToken.Next, t);
+    theModule.RangeToken = new RangeToken(fileStartToken.Next, t);
   .)
   SYNC
   EOF
