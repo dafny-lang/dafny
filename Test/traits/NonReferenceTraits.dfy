@@ -279,3 +279,143 @@ module UninitializedConsts {
   class ClassWithParentWithoutConstructor extends ReferenceTrait { // error: class must provide a constructor
   }
 }
+
+module UninitializedStaticConsts {
+  type AutoInit = x | 12 <= x < 17 witness 16
+  type Nonempty = x | 12 <= x < 17 ghost witness 16
+  type PossiblyEmpty = x | 12 <= x < 17 witness *
+
+  datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, aa: A)
+  {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  newtype MyInt = int
+  {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  newtype Pos = x | 0 < x witness 1
+  {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  type Abstract {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  trait NonReferenceTrait {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  trait ReferenceTrait extends object {
+    // the implementing class will provide initialization as needed
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+  }
+
+  class Class {
+    static const a: AutoInit
+    static const b: AutoInit := 15
+    static ghost const A: AutoInit
+    static ghost const B: AutoInit := 15
+
+    static const g: Nonempty // error: requires initialization
+    static const h: Nonempty := 15
+    static ghost const G: Nonempty
+    static ghost const H: Nonempty := 15
+
+    static const s: PossiblyEmpty // error: requires initialization
+    static const t: PossiblyEmpty := 15
+    static ghost const S: PossiblyEmpty // error: requires initialization
+    static ghost const T: PossiblyEmpty := 15
+
+    constructor () {
+    }
+  }
+
+  class ClassWithParent extends ReferenceTrait {
+    constructor () {
+    }
+  }
+
+  class ClassWithParentWithoutConstructor extends ReferenceTrait {
+  }
+}
