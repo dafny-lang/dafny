@@ -362,14 +362,10 @@ namespace Microsoft.Dafny {
       Bpl.Expr is_hf, isalloc_hf = null;
       if (is_array) {
         is_hf = MkIs(oDotF, tyexprs[0], true);
-        if (options.CommonHeapUse || options.NonGhostsUseHeap) {
-          isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
-        }
+        isalloc_hf = MkIsAlloc(oDotF, tyexprs[0], h, true);
       } else {
         is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
-        if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
-          isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
-        }
+        isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
       }
 
       Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
@@ -446,7 +442,7 @@ namespace Microsoft.Dafny {
       var isAxiom = new Boogie.Axiom(c.tok, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
-      if (options.CommonHeapUse || (options.NonGhostsUseHeap && !f.IsGhost)) {
+      {
         var hVar = BplBoundVar("$h", predef.HeapType, out var h);
         bvsAllocationAxiom.Add(hVar);
         var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
@@ -489,7 +485,7 @@ namespace Microsoft.Dafny {
         AddFuelZeroSynonymAxiom(f);
       }
       // add frame axiom
-      if (options.AlwaysUseHeap || f.ReadsHeap) {
+      if (f.ReadsHeap) {
         AddFrameAxiom(f);
       }
       // add consequence axiom
@@ -1025,7 +1021,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Ensures(Contract.Result<Boogie.Axiom>() != null);
 
-      bool readsHeap = options.AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap;
+      bool readsHeap = f.ReadsHeap || overridingFunction.ReadsHeap;
 
       ExpressionTranslator etran;
       Boogie.BoundVariable bvPrevHeap = null;
@@ -1075,13 +1071,13 @@ namespace Microsoft.Dafny {
         argsJF.Add(etran.Old.HeapExpr);
         moreArgsCF.Add(etran.Old.HeapExpr);
       }
-      if (options.AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap) {
+      if (f.ReadsHeap || overridingFunction.ReadsHeap) {
         var heap = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
         forallFormals.Add(heap);
-        if (options.AlwaysUseHeap || f.ReadsHeap) {
+        if (f.ReadsHeap) {
           argsJF.Add(new Boogie.IdentifierExpr(f.tok, heap));
         }
-        if (options.AlwaysUseHeap || overridingFunction.ReadsHeap) {
+        if (overridingFunction.ReadsHeap) {
           moreArgsCF.Add(new Boogie.IdentifierExpr(overridingFunction.tok, heap));
         }
       }

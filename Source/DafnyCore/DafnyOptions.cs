@@ -43,11 +43,7 @@ namespace Microsoft.Dafny {
 
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
-    public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
-    public bool AlwaysUseHeap => Allocated == 2;
-    public bool CommonHeapUse => Allocated >= 2;
-    public bool FrugalHeapUse => Allocated >= 3;
-    public bool FrugalHeapUseX => Allocated == 4;
+
 
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
@@ -348,7 +344,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool IncludeRuntime = true;
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
-    public int Allocated = 4;
     public bool UseStdin = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
@@ -696,14 +691,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "optimize": {
             Optimize = true;
-            return true;
-          }
-
-        case "allocated": {
-            ps.GetIntArgument(ref Allocated, 5);
-            if (Allocated != 4) {
-              Printer.AdvisoryWriteLine(OutputWriter, "The /allocated:<n> option is deprecated");
-            }
             return true;
           }
 
