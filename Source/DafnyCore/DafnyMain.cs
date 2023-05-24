@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
     }
 
     private static readonly TaskScheduler largeThreadScheduler =
-      CustomStackSizePoolTaskScheduler.Create(0x10000000, Environment.ProcessorCount);
+      CustomStackSizePoolTaskScheduler.Create(0x20000000, Environment.ProcessorCount);
 
     public static readonly TaskFactory LargeStackFactory = new(CancellationToken.None,
       TaskCreationOptions.DenyChildAttach, TaskContinuationOptions.None, largeThreadScheduler);
