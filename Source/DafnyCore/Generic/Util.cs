@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
 
+namespace Microsoft.Dafny {
   public static class Sets {
     public static ISet<T> Empty<T>() {
       return new HashSet<T>();

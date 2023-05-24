@@ -4,7 +4,9 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using System.Linq;
+using System.Reflection;
 using System.Xml;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -866,6 +868,12 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       : SourceDecls.
         Concat(DefaultClasses).
         Concat(ResolvedPrefixNamedModules);
+
+  public IEnumerable<IPointer<TopLevelDecl>> TopLevelDeclPointers =>
+    (DefaultClass == null
+      ? Enumerable.Empty<Pointer<TopLevelDecl>>()
+      : new[] { new Pointer<TopLevelDecl>(() => DefaultClass, v => DefaultClass = (DefaultClassDecl)v) }).
+    Concat(SourceDecls.ToPointers()).Concat(ResolvedPrefixNamedModules.ToPointers());
 
   protected IEnumerable<TopLevelDecl> DefaultClasses {
     get { return DefaultClass == null ? Enumerable.Empty<TopLevelDecl>() : new TopLevelDecl[] { DefaultClass }; }

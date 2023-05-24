@@ -221,26 +221,24 @@ namespace Microsoft.Dafny {
       Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementQId.Def, false, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
-      var declaredNames = new Dictionary<string, int>();
-      var topLevelDecls = m.TopLevelDecls.ToList();
-      for (int i = 0; i < topLevelDecls.Count; i++) {
-        var d = topLevelDecls[i];
-        if (!declaredNames.ContainsKey(d.Name)) {
-          declaredNames.Add(d.Name, i);
-        }
+      var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
+      var pointers = m.TopLevelDeclPointers;
+      foreach (var pointer in pointers) {
+        var key = pointer.Get().Name;
+        declaredNames.TryAdd(key, pointer);
       }
 
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
       foreach (var d in prev.TopLevelDecls) {
         processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out var index)) {
+        if (!declaredNames.TryGetValue(d.Name, out var nwPointer)) {
           var clone = refinementCloner.CloneDeclaration(d, m);
           m.SourceDecls.Add(clone);
         } else {
-          var nw = topLevelDecls[index];
+          var nw = nwPointer.Get();
           if (d.Name == "_default" || nw.IsRefining || d is AbstractTypeDecl) {
-            MergeTopLevelDecls(m, nw, d, index);
+            MergeTopLevelDecls(m, nwPointer, d);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
             Reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
@@ -255,10 +253,9 @@ namespace Microsoft.Dafny {
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
-        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var index)) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var pointer)) {
           // if it is redefined, we need to merge them.
-          var nw = topLevelDecls[index];
-          MergeTopLevelDecls(m, nw, d, index);
+          MergeTopLevelDecls(m, pointer, d);
         }
       }
       m.RefinementQId.Sig = RefinedSig;
@@ -298,9 +295,10 @@ namespace Microsoft.Dafny {
       nw.Extends.AddRange(d.Extends);
     }
 
-    private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
+    private void MergeTopLevelDecls(ModuleDefinition m, IPointer<TopLevelDecl> nwPointer, TopLevelDecl d) {
+      var nw = nwPointer.Get();
       var commonMsg = "a {0} declaration ({1}) in a refinement module can only refine a {0} declaration or replace an abstract type declaration";
-      var topLevelDecls = m.TopLevelDecls.ToList();
+      // Prefix decls.
 
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
@@ -376,7 +374,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (nw is TopLevelDeclWithMembers) {
-            topLevelDecls[index] = MergeClass((TopLevelDeclWithMembers)nw, od);
+            nwPointer.Set(MergeClass((TopLevelDeclWithMembers)nw, od));
           } else if (od.Members.Count != 0) {
             Reporter.Error(MessageSource.RefinementTransformer, nw,
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
@@ -392,7 +390,7 @@ namespace Microsoft.Dafny {
         var (dd, nwd) = ((DatatypeDecl)d, (DatatypeDecl)nw);
         Contract.Assert(!nwd.Ctors.Any());
         nwd.Ctors.AddRange(dd.Ctors.Select(refinementCloner.CloneCtor));
-        topLevelDecls[index] = MergeClass((DatatypeDecl)nw, (DatatypeDecl)d);
+        nwPointer.Set(MergeClass((DatatypeDecl)nw, (DatatypeDecl)d));
       } else if (nw is DatatypeDecl) {
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (d is NewtypeDecl && nw is NewtypeDecl) {
@@ -404,31 +402,31 @@ namespace Microsoft.Dafny {
         nwn.Constraint = dn.Constraint == null ? null : refinementCloner.CloneExpr(dn.Constraint);
         nwn.WitnessKind = dn.WitnessKind;
         nwn.Witness = dn.Witness == null ? null : refinementCloner.CloneExpr(dn.Witness);
-        topLevelDecls[index] = MergeClass((NewtypeDecl)nw, (NewtypeDecl)d);
+        nwPointer.Set(MergeClass((NewtypeDecl)nw, (NewtypeDecl)d));
       } else if (nw is NewtypeDecl) {
         // `.Basetype` will be set in AddDefaultBaseTypeToUnresolvedNewtypes
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
-          topLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
+          nwPointer.Set(MergeIterator((IteratorDecl)nw, (IteratorDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is TraitDecl) {
         if (d is TraitDecl) {
-          topLevelDecls[index] = MergeClass((TraitDecl)nw, (TraitDecl)d);
+          nwPointer.Set(MergeClass((TraitDecl)nw, (TraitDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
         if (d is ClassDecl) {
-          topLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+          nwPointer.Set(MergeClass((ClassDecl)nw, (ClassDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is DefaultClassDecl) {
         if (d is DefaultClassDecl) {
-          topLevelDecls[index] = MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
+          m.DefaultClass = (DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
