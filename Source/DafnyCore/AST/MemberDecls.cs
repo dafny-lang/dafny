@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
@@ -105,6 +106,16 @@ public abstract class MemberDecl : Declaration {
   }
 
   public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
+
+  public bool HasOnlyAttribute() {
+    return Attributes.Find(Attributes, "only") is UserSuppliedAttributes;
+  }
+
+  public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+    if (HasOnlyAttribute()) {
+      yield return new Assumption(decl, tok, AssumptionDescription.MemberOnly);
+    }
+  }
 }
 
 public class Field : MemberDecl, ICanFormat, IHasDocstring {
