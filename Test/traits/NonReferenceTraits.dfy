@@ -133,3 +133,149 @@ module NameClash {
 
   type AA?
 }
+
+module UninitializedConsts {
+  type AutoInit = x | 12 <= x < 17 witness 16
+  type Nonempty = x | 12 <= x < 17 ghost witness 16
+  type PossiblyEmpty = x | 12 <= x < 17 witness *
+
+  datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, aa: A)
+  {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty // error: requires initialization
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty // error: requires initialization
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const T: PossiblyEmpty := 15
+  }
+
+  newtype MyInt = int
+  {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty // error: requires initialization
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty // error: requires initialization
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const T: PossiblyEmpty := 15
+  }
+
+  newtype Pos = x | 0 < x witness 1
+  {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty // error: requires initialization
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty // error: requires initialization
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const T: PossiblyEmpty := 15
+  }
+
+  type Abstract {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty // error: requires initialization
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty // error: requires initialization
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const T: PossiblyEmpty := 15
+  }
+/*
+  trait NonReferenceTrait {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty // error: requires initialization
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty // error: requires initialization
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty // error: requires initialization
+    ghost const T: PossiblyEmpty := 15
+  }
+*/
+  trait ReferenceTrait extends object {
+    // the implementing class will provide initialization as needed
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty
+    ghost const T: PossiblyEmpty := 15
+  }
+
+  class Class {
+    const a: AutoInit
+    const b: AutoInit := 15
+    ghost const A: AutoInit
+    ghost const B: AutoInit := 15
+
+    const g: Nonempty
+    const h: Nonempty := 15
+    ghost const G: Nonempty
+    ghost const H: Nonempty := 15
+
+    const s: PossiblyEmpty
+    const t: PossiblyEmpty := 15
+    ghost const S: PossiblyEmpty
+    ghost const T: PossiblyEmpty := 15
+
+    constructor () {
+      g := 12;
+      s := 12;
+      S := 12;
+    }
+  }
+
+  class ClassWithParent extends ReferenceTrait {
+    constructor () {
+      g := 12;
+      s := 12;
+      S := 12;
+    }
+  }
+
+  class ClassWithParentWithoutConstructor extends ReferenceTrait { // error: class must provide a constructor
+  }
+}
