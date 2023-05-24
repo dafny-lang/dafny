@@ -897,12 +897,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     DefaultClass = (DefaultClassDecl)cloner.CloneDeclaration(original.DefaultClass, this);
+    foreach (var tup in original.PrefixNamedModules) {
+      var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
+      PrefixNamedModules.Add(newTup);
+    }
 
     if (cloner.CloneResolvedFields) {
       Height = original.Height;
-      foreach (var tup in original.PrefixNamedModules) {
-        var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
-        PrefixNamedModules.Add(newTup);
+      foreach (var tup in original.ResolvedPrefixNamedModules) {
+        ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
       }
     }
   }

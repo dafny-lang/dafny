@@ -683,6 +683,10 @@ namespace Microsoft.Dafny {
   /// This cloner copies the origin module signatures to their cloned declarations
   /// </summary>
   class DeepModuleSignatureCloner : Cloner {
+    public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(cloneResolvedFields)
+    {
+    }
+
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
       if (d is ModuleDecl) {
@@ -894,7 +898,7 @@ namespace Microsoft.Dafny {
   class CompilationCloner : DeepModuleSignatureCloner {
     Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
     public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
-      : base() {
+      : base(true) {
       this.compilationModuleClones = compilationModuleClones;
     }
 

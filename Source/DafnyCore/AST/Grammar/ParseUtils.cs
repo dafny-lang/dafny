@@ -202,6 +202,10 @@ public class ParseUtils {
       defaultModule.Includes.Add(include);
     }
 
+    foreach (var prefixNamedModule in fileModule.PrefixNamedModules) {
+      defaultModule.PrefixNamedModules.Add(prefixNamedModule);
+    }
+
     defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
 
