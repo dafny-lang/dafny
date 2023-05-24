@@ -155,7 +155,7 @@ public class ParseUtils {
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-      var includedModules = TryParseIncludes(defaultModule.Includes.ToList(),
+      var includedModules = TryParseIncludes(files, defaultModule.Includes.ToList(),
         builtIns, errorReporter, cancellationToken);
 
       foreach (var module in includedModules) {
@@ -217,6 +217,7 @@ public class ParseUtils {
   }
 
   public static IList<FileModuleDefinition> TryParseIncludes(
+    IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     BuiltIns builtIns,
     ErrorReporter errorReporter,
@@ -224,9 +225,13 @@ public class ParseUtils {
   ) {
     var stack = new Stack<DafnyFile>();
     var result = new List<FileModuleDefinition>();
-    var resolvedIncludes = new HashSet<Uri>();
+    var resolvedFiles = new HashSet<Uri>();
+    foreach (var rootFile in files) {
+      resolvedFiles.Add(rootFile.Uri);
+    }
+    
     foreach (var root in roots) {
-      resolvedIncludes.Add(root.IncluderFilename);
+      resolvedFiles.Add(root.IncluderFilename); // TODO obsolete?
 
       var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, root);
       if (dafnyFile != null) {
@@ -236,7 +241,7 @@ public class ParseUtils {
 
     while (stack.Any()) {
       var top = stack.Pop();
-      if (!resolvedIncludes.Add(top.Uri)) {
+      if (!resolvedFiles.Add(top.Uri)) {
         continue;
       }
 
