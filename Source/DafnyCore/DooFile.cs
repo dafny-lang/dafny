@@ -76,30 +76,22 @@ public class DooFile {
   public static DooFile Read(string path) {
     var result = new DooFile();
 
-    try {
-      using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
-      var manifestEntry = archive.GetEntry(ManifestFileEntry);
-      if (manifestEntry == null) {
-        throw new ArgumentException(".doo file missing manifest entry");
-      }
-      using (var manifestStream = manifestEntry.Open()) {
-        result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
-      }
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
+    var manifestEntry = archive.GetEntry(ManifestFileEntry);
+    if (manifestEntry == null) {
+      throw new ArgumentException(".doo file missing manifest entry");
+    }
+    using (var manifestStream = manifestEntry.Open()) {
+      result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+    }
 
-      var programTextEntry = archive.GetEntry(ProgramFileEntry);
-      if (programTextEntry == null) {
-        throw new ArgumentException(".doo file missing program text entry");
-      }
-      using (var programTextStream = programTextEntry.Open()) {
-        var reader = new StreamReader(programTextStream, Encoding.UTF8);
-        result.ProgramText = reader.ReadToEnd();
-      }
-    } catch (ArgumentException e) {
-      throw e;
-    } catch (FileNotFoundException e) {
-      throw new ArgumentException(e.Message);
-    } catch (Exception e) {
-      throw new ArgumentException("failed to find or read input file " + path + ": " + e.Message);
+    var programTextEntry = archive.GetEntry(ProgramFileEntry);
+    if (programTextEntry == null) {
+      throw new ArgumentException(".doo file missing program text entry");
+    }
+    using (var programTextStream = programTextEntry.Open()) {
+      var reader = new StreamReader(programTextStream, Encoding.UTF8);
+      result.ProgramText = reader.ReadToEnd();
     }
 
     return result;

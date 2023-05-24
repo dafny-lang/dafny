@@ -1,1 +1,1 @@
-*** Error: failed to find or read input file /Users/davidcok/projects/dafny2/dafny/Test/doofiles/BadDoo.doo: End of Central Directory record could not be found.
+*** Error: BadDoo.doo: End of Central Directory record could not be found.
