@@ -51,11 +51,15 @@ module MutableFields {
   {
     var x: int  // error: mutable fields not allowed in datatypes
   }
+  newtype MyInt = int
+  {
+    var x: int  // error: mutable fields not allowed in newtypes
+  }
   newtype Pos = x | 0 < x witness 1
   {
     var x: int  // error: mutable fields not allowed in newtypes
   }
-  type Opaque {
+  type Abstract {
     var x: int  // error: mutable fields not allowed in abstract types
   }
   class Class {
