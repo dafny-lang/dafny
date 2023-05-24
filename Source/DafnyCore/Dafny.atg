@@ -951,7 +951,7 @@ Dafny
   }
   { TopDecl<theModule, /* isTopLevel */ true, /* isAbstract */ false> }
   (. 
-    theModule.RangeToken = new RangeToken(startToken, t);
+    theModule.RangeToken = new RangeToken(startToken.Next, t);
   .)
   SYNC
   EOF
