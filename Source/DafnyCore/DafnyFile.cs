@@ -31,6 +31,7 @@ public class DafnyFile {
     CanonicalPath = contentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
     filePath = CanonicalPath;
 
+    var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
     if (contentOverride != null) {
       IsPreverified = false;
       IsPrecompiled = false;
@@ -46,7 +47,7 @@ public class DafnyFile {
           return;
         }
 
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
         throw new IllegalDafnyFile(true);
       } else {
         Content = new StreamReader(filePath);
@@ -55,7 +56,6 @@ public class DafnyFile {
       IsPreverified = true;
       IsPrecompiled = false;
 
-      var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
       if (!File.Exists(filePath)) {
         options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
         throw new IllegalDafnyFile(true);
