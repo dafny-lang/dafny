@@ -910,7 +910,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       PrefixNamedModules.Add(newTup);
     }
 
-    // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.  
+    // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.
+    // We're hoping to remove the copying of modules into compiled variants altogether,
+    // and then this can be moved to inside the `if (cloner.CloneResolvedFields)` block
     foreach (var tup in original.ResolvedPrefixNamedModules) {
       ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
     }
@@ -1147,12 +1149,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   private IEnumerable<Node> preResolveTopLevelDecls;
   private IEnumerable<Node> preResolvePrefixNamedModules;
 
-  public override IEnumerable<Node> PreResolveChildren =>
-    Enumerable.Empty<Node>(). // TODO refactor
-      Concat<Node>(Attributes != null ?
-      new List<Node> { Attributes } :
-      Enumerable.Empty<Node>()).Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
-    (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+  public override IEnumerable<Node> PreResolveChildren {
+    get {
+      var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
+      return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
+          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+    }
+  }
 
   public void PreResolveSnapshotForFormatter() {
     preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
@@ -1166,7 +1169,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
 public class DefaultModuleDefinition : ModuleDefinition {
 
-  // TODO remove???
   public List<Include> Includes { get; } = new();
   public IList<Uri> RootSourceUris { get; }
 

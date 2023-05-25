@@ -77,18 +77,10 @@ public class ParseUtils {
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
     byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
-    MemoryStream ms = new MemoryStream(buffer, false);
+    var ms = new MemoryStream(buffer, false);
     var firstToken = new Token {
       Uri = uri
     };
-
-    // if ((module.RootToken.Filepath ?? "") == "") {
-    //   // This is the first module
-    //   module.RootToken.Uri = uri;
-    //   firstToken = module.RootToken;
-    // } else {
-    //   firstToken = new Token(); // It's an included file
-    // }
 
     Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
     return new Parser(scanner, errors, builtIns);
@@ -114,27 +106,12 @@ public class ParseUtils {
       }
 
       try {
-        // We model a precompiled file, a library, as an include
-        // var include = dafnyFile.IsPrecompiled ? new Include(new Token {
-        //   Uri = dafnyFile.Uri,
-        //   col = 1,
-        //   line = 0
-        // }, new Uri("cli://"), dafnyFile.Uri) : null;
-        // if (include != null) {
-        //   // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
-        //   defaultModuleDefinition.Includes.Add(include);
-        // }
-
         var parseResult = Parse(
           dafnyFile.Content,
           dafnyFile.Uri,
           builtIns,
           errorReporter
         );
-
-        if (parseResult.ErrorCount != 0) {
-          // logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseResult.ErrorCount, document.Uri);
-        }
 
         AddFileModuleToProgram(parseResult.Module, defaultModule);
         if (defaultModule.RangeToken.StartToken.Uri == null) {
@@ -269,7 +246,7 @@ public class ParseUtils {
 
   private static DafnyFile IncludeToDafnyFile(BuiltIns builtIns, ErrorReporter errorReporter, Include include) {
     try {
-      return new DafnyFile(builtIns.Options, include.IncludedFilename.LocalPath);
+      return new DafnyFile(builtIns.Options, include.IncludedFilename);
     } catch (IllegalDafnyFile) {
       errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file '{include.IncludedFilename}' failed.");
       return null;

@@ -28,11 +28,16 @@ public class DafnyFile {
   public DafnyFile(DafnyOptions options, Uri uri, TextReader contentOverride = null) {
     Uri = uri;
     var filePath = uri.LocalPath;
-    // TODO fix
-    BaseName = uri.IsFile ? Path.GetFileName(uri.LocalPath) : "<stdin>";
 
-    var extension = contentOverride != null ? ".dfy" : Path.GetExtension(filePath);
-    if (extension != null) { extension = extension.ToLower(); }
+    var extension = ".dfy";
+    if (uri.IsFile) {
+      extension = Path.GetExtension(uri.LocalPath).ToLower();
+      BaseName = Path.GetFileName(uri.LocalPath);
+    }
+    if (uri.Scheme == "stdin") {
+      contentOverride = options.Input;
+      BaseName = "<stdin>";
+    }
 
     // Normalizing symbolic links appears to be not
     // supported in .Net APIs, because it is very difficult in general

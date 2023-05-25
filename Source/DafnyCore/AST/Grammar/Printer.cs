@@ -592,22 +592,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     void PrintTopLevelDeclsOrExportedView(Program program, ModuleDefinition module, int indent, string fileBeingPrinted) {
-      var decls = module.TopLevelDecls.ToList();
+      var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
-        decls = new List<TopLevelDecl>();
-        foreach (var nameOfView in options.DafnyPrintExportedViews) {
-          foreach (var decl in module.TopLevelDecls) {
-            if (decl.FullName.Equals(nameOfView)) {
-              decls.Add(decl);
-            }
-          }
-        }
+        var views = options.DafnyPrintExportedViews.ToHashSet();
+        decls = decls.Where(d => views.Contains(d.FullName));
       }
       PrintTopLevelDecls(program, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
-        decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(program, decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+        PrintTopLevelDecls(program, new TopLevelDecl[] { tup.Item2 }, indent + IndentAmount, tup.Item1, fileBeingPrinted);
       }
     }
 
