@@ -24,7 +24,7 @@ Some issues to watch:
 - It is not known how much use users make of which material on these websites. Some analytics would inform future work.
 - It is not known how frequently users access old material, to justify maintaining it. (One could always resurrect old version from GitHub directly.)
 
-## The Github project
+## The GitHub project
 
 The Dafny project uses Github repositories to store all of its artifacts (Dafny is an open-source project). There are a number of repositories, all under github.com/dafny-lang.
 
