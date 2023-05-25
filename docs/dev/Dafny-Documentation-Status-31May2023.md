@@ -102,7 +102,7 @@ They have typically not been reviewed directly by any Dafny technical documentat
 
 - John Tristan teaches courses and workshops on Dafny and authors course materials for that purpose.
 
-- Some tutorial material is written by developers separately and typically needs to be coralled into the docs arena, reviewd and edited, and with CI checks to make sure examples stay operational.
+- Some tutorial material is written by developers separately and typically needs to be coralled into the docs arena, reviewed and edited, and with CI checks to make sure examples stay operational.
 
 - Blog posts as yet do not have mechanisms to check that code snippets are valid Dafny.
 
