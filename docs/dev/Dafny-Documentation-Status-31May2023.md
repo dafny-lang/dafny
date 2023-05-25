@@ -26,7 +26,7 @@ Some issues to watch:
 
 ## The GitHub project
 
-The Dafny project uses Github repositories to store all of its artifacts (Dafny is an open-source project). There are a number of repositories, all under github.com/dafny-lang.
+The Dafny project uses GitHub repositories to store all of its artifacts. There are a number of repositories, all under github.com/dafny-lang.
 
 The principal repository is github.com/dafny-lang/dafny, which contains the project source code and the project documentation. The latter is primarily in dafny/docs.
 
