@@ -16,7 +16,6 @@ TODO:
 
 - show inherited members in classes
 - show members obtained from refinement parents
-- show effective module declaration for an export set
 - for a file named in a From file: notation, link to the actual file, where possible (may require a command-line option to say where the files are)
   - similarly for links to modules and module contents from libraries
 - don't show full module path always for import declarations
@@ -25,8 +24,9 @@ TODO:
 
 Comments from Mikael that are not yet addressed:
     Click on a module should not only open the page, but unfold the menu  -- I'd vote against this behavior -- I prefer separating the opening and the display
+      -- attempts to do this broke other navigation
     Import X = A.B.C clicking on A.B.C should link to C directly. -- As elsewhere, each section of a qualified name links to the declaration for that name segment
-    Slight border for tables -- I'd vote not
+    Slight border for tables -- I'd vote not -- initial attempts made the the tables take up far more horizontal and vertical white space
     Class order: Constants, mutable fields, constructors and then methods -- I think we agreed to leave this as is.
     Add inherited constants and field in same list
     constants definitions can be in the same list -- definition is in the details; do we really want it in the summary list as well?
@@ -37,8 +37,6 @@ implement some mechanism to always or when needed scroll back up automatically.
 
 - translate markdown to html
 - mark experimental
-
-- need to revise so that names that differ only in case do not resolve to the same html file on case-insenstive OSes
 
 Future Improvements:
 - identify members from refinement parent; link to them
@@ -61,8 +59,8 @@ class Info {
   public string FullName;
   public string Id;
   public string Link;
-  public string HtmlSummary;
-  public string HtmlDetail;
+  public string HtmlSummary; // one-line summary of this declaration (for use in its parent)
+  public string HtmlDetail; // display of the summaries of the contents of this declaration
 
   public string Source; // information on where the entity is declared
 
@@ -189,7 +187,7 @@ class DafnyDoc {
     int level = ModuleLevel(info.FullName);
     if (info.Contents != null) {
       var openstring = open ? "open " : "";
-      sb.Append($"<details {openstring}style=\"margin-left: {level * 6}px;\"><summary><a id=\"{info.Id}\" href=\"{info.Link}\">{info.Name}</a></summary>\n");
+      sb.Append($"<details {openstring} style=\"margin-left: {level * 6}px;\"><summary><a id=\"{info.Id}\" href=\"{info.Link}\">{info.Name}</a></summary>\n");
       foreach (var d in info.Contents) {
         AddSideBarEntry(d, sb);
       }
@@ -260,7 +258,7 @@ class DafnyDoc {
     var docstring = Docstring(module);
 
     if (module != null) {
-      info.HtmlSummary = $"{Link(module.FullName, module.Name)} {DashShortDocstring(module)}";
+      info.HtmlSummary = Row(Link(module.FullName, module.Name), DashShortDocstring(module));
     }
     var details = new StringBuilder();
     var abs = moduleDef.IsAbstract ? "abstract " : ""; // The only modifier for modules
@@ -278,7 +276,7 @@ class DafnyDoc {
       details.Append(eol);
     } else {
       details.Append("<hr>");
-      details.Append(Heading2("Effective exported module:")).Append(eol);
+      details.Append(Heading2("Effective exported module:"));
     }
 
     if (!String.IsNullOrEmpty(docstring)) {
@@ -296,7 +294,6 @@ class DafnyDoc {
     AddLemmaSummaries(defaultClass, details, info.Contents, register);
 
     details.Append(MainEnd());
-    details.Append(BodyAndHtmlEnd());
     info.HtmlDetail = details.ToString();
     return info;
   }
@@ -352,8 +349,8 @@ class DafnyDoc {
     var docstring = Docstring(ex);
     var info = new Info(register, this, "export", ex.Tok, name, ex.FullDafnyName, ExportId(ex.FullDafnyName));
 
-    info.HtmlSummary = $"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}"
-     + DashShortDocstring(ex);
+    info.HtmlSummary = Row($"{Keyword("export")} {Code(ex.EnclosingModuleDefinition.Name)}`{Link(info.Id, Code(Bold(ex.Name)))}",
+     DashShortDocstring(ex));
 
     var details = new StringBuilder();
     var text = Code("export " + ex.Name);
@@ -406,12 +403,14 @@ class DafnyDoc {
 
     var exports = module.TopLevelDecls.Where(d => d is ModuleExportDecl).Select(d => d as ModuleExportDecl);
     if (exports.Count() > 0) {
-      summaries.Append(Heading3("Export sets")).Append(eol);
+      summaries.Append(Heading3("Export sets"));
+      summaries.Append(TableStart());
       foreach (var ex in exports) {
         var info = ExportInfo(ex, register);
         owner.Contents.Add(info);
-        summaries.Append(info.HtmlSummary).Append(br).Append(eol);
+        summaries.Append(info.HtmlSummary).Append(eol);
       }
+      summaries.Append(TableEnd());
     }
   }
 
@@ -431,16 +430,16 @@ class DafnyDoc {
       if (exportsets.Length == 0) {
         exportsets = Link(ExportId(target.FullDafnyName + "." + target.Name), Code(target.Name));
       }
-      info.HtmlSummary = $"import {Link(info.Id, styledName)} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}"
-         + DashShortDocstring(imp);
+      info.HtmlSummary = Row($"import {Link(info.Id, styledName)}", " = ", $"{QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}",
+         DashShortDocstring(imp));
       details.Append(Code("import " + openText + name + " = " + QualifiedNameWithLinks(target.FullDafnyName) + "`" + exportsets));
       list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
       list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
     } else if (md is AbstractModuleDecl aimp) {
       var openText = aimp.Opened ? "opened " : "";
       var target = aimp.OriginalSignature.ModuleDef.FullDafnyName;
-      info.HtmlSummary = $"import {Link(info.Id, styledName)} : {QualifiedNameWithLinks(target)}"
-         + DashShortDocstring(aimp);
+      info.HtmlSummary = Row($"import {Link(info.Id, styledName)}", " : ", QualifiedNameWithLinks(target),
+         DashShortDocstring(aimp));
       details.Append(Code("import " + openText + name + " : " + QualifiedNameWithLinks(target)));
       list = aimp.AccessibleSignature(true).StaticMembers.Values.ToList();
       list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
@@ -467,30 +466,34 @@ class DafnyDoc {
     var absimports = module.TopLevelDecls.Where(d => d is AbstractModuleDecl).Select(d => d as AbstractModuleDecl).ToList();
     absimports.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (imports.Count() + absimports.Count() > 0) {
-      summaries.Append(Heading3("Imports")).Append(eol);
+      summaries.Append(Heading3("Imports"));
+      summaries.Append(TableStart());
       foreach (var imp in imports) {
         var info = ImportInfo(imp, register);
         owner.Contents.Add(info);
-        summaries.Append(info.HtmlSummary).Append(br).Append(eol);
+        summaries.Append(info.HtmlSummary).Append(eol);
       }
       foreach (var imp in absimports) {
         var info = ImportInfo(imp, register);
         owner.Contents.Add(info);
-        summaries.Append(info.HtmlSummary).Append(br).Append(eol);
+        summaries.Append(info.HtmlSummary).Append(eol);
       }
+      summaries.Append(TableEnd());
     }
   }
 
-  public void AddSubModuleSummaries(ModuleDefinition module, StringBuilder summaries, Info info, bool register) {
+  public void AddSubModuleSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
     var submods = module.TopLevelDecls.Where(d => d is LiteralModuleDecl).Select(d => d as LiteralModuleDecl).ToList();
     submods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (submods.Count() > 0) {
-      summaries.Append(Heading3("Submodules")).Append(eol);
+      summaries.Append(Heading3("Submodules"));
+      summaries.Append(TableStart());
       foreach (var submod in submods) {
-        var subinfo = ModuleInfo(register, submod, submod.ModuleDef, null);
-        summaries.Append(subinfo.HtmlSummary).Append(br).Append(eol);
-        info.Contents.Add(subinfo);
+        var info = ModuleInfo(register, submod, submod.ModuleDef, null);
+        owner.Contents.Add(info);
+        summaries.Append(Row(info.HtmlSummary)).Append(eol);
       }
+      summaries.Append(TableEnd());
     }
   }
 
@@ -502,7 +505,7 @@ class DafnyDoc {
     var types = module.TopLevelDecls.Where(c => IsType(c) && !IsGeneratedName(c.Name)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (types.Count() > 1 || (types.Count() == 1 && (types[0] is DefaultClassDecl))) {
-      summaries.Append(Heading3("Types")).Append(eol);
+      summaries.Append(Heading3("Types"));
       summaries.Append(TableStart());
       foreach (var t in types) {
         if (t is DefaultClassDecl) {
@@ -510,13 +513,14 @@ class DafnyDoc {
         }
         var info = TypeInfo(register, t, module, owner);
         var styledName = Code(Bold(t.Name));
-        summaries.Append(Row(t.WhatKind, Link(info.FullName, styledName), DashShortDocstring(t as IHasDocstring))).Append(eol); // TODO - typeparameters?
+        owner.Contents.Add(info);
+        summaries.Append(Row(info.HtmlSummary)).Append(eol);
       }
       summaries.Append(TableEnd());
     }
   }
 
-  public Info ConstantInfo(bool register, ConstantField c, TopLevelDeclWithMembers owner) {
+  public Info ConstantInfo(bool register, ConstantField c) {
     var info = new Info(register, this, "const", c.Tok, c.Name, c.FullDafnyName);
 
     var docstring = Docstring(c);
@@ -525,8 +529,7 @@ class DafnyDoc {
     var linkedType = TypeLink(c.Type);
     var rhsstring = c.Rhs == null ? "" : (" := " + c.Rhs.ToString());
 
-    info.HtmlSummary = linkedName + " : " + linkedType + DashShortDocstring(c);
-
+    info.HtmlSummary = Row(linkedName, " : ", linkedType, DashShortDocstring(c));
     var details = new StringBuilder();
     details.Append(AttrString(c.Attributes));
     var decl = modifiers + "const " + Bold(c.Name) + ": " + linkedType + rhsstring;
@@ -537,7 +540,7 @@ class DafnyDoc {
     return info;
   }
 
-  public Info VarInfo(bool register, Field f, TopLevelDeclWithMembers owner) {
+  public Info VarInfo(bool register, Field f) {
     var info = new Info(register, this, "var", f.Tok, f.Name, f.FullDafnyName);
 
     var docstring = Docstring(f);
@@ -545,7 +548,7 @@ class DafnyDoc {
     var modifiers = f.ModifiersAsString();
     var linkedType = TypeLink(f.Type);
 
-    info.HtmlSummary = linkedName + " : " + linkedType + DashShortDocstring(f); ;
+    info.HtmlSummary = Row(linkedName, " : ", linkedType, DashShortDocstring(f));
 
     var details = new StringBuilder();
     var decl = modifiers + "var " + Bold(f.Name) + ": " + linkedType;
@@ -579,14 +582,9 @@ class DafnyDoc {
     // not a portion of someother html tag. At this point the name is enclosed in some styling tag.
     String mss = ReplaceFirst(ms, ">" + m.Name + "<", ">" + link + "<");
 
-    var summaries = new StringBuilder();
-    var details = new StringBuilder();
-    summaries.Append(Code(mss));
-    if (!String.IsNullOrEmpty(docstring)) {
-      summaries.Append(space4).Append(DashShortDocstring(md));
-    }
-    summaries.Append(br).Append(eol);
+    info.HtmlSummary = Row(Code(mss), !String.IsNullOrEmpty(docstring) ? DashShortDocstring(md) : "");
 
+    var details = new StringBuilder();
     details.Append(AttrString(m.Attributes));
     var decl = modifiers + m.WhatKind + " " + ms;
     details.Append(Code(decl)).Append(br).Append(eol);
@@ -606,7 +604,6 @@ class DafnyDoc {
 
     details.Append(IndentedHtml(docstring));
 
-    info.HtmlSummary = summaries.ToString();
     info.HtmlDetail = details.ToString();
     return info;
   }
@@ -628,7 +625,7 @@ class DafnyDoc {
 
     var details = new StringBuilder();
 
-    info.HtmlSummary = ($"{Code(kind)} {Code(link + typeparams)} {DashShortDocstring(t as IHasDocstring)}");
+    info.HtmlSummary = Row($"{Code(kind)} {Code(link + typeparams)}", $"{DashShortDocstring(t as IHasDocstring)}");
 
     var decl = new StringBuilder();
     decl.Append(modifiers + kind + " " + Bold(t.Name));
@@ -642,7 +639,7 @@ class DafnyDoc {
     }
     decl.Append(typeparams);
 
-    if (t is ClassDecl cd) { // Class, Trait, Iterator
+    if (t is ClassLikeDecl cd) { // Class, Trait, Iterator
       if (cd.ParentTraits.Count > 0) {
         var extends = String.Join(", ", cd.ParentTraits.Select(t => TypeLink(t)));
         if (!String.IsNullOrEmpty(extends)) {
@@ -717,7 +714,6 @@ class DafnyDoc {
       AddLemmaSummaries(tm, details, info.Contents, register);
     }
 
-    owner.Contents.Add(info);
     info.HtmlDetail = details.ToString();
     return info;
   }
@@ -728,17 +724,12 @@ class DafnyDoc {
     var constants = decl.Members.Where(c => c is ConstantField && !IsGeneratedName(c.Name)).Select(c => c as ConstantField).ToList();
     constants.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (constants.Count() > 0) {
-      summaries.Append(Heading3("Constants\n"));
-      summaries.Append(TableStart()).Append(eol);
+      summaries.Append(Heading3("Constants"));
+      summaries.Append(TableStart());
       foreach (var c in constants) {
-        var info = ConstantInfo(register, c, decl);
+        var info = ConstantInfo(register, c);
         ownerInfoList.Add(info);
-
-        var styledName = Code(Bold(c.Name));
-        var linkedType = TypeLink(c.Type);
-
-        summaries.Append(Row(Link(info.FullName, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
-
+        summaries.Append(info.HtmlSummary).Append(eol);
       }
       summaries.Append(TableEnd()).Append(eol);
     }
@@ -748,16 +739,12 @@ class DafnyDoc {
     var fields = decl.Members.Where(c => c is Field && c is not ConstantField && !IsGeneratedName(c.Name)).Select(c => c as Field).ToList();
     fields.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     if (fields.Count() > 0) {
-      summaries.Append(Heading3("Mutable Fields\n"));
-      summaries.Append(TableStart()).Append(eol);
+      summaries.Append(Heading3("Mutable Fields"));
+      summaries.Append(TableStart());
       foreach (var c in fields) {
-        var info = VarInfo(register, c, decl);
+        var info = VarInfo(register, c);
+        summaries.Append(info.HtmlSummary).Append(eol);
         ownerInfoList.Add(info);
-
-        var linkedType = TypeLink(c.Type);
-        var styledName = Code(Bold(c.Name));
-
-        summaries.Append(Row(Link(info.FullName, styledName), " : ", linkedType, DashShortDocstring(c))).Append(eol);
       }
       summaries.Append(TableEnd()).Append(eol);
     }
@@ -829,11 +816,11 @@ class DafnyDoc {
   public void AddExecutableSummaries(string kind, List<MemberDecl> members, TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
     if (members.Count != 0) {
       summaries.Append(Heading3(kind));
-      summaries.Append(TableStart()).Append(eol);
+      summaries.Append(TableStart());
       foreach (var m in members) {
         var info = ExecutableInfo(register, m, decl);
         ownerInfoList.Add(info);
-        summaries.Append(Row(info.HtmlSummary));
+        summaries.Append(Row(info.HtmlSummary)).Append(eol);
       }
       summaries.Append(TableEnd());
     }
@@ -956,7 +943,8 @@ class DafnyDoc {
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
       String s = null;
-      if (tt is ClassDecl) {
+      if (tt.WhatKind.Contains("Syn")) System.Console.WriteLine("SYN " + tt.FullDafnyName + " " + (tt is ClassLikeDecl) + " " + (tt is SubsetTypeDecl) + " " + (tt is AbstractTypeDecl) + " " + (tt is TypeSynonymDecl));
+      if (tt is ClassLikeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NonNullTypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
@@ -977,6 +965,8 @@ class DafnyDoc {
       } else if (tt is TypeParameter) {
         s = tt.Name;
       } else if (tt is AbstractTypeDecl) {
+        s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
+      } else if (tt is TypeSynonymDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       }
       if (s != null) {

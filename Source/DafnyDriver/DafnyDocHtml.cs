@@ -13,6 +13,7 @@ class DafnyDocHtml {
 
   public static readonly string eol = "\n";
   public static readonly string br = "<br>";
+  public static readonly string spaceTab = "&nbsp;  ";
   public static readonly string mdash = " &mdash; ";
   public static readonly string space4 = "&nbsp;&nbsp;&nbsp;&nbsp;";
   public static readonly string initialbar = Code("&nbsp;&nbsp;|");
@@ -51,12 +52,12 @@ class DafnyDocHtml {
 
   public static string ScriptEntry(string id) {
     return
-@"
-    document.getElementById(""{id}"").onclick = function() {
-      document.getElementById(""rightside"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000"" style=""border:none; scrolling:no;"" src=""{id}.html""></iframe>';
+$@"
+    document.getElementById(""{id}"").onclick = function() {{
+      document.getElementById(""rightside"").innerHTML = '<iframe id=""frame"" width=""100%"" height=""1000"" style=""border:none; scrolling:no;"" src=""{LinkTarget(id)}""></iframe>';
       return false;
-    }
-".Replace("{id}", id);
+    }}
+";
   }
   // TODO: The CSS for 'frame' does not seem to work. Setting height ot 100% makes the frame have a scrollbar and a small vertical height
 
@@ -106,7 +107,7 @@ class DafnyDocHtml {
   // Encodes a fully qualified Dafny name as a file name. 
   // Dafny names are case-sensitive; filenames are not necessarily case-sensitive.
   public static string LinkTarget(string id) {
-    return id + ".html"; // TODO - needs encoding for case
+    return id + "_" + String.GetHashCode(id) + ".html";
   }
 
   public static string Heading1(string text) {
@@ -114,11 +115,11 @@ class DafnyDocHtml {
   }
 
   public static string Heading2(string text) {
-    return "<div>\n<h2>" + text + "</h2>\n</div>";
+    return "<h2>" + text + "</h2>\n";
   }
 
   public static string Heading3(string text) {
-    return "<div>\n<h3>" + text + "</h3>\n</div>";
+    return "<h3>" + text + "</h3>\n";
   }
 
   // Used in an h1 heading, but is a lot smaller
@@ -148,7 +149,7 @@ class DafnyDocHtml {
   }
 
   public static string TableStart() {
-    return "<table>";
+    return "<table>\n";
   }
 
   public static string Row() {
@@ -181,7 +182,7 @@ class DafnyDocHtml {
   }
 
   public static String TableEnd() {
-    return "</table>";
+    return "</table>\n";
   }
 
   public static string LocalHeaderSize = "24px";
@@ -278,6 +279,29 @@ span.from-file {
   opacity: 50%;
 }
 
+table {
+  //border: 1px solid #d2d2d2;
+  //width: 100%;
+  //border-collapse: collapse;
+  //table-layout: left;
+  //font-size: .875rem;
+  //margin-top: 1rem;
+  vertical-align: top;
+}
+
+tr {
+  vertical-align: top;
+}
+
+td {
+  word-wrap: break-word;
+  //border-top: 1px solid #d2d2d2;
+  vertical-align: top;
+  //padding-top: 1rem;
+  //padding-right: 1.25rem;
+  //line-height: 1.0;
+  //display: table-cell;
+}
 ";
 
 }
