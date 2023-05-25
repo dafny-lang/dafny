@@ -1,6 +1,6 @@
--------
+---
 title: Installation Instructions
--------
+---
 
 This page has instructions for installing Dafny by typical users:
 
