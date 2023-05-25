@@ -1,6 +1,8 @@
 
 # Summary of Dafny Documentation
 
+Author: David R. Cok (david.r.cok@gmail.com) - 31 May 2023
+
 ## dafny.org
 
 The user portal to dafny documentation is the dafny.org website.
