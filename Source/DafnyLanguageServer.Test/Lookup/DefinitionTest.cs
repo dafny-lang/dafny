@@ -295,7 +295,8 @@ method DoIt() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.False((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
+      var locations = await RequestDefinition(documentItem, (2, 14)).AsTask();
+      Assert.False(locations.Any());
     }
 
     [Fact]

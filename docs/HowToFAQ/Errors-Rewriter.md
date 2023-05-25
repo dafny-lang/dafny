@@ -92,9 +92,9 @@ method m(d: D) {
 ```
 
 The pattern following a `case` keyword can be a constructor possibly without arguments or it can be 
-new variable to be bound to the match expression. A parameter-less costructor may be written
+new variable to be bound to the match expression. A parameter-less constructor may be written
 without parentheses. A simple identifier that happens to be a constructor of right type 
-will be matched in preference to a new bound identifier.
+will be matched in preference as the constructor.
 
 This can lead to surprises if there is a matching constructor that the writer or the reader of the
 software is unaware of. So it is useful to always write constructors with parentheses, to visually
@@ -113,7 +113,7 @@ rename the identifier (if a fresh bound identifier is intended).
 function f(b: bool): bool
 {
   b &&
-  b ==> b // this parses as (b &&b) ==> b, but reads as b && (b ==> b)
+  b ==> b // this parses as (b && b) ==> b, but reads as b && (b ==> b)
 }
 ```
 
@@ -157,20 +157,22 @@ which then conflicts with the existing Main method.
 
 <!-- %check-test -->
 ```dafny
-method {:test} m(i: int) returns (j: int, k: int) 
+method {:test} m() returns (j: int, k: int) 
 {
   j, k := 0,0;
 }
 ```
 
 This error only occurs when using `dafny test`. That command executes all methods attributed
-with `{:test}`, but such test methods are limited to methods with only one output parameter.
+with `{:test}`, but such test methods are limited to methods with at most one output parameter.
+Typically that out-parameter has a failure-compatible type whose value is used to indicate whether the 
+test succeeeded or failed. If the type is not a failure-compatible type, the test is presumed to be successful.
 This is purely an implementation limitation. (cf. [Issue 3387](https://github.com/dafny-lang/dafny/issues/3387))
-
 
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
 
 ## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
+
 <!-- TODO - requires a companion target program file to run successfully -->
 <!-- %no-check %check-test %options --test-assumptions:Externs -->
 ```dafny
