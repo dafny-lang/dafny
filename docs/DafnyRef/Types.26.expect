@@ -1,0 +1,2 @@
+text.dfy(3,9): Error: type parameter (T) passed to type A must support nonempty (got Q) (perhaps try declaring abstract type 'Q' on line 2 as 'Q(00)', which says it can only be instantiated with a nonempty type)
+1 resolution/type errors detected in text.dfy

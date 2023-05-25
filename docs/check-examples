@@ -119,7 +119,7 @@ do
   let n++
 
   ## For header lines, extract the error message from the header text
-  ## everything but the initial ##[ ]*, the enclosing ** and the appended {#_errorid_}
+  ## (everything but the initial ##[ ]*, the enclosing ** and the appended {#_errorid_})
   ## The sed commands turn this into a pattern matching regex to match against the output of applying dafny to the example in the text:
   ## remove the trailing error id if present; remove initial ## **; remove trailing '**'; turn any italicized text, which marks some
   ## hole in the template to a '.*' matcher.
@@ -273,7 +273,7 @@ do
           if [ "$useHeadings" == "1" ]; then
             act=`cat actual | grep -E '(Error|Warning)' | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
-              dif=`echo "$act" | sed -e "s/$msg//g" | sed -e 's/[ ]*//'`
+              dif=`echo "$act" | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
               if [ -z "$act" ] ; then
                  echo NO ERROR MESSAGE FOUND
                  FAIL=1
@@ -285,7 +285,6 @@ do
                  echo DIF "$dif"
                  FAIL=1
               fi
-              msg=
               if [ "$actualec" != "$ec" ]; then
                 echo EXPECTED EXIT CODE $ec, got $actualec
                 FAIL=1
