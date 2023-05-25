@@ -211,7 +211,7 @@ The option name in the new cli is `--log-format`.
 dafny -testContracts:z
 ```
 
-The `testContracts ` option has these alternatives: Externs, TestedExterns.
+The `testContracts` option has these alternatives: Externs, TestedExterns.
 The similar option in the new cli is `--test-assumptions`.
 
 ## **dafny: Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
