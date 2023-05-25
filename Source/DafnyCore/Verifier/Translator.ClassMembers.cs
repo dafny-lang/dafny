@@ -75,8 +75,8 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
+        ResetAssertionOnlyFilter();
       }
-      ResetAssertionOnlyFilter();
     }
 
     /**
@@ -1357,7 +1357,7 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(m.WhatKind, true), kv));
     }
 
-    // Return a way to know if an assertion should be converted to an assumptions
+    // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
       List<RangeToken> rangesOnly = new List<RangeToken>();
       m.Visit(node => {
