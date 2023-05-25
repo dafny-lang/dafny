@@ -259,18 +259,16 @@ On a large program, verifying all files at once can take quite a while, with lit
 save a small amount of work by parsing all files just once. But, one way or another, to have a complete verification, all 
 implementations of all methods and functions must eventually be verified.
 
-- By default, only those files listed on the command-line are verified in a given invocation of the `dafny` tool.
-- The option `--verify-included-files` (`-verifyAllModules` in legacy mode) forces the contents of all non-library files to be verified, whether they are listed on the command-line or recursively included by files on the command-line.
-- The `--library` option marks files that are excluded from `--verify-included-files`. Such a file may also, but need not, be the target of an `include` directive in some file of the program; in any case, such files are included in the program but not in the set of files verified (or compiled). The intent of this option is to mark files that
-should be considered as libraries that are independently verified prior to being released for shared use.
-- Verifying files individually is equivalent to verifying them in groups, presuming no other changes.
-It is also permitted to verify completely disjoint files or
-programs together in a single run of `dafny`.
+- The root source files of a Dafny invocation are the files listed on the command-line and those specified in a potential project file through the `includes` and `excludes` properties.
+- By default, all root files and those reachable through include directives are verified in a given invocation of the `dafny` tool.
+- The `--library` option marks files that are excluded from verification. Such a file may also, but need not, be the target of an `include` directive in some file of the program; in any case, such files and all files reachable through their include directives, are included in the program but not in the set of files that are verified (or compiled). The intent of this option is to mark files that should be considered as libraries that are independently verified prior to being released for shared use.
+- The option `--verify-scope` determines which files are verified. When set to `RootSources`, only the root files are verified, skipping files that are only reachable through include directives. When set to `RootSourceAndIncludes`, files reachable through include directives are also verified. When set to `Everything`, everything is verified, including files reachable through library roots that are specified using the option `--library`.
+- Verifying files individually is equivalent to verifying them in groups, presuming no other changes. It is also permitted to verify completely disjoint files or programs together in a single run of `dafny`.
 
 Various options control the verification process, in addition to all those described for [`dafny resolve`](#sec-dafny-resolve).
 
 - What is verified
-   - `--verify-included-files` (when enabled, all included files are verified, except library files, otherwise just those files on the command-line)
+   - `--verify-scope`
    - `--relax-definite-assignment`
    - `--track-print-effects`
    - `--disable-nonlinear-arithmetic`

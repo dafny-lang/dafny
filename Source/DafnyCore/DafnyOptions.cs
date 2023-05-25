@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Reflection;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
@@ -18,6 +19,16 @@ using Microsoft.Dafny.Plugins;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Accumulating scope, each next one includes the previous one.
+  /// </summary>
+  public enum VerificationScope {
+    RootSources,
+    RootSourcesAndIncludes,
+    Everything
+  }
+
   public enum FunctionSyntaxOptions {
     Version3,
     Migration3To4,
@@ -334,7 +345,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool ForbidNondeterminism { get; set; }
 
     public int DeprecationNoise = 1;
-    public bool VerifyAllModules = false;
+    public VerificationScope VerificationScope = VerificationScope.RootSources;
     public bool SeparateModuleOutput = false;
 
     public enum IncludesModes {
@@ -618,7 +629,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
 
         case "verifyAllModules":
-          VerifyAllModules = true;
+          VerificationScope = VerificationScope.Everything;
           return true;
 
         case "separateModuleOutput":

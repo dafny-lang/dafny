@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /library:"%s" "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify %args --library:"%s" --verify-scope=Everything "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype FailureRestrictedType<T, R> = Failure

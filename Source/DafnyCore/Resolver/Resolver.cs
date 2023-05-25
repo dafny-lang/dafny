@@ -438,7 +438,7 @@ namespace Microsoft.Dafny {
 
       refinementTransformer = new RefinementTransformer(prog);
       rewriters.Add(refinementTransformer);
-      if (!Options.VerifyAllModules) {
+      if (Options.VerificationScope < VerificationScope.RootSourcesAndIncludes) {
         rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
       }
       rewriters.Add(new AutoContractsRewriter(reporter, builtIns));

@@ -156,8 +156,9 @@ true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
-  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
-    "Verify code in included files.");
+  public static readonly Option<VerificationScope> VerificationScope = new("--verify-scope", () => Dafny.VerificationScope.RootSources,
+    "Controls what is verified. 'RootSources' will only verify files that are passed to the command line or specified in the project file's 'includes' property. 'RootSourcesAndIncludes' will also verify files referenced by include directives. 'Everything' will verify everything, including files specified with --library and .doo files.");
+
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
@@ -213,8 +214,8 @@ Functionality is still being expanded. Currently only checks contracts on every 
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(WarningAsErrors, (options, value) => { options.WarningsAsErrors = value; });
-    DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
-      (options, value) => { options.VerifyAllModules = value; });
+    DafnyOptions.RegisterLegacyBinding(VerificationScope,
+      (options, value) => { options.VerificationScope = value; });
 
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => { options.CompilerName = value; });
 
@@ -299,7 +300,7 @@ Functionality is still being expanded. Currently only checks contracts on every 
       TypeInferenceDebug,
       TypeSystemRefresh,
       VerificationLogFormat,
-      VerifyIncludedFiles,
+      VerificationScope,
       WarningAsErrors,
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,

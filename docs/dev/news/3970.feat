@@ -1,0 +1,5 @@
+Enable finer options for deciding what to verify. Users can now choose to verify: only root set files; also files reached through include directives, or everything including files from libraries and .doo files.
+
+To prevent users from accidentally using unverified library files, `--verify-scope=RootSourcesAndIncludes`, previously `--verify-included-files`, now requires any files passed to `--library` to contain a marker that they have been verified previously, such as is present in `.doo` files. `--verify-scope=RootSources` does not have this requirement, since it already allows skipping the verification of files included through directives.
+
+Migration guide: if you were using `--verify-included-files` and `--library`, then you have two options, either use `--verify-scope=Everything`, which increases your verification time because it will now also verify the library files, or compile your library files into the recently introduced .doo files before passing them to `--library`.

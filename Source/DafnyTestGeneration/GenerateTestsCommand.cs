@@ -72,7 +72,7 @@ public class GenerateTestsCommand : ICommandSpec {
     copy.TestGenOptions.Mode = options.TestGenOptions.Mode;
     copy.TestGenOptions.WarnDeadCode = options.TestGenOptions.WarnDeadCode;
     // Options that may be modified by Test Generation itself:
-    copy.VerifyAllModules = options.VerifyAllModules;
+    copy.VerificationScope = options.VerificationScope;
     return copy;
   }
 
