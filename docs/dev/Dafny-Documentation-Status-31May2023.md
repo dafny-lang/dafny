@@ -22,7 +22,7 @@ Some issues to watch:
 - Having the current version of documentation in dafny-lang/dafny keeps changes in documentation as part of the same commits as changes in code.
 - However, maintaining the github pages site as a collecction of snapshots also has a maintenance cost.
 - It is not known how much use users make of which material on these websites. Some analytics would inform future work.
-- It is not known how frequently users access old material, to justify maintaining it. (One could always resurrect old version from github directly.)
+- It is not known how frequently users access old material, to justify maintaining it. (One could always resurrect old version from GitHub directly.)
 
 ## The Github project
 
