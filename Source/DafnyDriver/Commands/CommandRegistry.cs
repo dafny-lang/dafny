@@ -7,6 +7,7 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -58,6 +59,7 @@ public static class CommandRegistry {
         GetValueForOptionMethod = method;
       }
     }
+    Debug.Assert(GetValueForOptionMethod != null);
   }
 
   public static Argument<FileInfo> FileArgument { get; }
@@ -257,11 +259,11 @@ public static class CommandRegistry {
         dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.ErrorWriter);
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
-      projectFile.Validate(AllOptions);
+      projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
