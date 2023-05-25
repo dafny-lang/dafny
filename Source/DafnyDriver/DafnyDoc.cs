@@ -943,7 +943,6 @@ class DafnyDoc {
     } else if (t is UserDefinedType udt) {
       var tt = udt.ResolvedClass;
       String s = null;
-      if (tt.WhatKind.Contains("Syn")) System.Console.WriteLine("SYN " + tt.FullDafnyName + " " + (tt is ClassLikeDecl) + " " + (tt is SubsetTypeDecl) + " " + (tt is AbstractTypeDecl) + " " + (tt is TypeSynonymDecl));
       if (tt is ClassLikeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       } else if (tt is NonNullTypeDecl) {

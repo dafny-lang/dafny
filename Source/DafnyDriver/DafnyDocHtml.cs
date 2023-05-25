@@ -104,10 +104,18 @@ $@"
     return $"<a href=\"{LinkTarget(id)}\">{text}</a>";
   }
 
+  public static int PersistentHash(string id) {
+    int k = 0;
+    foreach (char c in id) {
+      k = k * 5 + (int)c;
+    }
+    return k & 0x7fffffff;
+  }
+
   // Encodes a fully qualified Dafny name as a file name. 
   // Dafny names are case-sensitive; filenames are not necessarily case-sensitive.
   public static string LinkTarget(string id) {
-    return id + "_" + String.GetHashCode(id) + ".html";
+    return id + "_" + PersistentHash(id) + ".html";
   }
 
   public static string Heading1(string text) {

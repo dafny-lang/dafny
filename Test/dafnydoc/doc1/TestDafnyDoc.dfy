@@ -1,7 +1,6 @@
 // RUN: %baredafny doc --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%S"/docs/index.html "%S"/docs-expected/index.html
-// RUN: %diff "%S"/docs/TestModule.html "%S"/docs-expected/TestModule.html
-// RUN: %diff "%S"/docs/TestModule.A.html "%S"/docs-expected/TestModule.A.html
+// RUN: %diff "%S"/docs/TestModule_214638566.html "%S"/docs-expected/TestModule_214638566.html
 
 /** Test module. More about this test module. */
 module {:options "--function-syntax:4"} TestModule {
