@@ -53,7 +53,7 @@ Each FAQ has a title and link in `index.md`, which points to a markdown file for
 To aid searching, a (long) one page version is generated with the script `make-onepage`, which generates the `one-page.md` file (so that file should not be edited directly.
 
 Task for the future:
-- add to FAQs using slack entries from August 2022 on
+- add to FAQs based on more recent questions
 - consider whether to have just the index.md and one-page.md and avoid the intermediate small files
 - determine how much use is made of these files
 
