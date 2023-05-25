@@ -1,5 +1,7 @@
 
-# Summary of Dafny Documentation
+
+Summary of Dafny Documentation
+==============================
 
 Author: David R. Cok (david.r.cok@gmail.com) - 31 May 2023
 
