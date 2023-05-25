@@ -66,7 +66,7 @@ Task for the future:
 
 ## Error message catalog
 
-The files `docs/HowToFAQ/Errors-*.md` contain a catalog of (ideally) every error message that dafny tools can produce, along with (a) a small code example that elicits that error and (b) an extended explanation of the error, sufficient to aid the user in fixing the error.
+The files `docs/HowToFAQ/Errors-*.md` contain a catalog of (ideally) every error message that Dafny tools can produce, along with (a) a small code example that elicits that error and (b) an extended explanation of the error, sufficient to aid the user in fixing the error.
 This is a sizable body of work and needs continual updating as the dafny tools evolve.
 The code examples are written in such a way that running the `check-examples` script on each of these .md files checks that the code does indeed produce to reported error. This check is done as part of CI to ensure the error messages stay correct as the code evolves.
 
