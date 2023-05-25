@@ -62,8 +62,8 @@ namespace Microsoft.Dafny {
       var defaultModuleDefinition =
         new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), defaultClassFirst);
       ErrorReporter reporter = options.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
-        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
         _ => throw new ArgumentOutOfRangeException()
       };
 

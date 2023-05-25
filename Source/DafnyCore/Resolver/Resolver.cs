@@ -5984,7 +5984,7 @@ namespace Microsoft.Dafny {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
-      this.reporter = new ErrorReporterSink(Options, origReporter.OuterModule);
+      this.reporter = new ErrorReporterSink(Options);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);

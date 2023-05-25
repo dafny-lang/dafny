@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class BatchErrorReporter : ErrorReporter {
   public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessages;
 
-  public BatchErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+  public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
     AllMessages = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
       [ErrorLevel.Error] = new(),
