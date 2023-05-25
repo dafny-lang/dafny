@@ -31,8 +31,7 @@ public class DocumentAfterParsing : Document {
     };
   }
 
-  protected IEnumerable<Diagnostic> ComputeAllResolutionDiagnostics()
-  {
+  protected IEnumerable<Diagnostic> ComputeAllResolutionDiagnostics() {
     var includeErrorDiagnostics = GetIncludeErrorDiagnostics();
     return FileResolutionDiagnostics.Concat(includeErrorDiagnostics).Select(d => d.ToLspDiagnostic());
   }
@@ -42,8 +41,8 @@ public class DocumentAfterParsing : Document {
       var messageForIncludedFile =
         Diagnostics.GetOrDefault(include.IncludedFilename, Enumerable.Empty<DafnyDiagnostic>);
       if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
-        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.IncludedFilename.LocalPath + " contains error(s)", 
-          MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] {});
+        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.IncludedFilename.LocalPath + " contains error(s)",
+          MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
         yield return diagnostic;
       }
     }

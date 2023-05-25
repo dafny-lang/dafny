@@ -5795,7 +5795,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
-      var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      var (at, modBuiltins) = BuiltIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      modBuiltins(builtIns);
       ResolveType(tok, at, resolutionContext, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }

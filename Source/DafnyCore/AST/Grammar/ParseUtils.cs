@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -9,7 +8,8 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public record DfyParseResult(BatchErrorReporter ErrorReporter, FileModuleDefinition Module);
+public record DfyParseResult(BatchErrorReporter ErrorReporter, FileModuleDefinition Module,
+  IReadOnlyList<Action<BuiltIns>> ModifyBuiltins);
 
 public class ParseUtils {
 
@@ -27,9 +27,8 @@ public class ParseUtils {
       builtIns,
       errorReporter, verifiedRoots, compiledRoots
     );
-    
-    foreach (var dafnyFile in files) {
 
+    foreach (var dafnyFile in files) {
       if (options.Trace) {
         options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
       }
@@ -39,11 +38,10 @@ public class ParseUtils {
       }
 
       try {
-        var parseResult = Parse(
+        var parseResult = ParseFile(
           options,
           dafnyFile.Content,
-          dafnyFile.Uri,
-          builtIns
+          dafnyFile.Uri
         );
 
         AddParseResultToProgram(parseResult, program);
@@ -82,6 +80,7 @@ public class ParseUtils {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
     }
 
+
     return program;
   }
 
@@ -89,11 +88,15 @@ public class ParseUtils {
     var defaultModule = program.DefaultModuleDef;
     var fileModule = parseResult.Module;
 
+    foreach (var modify in parseResult.ModifyBuiltins) {
+      modify(program.BuiltIns);
+    }
+
     foreach (var diagnostic in parseResult.ErrorReporter.AllMessages.SelectMany(m => m.Value)) {
       program.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
         diagnostic.Message);
     }
-    
+
     foreach (var declToMove in fileModule.TopLevelDecls.
                Where(d => d != null) // Can occur when there are parse errors. Error correction is at fault but we workaround it here
              ) {
@@ -155,11 +158,10 @@ public class ParseUtils {
 
       cancellationToken.ThrowIfCancellationRequested();
       try {
-        var parseIncludeResult = Parse(
+        var parseIncludeResult = ParseFile(
           errorReporter.Options,
           top.Content,
-          top.Uri,
-          builtIns
+          top.Uri
         );
         result.Add(parseIncludeResult);
 
@@ -189,18 +191,18 @@ public class ParseUtils {
       return null;
     }
   }
-  
+
   ///<summary>
   /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
   /// and appends them in appropriate form to "module".
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  public static DfyParseResult Parse(DafnyOptions options, TextReader reader, Uri /*!*/ uri, BuiltIns builtIns) /* throws System.IO.IOException */ {
+  private static DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
     try {
-      return Parse(options, text, uri, builtIns);
+      return ParseFile(options, text, uri);
     } catch (Exception e) {
       var internalErrorDummyToken = new Token {
         Uri = uri,
@@ -212,7 +214,7 @@ public class ParseUtils {
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, internalErrorDummyToken,
         "[internal error] Parser exception: " + e.Message);
-      return new DfyParseResult(reporter, null);
+      return new DfyParseResult(reporter, null, new Action<BuiltIns>[] { });
     }
   }
 
@@ -222,9 +224,9 @@ public class ParseUtils {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner with the given Errors sink.
   ///</summary>
-  public static DfyParseResult Parse(DafnyOptions options, string /*!*/ s, Uri /*!*/ uri, BuiltIns builtIns) {
+  private static DfyParseResult ParseFile(DafnyOptions options, string /*!*/ s, Uri /*!*/ uri) {
     var batchErrorReporter = new BatchErrorReporter(options);
-    Parser parser = SetupParser(s, uri, builtIns, new Errors(batchErrorReporter));
+    Parser parser = SetupParser(s, uri, batchErrorReporter);
     parser.Parse();
 
     if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
@@ -232,14 +234,12 @@ public class ParseUtils {
       batchErrorReporter.Warning(MessageSource.Parser, null, new Token(1, 1) { Uri = uri }, "File contains no code");
     }
 
-    return new DfyParseResult(batchErrorReporter, parser.theModule);
+    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.BuiltinsModifiers);
   }
 
-  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri,
-    BuiltIns builtIns, Errors /*!*/ errors) {
+  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, ErrorReporter /*!*/ errorReporter) {
     Contract.Requires(s != null);
     Contract.Requires(uri != null);
-    Contract.Requires(errors != null);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
     byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
@@ -248,8 +248,10 @@ public class ParseUtils {
       Uri = uri
     };
 
-    Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-    return new Parser(scanner, errors, builtIns);
+    var errors = new Errors(errorReporter);
+
+    var scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
+    return new Parser(errorReporter.Options, scanner, errors);
   }
 
   public static Program Parse(string source, Uri uri, ErrorReporter reporter) {
