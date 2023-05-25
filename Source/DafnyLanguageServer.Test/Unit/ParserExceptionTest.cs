@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
 
       public override int Count(ErrorLevel level) {
-        throw new NotImplementedException();
+        return numberOfErrors;
       }
 
       public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
