@@ -39,7 +39,7 @@ class DocCommand : ICommandSpec {
   public IEnumerable<Option> Options => DocOptions;
 
   public Command Create() {
-    var result = new Command("doc", @"Create a description page for each module. Files are placed in the folder specified by --output (default is ./docs).");
+    var result = new Command("doc", @"[Experimental] Create a description page for each module. Files are placed in the folder specified by --output (default is ./docs).");
     result.AddArgument(ICommandSpec.FilesArgument);
     return result;
   }
