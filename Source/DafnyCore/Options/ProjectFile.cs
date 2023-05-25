@@ -25,9 +25,9 @@ public class ProjectFile {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
 
-  public static ProjectFile Open(Uri uri, TextWriter errorWriter) {
+  public static ProjectFile Open(Uri uri, TextWriter outputWriter, TextWriter errorWriter) {
     if (Path.GetFileName(uri.LocalPath) != FileName) {
-      Console.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+      outputWriter.WriteLine($"Warning: only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
     try {
       var file = File.Open(uri.LocalPath, FileMode.Open);
@@ -67,14 +67,14 @@ public class ProjectFile {
     }
   }
 
-  public void Validate(IEnumerable<Option> possibleOptions) {
+  public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
     if (Options == null) {
       return;
     }
 
     var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
     foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
-      Console.WriteLine(
+      outputWriter.WriteLine(
         $"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
     }
   }
