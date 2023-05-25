@@ -1172,14 +1172,14 @@ public class DefaultModuleDefinition : ModuleDefinition {
   public List<Include> Includes { get; } = new();
   public IList<Uri> RootSourceUris { get; }
 
-  public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
-    RootSourceUris = original.RootSourceUris;
-  }
-
   public DefaultModuleDefinition(IList<Uri> rootSourceUris, bool defaultClassFirst)
     : base(RangeToken.NoToken, new Name("_module"), new List<IToken>(), false, false,
       null, null, null, true, defaultClassFirst) {
     RootSourceUris = rootSourceUris;
+  }
+
+  public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
+    RootSourceUris = original.RootSourceUris;
   }
 
   public override bool IsDefaultModule => true;
