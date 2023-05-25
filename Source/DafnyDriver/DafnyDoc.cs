@@ -111,7 +111,7 @@ class DafnyDoc {
       err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out dafnyProgram);
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
-      if (options.CompileVerbose) {
+      if (options.Verbose) {
         Console.Out.WriteLine(e.ToString());
       }
     }
@@ -240,7 +240,7 @@ class DafnyDoc {
       fullName = RootName;
       parent = null;
     }
-    var defaultClass = moduleDef.TopLevelDecls.First(d => d is ClassDecl cd && cd.IsDefaultClass) as ClassDecl;
+    var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
 
     var info = new Info(register, this, "module", module == null ? null : module.Tok, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
     info.Contents = new List<Info>();
@@ -435,7 +435,7 @@ class DafnyDoc {
          + DashShortDocstring(imp);
       details.Append(Code("import " + openText + name + " = " + QualifiedNameWithLinks(target.FullDafnyName) + "`" + exportsets));
       list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
-      list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is ClassDecl && (d as ClassDecl).IsDefaultClass)).ToList();
+      list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
     } else if (md is AbstractModuleDecl aimp) {
       var openText = aimp.Opened ? "opened " : "";
       var target = aimp.OriginalSignature.ModuleDef.FullDafnyName;
@@ -443,7 +443,7 @@ class DafnyDoc {
          + DashShortDocstring(aimp);
       details.Append(Code("import " + openText + name + " : " + QualifiedNameWithLinks(target)));
       list = aimp.AccessibleSignature(true).StaticMembers.Values.ToList();
-      list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is ClassDecl && (d as ClassDecl).IsDefaultClass)).ToList();
+      list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
     }
 
     details.Append(br).Append(br).Append(eol);
@@ -501,11 +501,11 @@ class DafnyDoc {
   public void AddTypeSummaries(ModuleDefinition module, StringBuilder summaries, Info owner, bool register) {
     var types = module.TopLevelDecls.Where(c => IsType(c) && !IsGeneratedName(c.Name)).ToList();
     types.Sort((f, ff) => f.Name.CompareTo(ff.Name));
-    if (types.Count() > 1 || (types.Count() == 1 && (types[0] is ClassDecl) && !(types[0] as ClassDecl).IsDefaultClass)) {
+    if (types.Count() > 1 || (types.Count() == 1 && (types[0] is DefaultClassDecl))) {
       summaries.Append(Heading3("Types")).Append(eol);
       summaries.Append(TableStart());
       foreach (var t in types) {
-        if ((t is ClassDecl) && (t as ClassDecl).IsDefaultClass) {
+        if (t is DefaultClassDecl) {
           continue;
         }
         var info = TypeInfo(register, t, module, owner);
@@ -637,7 +637,7 @@ class DafnyDoc {
       decl.Append(tsd.Characteristics.ToString());
     } else if (t is TypeSynonymDecl tsy) {
       decl.Append(tsy.Characteristics.ToString());
-    } else if (t is OpaqueTypeDecl atd) {
+    } else if (t is AbstractTypeDecl atd) {
       decl.Append(atd.Characteristics.ToString());
     }
     decl.Append(typeparams);
@@ -669,7 +669,7 @@ class DafnyDoc {
       } else if (tnt.Witness != null) {
         decl.Append(" witness ").Append(tnt.Witness.ToString());
       }
-    } else if (t is OpaqueTypeDecl otd) {
+    } else if (t is AbstractTypeDecl otd) {
       // nothing else
     } else if (t is DatatypeDecl) {
       decl.Append(" = ");
@@ -976,7 +976,7 @@ class DafnyDoc {
         }
       } else if (tt is TypeParameter) {
         s = tt.Name;
-      } else if (tt is OpaqueTypeDecl) {
+      } else if (tt is AbstractTypeDecl) {
         s = Link(tt.FullDafnyName, tt.Name) + TypeActualParameters(t.TypeArgs);
       }
       if (s != null) {
@@ -1075,7 +1075,7 @@ class DafnyDoc {
   }
 
   public void AnnounceFile(string filename) {
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       Console.WriteLine("Writing " + filename);
     }
   }
