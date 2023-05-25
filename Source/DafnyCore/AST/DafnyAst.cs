@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
@@ -110,13 +110,14 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      if (DefaultModule.RootToken.Next == null) {
+      var rootToken = DefaultModule.RangeToken.StartToken;
+      if (rootToken.Next == null) {
         return null;
       }
 
-      var firstToken = DefaultModule.RootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -138,15 +139,15 @@ namespace Microsoft.Dafny {
 
   public class Include : TokenNode, IComparable {
     public Uri IncluderFilename { get; }
-    public string IncludedFilename { get; }
+    public Uri IncludedFilename { get; }
     public string CanonicalPath { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, Uri includer, string theFilename) {
+    public Include(IToken tok, Uri includer, Uri theFilename) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
+      this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
       this.ErrorReported = false;
     }
 

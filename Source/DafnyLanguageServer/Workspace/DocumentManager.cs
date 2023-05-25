@@ -140,8 +140,7 @@ public class DocumentManager {
     while (!string.IsNullOrEmpty(folder)) {
       var children = Directory.GetFiles(folder, "dfyconfig.toml");
       if (children.Length > 0) {
-        var errorWriter = TextWriter.Null;
-        projectFile = ProjectFile.Open(new Uri(children[0]), errorWriter);
+        projectFile = ProjectFile.Open(new Uri(children[0]), serverOptions.OutputWriter, serverOptions.ErrorWriter);
         if (projectFile != null) {
           break;
         }
