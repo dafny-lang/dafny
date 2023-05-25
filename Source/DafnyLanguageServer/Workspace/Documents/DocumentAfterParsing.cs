@@ -41,12 +41,8 @@ public class DocumentAfterParsing : Document {
     foreach (var include in Program.Includes) {
       var messageForIncludedFile =
         Diagnostics.GetOrDefault(include.IncludedFilename, Enumerable.Empty<DafnyDiagnostic>);
-      if (messageForIncludedFile.Any()) {
-        var token = Program.GetFirstTopLevelToken();
-        if (token == null) {
-          Console.Write("");
-        }
-        var diagnostic = new DafnyDiagnostic(null, token, "the included file " + include.IncludedFilename.LocalPath + " contains error(s)", 
+      if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
+        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.IncludedFilename.LocalPath + " contains error(s)", 
           MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] {});
         yield return diagnostic;
       }
