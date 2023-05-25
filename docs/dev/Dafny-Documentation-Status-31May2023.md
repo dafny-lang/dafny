@@ -35,7 +35,7 @@ The principal repository is github.com/dafny-lang/dafny, which contains the proj
 This large document is the definition of the Dafny language and a guide to its use.
    * It is a (GitHub) markdown document that is served by GitHub pages at dafny.org/latest/DafnyRef/DafnyRef (with snapshots at each release); the current development version is https://dafny.org/dafny/DafnyRef/DafnyRef
    * The source material is in dafny/docs/DafnyRef
-   * The document is also rendered to pdf using pandoc; that pdf document is created and shipped with each release build. The Makefile to do the building is dafny/docs/DafnyRef/Makefile. The release build happens using Gihub actions on Github VMs.
+   * The document is also rendered to pdf using pandoc; that pdf document is created and shipped with each release build. The Makefile to do the building is dafny/docs/DafnyRef/Makefile. The release build happens using GitHub actions on GitHub VMs.
    * Section numbering is not built-in (because markdown does not support it). Run `make numbers` when sections need renumbering, which includes updating internal document hyperlinks. 
      Run `make options` when the command-line options documentation needs updating (this material is included by running the dafny tool to print out the in-app help information.
      The CI build will fail if section numbering and options are not up-to-date in the manual.
