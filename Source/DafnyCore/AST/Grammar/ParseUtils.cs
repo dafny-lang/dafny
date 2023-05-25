@@ -97,6 +97,7 @@ public class ParseUtils {
     var builtIns = new BuiltIns(options);
     var defaultModule = errorReporter.OuterModule;
     foreach (var dafnyFile in files) {
+
       if (options.Trace) {
         options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
       }
@@ -106,6 +107,16 @@ public class ParseUtils {
       }
 
       try {
+        var include = dafnyFile.IsPrecompiled ? new Include(new Token {
+          Uri = dafnyFile.Uri,
+          col = 1,
+          line = 0
+        }, new Uri("cli://"), dafnyFile.Uri) : null;
+        if (include != null) {
+          // TODO this can be removed once the include error message in ErrorReporter.Error is removed.
+          defaultModule.Includes.Add(include);
+        }
+
         var parseResult = Parse(
           dafnyFile.Content,
           dafnyFile.Uri,
@@ -154,7 +165,9 @@ public class ParseUtils {
       errorReporter, verifiedRoots, compiledRoots
     );
 
-    DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+    if (errorReporter.ErrorCount == 0) {
+      DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
+    }
     return program;
   }
 
