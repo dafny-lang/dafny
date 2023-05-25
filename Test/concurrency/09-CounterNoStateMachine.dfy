@@ -712,7 +712,7 @@ method {:vcs_split_on_every_assert} Incrementer(universe: Universe, running: Thr
     invariant universe.globalInv()
     invariant universe.baseLegalTransitionsSequence@l1()
     //invariant universe.baseLegalTransitionsSequence();
-    invariant remaining.owner == running && 0 <= i && i + remaining.value == 10; // USER invarian
+    invariant remaining.owner == running && 0 <= i && i + remaining.value == 10 // USER invariant
   {
     label l2:
     var initial_value := new ConstantInteger(universe, running, counter.value);

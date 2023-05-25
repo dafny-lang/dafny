@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:- /env:0 /noVerify "%s" > "%t"
+// RUN: %dafny /deprecation:0 /dprint:- /env:0 /noVerify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // My first Dafny program

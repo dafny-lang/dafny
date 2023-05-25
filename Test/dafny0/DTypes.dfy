@@ -211,7 +211,7 @@ module SomeTypeInferenceTests {
     var m := new MyClass();
     var b := new Cell(m);
     var test;
-    test := m == null  // warning
+    test := m == null;  // warning
     test := b == null;  // warning
   }
 
