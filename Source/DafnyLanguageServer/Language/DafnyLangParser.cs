@@ -1,16 +1,30 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
+
+  class StringBuilderReader : TextReader {
+    private StringBuilder builder;
+    private int index = 0;
+
+    public StringBuilderReader(StringBuilder builder) {
+      this.builder = builder;
+    }
+  }
+
+  public static class HashingExtensions {
+    public static long GetUniqueHashFromText(TextReader reader) {
+      reader.
+    }
+  }
+  
   /// <summary>
   /// Parser implementation that makes use of the parse of dafny-lang. It may only be initialized exactly once since
   /// it requires initial setup of static members.
@@ -24,6 +38,32 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
 
+    class CachingParsing : OuterParser {
+      private readonly TickingCache<string, DfyParseResult> parseCache = new();
+      
+      protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
+        var stringBuilder = BuilderFromReader(reader);
+        
+        return base.ParseFile(options, new StringBuilderReader(stringBuilder), uri);
+      }
+
+      StringBuilder BuilderFromReader(TextReader reader) {
+        var result = new StringBuilder();
+        var buffer = new char[1024];
+        var hash = HashAlgorithm.Create();
+        hash.TransformBlock()
+          hash.Compu
+        while (true) {
+          var readCount = reader.ReadBlock(buffer, 0, buffer.Length);
+          if (readCount == 0) {
+            return result;
+          }
+
+          result.Append(buffer);
+        }
+      }
+    }
+    
     private DafnyLangParser(DafnyOptions options, ILogger<DafnyLangParser> logger) {
       this.options = options;
       this.logger = logger;
@@ -52,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       mutex.Wait(cancellationToken);
 
       try {
-        return ParseUtils.ParseFiles(document.Uri.ToString(),
+        return OuterParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)

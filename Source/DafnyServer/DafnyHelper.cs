@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var program = ParseUtils.ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = OuterParser.ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;
