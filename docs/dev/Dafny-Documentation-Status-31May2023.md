@@ -7,7 +7,7 @@ Author: David R. Cok (david.r.cok@gmail.com) - 31 May 2023
 ## dafny.org
 
 The user portal to Dafny documentation is the dafny.org website.
-This is a github pages site, served by Github, from the dafny-l;ang/dafny.github.io repository.
+This is a GitHub Pages site, served by GitHub, from the dafny-lang/dafny.github.io repository.
 However the material in this repository is a series of snapshots of the development version of the documentation. 
 That development version is maintained inthe docs folder of the dafny-lang/dafny Github project.
 
