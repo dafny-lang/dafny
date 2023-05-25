@@ -92,8 +92,10 @@ namespace IntegrationTests {
         }, {
           "%server", (args, config) => // TODO
           {
-            var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
-            return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+            return MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly);
+              
+            // var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
+            // return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
           }
         }, {
           "%boogie", (args, config) => // TODO

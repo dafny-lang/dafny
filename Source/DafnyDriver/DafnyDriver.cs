@@ -268,6 +268,10 @@ namespace Microsoft.Dafny {
         if (extension != null) { extension = extension.ToLower(); }
 
         bool isDafnyFile = false;
+        var relative = System.IO.Path.GetFileName(file);
+        bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
+        var nameToShow = useRelative ? relative
+          : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
           var df = new DafnyFile(options, Path.GetFullPath(file));
           if (options.LibraryFiles.Contains(file)) {
@@ -279,17 +283,19 @@ namespace Microsoft.Dafny {
           }
           dafnyFiles.Add(df);
           isDafnyFile = true;
+        } catch (ArgumentException e) {
+          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: ", nameToShow, e.Message);
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         } catch (IllegalDafnyFile e) {
           if (e.ProcessingError) {
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
           // Fall through and try to handle the file as an "other file"
+        } catch (Exception e) {
+          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: {1}", nameToShow, e.Message);
+          return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 
-        var relative = System.IO.Path.GetFileName(file);
-        bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
-        var nameToShow = useRelative ? relative
-          : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes

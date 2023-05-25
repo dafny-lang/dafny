@@ -76,8 +76,7 @@ public class ParseUtils {
     Contract.Requires(errors != null);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-    byte[] /*!*/
-      buffer = cce.NonNull(Encoding.Default.GetBytes(s));
+    byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
     MemoryStream ms = new MemoryStream(buffer, false);
     var firstToken = new Token {
       Uri = uri

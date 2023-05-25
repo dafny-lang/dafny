@@ -246,14 +246,17 @@ public static class CommandRegistry {
   }
 
   private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
+    var filePathForErrors = dafnyOptions.UseBaseNameForFileName
+      ? Path.GetFileName(singleFile.FullName)
+      : singleFile.FullName;
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       if (dafnyOptions.ProjectFile != null) {
-        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
+        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {filePathForErrors} were specified");
         return false;
       }
 
       if (!File.Exists(singleFile.FullName)) {
-        dafnyOptions.ErrorWriter.WriteLine($"Error: file {singleFile.FullName} not found");
+        dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
       var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.ErrorWriter);
