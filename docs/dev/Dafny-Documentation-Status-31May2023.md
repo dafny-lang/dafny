@@ -74,7 +74,7 @@ TODO - add material about tools to check that the information is consistent.
 
 ## Checking of examples
 
-Nearly all the examples in the reference manual, error catalog, FAQs and tutorials are written in a way such that scripts (`check-examples`)  check that the examples work correctly (as dafny evolves). These checs are done as part of CI.
+Nearly all the examples in the reference manual, error catalog, FAQs and tutorials are written in a way such that scripts (`check-examples`) check that the examples work correctly (as dafny evolves). These checks are done as part of CI.
 
 ## Material for developers of the dafny tools
 
