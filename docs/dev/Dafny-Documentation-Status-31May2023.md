@@ -98,7 +98,7 @@ Task for the future: As of 31 May 2023, the library and the dafny doc tool are n
 ## Other material
 
 - Rustan Leino authors a number of ‘Dafny Power User’ notes and other Dafny technical references. These are typically hosted on his own professional web site at https://leino.science/dafny-power-user/. 
-They have typically not been reviewed directly by any Dafny ttechnical documentation team.
+They have typically not been reviewed directly by any Dafny technical documentation team.
 
 - John Tristan teaches courses and workshops on Dafny and authors course materials for that purpose.
 
