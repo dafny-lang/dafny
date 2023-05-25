@@ -11,7 +11,7 @@ This is a GitHub Pages site, served by GitHub, from the dafny-lang/dafny.github.
 However the material in this repository is a series of snapshots of the development version of the documentation. 
 That development version is maintained in the docs folder of the dafny-lang/dafny GitHub project.
 
-It is not intended that the dafny-lang/dafny.github.io (the Github pages) site be edited directly.
+It is not intended that the dafny-lang/dafny.github.io (the GitHub pages) site be edited directly.
 Instead, the process for creating a new Dafny release includes creating a snapshot of the current Dafny documentation (by running the script docs/make-snapshot)
 dafny.org points by default to the documentation at the time of the latest release (at dafny.org/latest), with earlier release snapshots also available, 
 The bleeding-edge current development state is available at dafny.org/dafny.
