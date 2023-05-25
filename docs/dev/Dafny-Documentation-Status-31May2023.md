@@ -86,6 +86,8 @@ The Dafny library is a set of (mostly) Dafny code that implements core modules a
 Anything in the library should be documented, with examples. The examples should be checked during the regular CI of the library.
 Making sure the documentation is accurate and complete as material is added to the library requires ongoing vigilance.
 
+The library is in the dafny-lang/libraries repository.
+
 ## Dafny doc
 
 `dafny doc` is a dafny tool particularly relevant to documentation: it generates html pages from the docsstring content within Dafny programs.
