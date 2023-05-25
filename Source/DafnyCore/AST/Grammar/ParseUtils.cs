@@ -219,8 +219,6 @@ public class ParseUtils {
     }
 
     foreach (var root in roots) {
-      resolvedFiles.Add(root.IncluderFilename); // TODO obsolete?
-
       var dafnyFile = IncludeToDafnyFile(builtIns, errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);

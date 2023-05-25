@@ -44,7 +44,6 @@ namespace Microsoft.Dafny {
     // TODO move to Compilation once that's used by the CLI
     public ISet<Uri> AlreadyCompiledRoots;
 
-    // TODO remove?
     public List<Include> Includes => DefaultModuleDef.Includes;
     // TODO move to DocumentAfterParsing once that's used by the CLI
     [FilledInDuringResolution]

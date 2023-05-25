@@ -17,14 +17,6 @@ public class DafnyFile {
   public TextReader Content { get; set; }
   public Uri Uri { get; }
 
-
-  // TODO take a Uri instead of a filePath
-  public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null)
-    : this(options, contentOverride != null ? new Uri("stdin:///") : new Uri(filePath), contentOverride) {
-    Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
-    BaseName = contentOverride != null ? "<stdin>" : Path.GetFileName(filePath);
-  }
-
   public DafnyFile(DafnyOptions options, Uri uri, TextReader contentOverride = null) {
     Uri = uri;
     var filePath = uri.LocalPath;

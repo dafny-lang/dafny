@@ -269,12 +269,12 @@ namespace Microsoft.Dafny {
         if (extension != null) { extension = extension.ToLower(); }
 
         bool isDafnyFile = false;
-        var relative = System.IO.Path.GetFileName(file);
+        var relative = Path.GetFileName(file);
         bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
         var nameToShow = useRelative ? relative
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
-          var df = new DafnyFile(options, Path.GetFullPath(file));
+          var df = new DafnyFile(options, new Uri(Path.GetFullPath(file)));
           if (options.LibraryFiles.Contains(file)) {
             df.IsPreverified = true;
             df.IsPrecompiled = true;
@@ -399,8 +399,9 @@ namespace Microsoft.Dafny {
         foreach (var s in snapshotsByVersion) {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
-            snapshots.Add(new DafnyFile(options, f));
-            options.CliRootSourceUris.Add(new Uri(Path.GetFullPath(f)));
+            var uri = new Uri(Path.GetFullPath(f));
+            snapshots.Add(new DafnyFile(options, uri));
+            options.CliRootSourceUris.Add(uri);
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, false, programId);
           if (exitValue != ev && ev != ExitValue.SUCCESS) {
@@ -460,7 +461,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(dafnyFiles.Count > 0 || options.FoldersToFormat.Count > 0);
       dafnyFiles = dafnyFiles.Concat(options.FoldersToFormat.SelectMany(folderPath => {
         return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-            .Select(name => new DafnyFile(options, name)).ToList();
+            .Select(name => new DafnyFile(options, new Uri(name))).ToList();
       })).ToList();
 
       var failedToParseFiles = new List<string>();
@@ -481,7 +482,7 @@ namespace Microsoft.Dafny {
         if (!dafnyFile.Uri.IsFile) {
           tempFileName = Path.GetTempFileName() + ".dfy";
           WriteFile(tempFileName, Console.In.ReadToEnd());
-          dafnyFile = new DafnyFile(options, tempFileName);
+          dafnyFile = new DafnyFile(options, new Uri(tempFileName));
         }
 
         var originalText = dafnyFile.Content.ReadToEnd();
