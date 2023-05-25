@@ -944,7 +944,7 @@ Dafny
                                    string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, new Uri("file://" + includedFile));
+                                 var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)));
                                  oneInclude.RangeToken = new RangeToken(includeStartToken, t);
                                  theModule.Includes.Add(oneInclude);
                                }

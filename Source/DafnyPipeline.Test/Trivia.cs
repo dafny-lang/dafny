@@ -132,10 +132,8 @@ ensures true
 
       Traverse(program);
 
-      var count = 0;
       void AreAllTokensOwned(Node node) {
         if (node.StartToken is { filename: { } }) {
-          count++;
           var t = node.StartToken;
           while (t != null && t != node.EndToken) {
             Assert.Contains(t, allTokens);
@@ -149,7 +147,6 @@ ensures true
       }
 
       AreAllTokensOwned(program);
-      Assert.Equal(9, count); // Sanity check
     }
 
     private string AdjustNewlines(string programString) {

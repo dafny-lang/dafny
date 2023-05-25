@@ -78,7 +78,6 @@ public class TranslatorTest {
     var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
     BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
     var dafnyProgram = ParseUtils.Parse(program, uri, reporter);
-    ParseUtils.Parse(program, uri, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
