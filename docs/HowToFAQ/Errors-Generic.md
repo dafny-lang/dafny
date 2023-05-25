@@ -6,7 +6,7 @@
 
 <!-- %no-check TODO - infrstructure does not handle examples with multiple errors -->
 ```dafny
-include "TestA.dfy"
+include "testsource/TestA.dfy"
 ```
 
 This error is shown when parsing a file A that includes another file B when B has errors of its own.
