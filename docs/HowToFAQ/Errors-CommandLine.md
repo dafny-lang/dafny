@@ -1,4 +1,6 @@
 
+<!-- %default %useHeadings -->
+
 <!-- DafnyDriver/DafnyDriver.cs -->
 
 ## **Error: No compiler found for target _target_; expecting one of _known_** {#cli_unknown_compiler}
@@ -22,9 +24,16 @@ dafny resolve
 Any valid dafny invocation requires at least one .dfy file. 
 The only exceptions are the special commands like `--help` and `--version`.
 
-<!-- TODO: errors from XmlSink -->
 
-<!-- TODO: errors from invalid doo file -->
+## ***** Error: _file_: Central Directory corrupt.** {#cli_bad_doo}
+
+<!-- %check-cli -->
+```dafny
+dafny resolve --use-basename-for-filename testsource/test1.dfy testsource/BadDoo.doo
+```
+
+This error message says that the `.doo` file was not able to be successfully unzipped.
+It indicates that the file is either corrupted or misnamed (it should not be a .doo file).
 
 ## **Error: file _name_ not found** {#cli_file_not_found}
 
@@ -79,22 +88,26 @@ recognized.
 
 <!-- TODO - this appears to be no longer reachable -->
 
-
 ## **Error: The command-line contains no .dfy files** {#cli-no-dafny-folder}
 
 <!-- TODO - this appears to be no longer reachable -->
 
-<!-- TODO - not sure dafny format error is still reachable -->
-
 ## **Error: Only one .dfy file can be specified for testing** {#cli-test-generation}
 
-<!-- TODO - experimental test gen tool -->
+<!-- %no-check -->
+```bash
+dafny generate-tests block x.dfy y.dfy
+```
+
+The test-generation tool is still experimental.
+However, it is expected to take just a single `.dfy` file as input.
+
 
 ## **Error: ModelView file must be specified when attempting counterexample extraction** {#cli-counterexample}
 
 <!-- %check-cli -->
 ```bash
-dafny /extractCounterexample test.dfy
+dafny /extractCounterexample testsource/test1.dfy
 ```
 
 When requesting a counterexample to be generated, some additional options must be specified:
@@ -106,10 +119,12 @@ a model view file using `/mv:<file>` and
 The model view file is an arbitrary non-existent file that is created and used as a temporary file
 during the creation of the counterexamples.
 
+## **Error: Feature not supported for this compilation target: _feature_** {#f_unsupported_feature}
 
-<!-- TODO: Unknown unsupported feature exception -->
-<!-- TODO: Unsupported feature exception -->
-
+<!-- %check-run %exit 3 %options -t:cpp --unicode-char=true -->
+```dafny
+method m() {}
+```
 
 ## **Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.** {#f_missing_format_option}
 
@@ -125,7 +140,9 @@ it cannot be formatted in place, so either the `--check` or --print` options mus
 
 ## **The file _file_ needs to be formatted** {#f_file_needs_formatting}
 
-<!-- TODO: Cannot yet make cli tests with multiline input -->
+<!-- %check-cli -->
+dafny format testsource/test2.dfy
+-->
 
 This message is not an error. Rather it is the expected output of the `dafny format` command when
 `--check` is used: it states that the named input file is not formatted according to Dafny style.
@@ -133,12 +150,7 @@ You can use `--print` to see the output. Also for an input file `test.dfy, the c
 `dafny format --print test.dfy | diff test.dfy -` provides a diff between the original and the formatted files
 (without making any changes).
 
-
-
 <!-- DafnyCore/DafnyOptions.cs -->
-
-<!-- TODO: Errors in PrintMode? -->
-<!-- TODO: Errors in diagnosticsFormat? -->
 
 ## **dafny: Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
 
@@ -192,7 +204,6 @@ dafny -verificationLogger:z
 The `verificationLogger` option has these alternatives: trx, csv, text.
 The option name in the new cli is `--log-format`.
 
-
 ## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
 <!-- %check-cli-err -->
@@ -212,11 +223,6 @@ dafny -printIncludes:z
 
 The `printIncludes` option has these alternatives: None, Immediate, Transitive.
 
-
-
-
-
-
 ## **Argument '_argument_' not recognized. _Alternatives_** {#cli_quantifier_syntax}
 
 <!-- %check-cli-err -->
@@ -231,14 +237,7 @@ The correct spellings of the valid values should be stated
 in the help document (`dafny -?` or `dafny <command> -h`).
 
 
-<!-- TODO: Errors in printIncludes? -->
-<!-- TODO: Errors in verificationLogger? -->
-<!-- TODO: Errors in testContracts? -->
-
-<!-- TODO: Error: Option _name_ unrecognized or unsupported in ':options' attributes. -->
-
-
-<!-- Somewhere -->
+<!-- In boogie option processing -->
 
 ## **Error: unknown switch: _switch_** {#cli_unknown_legacy_option}
 
@@ -251,4 +250,4 @@ This error results from using an unknown command-line option in the
 legacy CLI, such as one that begins with a double hyphen.
 It is recommended to use the new CLI in which the command-line begins
 with an action verb (e.g., resolve, verify, run) followed by 
-files, folders, and options written with double=hyphen prefixes.
+files, folders, and options written with double-hyphen prefixes.
