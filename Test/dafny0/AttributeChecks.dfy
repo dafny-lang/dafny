@@ -58,8 +58,8 @@ module JustAboutEverything {
   {
     match r {
       case Nil => Nil
-      case {:ignore 3 + true} Cons(h, Nil) => Nil // error:  3 + true is ill-typed
-      case {:ignore false} Cons(h, t) => CaseExpr(t)
+
+
     }
   }
 
@@ -415,7 +415,7 @@ module TopLevelAttributes {
     Iterator(x: int, arr: array<int>) yields (y: int)
     requires arr.Length != 0
 
-  // ---- opaque type
+  // ---- abstract type
 
   type
     {:myAttr this} // error: this is not allowed here

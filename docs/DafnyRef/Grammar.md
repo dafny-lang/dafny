@@ -22,6 +22,8 @@ All program text other than the contents of comments, character, string and verb
 consists of printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, 
 carriage return and newline (ASCII 9, 10, 13, 32) characters.
+(In some past versions of Dafny, non-ASCII, unicode representations of some mathematical symbols were
+permitted in Dafny source text; these are no longer recognized.)
 
 String and character literals and comments may contain any unicode character,
 either directly or as an escape sequence.

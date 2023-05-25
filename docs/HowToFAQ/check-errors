@@ -1,0 +1,14 @@
+#! /usr/bin/env bash
+
+d=$(dirname ${BASH_SOURCE[0]})
+cd $d
+
+echo ">>>> COMPILER"
+
+csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
+./check-errors-a Errors-Compiler.md "$csfiles" ../../Source/DafnyCore/Compilers/CompilerErrors.cs
+
+##echo ">>>> PARSER"
+
+##./check-errors-a Errors-Parser.md ../../Source/DafnyCore/Dafny.atg ../../Source/DafnyCore/AST/Grammar/ParseErrors.cs
+

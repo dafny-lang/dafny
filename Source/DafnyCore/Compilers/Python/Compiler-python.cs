@@ -48,7 +48,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMapClass = $"{DafnyRuntimeModule}.Map";
     const string DafnyDefaults = $"{DafnyRuntimeModule}.defaults";
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
-      Contract.Requires(tp is TypeParameter or OpaqueTypeDecl);
+      Contract.Requires(tp is TypeParameter or AbstractTypeDecl);
       return $"default_{tp.GetCompileName(Options)}";
     }
     protected override string StmtTerminator { get => ""; }
@@ -567,7 +567,7 @@ namespace Microsoft.Dafny.Compilers {
         SeqType or SetType or MultiSetType or MapType => CollectionTypeDescriptor(),
         UserDefinedType udt => udt.ResolvedClass switch {
           TypeParameter tp => TypeParameterDescriptor(tp),
-          ClassDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
+          ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.tok),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
           _ => throw new cce.UnreachableException()
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
-        if ((thisContext != null && typeParameter.Parent is ClassDecl and not TraitDecl) || typeParameter.Parent is IteratorDecl) {
+        if ((thisContext != null && typeParameter.Parent is ClassDecl) || typeParameter.Parent is IteratorDecl) {
           return $"self.{typeParameter.GetCompileName(Options)}";
         }
         if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(typeParameter, out var instantiatedTypeParameter)) {
@@ -730,10 +730,12 @@ namespace Microsoft.Dafny.Compilers {
                   ? $"{TypeDescriptor(udt, wr, tok)}()"
                   : $"{FormatDefaultTypeParameterValue(tp)}()";
 
-              case OpaqueTypeDecl opaque:
+              case AbstractTypeDecl opaque:
                 return FormatDefaultTypeParameterValue(opaque);
 
               case ClassDecl:
+              case TraitDecl:
+              case ArrowTypeDecl:
                 return "None";
             }
             break;
@@ -1410,7 +1412,10 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("len", expr, wr, inLetExprBody, wStmts);
+          var multiset = expr.Type.AsMultiSetType != null;
+          if (!multiset) { wr.Write("len"); }
+          TrParenExpr(expr, wr, inLetExprBody, wStmts);
+          if (multiset) { wr.Write(".cardinality"); }
           break;
         case ResolvedUnaryOp.BitwiseNot:
           TrParenExpr("~", expr, wr, inLetExprBody, wStmts);

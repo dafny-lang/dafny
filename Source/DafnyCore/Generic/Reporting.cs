@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
     public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      if (tok.WasIncluded(OuterModule) && OuterModule != null) {
+      if (tok.FromIncludeDirective(OuterModule) && OuterModule != null) {
         var include = OuterModule.Includes.First(i => new Uri(i.IncludedFilename).LocalPath == tok.ActualFilename);
         if (!include.ErrorReported) {
           Message(source, ErrorLevel.Error, null, include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.CompileVerbose && false) { // Need to control tests better before we enable this
+        if (Options.Verbose && false) { // Need to control tests better before we enable this
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
             errorLine += "\n" + info;
