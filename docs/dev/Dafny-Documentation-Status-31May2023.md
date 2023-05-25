@@ -49,7 +49,6 @@ Maintenance of the reference manual.
 ## FAQs
 
 The folder docs/HowToFAQ contains a large number of files named FAQ*.md. These along with index.md and one-page.md are a collection of FAQs and answers. 
-These were abstracted from the Slack channels ‘dafny’ and ‘yucca’, from their beginning through July 2022.
 Each FAQ has a title and link in `index.md`, which points to a markdown file for that FAQ.
 To aid searching, a (long) one page version is generated with the script `make-onepage`, which generates the `one-page.md` file (so that file should not be edited directly.
 
