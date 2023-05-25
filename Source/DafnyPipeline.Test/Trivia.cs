@@ -86,7 +86,7 @@ ensures true
         var trait2 = dafnyProgram.DefaultModuleDef.TopLevelDecls[2];
         var subsetType = dafnyProgram.DefaultModuleDef.TopLevelDecls[3];
         var class1 = dafnyProgram.DefaultModuleDef.TopLevelDecls[4] as ClassDecl;
-        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as ClassDecl;
+        var defaultClass = dafnyProgram.DefaultModuleDef.TopLevelDecls[5] as DefaultClassDecl;
         Assert.NotNull(moduleTest);
         Assert.NotNull(class1);
         Assert.NotNull(defaultClass);

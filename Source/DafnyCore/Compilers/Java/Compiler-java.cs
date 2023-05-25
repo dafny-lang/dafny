@@ -74,9 +74,7 @@ namespace Microsoft.Dafny.Compilers {
     //RootImportWriter writes additional imports to the main file.
     private ConcreteSyntaxTree RootImportWriter;
 
-    private struct Import {
-      public string Name, Path;
-    }
+    private record Import(string Name, string Path);
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
@@ -364,7 +362,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      var import = new Import { Name = moduleName, Path = path };
+      var import = new Import(moduleName, path);
       ModuleName = IdProtect(moduleName);
       ModulePath = path;
       ModuleImport = import;
@@ -930,7 +928,9 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
+      if (cls is not DefaultClassDecl) {
+        EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
+      }
 
       if (fullPrintName != null) {
         // By emitting a toString() method, printing an object will give the same output as with other target languages.
@@ -3114,7 +3114,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
+      } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
         return $"({BoxedTypeName(xType, wr, udt.tok)}) null";
       } else if (cl is DatatypeDecl dt) {
         if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, dt, out var innerType)) {

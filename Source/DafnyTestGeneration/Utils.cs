@@ -41,7 +41,9 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName ?? typ.Name,
+          typ?.ResolvedClass?.FullName == null ?
+            typ.Name :
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : ""),
           typ.TypeArgs));
     }
 
@@ -80,9 +82,9 @@ namespace DafnyTestGeneration {
       var builtIns = new BuiltIns(options);
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
       var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludesDepthFirstNotCompiledFirst(options.Input, module, builtIns,
+        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
         new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter);
+      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
 
       if (!resolve) {
         return program;
@@ -126,7 +128,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Turns each function-method into a function-by-method.
+    /// Turns each function into a function-by-method.
     /// Copies body of the function into the body of the corresponding method.
     /// </summary>
     private class AddByMethodRewriter : IRewriter {
@@ -172,8 +174,9 @@ namespace DafnyTestGeneration {
           return;
         }
         var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
+          new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+        func.ByMethodBody = new BlockStmt(
+          new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
       }
     }

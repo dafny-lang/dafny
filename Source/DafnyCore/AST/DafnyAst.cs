@@ -39,7 +39,18 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyVerifiedRoots;
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyCompiledRoots;
+
     public List<Include> Includes => DefaultModuleDef.Includes;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToVerify;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToCompile;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -55,7 +66,8 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
@@ -64,6 +76,8 @@ namespace Microsoft.Dafny {
       DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
+      AlreadyVerifiedRoots = alreadyVerifiedRoots;
+      AlreadyCompiledRoots = alreadyCompiledRoots;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }
@@ -126,16 +140,14 @@ namespace Microsoft.Dafny {
     public Uri IncluderFilename { get; }
     public string IncludedFilename { get; }
     public string CanonicalPath { get; }
-    public bool CompileIncludedCode { get; }
     public bool ErrorReported;
 
-    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
+    public Include(IToken tok, Uri includer, string theFilename) {
       this.tok = tok;
       this.IncluderFilename = includer;
       this.IncludedFilename = theFilename;
       this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
       this.ErrorReported = false;
-      CompileIncludedCode = compileIncludedCode;
     }
 
     public int CompareTo(object obj) {
