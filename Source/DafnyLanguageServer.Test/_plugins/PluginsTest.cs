@@ -21,8 +21,8 @@ namespace PluginsTest {
       this.configuration = configuration;
     }
 
-    public override void PostResolve(ModuleDefinition moduleDefinition) {
-      Reporter.Error(MessageSource.Resolver, moduleDefinition.GetFirstTopLevelToken(), "Impossible to continue " + configuration.Argument);
+    public override void PostResolve(Program program) {
+      Reporter.Error(MessageSource.Resolver, program.GetFirstTopLevelToken(), "Impossible to continue " + configuration.Argument);
     }
   }
 
