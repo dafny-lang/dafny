@@ -4,7 +4,7 @@ title: Installation Instructions
 
 This page has instructions for installing Dafny by typical users:
 
-* Using IDEs: [VSCode](#Visual-studio-code), [Emacs](#Emacs)
+* Using IDEs: [VSCode](#Visual-Studio-Code), [Emacs](#Emacs)
 * Installing a binary build ([Windows](#windows-binary), [Linux](#linux-binary), or [Mac](#Mac-binary))
 * [Installing the tools necessary to compile to other languages](#compiling-dafny)
 
@@ -138,7 +138,7 @@ If you intend to use the Dafny compiler, install the appropriate tools as descri
 After the compiler dependencies are installed, you can run a quick test of the installation by running the script 
 `$INSTALL/dafny/quicktest.sh`
 
-## Mac (Binary) {Mac-binary}
+## Mac (Binary) {#Mac-binary}
 
 To install a binary installation of dafny on Mac OS, do one of the following:
 Either
