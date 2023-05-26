@@ -92,7 +92,7 @@ public class ParseUtils {
       modify(program.BuiltIns);
     }
 
-    foreach (var diagnostic in parseResult.ErrorReporter.AllMessages.SelectMany(m => m.Value)) {
+    foreach (var diagnostic in parseResult.ErrorReporter.AllMessages) {
       program.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
         diagnostic.Message);
     }
