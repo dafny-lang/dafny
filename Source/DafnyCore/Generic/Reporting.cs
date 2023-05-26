@@ -44,14 +44,6 @@ namespace Microsoft.Dafny {
     public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      // TODO move this out of ErrorReporter together with OuterModule. Let Program have a list of FileModuleDefinitions as constructor input and create its default module there.
-      if (tok.FromIncludeDirective(OuterModule) && OuterModule != null) {
-        var include = OuterModule.Includes.First(i => i.IncludedFilename == tok.Uri);
-        if (!include.ErrorReported) {
-          Message(source, ErrorLevel.Error, ParseErrors.ErrorId.g_include_has_errors.ToString(), include.tok, "the included file " + Path.GetFileName(tok.ActualFilename) + " contains error(s)");
-          include.ErrorReported = true;
-        }
-      }
       Message(source, ErrorLevel.Error, errorId, tok, msg);
     }
 
