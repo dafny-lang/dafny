@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -77,14 +78,11 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-      var builtIns = new BuiltIns(options);
+      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
       var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-      var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
-        new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+
+      var program = ParseUtils.ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+        reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;
@@ -141,7 +139,9 @@ namespace DafnyTestGeneration {
 
       private static void AddByMethod(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+          foreach (var topLevelDecl in moduleDecl.ModuleDef.TopLevelDecls) {
+            AddByMethod(topLevelDecl);
+          }
         } else if (d is TopLevelDeclWithMembers withMembers) {
           withMembers.Members.OfType<Function>().Iter(AddByMethod);
         }
