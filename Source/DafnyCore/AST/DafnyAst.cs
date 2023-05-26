@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      var rootToken = DefaultModule.RangeToken.StartToken;
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
       if (rootToken.Next == null) {
         return null;
       }

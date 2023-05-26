@@ -7,6 +7,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
@@ -16,7 +17,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
     IServiceProvider services,
     DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
-    IReadOnlyList<DafnyDiagnostic> parseAndResolutionDiagnostics,
+    IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics,
@@ -24,7 +25,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
     List<Counterexample> counterexamples,
     Dictionary<ImplementationId, ImplementationView> implementationIdToView,
     VerificationTree verificationTree)
-    : base(textDocumentItem, program, parseAndResolutionDiagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
+    : base(textDocumentItem, program, diagnostics, symbolTable, signatureAndCompletionTable, ghostDiagnostics) {
     VerificationTree = verificationTree;
     VerificationTasks = verificationTasks;
     Counterexamples = counterexamples;
@@ -60,7 +61,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
   }
 
   public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => base.AllFileDiagnostics.Concat(
-    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
 
   /// <summary>
   /// Contains the real-time status of all verification efforts.

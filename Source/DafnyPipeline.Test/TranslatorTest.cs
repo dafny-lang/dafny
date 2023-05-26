@@ -75,8 +75,7 @@ public class TranslatorTest {
     Microsoft.Dafny.Type.ResetScopes();
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
-    var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
-    BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
+    BatchErrorReporter reporter = new BatchErrorReporter(options);
     var dafnyProgram = ParseUtils.Parse(program, uri, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
