@@ -297,7 +297,7 @@ given predicate is satisfiable by some value. If not, then the 'else' branch is 
 but if so, the 'then' branch is executed with an arbitrary value that satisifies the predicate.
 Because of this arbitrary selection, the if-with-binding-guard is not permitted with `--enforce-determinism`,
 even if there is exactly one value that satisfies the predicate.
-(The tool does not try to determine whether there is just one value and
+(The tool does not try to determine whether there is just one value or
 whether there is a reasonable way to compute it.)
 ");
 
