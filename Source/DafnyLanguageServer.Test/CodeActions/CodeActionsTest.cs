@@ -118,7 +118,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
   ><{
