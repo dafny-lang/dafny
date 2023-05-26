@@ -225,10 +225,13 @@ public class MultiBackendTest {
       $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 
-  public static LitTestCase ConvertToMultiBackendTest(LitTestCase testCase) {
+  public static void ConvertToMultiBackendTest(LitTestCase testCase, LitTestConfiguration config) {
     // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
     var commandList = testCase.Commands.ToList();
-    if (commandList[^1] is not LitCommandWithRedirection { Command: DiffCommand diffCommand }) {
+    if (commandList[^1] is not LitCommandWithRedirection { Command: DelayedLitCommand delayedLitCommand }) {
+      throw new ArgumentException("Last command expected to be %diff");
+    }
+    if (delayedLitCommand.Factory() is not DiffCommand diffCommand) {
       throw new ArgumentException("Last command expected to be %diff");
     }
 
@@ -236,11 +239,18 @@ public class MultiBackendTest {
     var expectContent = File.ReadAllText(expectFile);
     
     // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
-    var delimiter = new Regex("\nDafny program verifier[^\n]*");
+    var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
     var chunks = delimiter.Split(expectContent);
-    Console.Out.Write(chunks);
+    var newExpect = chunks.Where(chunk => !string.IsNullOrWhiteSpace(chunk)).First();
+    File.WriteAllText(expectFile, newExpect);
 
-    return testCase;
+    var testFileLines = File.ReadAllLines(testCase.FilePath);
+    var newLines = new List<string> {
+      "// RUN: %testDafnyForEachCompiler \"%s\"",
+      ""
+    };
+    newLines.AddRange(testFileLines.Where(line => ILitCommand.Parse(line, config) == null));
+    File.WriteAllLines(testCase.FilePath, newLines);
   }
 
   private int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {

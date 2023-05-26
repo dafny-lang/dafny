@@ -14,26 +14,26 @@ namespace XUnitExtensions.Lit {
 
   public enum Kind { Verbatim, MustGlob }
 
-  class DelayedLitCommand : ILitCommand {
-    private readonly Func<ILitCommand> factory;
-    private ILitCommand? command;
+  public class DelayedLitCommand : ILitCommand {
+    public Func<ILitCommand> Factory { get; }
+    public ILitCommand? command;
 
     public DelayedLitCommand(Func<ILitCommand> factory) {
-      this.factory = factory;
+      this.Factory = factory;
     }
 
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
       if (command == null) {
-        command = factory();
+        command = Factory();
       }
       return command.Execute(inputReader, outputWriter, errorWriter);
     }
 
     public override string? ToString() {
       if (command == null) {
-        command = factory();
+        command = Factory();
       }
       return command!.ToString();
     }

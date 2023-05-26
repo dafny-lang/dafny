@@ -90,8 +90,11 @@ namespace IntegrationTests {
           "%testDafnyForEachCompiler", (args, config) =>
             MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config, InvokeMainMethodsDirectly)
         }, {
-          "%server", (args, config) =>
-            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
+          "%server", (args, config) => // TODO
+          {
+            var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
+            return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
+          }
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -173,10 +176,15 @@ namespace IntegrationTests {
     public void LitTest(string path) {
       var testCase = LitTestCase.Read(path, Config);
       if (testCase.Commands.Any(NonUniformBackendTestCommand)) {
-        MultiBackendTest.ConvertToMultiBackendTest(testCase);
         throw new Exception("NON UNIFORM");
       }
       // testCase.Execute(outputHelper);
+    }
+
+    [Fact]
+    public void ConversionTest() {
+      var testCase = LitTestCase.Read("TestFiles/LitTests/LitTest/comp/Arrays.dfy", Config);
+      MultiBackendTest.ConvertToMultiBackendTest(testCase, Config);
     }
     
     private static bool NonUniformBackendTestCommand(ILitCommand c) {
