@@ -78,8 +78,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
-      var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
+      var reporter = new BatchErrorReporter(options);
 
       var program = ParseUtils.ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
@@ -89,7 +88,7 @@ namespace DafnyTestGeneration {
       }
 
       // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
+      new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
       new Resolver(program).ResolveProgram(program);
       return program;
     }

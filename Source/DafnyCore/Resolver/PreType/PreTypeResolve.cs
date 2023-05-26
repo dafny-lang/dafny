@@ -74,8 +74,8 @@ namespace Microsoft.Dafny {
       }
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
-        var at = resolver.builtIns.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true);
+        BuiltIns.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.builtIns);
         decl = resolver.builtIns.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
