@@ -18,7 +18,6 @@ public class CachingTest : ClientBasedLanguageServerTest {
   private InMemorySink sink;
 
   protected override IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
-
     sink = InMemorySink.Instance;
     var logger = new LoggerConfiguration().MinimumLevel.Debug()
       .WriteTo.InMemory().CreateLogger();

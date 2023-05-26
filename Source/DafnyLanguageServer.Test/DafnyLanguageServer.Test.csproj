@@ -84,6 +84,9 @@
     <None Update="ProjectFiles\TestFiles\Nesting\src\foo.dfy">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Synchronization\TestFiles\includesSyntaxError.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
