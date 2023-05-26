@@ -46,6 +46,8 @@ namespace Microsoft.Dafny.Compilers {
     string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.GetCompileName(Options));
     const string TypeDescriptorMethodName = "_TypeDescriptor";
 
+    const string CompanionNamePrefix = "_Companion_";
+
     string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
       Contract.Requires(tp is TypeParameter || tp is AbstractTypeDecl);
       if (tp is AbstractTypeDecl) {
@@ -323,7 +325,7 @@ namespace Microsoft.Dafny.Compilers {
       var instanceMemberWriter = WriteTypeHeader("interface", name, typeParameters, superClasses, tok, wr);
 
       //writing the _Companion class
-      wr.Write($"public class _Companion_{name}{TypeParameters(typeParameters)}");
+      wr.Write($"public class {CompanionNamePrefix}{name}{TypeParameters(typeParameters)}");
       var staticMemberWriter = wr.NewBlock();
 
       return new ClassWriter(this, instanceMemberWriter, null, staticMemberWriter);
@@ -1093,7 +1095,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)),
+        CompanionNamePrefix + IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewBlock($"public static System.Collections.Generic.IEnumerable<{GetNativeTypeName(nt.NativeType)}> IntegerRange(BigInteger lo, BigInteger hi)");
@@ -1581,7 +1584,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt) {
-        var name = udt.ResolvedClass is TraitDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true);
+        var name = udt.ResolvedClass is TraitDecl or NewtypeDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true);
         return TypeName_UDT(name, udt, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);

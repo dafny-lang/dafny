@@ -46,6 +46,8 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyMultiArrayClassPrefix = "dafny.Array";
     const string DafnyTupleClassPrefix = "dafny.Tuple";
 
+    const string CompanionNamePrefix = "_Companion_";
+
     string DafnyMultiArrayClass(int dim) => DafnyMultiArrayClassPrefix + dim;
     string DafnyTupleClass(int size) => DafnyTupleClassPrefix + size;
 
@@ -1468,7 +1470,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt) {
-        var name = udt.ResolvedClass is TraitDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true);
+        var name = udt.ResolvedClass is TraitDecl or NewtypeDecl ? udt.GetFullCompanionCompileName(Options) : FullTypeName(udt, member, true);
         return TypeName_UDT(name, udt, wr, tok, true);
       } else {
         return TypeName(type, wr, tok, member);
@@ -3183,7 +3185,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       var instanceMemberWriter = w.NewBlock("");
       //writing the _Companion class
-      filename = $"{ModulePath}/_Companion_{name}.java";
+      filename = $"{ModulePath}/{CompanionNamePrefix}{name}.java";
       w = w.NewFile(filename);
       FileCount += 1;
       w.WriteLine($"// Interface {name}");
@@ -3193,9 +3195,9 @@ namespace Microsoft.Dafny.Compilers {
       EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
-      w.Write($"public class _Companion_{name}{typeParamString}");
+      w.Write($"public class {CompanionNamePrefix}{name}{typeParamString}");
       var staticMemberWriter = w.NewBlock("");
-      var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
+      var ctorBodyWriter = staticMemberWriter.NewBlock($"public {CompanionNamePrefix}{name}()");
 
       EmitTypeDescriptorMethod(null, typeParameters, name + typeParamString, initializer: null, wr: staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
@@ -3461,7 +3463,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)),
+        CompanionNamePrefix + IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
