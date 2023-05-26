@@ -62,8 +62,8 @@ namespace Microsoft.Dafny {
       var defaultModuleDefinition =
         new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), defaultClassFirst);
       ErrorReporter reporter = options.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options, defaultModuleDefinition),
-        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options, defaultModuleDefinition),
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
         _ => throw new ArgumentOutOfRangeException()
       };
 
@@ -97,23 +97,6 @@ namespace Microsoft.Dafny {
 
       return null; // success
     }
-
-    // private static string ParseFile(DafnyFile dafnyFile, Include include, BuiltIns builtIns, ErrorReporter errorReporter) {
-    //   var fn = builtIns.Options.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
-    //   try {
-    //     var parseResult = ParseUtils.Parse(dafnyFile.Content, dafnyFile.Uri, builtIns, errorReporter);
-    //     var errorCount = parseResult.ErrorCount;
-    //     if (errorCount != 0) {
-    //       return $"{errorCount} parse errors detected in {fn}";
-    //     }
-    //   } catch (IOException e) {
-    //     IToken tok = include == null ? Token.NoToken : include.tok;
-    //     errorReporter.Error(MessageSource.Parser, tok, "Unable to open included file");
-    //     return $"Error opening file \"{fn}\": {e.Message}";
-    //   }
-    //
-    //   return null; // Success
-    // }
 
     public static async Task<(PipelineOutcome Outcome, PipelineStatistics Statistics)> BoogieOnce(
       DafnyOptions options,

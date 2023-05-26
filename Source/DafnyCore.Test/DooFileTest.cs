@@ -31,9 +31,8 @@ public class DooFileTest {
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
     const string fullFilePath = "untitled:foo";
     var rootUri = new Uri(fullFilePath);
-    var outerModule = new DefaultModuleDefinition(new List<Uri> { rootUri }, false);
     Microsoft.Dafny.Type.ResetScopes();
-    var errorReporter = new ConsoleErrorReporter(options, outerModule);
+    var errorReporter = new ConsoleErrorReporter(options);
     var program = ParseUtils.Parse(dafnyProgramText, rootUri, errorReporter);
     Assert.Equal(0, errorReporter.ErrorCount);
     return program;
