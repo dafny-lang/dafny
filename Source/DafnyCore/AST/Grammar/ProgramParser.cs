@@ -9,7 +9,7 @@ using System.Threading;
 namespace Microsoft.Dafny;
 
 public record DfyParseResult(
-  BatchErrorReporter ErrorReporter, 
+  BatchErrorReporter ErrorReporter,
   FileModuleDefinition Module,
   IReadOnlyList<Action<BuiltIns>> ModifyBuiltins
   );

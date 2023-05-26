@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly CachingParser cachingParser;
-    
+
     private DafnyLangParser(DafnyOptions options, ILoggerFactory loggerFactory) {
       this.options = options;
       logger = loggerFactory.CreateLogger<DafnyLangParser>();

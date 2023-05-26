@@ -5,8 +5,8 @@ using System.Linq;
 
 namespace Microsoft.Dafny; 
 
-public class TickingCache<TKey, TValue> 
-  where TValue : class 
+public class TickingCache<TKey, TValue>
+  where TValue : class
   where TKey : notnull {
   class Item {
     public Item(TValue value) {
@@ -21,7 +21,7 @@ public class TickingCache<TKey, TValue>
   private readonly ConcurrentDictionary<TKey, Item> items;
 
   public TickingCache(IEqualityComparer<TKey> comparer) {
-    items = new (comparer);
+    items = new(comparer);
   }
 
   public void Prune() {
@@ -35,7 +35,7 @@ public class TickingCache<TKey, TValue>
       item.Accessed = false;
     }
   }
-  
+
   public void Set(TKey key, TValue value) {
     items.TryAdd(key, new Item(value));
   }

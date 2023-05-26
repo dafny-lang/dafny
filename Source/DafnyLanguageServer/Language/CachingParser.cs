@@ -18,7 +18,7 @@ public class CachingParser : ProgramParser {
   public void Prune() {
     parseCache.Prune();
   }
-      
+
   protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
     var (newReader, hash) = ComputeHashFromReader(reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {

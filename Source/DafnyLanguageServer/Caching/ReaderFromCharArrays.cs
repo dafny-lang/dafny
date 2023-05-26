@@ -24,7 +24,7 @@ class ReaderFromCharArrays : TextReader {
     if (arrayIndex == arrays.Count) {
       return -1;
     }
-    
+
     var array = arrays[arrayIndex];
     var result = array[elementIndex++];
     if (array.Length == elementIndex) {
