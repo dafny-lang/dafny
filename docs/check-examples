@@ -75,8 +75,9 @@ defaultExit=
 defaultLang=
 useHeadings=0
 coverage=0
+permOptions="--show-snippets:false "
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
-legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
+legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
 
 while getopts 'cmd:x:l:' opt; do
   case "$opt" in
@@ -249,23 +250,23 @@ do
         elif [ "$coverage" == "1" ] ; then
           f=$outdir/$(basename $file)_${n}.dfy
           if  [ "$command" == "%check-legacy" ]; then
-            echo "// RUN: %exits-with" $ec "%baredafny" $com $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo "// RUN: %exits-with" $ec "%baredafny" $com "/showSnippets:0" $dOptions ${options[@]} '"%s" > "%t"' > $f
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f 
             echo " " >> $f
             cat $text >> $f
           else
-            echo "// RUN: %exits-with" $ec "%baredafny" $com "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo "// RUN: %exits-with" $ec "%baredafny" $com $permOptions "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
             echo " " >> $f
             cat $text >> $f
           fi
         else
           if [ "$capture" == "2" ]; then
-            "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
+            "$dafny" $com $permOptions $dOptions ${options[@]} $text 2> actual > /dev/null
           elif [ "$command" == "%check-legacy" ]; then
-            "$dafny" $com $dOptions ${options[@]} $text > actual
+            "$dafny" $com /showSnippets:0 $dOptions ${options[@]} $text > actual
           else
-            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text > actual
+            "$dafny" $com --function-syntax:4 $permOptions $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
@@ -350,7 +351,7 @@ do
           fi
         fi
       elif [ "$command" == "%check-error" ]; then
-        "$dafny" resolve -useBaseNameForFileName --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
+        "$dafny" resolve -useBaseNameForFileName --showSnippets:0 --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
         act=`cat actual`
 	dif=`echo "$act" | sed -e "s/$msg//"`
         if [ -n "$dif" ] ; then

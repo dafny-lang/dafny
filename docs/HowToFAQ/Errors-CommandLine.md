@@ -7,7 +7,7 @@
 
 <!-- %check-cli -->
 ```bash 
-dafny resolve --function-syntax:2 mod.dfy
+dafny resolve --show-snippets:false --function-syntax:2 mod.dfy
 ```
 
 This is a generic error message about command-line arguments,
@@ -20,7 +20,7 @@ in the help document (`dafny -?` or `dafny <command> -h`).
 
 <!-- %check-cli -->
 ```bash 
-dafny resolve --quantifier-syntax:2 null.dfy
+dafny resolve --show-snippets:false --quantifier-syntax:2 null.dfy
 ```
 
 This is a generic error message about command-line arguments,
