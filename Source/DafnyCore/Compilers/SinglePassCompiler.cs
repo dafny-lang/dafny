@@ -136,7 +136,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return CreateClass(moduleName, name, false, null, cls.TypeArgs, cls, null, null, wr);
+      return CreateClass(moduleName, name, false, null, cls.TypeArgs, cls, (cls as TopLevelDeclWithMembers)?.ParentTraits, null, wr);
     }
 
     /// <summary>
