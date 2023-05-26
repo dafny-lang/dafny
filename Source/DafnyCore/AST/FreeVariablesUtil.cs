@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (options.AlwaysUseHeap || e.Function == null || e.Function.ReadsHeap) {
+        if (e.Function == null || e.Function.ReadsHeap) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {
