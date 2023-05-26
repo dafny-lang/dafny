@@ -4422,7 +4422,7 @@ ParensExpression<out Expression e>
        }
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       var tmp = theBuiltIns.TupleType(lp, args.Count, true, argumentGhostness);
+       BuiltinsModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
        e = new DatatypeValue(lp, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
   .)
