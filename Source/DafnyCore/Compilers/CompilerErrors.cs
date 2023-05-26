@@ -241,7 +241,7 @@ If the assumption marked with `{:axiom}` is not actually valid, then the validit
 A method may be parsed and verified even if a [forall statement](../DafnyRef/DafnyRef#sec-forall-statement) is missing a body. 
 However, the body must be supplied before the program can be compiled,
 even if the method is `ghost`. Body-less foralls in ghost methods are 
-similar to unchecked assumptions.
+unchecked assumptions.
 ");
 
     Add(ErrorId.c_loop_has_no_body,
