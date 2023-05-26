@@ -1907,7 +1907,7 @@ namespace Microsoft.Dafny {
       // If a TraitDecl is a key and maps to "false", then it is currently being visited.
       // If a TraitDecl is a key and maps to "true", then its .IsReferenceTypeDecl has been computed and is ready to be used.
       var traitsProgress = new Dictionary<TraitDecl, bool>();
-      foreach (var decl in declarations.Where(d => d is TraitDecl)) {
+      foreach (var decl in moduleDef.TopLevelDecls.Where(d => d is TraitDecl)) {
         // Resolve a "path" to a top-level declaration, if possible. On error, return null.
         // The path is expected to consist of NameSegment or ExprDotName nodes.
         TopLevelDecl ResolveNamePath(Expression path) {

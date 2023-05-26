@@ -444,9 +444,12 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
             expr.PreType = ConstrainResultToBoolFamily(expr.tok, "allocated", "boolean literal used as if it had type {0}");
-            if (2 <= resolver.Options.Allocated &&
-                ((resolutionContext.CodeContext is Function && !resolutionContext.InOld) || resolutionContext.CodeContext is ConstantField || CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl)) {
-              var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
+            if ((resolutionContext.CodeContext is Function && !resolutionContext.InOld) ||
+                resolutionContext.CodeContext is ConstantField ||
+                CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl) {
+              var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir
+                ? redir.WhatKind
+                : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
               ReportError(expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
