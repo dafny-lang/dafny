@@ -5070,10 +5070,10 @@ namespace Microsoft.Dafny {
       foreach (var parentTrait in cl.ParentTraits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveType(cl.tok, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
-        var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.tok : cl.tok;
-        var tt = parentTrait.UseInternalSynonym();
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-          var trait = (tt as UserDefinedType)?.AsParentTraitDecl();
+          var parentTypeToken = parentTrait is UserDefinedType parentTraitUdt ? parentTraitUdt.tok : cl.tok;
+
+          var trait = parentTrait.UseInternalSynonym().IsInternalTypeSynonym ? null : (parentTrait as UserDefinedType)?.AsParentTraitDecl();
           if (trait != null) {
             // disallowing inheritance in multi module case
             bool termination = true;
@@ -5089,7 +5089,7 @@ namespace Microsoft.Dafny {
                 "in the same module, unless the parent trait is annotated with {:termination false}.");
             }
           } else {
-            reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{tt}')");
+            reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
           }
         }
       }
