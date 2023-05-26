@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       TextDocumentItem = textDocumentItem;
     }
 
-    public virtual IEnumerable<DafnyDiagnostic> Diagnostics => Enumerable.Empty<DafnyDiagnostic>();
+    public virtual IEnumerable<DafnyDiagnostic> AllFileDiagnostics => Enumerable.Empty<DafnyDiagnostic>();
 
     public IdeState InitialIdeState(DafnyOptions options) {
       return ToIdeState(new IdeState(TextDocumentItem, Array.Empty<Diagnostic>(),

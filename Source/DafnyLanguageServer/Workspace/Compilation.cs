@@ -370,7 +370,7 @@ public class Compilation {
   public async Task<TextEditContainer?> GetTextEditToFormatCode() {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedDocument;
-    if (parsedDocument.Diagnostics.Any(diagnostic =>
+    if (parsedDocument.AllFileDiagnostics.Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser
         )) {

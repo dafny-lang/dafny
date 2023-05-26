@@ -13,14 +13,14 @@ public class DocumentAfterParsing : Document {
     Program = program;
   }
 
-  public override IEnumerable<DafnyDiagnostic> Diagnostics => parseDiagnostics;
+  public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => parseDiagnostics;
 
   public Dafny.Program Program { get; }
 
   public override IdeState ToIdeState(IdeState previousState) {
     return previousState with {
       TextDocumentItem = TextDocumentItem,
-      ResolutionDiagnostics = Diagnostics.Select(d => Util.ToLspDiagnostic(d)),
+      ResolutionDiagnostics = AllFileDiagnostics.Select(d => Util.ToLspDiagnostic(d)),
       ImplementationsWereUpdated = false,
     };
   }

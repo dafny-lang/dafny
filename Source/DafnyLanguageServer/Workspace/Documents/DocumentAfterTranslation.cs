@@ -59,7 +59,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
     };
   }
 
-  public override IEnumerable<DafnyDiagnostic> Diagnostics => base.Diagnostics.Concat(
+  public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => base.AllFileDiagnostics.Concat(
     ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
 
   /// <summary>
