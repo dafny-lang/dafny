@@ -128,7 +128,7 @@ method TestMyClass()
 
 class AClass {
   var x:uint32
-  var y:uint3
+  var y:uint32
 
   constructor()
   {
