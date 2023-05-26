@@ -3,7 +3,7 @@
 
 <!-- ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
-## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation**
+## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation** {#r_time_limit_attribute}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -17,7 +17,7 @@ One or the other should be removed. If they are both present, just the {:timeLim
 
 <!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
 
-## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**
+## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect** {#r_bad_argument_to_old}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -40,7 +40,7 @@ the value of the local variable in a previous state using an otherwise unused gh
 
 <!-- ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
-## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
+## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute** {#r_induction_argument_order}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -54,7 +54,7 @@ The `{:induction}` attribute gives some guidance to the prover as to how to cons
 proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the bound variables of the quantifier. If not, the :induction attribute is ignored.
 
-## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute**
+## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute** {r_lemma_parameter_order}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -65,7 +65,7 @@ The `{:induction}` attribute gives some guidance to the prover as to how to cons
 proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the parameters of the lemma. If not, the :induction attribute is ignored.
 
-## **Warning: invalid :induction attribute argument; expected _what_; ignoring attribute**
+## **Warning: invalid :induction attribute argument; expected _what_; ignoring attribute** {#r_invalid_induction_argument}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -77,7 +77,7 @@ or bound quantifiers (for a quantifier expression), the `this` keyword, or true 
 
 <!-- ./DafnyCore/Rewriters/ConstructorWarning.cs -->
 
-## **Warning: Constructor name '_pattern_' should be followed by parentheses**
+## **Warning: Constructor name '_pattern_' should be followed by parentheses** {#r_pattern_needs_parentheses}
 
 <!-- %check-resolve-warn %options --warn-missing-constructor-parentheses -->
 ```dafny
@@ -106,7 +106,7 @@ rename the identifier (if a fresh bound identifier is intended).
 
 <!-- ./DafnyCore/RewritersPrecedenceLinter.cs-->
 
-## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?**
+## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?** {#r_unusual_indentation_start}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -123,7 +123,7 @@ the same indentation. This warning occurs when the observed indentation is likel
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
 to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
-## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?**
+## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?** {#r_unusual_indentation_end}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -143,17 +143,17 @@ to use parentheses or to redo the indentation to make the structure of the expre
 
 <!-- ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
 
-## **Error: Cannot use /runAllTests on a program with a main method**
+## **Error: Cannot use /runAllTests on a program with a main method** {#r_test_wth_main}
 
-<!-- TODO - this won't be triggered until Issue 3381 is fixed -->
+<!-- TODO - I think this has been fix and no longer occurs -->
 
-This error message when using `dafny test` and in the situation
+This error message occurs when using `dafny test` in the situation
 where a Main method is already present in the program.  
 `dafny test` synthesizes a Main method that calls all the test routines,
 which then conflicts with the existing Main method.
 (The `/runAllTests` option has been replaced by `dafny test`.)
 
-## **Error: Methods with the {:test} attribute can have at most one return value**
+## **Error: Methods with the {:test} attribute can have at most one return value** {#r_test_has_multiple_return_values}
 
 <!-- %check-test -->
 ```dafny
@@ -171,10 +171,9 @@ This is purely an implementation limitation. (cf. [Issue 3387](https://github.co
 
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
 
-## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
+## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.** {#r_cannot_compile_ghost}
 
-<!-- TODO - requires a companion target program file to run successfully -->
-<!-- %no-check %check-test %options --test-assumptions:Externs -->
+<!-- %check-run %options --test-assumptions:Externs -->
 ```dafny
 method {:extern} m(i: int, ghost j: int) 
   requires j == 1
@@ -186,12 +185,12 @@ However, because these inserted tests are compiled into the target
 program as runtime checks, they cannot refer to any ghost variables.
 (This mechanism implements Dafny's runtime-assertion checking.)
  
-## **Warning: Internal: no wrapper for _name_**
+## **Warning: Internal: no wrapper for _name_** {#r_no_wrapper}
 
 This message indicates a bug within the `dafny` tool. Please report the program that
 triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
 
-## **Warning: No :test code calls _name_**
+## **Warning: No :test code calls _name_** {#r_unreachable_test}
 
 This warning indicates that some method marked with {:extern} is not called
 by any method marked with {:test}. The intention is to check coverage of
@@ -201,7 +200,7 @@ It is likely to be removed in a future version of `dafny`.
 
 <!-- ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
 
-## **Error: :print attribute is not allowed on functions**
+## **Error: :print attribute is not allowed on functions** {#r_print_not_permitted_in_functions}
 
 <!-- %check-resolve -->
 ```dafny
@@ -215,7 +214,7 @@ Thus Dafny forbids (ghost or compiled) functions from declaring that they have
 a print side-effect (whether or not print effects are being tracked with 
 `--track-print-effects`).
 
-## **Error: :print attribute is not allowed on ghost methods**
+## **Error: :print attribute is not allowed on ghost methods** {#r_print_not_allowed_in_ghost_methods}
 
 <!-- %check-resolve -->
 ```dafny
@@ -229,7 +228,7 @@ Thus ghost code should not contain print statements.
 So Dafny forbids ghost methods from declaring that they have a print side-effect
 (whether or not print effects are being tracked with `--track-print-effects`).
 
-## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)**
+## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)** {#r_override_with_different_print_attribute}
 
 <!-- %check-resolve -->
 ```dafny
@@ -249,7 +248,7 @@ of that method may not do any printing, as it must obey the trait's specificatio
 Thus a class implementing that method by an override cannot declare the method as possibly
 printing something, by giving it a `{:print}` attribute --- even if it does not actually do any printing.
 
-## **Error: :print attribute does not take any arguments**
+## **Error: :print attribute does not take any arguments** {#r_print_attribute_takes_no_arguments}
 
 <!-- %check-resolve -->
 ```dafny
@@ -259,7 +258,7 @@ method {:print 42} f() { }
 The `{:print}` attribute is used to mark methods that have a side-effect of printing something.
 No arguments to the attribute are needed or allowed.
 
-## **Error: a function-by-method is not allowed to use print statements**
+## **Error: a function-by-method is not allowed to use print statements** {#r_print_forbidden_in_function_by_method}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -282,7 +281,7 @@ only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
 
-## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}**
+## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}** {#r_attribute_required_to_use_print_statement}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -300,7 +299,7 @@ only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
 
-## **Error: a function-by-method is not allowed to call a method with print effects**
+## **Error: a function-by-method is not allowed to call a method with print effects** {#r_function_by_method_may_not_call_print_indirectly}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -325,7 +324,7 @@ only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
 
-## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}**
+## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}** {#r_attribute_required_to_use_print_statement_indirectly}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
