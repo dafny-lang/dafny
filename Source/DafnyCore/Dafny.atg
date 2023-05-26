@@ -27,7 +27,7 @@ readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
 public readonly FileModuleDefinition theModule;
-readonly BuiltIns theBuiltIns;
+public readonly List<Action<BuiltIns>> BuiltinsModifiers = new();
 DafnyOptions theOptions;
 int anonymousIds = 0;
 
@@ -178,7 +178,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, BuiltIns builtIns)
+public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -190,8 +190,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, BuiltIns builtIns)
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
   
   theModule = new FileModuleDefinition();
-  theBuiltIns = builtIns;
-  theOptions = new DafnyOptions(builtIns.Options);
+  theOptions = new DafnyOptions(options);
 }
 
 bool IsIdentifier(int kind) {
@@ -2231,7 +2230,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        // Extracting the dimension out of array2 or array10?
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
+                                       (ty, var bMod) = BuiltIns.ArrayType(tok, dims, gt, true, q);
+                                       BuiltinsModifiers.Add(bMod);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
@@ -2257,7 +2257,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
          gt = tupleArgTypes;
        }
        var arity = gt.Count;
-       theBuiltIns.CreateArrowTypeDecl(arity);
+       BuiltinsModifiers.Add(b => b.CreateArrowTypeDecl(arity));
        if (arrowKind == 0) {
          ty = new ArrowType(tok, gt, t2);
        } else {
@@ -2296,7 +2296,8 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
                                      } else {
                                        var dims = tupleArgTypes.Count;
                                        var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
-                                       var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
+                                       var tokCopy = tok;
+                                       BuiltinsModifiers.Add(b => b.TupleType(tokCopy, dims, true, argumentGhostness));  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
                                   .)
@@ -2652,10 +2653,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
-     theBuiltIns.CreateArrowTypeDecl(formals.Count);
+     BuiltinsModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count));
      if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate
-       theBuiltIns.CreateArrowTypeDecl(formals.Count + 1);
+       BuiltinsModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count + 1));
      }
   .)
   .
@@ -3053,7 +3054,8 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
                                      .)
   | Expressions<ee>
     "]"                              (. // make sure an array class with this dimensionality exists
-                                        var tmp = theBuiltIns.ArrayType(ee.Count, new IntType(), true);
+                                        var eeCopy = ee;
+                                        BuiltinsModifiers.Add(b => b.ArrayType(eeCopy.Count, new IntType(), true));
                                      .)
     [ "(" Expression<out arrayElementInit, true, true>
       ")"
@@ -3452,7 +3454,7 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
     ")"                                    (. // make sure the tuple type exists
-                                              theBuiltIns.TupleType(id, arguments.Count, true);
+                                              BuiltinsModifiers.Add(b => b.TupleType(id, arguments.Count, true));
                                               //use the TupleTypeCtors
                                               string ctor = BuiltIns.TupleTypeCtorName(arguments.Count);
                                               pat = new IdPattern(id, ctor, arguments);
@@ -4338,7 +4340,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, reads, body);
-     theBuiltIns.CreateArrowTypeDecl(bvs.Count);
+     BuiltinsModifiers.Add(b => b.CreateArrowTypeDecl(bvs.Count));
   .)
   .
 
@@ -4384,7 +4386,7 @@ ParensExpression<out Expression e>
        }
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
+       BuiltinsModifiers.Add(b => b.TupleType(x, args.Count, true, argumentGhostness));
        e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
   .)
@@ -4936,7 +4938,7 @@ Suffix<ref Expression e>
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
-           var tmp = theBuiltIns.ArrayType(multipleIndices.Count, new IntType(), true);
+           BuiltinsModifiers.Add(b => b.ArrayType(multipleIndices.Count, new IntType(), true));
          } else {
            if (!anyDots && e0 == null) {
              /* a parsing error occurred */

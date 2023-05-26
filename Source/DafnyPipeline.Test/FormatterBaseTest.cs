@@ -55,14 +55,13 @@ namespace DafnyPipeline.Test {
           : removeTrailingNewlineRegex.Replace(programString, "");
 
         var uri = new Uri("virtual:virtual");
-        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
-        BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
+        var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
 
         var dafnyProgram = ParseUtils.Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
-          var error = reporter.AllMessages[ErrorLevel.Error][0];
+          var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
@@ -95,8 +94,7 @@ namespace DafnyPipeline.Test {
 
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
-        var newOuterModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
-        var newReporter = new BatchErrorReporter(options, newOuterModule);
+        var newReporter = new BatchErrorReporter(options);
         dafnyProgram = ParseUtils.Parse(reprinted, uri, newReporter); ;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
