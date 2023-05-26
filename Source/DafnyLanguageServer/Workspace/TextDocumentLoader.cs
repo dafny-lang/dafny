@@ -82,11 +82,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
-      var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
@@ -107,7 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return new DocumentAfterResolution(textDocument,
         program,
-        errorReporter.GetDiagnostics(textDocument.Uri),
+        errorReporter.AllDiagnosticsCopy,
         newSymbolTable,
         symbolTable,
         ghostDiagnostics

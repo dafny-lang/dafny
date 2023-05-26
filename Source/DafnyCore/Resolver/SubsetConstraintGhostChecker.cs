@@ -32,7 +32,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       return Count(level);
     }
 
-    public FirstErrorCollector(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+    public FirstErrorCollector(DafnyOptions options) : base(options) {
     }
   }
 
@@ -101,7 +101,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
           if (!constraintIsCompilable) {
             IToken finalToken = boundVar.tok;
             if (constraint.tok.line != 0) {
-              var errorCollector = new FirstErrorCollector(reporter.Options, reporter.OuterModule);
+              var errorCollector = new FirstErrorCollector(reporter.Options);
               ExpressionTester.CheckIsCompilable(null, errorCollector, constraint, new CodeContextWrapper(subsetTypeDecl, true));
               if (errorCollector.Collected) {
                 finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
