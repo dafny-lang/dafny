@@ -52,7 +52,20 @@ namespace XUnitExtensions.Lit {
       });
 
       var testCase = Read(filePath, config);
-      testCase.Execute(outputHelper);
+      
+      if (testCase.commands.Any(NonUniformBackendTestCommand)) {
+        throw new Exception("NON UNIFORM");
+      }
+      // testCase.Execute(outputHelper);
+    }
+
+    private static bool NonUniformBackendTestCommand(ILitCommand c) {
+      String s = c.ToString();
+      if (s.Contains("/compile:3") || s.Contains("/compile:4") || s.Contains("build")) {
+        return true;
+      }
+
+      return false;
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
