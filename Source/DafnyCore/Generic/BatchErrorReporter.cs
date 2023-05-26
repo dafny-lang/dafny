@@ -4,11 +4,12 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class BatchErrorReporter : ErrorReporter {
-  public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessages;
+  public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessagesByLevel;
+  public readonly List<DafnyDiagnostic> AllMessages = new();
 
-  public BatchErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+  public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
-    AllMessages = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
+    AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
       [ErrorLevel.Error] = new(),
       [ErrorLevel.Warning] = new(),
       [ErrorLevel.Info] = new()
@@ -20,16 +21,19 @@ public class BatchErrorReporter : ErrorReporter {
       // discard the message
       return false;
     }
-    AllMessages[level].Add(new DafnyDiagnostic(errorId, tok, msg, source, level, new List<DafnyRelatedInformation>()));
+
+    var dafnyDiagnostic = new DafnyDiagnostic(errorId, tok, msg, source, level, new List<DafnyRelatedInformation>());
+    AllMessages.Add(dafnyDiagnostic);
+    AllMessagesByLevel[level].Add(dafnyDiagnostic);
     return true;
   }
 
   public override int Count(ErrorLevel level) {
-    return AllMessages[level].Count;
+    return AllMessagesByLevel[level].Count;
   }
 
   public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-    return AllMessages[level].Count(message => message.Source != MessageSource.Verifier &&
+    return AllMessagesByLevel[level].Count(message => message.Source != MessageSource.Verifier &&
                                                message.Source != MessageSource.Compiler);
   }
 }

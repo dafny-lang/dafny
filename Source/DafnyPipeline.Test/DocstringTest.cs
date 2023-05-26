@@ -437,7 +437,7 @@ iterator Iter2(x: int) yields (y: int)
         var dafnyProgram = Utils.Parse(options, programString, false);
         BatchErrorReporter reporter = (BatchErrorReporter)dafnyProgram.Reporter;
         if (reporter.ErrorCount > 0) {
-          var error = reporter.AllMessages[ErrorLevel.Error][0];
+          var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 

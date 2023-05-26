@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using DafnyCore;
@@ -8,21 +9,27 @@ using DafnyCore;
 namespace Microsoft.Dafny;
 
 public class DafnyFile {
-  public bool UseStdin { get; private set; }
   public string FilePath => Uri.LocalPath;
   public string CanonicalPath { get; private set; }
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public TextReader Content { get; }
+  public TextReader Content { get; set; }
   public Uri Uri { get; }
-  public DafnyFile(DafnyOptions options, string filePath, TextReader contentOverride = null) {
-    UseStdin = contentOverride != null;
-    Uri = contentOverride != null ? new Uri("stdin:///") : new Uri(filePath);
-    BaseName = contentOverride != null ? "<stdin>" : Path.GetFileName(filePath);
 
-    var extension = contentOverride != null ? ".dfy" : Path.GetExtension(filePath);
-    if (extension != null) { extension = extension.ToLower(); }
+  public DafnyFile(DafnyOptions options, Uri uri, TextReader contentOverride = null) {
+    Uri = uri;
+    var filePath = uri.LocalPath;
+
+    var extension = ".dfy";
+    if (uri.IsFile) {
+      extension = Path.GetExtension(uri.LocalPath).ToLower();
+      BaseName = Path.GetFileName(uri.LocalPath);
+    }
+    if (uri.Scheme == "stdin") {
+      contentOverride = options.Input;
+      BaseName = "<stdin>";
+    }
 
     // Normalizing symbolic links appears to be not
     // supported in .Net APIs, because it is very difficult in general
@@ -31,6 +38,7 @@ public class DafnyFile {
     CanonicalPath = contentOverride == null ? Canonicalize(filePath).LocalPath : "<stdin>";
     filePath = CanonicalPath;
 
+    var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
     if (contentOverride != null) {
       IsPreverified = false;
       IsPrecompiled = false;
@@ -46,7 +54,7 @@ public class DafnyFile {
           return;
         }
 
-        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePath} not found");
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
         throw new IllegalDafnyFile(true);
       } else {
         Content = new StreamReader(filePath);
@@ -55,9 +63,11 @@ public class DafnyFile {
       IsPreverified = true;
       IsPrecompiled = false;
 
+      if (!File.Exists(filePath)) {
+        options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {filePathForErrors} not found");
+        throw new IllegalDafnyFile(true);
+      }
       var dooFile = DooFile.Read(filePath);
-
-      var filePathForErrors = options.UseBaseNameForFileName ? Path.GetFileName(filePath) : filePath;
       if (!dooFile.Validate(filePathForErrors, options, options.CurrentCommand)) {
         throw new IllegalDafnyFile(true);
       }
@@ -110,7 +120,7 @@ public class DafnyFile {
     }
     return new Uri(filePath.Substring("file:".Length));
   }
-  public static List<string> FileNames(IList<DafnyFile> dafnyFiles) {
+  public static List<string> FileNames(IReadOnlyList<DafnyFile> dafnyFiles) {
     var sourceFiles = new List<string>();
     foreach (DafnyFile f in dafnyFiles) {
       sourceFiles.Add(f.FilePath);

@@ -90,11 +90,8 @@ namespace IntegrationTests {
           "%testDafnyForEachCompiler", (args, config) =>
             MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config, InvokeMainMethodsDirectly)
         }, {
-          "%server", (args, config) => // TODO
-          {
-            var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
-            return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
-          }
+          "%server", (args, config) =>
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
