@@ -4,11 +4,11 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class BatchErrorReporter : ErrorReporter {
-  public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessages;
+  public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessagesByLevel;
 
   public BatchErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
     ErrorsOnly = false;
-    AllMessages = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
+    AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
       [ErrorLevel.Error] = new(),
       [ErrorLevel.Warning] = new(),
       [ErrorLevel.Info] = new()
@@ -20,16 +20,16 @@ public class BatchErrorReporter : ErrorReporter {
       // discard the message
       return false;
     }
-    AllMessages[level].Add(new DafnyDiagnostic(errorId, tok, msg, source, level, new List<DafnyRelatedInformation>()));
+    AllMessagesByLevel[level].Add(new DafnyDiagnostic(errorId, tok, msg, source, level, new List<DafnyRelatedInformation>()));
     return true;
   }
 
   public override int Count(ErrorLevel level) {
-    return AllMessages[level].Count;
+    return AllMessagesByLevel[level].Count;
   }
 
   public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-    return AllMessages[level].Count(message => message.Source != MessageSource.Verifier &&
+    return AllMessagesByLevel[level].Count(message => message.Source != MessageSource.Verifier &&
                                                message.Source != MessageSource.Compiler);
   }
 }
