@@ -61,7 +61,7 @@ public class DocumentAfterTranslation : DocumentAfterResolution {
   }
 
   public override IEnumerable<DafnyDiagnostic> AllFileDiagnostics => base.AllFileDiagnostics.Concat(
-    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics) ?? Enumerable.Empty<DafnyDiagnostic>());
+    ImplementationIdToView.SelectMany(kv => kv.Value.Diagnostics));
 
   /// <summary>
   /// Contains the real-time status of all verification efforts.

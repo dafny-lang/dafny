@@ -40,7 +40,7 @@ public class GhostStateDiagnosticCollectorTest {
 
   class CollectingErrorReporter : BatchErrorReporter {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
-      return this.AllMessages;
+      return this.AllMessagesByLevel;
     }
 
     public CollectingErrorReporter(DafnyOptions options) : base(options) {

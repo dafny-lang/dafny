@@ -29,7 +29,7 @@ public class DocumentAfterResolution : DocumentAfterParsing {
     return previousState with {
       TextDocumentItem = TextDocumentItem,
       ImplementationsWereUpdated = false,
-      ResolutionDiagnostics = ComputeAllResolutionDiagnostics(),
+      ResolutionDiagnostics = ComputeFileAndIncludesResolutionDiagnostics(),
       SymbolTable = SymbolTable ?? previousState.SymbolTable,
       SignatureAndCompletionTable = SignatureAndCompletionTable.Resolved ? SignatureAndCompletionTable : previousState.SignatureAndCompletionTable,
       GhostDiagnostics = GhostDiagnostics

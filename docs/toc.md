@@ -24,7 +24,7 @@ This page contains links to Dafny documentation.
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
 
 * Quick start material:
-   * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) and [Releases](https://github.com/dafny-lang/dafny/releases)
+   * [Installation](./Installation) and [Releases](https://github.com/dafny-lang/dafny/releases)
    * [Cheatsheet](DafnyCheatsheet.pdf)
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
