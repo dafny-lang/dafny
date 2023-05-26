@@ -7,6 +7,8 @@ using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Errors = Microsoft.Dafny.Errors;
 using Function = Microsoft.Dafny.Function;
 using Parser = Microsoft.Dafny.Parser;
@@ -80,7 +82,8 @@ namespace DafnyTestGeneration {
       uri ??= new Uri(Path.GetTempPath());
       var reporter = new BatchErrorReporter(options);
 
-      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var logger = NullLoggerFactory.Instance.CreateLogger<ProgramParser>();
+      var program = new ProgramParser(logger).ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       if (!resolve) {

@@ -4,12 +4,12 @@ using System.IO;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-class ReaderFromCharArrays : TextReader {
+class TextReaderFromCharArrays : TextReader {
   private readonly List<char[]> arrays;
   private int arrayIndex;
   private int elementIndex;
 
-  public ReaderFromCharArrays(List<char[]> arrays) {
+  public TextReaderFromCharArrays(List<char[]> arrays) {
     this.arrays = arrays;
   }
 

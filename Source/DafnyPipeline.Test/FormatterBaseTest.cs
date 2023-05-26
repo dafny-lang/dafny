@@ -7,6 +7,8 @@ using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -58,7 +60,8 @@ namespace DafnyPipeline.Test {
         var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
 
-        var dafnyProgram = new ProgramParser().Parse(programNotIndented, uri, reporter);
+        var logger = NullLoggerFactory.Instance.CreateLogger<ProgramParser>();
+        var dafnyProgram = new ProgramParser(logger).Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
@@ -95,7 +98,7 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
         var newReporter = new BatchErrorReporter(options);
-        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter); ;
+        dafnyProgram = new ProgramParser(logger).Parse(reprinted, uri, newReporter); ;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();

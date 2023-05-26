@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny;
 
@@ -15,6 +16,11 @@ public record DfyParseResult(
   );
 
 public class ProgramParser {
+  protected readonly ILogger<ProgramParser> logger;
+
+  public ProgramParser(ILogger<ProgramParser> logger) {
+    this.logger = logger;
+  }
 
   public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
@@ -46,6 +52,9 @@ public class ProgramParser {
           dafnyFile.Content,
           dafnyFile.Uri
         );
+        if (parseResult.ErrorReporter.ErrorCount != 0) {
+          logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
+        }
 
         AddParseResultToProgram(parseResult, program);
         if (defaultModule.RangeToken.StartToken.Uri == null) {
@@ -53,6 +62,7 @@ public class ProgramParser {
         }
 
       } catch (Exception e) {
+        logger.LogDebug(e, $"encountered an exception while parsing {dafnyFile.Uri}");
         var internalErrorDummyToken = new Token {
           Uri = dafnyFile.Uri,
           line = 1,

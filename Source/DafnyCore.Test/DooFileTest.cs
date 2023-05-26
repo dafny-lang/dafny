@@ -1,4 +1,6 @@
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tomlyn;
 
 namespace DafnyCore.Test;
@@ -33,7 +35,8 @@ public class DooFileTest {
     var rootUri = new Uri(fullFilePath);
     Microsoft.Dafny.Type.ResetScopes();
     var errorReporter = new ConsoleErrorReporter(options);
-    var program = new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
+    var logger = NullLoggerFactory.Instance.CreateLogger<ProgramParser>();
+    var program = new ProgramParser(logger).Parse(dafnyProgramText, rootUri, errorReporter);
     Assert.Equal(0, errorReporter.ErrorCount);
     return program;
   }

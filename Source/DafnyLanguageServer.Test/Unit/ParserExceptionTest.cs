@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using System.IO;
+using System.Linq;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog;
+using Serilog.Sinks.InMemory;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,11 +19,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private const string LanguageId = "dafny";
     private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
-    private LastDebugLogger lastDebugLogger;
+    private readonly InMemorySink sink;
 
     public ParserExceptionTest(ITestOutputHelper output) {
-      lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), null);
+
+      sink = InMemorySink.Instance;
+      var logger = new LoggerConfiguration().MinimumLevel.Debug()
+        .WriteTo.InMemory().CreateLogger();
+      var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
+
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), factory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -31,6 +39,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var uri = new Uri("file:///" + TestFilePath);
       var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
       parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
+      Assert.Contains(sink.LogEvents, le => le.MessageTemplate.Text.Contains($"encountered an exception while parsing {uri}"));
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
@@ -63,33 +72,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
 
       public ParserExceptionSimulatingErrorReporter(DafnyOptions options) : base(options) {
-      }
-    }
-
-    // Helpers and definitions
-
-    /// <summary>
-    /// Retains the last debug logged message
-    /// </summary>
-    private class LastDebugLogger : ILogger<DafnyLangParser> {
-      public string LastDebugMessage = "";
-      public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
-        if (logLevel is LogLevel.Debug) {
-          LastDebugMessage = formatter(state, exception);
-          return;
-        }
-        if (logLevel is LogLevel.Trace or LogLevel.Information or LogLevel.Warning) {
-          return;
-        }
-        throw new NotImplementedException();
-      }
-
-      public bool IsEnabled(LogLevel logLevel) {
-        return true;
-      }
-
-      public IDisposable BeginScope<TState>(TState state) {
-        throw new NotImplementedException();
       }
     }
 

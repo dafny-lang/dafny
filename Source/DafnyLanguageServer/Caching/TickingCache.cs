@@ -29,7 +29,7 @@ public class TickingCache<TKey, TValue>
     foreach (var key in keys) {
       var item = items[key];
       if (!item.Accessed) {
-        items.TryRemove(key, out var _);
+        items.TryRemove(key, out _);
       }
 
       item.Accessed = false;
@@ -43,7 +43,7 @@ public class TickingCache<TKey, TValue>
   public bool TryGet(TKey key, out TValue? value) {
     var result = items.TryGetValue(key, out var item);
     if (result) {
-      value = item.Value;
+      value = item!.Value;
       item.Accessed = true;
     } else {
       value = null;

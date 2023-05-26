@@ -9,10 +9,8 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
   private readonly TickingCache<byte[], DfyParseResult> parseCache = new(new ByteArrayEquality());
-  private readonly ILogger<CachingParser> logger;
 
-  public CachingParser(ILogger<CachingParser> logger) {
-    this.logger = logger;
+  public CachingParser(ILogger<ProgramParser> logger) : base(logger) {
   }
 
   public void Prune() {
@@ -58,7 +56,7 @@ public class CachingParser : ProgramParser {
         result.Add(shortenedChunk);
         var charArray = Encoding.UTF8.GetBytes(shortenedChunk);
         var hash = hashAlgorithm.TransformFinalBlock(charArray, 0, charArray.Length);
-        return (new ReaderFromCharArrays(result), hash);
+        return (new TextReaderFromCharArrays(result), hash);
       } else {
         var charArray = Encoding.UTF8.GetBytes(chunk);
         hashAlgorithm.TransformBlock(charArray, 0, charArray.Length, null, 0);
