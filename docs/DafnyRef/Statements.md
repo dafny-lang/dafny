@@ -1027,7 +1027,7 @@ Edsger W. Dijkstra. For example:
 method m(n: int){
   var r := n;
   while
-    decreases if 0 <= r then r else -r;
+    decreases if 0 <= r then r else -r
   {
     case r < 0 =>
       r := r + 1;
