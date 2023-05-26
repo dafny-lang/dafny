@@ -12,85 +12,6 @@ public record DfyParseResult(int ErrorCount, FileModuleDefinition Module);
 
 public class ParseUtils {
 
-  ///<summary>
-  /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
-  /// and appends them in appropriate form to "module".
-  /// Returns the number of parsing errors encountered.
-  /// Note: first initialize the Scanner.
-  ///</summary>
-  public static DfyParseResult Parse(TextReader reader, Uri /*!*/ uri, BuiltIns builtIns, ErrorReporter /*!*/ errorReporter) /* throws System.IO.IOException */ {
-    Contract.Requires(uri != null);
-    var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-    try {
-      return Parse(text, uri, builtIns, errorReporter);
-    } catch (Exception e) {
-      var internalErrorDummyToken = new Token {
-        Uri = uri,
-        line = 1,
-        col = 1,
-        pos = 0,
-        val = string.Empty
-      };
-      errorReporter.Error(MessageSource.Parser, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message);
-      throw;
-    }
-  }
-
-  ///<summary>
-  /// Parses top-level things (modules, classes, datatypes, class members)
-  /// and appends them in appropriate form to "module".
-  /// Returns the number of parsing errors encountered.
-  /// Note: first initialize the Scanner.
-  ///</summary>
-  public static DfyParseResult Parse(string /*!*/ s, Uri /*!*/ uri, BuiltIns builtIns, ErrorReporter reporter) {
-    Contract.Requires(s != null);
-    Contract.Requires(uri != null);
-    Errors errors = new Errors(reporter);
-    return Parse(s, uri, builtIns, errors);
-  }
-
-  ///<summary>
-  /// Parses top-level things (modules, classes, datatypes, class members)
-  /// and appends them in appropriate form to "module".
-  /// Returns the number of parsing errors encountered.
-  /// Note: first initialize the Scanner with the given Errors sink.
-  ///</summary>
-  public static DfyParseResult Parse(string /*!*/ s, Uri /*!*/ uri,
-    BuiltIns builtIns, Errors /*!*/ errors) {
-    Parser parser = SetupParser(s, uri, builtIns, errors);
-    parser.Parse();
-
-    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
-        && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
-      errors.Warning(new Token(1, 1) { Uri = uri }, "File contains no code");
-    }
-
-    return new DfyParseResult(parser.errors.ErrorCount, parser.theModule);
-  }
-
-  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri,
-    BuiltIns builtIns, Errors /*!*/ errors) {
-    Contract.Requires(s != null);
-    Contract.Requires(uri != null);
-    Contract.Requires(errors != null);
-    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
-    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-    byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
-    var ms = new MemoryStream(buffer, false);
-    var firstToken = new Token {
-      Uri = uri
-    };
-
-    Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-    return new Parser(scanner, errors, builtIns);
-  }
-
-  public static Program Parse(string source, Uri uri, ErrorReporter reporter) {
-    var files = new[] { new DafnyFile(reporter.Options, uri, new StringReader(source)) };
-    return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
-  }
-
   public static Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
@@ -266,5 +187,84 @@ public class ParseUtils {
         $"Unable to open the include {include.IncludedFilename}.");
       return null;
     }
+  }
+  
+  ///<summary>
+  /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
+  /// and appends them in appropriate form to "module".
+  /// Returns the number of parsing errors encountered.
+  /// Note: first initialize the Scanner.
+  ///</summary>
+  public static DfyParseResult Parse(TextReader reader, Uri /*!*/ uri, BuiltIns builtIns, ErrorReporter /*!*/ errorReporter) /* throws System.IO.IOException */ {
+    Contract.Requires(uri != null);
+    var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+    try {
+      return Parse(text, uri, builtIns, errorReporter);
+    } catch (Exception e) {
+      var internalErrorDummyToken = new Token {
+        Uri = uri,
+        line = 1,
+        col = 1,
+        pos = 0,
+        val = string.Empty
+      };
+      errorReporter.Error(MessageSource.Parser, internalErrorDummyToken,
+        "[internal error] Parser exception: " + e.Message);
+      throw;
+    }
+  }
+
+  ///<summary>
+  /// Parses top-level things (modules, classes, datatypes, class members)
+  /// and appends them in appropriate form to "module".
+  /// Returns the number of parsing errors encountered.
+  /// Note: first initialize the Scanner.
+  ///</summary>
+  public static DfyParseResult Parse(string /*!*/ s, Uri /*!*/ uri, BuiltIns builtIns, ErrorReporter reporter) {
+    Contract.Requires(s != null);
+    Contract.Requires(uri != null);
+    Errors errors = new Errors(reporter);
+    return Parse(s, uri, builtIns, errors);
+  }
+
+  ///<summary>
+  /// Parses top-level things (modules, classes, datatypes, class members)
+  /// and appends them in appropriate form to "module".
+  /// Returns the number of parsing errors encountered.
+  /// Note: first initialize the Scanner with the given Errors sink.
+  ///</summary>
+  public static DfyParseResult Parse(string /*!*/ s, Uri /*!*/ uri,
+    BuiltIns builtIns, Errors /*!*/ errors) {
+    Parser parser = SetupParser(s, uri, builtIns, errors);
+    parser.Parse();
+
+    if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
+        && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
+      errors.Warning(new Token(1, 1) { Uri = uri }, "File contains no code");
+    }
+
+    return new DfyParseResult(parser.errors.ErrorCount, parser.theModule);
+  }
+
+  private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri,
+    BuiltIns builtIns, Errors /*!*/ errors) {
+    Contract.Requires(s != null);
+    Contract.Requires(uri != null);
+    Contract.Requires(errors != null);
+    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
+    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
+    byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
+    var ms = new MemoryStream(buffer, false);
+    var firstToken = new Token {
+      Uri = uri
+    };
+
+    Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
+    return new Parser(scanner, errors, builtIns);
+  }
+
+  public static Program Parse(string source, Uri uri, ErrorReporter reporter) {
+    var files = new[] { new DafnyFile(reporter.Options, uri, new StringReader(source)) };
+    return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }
