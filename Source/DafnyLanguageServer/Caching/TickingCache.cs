@@ -1,12 +1,14 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny; 
 
 public class TickingCache<TKey, TValue> 
   where TValue : class 
-{
-  struct Item {
+  where TKey : notnull {
+  class Item {
     public Item(TValue value) {
       Value = value;
       Accessed = true;
@@ -16,8 +18,12 @@ public class TickingCache<TKey, TValue>
     public TValue Value { get; }
   }
 
-  private readonly ConcurrentDictionary<TKey, Item> items = new ();
-  
+  private readonly ConcurrentDictionary<TKey, Item> items;
+
+  public TickingCache(IEqualityComparer<TKey> comparer) {
+    items = new (comparer);
+  }
+
   public void Tick() {
     var keys = items.Keys.ToList();
     foreach (var key in keys) {
@@ -25,6 +31,8 @@ public class TickingCache<TKey, TValue>
       if (!item.Accessed) {
         items.TryRemove(key, out var _);
       }
+
+      item.Accessed = false;
     }
   }
   
@@ -32,7 +40,7 @@ public class TickingCache<TKey, TValue>
     items.TryAdd(key, new Item(value));
   }
 
-  public bool TryGet(TKey key, out TValue value) {
+  public bool TryGet(TKey key, out TValue? value) {
     var result = items.TryGetValue(key, out var item);
     if (result) {
       value = item.Value;

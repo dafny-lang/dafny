@@ -14,7 +14,7 @@ public record DfyParseResult(
   IReadOnlyList<Action<BuiltIns>> ModifyBuiltins
   );
 
-public class OuterParser {
+public class ProgramParser {
 
   public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
@@ -132,7 +132,7 @@ public class OuterParser {
     defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
 
-  public static IList<DfyParseResult> TryParseIncludes(
+  public IList<DfyParseResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     BuiltIns builtIns,

@@ -2,29 +2,10 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
-
-  class StringBuilderReader : TextReader {
-    private StringBuilder builder;
-    private int index = 0;
-
-    public StringBuilderReader(StringBuilder builder) {
-      this.builder = builder;
-    }
-  }
-
-  public static class HashingExtensions {
-    public static long GetUniqueHashFromText(TextReader reader) {
-      reader.
-    }
-  }
-  
   /// <summary>
   /// Parser implementation that makes use of the parse of dafny-lang. It may only be initialized exactly once since
   /// it requires initial setup of static members.
@@ -37,36 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private readonly DafnyOptions options;
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
-
-    class CachingParsing : OuterParser {
-      private readonly TickingCache<string, DfyParseResult> parseCache = new();
-      
-      protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
-        var stringBuilder = BuilderFromReader(reader);
-        
-        return base.ParseFile(options, new StringBuilderReader(stringBuilder), uri);
-      }
-
-      StringBuilder BuilderFromReader(TextReader reader) {
-        var result = new StringBuilder();
-        var buffer = new char[1024];
-        var hash = HashAlgorithm.Create();
-        hash.TransformBlock()
-          hash.Compu
-        while (true) {
-          var readCount = reader.ReadBlock(buffer, 0, buffer.Length);
-          if (readCount == 0) {
-            return result;
-          }
-
-          result.Append(buffer);
-        }
-      }
-    }
+    private readonly CachingParser cachingParser;
     
-    private DafnyLangParser(DafnyOptions options, ILogger<DafnyLangParser> logger) {
+    private DafnyLangParser(DafnyOptions options, ILoggerFactory loggerFactory) {
       this.options = options;
-      this.logger = logger;
+      logger = loggerFactory.CreateLogger<DafnyLangParser>();
+      cachingParser = new CachingParser(loggerFactory.CreateLogger<CachingParser>());
     }
 
     /// <summary>
@@ -74,8 +31,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(DafnyOptions options, ILogger<DafnyLangParser> logger) {
-      return new DafnyLangParser(options, logger);
+    public static DafnyLangParser Create(DafnyOptions options, ILoggerFactory loggerFactory) {
+      return new DafnyLangParser(options, loggerFactory);
     }
 
     public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
@@ -91,8 +48,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
+      cachingParser.Tick();
       try {
-        return OuterParser.ParseFiles(document.Uri.ToString(),
+        return cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
@@ -104,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
       return new Dafny.Program(

@@ -76,7 +76,7 @@ public class TranslatorTest {
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var dafnyProgram = OuterParser.Parse(program, uri, reporter);
+    var dafnyProgram = new ProgramParser().Parse(program, uri, reporter);
     if (reporter.ErrorCount > 0) {
       var error = reporter.AllMessages[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");

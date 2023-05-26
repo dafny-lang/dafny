@@ -20,7 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     public ParserExceptionTest(ITestOutputHelper output) {
       lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), lastDebugLogger);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), null);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
