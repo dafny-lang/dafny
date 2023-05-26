@@ -63,26 +63,26 @@ namespace XUnitExtensions.Lit {
       return new LitCommandWithRedirection(new DelayedLitCommand(CreateCommand), inputFile, outputFile, appendOutput, errorFile);
     }
 
-    private readonly ILitCommand command;
-    private readonly string? inputFile;
-    private readonly string? outputFile;
-    private readonly bool append;
-    private readonly string? errorFile;
+    public ILitCommand Command;
+    public string? InputFile;
+    public string? OutputFile;
+    public bool Append;
+    public string? ErrorFile;
 
     public LitCommandWithRedirection(ILitCommand command, string? inputFile, string? outputFile, bool append, string? errorFile) {
-      this.command = command;
-      this.inputFile = inputFile;
-      this.outputFile = outputFile;
-      this.append = append;
-      this.errorFile = errorFile;
+      this.Command = command;
+      this.InputFile = inputFile;
+      this.OutputFile = outputFile;
+      this.Append = append;
+      this.ErrorFile = errorFile;
     }
 
     public (int, string, string) Execute(TextReader inReader, TextWriter outWriter,
       TextWriter errWriter) {
-      var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
-      var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
-      var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : errWriter;
-      var result = command.Execute(inputReader, outputWriter, errorWriter);
+      var inputReader = InputFile != null ? new StreamReader(InputFile) : inReader;
+      var outputWriter = OutputFile != null ? new StreamWriter(OutputFile, Append) : outWriter;
+      var errorWriter = ErrorFile != null ? new StreamWriter(ErrorFile, Append) : errWriter;
+      var result = Command.Execute(inputReader, outputWriter, errorWriter);
       inputReader?.Close();
       outputWriter?.Close();
       errorWriter?.Close();
@@ -100,18 +100,18 @@ namespace XUnitExtensions.Lit {
 
     public override string ToString() {
       var builder = new StringBuilder();
-      builder.Append(command);
-      if (inputFile != null) {
+      builder.Append(Command);
+      if (InputFile != null) {
         builder.Append(" < ");
-        builder.Append(inputFile);
+        builder.Append(InputFile);
       }
-      if (outputFile != null) {
-        builder.Append(append ? " >> " : " > ");
-        builder.Append(outputFile);
+      if (OutputFile != null) {
+        builder.Append(Append ? " >> " : " > ");
+        builder.Append(OutputFile);
       }
-      if (errorFile != null) {
+      if (ErrorFile != null) {
         builder.Append(" 2> ");
-        builder.Append(errorFile);
+        builder.Append(ErrorFile);
       }
       return builder.ToString();
     }

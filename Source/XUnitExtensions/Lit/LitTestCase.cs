@@ -8,11 +8,11 @@ using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class LitTestCase {
-    private readonly string filePath;
-    private readonly IEnumerable<ILitCommand> commands;
-    private readonly bool expectFailure;
+    public string FilePath { get; }
+    public IEnumerable<ILitCommand> Commands { get; }
+    public bool ExpectFailure { get; }
 
-    public static LitTestCase Read(string filePath, LitTestConfiguration config) {
+    private static LitTestCase Parse(string filePath, LitTestConfiguration config) {
       ILitCommand[] commands = File.ReadAllLines(filePath)
         .Select(line => ILitCommand.Parse(line, config))
         .Where(c => c != null)
@@ -34,7 +34,7 @@ namespace XUnitExtensions.Lit {
       return new LitTestCase(filePath, commands, xfail);
     }
 
-    public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+    public static LitTestCase Read(string filePath, LitTestConfiguration config) {
       string fileName = Path.GetFileName(filePath);
       string? directory = Path.GetDirectoryName(filePath);
       if (directory == null) {
@@ -51,35 +51,25 @@ namespace XUnitExtensions.Lit {
         {"%t", Path.Join(fullDirectoryPath, "Output", $"{fileName}.tmp")}
       });
 
-      var testCase = Read(filePath, config);
-      
-      if (testCase.commands.Any(NonUniformBackendTestCommand)) {
-        throw new Exception("NON UNIFORM");
-      }
-      // testCase.Execute(outputHelper);
+      return Parse(filePath, config);
     }
 
-    private static bool NonUniformBackendTestCommand(ILitCommand c) {
-      String s = c.ToString();
-      if (s.Contains("/compile:3") || s.Contains("/compile:4") || s.Contains("build")) {
-        return true;
-      }
-
-      return false;
+    public static void Run(string filePath, LitTestConfiguration config, ITestOutputHelper outputHelper) {
+      Read(filePath, config).Execute(outputHelper);
     }
 
     public LitTestCase(string filePath, IEnumerable<ILitCommand> commands, bool expectFailure) {
-      this.filePath = filePath;
-      this.commands = commands;
-      this.expectFailure = expectFailure;
+      this.FilePath = filePath;
+      this.Commands = commands;
+      this.ExpectFailure = expectFailure;
     }
 
     public void Execute(ITestOutputHelper outputHelper) {
-      Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(filePath), "Output"));
+      Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(FilePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
       List<(string, string)> results = new();
 
-      foreach (var command in commands) {
+      foreach (var command in Commands) {
         int exitCode;
         string output;
         string error;
@@ -92,7 +82,7 @@ namespace XUnitExtensions.Lit {
           throw new Exception($"Exception thrown while executing command: {command}", e);
         }
 
-        if (expectFailure) {
+        if (ExpectFailure) {
           if (exitCode != 0) {
             throw new SkipException(
               $"Command returned non-zero exit code ({exitCode}): {command}\nOutput:\n{output + outputWriter}\nError:\n{error + errorWriter}");
@@ -113,8 +103,8 @@ namespace XUnitExtensions.Lit {
         results.Add((output, error));
       }
 
-      if (expectFailure) {
-        throw new Exception($"Test case passed but expected to fail: {filePath}");
+      if (ExpectFailure) {
+        throw new Exception($"Test case passed but expected to fail: {FilePath}");
       }
     }
   }

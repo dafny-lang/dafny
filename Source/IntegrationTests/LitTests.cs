@@ -174,7 +174,21 @@ namespace IntegrationTests {
               Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
               })]
     public void LitTest(string path) {
-      LitTestCase.Run(path, Config, output);
+      var testCase = LitTestCase.Read(path, Config);
+      if (testCase.Commands.Any(NonUniformBackendTestCommand)) {
+        MultiBackendTest.ConvertToMultiBackendTest(testCase);
+        throw new Exception("NON UNIFORM");
+      }
+      // testCase.Execute(outputHelper);
+    }
+    
+    private static bool NonUniformBackendTestCommand(ILitCommand c) {
+      String s = c.ToString();
+      if (s.Contains("/compile:3") || s.Contains("/compile:4") || s.Contains("build") || s.Contains("run")) {
+        return true;
+      }
+
+      return false;
     }
   }
 

@@ -225,6 +225,24 @@ public class MultiBackendTest {
       $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 
+  public static LitTestCase ConvertToMultiBackendTest(LitTestCase testCase) {
+    // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
+    var commandList = testCase.Commands.ToList();
+    if (commandList[^1] is not LitCommandWithRedirection { Command: DiffCommand diffCommand }) {
+      throw new ArgumentException("Last command expected to be %diff");
+    }
+
+    var expectFile = diffCommand.ExpectedPath;
+    var expectContent = File.ReadAllText(expectFile);
+    
+    // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
+    var delimiter = new Regex("\nDafny program verifier[^\n]*");
+    var chunks = delimiter.Split(expectContent);
+    Console.Out.Write(chunks);
+
+    return testCase;
+  }
+
   private int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {
     var dafnyOptions = ParseDafnyOptions(featuresOptions.OtherArgs);
     if (dafnyOptions == null) {
