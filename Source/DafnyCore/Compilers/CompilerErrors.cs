@@ -83,7 +83,7 @@ This messages indicates two problems:
 - the given feature is not supported in the compiler for the target language but is present in the program,
 so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
-The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
+The latter is an omission in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 ");
 
