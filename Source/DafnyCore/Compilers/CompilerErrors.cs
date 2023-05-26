@@ -84,7 +84,7 @@ This messages indicates two problems:
 so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
 The latter is an omission in the in-tool documentation. Please report this error message and the part of the
-program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
+program provoking it to the Dafny team's [issue tracker](https://github.com/dafny-lang/dafny/issues).
 ");
 
     Add(ErrorId.c_abstract_type_needs_hint,
