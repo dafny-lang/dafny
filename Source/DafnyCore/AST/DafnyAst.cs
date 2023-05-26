@@ -110,7 +110,7 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      var rootToken = DefaultModule.RangeToken.StartToken;
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
       if (rootToken.Next == null) {
         return null;
       }
@@ -135,32 +135,6 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Assumption> Assumptions(Declaration decl) {
       return Modules().SelectMany(m => m.Assumptions(decl));
     }
-  }
-
-  public class Include : TokenNode, IComparable {
-    public Uri IncluderFilename { get; }
-    public Uri IncludedFilename { get; }
-    public string CanonicalPath { get; }
-    public bool ErrorReported;
-
-    public Include(IToken tok, Uri includer, Uri theFilename) {
-      this.tok = tok;
-      this.IncluderFilename = includer;
-      this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
-      this.ErrorReported = false;
-    }
-
-    public int CompareTo(object obj) {
-      if (obj is Include include) {
-        return CanonicalPath.CompareTo(include.CanonicalPath);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-
-    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
