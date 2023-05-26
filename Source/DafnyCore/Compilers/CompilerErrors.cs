@@ -83,8 +83,8 @@ This messages indicates two problems:
 - the given feature is not supported in the compiler for the target language but is present in the program,
 so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
-The latter is an omission bug in the in-tool documentation. Please report this error message and the part of the
-program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
+The latter is an omission in the in-tool documentation. Please report this error message and the part of the
+program provoking it to the Dafny team's [issue tracker](https://github.com/dafny-lang/dafny/issues).
 ");
 
     Add(ErrorId.c_abstract_type_needs_hint,
@@ -297,8 +297,8 @@ given predicate is satisfiable by some value. If not, then the 'else' branch is 
 but if so, the 'then' branch is executed with an arbitrary value that satisifies the predicate.
 Because of this arbitrary selection, the if-with-binding-guard is not permitted with `--enforce-determinism`,
 even if there is exactly one value that satisfies the predicate.
-(The tool does not try to determine whether there is just one value and
-whether there is a reasonable way to compute it.)
+(The tool does not try to determine whether there is just one value or
+whether there is a reasonable way to compute a value.)
 ");
 
     Add(ErrorId.c_case_based_if_forbidden,
