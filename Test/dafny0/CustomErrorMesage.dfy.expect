@@ -8,10 +8,10 @@ CustomErrorMesage.dfy(26,14): Error: a precondition for this call could not be p
 CustomErrorMesage.dfy(30,71): Related location: when calling bar, you must supply a positive x
 CustomErrorMesage.dfy(32,0): Error: a postcondition could not be proved on this return path
 CustomErrorMesage.dfy(31,85): Related location: cannot establish that return value of bar is always negative
-CustomErrorMesage.dfy(42,63): Error: this loop invariant could not be proved on entry
-CustomErrorMesage.dfy(42,63): Related message: position variable out of range
-CustomErrorMesage.dfy(42,63): Error: this invariant could not be proved to be maintained by the loop
-CustomErrorMesage.dfy(42,63): Related message: position variable out of range
+CustomErrorMesage.dfy(42,65): Error: this loop invariant could not be proved on entry
+CustomErrorMesage.dfy(42,65): Related message: positio$xn variable out of range
+CustomErrorMesage.dfy(42,65): Error: this invariant could not be proved to be maintained by the loop
+CustomErrorMesage.dfy(42,65): Related message: positio$xn variable out of range
 CustomErrorMesage.dfy(43,63): Error: this invariant could not be proved to be maintained by the loop
 CustomErrorMesage.dfy(43,63): Related message: output array doesn't match input arry
 
