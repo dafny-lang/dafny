@@ -55,10 +55,8 @@ public class Parser {
   public Parser(Scanner scanner, Errors errors) {
     this.scanner = scanner;
     this.errors = errors;
-    Token tok = new Token();
-    tok.val = "";
-    this.la = tok;
-    this.t = new Token(); // just to satisfy its non-null constraint
+    this.la = scanner.FirstToken;
+    this.t = scanner.FirstToken; // just to satisfy its non-null constraint
   }
 
   void SynErr (int n) {
@@ -131,8 +129,7 @@ public class Parser {
 -->productions
 
   public void Parse() {
-    la = new Token();
-    la.val = "";
+    la = scanner.FirstToken;
     Get();
 -->parseRoot
   }

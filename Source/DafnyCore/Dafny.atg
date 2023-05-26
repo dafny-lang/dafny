@@ -26,7 +26,7 @@ readonly AssignmentRhs/*!*/ dummyRhs;
 readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
-readonly ModuleDecl theModule;
+public readonly FileModuleDefinition theModule;
 readonly BuiltIns theBuiltIns;
 DafnyOptions theOptions;
 int anonymousIds = 0;
@@ -140,66 +140,6 @@ bool IsAssumeTypeKeyword(IToken la) {
   return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
 
-///<summary>
-/// Parses top-level things (modules, classes, datatypes, class members) from "filename"
-/// and appends them in appropriate form to "module".
-/// Returns the number of parsing errors encountered.
-/// Note: first initialize the Scanner.
-///</summary>
-public static int Parse(TextReader reader, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors) /* throws System.IO.IOException */ {
-  Contract.Requires(uri != null);
-  Contract.Requires(module != null);
-  var text = Microsoft.Dafny.SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-  return Parse(text, uri, module, builtIns, errors);
-}
-
-///<summary>
-/// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "module".
-/// Returns the number of parsing errors encountered.
-/// Note: first initialize the Scanner.
-///</summary>
-public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter) {
-  Contract.Requires(s != null);
-  Contract.Requires(uri != null);
-  Contract.Requires(module != null);
-  Errors errors = new Errors(reporter);
-  return Parse(s, uri, module, builtIns, errors);
-}
-
-public static Parser SetupParser(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                                 BuiltIns builtIns, Errors/*!*/ errors) {
-  Contract.Requires(s != null);
-  Contract.Requires(uri != null);
-  Contract.Requires(module != null);
-  Contract.Requires(errors != null);
-  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
-  System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-  byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
-  MemoryStream ms = new MemoryStream(buffer,false);
-  Token firstToken;
-  if((module.RootToken.Filepath ?? "") == "") { // This is the first module
-    module.RootToken.Uri = uri;
-    firstToken = module.RootToken;
-  } else {
-    firstToken = new Token(); // It's an included file
-  }
-  Scanner scanner = new Scanner(ms, errors, uri, firstToken: firstToken);
-  return new Parser(scanner, errors, module, builtIns);
-}
-
-// Unused code
-public static Expression ParseExpression(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors);
-  parser.la = new Token();
-  parser.la.val = "";
-  parser.Get();
-  Expression e;
-  parser.Expression(out e, true, true, true);
-  return e;
-}
-
 public void ApplyOptionsFromAttributes(Attributes attrs) {
   var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
     .Reverse().Select(a =>
@@ -238,20 +178,7 @@ public void ApplyOptionsFromAttributes(Attributes attrs) {
   }
 }
 
-///<summary>
-/// Parses top-level things (modules, classes, datatypes, class members)
-/// and appends them in appropriate form to "module".
-/// Returns the number of parsing errors encountered.
-/// Note: first initialize the Scanner with the given Errors sink.
-///</summary>
-public static int Parse(string/*!*/ s, Uri/*!*/ uri, ModuleDecl module,
-                         BuiltIns builtIns, Errors/*!*/ errors) {
-  Parser parser = SetupParser(s, uri, module, builtIns, errors);
-  parser.Parse();
-  return parser.errors.ErrorCount;
-}
-
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, BuiltIns builtIns)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, BuiltIns builtIns)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -261,7 +188,8 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, ModuleDecl module, Built
   dummyStmt = new ReturnStmt(Token.NoToken.ToRange(), null);
   var dummyBlockStmt = new BlockStmt(Token.NoToken.ToRange(), new List<Statement>());
   dummyIfStmt = new IfStmt(Token.NoToken.ToRange(), false, null, dummyBlockStmt, null);
-  theModule = module;
+  
+  theModule = new FileModuleDefinition();
   theBuiltIns = builtIns;
   theOptions = new DafnyOptions(builtIns.Options);
 }
@@ -1002,14 +930,10 @@ IGNORE cr + lf + tab
 /*------------------------------------------------------------------------*/
 PRODUCTIONS
 Dafny
-= (. List<MemberDecl/*!*/> membersDefaultClass = new List<MemberDecl/*!*/>();
-     // to support multiple files, create a default module only if theModule is null
-     DefaultModuleDefinition defaultModule = (DefaultModuleDefinition)((LiteralModuleDecl)theModule).ModuleDef;
-     // theModule should be a DefaultModuleDefinition (actually, the singular DefaultModuleDefinition)
-     Contract.Assert(defaultModule != null);
-     IToken startToken = t;
+= (. IToken includeStartToken;
+     IToken fileStartToken = t;
   .)
-  { "include"                 (. startToken = t; .)
+  { "include"                 (. includeStartToken = t; .)
     stringToken               (. {
                                  Uri parsedFile = scanner.Uri;
                                  bool isVerbatimString;
@@ -1020,32 +944,16 @@ Dafny
                                    string basePath = Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, includedFile);
-                                 oneInclude.RangeToken = new RangeToken(startToken, t);
-                                 defaultModule.Includes.Add(oneInclude);
+                                 var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)));
+                                 oneInclude.RangeToken = new RangeToken(includeStartToken, t);
+                                 theModule.Includes.Add(oneInclude);
                                }
                             .)
   }
-  { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
+  { TopDecl<theModule, /* isTopLevel */ true, /* isAbstract */ false> }
   (. 
-    defaultModule.RangeToken = new RangeToken(startToken, t);
-    // find the default class in the default module, then append membersDefaultClass to its member list
-		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0
-		     && (defaultModule.PrefixNamedModules == null || defaultModule.PrefixNamedModules.Count == 0)) {
-		   errors.Warning(new Token(1, 1) { Uri = la.Uri }, "File contains no code");
-		 }
-     DefaultClassDecl defaultClass = null;
-     foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
-       defaultClass = topleveldecl as DefaultClassDecl;
-       if (defaultClass != null) {
-         defaultClass.Members.AddRange(membersDefaultClass);
-         break;
-       }
-     }
-     if (defaultClass == null) { // create the default class here, because it wasn't found
-       defaultClass = new DefaultClassDecl(defaultModule, membersDefaultClass);
-       defaultModule.TopLevelDecls.Add(defaultClass);
-     } .)
+    theModule.RangeToken = new RangeToken(fileStartToken.Next, t);
+  .)
   SYNC
   EOF
   .
@@ -1060,7 +968,7 @@ DeclModifier<ref DeclModifierData dmod>
   .
 
 /*------------------------------------------------------------------------*/
-TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
+TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
@@ -1072,16 +980,16 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
                                                     var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(tup);
                                                   } else {
-                                                    module.TopLevelDecls.Add(submodule);
+                                                    module.SourceDecls.Add(submodule);
                                                   }
                                                .)
-  | ClassDecl<dmod, module, out td>            (. module.TopLevelDecls.Add(td); .)
-  | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
-  | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
-  | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
-  | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
-  | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, true, true>
+  | ClassDecl<dmod, module, out td>            (. module.SourceDecls.Add(td); .)
+  | DatatypeDecl<dmod, module, out dt>         (. module.SourceDecls.Add(dt); .)
+  | NewtypeDecl<dmod, module, out td>          (. module.SourceDecls.Add(td); .)
+  | SynonymTypeDecl<dmod, module, out td>      (. module.SourceDecls.Add(td); .)
+  | IteratorDecl<dmod, module, out iter>       (. module.SourceDecls.Add(iter); .)
+  | TraitDecl<dmod, module, out trait>         (. module.SourceDecls.Add(trait); .)
+  | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
   )
   .
 
@@ -1106,7 +1014,6 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      IToken/*!*/ iderr;
      IToken tokenWithTrailingDocString;
      var prefixIds = new List<IToken>();
-     List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<Name> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -1129,11 +1036,10 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    .)
    SYNC                                (. tokenWithTrailingDocString = t; .)
    "{"                                 (. module.BodyStartTok = t; .)
-     { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+     { TopDecl<module, /* isTopLevel */ false, isAbstract>}
    "}"
     (.
       module.RangeToken = new RangeToken(dmod.FirstToken, t);
-      module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
       module.TokenWithTrailingDocString = tokenWithTrailingDocString;
       submodule = new LiteralModuleDecl(module, parent);
       submodule.RangeToken = module.RangeToken;
@@ -1654,7 +1560,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
-       if (module is DefaultModuleDefinition) {
+       if (module is DefaultModuleDefinition or FileModuleDefinition) {
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
