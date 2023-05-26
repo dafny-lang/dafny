@@ -108,7 +108,7 @@ identified with the name `lib` on the command line. For example, to build multip
 Dafny files into a single build artifact for shared reuse, the command would look something like:
 
 ```bash
-dafny build -t:lib A.dfy B.dfy C.dfy --out MyLib.doo
+dafny build -t:lib A.dfy B.dfy C.dfy --output:MyLib.doo
 ```
 
 The Dafny code contained in a `.doo` file is not re-verified when passed back to the `dafny` tool,
@@ -1480,7 +1480,7 @@ The build and run steps are
 - `./A`
 
 The uncompiled code can be compiled and run by `go` itself using
-- `(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run A.go)`
+- ``(cd A-go; GO111MODULE=auto GOPATH=`pwd` go run src/A.go)``
 
 The one-step process is
 - `dafny run --target:go A.dfy`

@@ -86,8 +86,8 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.Equal(documentItem.Version + 11, document.Version);
-      Assert.Single(document.Diagnostics);
-      Assert.Equal("assertion might not hold", document.Diagnostics.First().Message);
+      Assert.Single(document.AllFileDiagnostics);
+      Assert.Equal("assertion might not hold", document.AllFileDiagnostics.First().Message);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

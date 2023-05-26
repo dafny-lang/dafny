@@ -140,7 +140,7 @@ namespace DafnyTestGeneration {
       while (attributes != null) {
         if (attributes.Name == TestGenerationOptions.TestInlineAttribute) {
           if (attributes.Args.Count != 1) {
-            Options.Printer.ErrorWriteLine(Console.Error,
+            Options.Printer.ErrorWriteLine(Options.ErrorWriter,
               $"*** Error: :{TestGenerationOptions.TestInlineAttribute} " +
               $"attribute must be followed by a positive integer to specify " +
               $"the recursion unrolling limit (one means no unrolling)");
@@ -150,7 +150,7 @@ namespace DafnyTestGeneration {
           if (uint.TryParse(attributes.Args.First().ToString(), out uint result) && result > 0) {
             return result;
           }
-          Options.Printer.ErrorWriteLine(Console.Error,
+          Options.Printer.ErrorWriteLine(Options.ErrorWriter,
             $"*** Error: {TestGenerationOptions.TestInlineAttribute} value " +
             $"on {callable.FullName} must be a positive integer");
           SetNonZeroExitCode = true;
@@ -484,7 +484,10 @@ which may not match the associated condition, if any".TrimStart();
         } else if (d.FullDafnyName != "") {
           info.ToImportAs[d.FullDafnyName] = d.Name;
         }
-        d.ModuleDef.TopLevelDecls.ForEach(Visit);
+
+        foreach (var topLevelDecl in d.ModuleDef.TopLevelDecls) {
+          Visit(topLevelDecl);
+        }
       }
 
       private void Visit(IndDatatypeDecl d) {

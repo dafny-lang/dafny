@@ -275,7 +275,7 @@ namespace Microsoft.Dafny {
           new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
           t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
       };
-      builtIns.SystemModule.TopLevelDecls.AddRange(valuetypeDecls);
+      builtIns.SystemModule.SourceDecls.AddRange(valuetypeDecls);
       // Resolution error handling relies on being able to get to the 0-tuple declaration
       builtIns.TupleType(Token.NoToken, 0, true);
 
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
 
           if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
-            CheckModuleExportConsistency(m);
+            CheckModuleExportConsistency(prog, m);
           }
 
           var tempVis = new VisibilityScope();
@@ -559,7 +559,8 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile"));
+            var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
+            var nw = cloner.CloneModuleDefinition(m, compileName);
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -677,7 +678,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var module in prog.Modules()) {
-        foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
+        foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
           reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
         }
       }
@@ -1157,7 +1158,7 @@ namespace Microsoft.Dafny {
 
     //check for export consistency by resolving internal modules
     //this should be effect-free, as it only operates on clones
-    private void CheckModuleExportConsistency(ModuleDefinition m) {
+    private void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
@@ -1194,7 +1195,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 
@@ -1309,14 +1310,10 @@ namespace Microsoft.Dafny {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
-          true, true);
-        // Every module is expected to have a default class, so we create and add one now
-        var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
-        modDef.TopLevelDecls.Add(defaultClass);
+        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
         // Add the new module to the top-level declarations of its parent and then bind its names as usual
         var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
-        moduleDecl.TopLevelDecls.Add(subdecl);
+        moduleDecl.ResolvedPrefixNamedModules.Add(subdecl);
         BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
       }
 
@@ -1366,7 +1363,7 @@ namespace Microsoft.Dafny {
               litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
             var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
               litmod.ModuleDef); // this will create a ModuleDecl with the right parent
-            litmod.ModuleDef.TopLevelDecls.Add(sm);
+            litmod.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
           } else {
             litmod.ModuleDef.PrefixNamedModules.Add(tup);
           }
@@ -1696,13 +1693,11 @@ namespace Microsoft.Dafny {
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
 
-      List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
-
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present
       var anonymousImportCount = 0;
-      foreach (TopLevelDecl d in declarations) {
+      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
         Contract.Assert(d != null);
 
         if (d is RevealableTypeDecl) {
@@ -1888,7 +1883,7 @@ namespace Microsoft.Dafny {
       }
 
       // Now, for each class, register its possibly-null type
-      foreach (TopLevelDecl d in declarations) {
+      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
         if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
           var name = d.Name + "?";
           TopLevelDecl prev;
@@ -2029,22 +2024,17 @@ namespace Microsoft.Dafny {
       var errCount = reporter.Count(ErrorLevel.Error);
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false,
-        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+        false);
       mod.Height = Height;
-      bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
-        hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
-        if (!(kv.Value is NonNullTypeDecl)) {
+        if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
           var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name, compilationModuleClones);
-          mod.TopLevelDecls.Add(clone);
+          mod.SourceDecls.Add(clone);
         }
       }
 
-      if (!hasDefaultClass) {
-        DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-        mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope, cl, mod, mods, Name, compilationModuleClones));
-      }
+      var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
+      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name, compilationModuleClones);
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -2188,7 +2178,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
+    public void RevealAllInScope(IEnumerable<TopLevelDecl> declarations, VisibilityScope scope) {
       foreach (TopLevelDecl d in declarations) {
         d.AddVisibilityScope(scope, false);
         if (d is TopLevelDeclWithMembers) {
@@ -5805,7 +5795,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
-      var at = builtIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      var (at, modBuiltins) = BuiltIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      modBuiltins(builtIns);
       ResolveType(tok, at, resolutionContext, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }
@@ -5994,7 +5985,7 @@ namespace Microsoft.Dafny {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
-      this.reporter = new ErrorReporterSink(Options, origReporter.OuterModule);
+      this.reporter = new ErrorReporterSink(Options);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);

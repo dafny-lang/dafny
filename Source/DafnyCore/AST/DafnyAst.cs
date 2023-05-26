@@ -39,7 +39,18 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyVerifiedRoots;
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyCompiledRoots;
+
     public List<Include> Includes => DefaultModuleDef.Includes;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToVerify;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToCompile;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -55,15 +66,18 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
+      AlreadyVerifiedRoots = alreadyVerifiedRoots;
+      AlreadyCompiledRoots = alreadyCompiledRoots;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }
@@ -96,13 +110,14 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      if (DefaultModule.RootToken.Next == null) {
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
+      if (rootToken.Next == null) {
         return null;
       }
 
-      var firstToken = DefaultModule.RootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -120,34 +135,6 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Assumption> Assumptions(Declaration decl) {
       return Modules().SelectMany(m => m.Assumptions(decl));
     }
-  }
-
-  public class Include : TokenNode, IComparable {
-    public Uri IncluderFilename { get; }
-    public string IncludedFilename { get; }
-    public string CanonicalPath { get; }
-    public bool CompileIncludedCode { get; }
-    public bool ErrorReported;
-
-    public Include(IToken tok, Uri includer, string theFilename, bool compileIncludedCode) {
-      this.tok = tok;
-      this.IncluderFilename = includer;
-      this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
-      this.ErrorReported = false;
-      CompileIncludedCode = compileIncludedCode;
-    }
-
-    public int CompareTo(object obj) {
-      if (obj is Include include) {
-        return CanonicalPath.CompareTo(include.CanonicalPath);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-
-    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>

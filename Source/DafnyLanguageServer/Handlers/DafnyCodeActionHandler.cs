@@ -153,7 +153,7 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Dafny.Program Program => Document.Program;
   public DocumentAfterParsing Document { get; }
 
-  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.Diagnostics.ToList();
+  public IReadOnlyList<DafnyDiagnostic> Diagnostics => Document.AllFileDiagnostics.ToList();
   public VerificationTree VerificationTree => Document.GetInitialDocumentVerificationTree();
 
   public string Extract(Range range) {
