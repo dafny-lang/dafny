@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -41,7 +42,9 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName ?? typ.Name,
+          typ?.ResolvedClass?.FullName == null ?
+            typ.Name :
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : ""),
           typ.TypeArgs));
     }
 
@@ -75,21 +78,17 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.GetTempPath());
-      var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-      var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-      var builtIns = new BuiltIns(options);
-      var reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-      var success = Parser.Parse(source, uri, module, builtIns,
-        new Errors(reporter)) == 0 && DafnyMain.ParseIncludes(module, builtIns,
-        new HashSet<string>(), new Errors(reporter)) == null;
-      var program = new Program(uri.LocalPath, module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
+      var reporter = new BatchErrorReporter(options);
+
+      var program = ParseUtils.ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+        reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;
       }
 
       // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
+      new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
@@ -126,7 +125,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Turns each function-method into a function-by-method.
+    /// Turns each function into a function-by-method.
     /// Copies body of the function into the body of the corresponding method.
     /// </summary>
     private class AddByMethodRewriter : IRewriter {
@@ -139,7 +138,9 @@ namespace DafnyTestGeneration {
 
       private static void AddByMethod(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+          foreach (var topLevelDecl in moduleDecl.ModuleDef.TopLevelDecls) {
+            AddByMethod(topLevelDecl);
+          }
         } else if (d is TopLevelDeclWithMembers withMembers) {
           withMembers.Members.OfType<Function>().Iter(AddByMethod);
         }
@@ -172,8 +173,9 @@ namespace DafnyTestGeneration {
           return;
         }
         var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
+          new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+        func.ByMethodBody = new BlockStmt(
+          new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
       }
     }

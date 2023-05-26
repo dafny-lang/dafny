@@ -40,16 +40,16 @@ public class GhostStateDiagnosticCollectorTest {
 
   class CollectingErrorReporter : BatchErrorReporter {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
-      return this.AllMessages;
+      return this.AllMessagesByLevel;
     }
 
-    public CollectingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl(IList<Uri> rootUris) : base(
-      new DefaultModuleDefinition(rootUris), null) {
+      new DefaultModuleDefinition(rootUris, false), null) {
     }
     public override object Dereference() {
       return this;
@@ -62,7 +62,7 @@ public class GhostStateDiagnosticCollectorTest {
     var options = DafnyOptions.DefaultImmutableOptions;
     var rootUri = new Uri(Directory.GetCurrentDirectory());
     var dummyModuleDecl = new DummyModuleDecl(new List<Uri>() { rootUri });
-    var reporter = new CollectingErrorReporter(options, (DefaultModuleDefinition)dummyModuleDecl.ModuleDef);
+    var reporter = new CollectingErrorReporter(options);
     var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
     var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(
       new SignatureAndCompletionTable(null!, new CompilationUnit(rootUri, program),
