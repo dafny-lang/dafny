@@ -27,7 +27,7 @@ public class CachingTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
-  public async Task ParsingIsCached() {
+  public async Task ParsingIsCachedAndCacheIsPruned() {
     var source = @"
 include ""./A.dfy""
 include ""./B.dfy""

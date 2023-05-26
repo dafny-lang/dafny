@@ -17,4 +17,8 @@ public class FileModuleDefinition : ModuleDefinition {
     {
     }
   }
+
+  public FileModuleDefinition(Cloner cloner, FileModuleDefinition original) : base(cloner, original, original.NameNode) {
+    
+  }
 }

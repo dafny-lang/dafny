@@ -15,8 +15,8 @@ public class CachingParser : ProgramParser {
     this.logger = logger;
   }
 
-  public void Tick() {
-    parseCache.Tick();
+  public void Prune() {
+    parseCache.Prune();
   }
       
   protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
@@ -26,6 +26,12 @@ public class CachingParser : ProgramParser {
       result = base.ParseFile(options, newReader, uri);
       parseCache.Set(hash, result);
     } else {
+      // Clone declarations since they are mutable.
+      // We should cache an immutable version of the AST: https://github.com/dafny-lang/dafny/issues/4086
+      var cloner = new Cloner();
+      result = result with {
+        Module = new FileModuleDefinition(cloner, result.Module)
+      };
       logger.LogDebug("Parse cache hit");
     }
 

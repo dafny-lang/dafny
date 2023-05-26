@@ -24,7 +24,7 @@ public class TickingCache<TKey, TValue>
     items = new (comparer);
   }
 
-  public void Tick() {
+  public void Prune() {
     var keys = items.Keys.ToList();
     foreach (var key in keys) {
       var item = items[key];

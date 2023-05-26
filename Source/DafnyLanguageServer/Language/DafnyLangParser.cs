@@ -48,7 +48,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
-      cachingParser.Tick();
       try {
         return cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
@@ -58,6 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           errorReporter, cancellationToken);
       }
       finally {
+        cachingParser.Prune();
         mutex.Release();
       }
     }
