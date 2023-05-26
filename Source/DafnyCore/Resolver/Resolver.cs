@@ -130,8 +130,7 @@ namespace Microsoft.Dafny {
     public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl> // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
-        ISet<TopLevelDecl> s;
-        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out s);
+        var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out var s);
         return t ?? new AmbiguousTopLevelDecl(m, AmbiguousThingHelper<TopLevelDecl>.Name(s, tld => tld.Name), s);
       }
 
@@ -276,7 +275,7 @@ namespace Microsoft.Dafny {
           new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
           t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
       };
-      builtIns.SystemModule.TopLevelDecls.AddRange(valuetypeDecls);
+      builtIns.SystemModule.SourceDecls.AddRange(valuetypeDecls);
       // Resolution error handling relies on being able to get to the 0-tuple declaration
       builtIns.TupleType(Token.NoToken, 0, true);
 
@@ -286,7 +285,7 @@ namespace Microsoft.Dafny {
         var enclosingType = valuetypeDecls[(int)valuetypeVariety];
         member.EnclosingClass = enclosingType;
         member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-        enclosingType.Members.Add(member.Name, member);
+        enclosingType.Members.Add(member);
       }
 
       var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
@@ -341,7 +340,7 @@ namespace Microsoft.Dafny {
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateMember.EnclosingClass = enclosingType;
       rotateMember.AddVisibilityScope(builtIns.SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(name, rotateMember);
+      enclosingType.Members.Add(rotateMember);
     }
 
     [ContractInvariantMethod]
@@ -481,12 +480,13 @@ namespace Microsoft.Dafny {
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
+
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes =
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassDecl)?.NonNullTypeDecl != null).ToList();
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
-        var d = ((ClassDecl)cl).NonNullTypeDecl;
+        var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
 
           if (good && reporter.ErrorCount == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
-            CheckModuleExportConsistency(m);
+            CheckModuleExportConsistency(prog, m);
           }
 
           var tempVis = new VisibilityScope();
@@ -559,7 +559,8 @@ namespace Microsoft.Dafny {
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var nw = cloner.CloneModuleDefinition(m, new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile"));
+            var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
+            var nw = cloner.CloneModuleDefinition(m, compileName);
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -677,7 +678,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var module in prog.Modules()) {
-        foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
+        foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
           reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
         }
       }
@@ -753,11 +754,11 @@ namespace Microsoft.Dafny {
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
       foreach (var valueTypeDecl in valuetypeDecls) {
-        foreach (var kv in valueTypeDecl.Members) {
-          if (kv.Value is Function function) {
+        foreach (var member in valueTypeDecl.Members) {
+          if (member is Function function) {
             ResolveFunctionSignature(function);
             CallGraphBuilder.VisitFunction(function, reporter);
-          } else if (kv.Value is Method method) {
+          } else if (member is Method method) {
             ResolveMethodSignature(method);
             CallGraphBuilder.VisitMethod(method, reporter);
           }
@@ -876,8 +877,7 @@ namespace Microsoft.Dafny {
       TopLevelDecl defaultClass;
 
       sig.TopLevels.TryGetValue("_default", out defaultClass);
-      Contract.Assert(defaultClass is ClassDecl);
-      Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+      Contract.Assert(defaultClass is DefaultClassDecl);
       defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var d in sortedExportDecls) {
@@ -899,7 +899,7 @@ namespace Microsoft.Dafny {
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) &&
+          if (classMembers.TryGetValue((DefaultClassDecl)defaultClass, out members) &&
               members.TryGetValue(d.Name, out member)) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
@@ -924,7 +924,7 @@ namespace Microsoft.Dafny {
               continue;
             }
 
-            if (cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl != null) {
+            if (cldecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members",
                 export.ClassId);
@@ -952,9 +952,9 @@ namespace Microsoft.Dafny {
 
             decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
-            if (tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+            if (tdecl is ClassLikeDecl { NonNullTypeDecl: { } }) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+              var nn = ((ClassLikeDecl)tdecl).NonNullTypeDecl;
               Contract.Assert(nn != null);
               reporter.Error(MessageSource.Resolver, export.Tok,
                 export.Opaque
@@ -1158,7 +1158,7 @@ namespace Microsoft.Dafny {
 
     //check for export consistency by resolving internal modules
     //this should be effect-free, as it only operates on clones
-    private void CheckModuleExportConsistency(ModuleDefinition m) {
+    private void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
@@ -1167,7 +1167,7 @@ namespace Microsoft.Dafny {
         foreach (var export in exportDecl.Exports) {
           if (export.Decl is MemberDecl member) {
             // For classes and traits, the visibility test is performed on the corresponding non-null type
-            var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null
+            var enclosingType = member.EnclosingClass is ClassLikeDecl cl && cl.NonNullTypeDecl != null
               ? cl.NonNullTypeDecl
               : member.EnclosingClass;
             if (!enclosingType.IsVisibleInScope(exportDecl.Signature.VisibilityScope)) {
@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 
@@ -1310,14 +1310,10 @@ namespace Microsoft.Dafny {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false,
-          true, true);
-        // Every module is expected to have a default class, so we create and add one now
-        var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
-        modDef.TopLevelDecls.Add(defaultClass);
+        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
         // Add the new module to the top-level declarations of its parent and then bind its names as usual
         var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
-        moduleDecl.TopLevelDecls.Add(subdecl);
+        moduleDecl.ResolvedPrefixNamedModules.Add(subdecl);
         BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
       }
 
@@ -1367,7 +1363,7 @@ namespace Microsoft.Dafny {
               litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
             var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
               litmod.ModuleDef); // this will create a ModuleDecl with the right parent
-            litmod.ModuleDef.TopLevelDecls.Add(sm);
+            litmod.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
           } else {
             litmod.ModuleDef.PrefixNamedModules.Add(tup);
           }
@@ -1522,8 +1518,8 @@ namespace Microsoft.Dafny {
             // (because it reveals C and C?). The merge output will contain the non-null type decl
             // for the key (and we expect the mapping "C? -> class C" to be placed in the
             // merge output as well, by the end of this loop).
-            if (infoValue is ClassDecl) {
-              var cd = (ClassDecl)infoValue;
+            if (infoValue is ClassLikeDecl) {
+              var cd = (ClassLikeDecl)infoValue;
               Contract.Assert(cd.NonNullTypeDecl == kv.Value);
               info.TopLevels[kv.Key] = kv.Value;
             } else if (kv.Value is ClassDecl) {
@@ -1697,13 +1693,11 @@ namespace Microsoft.Dafny {
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
 
-      List<TopLevelDecl> declarations = moduleDef.TopLevelDecls;
-
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present
       var anonymousImportCount = 0;
-      foreach (TopLevelDecl d in declarations) {
+      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
         Contract.Assert(d != null);
 
         if (d is RevealableTypeDecl) {
@@ -1727,8 +1721,8 @@ namespace Microsoft.Dafny {
             anonymousImportCount++;
           } else if (toplevels.ContainsKey(d.Name)) {
             reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-          } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
-            registerThisDecl = cl.NonNullTypeDecl;
+          } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+            registerThisDecl = nntd;
             registerUnderThisName = d.Name;
           } else {
             registerThisDecl = d;
@@ -1752,10 +1746,31 @@ namespace Microsoft.Dafny {
           RegisterMembers(moduleDef, cl, members);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-
           iter.Resolve(this);
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+
+        } else if (d is DefaultClassDecl defaultClassDecl) {
+          var preMemberErrs = reporter.Count(ErrorLevel.Error);
+
+          // register the names of the class members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(defaultClassDecl, members);
+          RegisterMembers(moduleDef, defaultClassDecl, members);
+
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
+
+          foreach (MemberDecl m in members.Values) {
+            Contract.Assert(!m.HasStaticKeyword);
+            if (m is Function or Method or ConstantField) {
+              sig.StaticMembers[m.Name] = m;
+            }
+
+            if (toplevels.ContainsKey(m.Name)) {
+              reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
+            }
+          }
+
+        } else if (d is ClassLikeDecl) {
+          var cl = (ClassLikeDecl)d;
           var preMemberErrs = reporter.Count(ErrorLevel.Error);
 
           // register the names of the class members
@@ -1763,24 +1778,7 @@ namespace Microsoft.Dafny {
           classMembers.Add(cl, members);
           RegisterMembers(moduleDef, cl, members);
 
-          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) ||
-                          !cl.Members.Except(members.Values).Any());
-
-          if (cl.IsDefaultClass) {
-            foreach (MemberDecl m in members.Values) {
-              Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
-                              Options
-                                .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
-              if (m is Function || m is Method || m is ConstantField) {
-                sig.StaticMembers[m.Name] = m;
-              }
-
-              if (toplevels.ContainsKey(m.Name)) {
-                reporter.Error(MessageSource.Resolver, m.tok,
-                  $"duplicate declaration for name {m.Name}");
-              }
-            }
-          }
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
 
         } else if (d is DatatypeDecl) {
           var dt = (DatatypeDecl)d;
@@ -1874,14 +1872,19 @@ namespace Microsoft.Dafny {
 
           // finally, add any additional user-defined members
           RegisterMembers(moduleDef, dt, members);
+
         } else {
-          Contract.Assert(d is ValuetypeDecl);
+          var cl = (ValuetypeDecl)d;
+          // register the names of the type members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(cl, members);
+          RegisterMembers(moduleDef, cl, members);
         }
       }
 
       // Now, for each class, register its possibly-null type
-      foreach (TopLevelDecl d in declarations) {
-        if ((d as ClassDecl)?.NonNullTypeDecl != null) {
+      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
+        if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
           var name = d.Name + "?";
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
@@ -1908,7 +1911,7 @@ namespace Microsoft.Dafny {
         if (!members.ContainsKey(m.Name)) {
           members.Add(m.Name, m);
           if (m is Constructor) {
-            Contract.Assert(cl is ClassDecl); // the parser ensures this condition
+            Contract.Assert(cl is ClassLikeDecl); // the parser ensures this condition
             if (cl is TraitDecl) {
               reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
             } else {
@@ -1991,8 +1994,15 @@ namespace Microsoft.Dafny {
       var tok = f.ByMethodTok;
       var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
       var r = Expression.CreateIdentExpr(resultVar);
-      var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
+      // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
+      // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
+      var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
+      var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+      var fn = new ApplySuffix(tok, null,
+        new ExprDotName(tok, receiver, f.Name, null),
+        new ActualBindings(f.Formals.ConvertAll(Expression.CreateIdentExpr)).ArgumentBindings,
+        tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
         f.Formals, new List<Formal>() { resultVar },
@@ -2014,22 +2024,17 @@ namespace Microsoft.Dafny {
       var errCount = reporter.Count(ErrorLevel.Error);
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
-        false,
-        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+        false);
       mod.Height = Height;
-      bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
-        hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
-        if (!(kv.Value is NonNullTypeDecl)) {
+        if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
           var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name, compilationModuleClones);
-          mod.TopLevelDecls.Add(clone);
+          mod.SourceDecls.Add(clone);
         }
       }
 
-      if (!hasDefaultClass) {
-        DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-        mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope, cl, mod, mods, Name, compilationModuleClones));
-      }
+      var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
+      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name, compilationModuleClones);
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -2173,7 +2178,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
+    public void RevealAllInScope(IEnumerable<TopLevelDecl> declarations, VisibilityScope scope) {
       foreach (TopLevelDecl d in declarations) {
         d.AddVisibilityScope(scope, false);
         if (d is TopLevelDeclWithMembers) {
@@ -2183,7 +2188,7 @@ namespace Microsoft.Dafny {
               mem.AddVisibilityScope(scope, false);
             }
           }
-          var nnd = (cl as ClassDecl)?.NonNullTypeDecl;
+          var nnd = (cl as ClassLikeDecl)?.NonNullTypeDecl;
           if (nnd != null) {
             nnd.AddVisibilityScope(scope, false);
           }
@@ -2322,7 +2327,17 @@ namespace Microsoft.Dafny {
       if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
         // Resolve all names and infer types.
         var preTypeResolver = new PreTypeResolver(this);
-        preTypeResolver.ResolveDeclarations(declarations, moduleName);
+        preTypeResolver.ResolveDeclarations(declarations);
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          var u = new UnderspecificationDetector(this);
+          u.Check(declarations);
+        }
+
+        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+          var u = new UnderspecificationDetector(this);
+          u.Check(declarations);
+        }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var u = new UnderspecificationDetector(this);
@@ -2542,130 +2557,9 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        // Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
-        // First, do datatypes and type synonyms until a fixpoint is reached.
-        bool inferredSomething;
-        do {
-          inferredSomething = false;
-          foreach (var d in declarations) {
-            if (Attributes.Contains(d.Attributes, "_provided")) {
-              // Don't infer required-equality-support for the type parameters, since there are
-              // scopes that see the name of the declaration but not its body.
-            } else if (d is DatatypeDecl) {
-              var dt = (DatatypeDecl)d;
-              foreach (var tp in dt.TypeArgs) {
-                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                  // here's our chance to infer the need for equality support
-                  foreach (var ctor in dt.Ctors) {
-                    foreach (var arg in ctor.Formals) {
-                      if (InferRequiredEqualitySupport(tp, arg.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                        inferredSomething = true;
-                        goto DONE_DT;  // break out of the doubly-nested loop
-                      }
-                    }
-                  }
-                DONE_DT:;
-                }
-              }
-            } else if (d is TypeSynonymDecl) {
-              var syn = (TypeSynonymDecl)d;
-              foreach (var tp in syn.TypeArgs) {
-                if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                  // here's our chance to infer the need for equality support
-                  if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    inferredSomething = true;
-                  }
-                }
-              }
-            }
-          }
-        } while (inferredSomething);
-        // Now do it for Function and Method signatures.
-        foreach (var d in declarations) {
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            var done = false;
-            var nonnullIter = iter.NonNullTypeDecl;
-            Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
-            for (var i = 0; i < iter.TypeArgs.Count; i++) {
-              var tp = iter.TypeArgs[i];
-              var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
-              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                foreach (var p in iter.Ins) {
-                  if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    done = true;
-                    break;
-                  }
-                }
-                foreach (var p in iter.Outs) {
-                  if (done) {
-                    break;
-                  }
 
-                  if (InferRequiredEqualitySupport(tp, p.Type)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                    break;
-                  }
-                }
-              }
-            }
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            foreach (var member in cl.Members) {
-              if (!member.IsGhost) {
-                if (member is Function) {
-                  var f = (Function)member;
-                  foreach (var tp in f.TypeArgs) {
-                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                      // here's our chance to infer the need for equality support
-                      if (InferRequiredEqualitySupport(tp, f.ResultType)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                      } else {
-                        foreach (var p in f.Formals) {
-                          if (InferRequiredEqualitySupport(tp, p.Type)) {
-                            tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                  }
-                } else if (member is Method) {
-                  var m = (Method)member;
-                  bool done = false;
-                  foreach (var tp in m.TypeArgs) {
-                    if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                      // here's our chance to infer the need for equality support
-                      foreach (var p in m.Ins) {
-                        if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                          done = true;
-                          break;
-                        }
-                      }
-                      foreach (var p in m.Outs) {
-                        if (done) {
-                          break;
-                        }
+        InferEqualitySupport(declarations);
 
-                        if (InferRequiredEqualitySupport(tp, p.Type)) {
-                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
         // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed
         foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
           new Abstemious(reporter).Check(fn);
@@ -2689,8 +2583,8 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeCharacteristics_Stmt(iter.Body, false);
             }
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
+          } else if (d is ClassLikeDecl) {
+            var cl = (TopLevelDeclWithMembers)d;
             foreach (var parentTrait in cl.ParentTraits) {
               CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);
             }
@@ -2834,7 +2728,7 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type-parameter variance is respected in type definitions
         foreach (TopLevelDecl d in declarations) {
-          if (d is IteratorDecl || d is ClassDecl) {
+          if (d is ClassLikeDecl) {
             foreach (var tp in d.TypeArgs) {
               if (tp.Variance != TypeParameter.TPVariance.Non) {
                 reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
@@ -2861,7 +2755,7 @@ namespace Microsoft.Dafny {
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
-          if (!(cl is ClassDecl)) {
+          if (cl is not ClassDecl and not TraitDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
               // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
               foreach (var member in cl.Members) {
@@ -2931,6 +2825,139 @@ namespace Microsoft.Dafny {
       }
       // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
       new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+    }
+
+    /// <summary>
+    /// Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
+    /// </summary>
+    /// <param name="declarations"></param>
+    private void InferEqualitySupport(List<TopLevelDecl> declarations) {
+      /// First, do datatypes and type synonyms until a fixpoint is reached.
+      bool inferredSomething;
+      do {
+        inferredSomething = false;
+        foreach (var d in declarations) {
+          if (Attributes.Contains(d.Attributes, "_provided")) {
+            // Don't infer required-equality-support for the type parameters, since there are
+            // scopes that see the name of the declaration but not its body.
+          } else if (d is DatatypeDecl) {
+            var dt = (DatatypeDecl)d;
+            foreach (var tp in dt.TypeArgs) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                foreach (var ctor in dt.Ctors) {
+                  foreach (var arg in ctor.Formals) {
+                    if (InferRequiredEqualitySupport(tp, arg.Type)) {
+                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                      inferredSomething = true;
+                      goto DONE_DT; // break out of the doubly-nested loop
+                    }
+                  }
+                }
+              DONE_DT:;
+              }
+            }
+          } else if (d is TypeSynonymDecl) {
+            var syn = (TypeSynonymDecl)d;
+            foreach (var tp in syn.TypeArgs) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  inferredSomething = true;
+                }
+              }
+            }
+          }
+        }
+      } while (inferredSomething);
+
+      // Now do it for Function and Method signatures.
+      foreach (var d in declarations) {
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          var done = false;
+          var nonnullIter = iter.NonNullTypeDecl;
+          Contract.Assert(nonnullIter.TypeArgs.Count == iter.TypeArgs.Count);
+          for (var i = 0; i < iter.TypeArgs.Count; i++) {
+            var tp = iter.TypeArgs[i];
+            var correspondingNonnullIterTypeParameter = nonnullIter.TypeArgs[i];
+            if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+              // here's our chance to infer the need for equality support
+              foreach (var p in iter.Ins) {
+                if (InferRequiredEqualitySupport(tp, p.Type)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
+                    TypeParameter.EqualitySupportValue.InferredRequired;
+                  done = true;
+                  break;
+                }
+              }
+              foreach (var p in iter.Outs) {
+                if (done) {
+                  break;
+                }
+
+                if (InferRequiredEqualitySupport(tp, p.Type)) {
+                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
+                    TypeParameter.EqualitySupportValue.InferredRequired;
+                  break;
+                }
+              }
+            }
+          }
+        } else if (d is ClassLikeDecl or DefaultClassDecl) {
+          var cl = (TopLevelDeclWithMembers)d;
+          foreach (var member in cl.Members) {
+            if (!member.IsGhost) {
+              if (member is Function) {
+                var f = (Function)member;
+                foreach (var tp in f.TypeArgs) {
+                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    // here's our chance to infer the need for equality support
+                    if (InferRequiredEqualitySupport(tp, f.ResultType)) {
+                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    } else {
+                      foreach (var p in f.Formals) {
+                        if (InferRequiredEqualitySupport(tp, p.Type)) {
+                          tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              } else if (member is Method) {
+                var m = (Method)member;
+                bool done = false;
+                foreach (var tp in m.TypeArgs) {
+                  if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                    // here's our chance to infer the need for equality support
+                    foreach (var p in m.Ins) {
+                      if (InferRequiredEqualitySupport(tp, p.Type)) {
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        done = true;
+                        break;
+                      }
+                    }
+                    foreach (var p in m.Outs) {
+                      if (done) {
+                        break;
+                      }
+
+                      if (InferRequiredEqualitySupport(tp, p.Type)) {
+                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     private void FillInPostConditionsAndBodiesOfPrefixLemmas(List<TopLevelDecl> declarations) {
@@ -3034,10 +3061,8 @@ namespace Microsoft.Dafny {
               }
             }
 
-            Expression recursiveCallReceiver;
-            List<Expression> recursiveCallArgs;
             Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, null,
-              substMap, out recursiveCallReceiver, out recursiveCallArgs);
+              substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
             methodSel.TypeApplication_AtEnclosingClass =
@@ -5444,8 +5469,12 @@ namespace Microsoft.Dafny {
         } else {
           return CheckCanBeConstructed(td.RhsWithArgument(udt.TypeArgs), typeParametersUsed);
         }
+      } else if (cl is TraitDecl traitDecl) {
+        return traitDecl.IsReferenceTypeDecl; // null is a value for reference types
       } else if (cl is ClassDecl) {
         // null is a value for this possibly-null type
+        return true;
+      } else if (cl is ArrowTypeDecl) {
         return true;
       } else if (cl is CoDatatypeDecl) {
         // may depend on type parameters
@@ -5596,7 +5625,7 @@ namespace Microsoft.Dafny {
         case "tailrecursive":
           return host is Method && !((Method)host).IsGhost;
         case "autocontracts":
-          return host is ClassDecl;
+          return host is ClassLikeDecl { IsReferenceTypeDecl: true };
         case "autoreq":
           return host is Function;
         case "abstemious":
@@ -6077,7 +6106,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void FindAllMembers(ClassDecl cl, string memberName, ISet<MemberDecl> foundSoFar) {
+    void FindAllMembers(ClassLikeDecl cl, string memberName, ISet<MemberDecl> foundSoFar) {
       Contract.Requires(cl != null);
       Contract.Requires(memberName != null);
       Contract.Requires(foundSoFar != null);
@@ -6094,7 +6123,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      if (cl is ClassDecl cls && cls.NonNullTypeDecl != null) {
+      if (cl is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
         return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
       } else {
         return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);

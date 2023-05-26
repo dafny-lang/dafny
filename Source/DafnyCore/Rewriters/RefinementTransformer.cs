@@ -177,8 +177,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(RefinedSig.ModuleDef != null);
         Contract.Assert(m.RefinementQId.Def == RefinedSig.ModuleDef);
         // check that the openness in the imports between refinement and its base matches
-        List<TopLevelDecl> declarations = m.TopLevelDecls;
-        List<TopLevelDecl> baseDeclarations = m.RefinementQId.Def.TopLevelDecls;
+        var declarations = m.TopLevelDecls;
+        var baseDeclarations = m.RefinementQId.Def.TopLevelDecls.ToList();
         foreach (var im in declarations) {
           // TODO: this is a terribly slow algorithm; use the symbol table instead
           foreach (var bim in baseDeclarations) {
@@ -221,25 +221,24 @@ namespace Microsoft.Dafny {
       Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementQId.Def, false, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
-      var declaredNames = new Dictionary<string, int>();
-      for (int i = 0; i < m.TopLevelDecls.Count; i++) {
-        var d = m.TopLevelDecls[i];
-        if (!declaredNames.ContainsKey(d.Name)) {
-          declaredNames.Add(d.Name, i);
-        }
+      var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
+      var pointers = m.TopLevelDeclPointers;
+      foreach (var pointer in pointers) {
+        var key = pointer.Get().Name;
+        declaredNames.TryAdd(key, pointer);
       }
 
       // Merge the declarations of prev into the declarations of m
       List<string> processedDecl = new List<string>();
       foreach (var d in prev.TopLevelDecls) {
-        int index;
         processedDecl.Add(d.Name);
-        if (!declaredNames.TryGetValue(d.Name, out index)) {
-          m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
+        if (!declaredNames.TryGetValue(d.Name, out var nwPointer)) {
+          var clone = refinementCloner.CloneDeclaration(d, m);
+          m.SourceDecls.Add(clone);
         } else {
-          var nw = m.TopLevelDecls[index];
+          var nw = nwPointer.Get();
           if (d.Name == "_default" || nw.IsRefining || d is AbstractTypeDecl) {
-            MergeTopLevelDecls(m, nw, d, index);
+            MergeTopLevelDecls(m, nwPointer, d);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
             Reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
@@ -254,11 +253,9 @@ namespace Microsoft.Dafny {
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
-        int index;
-        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out index)) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out var pointer)) {
           // if it is redefined, we need to merge them.
-          var nw = m.TopLevelDecls[index];
-          MergeTopLevelDecls(m, nw, d, index);
+          MergeTopLevelDecls(m, pointer, d);
         }
       }
       m.RefinementQId.Sig = RefinedSig;
@@ -266,7 +263,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
-    private void CheckSuperfluousRefiningMarks(List<TopLevelDecl> topLevelDecls, List<string> excludeList) {
+    private void CheckSuperfluousRefiningMarks(IEnumerable<TopLevelDecl> topLevelDecls, List<string> excludeList) {
       Contract.Requires(topLevelDecls != null);
       Contract.Requires(excludeList != null);
       foreach (var d in topLevelDecls) {
@@ -280,7 +277,7 @@ namespace Microsoft.Dafny {
     /// Give unresolved newtypes a reasonable default type (<c>int</c>), to avoid having to support `null` in the
     /// rest of the resolution pipeline.
     /// </summary>
-    private void AddDefaultBaseTypeToUnresolvedNewtypes(List<TopLevelDecl> topLevelDecls) {
+    private void AddDefaultBaseTypeToUnresolvedNewtypes(IEnumerable<TopLevelDecl> topLevelDecls) {
       foreach (var d in topLevelDecls) {
         if (d is NewtypeDecl { IsRefining: true, BaseType: null } decl) {
           Reporter.Info(MessageSource.RefinementTransformer, decl.tok, $"defaulting to 'int' for unspecified base type of '{decl.Name}'");
@@ -298,8 +295,10 @@ namespace Microsoft.Dafny {
       nw.Extends.AddRange(d.Extends);
     }
 
-    private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
+    private void MergeTopLevelDecls(ModuleDefinition m, IPointer<TopLevelDecl> nwPointer, TopLevelDecl d) {
+      var nw = nwPointer.Get();
       var commonMsg = "a {0} declaration ({1}) in a refinement module can only refine a {0} declaration or replace an abstract type declaration";
+      // Prefix decls.
 
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
@@ -334,7 +333,11 @@ namespace Microsoft.Dafny {
             }
           } else {
             if (od.SupportsEquality) {
-              if (nw is ClassDecl || nw is NewtypeDecl) {
+              if (nw is TraitDecl traitDecl) {
+                if (!traitDecl.IsReferenceTypeDecl) {
+                  Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by this trait");
+                }
+              } else if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
                 Reporter.Error(MessageSource.RefinementTransformer, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
@@ -371,7 +374,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (nw is TopLevelDeclWithMembers) {
-            m.TopLevelDecls[index] = MergeClass((TopLevelDeclWithMembers)nw, od);
+            nwPointer.Set(MergeClass((TopLevelDeclWithMembers)nw, od));
           } else if (od.Members.Count != 0) {
             Reporter.Error(MessageSource.RefinementTransformer, nw,
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
@@ -387,7 +390,7 @@ namespace Microsoft.Dafny {
         var (dd, nwd) = ((DatatypeDecl)d, (DatatypeDecl)nw);
         Contract.Assert(!nwd.Ctors.Any());
         nwd.Ctors.AddRange(dd.Ctors.Select(refinementCloner.CloneCtor));
-        m.TopLevelDecls[index] = MergeClass((DatatypeDecl)nw, (DatatypeDecl)d);
+        nwPointer.Set(MergeClass((DatatypeDecl)nw, (DatatypeDecl)d));
       } else if (nw is DatatypeDecl) {
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (d is NewtypeDecl && nw is NewtypeDecl) {
@@ -399,25 +402,31 @@ namespace Microsoft.Dafny {
         nwn.Constraint = dn.Constraint == null ? null : refinementCloner.CloneExpr(dn.Constraint);
         nwn.WitnessKind = dn.WitnessKind;
         nwn.Witness = dn.Witness == null ? null : refinementCloner.CloneExpr(dn.Witness);
-        m.TopLevelDecls[index] = MergeClass((NewtypeDecl)nw, (NewtypeDecl)d);
+        nwPointer.Set(MergeClass((NewtypeDecl)nw, (NewtypeDecl)d));
       } else if (nw is NewtypeDecl) {
         // `.Basetype` will be set in AddDefaultBaseTypeToUnresolvedNewtypes
         Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
-          m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
+          nwPointer.Set(MergeIterator((IteratorDecl)nw, (IteratorDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is TraitDecl) {
         if (d is TraitDecl) {
-          m.TopLevelDecls[index] = MergeClass((TraitDecl)nw, (TraitDecl)d);
+          nwPointer.Set(MergeClass((TraitDecl)nw, (TraitDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
-        if (d is ClassDecl && !(d is TraitDecl)) {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+        if (d is ClassDecl) {
+          nwPointer.Set(MergeClass((ClassDecl)nw, (ClassDecl)d));
+        } else {
+          Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        }
+      } else if (nw is DefaultClassDecl) {
+        if (d is DefaultClassDecl) {
+          m.DefaultClass = (DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
@@ -728,8 +737,7 @@ namespace Microsoft.Dafny {
 
       // Merge the declarations of prev into the declarations of m
       foreach (var member in prev.Members) {
-        int index;
-        if (!declaredNames.TryGetValue(member.Name, out index)) {
+        if (!declaredNames.TryGetValue(member.Name, out var index)) {
           var nwMember = refinementCloner.CloneMember(member, false);
           nwMember.RefinementBase = member;
           nw.Members.Add(nwMember);
@@ -1000,8 +1008,7 @@ namespace Microsoft.Dafny {
       if (skeleton is DividedBlockStmt) {
         var sbsSkeleton = (DividedBlockStmt)skeleton;
         var sbsOldStmt = (DividedBlockStmt)oldStmt;
-        string hoverText;
-        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out hoverText);
+        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Tok, hoverText);
         }
@@ -1011,8 +1018,7 @@ namespace Microsoft.Dafny {
         }
         return new DividedBlockStmt(sbsSkeleton.RangeToken, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
       } else {
-        string hoverText;
-        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out hoverText);
+        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
         if (hoverText.Length != 0) {
           Reporter.Info(MessageSource.RefinementTransformer, skeleton.RangeToken.ToToken(), hoverText);
         }

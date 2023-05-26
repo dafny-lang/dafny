@@ -42,6 +42,7 @@ namespace DafnyPipeline.Test {
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
       var options = DafnyOptions.Create(output);
+      options.DisallowIncludes = true;
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -54,13 +55,11 @@ namespace DafnyPipeline.Test {
           : removeTrailingNewlineRegex.Replace(programString, "");
 
         var uri = new Uri("virtual:virtual");
-        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
+        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
         BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
-        var module = new LiteralModuleDecl(outerModule, null);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programNotIndented, uri, module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+
+        var dafnyProgram = ParseUtils.Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
           var error = reporter.AllMessages[ErrorLevel.Error][0];
@@ -95,14 +94,12 @@ namespace DafnyPipeline.Test {
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>() { uri }), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns(options);
-        Parser.Parse(reprinted, uri, module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var newOuterModule = new DefaultModuleDefinition(new List<Uri>() { uri }, false);
+        var newReporter = new BatchErrorReporter(options, newOuterModule);
+        dafnyProgram = ParseUtils.Parse(reprinted, uri, newReporter); ;
 
-        var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
-        Assert.Equal(initErrorCount, newReporter.ErrorCount);
+        Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,

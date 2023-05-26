@@ -5,9 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Xml;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
@@ -30,23 +28,11 @@ namespace Microsoft.Dafny {
     }
 
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
-      ModuleDefinition nw;
       if (m is DefaultModuleDefinition defaultModuleDefinition) {
-        nw = new DefaultModuleDefinition(defaultModuleDefinition.RootUris);
-      } else {
-        nw = new ModuleDefinition(Range(m.RangeToken), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
-          m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
-          true, m.IsToBeVerified, m.IsToBeCompiled);
+        return new DefaultModuleDefinition(this, defaultModuleDefinition);
       }
-      foreach (var d in m.TopLevelDecls) {
-        nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
-      }
-      foreach (var tup in m.PrefixNamedModules) {
-        var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)CloneDeclaration(tup.Item2, nw));
-        nw.PrefixNamedModules.Add(newTup);
-      }
-      nw.Height = m.Height;
-      return nw;
+
+      return new ModuleDefinition(this, m, name);
     }
 
     public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
@@ -112,18 +98,19 @@ namespace Microsoft.Dafny {
       } else if (d is TraitDecl) {
         var dd = (TraitDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
         var cl = new TraitDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
+      } else if (d is DefaultClassDecl) {
+        var dd = (DefaultClassDecl)d;
+        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
+        return new DefaultClassDecl(m, mm);
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(d => CloneMember(d, false));
-        if (d is DefaultClassDecl) {
-          return new DefaultClassDecl(m, mm);
-        } else {
-          return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
-        }
+        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
+        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(moduleDecl.ModuleDef, m) {
@@ -694,6 +681,9 @@ namespace Microsoft.Dafny {
   /// This cloner copies the origin module signatures to their cloned declarations
   /// </summary>
   class DeepModuleSignatureCloner : Cloner {
+    public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(cloneResolvedFields) {
+    }
+
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
       if (d is ModuleDecl) {
@@ -718,149 +708,6 @@ namespace Microsoft.Dafny {
   }
 
 
-  class ScopeCloner : DeepModuleSignatureCloner {
-    private VisibilityScope scope = null;
-
-    private Dictionary<Declaration, Declaration> reverseMap = new Dictionary<Declaration, Declaration>();
-
-    private bool isInvisibleClone(Declaration d) {
-      Contract.Assert(reverseMap.ContainsKey(d));
-      return !reverseMap[d].IsVisibleInScope(scope);
-    }
-
-    public ScopeCloner(VisibilityScope scope) {
-      this.scope = scope;
-    }
-
-    private bool RevealedInScope(Declaration d) {
-      return d.IsRevealedInScope(scope);
-    }
-
-    private bool VisibleInScope(Declaration d) {
-      return d.IsVisibleInScope(scope);
-    }
-
-    public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
-      var basem = base.CloneModuleDefinition(m, name);
-
-      //Merge signatures for imports which point to the same module
-      //This makes the consistency check understand that the same element
-      //may be referred to via different qualifications.
-      var sigmap = new Dictionary<ModuleDefinition, ModuleSignature>();
-      var declmap = new Dictionary<ModuleDefinition, List<AliasModuleDecl>>();
-      var vismap = new Dictionary<ModuleDefinition, VisibilityScope>();
-
-      foreach (var top in basem.TopLevelDecls) {
-        var import = reverseMap[top] as AliasModuleDecl;
-        if (import == null) {
-          continue;
-        }
-
-        var def = import.Signature.ModuleDef;
-        if (def == null) {
-          continue;
-        }
-
-        if (!declmap.ContainsKey(def)) {
-          declmap.Add(def, new List<AliasModuleDecl>());
-          sigmap.Add(def, new ModuleSignature());
-          vismap.Add(def, new VisibilityScope());
-        }
-
-        sigmap[def] = Resolver.MergeSignature(sigmap[def], import.Signature);
-        sigmap[def].ModuleDef = def;
-        declmap[def].Add((AliasModuleDecl)top);
-        if (VisibleInScope(import)) {
-          vismap[def].Augment(import.Signature.VisibilityScope);
-        }
-
-      }
-
-      foreach (var decls in declmap) {
-        sigmap[decls.Key].VisibilityScope = vismap[decls.Key];
-        foreach (var decl in decls.Value) {
-          decl.Signature = sigmap[decls.Key];
-        }
-      }
-
-      basem.TopLevelDecls.RemoveAll(t => {
-        if (t is AliasModuleDecl aliasModuleDecl) {
-          var def = aliasModuleDecl.Signature.ModuleDef;
-          return def != null && vismap[def].IsEmpty();
-        }
-
-        return isInvisibleClone(t);
-      });
-
-      basem.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
-        Iter(t => t.Members.RemoveAll(isInvisibleClone));
-
-      return basem;
-    }
-
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var based = base.CloneDeclaration(d, m);
-      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
-        var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
-        var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-        var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
-        var otd = new AbstractTypeDecl(Range(d.RangeToken), d.NameNode.Clone(this), m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
-        based = otd;
-        if (d is ClassDecl) {
-          reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
-          return based;
-        }
-      }
-
-      reverseMap.Add(based, d);
-      return based;
-
-    }
-
-    public override Field CloneField(Field f) {
-      var cf = f as ConstantField;
-      if (cf != null && cf.Rhs != null && !RevealedInScope(f)) {
-        // We erase the RHS value. While we do that, we must also make sure the declaration does have a type, so instead of
-        // cloning cf.Type, we assume "f" has been resolved and clone cf.Type.NormalizeExpandKeepConstraints().
-        return new ConstantField(Range(cf.RangeToken), cf.NameNode.Clone(this), null, cf.HasStaticKeyword, cf.IsGhost, cf.IsOpaque, CloneType(cf.Type.NormalizeExpandKeepConstraints()), CloneAttributes(cf.Attributes));
-      }
-      return base.CloneField(f);
-    }
-
-    public override Function CloneFunction(Function f, string newName = null) {
-      var basef = base.CloneFunction(f, newName);
-      if (basef.ByMethodBody != null) {
-        Contract.Assert(!basef.IsGhost); // a function-by-method has .IsGhost == false
-        Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
-        if (RevealedInScope(f)) {
-          // For an "export reveals", use an empty (but not absent) by-method part.
-          basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.RangeToken, new List<Statement>());
-        } else {
-          // For an "export provides", remove the by-method part altogether.
-          basef.ByMethodTok = null;
-          basef.ByMethodBody = null;
-        }
-      }
-      if (!RevealedInScope(f)) {
-        basef.Body = null;
-      }
-      return basef;
-    }
-
-    public override Method CloneMethod(Method m) {
-      var basem = base.CloneMethod(m);
-      basem.Body = null; //exports never reveal method bodies
-      return basem;
-    }
-
-    public override MemberDecl CloneMember(MemberDecl member, bool isReference) {
-      var basem = base.CloneMember(member, isReference);
-      reverseMap.Add(basem, member);
-      return basem;
-    }
-
-  }
-
   /// <summary>
   /// This cloner is used during the creation of a module signature for a method facade.
   /// It does not clone method bodies, and it copies module signatures.
@@ -871,23 +718,6 @@ namespace Microsoft.Dafny {
     }
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
-      return null;
-    }
-  }
-
-  class AbstractSignatureCloner : ScopeCloner {
-
-    public AbstractSignatureCloner(VisibilityScope scope)
-      : base(scope) {
-    }
-
-    public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
-      var basem = base.CloneModuleDefinition(m, name);
-      basem.TopLevelDecls.RemoveAll(t => t is ModuleExportDecl);
-      return basem;
-    }
-
-    public override BlockStmt CloneMethodBody(Method m) {
       return null;
     }
   }
@@ -905,7 +735,7 @@ namespace Microsoft.Dafny {
   class CompilationCloner : DeepModuleSignatureCloner {
     Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
     public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
-      : base() {
+      : base(false) {
       this.compilationModuleClones = compilationModuleClones;
     }
 
@@ -919,9 +749,8 @@ namespace Microsoft.Dafny {
     }
 
     public override Expression CloneExpr(Expression expr) {
-      var me = expr as MatchExpr;
-      if (me != null && me.OrigUnresolved != null) {
-        return CloneExpr(me.OrigUnresolved);
+      if (expr is MatchExpr { OrigUnresolved: { } origUnresolved }) {
+        return CloneExpr(origUnresolved);
       }
       return base.CloneExpr(expr);
     }
@@ -934,29 +763,25 @@ namespace Microsoft.Dafny {
       sig.VisibilityScope.Augment(newSig.VisibilityScope);
 
       foreach (var kv in org.TopLevels) {
-        TopLevelDecl d;
-        if (newSig.TopLevels.TryGetValue(kv.Key, out d)) {
+        if (newSig.TopLevels.TryGetValue(kv.Key, out var d)) {
           sig.TopLevels.Add(kv.Key, d);
         }
       }
 
       foreach (var kv in org.ExportSets) {
-        ModuleExportDecl d;
-        if (newSig.ExportSets.TryGetValue(kv.Key, out d)) {
+        if (newSig.ExportSets.TryGetValue(kv.Key, out var d)) {
           sig.ExportSets.Add(kv.Key, d);
         }
       }
 
       foreach (var kv in org.Ctors) {
-        Tuple<DatatypeCtor, bool> pair;
-        if (newSig.Ctors.TryGetValue(kv.Key, out pair)) {
+        if (newSig.Ctors.TryGetValue(kv.Key, out var pair)) {
           sig.Ctors.Add(kv.Key, pair);
         }
       }
 
       foreach (var kv in org.StaticMembers) {
-        MemberDecl md;
-        if (newSig.StaticMembers.TryGetValue(kv.Key, out md)) {
+        if (newSig.StaticMembers.TryGetValue(kv.Key, out var md)) {
           sig.StaticMembers.Add(kv.Key, md);
         }
       }
