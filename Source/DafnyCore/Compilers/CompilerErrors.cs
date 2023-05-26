@@ -83,7 +83,7 @@ This messages indicates two problems:
 - the given feature is not supported in the compiler for the target language but is present in the program,
 so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
-The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
+The latter is an omission bug in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
 ");
 
@@ -241,7 +241,7 @@ If the assumption marked with `{:axiom}` is not actually valid, then the validit
 A method may be parsed and verified even if a [forall statement](../DafnyRef/DafnyRef#sec-forall-statement) is missing a body. 
 However, the body must be supplied before the program can be compiled,
 even if the method is `ghost`. Body-less foralls in ghost methods are 
-similar to unchecked assumptions.
+unchecked assumptions.
 ");
 
     Add(ErrorId.c_loop_has_no_body,
@@ -272,7 +272,7 @@ there may be no program statements that have an arbitrary, even if deterministic
 Hence this 'assign any value that satisfies the predicate' (`:|`) statement is not permitted with `--enforce-determinism`,
 even if there is only one such possible value.
 (The tool does not try to determine whether there is just one value and
-whether there is a reasonable way to compute it.)
+whether there is a reasonable way to compute the value.)
 ");
 
     Add(ErrorId.c_assign_such_that_is_too_complex,
