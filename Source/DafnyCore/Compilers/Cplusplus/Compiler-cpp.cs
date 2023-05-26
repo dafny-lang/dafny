@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
-      var s = string.Format("namespace {0} ", IdProtect(moduleName));
+      var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
       string footer1 = "// end of " + s + " datatype declarations";

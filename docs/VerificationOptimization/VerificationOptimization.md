@@ -1,14 +1,14 @@
 # Overview
 
-Dafny verifies your program using a type of theorem prover known as a Satisfiability Modulo Theories (SMT) solver. More specifically, it uses the [Z3](https://github.com/Z3Prover/z3) solver. In many cases, it's possible to state the only the final properties you want your program to have, with annotations such as `requires` and `ensures` clauses, and let the prover do the rest for you, automatically.
+Dafny verifies your program using a type of theorem prover known as a Satisfiability Modulo Theories (SMT) solver. More specifically, it uses the [Z3](https://github.com/Z3Prover/z3) solver. In many cases, it's possible to state only the final properties you want your program to have, with annotations such as `requires` and `ensures` clauses, and let the prover do the rest for you, automatically.
 
 In other cases, however, the prover can need help. It may be that it's unable to prove a particular goal, it may be that it takes so long to prove the goal that it slows down your development cycle, or it may be that the program successfully verifies one time but fails or times out after a small change to the program, a change in the Dafny version being used, or even a change in platform.
 
-In all of these cases, the general solution strategy is the same. Although we hope that most Dafny users will not need to know much about the way Dafny's verification goals are constructed, or the way the SMT solver works, there are a few high-level concepts that can be very helpful in getting verification to succeed.
+In all of these cases, the general solution strategy is the same. Although we hope that most Dafny users will not need to know much about the way Dafny's verification goals are constructed or the way the SMT solver works, there are a few high-level concepts that can be very helpful in getting verification to succeed.
 
-The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevant facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to Dafny being unable prove the goal, timing out, or exhibiting an combination of verification success, timeout, and failure to prove the goal as small changes occur.
+The most fundamental of these is that the solver works best when it has exactly the information it needs available to arrive at a particular conclusion. If key facts are missing, verification will certainly fail. If too many irrelevant facts are available in the scope of a particular goal, the solver can get lost pursuing fruitless chains of reasoning, leading to Dafny being unable prove the goal, timing out, or exhibiting a combination of verification success, timeout, and failure to prove the goal as small changes occur.
 
-The second key concept is that certain types of facts are more difficult to reason about. Isolating the reasoning about such facts to small portions of your program, and providing extra detail to help the prover when reasoning about those isolated instances, can help in these cases. A later section describes some of the more difficult types of reasoning and provides some techniques for dealing with each.
+The second key concept is that certain types of facts are more difficult to reason about. These proofs can be helped by isolating the reasoning about such facts to small portions of your program and providing extra detail to help the prover when reasoning about those isolated instances. A later section describes some of the more difficult types of reasoning and provides some techniques for dealing with each.
 
 Overall, this document provides a conceptual framework and examples of a number of concrete techniques for making verification in Dafny more likely to succeed, and to predictably succeed over time as the program and the Dafny implementation evolve. Fortunately, most of these techniques are closely connected to good software engineering principles such as abstraction and information hiding, and are therefore likely to make it easier for you to fully understand your program, and why it's correct, as well.
 
@@ -17,12 +17,12 @@ At a high level, understanding how to optimize verification requires understandi
 * what Dafny is attempting to prove, and what information is available in constructing a particular verification goal;
 * which individual goals in the verification of a definition are difficult;
 * what general types of verification tend to be difficult;
-* how to provide additional hints to expand the information available in a specific goal; and
-* how hide information to restrict the information available in a specific goal.
+* how to provide additional hints to expand the information available for a specific goal; and
+* how hide information to restrict the information available for a specific goal.
 
 # The facts Dafny deals with
 
-To ensure that the verifier has exactly the right amount of information available, it'll help to review exactly what information is in scope at a particular point in a Dafny program, and what goals the verifier attempts to prove.
+To ensure that the verifier has exactly the right amount of information available, it'll help to review exactly what information is in scope at a particular point in a Dafny program and what goals the verifier attempts to prove.
 
 First, Dafny attempts to prove that several predicates are always true, including the following.
 
@@ -40,19 +40,17 @@ A complete list is available [here](../DafnyRef/DafnyRef#sec-assertion-batches).
 
 Although only one of these uses the `assert` keyword, we use the term _assertion_ to describe each of these verification goals. A collection of assertions, taken together, is called an _assertion batch_.
 
-When trying to prove each of these statements, Dafny assumes several following predicates to be true, making them available as facts for the verifier to use. These include the following.
+When trying to prove each of these statements, Dafny assumes the following predicates to be true, making them available as facts for the verifier to use. These include the following.
 
-* Every `requires` clause, throughout the whole body of a Dafny `function`, `lemma`, or `method`.
+* Each `requires` clause of a Dafny `function`, `lemma`, or `method`, is known, throughout the body, to hold at the beginning of the body.
 
-* Every `invariant` clause, in the body of the loop it is associated with and in subsequent code.
+* Each `invariant` clause of a loop is known, throughout its loop body, to hold at the beginning of the body.
 
-* Every `ensures` clause of a called `function`, `lemma`, or `method` in subsequent code.
+* Each `ensures` clause of a called `function`, `lemma`, or `method` is known, for the remainder of the body calling it, to hold at the point just after a call site.
 
-* Every `requires` clause of a called `function`, `lemma`, or `method` in subsequent code.
+* The expression in each `assume` statement is known in subsequent code to hold at the point of the statement.
 
-* The expression in every `assume` statement, in subsequent code.
-
-* The expression in every `assert` statement, in subsequent code.
+* The expression in each `assert` statement is known in subsequent code to hold at the point of the statement.
 
 * The well-formedness condition of any partial operation, including array indexing and division, in subsequent code.
 
@@ -62,7 +60,7 @@ In all of the above cases, "subsequent code" extends to the end of the current d
 
 Because almost all of these facts are available in a limited scope, sometimes the body of a definition and sometimes specific blocks within that body, the structure of the program has a significant impact on the set of facts the solver considers when attempting verification. Restricting this set, by careful consideration of program structure, can significantly impact the performance and predictability of verification.
 
-By default, whenever Dafny attempts to verify the correctness of a specific definition, it combines every assertion within that definition into a single assertion batch. This tends to provide very good performance in the common case, but sometimes it can slow down verification and make it difficult to identify what factors contribute to making the verification slow. To help identify the difficult assertions in a batch, and sometimes to speed up verification overall, it is possible to break verification up into a number of assertion batches, each containing a subset of all the assertions in the definition.
+By default, whenever Dafny attempts to verify the correctness of a specific definition, it combines every assertion within that definition into a single assertion batch. This tends to provide very good performance in the common case, but sometimes it can slow down verification and make it difficult to identify which factors contribute to making the verification slow. To help identify the difficult assertions in a batch, and sometimes to speed up verification overall, it is possible to break verification up into a number of assertion batches, each containing a subset of all the assertions in the definition.
 
 # Identifying difficult assertions
 
@@ -72,7 +70,7 @@ However, when verification times out, Dafny will (by default) tell you only whic
 
 Dafny provides several attributes that tell it to verify certain assertions separately, rather than verifying everything about the correctness of a particular definition in one query to the solver.
 
-* The [`{:split_here}`](../DafnyRef/DafnyRef#sec-split_here) attribute on an `assert` statement tells Dafny to verify all assertions leading to this point in one batch and all assertions after this point (or up to the next `{:split_here}`, if there is one) in one batch.
+* The [`{:split_here}`](../DafnyRef/DafnyRef#sec-split_here) attribute on an `assert` statement tells Dafny to verify all assertions leading to this point in one batch and all assertions after this point (or up to the next `{:split_here}`, if there is one) in another batch.
 
 * The [`{:focus}`](../DafnyRef/DafnyRef#sec-focus) attribute on an `assert` or `assume` statement tells Dafny to verify all assertions in the containing block, and everything that _always_ follows it, in one batch, and the rest of the definition in another batch (potentially subject to further splitting due to other occurrences of `{:focus}`).
 
@@ -100,7 +98,7 @@ Hovering over the name of the definition will show you performance statistics fo
 
 ![image](hover-method.png)
 
-Although the time taken to complete verification is ultimately the factor that most impacts the development cycle, this time can depend on CPU frequency scaling, other processes, etc., however, so Z3 provides a separate measurement of verification difficulty known as a _resource count_. When running the same build of the Z3 on the same platform multiple times, the resource count is deterministic, unlike time. Therefore, the IDE displays performance information in terms of Resource Units (RU).
+Although the time taken to complete verification is ultimately the factor that most impacts the development cycle, this time can depend on CPU frequency scaling, other processes, etc., so Z3 provides a separate measurement of verification difficulty known as a _resource count_. When running the same build of Z3 on the same platform multiple times, the resource count is deterministic, unlike time. Therefore, the IDE displays performance information in terms of Resource Units (RU).
 
 Hovering over a specific assertion will show you performance statistics for the specific batch containing that assertion (and, in the case of `{:vcs_split_on_every_assert}`, only that assertion).
 
@@ -292,7 +290,7 @@ Dafny allows arbitrary use of quantifiers in logical formulas. It's possible to,
 
 Typically the solution is not to avoid quantifiers altogether. Dafny can be very good at reasoning about them in resticted contexts. Instead, it tends to be good to follow two general principles:
 
-* Given Dafny help when instantiating quantifiers when using quantified statements to prove other things. This will typically involve intermediate assertions, as described in the next section.
+* Give Dafny help instantiating quantifiers when using quantified statements to prove other things. This will typically involve intermediate assertions, as described in the next section.
 
 * Restrict the scope of quantifiers as much as possible. Perhaps use them in certain definitions, but then use the fully-quantified versions of those definitions only to prove less-heavily-quantified facts you may use later. Or encapsulate quantified formulas in opaque predicates that are usually used just by name and only occasionally revealed. Later sections will describe these techniques in more detail.
 
@@ -342,7 +340,7 @@ Here, `UnitIsUnique` couldn't be proved automatically (with a `{  }` body), but 
 
 ## Calculation statements
 
-When there are many intermediate assertions needed to get from `A` to `C`, it can become messy and difficult-to-ready if they exist only as a sequence of `assert` statements. Instead, it's possible to use a [`calc`](../DafnyRef/DafnyRef#sec-calc-statement) statement to chain together many implications, or other relationships, between a starting and ending fact. The version of `UnitIsUnique` that exists in the `libraries` repository is actually proved as follows.
+When there are many intermediate assertions needed to get from `A` to `C`, it can become messy and difficult-to-read if they exist only as a sequence of `assert` statements. Instead, it's possible to use a [`calc`](../DafnyRef/DafnyRef#sec-calc-statement) statement to chain together many implications, or other relationships, between a starting and ending fact. The version of `UnitIsUnique` that exists in the `libraries` repository is actually proved as follows.
 
 <!-- %no-check -->
 ```dafny
@@ -594,13 +592,13 @@ lemma LemmaMulEqualityAuto()
 
 The [`{:trigger}`](../DafnyRef/DafnyRef#sec-trigger) annotation tells it to only instantiate the formula in the postcondition when the solver sees two existing formulas, `x * z` and `y * z`. That is, if it sees two multiplications in which the right-hand sides are the same.
 
-Adding an explicit annotation is generally a last resort, however, because Dafny attempts to infer what triggers would be useful and typically comes up with an effective set. The need for manually-specified triggers often suggests that code could be refactored into a larger number of small, separate definitions, for which Dafny will then infer exactly the triggers you need.
+Adding an explicit trigger annotation is generally a last resort, however, because Dafny attempts to infer what triggers would be useful and typically comes up with an effective set. The need for manually-specified triggers often suggests that code could be refactored into a larger number of small, separate definitions, for which Dafny will then infer exactly the triggers you need.
 
 ## Smaller, more isolated definitions
 
 As a general rule, designing a program from the start so that it can be broken into small pieces with clearly-defined interfaces is helpful for human understanding, flexibility, maintenance, and ease of verification. More specific instances of this include the following.
 
-* Break large functions into smaller functions, especially when they're ghost functions, and make at least some of them opaque. I often consider a ghost function of more than a handful of lines to be a code smell. There are exceptions where larger functions are necessary, or the most straightforward alternative, though, such when handling all of the many cases of a complex algebraic data type.
+* Break large functions into smaller functions, especially when they're ghost functions, and make at least some of them opaque. I often consider a ghost function of more than a handful of lines to be a bad code smell. There are exceptions where larger functions are necessary or are the most straightforward alternative, though, such as when handling all of the many cases of a complex algebraic data type.
 
 * Prove lemmas about functions rather than having numerous or complex postconditions. The individual lemmas can then be invoked only when needed, and other facts that are true but irrelevant will not bog down the solver.
 
@@ -610,7 +608,7 @@ As a general rule, designing a program from the start so that it can be broken i
 
 When you're dealing with a program that exhibits high verification variability, or simply slow or unsuccessful verification, careful encapsulation and information hiding combined with hints to add information in the context of difficult constructs is frequently the best solution. Breaking one large definition with extensive contracts down into several, smaller definitions, each with simpler contracts, can be very valuable. Within each smaller definition, a few internal, locally-encapsulated hints can help the prover make effective progress on goals it might be unable to prove in conjunction with other code.
 
-Some of the the key concrete techniques to limit the scope of each verification goal include:
+Some of the key concrete techniques to limit the scope of each verification goal include:
 * Making functions and predicates `opaque` when possible.
 * Moving a sequence of assertions that build on each other into an `assert P by { ... }` block, where `P` is the final conclusion you want to establish.
 * Making contract elements and assertions opaque, using labels, when you can't conveniently abstract their contents into separate definitions.
