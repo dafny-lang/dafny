@@ -37,4 +37,4 @@ AllocatedCommon.dfyi(214,11): Error: a function definition is not allowed to dep
 AllocatedCommon.dfyi(215,11): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(222,11): Error: a function definition is not allowed to depend on the set of allocated references
 AllocatedCommon.dfyi(223,11): Error: a function definition is not allowed to depend on the set of allocated references
-39 resolution/type errors detected in Allocated2.dfy
+38 resolution/type errors detected in Allocated2.dfy
