@@ -27,7 +27,7 @@ public class CachingParser : ProgramParser {
       // Clone declarations since they are mutable.
       // We should cache an immutable version of the AST: https://github.com/dafny-lang/dafny/issues/4086
       var cloner = new Cloner();
-      result = result with {
+      result = result! with {
         Module = new FileModuleDefinition(cloner, result.Module)
       };
       logger.LogDebug("Parse cache hit");
