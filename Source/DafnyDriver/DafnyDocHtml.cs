@@ -35,11 +35,7 @@ class DafnyDocHtml {
 <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
 <meta name=""author"" content=""dafnydoc"">
 <link rel=""stylesheet"" href=""styles.css""/>
-"
-
-+ script +
-
-@"</head>
+{script}</head>
 ";
   }
 
