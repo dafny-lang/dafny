@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny {
 
+namespace Microsoft.Dafny {
   public static class Sets {
     public static ISet<T> Empty<T>() {
       return new HashSet<T>();
@@ -715,7 +715,7 @@ namespace Microsoft.Dafny {
       return Traverse(moduleDefinition.TopLevelDecls);
     }
 
-    public bool Traverse(List<TopLevelDecl> topLevelDecls) {
+    public bool Traverse(IEnumerable<TopLevelDecl> topLevelDecls) {
       if (topLevelDecls == null) {
         return false;
       }
