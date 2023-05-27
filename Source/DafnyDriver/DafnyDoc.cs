@@ -83,7 +83,7 @@ class Info {
   }
 }
 class DafnyDoc {
-  public static DafnyDriver.ExitValue DoDocumenting(IList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
+  public static DafnyDriver.ExitValue DoDocumenting(IReadOnlyList<DafnyFile> dafnyFiles, List<string> dafnyFolders,
     string programName, DafnyOptions options) {
 
     string outputdir = options.DafnyPrintCompiledFile;
@@ -95,7 +95,7 @@ class DafnyDoc {
     var exitValue = DafnyDriver.ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath => {
       return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-          .Select(name => new DafnyFile(options, name)).ToList();
+          .Select(name => new DafnyFile(options, new Uri(Path.GetFullPath(name)))).ToList();
     })).ToList();
     Console.Out.Write($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {

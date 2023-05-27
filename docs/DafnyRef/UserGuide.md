@@ -534,7 +534,7 @@ The `dafny doc` command generates HTML documentation pages describing the conten
 module in a set of files, using the documentation comments in the source files.
 This command is experimental; user feedback and contributor PRs on the layout of information and the navigation are welcome.
 
-* The format of the documentation comments is described [here](TODO).
+* The format of the documentation comments is described [here](#sec-documentation-comments).
 * The `dafny doc` command accepts either files or folders as command-line arguments. A folder
 represents all the `.dfy` files contained recursively in that folder. A file that is a `.toml`
 [project file](#sec-project-files) represents all the files and options listed in the project file.

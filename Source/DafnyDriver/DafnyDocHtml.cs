@@ -25,7 +25,7 @@ class DafnyDocHtml {
 <html lang=""en"">
 <head>
 <meta charset=""utf-8"">
-<meta name=""viewport"" content=""width=1000px, initial-scale=1"">
+<meta name=""viewport"" content=""width=device-width, initial-scale=1"">
 <title>{title}</title>
 <link rel=""icon"" type=""image/png"" href=""dafny-favicon.png"">
 <meta name=""description"" content=""Documentation for Dafny code produced by dafnydoc"">
