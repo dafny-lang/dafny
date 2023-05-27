@@ -1,6 +1,6 @@
 <!-- %check-resolve %default %useHeadings -->
 
-<!-- DafnyCore/Resolver/ExpressionTester.cs -->
+<!-- FILE DafnyCore/Resolver/ExpressionTester.cs -->
 
 ## **Error: ghost variables such as _name_ are allowed only in specification contexts. _name_ was inferred to be ghost based on its declaration or initialization.** {#r_ghost_var_only_in_specifications}
 
@@ -74,7 +74,7 @@ method m(d:D)
 Datatypes may have ghost variants (where the datatype constructor is itself declared ghost), but constructing or updating such variants is a ghost operation.
 Consequently such expressions may not be present in compiled code.
 
-## **Error: a call to a _kind_ is allowed only in specification contexts** {#r_call_only_in_specification}
+## **Error: a call to a _kind_ is allowed only in specification contexts_hint_** {#r_call_only_in_specification}
 
 ```dafny
 twostate function f(): int { 42 }
@@ -86,7 +86,7 @@ method m() returns (r: int) {
 `twostate`, extreme predicates, and prefix lemmas are functions that are always ghost (even without a `ghost` keyword).
 Thus they may never be used outside a ghost context.
 
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')** {#r_ghost_call_only_in_specification_old_syntax}
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')** {#r_ghost_call_only_in_specification_function_3}
 
 For Dafny 3:
 <!-- %check-resolve %options --function-syntax:3 -->
@@ -98,7 +98,13 @@ method m() returns (a: int)
 }
 ```
 
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)** {#r_ghost_call_only_in_specification}
+A ghost function can only be called in a ghost context; assigning to an out-parameter is
+always a non-ghost context. If you declare the function to be compilable, then it can be used
+in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function method` (and just `function` is ghost);
+in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
+for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
+
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)** {#r_ghost_call_only_in_specification_function_4}
 For Dafny 4:
 <!-- %check-resolve %options --function-syntax:4 -->
 ```dafny
@@ -115,23 +121,6 @@ in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function
 in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
 for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with '_what_ method')** {#r_ghost_call_only_in_specification_old_syntax_2}
-
-<!-- %check-resolve %options --function-syntax:3 -->
-```dafny
-function f(i: int): int
-method m() {
-   print f(1);
-}
-```
-
-Dafny has a fundamental distinction between _ghost_ code and _compiled_ code. Ghost code is not compiled; 
-compiled code cannot contain ghost-only features. A function that is explicitly ghost is not permitted in
-a context that is compiled, such as a print statement. The distinction can seem a bit blurry because Dafny 
-in part infers what is ghost code because of the presence of some ghost features -- so ghost code may not 
-be explictly so. Also remember that the declarations of functions in Dafny 4 is 'ghost function' for
-ghost and 'function' for non-ghost; in Dafny 3 the declarations are 'function' for ghost, 
-and 'function method' for non-ghost.
 
 ## **Error: ghost constructor is allowed only in specification contexts** {#r_ghost_constructors_only_in_ghost_context}
 
@@ -261,7 +250,7 @@ context, such as a print statement.
 
 
 
-<!-- ./DafnyCore/Resolver/TypeInferenceChecker.cs -->
+<!-- FILE ./DafnyCore/Resolver/TypeInferenceChecker.cs -->
 
 ## **Error: newtype's base type is not fully determined; add an explicit type for '_name_'** {#r_newtype_base_undetermined}
 
@@ -349,10 +338,6 @@ a syntax that explicitly states that the writer means it.
 
 <!-- TODO -->
 
-## **Error: type parameter '_name_' (inferred to be '_type_') in the function call to '_name_' could not be determined. If you are making an opaque function, make sure that the function can be called.** {#r_opaque_function_type_parameter_undetermined} 
-
-<!-- TODO -->
-
 ## **Error: type parameter '_name_' (passed in as '_type_') to function call '_name_' is not allowed to use ORDINAL** {#r_function_type_parameter_may_not_be_ORDINAL}
 
 <!-- TODO -->
@@ -430,7 +415,7 @@ But the elements of the container are of a type that does not include `null`, so
 be `false` (or `true`).  Either the type of the container's elements should be a nullable type (a `C?` instead of a `C`)
 or the test is unnecessary. 
 
-## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'** {#r_trivial_map__null_inclusion_test}
+## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'** {#r_trivial_map_null_inclusion_test}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -450,7 +435,7 @@ then this test is not needed at all.
 <!-- TODO -->
 
 ## **Error: an ORDINAL type is not allowed to be used as a type argument** {#r_no_ORDINAL_as_type_parameter}
-
+<!-- TODO _ this one is misplaced -->
 <!-- %no-check This example does not work TODO -->
 ```dafny
 type X<T>
@@ -463,7 +448,7 @@ are ORDINALs that are larger than any `nat`. Logical reasoning with ORDINALs is 
 a bit counter-intuitive at times. For logical implementation reasons, Dafny limits where
 ORDINALs can be used; one restriction is that the ORDINAL type may not be a type argument.
 
-<!-- ./DafnyCore/Resolver/Abstemious.cs-->
+<!-- FILE ./DafnyCore/Resolver/Abstemious.cs -->
 
 <!-- TODO: Abstemious functions are not documented -->
 
@@ -490,7 +475,7 @@ _Abstemious functions are not documented. Please report occurences of this error
 <!-- TODO: Oddly worded message -->
 
 
-<!-- ./DafnyCore/Resolver/GhostInterestVisitor.cs-->
+<!-- FILE ./DafnyCore/Resolver/GhostInterestVisitor.cs -->
 
 ## **Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)** {#r_expect_statement_is_not_ghost}
 
@@ -818,7 +803,6 @@ that is not permitted because the assignment statement occurs in a ghost context
 non-ghost environment. A common example is the then or else branch of a `if` statement that is
 deemed a ghost context because the controlling condition for the loop is a ghost expression.
 Similar situations arise for loops and match statements.
-
 
 ## **Error: the result of a ghost constructor can only be assigned to a ghost variable** {#r_assignment_to_ghost_constructor_only_in_ghost}
 
