@@ -18,16 +18,16 @@ public class DafnyLangSymbolResolverTest {
 
   class CollectingErrorReporter : BatchErrorReporter {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
-      return this.AllMessages;
+      return this.AllMessagesByLevel;
     }
 
-    public CollectingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
+    public CollectingErrorReporter(DafnyOptions options) : base(options) {
     }
   }
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDefinition(new List<Uri>()), null) {
+      new DefaultModuleDefinition(new List<Uri>(), false), null) {
     }
     public override object Dereference() {
       return this;

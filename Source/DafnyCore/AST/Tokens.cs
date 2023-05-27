@@ -56,7 +56,7 @@ public interface IToken : Microsoft.Boogie.IToken {
 public class Token : IToken {
 
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
-  public static readonly IToken NoToken = new Token();
+  public static readonly Token NoToken = new Token();
 
   static Token() {
     NoToken.Next = NoToken;

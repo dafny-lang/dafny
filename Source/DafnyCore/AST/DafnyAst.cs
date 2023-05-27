@@ -73,7 +73,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
@@ -110,13 +110,14 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      if (DefaultModule.RootToken.Next == null) {
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
+      if (rootToken.Next == null) {
         return null;
       }
 
-      var firstToken = DefaultModule.RootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filepath != DefaultModule.RootToken.Filepath) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -134,32 +135,6 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Assumption> Assumptions(Declaration decl) {
       return Modules().SelectMany(m => m.Assumptions(decl));
     }
-  }
-
-  public class Include : TokenNode, IComparable {
-    public Uri IncluderFilename { get; }
-    public string IncludedFilename { get; }
-    public string CanonicalPath { get; }
-    public bool ErrorReported;
-
-    public Include(IToken tok, Uri includer, string theFilename) {
-      this.tok = tok;
-      this.IncluderFilename = includer;
-      this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
-      this.ErrorReported = false;
-    }
-
-    public int CompareTo(object obj) {
-      if (obj is Include include) {
-        return CanonicalPath.CompareTo(include.CanonicalPath);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-
-    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
