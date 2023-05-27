@@ -20,7 +20,7 @@ class DafnyDocHtml {
 
   public static string HtmlStart(string title, string script = "") {
     return
-      @"
+      @$"
 <!DOCTYPE html>
 <html lang=""en"">
 <head>
