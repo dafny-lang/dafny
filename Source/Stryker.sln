@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "IntegrationTests\IntegrationTests.csproj", "{566A6D0B-7553-4743-ACC4-4FAF2C923BBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyCore", "DafnyCore\DafnyCore.csproj", "{2D351762-AA7B-455A-92D6-F51DF09AFA4D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{566A6D0B-7553-4743-ACC4-4FAF2C923BBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{566A6D0B-7553-4743-ACC4-4FAF2C923BBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{566A6D0B-7553-4743-ACC4-4FAF2C923BBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{566A6D0B-7553-4743-ACC4-4FAF2C923BBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D351762-AA7B-455A-92D6-F51DF09AFA4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D351762-AA7B-455A-92D6-F51DF09AFA4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D351762-AA7B-455A-92D6-F51DF09AFA4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D351762-AA7B-455A-92D6-F51DF09AFA4D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

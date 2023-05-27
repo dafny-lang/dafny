@@ -31,6 +31,14 @@ public class JavaBackend : ExecutableBackend {
     }
   }
 
+  public override void postCleanDirectory(string sourceDirectory, string dafnyProgramName) {
+    try {
+      Directory.Delete($"{sourceDirectory}", true);
+      File.Delete($"{sourceDirectory.Substring(0, sourceDirectory.Length-5)}.jar");
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   protected override SinglePassCompiler CreateCompiler() {
     return new JavaCompiler(Options, Reporter);
   }

@@ -309,6 +309,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
+    public bool DeleteCodeAfterRun = false;
     public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
@@ -448,6 +449,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
       switch (name) {
+
+        case "deleteCodeAfterRun": {
+          int deleteCodeAfterRun = 0;
+          if (ps.GetIntArgument(ref deleteCodeAfterRun, 2)) {
+            DeleteCodeAfterRun = deleteCodeAfterRun == 1;
+          }
+          return true;
+        }
+
 
         case "view":
           if (ps.ConfirmArgumentCount(1)) {

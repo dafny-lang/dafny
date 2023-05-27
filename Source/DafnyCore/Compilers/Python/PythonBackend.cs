@@ -71,6 +71,13 @@ public class PythonBackend : ExecutableBackend {
     }
   }
 
+    public override void postCleanDirectory(string sourceDirectory, string dafnyProgramName) {
+    try {
+      Directory.Delete($"{sourceDirectory}", true);
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
       string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {

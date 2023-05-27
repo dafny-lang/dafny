@@ -30,6 +30,14 @@ public class CsharpBackend : ExecutableBackend {
       : base.GetCompileName(isDefaultModule, moduleName, compileName);
   }
 
+  public override void postCleanDirectory(string sourceDirectory, string dafnyProgramName) {
+    try {
+      File.Delete($"{sourceDirectory}/{Path.GetFileNameWithoutExtension(dafnyProgramName)}.dll");
+      File.Delete($"{sourceDirectory}/{Path.GetFileNameWithoutExtension(dafnyProgramName)}.runtimeconfig.json");
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   public override bool SupportsInMemoryCompilation => true;
   public override bool TextualTargetIsExecutable => false;
 

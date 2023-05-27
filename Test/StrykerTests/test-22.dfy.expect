@@ -1,0 +1,20 @@
+
+Dafny program verifier did not attempt verification
+v_char_multiset_1.0 true v_char_multiset_1.1 true v_char_multiset_2 true v_char_multiset_1 true v_int_8 3 v_map_1 true p_m_method_1_2 true p_m_method_1_1 true p_m_method_1_1.DT_1_3_1 true p_m_method_1_1.DT_1_3_2 true p_m_method_1_3 false p_m_method_1_1.DT_1_3_3 24 p_m_method_1_1.DT_1_3_4 16
+v_int_7 -17 v_char_1 true v_bool_1 false v_DT_1_3_1 true v_DT_1_3_2 true v_int_13 0 v_int_12 0 v_DT_1_3_1.DT_1_3_4 16 v_int_11 29 v_seq_6 [-17, 4, 11, 17] v_seq_5 [21, 4, 11, 17] v_seq_4 [21, 4, 11, 17] v_seq_3 [] v_int_14 0 v_DT_1_3_1.DT_1_3_2 true v_DT_1_3_1.DT_1_3_3 24 v_DT_1_3_1.DT_1_3_1 true
+
+Dafny program verifier did not attempt verification
+v_char_multiset_1.0 true v_char_multiset_1.1 true v_char_multiset_2 true v_char_multiset_1 true v_int_8 3 v_map_1 true p_m_method_1_2 true p_m_method_1_1 true p_m_method_1_1.DT_1_3_1 true p_m_method_1_1.DT_1_3_2 true p_m_method_1_3 false p_m_method_1_1.DT_1_3_3 24 p_m_method_1_1.DT_1_3_4 16
+v_int_7 -17 v_char_1 true v_bool_1 false v_DT_1_3_1 true v_DT_1_3_2 true v_int_13 0 v_int_12 0 v_DT_1_3_1.DT_1_3_4 16 v_int_11 29 v_seq_6 [-17, 4, 11, 17] v_seq_5 [21, 4, 11, 17] v_seq_4 [21, 4, 11, 17] v_seq_3 [] v_int_14 0 v_DT_1_3_1.DT_1_3_2 true v_DT_1_3_1.DT_1_3_3 24 v_DT_1_3_1.DT_1_3_1 true
+
+Dafny program verifier did not attempt verification
+v_char_multiset_1.0 true v_char_multiset_1.1 true v_char_multiset_2 true v_char_multiset_1 true v_int_8 3 v_map_1 true p_m_method_1_2 true p_m_method_1_1 true p_m_method_1_1.DT_1_3_1 true p_m_method_1_1.DT_1_3_2 true p_m_method_1_3 false p_m_method_1_1.DT_1_3_3 24 p_m_method_1_1.DT_1_3_4 16
+v_int_7 -17 v_char_1 true v_bool_1 false v_DT_1_3_1 true v_DT_1_3_2 true v_int_13 0 v_int_12 0 v_DT_1_3_1.DT_1_3_4 16 v_int_11 29 v_seq_6 [-17, 4, 11, 17] v_seq_5 [21, 4, 11, 17] v_seq_4 [21, 4, 11, 17] v_seq_3 [] v_int_14 0 v_DT_1_3_1.DT_1_3_2 true v_DT_1_3_1.DT_1_3_3 24 v_DT_1_3_1.DT_1_3_1 true
+
+Dafny program verifier did not attempt verification
+v_char_multiset_1.0 true v_char_multiset_1.1 true v_char_multiset_2 true v_char_multiset_1 true v_int_8 3 v_map_1 true p_m_method_1_2 true p_m_method_1_1 true p_m_method_1_1.DT_1_3_1 true p_m_method_1_1.DT_1_3_2 true p_m_method_1_3 false p_m_method_1_1.DT_1_3_3 24 p_m_method_1_1.DT_1_3_4 16
+v_int_7 -17 v_char_1 true v_bool_1 false v_DT_1_3_1 true v_DT_1_3_2 true v_int_13 0 v_int_12 0 v_DT_1_3_1.DT_1_3_4 16 v_int_11 29 v_seq_6 [-17, 4, 11, 17] v_seq_5 [21, 4, 11, 17] v_seq_4 [21, 4, 11, 17] v_seq_3 [] v_int_14 0 v_DT_1_3_1.DT_1_3_2 true v_DT_1_3_1.DT_1_3_3 24 v_DT_1_3_1.DT_1_3_1 true
+
+Dafny program verifier did not attempt verification
+v_char_multiset_1.0 true v_char_multiset_1.1 true v_char_multiset_2 true v_char_multiset_1 true v_int_8 3 v_map_1 true p_m_method_1_2 true p_m_method_1_1 true p_m_method_1_1.DT_1_3_1 true p_m_method_1_1.DT_1_3_2 true p_m_method_1_3 false p_m_method_1_1.DT_1_3_3 24 p_m_method_1_1.DT_1_3_4 16
+v_int_7 -17 v_char_1 true v_bool_1 false v_DT_1_3_1 true v_DT_1_3_2 true v_int_13 0 v_int_12 0 v_DT_1_3_1.DT_1_3_4 16 v_int_11 29 v_seq_6 [-17, 4, 11, 17] v_seq_5 [21, 4, 11, 17] v_seq_4 [21, 4, 11, 17] v_seq_3 [] v_int_14 0 v_DT_1_3_1.DT_1_3_2 true v_DT_1_3_1.DT_1_3_3 24 v_DT_1_3_1.DT_1_3_1 true

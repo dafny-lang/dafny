@@ -41,6 +41,14 @@ public class JavaScriptBackend : ExecutableBackend {
     }
   }
 
+  
+  public override void postCleanDirectory(string sourceDirectory, string dafnyProgramName) {
+    try {
+      File.Delete($"{sourceDirectory}/{Path.GetFileNameWithoutExtension(dafnyProgramName)}.js");
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {

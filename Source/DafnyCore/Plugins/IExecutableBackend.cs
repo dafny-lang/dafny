@@ -120,6 +120,7 @@ public abstract class IExecutableBackend {
   /// </summary>
   /// <param name="sourceDirectory">Name of the directory to delete.</param>
   public virtual void CleanSourceDirectory(string sourceDirectory) { }
+  public virtual void postCleanDirectory(string sourceDirectory, string dafnyProgramName) { }
 
   public abstract void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
 

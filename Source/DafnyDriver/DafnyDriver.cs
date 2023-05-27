@@ -932,6 +932,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      if (options.DeleteCodeAfterRun) {
+        compiler.postCleanDirectory(paths.SourceDirectory, dafnyProgramName);
+      }
       return compiledCorrectly;
     }
 

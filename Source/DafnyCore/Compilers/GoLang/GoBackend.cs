@@ -39,6 +39,13 @@ public class GoBackend : ExecutableBackend {
     }
   }
 
+  public override void postCleanDirectory(string sourceDirectory, string dafnyProgramName) {
+    try {
+      Directory.Delete($"{sourceDirectory.Substring(0, sourceDirectory.Length-4)}", true);
+    } catch (DirectoryNotFoundException) {
+    }
+  }
+
   public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
