@@ -432,7 +432,7 @@ class DafnyDoc {
       }
       info.HtmlSummary = Row($"import {Link(info.Id, styledName)}", " = ", $"{QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}",
          DashShortDocstring(imp));
-      details.Append(Code("import " + openText + name + " = " + QualifiedNameWithLinks(target.FullDafnyName) + "`" + exportsets));
+      details.Append(Code($"import {openText}{name} = {QualifiedNameWithLinks(target.FullDafnyName)}`{exportsets}"));
       list = imp.AccessibleSignature(true).StaticMembers.Values.ToList();
       list2 = imp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
     } else if (md is AbstractModuleDecl aimp) {
