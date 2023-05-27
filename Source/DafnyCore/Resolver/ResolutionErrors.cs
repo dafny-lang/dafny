@@ -10,10 +10,9 @@ public class ResolutionErrors {
   public enum ErrorId {
     r_ghost_var_only_in_specifications,
     r_only_in_specification,
-    r_ghost_parameters_only_in_specifcication,
+    r_ghost_parameters_only_in_specification,
     r_used_only_in_specification,
     r_ghost_destructor_update_not_compilable,
-    r_call_only_in_specification,
     r_ghost_call_only_in_specification,
     r_ghost_call_only_in_specification_function_4,
     r_ghost_call_only_in_specification_function_3,
@@ -44,7 +43,6 @@ public class ResolutionErrors {
     r_never_succeeding_type_test,
     r_unsupported_type_test,
     r_trivial_null_test,
-    r_trivial_null_test_2,
     r_trivial_null_inclusion_test,
     r_trivial_map_null_inclusion_test,
     r_var_type_undetermined,
@@ -72,7 +70,6 @@ public class ResolutionErrors {
     r_new_forbidden_in_proof,
     r_no_heap_update_in_proof,
     r_assignment_forbidden_in_context,
-    r_assignment_forbidden_in_ghost_context,
     r_assignment_to_ghost_constructor_only_in_ghost,
     r_assert_only_assumes_others,
     r_assert_only_before_after

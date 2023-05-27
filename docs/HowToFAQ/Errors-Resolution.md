@@ -29,7 +29,7 @@ method m(a: A) returns (r: int) {
 
 Ghost expressions, including ghost fields or destructors, are allowed only in ghost code.
 
-## **Error: a _what_ with ghost parameters can be used as a value only in specification contexts** {#r_ghost_parameters_only_in_specifcication}
+## **Error: a _what_ with ghost parameters can be used as a value only in specification contexts** {#r_ghost_parameters_only_in_specification}
 
 ```dafny
 class A { 
@@ -72,9 +72,9 @@ method m(d:D)
 ```
 
 Datatypes may have ghost variants (where the datatype constructor is itself declared ghost), but constructing or updating such variants is a ghost operation.
-Consequently such expressions may not be present in compiled code.
+Consequently such expressions may not be present in compiled code.vi che
 
-## **Error: a call to a _kind_ is allowed only in specification contexts_hint_** {#r_call_only_in_specification}
+## **Error: a call to a _kind_ is allowed only in specification contexts_hint_** {#r_ghost_call_only_in_specification}
 
 ```dafny
 twostate function f(): int { 42 }
@@ -85,24 +85,6 @@ method m() returns (r: int) {
 
 `twostate`, extreme predicates, and prefix lemmas are functions that are always ghost (even without a `ghost` keyword).
 Thus they may never be used outside a ghost context.
-
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')** {#r_ghost_call_only_in_specification_function_3}
-
-For Dafny 3:
-<!-- %check-resolve %options --function-syntax:3 -->
-```dafny
-function f(): int { 42 }
-method m() returns (a: int)
-{
-  a := f();
-}
-```
-
-A ghost function can only be called in a ghost context; assigning to an out-parameter is
-always a non-ghost context. If you declare the function to be compilable, then it can be used
-in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function method` (and just `function` is ghost);
-in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
-for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)** {#r_ghost_call_only_in_specification_function_4}
 For Dafny 4:
@@ -121,6 +103,23 @@ in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function
 in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
 for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')** {#r_ghost_call_only_in_specification_function_3}
+
+For Dafny 3:
+<!-- %check-resolve %options --function-syntax:3 -->
+```dafny
+function f(): int { 42 }
+method m() returns (a: int)
+{
+  a := f();
+}
+```
+
+A ghost function can only be called in a ghost context; assigning to an out-parameter is
+always a non-ghost context. If you declare the function to be compilable, then it can be used
+in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function method` (and just `function` is ghost);
+in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
+for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
 ## **Error: ghost constructor is allowed only in specification contexts** {#r_ghost_constructors_only_in_ghost_context}
 
@@ -187,7 +186,7 @@ So `unchanged` cannot be used in situations where it is definitely not a ghost c
 assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter.
 
-## **Error: rank comparisons are allowed only in specification and ghost contexts**  {#r_rank_expressions_only_in_ghost_context}
+## **Error: rank comparisons are allowed only in specification and ghost contexts** {#r_rank_expressions_only_in_ghost_context}
 
 ```dafny
 datatype D = A | B
@@ -350,11 +349,11 @@ a syntax that explicitly states that the writer means it.
 
 <!-- TODO -->
 
-## **a type test to '_type_' must be from a compatible type (got '_type_')** {#r_never_succeeding_type_test}
+## **Error: a type test to '_type_' must be from a compatible type (got '_type_')** {#r_never_succeeding_type_test}
 
 <!-- TODO -->
 
-## **a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')** {#r_unsupported_type_test}
+## **Error: a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')** {#r_unsupported_type_test}
 
 ```dafny
 type Small = i: nat | i < 10
@@ -365,7 +364,7 @@ const b := i is Small
 The `is` type test is currently somewhat limited in Dafny, and more limited than the companion `as` conversion.
 In particular, `is` is not allowed to test that a value is a member of a subset type.
 
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_'** {#r_trivial_null_test}
+## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_'_hint_** {#r_trivial_null_test}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -373,6 +372,7 @@ class C {}
 function f(): C
 method m(c: C) {
   var b: bool := f() != null;
+  var a: bool := c != null;
 }
 ```
 
@@ -381,23 +381,6 @@ But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` do
 whereas `C?` does. So if an expression `e` having type `C` is compared against `null`, as in `e == null`,
 that comparison will always be `false`. If the logic of the program allows `e` to be sometimes `null`,
 then it should be declared with a type like `C?`.
-
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_' (to make it possible for _name_ to have the value 'null', declare its type to be '_type_')** {#r_trivial_null_test_2}
-
-<!-- %check-resolve-warn -->
-```dafny
-class C {}
-method m(c: C) {
-  var b: bool := c != null;
-}
-```
-
-Dafny does have a `null` value and variables of types that include `null` can have a `null` value.
-But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
-whereas `C?` does. So if a variable `v` declared as type `C` is compared against `null`, as in `v == null`,
-that comparison will always be `false`. If the logic of the program allows `v` to be sometimes `null`,
-then it should be declared with a type like `C?`.
-
 
 ## **Warning: the type of the other operand is a _what_ of non-null elements, so the _non_inclusion test of 'null' will always return '_bool_'** {#r_trivial_null_inclusion_test}
 
@@ -549,7 +532,7 @@ considered ghost. And then the statement can contain no substatements that are f
 `return` and `yield` stastements are never ghost, so they cannot appear in a statement whose guarding
 value is ghost.
 
-## **cannot assign to _var_ in a ghost context** {#r_no_assign_to_var_in_ghost}
+## **Error: cannot assign to _var_ in a ghost context** {#r_no_assign_to_var_in_ghost}
 
 ```dafny
 method m(ghost c: int) 
@@ -795,7 +778,7 @@ heap, as a `new` expression does. Typically a proof uses expressions that are va
 
 ```dafny
 class A { var a: int }
-lemma m(aa: A) {
+lemma lem(aa: A) {
   aa.a := 1;
 }
 method m(aa: A) {

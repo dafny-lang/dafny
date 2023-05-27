@@ -35,12 +35,12 @@ public class ExpressionTester {
     return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public void ReportError(MessageSource source, ErrorId errorId, Expression e, string msg, params object[] args) {
-    reporter?.Error(source, errorId.ToString(), e, msg, args);
+  public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
+    reporter?.Error(MessageSource.Resolver, errorId.ToString(), e, msg, args);
   }
 
-  public void ReportError(MessageSource source, ErrorId errorId, IToken t, string msg, params object[] args) {
-    reporter?.Error(source, errorId.ToString(), t, msg, args);
+  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+    reporter?.Error(MessageSource.Resolver, errorId.ToString(), t, msg, args);
   }
 
   /// <summary>
@@ -71,7 +71,7 @@ public class ExpressionTester {
 
     if (expr is IdentifierExpr expression) {
       if (expression.Var != null && expression.Var.IsGhost) {
-        ReportError(MessageSource.Resolver, ErrorId.r_ghost_var_only_in_specifications, expression,
+        ReportError(ErrorId.r_ghost_var_only_in_specifications, expression,
           $"ghost variables such as {expression.Name} are allowed only in specification contexts. {expression.Name} was inferred to be ghost based on its declaration or initialization.");
         return false;
       }
@@ -82,15 +82,15 @@ public class ExpressionTester {
       }
       if (selectExpr.Member != null && selectExpr.Member.IsGhost) {
         var what = selectExpr.Member.WhatKindMentionGhost;
-        ReportError(MessageSource.Resolver, ErrorId.r_only_in_specification, selectExpr, $"a {what} is allowed only in specification contexts");
+        ReportError(ErrorId.r_only_in_specification, selectExpr, $"a {what} is allowed only in specification contexts");
         return false;
       } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
         var what = selectExpr.Member.WhatKindMentionGhost;
-        ReportError(MessageSource.Resolver, ErrorId.r_ghost_parameters_only_in_specifcication, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
+        ReportError(ErrorId.r_ghost_parameters_only_in_specification, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
         return false;
       } else if (selectExpr.Member is DatatypeDestructor dtor && dtor.EnclosingCtors.All(ctor => ctor.IsGhost)) {
         var what = selectExpr.Member.WhatKind;
-        ReportError(MessageSource.Resolver, ErrorId.r_used_only_in_specification, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
+        ReportError(ErrorId.r_used_only_in_specification, selectExpr, $"{what} '{selectExpr.MemberName}' can be used only in specification contexts");
         return false;
       }
 
@@ -109,7 +109,7 @@ public class ExpressionTester {
       if (updateExpr.LegalSourceConstructors.All(ctor => ctor.IsGhost)) {
         var dtors = Util.PrintableNameList(updateExpr.Members.ConvertAll(dtor => dtor.Name), "and");
         var ctorNames = DatatypeDestructor.PrintableCtorNameList(updateExpr.LegalSourceConstructors, "or");
-        ReportError(MessageSource.Resolver, ErrorId.r_ghost_destructor_update_not_compilable, updateExpr,
+        ReportError(ErrorId.r_ghost_destructor_update_not_compilable, updateExpr,
           $"in a compiled context, update of {dtors} cannot be applied to a datatype value of a ghost variant (ghost constructor {ctorNames})");
         isCompilable = false;
       }
@@ -141,7 +141,7 @@ public class ExpressionTester {
             }
             msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
           }
-          ReportError(MessageSource.Resolver, eid, callExpr, msg);
+          ReportError(eid, callExpr, msg);
           return false;
         }
         if (callExpr.Function.ByMethodBody != null) {
@@ -165,7 +165,7 @@ public class ExpressionTester {
 
     } else if (expr is DatatypeValue value) {
       if (value.Ctor.IsGhost) {
-        ReportError(MessageSource.Resolver, ErrorId.r_ghost_constructors_only_in_ghost_context, expr, "ghost constructor is allowed only in specification contexts");
+        ReportError(ErrorId.r_ghost_constructors_only_in_ghost_context, expr, "ghost constructor is allowed only in specification contexts");
         isCompilable = false;
       }
       // check all NON-ghost arguments
@@ -178,21 +178,21 @@ public class ExpressionTester {
       return isCompilable;
 
     } else if (expr is OldExpr) {
-      ReportError(MessageSource.Resolver, ErrorId.r_old_expressions_only_in_ghost_context, expr, "old expressions are allowed only in specification and ghost contexts");
+      ReportError(ErrorId.r_old_expressions_only_in_ghost_context, expr, "old expressions are allowed only in specification and ghost contexts");
       return false;
 
     } else if (expr is TypeTestExpr tte) {
       if (!IsTypeTestCompilable(tte)) {
-        ReportError(MessageSource.Resolver, ErrorId.r_type_test_not_runtime_checkable, tte, $"an expression of type '{tte.E.Type}' is not run-time checkable to be a '{tte.ToType}'");
+        ReportError(ErrorId.r_type_test_not_runtime_checkable, tte, $"an expression of type '{tte.E.Type}' is not run-time checkable to be a '{tte.ToType}'");
         return false;
       }
 
     } else if (expr is FreshExpr) {
-      ReportError(MessageSource.Resolver, ErrorId.r_fresh_expressions_only_in_ghost_context, expr, "fresh expressions are allowed only in specification and ghost contexts");
+      ReportError(ErrorId.r_fresh_expressions_only_in_ghost_context, expr, "fresh expressions are allowed only in specification and ghost contexts");
       return false;
 
     } else if (expr is UnchangedExpr) {
-      ReportError(MessageSource.Resolver, ErrorId.r_unchanged_expressions_only_in_ghost_context, expr, "unchanged expressions are allowed only in specification and ghost contexts");
+      ReportError(ErrorId.r_unchanged_expressions_only_in_ghost_context, expr, "unchanged expressions are allowed only in specification and ghost contexts");
       return false;
 
     } else if (expr is StmtExpr stmtExpr) {
@@ -206,14 +206,14 @@ public class ExpressionTester {
       switch (binaryExpr.ResolvedOp_PossiblyStillUndetermined) {
         case BinaryExpr.ResolvedOpcode.RankGt:
         case BinaryExpr.ResolvedOpcode.RankLt:
-          ReportError(MessageSource.Resolver, ErrorId.r_rank_expressions_only_in_ghost_context, binaryExpr, "rank comparisons are allowed only in specification and ghost contexts");
+          ReportError(ErrorId.r_rank_expressions_only_in_ghost_context, binaryExpr, "rank comparisons are allowed only in specification and ghost contexts");
           return false;
       }
     } else if (expr is TernaryExpr ternaryExpr) {
       switch (ternaryExpr.Op) {
         case TernaryExpr.Opcode.PrefixEqOp:
         case TernaryExpr.Opcode.PrefixNeqOp:
-          ReportError(MessageSource.Resolver, ErrorId.r_prefix_equalities_only_in_ghost_context, ternaryExpr, "prefix equalities are allowed only in specification and ghost contexts");
+          ReportError(ErrorId.r_prefix_equalities_only_in_ghost_context, ternaryExpr, "prefix equalities are allowed only in specification and ghost contexts");
           return false;
       }
     } else if (expr is LetExpr letExpr) {
@@ -270,7 +270,7 @@ public class ExpressionTester {
           what = "quantifiers";
         }
         foreach (var bv in uncompilableBoundVars) {
-          ReportError(MessageSource.Resolver, ErrorId.r_unknown_bounds, comprehensionExpr,
+          ReportError(ErrorId.r_unknown_bounds, comprehensionExpr,
             $"{what} in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{bv.Name}'");
           isCompilable = false;
         }
@@ -328,7 +328,7 @@ public class ExpressionTester {
     } else if (expr is MatchExpr matchExpr) {
       var mc = FirstCaseThatDependsOnGhostCtor(matchExpr.Cases);
       if (mc != null) {
-        ReportError(MessageSource.Resolver, ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
+        ReportError(ErrorId.r_match_not_compilable, mc.tok, "match expression is not compilable, because it depends on a ghost constructor");
         isCompilable = false;
       }
       // other conditions are checked below
