@@ -247,7 +247,7 @@ class DafnyDoc {
       if (dafnyFiles == null) {
         // write nothing
       } else if (dafnyFiles.Count != 1) {
-        info.Source = "From multiple files<br>\n";
+        info.Source = $"From multiple files{br}\n";
       } else {
         info.Source = FileInfo(dafnyFiles[0].CanonicalPath);
       }
