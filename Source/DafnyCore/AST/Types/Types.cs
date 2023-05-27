@@ -2553,9 +2553,9 @@ public class UserDefinedType : NonProxyType {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } || ResolvedClass is NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } or NewtypeDecl) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
-      } else if (ResolvedClass is ClassDecl) {
+      } else if (ResolvedClass is TraitDecl) {
         return false;
       } else if (ResolvedClass is CoDatatypeDecl) {
         return false;
