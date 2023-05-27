@@ -496,7 +496,7 @@ See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-syn
 <!-- DafnyCore/Compilers/Cplusplus/Compiler-Cpp.cs -->
 
  
-## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
+## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {:extern compile_type_hint}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
 
 <!-- %check-run %options --enforce-determinism --target cpp --unicode-char:false -->
 ```dafny
