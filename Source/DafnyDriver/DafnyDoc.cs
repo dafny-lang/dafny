@@ -440,7 +440,7 @@ class DafnyDoc {
       var target = aimp.OriginalSignature.ModuleDef.FullDafnyName;
       info.HtmlSummary = Row($"import {Link(info.Id, styledName)}", " : ", QualifiedNameWithLinks(target),
          DashShortDocstring(aimp));
-      details.Append(Code("import " + openText + name + " : " + QualifiedNameWithLinks(target)));
+      details.Append(Code($"import {openText}{name} : {QualifiedNameWithLinks(target)}"));
       list = aimp.AccessibleSignature(true).StaticMembers.Values.ToList();
       list2 = aimp.AccessibleSignature(true).TopLevels.Values.Where(d => !(d is DefaultClassDecl)).ToList();
     }
