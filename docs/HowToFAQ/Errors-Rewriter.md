@@ -1,7 +1,9 @@
 
 <!-- %check-resolve %default %useHeadings -->
 
-<!-- ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
+<!-- FILE ./DafnyCore/Rewriters/RefinementTransformer.cd -->
+
+<!-- FILE ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
 ## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation**
 
@@ -38,7 +40,7 @@ For example, it has no effect to apply `old` to a local variable; instead one sh
 the value of the local variable in a previous state using an otherwise unused ghost variable.
 
 
-<!-- ./DafnyCore/Rewriters/InductionRewriter.cs-->
+<!-- FILE ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
 ## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
 
@@ -75,7 +77,7 @@ lemma {:induction 42} m(i: int, j: int) ensures i + j == j + i {}
 The arguments of the `:induction` attribute can be any of the lemma parameters (for a lemma)
 or bound quantifiers (for a quantifier expression), the `this` keyword, or true or false.
 
-<!-- ./DafnyCore/Rewriters/ConstructorWarning.cs -->
+<!-- FILE ./DafnyCore/Rewriters/ConstructorWarning.cs -->
 
 ## **Warning: Constructor name '_pattern_' should be followed by parentheses**
 
@@ -104,7 +106,7 @@ The `--warn-missing-constructor-parentheses` option will warn if a constructor i
 parentheses. The solution is to either add parentheses (if a constructor is intended) or
 rename the identifier (if a fresh bound identifier is intended).
 
-<!-- ./DafnyCore/RewritersPrecedenceLinter.cs-->
+<!-- FILE ./DafnyCore/RewritersPrecedenceLinter.cs-->
 
 ## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?**
 
@@ -141,7 +143,7 @@ a misunderstanding of the code, particularly of the precedence of operations. It
 to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
 
-<!-- ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
+<!-- FILE ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
 
 ## **Error: Cannot use /runAllTests on a program with a main method**
 
@@ -169,7 +171,7 @@ Typically that out-parameter has a failure-compatible type whose value is used t
 test succeeeded or failed. If the type is not a failure-compatible type, the test is presumed to be successful.
 This is purely an implementation limitation. (cf. [Issue 3387](https://github.com/dafny-lang/dafny/issues/3387))
 
-<!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
+<!-- FILE ./DafnyCore/Resolver/ExpectContracts.cs-->
 
 ## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
 
@@ -199,7 +201,7 @@ the programmed unit tests. The warning only appears when using
 `/testContracts:TestedExterns` with the legacy CLI.
 It is likely to be removed in a future version of `dafny`.
 
-<!-- ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
+<!-- FILE ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
 
 ## **Error: :print attribute is not allowed on functions**
 
