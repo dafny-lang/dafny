@@ -31,15 +31,48 @@ Ghost expressions, including ghost fields or destructors, are allowed only in gh
 
 ## **Error: a _what_ with ghost parameters can be used as a value only in specification contexts**
 
-<!-- TODO -->
+```dafny
+class A { 
+  function f(ghost i: int): int {0}
+}
+method m(a:A) 
+{
+  print a.f;
+}
+```
+
+Functions may have some (or all) formal parameters be ghost. Such parameters can only be used in ghost expressions
+within the function body. There are limits though on where such a function may be used.
+For example, passing the value of the function itself (not all call of the function) is restricted to ghost contexts.
 
 ## **Error: _what_ '_name_' can be used only in specification contexts**
 
-<!-- TODO -->
+```dafny
+datatype D = J | ghost K(i: int)
+method m(d:D) 
+  requires d.K?
+{
+  print d.i;
+}
+```
+
+A datatype may have ghost constructors, but accessing the value of one of the fields (destructors) of such a ghost constructor is
+a ghost operation. Consequently an expression like `d.i` (where `i` is a destructor of a ghost constructor for the datatype of which `d` is a value)
+is allowed only in ghost contexts.
 
 ## **Error: in a compiled context, update of _deconstructors_ cannot be applied to a datatype value of a ghost variant (ghost constructor _constructor_)**
 
-<!-- TODO -->
+```dafny
+datatype D = A | ghost B( c: int)
+method m(d:D) 
+  requires d.B?
+{
+  print d.(c := 0);
+}
+```
+
+Datatypes may have ghost variants (where the datatype constructor is itself declared ghost), but constructing or updating such variants is a ghost operation.
+Consequently such expressions may not be present in compiled code.
 
 ## **Error: a call to a _kind_ is allowed only in specification contexts**
 
