@@ -67,9 +67,12 @@ public class BuiltIns {
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
-    return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
+    var (result, mod) = ArrayType(Token.NoToken, dims, new List<Type> { arg }, allowCreationOfNewClass);
+    mod(this);
+    return result;
   }
-  public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+
+  public static (UserDefinedType type, Action<BuiltIns> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -77,22 +80,29 @@ public class BuiltIns {
 
     var arrayName = ArrayClassName(dims);
     if (useClassNameType) {
-      arrayName = arrayName + "?";
+      arrayName += "?";
     }
-    if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
-      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
+
+    void ModifyBuiltins(BuiltIns builtIns) {
+      if (!allowCreationOfNewClass || builtIns.arrayTypeDecls.ContainsKey(dims)) {
+        return;
+      }
+
+      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
         Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
-        len.EnclosingClass = arrayClass;  // resolve here
+        len.EnclosingClass = arrayClass; // resolve here
         arrayClass.Members.Add(len);
       }
-      arrayTypeDecls.Add(dims, arrayClass);
-      SystemModule.SourceDecls.Add(arrayClass);
-      CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
+
+      builtIns.arrayTypeDecls.Add(dims, arrayClass);
+      builtIns.SystemModule.SourceDecls.Add(arrayClass);
+      builtIns.CreateArrowTypeDecl(dims); // also create an arrow type with this arity, since it may be used in an initializing expression for the array
     }
-    UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
-    return udt;
+
+    var udt = new UserDefinedType(tok, arrayName, optTypeArgs);
+    return (udt, ModifyBuiltins);
   }
 
   public static string ArrayClassName(int dims) {

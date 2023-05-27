@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
         }
       } else if (nw is DefaultClassDecl) {
         if (d is DefaultClassDecl) {
-          m.DefaultClass = (DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d);
+          nwPointer.Set((DefaultClassDecl)MergeClass((DefaultClassDecl)nw, (DefaultClassDecl)d));
         } else {
           Reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
