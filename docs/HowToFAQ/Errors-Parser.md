@@ -1339,12 +1339,26 @@ This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 
 
-## **Error: incorrectly formatted number** {#p_bad_number_format}{#p_bad_hex_number_format}{#p_bad_decimal_number_format}
+## **Error: incorrectly formatted number** {#p_bad_number_format}
 
 This error can only result from an internal bug in the Dafny parser.
-The parser recognizes a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then passes that string to a libary routine to create a BigInteger
+The parser recognizes a legitimate sequence of digits (as an integer literal
+and then passes that string to a library routine to create a BigInteger
 or BigDecimal. Given the parser logic, that parsing should never fail.
+
+## **Error: incorrectly formatted number** {#p_bad_hex_number_format}
+
+This error can only result from an internal bug in the Dafny parser.
+The parser recognizes a legitimate sequence of hexdigits
+and then passes that string to a library routine to create a BigInteger. 
+Given the parser logic, that parsing should never fail.
+
+## **Error: incorrectly formatted number** {#p_bad_decimal_number_format}
+
+This error can only result from an internal bug in the Dafny parser.
+The parser recognizes a legitimate Dafny decimal number 
+and then passes that string to a library routine to create a BigDecimal. 
+Given the parser logic, that parsing should never fail.
 
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
 

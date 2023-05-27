@@ -697,15 +697,17 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ");
 
+    var sharedLambda = range => new List<DafnyAction> {
+        OneAction("replace with ':='", range, ":=", false),
+        OneAction("replace with ':-", range, ":-", false),
+        OneAction("replace with ':|'", range, ":|", false),
+    };
+
     Add(ErrorId.p_no_equal_for_initializing,
     @"
 Local variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
 In Dafny `=` is used only in type definitions.
-", range => new List<DafnyAction> {
-    OneAction("replace '=' with ':='", range, ":=", false),
-    OneAction("replace '=' with ':-'", range, ":-", false),
-    OneAction("replace '=' with ':|'", range, ":|", false),
-  });
+", sharedLambda);
 
     Add(ErrorId.p_no_patterns_and_such_that,
     @"
@@ -997,11 +999,7 @@ For simplicity, however, Dafny requires the variables being initialized to be si
     @"
 Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
 In Dafny `=` is used only in type definitions.
-", range => new List<DafnyAction> {
-    OneAction("replace with ':='", range, ":=", false),
-    OneAction("replace with ':-", range, ":-", false),
-    OneAction("replace with ':|'", range, ":|", false),
-});
+", sharedLambda);
 
     Add(ErrorId.p_elephant_has_one_lhs,
     @"
@@ -1042,25 +1040,25 @@ If it occurs, please report an internal bug (or obsolete documentation).
     Add(ErrorId.p_bad_number_format,
     @"
 This error can only result from an internal bug in the Dafny parser.
-The parser recognizes a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then passes that string to a libary routine to create a BigInteger
+The parser recognizes a legitimate sequence of digits (as an integer literal
+and then passes that string to a library routine to create a BigInteger
 or BigDecimal. Given the parser logic, that parsing should never fail.
 ");
 
     Add(ErrorId.p_bad_hex_number_format,
     @"
 This error can only result from an internal bug in the Dafny parser.
-The parser recognizes a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then passes that string to a libary routine to create a BigInteger
-or BigDecimal. Given the parser logic, that parsing should never fail.
+The parser recognizes a legitimate sequence of hexdigits
+and then passes that string to a library routine to create a BigInteger. 
+Given the parser logic, that parsing should never fail.
 ");
 
     Add(ErrorId.p_bad_decimal_number_format,
     @"
 This error can only result from an internal bug in the Dafny parser.
-The parser recognizes a legitimate sequence of digits or sequence of hexdigits or
-a decimal number and then passes that string to a libary routine to create a BigInteger
-or BigDecimal. Given the parser logic, that parsing should never fail.
+The parser recognizes a legitimate Dafny decimal number 
+and then passes that string to a library routine to create a BigDecimal. 
+Given the parser logic, that parsing should never fail.
 ");
 
     Add(ErrorId.p_deprecated_semicolon,
