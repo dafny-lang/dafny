@@ -530,7 +530,7 @@ PASSED
 
 #### 13.5.1.11. `dafny doc` [Experimental] {#sec-dafny-doc}
 
-The `dafny doc` command generates html documentation pages describing the contents of each
+The `dafny doc` command generates HTML documentation pages describing the contents of each
 module in a set of files, using the documentation comments in the source files.
 This command is experimental; user feedback and contributor PRs on the layout of information and the navigation are welcome.
 
