@@ -3,6 +3,12 @@
 d=$(dirname ${BASH_SOURCE[0]})
 cd $d
 
+echo ">>>> RESOLVER"
+
+csfiles="../../Source/DafnyCore/Resolver/*.cs ../../Source/DafnyCore/Resolver/*/*.cs"
+./check-errors-a Errors-Resolution.md "$csfiles" ../../Source/DafnyCore/Compilers/ResolverErrors1.cs
+
+exit 0
 echo ">>>> COMPILER"
 
 csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
