@@ -28,7 +28,7 @@ The only exceptions are the special commands like `--help` and `--version`.
 ## ***** Error: _file_: Central Directory corrupt.** {#cli_bad_doo}
 
 <!-- %check-cli -->
-```dafny
+```bash
 dafny resolve --use-basename-for-filename testsource/test1.dfy testsource/BadDoo.doo
 ```
 
