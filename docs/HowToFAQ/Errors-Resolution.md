@@ -39,7 +39,17 @@ Ghost expressions, including ghost fields or destructors, are allowed only in gh
 
 ## **Error: in a compiled context, update of _deconstructors_ cannot be applied to a datatype value of a ghost variant (ghost constructor _constructor_)**
 
-<!-- TODO -->
+```dafny
+datatype GG = A | ghost B( i: int)
+method g(h: GG) returns (r: GG) requires h.B? {
+  return h.(i := 7);
+}
+```
+
+A datatype can have ghost constructors and the values of that constructors destructors 
+can be updated, producing a new value of that datatype. 
+However, such an update expression is a ghost expression; so such expressions cannot appear
+in contexts that are required to be compiled, such as `return` and `print` statements.
 
 ## **Error: a call to a _kind_ is allowed only in specification contexts**
 
@@ -483,8 +493,6 @@ But a ghost context can also be implicit, and not so obvious: if something ghost
 such as the condition of an `if` statement or loop or the expression being matched in a match 
 statement, then the rest of the statement may be required to be ghost.
 
-<!-- TODO: comment on tracking of printeffects -->
-
 ## **Error: ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_**
 
 ```dafny
@@ -519,13 +527,32 @@ considered ghost. And then the statement can contain no substatements that are f
 `return` and `yield` stastements are never ghost, so they cannot appear in a statement whose guarding
 value is ghost.
 
-## **cannot assign to _var_ in a ghost context**
+## **Error: cannot assign to _var_ in a ghost context**
 
-<!-- TODO -->
+```dafny
+method m(ghost bb: bool) {
+  var i := 0;
+  if (bb) { i :| i > 7; }
+}
+```
 
-## **_var_ cannot be assigned a value that depends on a ghost**
+In a ghost context, such as the branches of an if-expression whose condition is ghost, 
+non-ghost variables may not be assigned. Such assignments violate the rule that
+ghost computations may not affect nonj-ghost code.
 
-<!-- TODO -->
+## **Error: _var_ cannot be assigned a value that depends on a ghost**
+
+```dafny
+method m(ghost k: int) {
+  var i := 7;
+  i :| i > k;
+}
+```
+
+An expression is ghost if it contains ghost subexpressions. 
+The value assigned to a non-ghost variable may not depend on any ghost expressions.
+Such assignments violate the rule that
+ghost computations may not affect nonj-ghost code.
 
 ## **Error: in _proof_, calls are allowed only to lemmas**
 
@@ -678,7 +705,15 @@ variables that are changed in a loop in any case.
 
 ## **Error: _proof_ is not allowed to perform an aggregate heap update**
 
-<!-- TODO -->
+```dafny
+lemma m(k: array<int>)
+{
+  forall  i | 0 <= i < k.Length { k[i] := 0; }
+}
+```
+
+forall-statements (a.k.a aggregate updates) that assign values to heap objects (such as arrays)
+are not permitted within proof context, such as lemmas.
 
 ## **Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '_name_'**
 
@@ -715,7 +750,16 @@ heap, as a `new` expression does. Typically a proof uses expressions that are va
 
 ## **Error: _proof_ is not allowed to make heap updates**
 
-<!-- TODO -->
+```dafny
+class A { ghost var k: int }
+lemma m(a: A)
+{
+  a.k := 9;
+}
+```
+
+An update to a field of a heap object is not allowed in a proof context such as the body of a lemma.
+This is the case even if the field in question is a ghost field of its containing class or trait.
 
 ## **Error: assignment to _kind_ is not allowed in this context, because this is a ghost _thing_**
 
