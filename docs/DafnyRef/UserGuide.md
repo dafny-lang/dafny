@@ -532,7 +532,7 @@ PASSED
 
 The `dafny doc` command generates html documentation pages describing the contents of each
 module in a set of files, using the documentation comments in the source files.
-This command is experimental; user feedback on the layout of information and the navigation is welcome.
+This command is experimental; user feedback and contributor PRs on the layout of information and the navigation are welcome.
 
 * The format of the documentation comments is described [here](TODO).
 * The `dafny doc` command accepts either files or folders as command-line arguments. A folder
