@@ -21,7 +21,7 @@ class DafnyDocHtml {
   public static string HtmlStart(string title, string script = "") {
     return
       @"
-<!doctype html>
+<!DOCTYPE html>
 <html lang=""en"">
 <head>
 <meta charset=""utf-8"">
