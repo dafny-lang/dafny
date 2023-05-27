@@ -1372,11 +1372,11 @@ namespace Microsoft.Dafny.Compilers {
               if (exprs.Count == 1) {
                 DeclareExternType(at, exprs[0], wr);
               } else {
-                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
+                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
               }
               v.Visit(exprs);
             } else {
-              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Opaque type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
+              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
             }
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
