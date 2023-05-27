@@ -656,7 +656,7 @@ When using a Dafny IDE based on the `dafny server` command, the IDE will search 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
 The command-line may contain at most one project file. Files listed on the command-line are combined with any files listed in any project file on the command-line.  Options listed on the command-line supersede those in
-a project file, whether the command-line option cmoes before or after the project file.
+a project file, whether the command-line option comes before or after the project file.
 
 ## 13.6. Verification {#sec-verification}
 
