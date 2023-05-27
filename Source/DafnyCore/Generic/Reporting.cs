@@ -141,7 +141,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-
     public void Info(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
