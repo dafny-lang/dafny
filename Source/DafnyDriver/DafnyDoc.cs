@@ -527,7 +527,7 @@ class DafnyDoc {
     var modifiers = c.ModifiersAsString();
     var linkedName = Code(Link(c.FullDafnyName, Bold(c.Name)));
     var linkedType = TypeLink(c.Type);
-    var rhsstring = c.Rhs == null ? "" : (" := " + c.Rhs.ToString());
+    var rhsstring = c.Rhs == null ? "" : $" := {c.Rhs.ToString()}";
 
     info.HtmlSummary = Row(linkedName, " : ", linkedType, DashShortDocstring(c));
     var details = new StringBuilder();
