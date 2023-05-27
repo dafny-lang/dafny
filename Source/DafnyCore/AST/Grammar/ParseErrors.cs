@@ -706,10 +706,12 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ");
 
-    var sharedLambda = range => new List<DafnyAction> {
+    ActionSignature sharedLambda = delegate (RangeToken range) {
+      return new List<DafnyAction> {
         OneAction("replace with ':='", range, ":=", false),
         OneAction("replace with ':-", range, ":-", false),
         OneAction("replace with ':|'", range, ":|", false),
+    };
     };
 
     Add(ErrorId.p_no_equal_for_initializing,
