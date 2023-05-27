@@ -158,7 +158,7 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
-  public DafnyDriver.ExitValue GenerateDocs(IList<DafnyFile> dafnyFiles) {
+  public DafnyDriver.ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
@@ -231,7 +231,7 @@ class DafnyDoc {
     return Size(Bold(kind + " " + q), LocalHeaderSize);
   }
 
-  public Info ModuleInfo(bool register, LiteralModuleDecl module, ModuleDefinition moduleDef, IList<DafnyFile> dafnyFiles) {
+  public Info ModuleInfo(bool register, LiteralModuleDecl module, ModuleDefinition moduleDef, IReadOnlyList<DafnyFile> dafnyFiles) {
     var fullName = moduleDef.FullDafnyName;
     var parent = moduleDef.EnclosingModule;
     if (moduleDef.IsDefaultModule) {
