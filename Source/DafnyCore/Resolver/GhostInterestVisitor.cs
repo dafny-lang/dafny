@@ -2,6 +2,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
@@ -20,23 +21,23 @@ class GhostInterestVisitor {
     this.inConstructorInitializationPhase = inConstructorInitializationPhase;
     this.allowAssumptionVariables = allowAssumptionVariables;
   }
-  protected void Error(Statement stmt, string msg, params object[] msgArgs) {
+  protected void Error(ErrorId errorId, Statement stmt, string msg, params object[] msgArgs) {
     Contract.Requires(stmt != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, stmt, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId.ToString(), stmt, msg, msgArgs);
   }
-  protected void Error(Expression expr, string msg, params object[] msgArgs) {
+  protected void Error(ErrorId errorId, Expression expr, string msg, params object[] msgArgs) {
     Contract.Requires(expr != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, expr, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId.ToString(), expr, msg, msgArgs);
   }
-  protected void Error(IToken tok, string msg, params object[] msgArgs) {
+  protected void Error(ErrorId errorId, IToken tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId.ToString(), tok, msg, msgArgs);
   }
   /// <summary>
   /// There are three kinds of contexts for statements.
@@ -85,7 +86,7 @@ class GhostInterestVisitor {
       stmt.IsGhost = false;
       var s = (ExpectStmt)stmt;
       if (mustBeErasable) {
-        Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        Error(ErrorId.r_expect_statement_is_not_ghost, stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
         ExpressionTester.CheckIsCompilable(resolver, reporter, s.Expr, codeContext);
         // If not provided, the message is populated with a default value in resolution
@@ -96,7 +97,7 @@ class GhostInterestVisitor {
     } else if (stmt is PrintStmt) {
       var s = (PrintStmt)stmt;
       if (mustBeErasable) {
-        Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        Error(ErrorId.r_print_statement_is_not_ghost, stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
         s.Args.Iter(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
       }
@@ -111,14 +112,14 @@ class GhostInterestVisitor {
       s.IsGhost = mustBeErasable;
       if (s.IsGhost && !s.TargetStmt.IsGhost) {
         var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
-        Error(stmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
+        Error(ErrorId.r_ghost_break, stmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
       }
 
     } else if (stmt is ProduceStmt) {
       var s = (ProduceStmt)stmt;
       var kind = stmt is YieldStmt ? "yield" : "return";
       if (mustBeErasable && !codeContext.IsGhost) {
-        Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+        Error(ErrorId.r_produce_statement_not_allowed_in_ghost, stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
       }
       if (s.HiddenUpdate != null) {
         Visit(s.HiddenUpdate, mustBeErasable, proofContext);
@@ -131,14 +132,14 @@ class GhostInterestVisitor {
         foreach (var lhs in s.Lhss) {
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
           if (gk != AssignStmt.NonGhostKind.IsGhost) {
-            Error(lhs, "cannot assign to {0} in a ghost context", AssignStmt.NonGhostKind_To_String(gk));
+            Error(ErrorId.r_no_assign_to_var_in_ghost, lhs, "cannot assign to {0} in a ghost context", AssignStmt.NonGhostKind_To_String(gk));
           }
         }
       } else if (!mustBeErasable && s.AssumeToken == null && ExpressionTester.UsesSpecFeatures(s.Expr)) {
         foreach (var lhs in s.Lhss) {
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
           if (gk != AssignStmt.NonGhostKind.IsGhost) {
-            Error(lhs, "{0} cannot be assigned a value that depends on a ghost", AssignStmt.NonGhostKind_To_String(gk));
+            Error(ErrorId.r_no_assign_ghost_to_var, lhs, "{0} cannot be assigned a value that depends on a ghost", AssignStmt.NonGhostKind_To_String(gk));
           }
         }
       }
@@ -171,13 +172,13 @@ class GhostInterestVisitor {
         if (Attributes.Contains(local.Attributes, "assumption")) {
           if (allowAssumptionVariables) {
             if (!local.Type.IsBoolType) {
-              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be of type 'bool'");
+              Error(ErrorId.r_assumption_var_must_be_bool, local.Tok, "assumption variable must be of type 'bool'");
             }
             if (!local.IsGhost) {
-              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
+              Error(ErrorId.r_assumption_var_must_be_ghost, local.Tok, "assumption variable must be ghost");
             }
           } else {
-            reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
+            Error(ErrorId.r_assumption_var_must_be_in_method, local.Tok, "assumption variable can only be declared in a method");
           }
         }
       }
@@ -214,10 +215,10 @@ class GhostInterestVisitor {
       Contract.Assert(callee != null);  // follows from the invariant of CallStmt
       s.IsGhost = callee.IsGhost;
       if (proofContext != null && !callee.IsLemmaLike) {
-        Error(s, $"in {proofContext}, calls are allowed only to lemmas");
+        Error(ErrorId.r_no_calls_in_proof, s, $"in {proofContext}, calls are allowed only to lemmas");
       } else if (mustBeErasable) {
         if (!s.IsGhost) {
-          Error(s, "only ghost methods can be called from this context");
+          Error(ErrorId.r_only_ghost_calls, s, "only ghost methods can be called from this context");
         }
       } else {
         int j;
@@ -245,17 +246,17 @@ class GhostInterestVisitor {
                   // the variable was actually declared in this statement, so auto-declare it as ghost
                   ((LocalVariable)ll.Var).MakeGhost();
                 } else {
-                  Error(s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
+                  Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
                 }
               }
             } else if (resolvedLhs is MemberSelectExpr) {
               var ll = (MemberSelectExpr)resolvedLhs;
               if (!ll.Member.IsGhost) {
-                Error(s, "actual out-parameter{0} is required to be a ghost field", s.Lhs.Count == 1 ? "" : " " + j);
+                Error(ErrorId.r_out_parameter_must_be_ghost_field, s, "actual out-parameter{0} is required to be a ghost field", s.Lhs.Count == 1 ? "" : " " + j);
               }
             } else {
               // this is an array update, and arrays are always non-ghost
-              Error(s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
+              Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
             }
           }
           j++;
@@ -311,7 +312,7 @@ class GhostInterestVisitor {
     } else if (stmt is WhileStmt) {
       var s = (WhileStmt)stmt;
       if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-        Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+        Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
       }
 
       s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
@@ -319,7 +320,7 @@ class GhostInterestVisitor {
         reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-        Error(s, "'decreases *' is not allowed on ghost loops");
+        Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
         s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
@@ -339,7 +340,7 @@ class GhostInterestVisitor {
     } else if (stmt is AlternativeLoopStmt) {
       var s = (AlternativeLoopStmt)stmt;
       if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-        Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+        Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
       }
 
       s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
@@ -347,7 +348,7 @@ class GhostInterestVisitor {
         reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
       }
       if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-        Error(s, "'decreases *' is not allowed on ghost loops");
+        Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
         s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
@@ -365,7 +366,7 @@ class GhostInterestVisitor {
     } else if (stmt is ForLoopStmt) {
       var s = (ForLoopStmt)stmt;
       if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-        Error(s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+        Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
       }
 
       s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
@@ -374,9 +375,9 @@ class GhostInterestVisitor {
       }
       if (s.IsGhost) {
         if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-          Error(s, "'decreases *' is not allowed on ghost loops");
+          Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
         } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
-          Error(s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+          Error(ErrorId.r_ghost_loop_must_terminate, s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
         }
       }
       if (s.IsGhost && s.Mod.Expressions != null) {
@@ -401,7 +402,7 @@ class GhostInterestVisitor {
       var s = (ForallStmt)stmt;
       s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || ExpressionTester.UsesSpecFeatures(s.Range);
       if (proofContext != null && s.Kind == ForallStmt.BodyKind.Assign) {
-        Error(s, $"{proofContext} is not allowed to perform an aggregate heap update");
+        Error(ErrorId.r_no_aggregate_heap_update_in_proof, s, $"{proofContext} is not allowed to perform an aggregate heap update");
       } else if (s.Body != null) {
         Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
       }
@@ -412,7 +413,7 @@ class GhostInterestVisitor {
         var uncompilableBoundVars = s.UncompilableBoundVars();
         if (uncompilableBoundVars.Count != 0) {
           foreach (var bv in uncompilableBoundVars) {
-            Error(s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
+            Error(ErrorId.r_unknown_bounds_for_forall, s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
           }
         }
 
@@ -424,7 +425,7 @@ class GhostInterestVisitor {
     } else if (stmt is ModifyStmt) {
       var s = (ModifyStmt)stmt;
       if (proofContext != null) {
-        Error(stmt, $"a modify statement is not allowed in {proofContext}");
+        Error(ErrorId.r_modify_forbidden_in_proof, stmt, $"a modify statement is not allowed in {proofContext}");
       }
 
       s.IsGhost = mustBeErasable;
@@ -509,14 +510,14 @@ class GhostInterestVisitor {
     }
 
     if (proofContext != null && s.Rhs is TypeRhs) {
-      Error(s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
+      Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
     }
 
     var gk = AssignStmt.LhsIsToGhost_Which(lhs);
     if (gk == AssignStmt.NonGhostKind.IsGhost) {
       s.IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
-        Error(lhs.tok, $"{proofContext} is not allowed to make heap updates");
+        Error(ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
       }
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         Visit(tRhs.InitCall, true, proofContext);
@@ -534,7 +535,7 @@ class GhostInterestVisitor {
         } else {
           reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
         }
-        Error(s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
+        Error(ErrorId.r_assignment_forbidden_in_context, s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
       }
     } else {
       if (gk == AssignStmt.NonGhostKind.Field) {
@@ -565,7 +566,7 @@ class GhostInterestVisitor {
         if (rhs.InitCall != null) {
           var callee = rhs.InitCall.Method;
           if (callee.IsGhost) {
-            Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+            Error(ErrorId.r_assignment_to_ghost_constructor_only_in_ghost, rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
           }
           for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
             if (!callee.Ins[i].IsGhost) {

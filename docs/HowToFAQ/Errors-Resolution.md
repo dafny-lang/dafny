@@ -535,7 +535,7 @@ non-ghost, we have the situation of ghost code affecting the flow of control of 
 Consequently a ghost break or continue statement must have as its target some enclosing ghost
 block or loop. 
 
-## **Error: _kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)** {#r_statement_not_allowed_in_ghost}
+## **Error: _kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)** {#r_produce_statement_not_allowed_in_ghost}
 
 ```dafny
 method m() {
@@ -577,6 +577,18 @@ In a assign-such-that statement, the LHS gets some value that satisfies the bool
 If the LHS is non-ghost, then the RHS must be non-ghost, because non-ghost code may not depend on
 ghost code.
 
+## **Error: assumption variable must be of type 'bool'** {#r_assumption_var_must_be_bool}
+
+<!-- TODO -->
+
+## **Error: assumption variable must be ghost** {#r_assumption_var_must_be_ghost}
+
+<!-- TODO -->
+
+## **Error: assumption variable can only be declared in a method** {#r_assumption_var_must_be_in_method}
+
+<!-- TODO -->
+
 ## **Error: in _proof_, calls are allowed only to lemmas** {#r_no_calls_in_proof}
 
 ```dafny
@@ -614,11 +626,13 @@ Lemmas and ghost functions may also be called.
 
 ```dafny
 method n() returns (r: int, ghost s: int) {}
-method m() returns (r: bool)
+method m(a: array<int>) returns (r: bool)
+  requires a.Length > 1
 { 
   var x: int;
   var y: int;
   x, y := n();
+  a[0] := 0;
 }
 ```
 
@@ -702,9 +716,9 @@ Hence, indications of non-terminating loops, that is, `decreases *`, are not per
 
 This does mean that the specifier has to do the work of designing a valid terminating condition and proving it.
 
-<!-- 2 instances -->
+<!-- 3 instances -->
 
-## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses**{#r_loop_in_proof_may_not_use_modifies}
+## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses** {#r_loop_in_proof_may_not_use_modifies}
 
 ```dafny
 class A {  }
@@ -721,6 +735,8 @@ A proof context, such as the body of a lemma, is ghost context and thus is not a
 anything on the heap. If there is nothing that may be modified, then there is no need for
 a `modifies` clause for a loop. Note that the `modifies` clause does not list any local 
 variables that are changed in a loop in any case.
+
+<!-- 2 instances -->
 
 ## **Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause** {#r_ghost_loop_must_terminate}
 
@@ -775,23 +791,13 @@ heap, as a `new` expression does. Typically a proof uses expressions that are va
 
 <!-- TODO -->
 
-## **Error: assignment to _kind_ is not allowed in this context, because this is a ghost _thing_** {#r_assignment_forbidden_in_context}
+## **Error: assignment to _kind_ is not allowed in this context, because _reason_** {#r_assignment_forbidden_in_context}
 
 ```dafny
 class A { var a: int }
 lemma m(aa: A) {
   aa.a := 1;
 }
-```
-
-This message can occur in many program situations: the fault is an assignment to a field in the heap
-that is not permitted because the assignment statement occurs in a ghost context such as the body
-of a lemma or ghost function.
-
-## **Error: assignment to _kind_ is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression** {#r_assignment_forbidden_in_ghost_context}
-
-```dafny
-class A { var a: int }
 method m(aa: A) {
   ghost var b := true;
   if b { aa.a := 1; }
