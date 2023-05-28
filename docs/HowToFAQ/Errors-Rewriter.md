@@ -16,8 +16,7 @@ times the time limit otherwise specified by the options. The {:timeLimit n} attr
 value for the time limit. It does not make sense to have both attributes on the same declaration. 
 One or the other should be removed. If they are both present, just the {:timeLimitMultiplier} is used.
 
-<!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
-<!-- TODO - no longer exists -->
+<!-- ./DafnyCore/Rewriters/LocalLinter.cs -->
 
 ## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**  {#rw_old_argument_not_on_heap}
 
@@ -39,6 +38,18 @@ has no effect and is likely to lead to misunderstanding. Consequently, Dafny war
 For example, it has no effect to apply `old` to a local variable; instead one should capture
 the value of the local variable in a previous state using an otherwise unused ghost variable.
 
+## **Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'." {#rw_warn_negated_assertion}
+
+```dafny
+method m() {
+  assert!(1 == 1);
+}
+```
+
+This message warns about a common syntax error for people familiar with Rust. 
+In Rust `assert! e` indicate checking that expression `e` holds. But in Dafny teh `!` negates the expression.
+That is `assert! e` is `assert `!e`. The syntactic solution to avoiud the warning is to either put space 
+between the `assert` and `!` (if the negation is intended) or to omit the `!` (if the negation is not intended.
 
 <!-- FILE ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
@@ -141,208 +152,4 @@ to the nesting of subexpressions. For example, parallel conjuncts or disjuncts m
 the same indentation. This warning occurs when the observed indentation is likely to cause
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
 to use parentheses or to redo the indentation to make the structure of the expression clearer.
-
-
-<!-- FILE ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
-
-## **Error: Cannot use /runAllTests on a program with a main method** {#rw_test_already_has_main_method}
-
-<!-- TODO - this won't be triggered until Issue 3381 is fixed -->
-
-This error message when using `dafny test` and in the situation
-where a Main method is already present in the program.  
-`dafny test` synthesizes a Main method that calls all the test routines,
-which then conflicts with the existing Main method.
-(The `/runAllTests` option has been replaced by `dafny test`.)
-
-## **Error: Methods with the {:test} attribute can have at most one return value** {#rw_test_method_has_too_many_returns}
-
-<!-- %check-test -->
-```dafny
-method {:test} m() returns (j: int, k: int) 
-{
-  j, k := 0,0;
-}
-```
-
-This error only occurs when using `dafny test`. That command executes all methods attributed
-with `{:test}`, but such test methods are limited to methods with at most one output parameter.
-Typically that out-parameter has a failure-compatible type whose value is used to indicate whether the 
-test succeeeded or failed. If the type is not a failure-compatible type, the test is presumed to be successful.
-This is purely an implementation limitation. (cf. [Issue 3387](https://github.com/dafny-lang/dafny/issues/3387))
-
-<!-- FILE ./DafnyCore/Resolver/ExpectContracts.cs-->
-
-## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.** {#rw_clause_cannot_be_compiled}
-
-<!-- TODO - requires a companion target program file to run successfully -->
-<!-- %no-check %check-test %options --test-assumptions:Externs -->
-```dafny
-method {:extern} m(i: int, ghost j: int) 
-  requires j == 1
-```
-
-The `--test-assumptions` option inserts tests of various contracts and implicit assumptions 
-in a Dafny method, such as the requires and ensures clauses.
-However, because these inserted tests are compiled into the target
-program as runtime checks, they cannot refer to any ghost variables.
-(This mechanism implements Dafny's runtime-assertion checking.)
- 
-## **Warning: Internal: no wrapper for _name_** {#rw_no_wrapper}
-
-This message indicates a bug within the `dafny` tool. Please report the program that
-triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
-
-## **Warning: No :test code calls _name_** {#rw_unreachable_by_test}
-
-This warning indicates that some method marked with {:extern} is not called
-by any method marked with {:test}. The intention is to check coverage of
-the programmed unit tests. The warning only appears when using
-`/testContracts:TestedExterns` with the legacy CLI.
-It is likely to be removed in a future version of `dafny`.
-
-<!-- FILE ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
-
-## **Error: :print attribute is not allowed on functions** {#rw_print_attribute_forbidden_on_functions}
-
-<!-- %check-resolve -->
-```dafny
-function {:print} f(): int { 0 }
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-Functions, whether ghost or compiled, are intended to have no side-effects at all.
-Thus Dafny forbids (ghost or compiled) functions from declaring that they have
-a print side-effect (whether or not print effects are being tracked with 
-`--track-print-effects`).
-
-## **Error: :print attribute is not allowed on ghost methods** {#rw_print_attribute_forbidden_on_ghost_methods}
-
-<!-- %check-resolve -->
-```dafny
-ghost method {:print} f() { }
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-A program's ghost code is not allowed to modify the actual execution of a program.
-Thus ghost code should not contain print statements.
-So Dafny forbids ghost methods from declaring that they have a print side-effect
-(whether or not print effects are being tracked with `--track-print-effects`).
-
-## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)** {#rw_override_must_preserve_printing}
-
-<!-- %check-resolve -->
-```dafny
-trait T {
-  method m()
-}
-
-class C extends T {
-  method {:print} m() {}
-}
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-If a trait declares a method without a `{:print}` attribute, then any implementation 
-of that method may not do any printing, as it must obey the trait's specification.
-Thus a class implementing that method by an override cannot declare the method as possibly
-printing something, by giving it a `{:print}` attribute --- even if it does not actually do any printing.
-
-## **Error: :print attribute does not take any arguments** {#rw_print_attribute_takes_no_arguments}
-
-<!-- %check-resolve -->
-```dafny
-method {:print 42} f() { }
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of printing something.
-No arguments to the attribute are needed or allowed.
-
-## **Error: a function-by-method is not allowed to use print statements** {#rw_no_print_in_function_by_method}
-
-<!-- %check-resolve %options --track-print-effects -->
-```dafny
-function f(): int {42 }
-by method {
-  print "I'm here\n";
-  return 42;
-}
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-Functions, whether ghost or compiled, are intended to have no side-effects at all.
-A function-by-method has a method body that is intended to be a compiled way of computing 
-what the function body expresses. But as a function may not have side-effects,
-the method body should not have any print statements.
-
-This tracking of print statements (and the forbidding of them by this error message)
-only happens when the `--track-print-effects` option is enabled;
-the option is disabled by default.
-
-
-## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}** {#rw_print_attribute_required_to_print}
-
-<!-- %check-resolve %options --track-print-effects -->
-```dafny
-method m() { print 42; }
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-So a method that prints something (even transitively) should be marked with `{:print}`.
-This error indicates that such an attribute is missing -- either add the attribute 
-or remove the print statement.
-
-This tracking of print statements (and thus the possibility of this error message)
-only happens when the `--track-print-effects` option is enabled;
-the option is disabled by default.
-
-
-## **Error: a function-by-method is not allowed to call a method with print effects** {#rw_function_by_method_may_not_call_printing_method}
-
-<!-- %check-resolve %options --track-print-effects -->
-```dafny
-function m(): int { 42 }
-by method { p(); return 42; }
-
-method {:print} p() {}
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-Functions, whether ghost or compiled, are intended to have no side-effects at all.
-A function-by-method has a method body that is intended to be a compiled way of computing 
-what the function body expresses. But as a function may not have side-effects,
-the method body should not have any print statements.
-
-In this case, the method body might print something because a method that is called in the body
-is attributed with `{:print}` (whether or not it actually does print something).
-
-This tracking of print statements (and thus the possibility of this error message)
-only happens when the `--track-print-effects` option is enabled;
-the option is disabled by default.
-
-
-## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}** {#rw_must_be_print_to_call_printing_method}
-
-<!-- %check-resolve %options --track-print-effects -->
-```dafny
-method m() { p(); }
-
-method {:print} p() {}
-```
-
-The `{:print}` attribute is used to mark methods that have a side-effect of
-printing something, that is, they modify the external environment.
-In this case, the method body might print something because a method that is called in the body
-is attributed with `{:print}` (whether or not it actually does print something).
-So the calling method must be marked with `{:print}` as well.
-
-This tracking of print statements (and thus the possibility of this error message)
-only happens when the `--track-print-effects` option is enabled;
-the option is disabled by default.
 

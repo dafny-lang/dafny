@@ -122,5 +122,13 @@ namespace Microsoft.Dafny {
     internal virtual void PostResolve(Program program) {
       Contract.Requires(program != null);
     }
+
+    public void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Warning(MessageSource.Rewriter, errorId.ToString(), t, msg, args);
+    }
+
+    public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Error(MessageSource.Rewriter, errorId.ToString(), t, msg, args);
+    }
   }
 }
