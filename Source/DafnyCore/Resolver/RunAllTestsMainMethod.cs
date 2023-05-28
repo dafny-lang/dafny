@@ -121,7 +121,7 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // } else {
           //   print "PASSED\n";
-          // }/have
+          // }
           //
           // Otherwise, just:
           //
