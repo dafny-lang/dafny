@@ -41,7 +41,7 @@ public class ExpectContracts : IRewriter {
     var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
-      Reporter.Warning(MessageSource.Rewriter, ErrorId.rw_clause_cannot_be_compiled, tok,
+      ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
       msg += " (not compiled because it references ghost state)";
