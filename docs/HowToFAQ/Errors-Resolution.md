@@ -1,3 +1,6 @@
+
+
+
 <!-- %check-resolve %default %useHeadings -->
 
 <!-- FILE DafnyCore/Resolver/ExpressionTester.cs -->
@@ -806,4 +809,5 @@ method m() returns (a: A)
 Classes may have ghost constructors along with regular, non-ghost constructors.
 However, ghost constructors may only be called in ghost context, including that
 the newly allocated object be assigned to a ghost location (such as a ghost variable). 
+
 
