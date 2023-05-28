@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /allocated:4 /functionSyntax:4 "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /functionSyntax:4 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Verification (for resolution, see git-issue-19a.dfy)
