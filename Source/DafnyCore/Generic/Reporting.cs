@@ -99,6 +99,20 @@ namespace Microsoft.Dafny {
       Error(source, null, v.Tok, msg, args);
     }
 
+    public void Error(MessageSource source, string errorId, INode v, string msg, params object[] args) {
+      Contract.Requires(v != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId, v.Tok, msg, args);
+    }
+
+    public void Error(MessageSource source, string errorId, Expression e, string msg, params object[] args) {
+      Contract.Requires(e != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId, e.tok, msg, args);
+    }
+
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
