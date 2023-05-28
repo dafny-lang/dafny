@@ -155,7 +155,7 @@ where a Main method is already present in the program.
 which then conflicts with the existing Main method.
 (The `/runAllTests` option has been replaced by `dafny test`.)
 
-## **Error: Methods with the {:test} attribute can have at most one return value** {#rw_test_method_has_too_many_arguments}
+## **Error: Methods with the {:test} attribute can have at most one return value** {#rw_test_method_has_too_many_returns}
 
 <!-- %check-test -->
 ```dafny

@@ -4,6 +4,7 @@
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
   // ------------------- PrintEffectEnforcement -------------------
@@ -11,6 +12,10 @@ namespace Microsoft.Dafny {
   public class PrintEffectEnforcement : IRewriter {
     internal PrintEffectEnforcement(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
+    }
+
+    private void Error(ErrorId errorId, IToken tok, string msg, params object[] args) {
+      Reporter.Error(MessageSource.Rewriter, errorId.ToString(), tok, msg, args);
     }
 
     internal override void PostDecreasesResolve(ModuleDefinition m) {
@@ -27,7 +32,7 @@ namespace Microsoft.Dafny {
             var hasPrintAttribute = HasPrintAttribute(member.Attributes);
             if (member is Function f) {
               if (hasPrintAttribute) {
-                Reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on functions");
+                Error(ErrorId.rw_print_attribute_forbidden_on_functions, member.tok, ":print attribute is not allowed on functions");
               }
               if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
@@ -35,9 +40,9 @@ namespace Microsoft.Dafny {
             } else if (member is Method method) {
               if (hasPrintAttribute) {
                 if (member.IsGhost) {
-                  Reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on ghost methods");
+                  Error(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.tok, ":print attribute is not allowed on ghost methods");
                 } else if (method.OverriddenMethod != null && !HasPrintAttribute(method.OverriddenMethod.Attributes, false)) {
-                  Reporter.Error(MessageSource.Rewriter, member.tok,
+                  Error(ErrorId.rw_override_must_preserve_printing, member.tok,
                     "not allowed to override a non-printing method with a possibly printing method ('{0}')", method.Name);
                 }
               } else if (!member.IsGhost && method.Body != null) {
@@ -54,7 +59,7 @@ namespace Microsoft.Dafny {
     bool HasPrintAttribute(Attributes attrs, bool checkParameters = true) {
       var printAttribute = Attributes.Find(attrs, "print");
       if (checkParameters && printAttribute != null && printAttribute.Args.Count != 0) {
-        Reporter.Error(MessageSource.Rewriter, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
+        Error(ErrorId.rw_print_attribute_takes_no_arguments, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
       }
       return printAttribute != null;
     }
@@ -63,18 +68,18 @@ namespace Microsoft.Dafny {
       if (stmt is PrintStmt) {
         var method = codeContext as Method;
         if (method != null && method.IsByMethod) {
-          Reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to use print statements");
+          Error(ErrorId.rw_no_print_in_function_by_method, stmt.Tok, "a function-by-method is not allowed to use print statements");
         } else {
-          Reporter.Error(MessageSource.Rewriter, stmt.Tok,
+          Error(ErrorId.rw_print_attribute_required_to_print, stmt.Tok,
             "to use a print statement, the enclosing {0} must be marked with {{:print}}", method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
         }
       } else if (stmt is CallStmt call) {
         if (HasPrintAttribute(call.Method.Attributes, false)) {
           var method = codeContext as Method;
           if (method != null && method.IsByMethod) {
-            Reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to call a method with print effects");
+            Error(ErrorId.rw_function_by_method_may_not_call_printing_method, stmt.Tok, "a function-by-method is not allowed to call a method with print effects");
           } else {
-            Reporter.Error(MessageSource.Rewriter, stmt.Tok,
+            Error(ErrorId.rw_must_be_print_to_call_printing_method, stmt.Tok,
               "to call a method with print effects, the enclosing {0} must be marked with {{:print}}",
               method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
           }
