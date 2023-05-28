@@ -121,7 +121,7 @@ public class RunAllTestsMainMethod : IRewriter {
           //   success := false;
           // } else {
           //   print "PASSED\n";
-          // }
+          // }/have
           //
           // Otherwise, just:
           //
@@ -137,8 +137,8 @@ public class RunAllTestsMainMethod : IRewriter {
           };
 
           if (method.Ins.Count != 0) {
-            ReportError(ErrorId.rw_test_already_has_main_method, method.tok,
-                "Methods with the {:test} attribute may not have input arguments");
+            ReportError(ErrorId.rw_test_methods_may_not_have_inputs, method.tok,
+                "Methods with the :test attribute may not have input arguments");
             continue;
           }
 
@@ -151,7 +151,7 @@ public class RunAllTestsMainMethod : IRewriter {
             case > 1:
               ReportError(ErrorId.rw_test_method_has_too_many_returns,
                method.tok,
-                "Methods with the {:test} attribute can have at most one return value");
+                "Methods with the :test attribute can have at most one return value");
               continue;
             case 1: {
                 var resultVarName = idGenerator.FreshId("result");

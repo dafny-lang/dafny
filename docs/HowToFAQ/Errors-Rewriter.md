@@ -17,7 +17,7 @@ One or the other should be removed. If they are both present, just the {:timeLim
 
 <!-- ./DafnyCore/Rewriters/LocalLinter.cs -->
 
-## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**  {#rw_old_argument_not_on_heap}
+## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect** {#rw_old_argument_not_on_heap}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -37,8 +37,9 @@ has no effect and is likely to lead to misunderstanding. Consequently, Dafny war
 For example, it has no effect to apply `old` to a local variable; instead one should capture
 the value of the local variable in a previous state using an otherwise unused ghost variable.
 
-## **Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'." {#rw_warn_negated_assertion}
+## **Warning: You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.** {#rw_warn_negated_assertion}
 
+<!-- %check-resolve-warn -->
 ```dafny
 method m() {
   assert!(1 == 1);
@@ -154,17 +155,22 @@ to use parentheses or to redo the indentation to make the structure of the expre
 
 <!-- FILE ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
 
-## **Error: Cannot use /runAllTests on a program with a main method** {#rw_test_already_has_main_method}
+## **Error: Methods with the :test attribute may not have input arguments** {#rw_test_methods_may_not_have_inputs}
 
-<!-- TODO - this won't be triggered until Issue 3381 is fixed -->
+<!-- %check-test -->
+```dafny
+method {:test} m(i: int) {}
+```
 
-This error message when using `dafny test` and in the situation
-where a Main method is already present in the program.  
-`dafny test` synthesizes a Main method that calls all the test routines,
-which then conflicts with the existing Main method.
-(The `/runAllTests` option has been replaced by `dafny test`.)
+The test tool runs all the methods that are marked with `{:test}`. The test tool expects two kinds of
+behavior: (a) the method may abort with a failing `expect` or (b) the method may return a datatype value that
+has an `IsFailure()` function which returns false. But the test method has no means of selecting inputs to
+give to a method under test. An experimental test-generation tool is in development, but for the moment, a
+routine under test may not have input arguments. A typical solution is to write an auxiliary method,
+marked with `{:test}`, that takes no
+inputs, and that then calls the desired method with various combinations of inputs.
 
-## **Error: Methods with the {:test} attribute can have at most one return value** {#rw_test_method_has_too_many_returns}
+## **Error: Methods with the :test attribute can have at most one return value** {#rw_test_method_has_too_many_returns}
 
 <!-- %check-test -->
 ```dafny
@@ -184,7 +190,6 @@ This is purely an implementation limitation. (cf. [Issue 3387](https://github.co
 
 ## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.** {#rw_clause_cannot_be_compiled}
 
-<!-- TODO - requires a companion target program file to run successfully -->
 <!-- %no-check %check-test %options --test-assumptions:Externs -->
 ```dafny
 method {:extern} m(i: int, ghost j: int) 

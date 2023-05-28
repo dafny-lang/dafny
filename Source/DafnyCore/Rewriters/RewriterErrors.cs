@@ -16,7 +16,7 @@ public class RewriterErrors {
     rw_warn_constructor_parentheses,
     rw_unusual_indentation_start,
     rw_unusual_indentation_end,
-    rw_test_already_has_main_method,
+    rw_test_methods_may_not_have_inputs,
     rw_test_method_has_too_many_returns,
     rw_clause_cannot_be_compiled,
     rw_no_wrapper,
