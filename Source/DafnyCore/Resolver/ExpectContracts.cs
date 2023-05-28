@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using static Microsoft.Dafny.RewriterErrors;
+using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
@@ -41,7 +41,7 @@ public class ExpectContracts : IRewriter {
     var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
-      Reporter.Warning(MessageSource.Rewriter, ErrorId.rw_clause_cannot_be_compiled.ToString(), tok,
+      Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
       msg += " (not compiled because it references ghost state)";
@@ -202,7 +202,7 @@ public class ExpectContracts : IRewriter {
       }
       // If there's no wrapper for the callee, don't try to call it, but warn.
       if (!newRedirections.ContainsKey(callee)) {
-        reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper.ToString(), caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
+        reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, caller.tok, $"Internal: no wrapper for {callee.FullDafnyName}");
         return false;
       }
 
@@ -287,7 +287,7 @@ public class ExpectContracts : IRewriter {
       callRedirector.newRedirections.ExceptBy(callRedirector.calledWrappers, x => x.Value);
     foreach (var uncalledRedirection in uncalledRedirections) {
       var uncalledOriginal = uncalledRedirection.Key;
-      Reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unreachable_by_test.ToString(), uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
+      Reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
   }
 }
