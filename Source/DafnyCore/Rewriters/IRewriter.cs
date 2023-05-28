@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System.Diagnostics.Contracts;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -123,12 +124,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
     }
 
-    public void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
-      Reporter.Warning(MessageSource.Rewriter, errorId.ToString(), t, msg, args);
+    public virtual void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Warning(MessageSource.Rewriter, errorId, t, msg, args);
     }
 
-    public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
-      Reporter.Error(MessageSource.Rewriter, errorId.ToString(), t, msg, args);
+    public virtual void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+      Reporter.Error(MessageSource.Rewriter, errorId, t, msg, args);
     }
   }
 }
