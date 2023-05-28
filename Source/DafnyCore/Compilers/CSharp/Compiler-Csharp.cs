@@ -1114,25 +1114,29 @@ namespace Microsoft.Dafny.Compilers {
       EmitTypeDescriptorMethod(nt, w);
 
       if (nt.ParentTraits.Count != 0) {
-        DeclareBoxedNewtype(nt, wr);
+        DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 
       return cw;
     }
 
     void DeclareBoxedNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.GetCompileName(Options)), IdName(nt), nt, wr);
-
       // instance field:  public TargetRepresentation _value;
-      var targetTypeName = nt.NativeType == null ? TypeName(nt.BaseType, cw.InstanceMemberWriter, nt.tok) : GetNativeTypeName(nt.NativeType);
-      cw.InstanceMemberWriter.WriteLine($"public {targetTypeName} _value;");
+      var targetTypeName = nt.NativeType == null ? TypeName(nt.BaseType, wr, nt.tok) : GetNativeTypeName(nt.NativeType);
+      wr.WriteLine($"public {targetTypeName} _value;");
 
       // constructor:
       // public NewType(TargetRepresentation value) {
       //   _value = value;
       // }
-      var wBody = cw.InstanceMemberWriter.NewNamedBlock($"public {IdName(nt)}({targetTypeName} value)");
+      var wBody = wr.NewNamedBlock($"public {IdName(nt)}({targetTypeName} value)");
       wBody.WriteLine("_value = value;");
+
+      // public override string ToString() {
+      //   return _value.ToString();
+      // }
+      wBody = wr.NewNamedBlock("public override string ToString()");
+      wBody.WriteLine("return _value.ToString();");
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
@@ -2343,7 +2347,7 @@ namespace Microsoft.Dafny.Compilers {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
-        thisContext is NewtypeDecl ||
+        (thisContext is NewtypeDecl && (enclosingMethod != null || enclosingFunction != null)) ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }
@@ -2683,13 +2687,32 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(arguments, wr, inLetExprBody, wStmts);
     }
 
+    protected override ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+      var w = wr.ForkInParens();
+      wr.Write("._value");
+      return w;
+    }
+
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type @from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (from != null && to != null && from.IsTraitType && to.AsNewtype != null) {
+        return UnboxNewtypeValue(wr);
+      }
+      if (from != null && to != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
+        wr.Write($"new {from.AsNewtype.GetFullCompileName(Options)}");
+        return wr.ForkInParens();
+      }
+      return base.EmitCoercionIfNecessary(@from, to, tok, wr);
+    }
+
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
       Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) || from.IsRefType == to.IsRefType);
 
       var w = new ConcreteSyntaxTree();
-      if (to.IsRefType || to.IsTraitType || from.IsTraitType) {
+      if (from.IsTraitType && to.AsNewtype != null) {
+        wr.Format($"(({to.AsNewtype.GetFullCompileName(Options)})({w}))");
+      } else if (to.IsRefType || to.IsTraitType || from.IsTraitType) {
         wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));
@@ -3121,14 +3144,20 @@ namespace Microsoft.Dafny.Compilers {
       // from T to U?:  t is U && ...                 // since t is known to be non-null, this is fine
       // from T? to U:  t is U && ...                 // note, "is" implies non-null, so no need for explicit null check
       // from T? to U?: t == null || (t is U && ...)
-      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+      if (fromType.IsRefType && !fromType.IsNonNullRefType && toType.IsRefType && !toType.IsNonNullRefType) {
         wr = wr.Write($"{localName} == null || ").ForkInParens();
       }
 
-      var toClass = toType.NormalizeExpand();
-      wr.Write($"{localName} is {TypeName(toClass, wr, tok)}");
+      string toTypeString;
+      if (fromType.IsTraitType && toType.AsNewtype != null) {
+        toTypeString = toType.AsNewtype.GetFullCompileName(Options);
+      } else {
+        var toClass = toType.NormalizeExpand();
+        toTypeString = TypeName(toClass, wr, tok);
+      }
+      wr.Write($"{localName} is {toTypeString}");
 
-      localName = $"(({TypeName(toClass, wr, tok)}){localName})";
+      localName = $"(({toTypeString}){localName})";
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
       if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
         // TODO: test constraints
