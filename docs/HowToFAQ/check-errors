@@ -3,6 +3,18 @@
 d=$(dirname ${BASH_SOURCE[0]})
 cd $d
 
+echo ">>>> REFINEMENT"
+
+csfiles="../../Source/DafnyCore/Resolver/RefinementTransformer.cs 
+./check-errors-a Errors-Refinement.md "$csfiles" ../../Source/DafnyCore/Resolver/RefinementErrors.cs
+
+echo 0
+
+echo ">>>> REWRITER"
+
+csfiles="../../Source/DafnyCore/Rewriters/*.cs ../../Source/DafnyCore/Rewriters/*/*.cs"
+./check-errors-a Errors-Rewriter.md "$csfiles" ../../Source/DafnyCore/Rewriters/RewriterErrors.cs
+
 echo ">>>> COMPILER"
 
 csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"

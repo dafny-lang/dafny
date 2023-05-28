@@ -20,6 +20,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper {

@@ -1,9 +1,9 @@
 
 <!-- %check-resolve %default %useHeadings -->
 
-<!-- ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
+<!-- FILE ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
-## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation**
+## **Warning: timeLimitMultiplier annotation overrides timeLimit annotation** {#rw_timelimit_multiplier}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -17,7 +17,7 @@ One or the other should be removed. If they are both present, just the {:timeLim
 
 <!-- ./DafnyCore/Rewriters/UselessOldLinter.cs -->
 
-## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**
+## **Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect**  {#rw_old_argument_not_on_heap}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -40,7 +40,7 @@ the value of the local variable in a previous state using an otherwise unused gh
 
 <!-- ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
-## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute**
+## **Warning: _item_s given as :induction arguments must be given in the same order as in the quantifier; ignoring attribute** {#rw_induction_arguments_quantifier_mismatch}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -54,7 +54,7 @@ The `{:induction}` attribute gives some guidance to the prover as to how to cons
 proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the bound variables of the quantifier. If not, the :induction attribute is ignored.
 
-## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute**
+## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute** {#rw_induction_arguments_lemma_mismatch}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -65,7 +65,7 @@ The `{:induction}` attribute gives some guidance to the prover as to how to cons
 proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
 same order as the parameters of the lemma. If not, the :induction attribute is ignored.
 
-## **Warning: invalid :induction attribute argument; expected _what_; ignoring attribute**
+## **Warning: invalid :induction attribute argument; expected _what_; ignoring attribute** {#rw_invalid_induction_attribute}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -79,7 +79,7 @@ or bound quantifiers (for a quantifier expression), the `this` keyword, or true 
 
 ## **Warning: Constructor name '_pattern_' should be followed by parentheses**
 
-<!-- %check-resolve-warn %options --warn-missing-constructor-parentheses -->
+<!-- %check-resolve-warn %options --warn-missing-constructor-parentheses --> {#rw_warn_constructor_parentheses}
 ```dafny
 datatype D = A | B
 
@@ -106,7 +106,7 @@ rename the identifier (if a fresh bound identifier is intended).
 
 <!-- ./DafnyCore/RewritersPrecedenceLinter.cs-->
 
-## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?**
+## **Warning: unusual indentation in _what_ (which starts at _location_); do you perhaps need parentheses?** {#rw_unusual_indentation_start}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -123,7 +123,7 @@ the same indentation. This warning occurs when the observed indentation is likel
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
 to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
-## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?**
+## **Warning: unusual indentation in _what_ (which ends at _location_); do you perhaps need parentheses?** {#rw_unusual_indentation_end}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -153,7 +153,7 @@ where a Main method is already present in the program.
 which then conflicts with the existing Main method.
 (The `/runAllTests` option has been replaced by `dafny test`.)
 
-## **Error: Methods with the {:test} attribute can have at most one return value**
+## **Error: Methods with the {:test} attribute can have at most one return value** {#rw_test_method_has_too_many_arguments}
 
 <!-- %check-test -->
 ```dafny
@@ -171,7 +171,7 @@ This is purely an implementation limitation. (cf. [Issue 3387](https://github.co
 
 <!-- ./DafnyCore/Resolver/ExpectContracts.cs-->
 
-## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.**
+## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.** {#rw_clause_cannot_be_compiled}
 
 <!-- TODO - requires a companion target program file to run successfully -->
 <!-- %no-check %check-test %options --test-assumptions:Externs -->
@@ -186,12 +186,12 @@ However, because these inserted tests are compiled into the target
 program as runtime checks, they cannot refer to any ghost variables.
 (This mechanism implements Dafny's runtime-assertion checking.)
  
-## **Warning: Internal: no wrapper for _name_**
+## **Warning: Internal: no wrapper for _name_** {#rw_no_wrapper}
 
 This message indicates a bug within the `dafny` tool. Please report the program that
 triggered the message to [the Github issues site](https://www.github.com/dafny-lang/dafny/issues).
 
-## **Warning: No :test code calls _name_**
+## **Warning: No :test code calls _name_** {#rw_unreachable_by_test}
 
 This warning indicates that some method marked with {:extern} is not called
 by any method marked with {:test}. The intention is to check coverage of
@@ -201,7 +201,7 @@ It is likely to be removed in a future version of `dafny`.
 
 <!-- ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
 
-## **Error: :print attribute is not allowed on functions**
+## **Error: :print attribute is not allowed on functions** {#rw_print_attribute_forbidden_on_functions}
 
 <!-- %check-resolve -->
 ```dafny
@@ -215,7 +215,7 @@ Thus Dafny forbids (ghost or compiled) functions from declaring that they have
 a print side-effect (whether or not print effects are being tracked with 
 `--track-print-effects`).
 
-## **Error: :print attribute is not allowed on ghost methods**
+## **Error: :print attribute is not allowed on ghost methods** {#rw_print_attribute_forbidden_on_ghost_methods}
 
 <!-- %check-resolve -->
 ```dafny
@@ -229,7 +229,7 @@ Thus ghost code should not contain print statements.
 So Dafny forbids ghost methods from declaring that they have a print side-effect
 (whether or not print effects are being tracked with `--track-print-effects`).
 
-## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)**
+## **Error: not allowed to override a non-printing method with a possibly printing method (_name_)** {#rw_override_must_preserve_printing}
 
 <!-- %check-resolve -->
 ```dafny
@@ -249,7 +249,7 @@ of that method may not do any printing, as it must obey the trait's specificatio
 Thus a class implementing that method by an override cannot declare the method as possibly
 printing something, by giving it a `{:print}` attribute --- even if it does not actually do any printing.
 
-## **Error: :print attribute does not take any arguments**
+## **Error: :print attribute does not take any arguments** {#rw_print_attribute_takes_no_arguments}
 
 <!-- %check-resolve -->
 ```dafny
@@ -259,7 +259,7 @@ method {:print 42} f() { }
 The `{:print}` attribute is used to mark methods that have a side-effect of printing something.
 No arguments to the attribute are needed or allowed.
 
-## **Error: a function-by-method is not allowed to use print statements**
+## **Error: a function-by-method is not allowed to use print statements** {#rw_no_print_in_function_by_method}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -282,7 +282,7 @@ only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
 
-## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}**
+## **Error: to use a print statement, the enclosing _method_ must be marked with {:print}** {#rw_print_attribute_required_to_print}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -300,7 +300,7 @@ only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
 
-## **Error: a function-by-method is not allowed to call a method with print effects**
+## **Error: a function-by-method is not allowed to call a method with print effects** {#rw_function_by_method_may_not_call_printing_method}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
@@ -324,8 +324,7 @@ This tracking of print statements (and thus the possibility of this error messag
 only happens when the `--track-print-effects` option is enabled;
 the option is disabled by default.
 
-
-## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}**
+## **Error: to call a method with print effects, the enclosing _method_ must be marked with {:print}** {#rw_must_be_print_to_call_printing_method}
 
 <!-- %check-resolve %options --track-print-effects -->
 ```dafny
