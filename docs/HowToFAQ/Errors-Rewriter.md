@@ -46,9 +46,9 @@ method m() {
 ```
 
 This message warns about a common syntax error for people familiar with Rust. 
-In Rust `assert! e` indicate checking that expression `e` holds. But in Dafny teh `!` negates the expression.
-That is `assert! e` is `assert `!e`. The syntactic solution to avoiud the warning is to either put space 
-between the `assert` and `!` (if the negation is intended) or to omit the `!` (if the negation is not intended.
+In Rust `assert! e` indicate checking that expression `e` holds. But in Dafny the `!` negates the expression.
+That is `assert! e` is `assert !e` in Dafny. The syntactic solution to avoid the warning is to either put space 
+between the `assert` and `!` (if the negation is intended) or to omit the `!` (if the negation is not intended).
 
 <!-- FILE ./DafnyCore/Rewriters/InductionRewriter.cs-->
 
