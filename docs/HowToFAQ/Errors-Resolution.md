@@ -249,9 +249,6 @@ match expression is ghost. That match expression cannot then be used in a compil
 context, such as a print statement.
 
 
-
-
-
 <!-- FILE ./DafnyCore/Resolver/TypeInferenceChecker.cs -->
 
 ## **Error: newtype's base type is not fully determined; add an explicit type for '_name_'** {#r_newtype_base_undetermined}
@@ -436,29 +433,70 @@ ORDINALs can be used; one restriction is that the ORDINAL type may not be a type
 
 <!-- FILE ./DafnyCore/Resolver/Abstemious.cs -->
 
-<!-- TODO: Abstemious functions are not documented -->
-
 ## **Error: the value returned by an abstemious function must come from invoking a co-constructor**
 
+```dafny
+codatatype D = A | B
+function {:abstemious} f(): int {0}
+```
+
+<!-- TODO -->
 _Abstemious functions are not documented. Please report occurences of this error message._
 
-## **Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters**
+## **Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters** {#r_bad_astemious_destructor}
 
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
+{ 
+  Node(t.left, t.val, t.right.right)  // error: cannot destruct t.right
+}   
+```
+
+<!-- TODO -->
 _Abstemious functions are not documented. Please report occurences of this error message._
 
-## **Error: an abstemious function is allowed to codatatype-match only on its parameters**
+## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_nested_match}
 
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+{ 
+  match t.right  // error: cannot destruct t.right
+  case Node(a, x, b) =>
+    Node(a, x, b)
+}
+```
+
+<!-- TODO -->
 _Abstemious functions are not documented. Please report occurences of this error message._
 
-## **Error: an abstemious function is allowed to codatatype-match only on its parameters**
+## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_match}
 
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+{ 
+  match t.right  // error: cannot destruct t.right
+  case Node(a, x, b) =>
+    Node(a, x, b)
+}
+```
+
+<!-- TODO -->
 _Abstemious functions are not documented. Please report occurences of this error message._
 
-## **Error: an abstemious function is not only allowed to check codatatype equality**
+## **Error: an abstemious function is not allowed to check codatatype equality** {#r_bad_astemious_codatatype_equality}
 
-_Abstemious functions are not documented. Please report occurences of this error message._
+```dafny
+codatatype D = A | B(i: bool)
+ghost function {:abstemious} f(d: D, e: D): D { B(d == e) }
+```
 
-<!-- TODO: Oddly worded message -->
+Abstemious functions have some restrictions. One of these is that an abstemious function
+may not invoke test of equality over codatatypes, even though this is allowed for
+non-abstemious ghost functions.
+See the [reference manual](../DafnyRef/DafnyRef#sec-abstemious) for more information on using abstemious functions.
 
 
 <!-- FILE ./DafnyCore/Resolver/GhostInterestVisitor.cs -->
@@ -565,15 +603,35 @@ ghost code.
 
 ## **Error: assumption variable must be of type 'bool'** {#r_assumption_var_must_be_bool}
 
-<!-- TODO -->
+```dafny
+method m() {
+  ghost var {:assumption} b: int;
+}
+```
+
+Variables marked with `{:assumption} must have bool type.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
 
 ## **Error: assumption variable must be ghost** {#r_assumption_var_must_be_ghost}
 
-<!-- TODO -->
+```dafny
+method m() {
+  var {:assumption} b: bool;
+}
+```
+
+Variables marked with `{:assumption} must be ghost.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
 
 ## **Error: assumption variable can only be declared in a method** {#r_assumption_var_must_be_in_method}
 
-<!-- TODO -->
+<!-- TODO - not sure this is reachable -->
+
+Variables marked with `{:assumption} must be declared within methods.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
 
 ## **Error: in _proof_, calls are allowed only to lemmas** {#r_no_calls_in_proof}
 

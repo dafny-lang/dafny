@@ -3,7 +3,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorRegistry;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;

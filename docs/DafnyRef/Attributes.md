@@ -669,7 +669,7 @@ Overrides the `/subsumption` command-line setting for this assertion.
 `{:subsumption 0}` checks an assertion but does not assume it after proving it.
 You can achieve the same effect using [labelled assertions](#sec-labeling-revealing-assertions).
 
-## 11.4. Attributes on variable declarations
+## 11.4. Attributes on variable declarations {#sec-assumption}
 
 ### 11.4.1. `{:assumption}`
 This attribute can only be placed on a local ghost bool
