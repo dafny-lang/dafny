@@ -3585,6 +3585,18 @@ a lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the greatest lemma can be understood as producing the
 infinite proof on demand.
 
+#### 5.14.3.7. Abstemious and voracious functions {#sec-abstemious}
+
+Some functions on codatatypes are _abstemious_, meaning that they do not
+need to unfold a datatype instance very far (perhaps just one destructor call) 
+to prove a relevant property. Knowing this is the case can aid the proofs of
+properties about the function. The attribute `{:abstemious}` can be applied to
+a function definition to indicate this.
+
+_TODO: Say more about the effect of this attribute and when it should be applied
+(and likely, correct the paragraph above)._
+
+
 # 6. Member declarations
 
 Members are the various kinds of methods, the various kinds of functions, mutable fields,

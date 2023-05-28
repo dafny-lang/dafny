@@ -175,6 +175,12 @@ For more detail on the use of `{:extern}`, see the corresponding [section](#sec-
 
 ## 11.2. Attributes on functions and methods
 
+### 11.2.1. `{:abstemious}`
+
+The `{:abstemious}` attribute is appropriate for functions on codatatypes.
+If appropriate to a function, the attribute can aid in proofs that the function is _productive_.
+See [the section on abstemious functions](#sec-abstemious) for more description.
+
 ### 11.2.1. `{:autoReq}`
 For a function declaration, if this attribute is set true at the nearest
 level, then its `requires` clause is strengthened sufficiently so that
