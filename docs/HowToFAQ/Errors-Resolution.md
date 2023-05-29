@@ -433,7 +433,7 @@ ORDINALs can be used; one restriction is that the ORDINAL type may not be a type
 
 <!-- FILE ./DafnyCore/Resolver/Abstemious.cs -->
 
-## **Error: the value returned by an abstemious function must come from invoking a co-constructor**
+## **Error: the value returned by an abstemious function must come from invoking a co-constructor** {#r_abstemious_needs_conconstructor}
 
 ```dafny
 codatatype D = A | B

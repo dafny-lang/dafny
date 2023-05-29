@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     public abstract bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
-      Error(source, null, tok, msg);
+      Error(source, (string)null, tok, msg);
     }
     public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
     public abstract int CountExceptVerifierAndCompiler(ErrorLevel level);
 
     // This method required by the Parser
-    internal void Error(MessageSource source, string errorId, Uri uri, int line, int col, string msg) {
+    internal void Error(MessageSource source, Enum errorId, Uri uri, int line, int col, string msg) {
       var tok = new Token(line, col);
       tok.Uri = uri;
       Error(source, errorId, tok, msg);
@@ -61,7 +61,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, tok, String.Format(msg, args));
+      Error(source, (string)null, tok, String.Format(msg, args));
+    }
+
+    public void Error(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId.ToString(), tok, String.Format(msg, args));
     }
 
     public void Error(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
@@ -75,7 +82,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, d.tok, msg, args);
+      Error(source, (string)null, d.tok, msg, args);
     }
 
     public void Error(MessageSource source, string errorId, Declaration d, string msg, params object[] args) {
@@ -85,39 +92,56 @@ namespace Microsoft.Dafny {
       Error(source, errorId, d.tok, msg, args);
     }
 
+    public void Error(MessageSource source, Enum errorId, Statement s, string msg, params object[] args) {
+      Contract.Requires(s != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId.ToString(), s.Tok, msg, args);
+    }
+
     public void Error(MessageSource source, Statement s, string msg, params object[] args) {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, s.Tok, msg, args);
+      Error(source, (string)null, s.Tok, msg, args);
     }
 
     public void Error(MessageSource source, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, v.Tok, msg, args);
+      Error(source, (string)null, v.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, string errorId, INode v, string msg, params object[] args) {
+    public void Error(MessageSource source, Enum errorId, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorId, v.Tok, msg, args);
+      Error(source, errorId.ToString(), v.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, string errorId, Expression e, string msg, params object[] args) {
+    public void Error(MessageSource source, Enum errorId, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorId, e.tok, msg, args);
+      Error(source, errorId.ToString(), e.tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, e.tok, msg, args);
+      Error(source, (string)null, e.tok, msg, args);
+    }
+
+    public void Warning(MessageSource source, Enum errorId, IToken tok, string msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      if (Options.WarningsAsErrors) {
+        Error(source, errorId.ToString(), tok, msg);
+      } else {
+        Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
+      }
     }
 
     public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
@@ -130,6 +154,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void Warning(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Warning(source, errorId, tok, String.Format(msg, args));
+    }
+
     public void Warning(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -137,7 +168,7 @@ namespace Microsoft.Dafny {
       Warning(source, errorId, tok, String.Format(msg, args));
     }
 
-    public void Deprecated(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
+    public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
@@ -146,7 +177,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void DeprecatedStyle(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
+    public void DeprecatedStyle(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);

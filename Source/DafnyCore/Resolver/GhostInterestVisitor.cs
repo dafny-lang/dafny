@@ -25,19 +25,19 @@ class GhostInterestVisitor {
     Contract.Requires(stmt != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, errorId.ToString(), stmt, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId, stmt, msg, msgArgs);
   }
   protected void Error(ErrorId errorId, Expression expr, string msg, params object[] msgArgs) {
     Contract.Requires(expr != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, errorId.ToString(), expr, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId, expr, msg, msgArgs);
   }
   protected void Error(ErrorId errorId, IToken tok, string msg, params object[] msgArgs) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Contract.Requires(msgArgs != null);
-    reporter.Error(MessageSource.Resolver, errorId.ToString(), tok, msg, msgArgs);
+    reporter.Error(MessageSource.Resolver, errorId, tok, msg, msgArgs);
   }
   /// <summary>
   /// There are three kinds of contexts for statements.

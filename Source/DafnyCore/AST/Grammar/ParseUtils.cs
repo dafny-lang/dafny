@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
 
@@ -231,7 +232,7 @@ public class ParseUtils {
 
     if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
         && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
-      batchErrorReporter.Warning(MessageSource.Parser, null, new Token(1, 1) { Uri = uri }, "File contains no code");
+      batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
     }
 
     return new DfyParseResult(batchErrorReporter, parser.theModule, parser.BuiltinsModifiers);

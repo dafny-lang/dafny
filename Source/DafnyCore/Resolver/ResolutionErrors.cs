@@ -47,6 +47,11 @@ public class ResolutionErrors {
     r_trivial_map_null_inclusion_test,
     r_var_type_undetermined,
     r_no_ORDINAL_as_type_parameter,
+    r_abstemious_needs_conconstructor,
+    r_bad_astemious_destructor,
+    r_bad_astemious_nested_match,
+    r_bad_astemious_match,
+    r_bad_astemious_codatatype_equality,
     r_expect_statement_is_not_ghost,
     r_print_statement_is_not_ghost,
     r_ghost_break,
@@ -72,7 +77,8 @@ public class ResolutionErrors {
     r_assignment_forbidden_in_context,
     r_assignment_to_ghost_constructor_only_in_ghost,
     r_assert_only_assumes_others,
-    r_assert_only_before_after
+    r_assert_only_before_after,
+    r_failure_methods_deprecated
   }
 
   static ResolutionErrors() {

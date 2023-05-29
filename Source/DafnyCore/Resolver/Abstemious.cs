@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
@@ -15,7 +16,7 @@ public class Abstemious {
       var abstemious = true;
       if (Attributes.ContainsBool(fn.Attributes, "abstemious", ref abstemious) && abstemious) {
         if (CoCallResolution.GuaranteedCoCtors(fn) == 0) {
-          reporter.Error(MessageSource.Resolver, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_abstemious_needs_conconstructor, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
         } else {
           CheckDestructsAreAbstemiousCompliant(fn.Body);
         }
@@ -43,7 +44,7 @@ public class Abstemious {
         if (ide != null && ide.Var is Formal) {
           // cool; fall through to check match branches
         } else {
-          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_nested, match, nestedMatchExpr.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_nested_match, nestedMatchExpr.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
           return;
         }
       }

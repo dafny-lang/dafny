@@ -36,11 +36,11 @@ public class ExpressionTester {
   }
 
   public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId.ToString(), e, msg, args);
+    reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
   public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId.ToString(), t, msg, args);
+    reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 
   /// <summary>
