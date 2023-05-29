@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.Get(CommonOptionsBag.Verbose) && !String.IsNullOrEmpty(errorId) && errorId != "none") {
+        if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
           errorLine += " (ID: " + errorId + ")\n";
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
