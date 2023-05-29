@@ -153,7 +153,7 @@ the same indentation. This warning occurs when the observed indentation is likel
 a misunderstanding of the code, particularly of the precedence of operations. It is suggested
 to use parentheses or to redo the indentation to make the structure of the expression clearer.
 
-<!-- FILE ./DafnyCore/Resolver/RunAllTestsMainMethod.cs -->
+<!-- FILE ./DafnyCore/Rewriters/RunAllTestsMainMethod.cs -->
 
 ## **Error: Methods with the :test attribute may not have input arguments** {#rw_test_methods_may_not_have_inputs}
 
@@ -186,7 +186,7 @@ Typically that out-parameter has a failure-compatible type whose value is used t
 test succeeeded or failed. If the type is not a failure-compatible type, the test is presumed to be successful.
 This is purely an implementation limitation. (cf. [Issue 3387](https://github.com/dafny-lang/dafny/issues/3387))
 
-<!-- FILE ./DafnyCore/Resolver/ExpectContracts.cs-->
+<!-- FILE ./DafnyCore/Rewriters/ExpectContracts.cs-->
 
 ## **Warning: The _kind_ clause at this location cannot be compiled to be tested at runtime because it references ghost state.** {#rw_clause_cannot_be_compiled}
 
@@ -215,7 +215,7 @@ the programmed unit tests. The warning only appears when using
 `/testContracts:TestedExterns` with the legacy CLI.
 It is likely to be removed in a future version of `dafny`.
 
-<!-- FILE ./DafnyCore/Resolver/PrintEffectEnforcement.cs-->
+<!-- FILE ./DafnyCore/Rewriters/PrintEffectEnforcement.cs-->
 
 ## **Error: :print attribute is not allowed on functions** {#rw_print_attribute_forbidden_on_functions}
 
