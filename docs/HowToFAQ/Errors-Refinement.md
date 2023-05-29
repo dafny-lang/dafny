@@ -121,7 +121,16 @@ Hence a type that is defined in a refinement base cannot be an abstract type in 
 
 ## Error: an iterator declaration (_name_) in a refining module cannot replace a different kind of declaration in the refinement base** {#ref_iterator_must_refine_iterator}
 
-<!-- TODO -->
+```dafny
+module P {
+  class I {}
+}
+module Q refines P {
+  iterator I...  {}
+}
+```
+
+Iterators may only refine iterator declarations.
 
 ## **Error: a type (_name_) in a refining module may not replace an already defined type (even with the same value)** {#ref_base_type_cannot_be_refined}
 
@@ -133,23 +142,77 @@ Hence a type that is defined in a refinement base cannot be an abstract type in 
 
 ## **Error: a refining iterator is not allowed to add preconditions** {#ref_no_new_iterator_preconditions}
 
-<!-- TODO -->
+```dafny
+module P {
+  iterator I() yields (x: int)
+}
+module Q refines P {
+  iterator I... requires true
+}
+```
+
+There are restrictions on what may change when refining an iterator. In particular, no new preconditions may be added
+even if they are implied by the base declarations's preconditions.
 
 ## **Error: a refining iterator is not allowed to add yield preconditions** {#ref_no_new_iterator_yield_preconditions}
 
-<!-- TODO -->
+```dafny
+module P {
+  iterator I() yields (x: int)
+}
+module Q refines P {
+  iterator I... yield requires true
+}
+```
+
+There are restrictions on what may change when refining an iterator. In particular, no new yield preconditions may be added
+even if they are implied by the base declarations's preconditions.
+
 
 ## **Error: a refining iterator is not allowed to extend the reads clause** {#ref_no_new_iterator_reads}
 
-<!-- TODO -->
+<```dafny
+module P {
+  iterator I() yields (x: int)
+}
+module Q refines P {
+  iterator I... reads {}
+}
+```
+
+There are restrictions on what may change when refining an iterator. In particular, no new reads clauses may be added
+even if they are contained within the base declarations's reads clauses.
+
 
 ## Error: a refining iterator is not allowed to extend the modifies clause** {#ref_no_new_iterator_modifies}
 
-<!-- TODO -->
+```dafny
+module P {
+  iterator I() yields (x: int)
+}
+module Q refines P {
+  iterator I... modifies {}
+}
+```
+
+There are restrictions on what may change when refining an iterator. In particular, no new modifies clauses may be added
+even if they list objects that are contained within the base declarations's modifies clauses.
+
 
 ## **Error: a refining iterator is not allowed to extend the decreases clause** {#ref_no_new_iterator_decreases}
 
-<!-- TODO -->
+```dafny
+module P {
+  iterator I() yields (x: int)
+}
+module Q refines P {
+  iterator I... decreases 1 {}
+}
+```
+
+There are restrictions on what may change when refining an iterator. In particular, no new decreases clause may be added
+even if if is the same as or implied by the base declaration's decreases clause.
+
 
 ## **Error: a const declaration (_name_) in a refining class (_class_) must replace a const in the refinement base** {#ref_const_must_refine_const}
 
@@ -283,7 +346,17 @@ If there is a redeclaration of the field, it must be to add a `ghost` modifier.
 
 ## **Error: a _kind_ declaration (_name_) can only refine a _kind_** {#ref_mismatched_refinement_kind}
 
-<!-- TODO -->
+```dafny
+module P {
+  function f(i: int): bool
+}
+module Q refines P {
+  predicate f(i: int) { true }
+}
+```
+
+The refining declaration must be the same kind of thing as the base declaration.
+For example both must be predicates or both must be functions (even if the function is one that returns a `bool`).
 
 ## Error: a refining _kind_ is not allowed to add preconditions** {#ref_refinement_no_new_preconditions}
 
@@ -639,11 +712,31 @@ may not change for any declaration.
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from non-older to older** {#ref_mismatched_kind_older}
 
-<!-- TODO -->
+```dafny
+module P {
+  class A {}
+  predicate m(a: A)
+}
+module Q refines P {
+  predicate m(older a: A) { true }
+}
+```
+
+When refining a predicate, a formal parameter may not change from onder to non-older or vice versa.
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from older to non-older** {#ref_mismatched_kind_non_older}
 
-<!-- TODO -->
+```dafny
+module P {
+  class A {}
+  predicate m(older a: A)
+}
+module Q refines P {
+  predicate m(a: A) { true }
+}
+```
+
+When refining a predicate, a formal parameter may not change from onder to non-older or vice versa.
 
 ## **Error: the type of _kind_ '_n_' is different from the type of the same _kind_ in the corresponding _thing_ in the module it refines ('_name_' instead of '_oldname_')** {#ref_mismatched_parameter_name}
 
