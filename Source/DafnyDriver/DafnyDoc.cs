@@ -672,7 +672,7 @@ class DafnyDoc {
       decl.Append(" = ");
       // datatype constructors are written out several lines down
     } else {
-      Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Kind of type not handled in dafny doc");
+      Reporter.Warning(MessageSource.Documentation, (string)null, t.Tok, "Kind of type not handled in dafny doc");
     }
     decl.Append(br).Append(eol);
     details.Append(AttrString(t.Attributes));
@@ -972,7 +972,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, null, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, (string)null, t.Tok, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 
