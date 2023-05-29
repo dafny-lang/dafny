@@ -76,7 +76,7 @@ public class Parser {
   public void SemErr(IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(ErrorId.p_generic_semantic_error, tok, msg);
+    errors.SemErr(tok, msg);
   }
 
   public void SemErr(ErrorId errorId, IToken tok, string msg) {
@@ -185,7 +185,7 @@ public class Errors {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
-    Reporting.Error(MessageSource.Parser, ErrorId.p_generic_semantic_error, tok, msg);
+    Reporting.Error(MessageSource.Parser, "", tok, msg);
   }
 
   public void SemErr(ErrorId errorId, IToken tok, string msg) {  // semantic errors
