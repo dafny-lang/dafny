@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using System.Text.RegularExpressions;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
 
@@ -136,8 +137,8 @@ public class RunAllTestsMainMethod : IRewriter {
           };
 
           if (method.Ins.Count != 0) {
-            Reporter.Error(MessageSource.Rewriter, method.tok,
-                "Methods with the {:test} attribute may not have input arguments");
+            ReportError(ErrorId.rw_test_methods_may_not_have_inputs, method.tok,
+                "Methods with the :test attribute may not have input arguments");
             continue;
           }
 
@@ -148,8 +149,9 @@ public class RunAllTestsMainMethod : IRewriter {
           // was an AssignOrReturnStmt (:-).
           switch (method.Outs.Count) {
             case > 1:
-              Reporter.Error(MessageSource.Rewriter, method.tok,
-                "Methods with the {:test} attribute can have at most one return value");
+              ReportError(ErrorId.rw_test_method_has_too_many_returns,
+               method.tok,
+                "Methods with the :test attribute can have at most one return value");
               continue;
             case 1: {
                 var resultVarName = idGenerator.FreshId("result");
