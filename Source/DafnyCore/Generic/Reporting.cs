@@ -218,11 +218,11 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
-          errorLine += " (ID: " + errorId + ")";
+        if (Options.Verbose && !String.IsNullOrEmpty(errorId)) {
+          errorLine += " (ID: " + errorId + ")\n";
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
-            errorLine += "\n" + info; // already ends with eol character
+            errorLine += info; // already ends with eol character
           }
         } else {
           errorLine += "\n";
