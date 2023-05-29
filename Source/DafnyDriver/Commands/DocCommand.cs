@@ -21,7 +21,6 @@ class DocCommand : ICommandSpec {
 
 
   public static IEnumerable<Option> DocOptions => new Option[] {
-    CommonOptionBag.Verbose,
     CommonOptionBag.Output,
     DocProgramNameOption,
     DocFilenameFormat,
