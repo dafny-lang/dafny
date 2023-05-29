@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
     public abstract bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
-      Error(source, null, tok, msg);
+      Error(source, (string)null, tok, msg);
     }
     public virtual void Error(MessageSource source, string errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
@@ -61,7 +61,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, tok, String.Format(msg, args));
+      Error(source, (string)null, tok, String.Format(msg, args));
+    }
+
+    public void Error(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId.ToString(), tok, String.Format(msg, args));
     }
 
     public void Error(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
@@ -75,7 +82,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, d.tok, msg, args);
+      Error(source, (string)null, d.tok, msg, args);
     }
 
     public void Error(MessageSource source, string errorId, Declaration d, string msg, params object[] args) {
@@ -89,21 +96,31 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, s.Tok, msg, args);
+      Error(source, (string)null, s.Tok, msg, args);
     }
 
     public void Error(MessageSource source, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, v.Tok, msg, args);
+      Error(source, (string)null, v.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, null, e.tok, msg, args);
+      Error(source, (string)null, e.tok, msg, args);
+    }
+
+    public void Warning(MessageSource source, Enum errorId, IToken tok, string msg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      if (Options.WarningsAsErrors) {
+        Error(source, errorId.ToString(), tok, msg);
+      } else {
+        Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
+      }
     }
 
     public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
@@ -114,6 +131,13 @@ namespace Microsoft.Dafny {
       } else {
         Message(source, ErrorLevel.Warning, errorId, tok, msg);
       }
+    }
+
+    public void Warning(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Warning(source, errorId, tok, String.Format(msg, args));
     }
 
     public void Warning(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
@@ -194,11 +218,14 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.Verbose && false) { // Need to control tests better before we enable this
+        if (Options.Get(CommonOptionsBag.Verbose) && !String.IsNullOrEmpty(errorId) && errorId != "none") {
+          errorLine += " (ID: " + errorId + ")\n";
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
-            errorLine += "\n" + info;
+            errorLine += info; // already ends with eol character
           }
+        } else {
+          errorLine += "\n";
         }
 
         if (Options.Get(DafnyConsolePrinter.ShowSnippets)) {
@@ -207,7 +234,7 @@ namespace Microsoft.Dafny {
           Options.OutputWriter.Write(tw.ToString());
         }
 
-        Options.OutputWriter.WriteLine(errorLine);
+        Options.OutputWriter.Write(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = previousColor;
