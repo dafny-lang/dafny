@@ -218,7 +218,8 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.Verbose && false) { // Need to control tests better before we enable this
+        if (Options.Verbose) { // Need to control tests better before we enable this
+          errorLine += "\nID: " + errorId;
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
             errorLine += "\n" + info;
