@@ -23,7 +23,6 @@ module A {
   }
 }
 formatting1-3.dfy(1,0): Warning: File contains no code
-ID: 
 // RUN: echo 'lit should ignore this file' 
 
 1 file needs formatting.
