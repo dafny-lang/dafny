@@ -31,7 +31,15 @@ A refining declaration must make the base declaration more specific. It may not 
 
 ## **Error: declaration '_name_' indicates refining (notation `...`), but does not refine anything** {#ref_refining_notation_does_not_refine}
 
-<!-- TODO -->
+```dafny
+module P {
+}
+module Q refines P {
+  export A ...
+}
+```
+
+A refining declaration that uses `...` must actually be refining a corresponding declaration in the 
 
 ## ** Error: can't change if a module export is default (_name_)** {#ref_default_export_unchangeable}
 
@@ -43,7 +51,7 @@ A refining declaration must make the base declaration more specific. It may not 
 
 ## **Error: a module export (_name_) must refine another export** {#ref_export_must_refine_export}
 
-<!-- TODO -->
+<!-- TODO -- suspect not reachable -->
 
 ## **Error: a module (_name_) can only refine a module facade** {#ref_base_module_must_be_facade}
 
@@ -51,7 +59,16 @@ A refining declaration must make the base declaration more specific. It may not 
 
 ## **Error: a module ({0}) must refine another module** {#ref_module_must_refine_module_2}
 
-<!-- TODO -->
+```dafny
+module P {
+  type W
+}
+module Q refines P {
+  module W {}
+}
+```
+
+A submodule M within a module that is refining some basae module must refine some submodule M in the base module.
 
 ## **Error: type declaration '_name_' is not allowed to change the requirement of supporting equality** {#ref_mismatched_equality}
 
@@ -71,19 +88,60 @@ A refining declaration must make the base declaration more specific. It may not 
 
 ## **Error: a type declaration that requires equality support cannot be replaced by a codatatype** {#ref_equality_support_precludes_codatatype}
 
-<!-- TODO -->
+``dafny
+module P {
+  type T(==)
+}
+module Q refines P {
+  codatatype T = A
+}
+```
+
+Codatatypes do not generally support equality and so cannot be refinements of an abstract type that declares that it supports equality.
 
 ## **Error: type '_name_', which does not support equality, is used to refine an abstract type with equality support** {#ref_mismatched_type_equality_support}
 
-<!-- TODO -->
+```dafny
+module P {
+  type T(==)
+}
+module Q refines P {
+  class A{}
+  type T = A
+}
+```
+
+A refining type must be declared to support equality (with `(==)`) if the base declaration is declared to support equality.
+
 
 ## **Error: type '_name', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
 
-<!-- TODO -->
+```dafny
+module P {
+  type T(0)
+}
+module Q refines P {
+  class A{}
+  type T = A
+}
+```
+
+A refining type must be declared to be auto-initializing (with `(0)`) if the base declaration is declared auto-initializing.
+
 
 ## **Error: type '_name_', which may be empty, is used to refine an abstract type expected to be nonempty** {#ref_mismatched_type_nonempty}
 
-<!-- TODO -->
+```dafny
+module P {
+  type T(00)
+}
+module Q refines P {
+  class A{}
+  type T = A
+}
+```
+
+A refining type must be declared to be non-empty (with `(00)`) if the base declaration is declared non-empty.
 
 ## **Error: a _kind_ (_name_) cannot declare members, so it cannot refine an abstract type with members** {#ref_mismatched_type_with_members}
 
@@ -117,7 +175,18 @@ Hence a type that is defined in a refinement base cannot be an abstract type in 
 
 ## **Error: a _kind_ declaration (_name_) in a refinement module can only refine a _kind_ declaration or replace an abstract type declaration** {#ref_declaration_must_refine}
 
-<!-- TODO -->
+```dafny
+module P {
+  type T = int
+}
+module Q refines P {
+  datatype T ... {}
+}
+```
+
+The purpose of refinement is to replace abstract or incompletely defined declarations with more specific declarations.
+The refining declaration needs to be the same kind of declaration as in the base.
+
 
 ## Error: an iterator declaration (_name_) in a refining module cannot replace a different kind of declaration in the refinement base** {#ref_iterator_must_refine_iterator}
 
@@ -134,11 +203,11 @@ Iterators may only refine iterator declarations.
 
 ## **Error: a type (_name_) in a refining module may not replace an already defined type (even with the same value)** {#ref_base_type_cannot_be_refined}
 
-<!-- TODO -->
+<!-- TODO - does not appear to be reachable -->
 
 ## **Error: a module (_name_) can only be refined by an alias module or a module facade** {#ref_base_module_must_be_abstract_or_alias}
 
-<!-- TODO -->
+<!-- TODO  - not sure this is reachable-->
 
 ## **Error: a refining iterator is not allowed to add preconditions** {#ref_no_new_iterator_preconditions}
 
@@ -445,19 +514,61 @@ But in the case where the the base declaration already has a body and is `ghost`
 
 ## **Error: the name of function return value '_function_'(_result_) differs from the name of corresponding function return value in the module it refines (_otherresult_)** {#ref_mismatched_function_return_name}
 
-<!-- TODO -->
+```dafny
+module P {
+  function f(a: int): (r: int)
+}
+module Q refines P {
+  function f(a: int): (s: int) { 0 }
+}
+```
+
+When refining a function, the input and output signature must stay precisely the same -- formals, types, and names.
+In this case the name of the returned value is different.
+
 
 ## **Error: the result type of function '_function_' (_type_) differs from the result type of the corresponding function in the module it refines (_othertype_)** {#ref_mismatched_function_return_type}
 
-<!-- TODO -->
+```dafny
+module P {
+  function f(a: int): int { 0 }
+}
+module Q refines P {
+  function f(a: int): bool
+}
+```
+
+When refining a function, the input and output signature must stay precisely the same -- formals, types, and names.
+In this case the return type is different. The types must be syntactically identical; it is not allowed
+to use a type and an equivalent type sysnonym, for example.
 
 ## **Error: a refining _kind_ is not allowed to extend/change the body** {#ref_mismatched_refinement_body}
 
-<!-- TODO -->
+```dafny
+module P {
+  function f(a: int): int { 0 }
+}
+module Q refines P {
+  function f(a: int): int { 0 }
+}
+```
+
+When refining any kind of function, the refining declaration can not include a body if the b ase declaration has a body, even if the text of the bodies are identical.
 
 ## Error: a method declaration (_name_) can only refine a method** {#ref_method_refines_method}
 
-<!-- TODO -->
+```dafny
+module P {
+  function m(a: int): int
+}
+module Q refines P {
+  method m(a: int)  {}
+}
+```
+
+The refining declaration must be the same kind of thing as the base declaration.
+For example both must be methods.
+
 
 ## **Error: a refining method is not allowed to add preconditions** {#ref_no_new_method_precondition}
 
@@ -494,7 +605,18 @@ do not actually add any new objects to the modifies set.
 
 ## **Error: decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'** {#ref_no_new_method_decreases}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(a: int)
+}
+module Q refines P {
+  method m(a: int) decreases a {}
+}
+```
+
+A decreases clause is not permitted in a refining method declaration, even if it is syntactically identical to the clause in the base declaration.
+The one exception is that if the base declares `decreases *` then the refinement may give a decreases clause (even `decreases`*`).
+Note that if the refining declaration does not state a decreases clause (the usual case), the refining declaration gets a copy of the base declarations clause.
 
 ## **Error: a method in a refining module cannot be changed from static to non-static or vice versa: _name_** {#ref_mismatched_method_static}
 
@@ -738,9 +860,19 @@ module Q refines P {
 
 When refining a predicate, a formal parameter may not change from onder to non-older or vice versa.
 
-## **Error: the type of _kind_ '_n_' is different from the type of the same _kind_ in the corresponding _thing_ in the module it refines ('_name_' instead of '_oldname_')** {#ref_mismatched_parameter_name}
+## **Error: the type of _kind_ '_n_' is different from the type of the same _kind_ in the corresponding _thing_ in the module it refines ('_name_' instead of '_oldname_')** {#ref_mismatched_parameter_type}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(a: bool)
+}
+module Q refines P {
+  method m(a: int) {}
+}
+```
+
+The types in a signature in a refining declaration must be the same as the corresponding types in the base declaration.
+The types must be syntactically identical. For example one cannot be a type synonym of the other.
 
 ## Error: a refining formal parameter ('_name_') in a refinement module is not allowed to give a default-value expression** {#ref_refined_formal_may_not_have_default}
 

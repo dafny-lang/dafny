@@ -76,7 +76,7 @@ public class RefinementErrors {
     ref_mismatched_kind_new,
     ref_mismatched_kind_older,
     ref_mismatched_kind_non_older,
-    ref_mismatched_parameter_name,
+    ref_mismatched_parameter_type,
     ref_refined_formal_may_not_have_default,
     ref_mismatched_skeleton,
     ref_mismatched_assert,

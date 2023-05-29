@@ -336,12 +336,12 @@ namespace Microsoft.Dafny {
         }
       } else if (d is AbstractTypeDecl) {
         if (nw is ModuleDecl) {
-          Error(ErrorId.ref_mismatched_equality, nw, "a module ({0}) must refine another module", nw.Name);
+          Error(ErrorId.ref_module_must_refine_module_2, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
           var od = (AbstractTypeDecl)d;
           if (nw is AbstractTypeDecl) {
             if (od.SupportsEquality != ((AbstractTypeDecl)nw).SupportsEquality) {
-              Error(ErrorId.ref_mismatched_auto_init, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+              Error(ErrorId.ref_mismatched_equality, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
             if (od.Characteristics.HasCompiledValue != ((AbstractTypeDecl)nw).Characteristics.HasCompiledValue) {
               Error(ErrorId.ref_mismatched_auto_init, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny {
           } else if (o.IsOlder && !n.IsOlder) {
             Error(ErrorId.ref_mismatched_kind_non_older, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it refines, from older to non-older", parameterKind, n.Name, thing, name);
           } else if (!TypesAreSyntacticallyEqual(o.Type, n.Type)) {
-            Error(ErrorId.ref_mismatched_parameter_name, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
+            Error(ErrorId.ref_mismatched_parameter_type, n.tok, "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it refines ('{3}' instead of '{4}')", parameterKind, n.Name, thing, n.Type, o.Type);
           } else if (n.DefaultValue != null) {
             Error(ErrorId.ref_refined_formal_may_not_have_default, n.tok, "a refining formal parameter ('{0}') in a refinement module is not allowed to give a default-value expression", n.Name);
           }
