@@ -218,13 +218,16 @@ namespace Microsoft.Dafny {
           errorLine += $" {msg} {tok.TokenToString(Options)}";
         }
 
-        if (Options.Verbose && false) { // Need to control tests better before we enable this
+        if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
+          errorLine += " (ID: " + errorId + ")\n";
           var info = ErrorRegistry.GetDetail(errorId);
           if (info != null) {
-            errorLine += "\n" + info;
+            errorLine += info; // already ends with eol character
           }
+        } else {
+          errorLine += "\n";
         }
-        Options.OutputWriter.WriteLine(errorLine);
+        Options.OutputWriter.Write(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = previousColor;
