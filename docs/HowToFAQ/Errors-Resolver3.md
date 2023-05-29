@@ -508,7 +508,7 @@ Dafny does not have any implicit conversion to or from `bool` values.
 ## **Error: range of quantified variable must be of type bool (instead got _type_)**
 
 ```dafny
-function f(i: set<int>): set<bool> { set k: int <- i |  true || k  }
+function f(i: set<int>): set<int> { set k: int <- i |  true || k  }
 ```
 
 In a quantification using the `<-` syntax, the type of the quantified variable is
@@ -532,11 +532,11 @@ But dissimilar types cannot be compared.
 
 ```dafny
 predicate m(x: int, s: set<int>)  { s !! x }
-predicate n(x: int, s: set<int>)  { x !! s }
 ```
 
 The `!!` operator takes sets as operands. The complaint here is likely that one of the operands is not a set.
 
+<!-- 2 instances -->
 
 ## **Error: arguments must be of a set or multiset type (got _type_)**
 
@@ -583,13 +583,14 @@ Where Dafny cannot determine such a common supertype, the comparison is illegal 
 ```dafny
 const x: map<int,int>
 const z := x < x 
-const w := x >= x 
 ```
 
 The `<`, `<=`, `>=`, and `>` operators are used for traditional numeric comparison, 
 comparison of prefixes in sequences (just `<`),
 and subset relations among sets.
 But they are not used for comparing maps or reference values.
+
+<!-- 2 instances -->
 
 ## **Error: type of _op_ must be a bitvector type (instead got _type_)**
 
@@ -718,7 +719,7 @@ This message then is stating that the right operand has a different type.
 ## **Error: second argument to _op_ must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
 
 ```dafny
-function ff(i: int, j: real): real { i in j }
+function ff(i: int, j: real): bool { i in j }
 ```
 
 The operators `in` and `!in`test membership of a value in a container,
@@ -729,7 +730,7 @@ is deprecated in favor of `i in m.Keys`,
 ## **Error: domain of quantified variable must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
 
 ```dafny
-function f(i: int): real { set k <- i |  k }
+function f(i: int): set<bool> { set k <- i |  k }
 ```
 
 The syntax `k <- i` means that `k` is a quantified variable whose domain is all the elements of the container `i`.
