@@ -886,9 +886,9 @@ namespace Microsoft.Dafny {
                 Error(ErrorId.ref_mismatched_method_static, m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
               }
               if (prevMethod.IsGhost && !m.IsGhost) {
-                Error(ErrorId.ref_mismatched_method_ghost, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
               } else if (!prevMethod.IsGhost && m.IsGhost) {
-                Error(ErrorId.ref_mismatched_method_non_ghost, m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
               }
               if (m.SignatureIsOmitted) {
                 Contract.Assert(m.TypeArgs.Count == 0);
