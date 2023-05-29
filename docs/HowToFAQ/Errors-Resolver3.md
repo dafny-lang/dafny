@@ -151,7 +151,7 @@ All the domain values must have the same type or a common supertype.
 ## **Error: All range elements of map display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
 
 ```dafny
-const d := map[2 := 3, 4 := 6]
+const d := map[2 := 3, 4 := 6.0 ]
 ```
 
 A map display associates a number of domain values with corresponding range values using the syntax _domain value_ := _range value_. 
@@ -380,6 +380,7 @@ size operator -- not arrays, `iset`, or `imap`.
 ## **Error: a _what_ definition is not allowed to depend on the set of allocated references**
 
 ```dafny
+class B {}
 const bbb:B
 predicate p() { allocated(bbb) }
 ```
@@ -530,8 +531,8 @@ But dissimilar types cannot be compared.
 ## **Error: arguments to _op_ must have a common supertype (got _type_ and _type_)**
 
 ```dafny
-predicate m(i: int, s: set<int>)  { s !! x }
-predicate m(i: int, s: set<int>)  { x !! s }
+predicate m(x: int, s: set<int>)  { s !! x }
+predicate n(x: int, s: set<int>)  { x !! s }
 ```
 
 The `!!` operator takes sets as operands. The complaint here is likely that one of the operands is not a set.
@@ -714,7 +715,7 @@ Typically the result of the expression is detrermined by the left operand.
 This message then is stating that the right operand has a different type.
 
 
-## **Error: second argument to _op_ must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})**
+## **Error: second argument to _op_ must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
 
 ```dafny
 function ff(i: int, j: real): real { i in j }
@@ -725,7 +726,7 @@ so the right-hand operand must be a container of some sort.
 It may also be a map, in which case membership in the map's domain is checked, but this use
 is deprecated in favor of `i in m.Keys`,
 
-## **Error: domain of quantified variable must be a set, multiset, or sequence with elements of type {1}, or a map with domain {1} (instead got {0})**
+## **Error: domain of quantified variable must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
 
 ```dafny
 function f(i: int): real { set k <- i |  k }
