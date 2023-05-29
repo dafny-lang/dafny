@@ -20,6 +20,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Plugins;
+using static Microsoft.Dafny.RefinementErrors;
 
 namespace Microsoft.Dafny {
   public class RefinementToken : TokenWrapper {
@@ -163,6 +164,10 @@ namespace Microsoft.Dafny {
       : this(p.Reporter) {
     }
 
+    void Error(ErrorId errorId, IToken tok, string msg, params object[] args) {
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, tok, msg, args);
+    }
+
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
     public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
@@ -186,11 +191,15 @@ namespace Microsoft.Dafny {
               if (im is ModuleDecl mdecl) {
                 if (bim is ModuleDecl mbim) {
                   if (mdecl.Opened != mbim.Opened) {
-                    string message = mdecl.Opened
-                      ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
-                      : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                    Reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
-                      m.RefinementQId.ToString());
+                    if (mdecl.Opened) {
+                      Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
+                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
+                        im.Name, m.Name, m.RefinementQId.ToString());
+                    } else {
+                      Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
+                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
+                        im.Name, m.Name, m.RefinementQId.ToString());
+                    }
                   }
                 }
               }
@@ -241,9 +250,9 @@ namespace Microsoft.Dafny {
             MergeTopLevelDecls(m, nwPointer, d);
           } else if (nw is TypeSynonymDecl) {
             var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
-            Reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
+            Error(ErrorId.ref_refinement_type_must_match_base, nw.tok, msg);
           } else if (!(d is AbstractModuleDecl)) {
-            Reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, nw.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
           }
         }
       }
@@ -268,7 +277,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(excludeList != null);
       foreach (var d in topLevelDecls) {
         if (d.IsRefining && !excludeList.Contains(d.Name)) {
-          Reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+          Error(ErrorId.ref_refining_notation_does_not_refine, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
         }
       }
     }
@@ -288,7 +297,7 @@ namespace Microsoft.Dafny {
 
     private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
       if (nw.IsDefault != d.IsDefault) {
-        Reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
+        Error(ErrorId.ref_default_export_unchangeable, nw, "can't change if a module export is default ({0})", nw.Name);
       }
 
       nw.Exports.AddRange(d.Exports);
@@ -302,10 +311,10 @@ namespace Microsoft.Dafny {
 
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
-          Reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
+          Error(ErrorId.ref_module_must_refine_module, nw, "a module ({0}) must refine another module", nw.Name);
         } else if (d is ModuleExportDecl) {
           if (!(nw is ModuleExportDecl)) {
-            Reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
+            Error(ErrorId.ref_export_must_refine_export, nw, "a module export ({0}) must refine another export", nw.Name);
           } else {
             MergeModuleExports((ModuleExportDecl)nw, (ModuleExportDecl)d);
           }
@@ -869,9 +878,9 @@ namespace Microsoft.Dafny {
                 Reporter.Error(MessageSource.RefinementTransformer, m, "a method in a refining module cannot be changed from static to non-static or vice versa: {0}", m.Name);
               }
               if (prevMethod.IsGhost && !m.IsGhost) {
-                Reporter.Error(MessageSource.RefinementTransformer, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
-              } else if (!prevMethod.IsGhost && m.IsGhost) {
                 Reporter.Error(MessageSource.RefinementTransformer, m, "a ghost method cannot be changed into a non-ghost method in a refining module: {0}", m.Name);
+              } else if (!prevMethod.IsGhost && m.IsGhost) {
+                Reporter.Error(MessageSource.RefinementTransformer, m, "a method cannot be changed into a ghost method in a refining module: {0}", m.Name);
               }
               if (m.SignatureIsOmitted) {
                 Contract.Assert(m.TypeArgs.Count == 0);
