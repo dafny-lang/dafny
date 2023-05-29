@@ -250,7 +250,7 @@ Following the general rule that declarations in the base module are replaced by 
 a `var` declaration in a refining class must replace a `var` declaration in the class in the base (with the same type).
 
 
-## **Error: a field declaration (_name_) in a refining class (_class) must repeat the syntactically same type as the field has in the refinement base** {#ref_mismatched_field_name}
+## **Error: a field declaration (_name_) in a refining class (_class_) must repeat the syntactically same type as the field has in the refinement base** {#ref_mismatched_field_name}
 
 ```dafny
 module P {
@@ -289,14 +289,14 @@ If there is a redeclaration of the field, it must be to add a `ghost` modifier.
 
 ```dafny
 module P {
-  method m() {}
+  predicate m(i: nat)
 }
 module Q refines P {
-  method m() requires true {}
+  predicate m(i: nat) requires true { true }
 }
 ```
 
-A method in a refining module must be able to be used in the same way as the abstract method in the base module.
+A function in a refining module must be able to be used in the same way as the abstract function in the base module.
 If there are additional preconditions, then the uses of the refined module may be more restricted.
 Thus no new preconditions may be added. This is a syntactic check, so no preconditions can be added even if they
 are implied by the existing preconditions.
@@ -334,10 +334,10 @@ For simplicity, a refining function is not allowed to add decreases clauses to i
 
 ```dafny
 module P {
-  predicate m(i: nat) reads {}
+  class A { predicate m(i: nat) }
 }
 module Q refines P {
-  predicate m(i: nat) decreases i {true }
+  class A ... { static predicate m(i: nat) {true } }
 }
 ```
 
@@ -388,11 +388,36 @@ But in the case where the the base declaration already has a body and is `ghost`
 
 ## **Error: a refining method is not allowed to add preconditions** {#ref_no_new_method_precondition}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m() {}
+}
+module Q refines P {
+  method m() requires true {}
+}
+```
+
+A method in a refining module must be able to be used in the same way as the abstract method in the base module.
+If there are additional preconditions, then the uses of the refined module may be more restricted.
+Thus no new preconditions may be added. This is a syntactic check, so no preconditions can be added even if they
+are implied by the existing preconditions.
+
 
 ## **Error: a refining method is not allowed to extend the modifies clause** {#ref_no_new_method_modifies}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(i: nat)
+}
+module Q refines P {
+  method m(i: nat) modifies {} { }
+}
+```
+
+A method in a refining module must be able to be used in the same way as the abstract method in the base module.
+If there are additional objects in the modifies clause, then the uses of the refined module may have more effect than known by the basea method signature.
+Thus no new modifies clauses may be added. This is a syntactic check, so no modifies clauses can be added even if they
+do not actually add any new objects to the modifies set.
 
 ## **Error: decreases clause on refining method not supported, unless the refined method was specified with 'decreases *'** {#ref_no_new_method_decreases}
 
@@ -400,59 +425,209 @@ But in the case where the the base declaration already has a body and is `ghost`
 
 ## **Error: a method in a refining module cannot be changed from static to non-static or vice versa: _name_** {#ref_mismatched_method_static}
 
-<!-- TODO -->
+```dafny
+module P {
+  class A { method m(i: nat) }
+}
+module Q refines P {
+  class A ... { static method m(i: nat) { } }
+}
+```
 
-## **Error: a method cannot be changed into a ghost method in a refining module: _name_** {#ref_mismatched_method_ghost}
-
-<!-- TODO -->
+There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `static`
+may not change for any kind of declaration.
 
 ## **Error: a ghost method cannot be changed into a non-ghost method in a refining module: _name_** {#ref_mismatched_method_non_ghost}
 
-<!-- TODO -->
+```dafny
+module P {
+  ghost method m(i: nat) 
+}
+module Q refines P {
+  method m(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `ghost`
+may not change for methods.
+
+## **Error: a method cannot be changed into a ghost method in a refining module: _name_** {#ref_mismatched_method_ghost}
+
+```dafny
+module P {
+  method m(i: nat) 
+}
+module Q refines P {
+  ghost method m(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `ghost`
+may not change for methods.
+
 
 ## **Error: _what_ '_name_' is declared with a different number of type parameters (_count_ instead of _oldcount_) than the corresponding _what_ in the module it refines** {#ref_mismatched_type_parameters_count}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T>(i: nat) 
+}
+module Q refines P {
+  method m<T,U>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like the number of type parameters
+may not change for any declaration.
+
 
 ## **Error: type parameters are not allowed to be renamed from the names given in the _kind_ in the module being refined (expected '_oldname_', found '_name_')** {#ref_mismatched_type_parameter_name}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T,U>(i: nat) 
+}
+module Q refines P {
+  method m<T,W>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, for convenience and readability. the names of type parameters
+may not change for any declaration.
 
 ## **Error: type parameter '_name_' is not allowed to change the requirement of supporting equality** {#ref_mismatched_type_parameter_equality}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T,U(==)>(i: nat) 
+}
+module Q refines P {
+  method m<T,U>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, any characteristics of type parameters must remain the same.
 
 ## **Error: type parameter '_name_' is not allowed to change the requirement of supporting auto-initialization** {#ref_mismatched_type_parameter_auto_init}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T,U(0)>(i: nat) 
+}
+module Q refines P {
+  method m<T,U>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, any characteristics of type parameters must remain the same.
 
 ## **Error: type parameter '_name_' is not allowed to change the requirement of being nonempty** {#ref_mismatched_type_parameter_nonempty}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T,U(00)>(i: nat) 
+}
+module Q refines P {
+  method m<T,U>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, any characteristics of type parameters must remain the same.
+
 
 ## Error: type parameter '_name_' is not allowed to change the no-reference-type requirement** {#ref_mismatched_type_parameter_not_reference}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m<T,U(!new)>(i: nat) 
+}
+module Q refines P {
+  method m<T,U>(i: nat) { } 
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, any characteristics of type parameters must remain the same.
+
 
 ## **Error: type parameter '_name_' is not allowed to change variance (here, from '_oldvariance_' to '_variance_')** {#ref_mismatched_type_parameter_variance}
 
-<!-- TODO -->
+```dafny
+module P {
+  type T<+U> 
+}
+module Q refines P {
+  type T<U> = int
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, the variance of type parameters must remain the same.
+
 
 ## **Error: _kind_ '_name_' is declared with a different number of _what_ (_num_ instead of _oldnum_) than the corresponding _kind_ in the module it refines** {#ref_mismatched_kind_count}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(i: int)
+}
+module Q refines P {
+  method m(i: int, j: int) {}
+}
+```
 
-## **Error: there is a difference in name of _kind_ _num_ ('_name_' versus '_oldname') of _kind_ _name_ compared to corresponding _kind_ in the module it refines** {#ref_mismatched_kind_name}
+There are restrictions on what can be changed in a refinement. 
+In particular, the number, type and names of formal parameters must remain the same.
 
-<!-- TODO -->
+## **Error: there is a difference in name of _kind_ _num_ ('_name_' versus '_oldname_') of _kind_ _name_ compared to corresponding _kind_ in the module it refines** {#ref_mismatched_kind_name}
+
+```dafny
+module P {
+  method m(i: int)
+}
+module Q refines P {
+  method m(j: int) {}
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, for convenience and readability. the names of formal parameters
+may not change for any declaration.
+
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from non-ghost to ghost** {#ref_mismatched_kind_ghost}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(i: int)
+}
+module Q refines P {
+  method m(ghost i: int) {}
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, ghost-ness of formal parameters
+may not change for any declaration.
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from ghost to non-ghost** {#ref_mismatched_kind_non_ghost}
 
-<!-- TODO -->
+```dafny
+module P {
+  method m(ghost i: int)
+}
+module Q refines P {
+  method m(i: int) {}
+}
+```
+
+There are restrictions on what can be changed in a refinement. 
+In particular, ghost-ness of formal parameters
+may not change for any declaration.
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from new to non-new** {#ref_mismatched_kind_non_new}
 
@@ -555,17 +730,17 @@ _Refining statements are no longer supported in Dafny._
 
 ## **Error: refinement method cannot assign to variable defined in parent module ('_name_')** {#ref_invalid_variable_assignment}
 
-<!-- TODO -->
+_Refining statements are no longer supported in Dafny._
 
 ## **Error: refinement method cannot assign to a field defined in parent module ('{0}')** {#ref_invalid_field_assignment}
 
-<!-- TODO -->
+_Refining statements are no longer supported in Dafny._
 
 ## **Error: new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)** {#ref_invalid_new_assignments}
 
-<!-- TODO -->
+_Refining statements are no longer supported in Dafny._
 
 ## **Error: assignment RHS in refinement method is not allowed to affect previously defined state** {#ref_invalid_assignment_rhs}
 
-<!-- TODO -->
+_Refining statements are no longer supported in Dafny._
 

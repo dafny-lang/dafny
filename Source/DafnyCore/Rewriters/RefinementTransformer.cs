@@ -199,12 +199,15 @@ namespace Microsoft.Dafny {
               if (im is ModuleDecl mdecl) {
                 if (bim is ModuleDecl mbim) {
                   if (mdecl.Opened != mbim.Opened) {
-                    string message = mdecl.Opened
-                      ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
-                      : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                    Error(mdecl.Opened ? ErrorId.ref_refinement_import_must_match_opened_base :
-                          ErrorId.ref_refinement_import_must_match_non_opened_base,
-                      m.tok, message, im.Name, m.Name, m.RefinementQId.ToString());
+                    if (mdecl.Opened) {
+                      Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
+                        "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
+                        im.Name, m.Name, m.RefinementQId.ToString());
+                    } else {
+                      Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
+                        "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
+                        im.Name, m.Name, m.RefinementQId.ToString());
+                    }
                   }
                 }
               }
