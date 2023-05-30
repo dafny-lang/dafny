@@ -169,11 +169,11 @@ namespace Microsoft.Dafny {
     }
 
     private void Error(ErrorId errorId, Declaration d, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, d, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, d.Tok, msg, args);
     }
 
     private void Error(ErrorId errorId, INode n, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, n, msg, args);
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Tok, msg, args);
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls

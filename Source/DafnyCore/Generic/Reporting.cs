@@ -85,6 +85,13 @@ namespace Microsoft.Dafny {
       Error(source, (string)null, d.tok, msg, args);
     }
 
+    public void Error(MessageSource source, Enum errorId, Declaration d, string msg, params object[] args) {
+      Contract.Requires(d != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId, d.tok, msg, args);
+    }
+
     public void Error(MessageSource source, string errorId, Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
@@ -106,14 +113,14 @@ namespace Microsoft.Dafny {
       Error(source, (string)null, v.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, string errorId, INode v, string msg, params object[] args) {
+    public void Error(MessageSource source, Enum errorId, INode v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       Error(source, errorId, v.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, string errorId, Expression e, string msg, params object[] args) {
+    public void Error(MessageSource source, Enum errorId, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
