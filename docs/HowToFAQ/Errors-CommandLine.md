@@ -142,7 +142,7 @@ dafny format --stdin
 The dafny `format` command formats its input dafny program. The default behavior is to format the input files
 in place. It can instead just check that the file is formatted (`--check`) or print the formatted version to 
 stdout (`--print`). If the `--stdin` option is used, the input dafny program is taken from stdin, in which case
-it cannot be formatted in place, so either the `--check` or --print` options must be used in conjunction with `--stdin`.
+it cannot be formatted in place, so either the `--check` or `--print` options must be used in conjunction with `--stdin`.
 
 ## **The file _file_ needs to be formatted** {#f_file_needs_formatting}
 
@@ -152,7 +152,7 @@ dafny format testsource/test2.dfy
 
 This message is not an error. Rather it is the expected output of the `dafny format` command when
 `--check` is used: it states that the named input file is not formatted according to Dafny style.
-You can use `--print` to see the output. Also for an input file `test.dfy, the command
+You can use `--print` to see the output. Also for an input file `test.dfy`, the command
 `dafny format --print test.dfy | diff test.dfy -` provides a diff between the original and the formatted files
 (without making any changes).
 
@@ -208,7 +208,7 @@ dafny -verificationLogger:z
 ```
 
 The `verificationLogger` option has these alternatives: trx, csv, text.
-The option name in the new cli is `--log-format`.
+The option name in the new CLI is `--log-format`.
 
 ## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
@@ -218,7 +218,7 @@ dafny -testContracts:z
 ```
 
 The `testContracts` option has these alternatives: Externs, TestedExterns.
-The similar option in the new cli is `--test-assumptions`.
+The similar option in the new CLI is `--test-assumptions`.
 
 ## **dafny: Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
 
