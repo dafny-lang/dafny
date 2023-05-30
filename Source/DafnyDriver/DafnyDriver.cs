@@ -330,6 +330,7 @@ namespace Microsoft.Dafny {
 
       if (dafnyFiles.Count == 0) {
         if (!options.Format) {
+          // TODO: With the test on CliRootUris.Count above, this code is no longer reachable
           options.Printer.ErrorWriteLine(options.OutputWriter, "*** Error: The command-line contains no .dfy files");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
@@ -473,7 +474,7 @@ namespace Microsoft.Dafny {
       foreach (var file in dafnyFiles) {
         var dafnyFile = file;
         if (!dafnyFile.Uri.IsFile && !doCheck && !doPrint) {
-          errorWriter.WriteLine("Please use the --check and/or --print option as stdin cannot be formatted in place.");
+          errorWriter.WriteLine("Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.");
           exitValue = ExitValue.PREPROCESSING_ERROR;
           continue;
         }
@@ -517,6 +518,7 @@ namespace Microsoft.Dafny {
               }
             }
           } else {
+            // TODO: is this necessary? there already is a warning about files containing no code
             if (options.Verbose) {
               options.ErrorWriter.WriteLine(dafnyFile.BaseName + " was empty.");
             }
