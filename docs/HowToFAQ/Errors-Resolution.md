@@ -609,7 +609,7 @@ method m() {
 }
 ```
 
-Variables marked with `{:assumption} must have bool type.
+Variables marked with `{:assumption}` must have bool type.
 See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
