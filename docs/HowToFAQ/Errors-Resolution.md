@@ -86,7 +86,7 @@ method m() returns (r: int) {
 }
 ```
 
-`twostate`, extreme predicates, and prefix lemmas are functions that are always ghost (even without a `ghost` keyword).
+`twostate` declarations, extreme predicates, and prefix lemmas are always ghost (even without a `ghost` keyword).
 Thus they may never be used outside a ghost context.
 
 ## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)** {#r_ghost_call_only_in_specification_function_4}
