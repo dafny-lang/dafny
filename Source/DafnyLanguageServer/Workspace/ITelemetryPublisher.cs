@@ -13,15 +13,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       UpdateComplete,
       UnhandledException,
       SolverPath,
-      Z3Version
+      Z3Version,
+      Time
     }
 
-    /// <summary>
-    /// Publish a telemetry event.
-    /// </summary>
-    /// <param name="kind">The kind of this telemetry event.</param>
-    /// <param name="payload">The payload of this telemetry event.</param>
-    protected void PublishTelemetry(TelemetryEventKind kind, object? payload);
+    protected void PublishTelemetry(TelemetryEventKind kind, object? payload) {
+      PublishTelemetry(kind.ToString(), payload);
+    }
+
+    protected void PublishTelemetry(string kind, object? payload);
 
     /// <summary>
     /// Signal the completion of a document update.
@@ -37,6 +37,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishSolverPath(string solverPath) {
       PublishTelemetry(TelemetryEventKind.SolverPath, solverPath);
+    }
+
+    public void PublishTime(string name, TimeSpan span) {
+      PublishTelemetry(TelemetryEventKind.Time + name, span.TotalMilliseconds);
     }
 
     public void PublishZ3Version(string z3Version) {

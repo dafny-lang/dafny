@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Serilog;
@@ -28,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
         .WriteTo.InMemory().CreateLogger();
       var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
 
-      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), factory);
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), Mock.Of<ITelemetryPublisher>(), factory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

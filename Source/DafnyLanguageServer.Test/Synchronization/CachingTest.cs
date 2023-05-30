@@ -107,7 +107,7 @@ module ModC {
       await client.WaitForNotificationCompletionAsync(firstFile.Uri, CancellationToken);
       return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
     }
-    
+
     var secondFile = CreateTestDocument(source, "secondFile");
     await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
     // No hit because Uri has changed

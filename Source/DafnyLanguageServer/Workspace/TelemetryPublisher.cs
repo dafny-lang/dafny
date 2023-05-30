@@ -21,17 +21,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public void PublishUnhandledException(Exception e) {
       logger.LogError(e, "exception occurred");
-      PublishTelemetry(ITelemetryPublisher.TelemetryEventKind.UnhandledException, e.ToString());
+      PublishTelemetry(ITelemetryPublisher.TelemetryEventKind.UnhandledException.ToString(), e.ToString());
     }
 
-    void ITelemetryPublisher.PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
-      PublishTelemetry(kind, payload);
-    }
-
-    private void PublishTelemetry(ITelemetryPublisher.TelemetryEventKind kind, object? payload) {
+    public void PublishTelemetry(string kind, object? payload) {
       languageServer.Window.SendTelemetryEvent(new TelemetryEventParams {
         ExtensionData = new Dictionary<string, object> {
-          {"kind", kind.ToString()},
+          {"kind", kind},
           {"payload", payload ?? new Dictionary<string, object>()}
         }
       });

@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
         return cloneableExpression.Clone(this);
       }
 
-      throw new cce.UnreachableException(); // unexpected expression
+      throw new Exception($"No clone implementation found for {expr.GetType()}"); // unexpected expression
     }
 
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {

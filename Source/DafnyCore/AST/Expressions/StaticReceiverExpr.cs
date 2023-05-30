@@ -100,7 +100,7 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   public override IEnumerable<Node> Children =>
     new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);
 
-  public StaticReceiverExpr Clone(Cloner cloner) {
+  public new StaticReceiverExpr Clone(Cloner cloner) {
     return new StaticReceiverExpr(cloner, this);
   }
 }

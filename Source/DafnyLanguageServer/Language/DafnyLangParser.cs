@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -16,12 +18,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
     private readonly DafnyOptions options;
+    private readonly ITelemetryPublisher telemetryPublisher;
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly CachingParser cachingParser;
 
-    private DafnyLangParser(DafnyOptions options, ILoggerFactory loggerFactory) {
+    private DafnyLangParser(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
       this.options = options;
+      this.telemetryPublisher = telemetryPublisher;
       logger = loggerFactory.CreateLogger<DafnyLangParser>();
       cachingParser = new CachingParser(loggerFactory.CreateLogger<CachingParser>());
     }
@@ -31,8 +35,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(DafnyOptions options, ILoggerFactory loggerFactory) {
-      return new DafnyLangParser(options, loggerFactory);
+    public static DafnyLangParser Create(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
+      return new DafnyLangParser(options, telemetryPublisher, loggerFactory);
     }
 
     public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
@@ -49,12 +53,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       mutex.Wait(cancellationToken);
 
       try {
-        return cachingParser.ParseFiles(document.Uri.ToString(),
+        var beforeParsing = DateTime.Now;
+        var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
+        telemetryPublisher.PublishTime("Parse", DateTime.Now - beforeParsing);
+        return result;
       }
       finally {
         cachingParser.Prune();
