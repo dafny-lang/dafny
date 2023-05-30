@@ -78,7 +78,7 @@ module Q refines P {
 }
 ```
 
-A submodule M within a module that is refining some basae module must refine some submodule M in the base module.
+A submodule M within a module that is refining some base module must refine some submodule M in the base module.
 
 ## **Error: type declaration '_name_' is not allowed to change the requirement of supporting equality** {#ref_mismatched_equality}
 
