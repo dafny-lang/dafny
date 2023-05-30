@@ -639,7 +639,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `static`
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like being or not being `static`
 may not change for any kind of declaration.
 
 ## **Error: a ghost method cannot be changed into a non-ghost method in a refining module: _name_** {#ref_mismatched_method_non_ghost}
