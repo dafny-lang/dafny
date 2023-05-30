@@ -1,10 +1,12 @@
 #! /usr/bin/env bash
 
-## This bash script checks that example code in markdown files
-## runs as expected.
+## This bash script checks that example code in markdown files runs as expected.
 ##  -- the script expects to be located in dafny/docs
 ##      and finds other parts of the dafny working tree
 ##      relative to that location
+##  -- it is intended to be run within a development or CI environment. That is, it finds 
+##     an executable dafny presuming such an environment. (The variable $dafny in the
+##     script says what executable to use.)
 ##  -- There is only one command-line option, '-c', which
 ##     if present must be first. It sets the coverage mode
 ##     described below.
@@ -17,7 +19,7 @@
 ##    A reasonable tag to disable checking is "text".
 ##    If there is no tag a default tag is used (see below).
 ##    The script warns if there is no tag and no default.
-## -- There may be no whitespace between ``` and the tag.
+## -- No whitespace is permitted between ``` and the tag.
 ## -- Markdown itself does not allow any other text on this delimiter line.
 ## -- The script is not robust against mismatched ``` pairs.
 ##
@@ -27,10 +29,10 @@
 ##    -- producing lit files for coverage checking (if the -c command-line option is present)
 ##
 ## What command is used to check?
-## Instructions for checking each cod block are given in a single-line HTML
+## Instructions for checking each code block are given in a single-line HTML
 ## comment (which is also a markdown comment), namely, keywords
-## enclosed in <!-- and -->. The text inside any such comment is 
-## interpreted as potential command information. 
+## enclosed in <!-- and -->, with the first character of the enclosed text being a '%'. 
+## The text inside any such comment is interpreted as potential command information. 
 ##
 ## Global defaults.
 ## If the command information line contains '%default', then the 
@@ -39,12 +41,14 @@
 ## Possible settings are:
 ## - if '%useHeadings' is present then the checks are against error messages, as described below
 ## - if '%check-ids' is present, the error-ids are checked as described below
-## - if '%lang=' is present, then the alha-numeric word after the = sign is now the default language
+## - if '%lang=' is present, then the alpha-numeric word after the = sign is now the default language
 ## - if '%options' is present, then everything that follows is the default string of command options
 ## - the first word of a default line is taken as the default command, if that word is not %default
 ##   e.g. <!-- %check-resolve %default --> sets the default command to %check-resolve
 ##
 ## Each code block is checked according to command information set just before the code block.
+## If there is no such line, the defaults above are used. The information just before a code block
+## applies only to that code block.
 ## For example:
 ##   <!-- %check-resolve -->
 ##   ```dafny
@@ -61,7 +65,7 @@
 ##    being tested). If the name is present, then the output of the command is checked against the content of the file
 ##    (and is expected to match exactly).
 ## - The 'other options' can be any one of these:
-##    %save <file> -- save the cxode block (including anything prepended from %use) in the given temporary file
+##    %save <file> -- save the code block (including anything prepended from %use) in the given temporary file
 ##    %use <file> -- prepend to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %exit <n> -- set the expected exit code of the command. The default exit code is
 ##          -- 0 if there is no output file and %iuseHeadings is not being used
@@ -74,88 +78,34 @@
 ##   In this mode, the command is assembled as stated above and run against the code block.
 ##   Note that the code block (together with anything included via %use) must be a full dafny
 ##   program. There is no support for testing just simple expressions.
-##   The exit code is compared agsint the expeted exit code.
-##   The actual output is compared aginst the stated output file, if any.
+##   The exit code is compared against the expected exit code.
+##   The actual output is compared aginst the stated output file, if any, and otherwise ignored.
 ##
 ## Mode: Compare against error message
 ##   This mode is for the special case of checking the error catalog (the HowToFAQ/Errors-*.md files).
 ##   These files consist of sections, each of which has a heading stating an error message and errorid,
-##   a ```-delineated code snippet that is an exmaple of the error message, and then more explanation of the error.
-##   In the %useHeadings mode, the heading line (which starts with '## **Error:' or '## **Warning:') is parsed to
-##   determine the errorid and a regular expression that matches the expeted error messages.
+##   a ```-delineated code snippet that is an example of the error message, and then more explanation of the error.
+##   The heading line (which starts with '## **Error:' or '## **Warning:') is parsed to
+##   determine the errorid and a regular expression that matches the expected error messages.
 ##   The test consists of running the command against the code snippet, extracting the error message and errorid
 ##   from the output and checking those against the expected values.
 ##
-##   The error message as given in the header has italics words (markdown: _word_) for variable text in the error 
-##   message. The script turns these headings into regular expressions, which can be tricky given the presence of 
+##   The error message as given in the header has italicized words (markdown: _word_) for variable text in the error 
+##   message. The script turns these headings into regular expressions, taking into account the presence of 
 ##   characters special to regex processing.
 ##
 ## Mode: Generate lit
 ##   The -c option to the script causes lit files to be generated and written to Test/docexamples (see $outdir in the script below)
-##   If these files are generated curing CI, prior to running integration tests then they are both executed
+##   If these files are generated during CI prior to running integration tests, then they are both executed
 ##   as part of the integration tests and included in the coverage metrics. Importantly, all the error
-##   catalog tests are then part of the ocverage metrics.
+##   catalog tests are then part of the coverage metrics.
 ##
-##   Currently, the generated lit commands just run dafny against the given dafny code.
-##   They do not check the results -- that is, they are really only good for coverage.
+##   In this mode, the code is not checked, just the lit files generated.
+##
+##   Also, currently, the generated lit commands just run dafny against the given dafny code and check the exit code.
+##   They do not check the results other than the exit code.
 ##   Perhaps someday the full test will be made into a lit test and we won't need this script to do the testing.
 
-
-
-##
-## It extracts each block of text that is between lines bounded by a pair
-## of lines beginning with ```. The opening ``` is typically follwed
-## immediately (without whitespace) by a language identifier. If no
-## language identifier is present, the default language specified by the -l
-## option is used; if there is no such option, an error is output.
-## The extracted text is placed in a temporary file.
-##
-## If the text blocks are not in matching pairs of ``` markers or if 
-## markers other than 3 backticks are used, the script will fail -- it is
-## not robust against such non-well-formedness.
-## Also, the backticks must start the line without leading whitespace and 
-## the language identifier must follow without whitespace.
-##
-## Each block of extracted text is tested by applying a command.
-## The command is stated by including in the ```dafny line the string
-## <!-- command --> where in that HTML comment string, the 'command' is one
-## of the commands below. If there is no such HTML comment, then the default
-## command given by an option is used; if there is no such option, an error
-## message is issued.
-##
-## In the description of behavior below, if -m has been given as an option
-## then the comparison of the output line containing 'Error' is against the
-## error message as recorded in the '##' heading just before the test
-##
-## Commands (here $F is the name of a file containing the dafny source code
-## under test):
-##   %no-check : do nothing
-##   %check-verify <expect> or
-##   %check-verify-warn : runs the command 
-##              "dafny verify --use-basename-for-filename $F" and checks
-##              (1) if <expect> is absent then the exit code is 0 and
-##                  the output is just a success message
-##              (2) if <expect> is non-empty. then the exit code is 4 and
-##                  the actual output matches the content of the file <expect>
-##                  if the command is %check-verify-warn, the exit code is 0
-##   %check-resolve <expect> : runs the command
-##              "dafny resolve --use-basename-for-filename $F" and checks
-##              (1) if <expect> is absent then the exit code is 0 and
-##                  the output is just a success message
-##              (2) if <expect> is non-empty. then the exit code is 2 and
-##                  the actual output matches the content of the file <expect>
-##   %check-translate <expect> : runs the command
-##              "dafny translate --useBaseNameForFileName --unicode-char=true $F" and checks
-##              (1) if <expect> is absent then the exit code is 0 and
-##                  the output is just a success message
-##              (2) if <expect> is non-empty. then the exit code is r32 and
-##                  the actual output matches the content of the file <expect>
-##   %check-run <expect> : runs the command
-##              "dafny run --use-basename-for-filename $F" and,
-##              if <expect> is present, checks that the output matches the
-##              content of the file names <expect>
-##   %check-error
-##   check
 
 dir=$(dirname "${BASH_SOURCE[0]}")
 dafny="$dir/../Scripts/dafny"
@@ -213,7 +163,7 @@ do
   ## hole in the template to a '.*' matcher. Also, escape any regex-special characters.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'` \
+   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'` \
    && expid=`echo $line | sed -e 's/^.*[\{][\#]//' -e 's/[\}]$//'`
   if [ "$checkIds" == "0" ]; then expid= ; fi
   ## msg - the error message turned into a regex
@@ -263,23 +213,27 @@ do
   fi
   ## Check for the marker
   echo "$line" | grep -e '^[ ]*[`][`][`]' > /dev/null 
-  if [ "$?" == "0" ]; then
-    if [ "$inblock" == "0" ]; then
-      ## Start of backtick block
-      ## get language
-      lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ]*$//'`
+  if [ "$?" != "0" ]; then
+    if [ "$inblock" == "1" ]; then
+      ## If in a backtick block, save the text to the temporary file - erase any ... which are just placeholders in some examples
+      echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
+    fi
+  elif [ "$inblock" == "0" ]; then
+    ## Start of backtick block
+    ## get language
+    lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ]*$//'`
+    if [ -z "$lang" ]; then
+      lang=$defaultLang
       if [ -z "$lang" ]; then
-        lang=$defaultLang
-        if [ -z "$lang" ]; then
-          echo NO LANGUAGE LABEL $n "$line"
-          FAIL=1
-        fi
+        echo NO LANGUAGE LABEL $n "$line"
+        FAIL=1
       fi
+    fi
 
-      inblock=1
-      rm -f $text
-      touch $text
-    else
+    inblock=1
+    rm -f $text
+    touch $text
+  else
       ## End of backtick block, so check the text
       if [ -z "$command" -a "$lang" == "dafny" ]; then
         command="$defaultCommand"
@@ -304,16 +258,16 @@ do
       echo $command | grep '%check-' >> /dev/null
       if [ "$?" == "0" ]; then ischeck=1; fi
       iswarn=0
-      echo $command | grep -e '-warn$' >> /dev/null
+      echo $command | grep 'warn' >> /dev/null
       if [ "$?" == "0" ]; then iswarn=1; fi
       verb=`echo $command | sed -e 's/%check-//' -e 's/-warn//'`
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$ischeck" == "1" ]; then
+      elif [ "$ischeck" == "1" -a "$verb" != "cli" ]; then
         capture=1
         dOptions=$defOptions
 	com=$verb
-        if [ "iswarn" == "1" ]; then
+        if [ "$iswarn" == "1" ]; then
           defaultExit=0
         elif [ "$verb" == "verify" ]; then
           defaultExit=4
@@ -360,7 +314,9 @@ do
           if [ "$capture" == "2" ]; then
             "$dafny" $com $dOptions ${options[@]} $text 2> actual > /dev/null
           elif [ "$command" == "%check-legacy" ]; then
-            "$dafny" $com $dOptions ${options[@]} $text  > actual
+            isverbose=
+            if [ "$checkIds" == "1" ]; then isverbose="/compileVerbose:0" ; fi
+            "$dafny" $com $dOptions $isverbose ${options[@]} $text  > actual
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
@@ -380,7 +336,8 @@ do
             fi
             if [ -n "$msg" ]; then
               dif=`echo $act | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
-              if [ -z "$act" ] ; then
+              if [ -z "$act" -a "$expectedExit" != "0" ] ; then
+echo "EXIT $expectedExit"
                  echo NO ERROR MESSAGE FOUND
                  FAIL=1
               fi
@@ -406,6 +363,7 @@ do
               fi
             fi
           elif [ -z "$expect" ]; then
+            # No output file -- so no error expected
             if [ "$actualec" != "0" ]; then
               echo "TEST FAILED" $file line $n  $command $expect
               cat $text
@@ -439,23 +397,18 @@ do
           fi
         fi
       elif [ "$command" == "%check-cli" ]; then
+        if [ -z "$expectedExit" ]; then expectedExit=1 ; fi
         if [ "$lang" != "bash" ]; then
           echo EXPECTED A bash BLOCK, NOT $lang
           FAIL=1
         elif [ "$coverage" == "1" ]; then
-          ec=1
-          if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
-          f=$outdir/$(basename $file)_${n}.dfy
-
-            echo "// RUN: %exits-with" $ec "%bare`cat $text`"  > $f
-            echo GENERATING $f
-            echo TEXT $text
-            cat $f
+          // These are command-line error tests, so the expected exit is typically 1
+          echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`"  > $outdir/$(basename $file)_${n}.dfy
         else
           . $text > actual 2> errortext
-          ec=$?
-          if [ "$ec" != "1" ]; then
-             echo EXPECTED EXIT CODE OF 1, GOT $ec
+          actualExit=$?
+          if [ "$actualExit" != "$expectedExit" ]; then
+             echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
              FAIL=1
           else
             act=`cat actual`
@@ -483,10 +436,6 @@ do
       command=
       expect=
       options=( )
-    fi
-  elif [ "$inblock" == "1" ]; then
-    ## If in a backtick block, save the text to the temporary file - erase any ... which are just placeholders in some examples
-    echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
 rm -rf *.tmp $text.*

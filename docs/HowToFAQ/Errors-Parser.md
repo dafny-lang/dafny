@@ -66,15 +66,6 @@ Only some kinds of declarations can be declared 'static', most often
 fields, constants, methods, and functions, and only within classes.
 Modules and the declarations within them are already always static.
 
-## **Warning: Attribute _attribute_ is deprecated and will be removed in Dafny 4.0 {#p_deprecated_attribute}
-
-<!-- %check-resolve-warn -->
-```dafny
-method {:handle} m() {}
-```
-
-The `{:handle}` and `{:dllimport}` attributes are obsolete and unmaintained. They will be removed.
-
 ## **Error: argument to :options attribute must be a literal string** {#p_literal_string_required}
 
 ```dafny
@@ -1168,7 +1159,7 @@ datatype Outcome<T> =
 
 function m(): Outcome<int> { Outcome<int>.Success(0) }
 function test(): Outcome<int> {
-  var rr, rrr :- m(), 44; Outcome.Success(1) 
+  var rr, rrr :- m(); Outcome.Success(1) 
 }
 ```
 
