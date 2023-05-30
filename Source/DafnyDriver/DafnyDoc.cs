@@ -11,47 +11,6 @@ using static Microsoft.Dafny.DafnyDocHtml;
 
 namespace Microsoft.Dafny;
 
-/* 
-TODO:
-
-- show inherited members in classes
-- show members obtained from refinement parents
-- for a file named in a From file: notation, link to the actual file, where possible (may require a command-line option to say where the files are)
-  - similarly for links to modules and module contents from libraries
-- don't show full module path always for import declarations
-- function bodies are shown as source expressions, but not expressions elsewhere (subset & newtypes, constants) -- these will need handling of indentation properly
-- effective module in export detail should distinguish opaque and non-opaque members
-
-Comments from Mikael that are not yet addressed:
-    Click on a module should not only open the page, but unfold the menu  -- I'd vote against this behavior -- I prefer separating the opening and the display
-      -- attempts to do this broke other navigation
-    Import X = A.B.C clicking on A.B.C should link to C directly. -- As elsewhere, each section of a qualified name links to the declaration for that name segment
-    Slight border for tables -- I'd vote not -- initial attempts made the the tables take up far more horizontal and vertical white space
-    Class order: Constants, mutable fields, constructors and then methods -- I think we agreed to leave this as is.
-    Add inherited constants and field in same list
-    constants definitions can be in the same list -- definition is in the details; do we really want it in the summary list as well?
-
-- when lengthy content is scrolled down and then short content is displayed, the user has to manually scroll back up. Should
-implement some mechanism to always or when needed scroll back up automatically.
-- Better way to set the indentation in the sidebar
-
-- translate markdown to html
-- mark experimental
-
-Future Improvements:
-- identify members from refinement parent; link to them
-- add details of abstract import
-- import details should distinguish provides and reveals
-- add Dafny favicon
-- ability to link to declarations in other documentation sets
-
-Questions
-- list known subtypes of traits?
-- omit default decreases?
-- mark members that override declarations in traits?
-*/
-
-
 class Info {
   public List<Info> Contents = null;
   public string Kind;
