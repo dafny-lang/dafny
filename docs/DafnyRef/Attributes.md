@@ -677,7 +677,7 @@ You can achieve the same effect using [labelled assertions](#sec-labeling-reveal
 
 ## 11.4. Attributes on variable declarations
 
-### 11.4.1. `{:assumption}`
+### 11.4.1. `{:assumption}` {#sec-assumption}
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
