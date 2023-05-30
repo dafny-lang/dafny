@@ -65,8 +65,8 @@
 ##    being tested). If the name is present, then the output of the command is checked against the content of the file
 ##    (and is expected to match exactly).
 ## - The 'other options' can be any one of these:
-##    %save <file> -- save the code block (including anything prepended from %use) in the given temporary file
-##    %use <file> -- prepend to the code block the content of the given file (often a temporary saved by a previous %save)
+##    %save <file> -- save the code block (including anything appended from %use) in the given temporary file
+##    %use <file> -- append to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %nomsg -- forget the error pattern from the heading (in the case of subsequent working examples in the explanation)
 ##    %exit <n> -- set the expected exit code of the command. The default exit code is
 ##          -- 0 if there is no output file and %iuseHeadings is not being used
@@ -147,6 +147,7 @@ inblock=0
 
 msg=
 use=
+expectedExit=
 command=
 expectFile=
 options=( )
@@ -189,7 +190,6 @@ do
       fi
       command=${contents[0]}
       contents=( ${contents[@]:1} )
-      expectedExit=
       while [ ${#contents[@]} != "0" ]; do
         if [ "${contents[0]}" == "%use" ]; then
           use=${contents[1]}
@@ -248,7 +248,6 @@ do
       fi
       inblock=0
       if [ -n "$use" ]; then
-        ##echo " " USING $use
         cat "$use" >> $text
       fi
       if [ -n "$save" ]; then
@@ -256,6 +255,7 @@ do
          save=
       fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
+        ## This script can take some time, so this reports progress
         echo "TESTING $n $file $command $expect $expid"
       fi
       ischeck=0
@@ -267,8 +267,43 @@ do
       verb=`echo $command | sed -e 's/%check-//' -e 's/-warn//'`
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$ischeck" == "1" -a "$verb" != "cli" ]; then
-        capture=1
+      elif [ "$command" == "%check-cli" ]; then
+        // These are command-line error tests, so the expected exit is typically 1
+        if [ -z "$expectedExit" ]; then expectedExit=1 ; fi
+        if [ "$lang" != "bash" ]; then
+          echo EXPECTED A bash BLOCK, NOT $lang
+          FAIL=1
+        elif [ "$coverage" == "1" ]; then
+          ## The lit tests currently expect the text of the test to start with 'dafny' and become '%baredafny'
+          
+	  f=$outdir/$(basename $file)_${n}.dfy
+          if  [ "$command" == "%check-legacy" ]; then
+            echo "// RUN: %exits-with" $expectedExit "%baredafny" $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo " " >> $f
+            cat $text >> $f
+          elif [ "$command" == "%check-cli" ]; then
+            echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`" " > /dev/null 2> /dev/null" > $f
+          else
+            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo " " >> $f
+            cat $text >> $f
+          fi
+        else
+          . $text > actual 2> errortext
+          actualExit=$?
+          if [ "$actualExit" != "$expectedExit" ]; then
+             echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
+             FAIL=1
+          else
+            act=`cat actual | sed -e 's/^[*]*[ ]*//'`
+            dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
+            if [ -n "$dif" ]; then
+              echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
+              FAIL=1
+            fi
+          fi
+        fi
+      elif [ "$ischeck" == "1" ]; then ## Not cli though
         dOptions=$defOptions
         if [ "$iswarn" == "1" ]; then
           defaultExit=0
@@ -300,23 +335,15 @@ do
           f=$outdir/$(basename $file)_${n}.dfy
           if  [ "$command" == "%check-legacy" ]; then
             echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
-            ##echo '// RUN: %diff "%s.expect" "%t"' >> $f 
             echo " " >> $f
             cat $text >> $f
-          elif [ "$command" == "%check-cli" ]; then
-            echo "// RUN: %exits-with" $expectedExit "%bare$text" " > /dev/null 2> /dev/null" > $f
-            echo GENERATING $f
-            cat $f
           else
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
-            ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
+            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
             echo " " >> $f
             cat $text >> $f
           fi
         else
-          if [ "$capture" == "2" ]; then
-            "$dafny" $verb $dOptions ${options[@]} $text 2> actual > /dev/null
-          elif [ "$command" == "%check-legacy" ]; then
+          if [ "$command" == "%check-legacy" ]; then
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="/compileVerbose:0" ; fi
             "$dafny" $verb $dOptions $isverbose ${options[@]} $text  > actual
@@ -398,38 +425,6 @@ do
             fi
           fi
         fi
-      elif [ "$command" == "%check-cli" ]; then
-        if [ -z "$expectedExit" ]; then expectedExit=1 ; fi
-        if [ "$lang" != "bash" ]; then
-          echo EXPECTED A bash BLOCK, NOT $lang
-          FAIL=1
-        elif [ "$coverage" == "1" ]; then
-          // These are command-line error tests, so the expected exit is typically 1
-          echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`"  > $outdir/$(basename $file)_${n}.dfy
-        else
-          . $text > actual 2> errortext
-          actualExit=$?
-          if [ "$actualExit" != "$expectedExit" ]; then
-             echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
-             FAIL=1
-          else
-            act=`cat actual | sed -e 's/^[*]*[ ]*//'`
-            dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
-            if [ -n "$dif" ]; then
-              echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
-              FAIL=1
-            fi
-          fi
-        fi
-      elif [ "$command" == "%check-error" ]; then
-        "$dafny" resolve -useBaseNameForFileName --unicode-char:true $text | head -1 | sed -e 's/[^:]*: //' > actual
-        act=`cat actual`
-	dif=`echo "$act" | sed -e "s/$msg//"`
-        if [ -n "$dif" ] ; then
-           echo NO MATCH "$msg" VS "$act"
-           FAIL=1
-        fi
-        msg=
       elif [ "$lang" == "dafny" ]; then
          echo UNKNOWN TEST COMMAND $command
          FAIL=1
@@ -437,6 +432,7 @@ do
       use=
       command=
       expect=
+      expectedExit=
       options=( )
   fi
 done < $file
