@@ -625,7 +625,7 @@ Variables marked with `{:assumption} must be ghost.
 See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
-## **Error: assumption variable can only be declared in a method** {#r_assumption_var_must_be_in_method}
+## **Error: assumption variables can only be declared in a method** {#r_assumption_var_must_be_in_method}
 
 <!-- TODO - not sure this is reachable -->
 
