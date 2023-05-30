@@ -465,7 +465,7 @@ module Q refines P {
 ```
 
 A function in a refining module must be able to be used in the same way as the abstract function in the base module.
-Extending the reads clause with additional objects cxhanges this equivalence and is not allowed.
+Extending the reads clause with additional objects changes this equivalence and is not allowed.
 This change is syntactic: the refining function is not allowed to write any reads clauses; it just inherits those from
 the base declaration; this is the case even if the new reads clause is a repeat or subset of the base declaration.
 
