@@ -1986,7 +1986,7 @@ namespace Microsoft.Dafny {
       //     assume false;
       //   } else {
       //     initHeap := $Heap;
-      //     advance $Heap, Tick;
+      //     advance $Heap;
       //     assume (forall x,y :: (Range(x,y) && additionalRange)[INIT] &&
       //                           ==> Post[old($Heap) := initHeap]( E(x,y)[INIT], Args(x,y)[INIT] ));
       //   }
@@ -2030,8 +2030,8 @@ namespace Microsoft.Dafny {
         // initHeap := $Heap;
         exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
         var heapIdExpr = etran.HeapCastToIdentifierExpr;
-        // advance $Heap, Tick;
-        exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
+        // advance $Heap;
+        exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr }));
         Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
           if (tri.IsFree) {
