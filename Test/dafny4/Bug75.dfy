@@ -11,7 +11,7 @@ lemma L1(x:int)
 }
 
 lemma L2(x:int)
-    requires R2(x); // Oddly, adding this requires fixes the problem
+    requires R2(x) // Oddly, adding this requires fixes the problem
 {
     assume R2(x);
     assert exists y :: R1(x, y); // SUCCEEDS

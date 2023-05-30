@@ -14,7 +14,7 @@ module AlphaImpl {
     }
 
     method Init() returns (a:Alpha)
-        ensures IsValid(a);
+        ensures IsValid(a)
     {
         a := true;
     }

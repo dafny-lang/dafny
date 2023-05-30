@@ -55,9 +55,9 @@ module SimpleBDD
       var i := n;
       assert s[n-i..] == s;
       while i > 0
-        invariant node.valid();
-        invariant 0 <= i == node.n <= n;
-        invariant Contents[s] == node.Contents[s[n-i..]];
+        invariant node.valid()
+        invariant 0 <= i == node.n <= n
+        invariant Contents[s] == node.Contents[s[n-i..]]
       {
         assert s[n-i..] == [s[n-i]] + s[n-i+1..];
         node := if s[n-i] then node.t else node.f;

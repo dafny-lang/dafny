@@ -152,11 +152,11 @@ module List refines Monad {
   }
 
   lemma ConcatAssociativity<A>(xs: M<A>, ys: M<A>, zs: M<A>)
-    ensures Concat(Concat(xs,ys),zs) == Concat(xs,Concat(ys,zs));
+    ensures Concat(Concat(xs,ys),zs) == Concat(xs,Concat(ys,zs))
   {}
 
   lemma BindMorphism<A,B>(xs: M<A>, ys: M<A>, f: A -> M<B>)
-    ensures Bind(Concat(xs,ys),f) == Concat(Bind(xs,f),Bind(ys,f));
+    ensures Bind(Concat(xs,ys),f) == Concat(Bind(xs,f),Bind(ys,f))
   {
     match xs
     case Nil =>

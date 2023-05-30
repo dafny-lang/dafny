@@ -38,7 +38,7 @@ class {:autocontracts} RingBuffer<T(0)>
   }
 
   method Head() returns (x: T)
-    requires Contents != [];
+    requires Contents != []
     ensures x == Contents[0]
   {
     x := data[start];

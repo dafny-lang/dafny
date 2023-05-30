@@ -9,10 +9,10 @@ module NewSyntax {
   method test(foo:MyDataType, goo:MyDataType, hoo:MyDataType, x:int)
       returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
     requires foo.MyConstructor? && goo.MyOtherConstructor? && hoo.MyNumericConstructor?
-    ensures abc == foo.(myint := x + 2);
-    ensures def == goo.(otherbool := !foo.mybool);
-    ensures ghi == foo.(myint := 2).(mybool := false);
-    ensures jkl == hoo.(42 := 7);
+    ensures abc == foo.(myint := x + 2)
+    ensures def == goo.(otherbool := !foo.mybool)
+    ensures ghi == foo.(myint := 2).(mybool := false)
+    ensures jkl == hoo.(42 := 7)
   {
     abc := MyConstructor(x + 4, foo.mybool);
     abc := abc.(myint := abc.myint - 2);
