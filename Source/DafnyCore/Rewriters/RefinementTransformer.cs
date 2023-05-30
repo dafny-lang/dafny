@@ -772,9 +772,9 @@ namespace Microsoft.Dafny {
             } else if (newConst.HasStaticKeyword != origConst.HasStaticKeyword) {
               Error(ErrorId.ref_mismatched_module_static, nwMember, "a const in a refining module cannot be changed from static to non-static or vice versa: {0}", nwMember.Name);
             } else if (origConst.IsGhost && !newConst.IsGhost) {
-              Error(ErrorId.ref_mismatched_const_ghost, nwMember, "a const re-declaration ({0}) is not allowed to un-ghostify the const", nwMember.Name);
+              Error(ErrorId.ref_mismatched_const_ghost, nwMember, "a const re-declaration ({0}) is not allowed to remove 'ghost' from the const", nwMember.Name);
             } else if (newConst.Rhs == null && origConst.IsGhost == newConst.IsGhost) {
-              Error(ErrorId.ref_refinement_must_add_const_ghost, nwMember, "a const re-declaration ({0}) must be to ghostify the const{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
+              Error(ErrorId.ref_refinement_must_add_const_ghost, nwMember, "a const re-declaration ({0}) must be to add 'ghost' to the const declaration{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
             }
             nwMember.RefinementBase = member;
             // we may need to clone the given const declaration if either its type or initializing expression was omitted
@@ -792,7 +792,7 @@ namespace Microsoft.Dafny {
             } else if (!TypesAreSyntacticallyEqual(((Field)nwMember).Type, ((Field)member).Type)) {
               Error(ErrorId.ref_mismatched_field_name, nwMember, "a field declaration ({0}) in a refining class ({1}) must repeat the syntactically same type as the field has in the refinement base", nwMember.Name, nw.Name);
             } else if (member.IsGhost || !nwMember.IsGhost) {
-              Error(ErrorId.ref_refinement_field_must_add_ghost, nwMember, "a field re-declaration ({0}) must be to ghostify the field", nwMember.Name);
+              Error(ErrorId.ref_refinement_field_must_add_ghost, nwMember, "a field re-declaration ({0}) must be to add 'ghost' to the field declaration", nwMember.Name);
             }
             nwMember.RefinementBase = member;
 

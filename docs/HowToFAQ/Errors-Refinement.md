@@ -320,8 +320,8 @@ module Q refines P {
 ```
 
 The declarations in a refining module must have the same type as in the base module. In fact, to enable easier checking that the type
-has not changed, the type must be expressed in the same syntactic form in the two declarations. It is not permitted to use a type in one place and 
-an equivalent type synonym in the other.
+has not changed, the type must be expressed in the same syntactic form in the two declarations. For example, it is not permitted to use a type in a base declaration and 
+an equivalent type synonym for the corresponding variable in the refinement.
 
 ## **Error: a const re-declaration (_name_) can give an initializing expression only if the const in the refinement base does not** {#ref_no_refining_const_initializer}
 
@@ -335,7 +335,7 @@ module Q refines P {
 ```
 
 A refined declaration of a `const` may add an initializer, but it cannot replace an initializer declared in the base,
-even if it is syntactically the same value.
+even if it is syntactically the same value, such as an explicit literal in one place and an equivalent expression in the other.
 
 ## **Error: a const in a refining module cannot be changed from static to non-static or vice versa: _name_** {#ref_mismatched_module_static}
 
@@ -350,7 +350,7 @@ module Q refines P {
 
 A `const` declaration that is in a class that is being refined cannot change its static-ness.
 
-## **Error: a const re-declaration (_name_) is not allowed to un-ghostify the const** {#ref_mismatched_const_ghost}
+## **Error: a const re-declaration (_name_) is not allowed to remove 'ghost' from the const declaration** {#ref_mismatched_const_ghost}
 
 ```dafny
 module P {
@@ -363,7 +363,7 @@ module Q refines P {
 
 A `const` refining declaration cannot change the declaration from `ghost` to non-ghost.
 
-## **Error: a const re-declaration (_name_) must be to ghostify the const_info_** {#ref_refinement_must_add_const_ghost}
+## **Error: a const re-declaration (_name_) must be to add ghost to the const declaration_info_** {#ref_refinement_must_add_const_ghost}
 
 ```dafny
 module P {
@@ -405,11 +405,11 @@ module Q refines P {
 ```
 
 The field declarations in a refining class must have the same type as in the class in the base module. In fact, to enable easier checking that the type
-has not changed, the type must be expressed in the same syntactic form in the two declarations. It is not permitted to use a type in one place and 
-an equivalent type synonym in the other.
+has not changed, the type must be expressed in the same syntactic form in the two declarations. For example, it is not permitted to use a type 
+in a base declaration and an equivalent type synonym in the corresponding place in the refinement.
 
 
-## **Error: a field re-declaration (_name_) must be to ghostify the field** {#ref_refinement_field_must_add_ghost}
+## **Error: a field re-declaration (_name_) must be to must be to add 'ghost' to the field declaration** {#ref_refinement_field_must_add_ghost}
 
 ```dafny
 module P {
@@ -434,7 +434,7 @@ module Q refines P {
 }
 ```
 
-The refining declaration must be the same kind of thing as the base declaration.
+The refining declaration must be the same kind of declaration as the base declaration.
 For example both must be predicates or both must be functions (even if the function is one that returns a `bool`).
 
 ## Error: a refining _kind_ is not allowed to add preconditions** {#ref_refinement_no_new_preconditions}
@@ -449,7 +449,7 @@ module Q refines P {
 ```
 
 A function in a refining module must be able to be used in the same way as the abstract function in the base module.
-If there are additional preconditions, then the uses of the refined module may be more restricted.
+If there are additional preconditions, then the call contexts for the refined function may be more restricted than for the base function.
 Thus no new preconditions may be added. This is a syntactic check, so no preconditions can be added even if they
 are implied by the existing preconditions.
 
@@ -466,8 +466,8 @@ module Q refines P {
 
 A function in a refining module must be able to be used in the same way as the abstract function in the base module.
 Extending the reads clause with additional objects cxhanges this equivalence and is not allowed.
-This change is syntactic: the refining function is not allowed to write any reads clauses; it just inherits those from
-the base declaration; this is the case even if the new reads clause is a repeat or subset of the base declaration.
+This change is syntactic. The refining function is not allowed to write any reads clauses. It just inherits those from
+the base declaration. This is the case even if the new reads clause is a repetition or subset of the base declaration.
 
 ## **Error: decreases clause on refining _kind_ not supported** {#ref_no_new_decreases}
 
@@ -506,7 +506,7 @@ module Q refines P {
 }
 ```
 
-If a function is declared as non-ghost in the base module, it cannot then be declared `ghost` in the refining module.
+If a function is declared as non-ghost in the base module, it may not be declared `ghost` in the refining module.
 
 ## **Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: _name_** {#ref_no_refinement_function_with_body}
 
@@ -533,8 +533,7 @@ module Q refines P {
 }
 ```
 
-When refining a function, the input and output signature must stay precisely the same -- formals, types, and names.
-In this case the name of the returned value is different.
+When refining a function, the input and output signature must stay precisely the same -- formals, types, and names -- including the name of the function result.
 
 
 ## **Error: the result type of function '_function_' (_type_) differs from the result type of the corresponding function in the module it refines (_othertype_)** {#ref_mismatched_function_return_type}
@@ -548,8 +547,8 @@ module Q refines P {
 }
 ```
 
-When refining a function, the input and output signature must stay precisely the same -- formals, types, and names.
-In this case the return type is different. The types must be syntactically identical; it is not allowed
+When refining a function, the input and output signature must stay precisely the same -- formals, types, and names --
+including the type of the function result. The types must be syntactically identical; it is not allowed
 to use a type and an equivalent type sysnonym, for example.
 
 ## **Error: a refining _kind_ is not allowed to extend/change the body** {#ref_mismatched_refinement_body}
@@ -576,7 +575,7 @@ module Q refines P {
 }
 ```
 
-The refining declaration must be the same kind of thing as the base declaration.
+The refining declaration must be the same kind of declaration as the base declaration.
 For example both must be methods.
 
 
@@ -592,7 +591,7 @@ module Q refines P {
 ```
 
 A method in a refining module must be able to be used in the same way as the abstract method in the base module.
-If there are additional preconditions, then the uses of the refined module may be more restricted.
+If there are additional preconditions, then the calling contexts permitted for the refined method may be more restricted than those for the abstract base method.
 Thus no new preconditions may be added. This is a syntactic check, so no preconditions can be added even if they
 are implied by the existing preconditions.
 
