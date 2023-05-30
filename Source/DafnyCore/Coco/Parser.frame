@@ -68,7 +68,7 @@ public class Parser {
   public void SemErr(object errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(errorId, tok, msg);
+    errors.SemErr(errorId.ToString(), tok, msg);
   }
 
   void Get() {
