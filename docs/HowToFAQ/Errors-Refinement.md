@@ -698,7 +698,7 @@ module Q refines P {
 ```
 
 There are restrictions on what can be changed in a refinement. 
-In particular, for convenience and readability. the names of type parameters
+In particular, for convenience and readability, the names of type parameters
 may not change for any declaration.
 
 ## **Error: type parameter '_name_' is not allowed to change the requirement of supporting equality** {#ref_mismatched_type_parameter_equality}
