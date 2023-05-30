@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
           } else if (e.Value is BaseTypes.BigDec) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
-            ConstrainSubtypeRelation(new RealVarietiesSupertype(), e.Type, e.tok, "type of real literal is used as {0}", e.Type);
+            ConstrainSubtypeRelation(new RealVarietiesSupertype(), e.Type, e.tok, "real literal is used as if it had type {0}", e.Type);
           } else if (e.Value is bool) {
             e.Type = Type.Bool;
           } else if (e is CharLiteralExpr) {
@@ -443,10 +443,10 @@ namespace Microsoft.Dafny {
         foreach (ExpressionPair p in e.Elements) {
           ResolveExpression(p.A, resolutionContext);
           Contract.Assert(p.A.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainSubtypeRelation(domainType, p.A.Type, p.A.tok, "All elements of display must have some common supertype (got {0}, but needed type or type of previous elements is {1})", p.A.Type, domainType);
+          ConstrainSubtypeRelation(domainType, p.A.Type, p.A.tok, "All domain elements of map display must have some common supertype (got {0}, but needed type or type of previous elements is {1})", p.A.Type, domainType);
           ResolveExpression(p.B, resolutionContext);
           Contract.Assert(p.B.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainSubtypeRelation(rangeType, p.B.Type, p.B.tok, "All elements of display must have some common supertype (got {0}, but needed type or type of previous elements is {1})", p.B.Type, rangeType);
+          ConstrainSubtypeRelation(rangeType, p.B.Type, p.B.tok, "All range elements of map display must have some common supertype (got {0}, but needed type or type of previous elements is {1})", p.B.Type, rangeType);
         }
         expr.Type = new MapType(e.Finite, domainType, rangeType);
       } else if (expr is NameSegment) {
