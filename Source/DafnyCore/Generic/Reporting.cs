@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
     public abstract int CountExceptVerifierAndCompiler(ErrorLevel level);
 
     // This method required by the Parser
-    internal void Error(MessageSource source, string errorId, Uri uri, int line, int col, string msg) {
+    internal void Error(MessageSource source, Enum errorId, Uri uri, int line, int col, string msg) {
       var tok = new Token(line, col);
       tok.Uri = uri;
       Error(source, errorId, tok, msg);
@@ -97,6 +97,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
       Error(source, errorId, d.tok, msg, args);
+    }
+
+    public void Error(MessageSource source, Enum errorId, Statement s, string msg, params object[] args) {
+      Contract.Requires(s != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId.ToString(), s.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Statement s, string msg, params object[] args) {
@@ -168,7 +175,7 @@ namespace Microsoft.Dafny {
       Warning(source, errorId, tok, String.Format(msg, args));
     }
 
-    public void Deprecated(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
+    public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
@@ -177,7 +184,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void DeprecatedStyle(MessageSource source, string errorId, IToken tok, string msg, params object[] args) {
+    public void DeprecatedStyle(MessageSource source, Enum errorId, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
