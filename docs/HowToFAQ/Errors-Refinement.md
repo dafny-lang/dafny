@@ -550,7 +550,7 @@ module Q refines P {
 
 When refining a function, the input and output signature must stay precisely the same -- formals, types, and names.
 In this case the return type is different. The types must be syntactically identical; it is not allowed
-to use a type and an equivalent type sysnonym, for example.
+to use a type and an equivalent type synonym, for example.
 
 ## **Error: a refining _kind_ is not allowed to extend/change the body** {#ref_mismatched_refinement_body}
 
