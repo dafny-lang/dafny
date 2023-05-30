@@ -535,8 +535,8 @@ such as the condition of an `if` statement or loop or the expression being match
 statement, then the rest of the statement may be required to be ghost.
 
 In addition, methods must be marked with the `{:print}` attribute if 
-`--track-print-effects` is enabled and it has 
-`print` statements or calls methods marked with `{:print}`.
+it has `print` statements or calls methods marked with `{:print}`
+and `--track-print-effects` is enabled.
 [See the reference manual discussion on :print and tracking print effects](../DafnyRef/DafnyRef#sec-print).
 
 ## **Error: ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_** {#r_ghost_break}
