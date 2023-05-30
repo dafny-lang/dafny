@@ -50,7 +50,7 @@ public class CachingParser : ProgramParser {
     const int chunkSize = 1024;
     hashAlgorithm.Initialize();
     var uriBytes = Encoding.UTF8.GetBytes(uri.ToString());
-    
+
     // We need to include the uri as part of the hash, because the parsed AST contains tokens that refer to the filename. 
     var uriWritten = hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
     while (true) {

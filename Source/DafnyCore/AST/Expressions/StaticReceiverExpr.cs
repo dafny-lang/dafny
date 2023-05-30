@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Instances of this class are introduced during resolution to indicate that a static method or function has
 /// been invoked without specifying a receiver (that is, by just giving the name of the enclosing class).
 /// </summary>
-public class StaticReceiverExpr : LiteralExpr {
+public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
   public readonly Type UnresolvedType;
   /// <summary>
   /// A static member can be invoked through an object, in which case the object is not used for the call.
@@ -27,6 +27,11 @@ public class StaticReceiverExpr : LiteralExpr {
     Contract.Requires(t != null);
     UnresolvedType = t;
     IsImplicit = isImplicit;
+  }
+
+  public StaticReceiverExpr(Cloner cloner, StaticReceiverExpr original) : base(cloner, original) {
+    UnresolvedType = cloner.CloneType(original.UnresolvedType);
+    IsImplicit = original.IsImplicit;
   }
 
   /// <summary>
@@ -94,4 +99,8 @@ public class StaticReceiverExpr : LiteralExpr {
 
   public override IEnumerable<Node> Children =>
     new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);
+
+  public StaticReceiverExpr Clone(Cloner cloner) {
+    return new StaticReceiverExpr(cloner, this);
+  }
 }
