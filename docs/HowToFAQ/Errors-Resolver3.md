@@ -712,7 +712,7 @@ function ff(i: int, j: real): real { j * i }
 ```
 
 The types of the two arguments of `*` must be the same (or implicitly convertible to be the same).
-Typically the result of the expression is detrermined by the left operand.
+Typically the result of the expression is determined by the left operand.
 This message then is stating that the right operand has a different type.
 
 
