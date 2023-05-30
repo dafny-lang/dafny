@@ -103,7 +103,7 @@ module AritySituations {
   }
 
   method P<T,U>(r: T -> U, x: T) returns (u: U)
-    requires r.requires(x);
+    requires r.requires(x)
   {
     u := r(x);
   }
