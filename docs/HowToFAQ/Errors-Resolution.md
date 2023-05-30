@@ -46,7 +46,7 @@ method m(a:A)
 
 Functions may have some (or all) formal parameters be ghost. Such parameters can only be used in ghost expressions
 within the function body. There are limits though on where such a function may be used.
-For example, passing the value of the function itself (not all call of the function) is restricted to ghost contexts.
+For example, passing the value of the function itself (not a call of the function) is restricted to ghost contexts.
 
 ## **Error: _what_ '_name_' can be used only in specification contexts** {#r_used_only_in_specification}
 
