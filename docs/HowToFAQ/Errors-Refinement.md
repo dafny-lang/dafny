@@ -854,7 +854,7 @@ module Q refines P {
 }
 ```
 
-When refining a predicate, a formal parameter may not change from onder to non-older or vice versa.
+When refining a predicate, a formal parameter may not change from older to non-older or vice versa.
 
 ## **Error: _kind_ '_name_' of _kind_ _container_ cannot be changed, compared to the corresponding _kind_ in the module it refines, from older to non-older** {#ref_mismatched_kind_non_older}
 
