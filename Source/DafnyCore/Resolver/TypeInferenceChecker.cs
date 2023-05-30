@@ -112,7 +112,6 @@ partial class Resolver {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          var what = lhs is IdentifierExpr ? $"variable '{((IdentifierExpr)lhs).Name}'" : "LHS";
           CheckTypeArgsContainNoOrdinal(lhs.tok, lhs.Type, context);
         }
       }
@@ -127,7 +126,7 @@ partial class Resolver {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+          if (e.Type.IsBitVectorType && MaxBV(e.Type.AsBitVectorType.Width) < absN) {
             resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
@@ -139,13 +138,9 @@ partial class Resolver {
         }
 
         if (expr is StaticReceiverExpr stexpr) {
-          if (stexpr.ObjectToDiscard != null) {
-            VisitExpression(stexpr.ObjectToDiscard, context);
-          } else {
-            foreach (Type t in stexpr.Type.TypeArgs) {
-              if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
-                resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
-              }
+          foreach (Type t in stexpr.Type.TypeArgs) {
+            if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
+              resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
             }
           }
         }
@@ -291,7 +286,7 @@ partial class Resolver {
                       // these two types have the same number of type arguments.
                       var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
                       var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
-                      var possiblyNullTypeDecl = (ClassDecl)possiblyNullUdf.ResolvedClass;
+                      var possiblyNullTypeDecl = (ClassLikeDecl)possiblyNullUdf.ResolvedClass;
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
                       Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
                       var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
@@ -373,6 +368,14 @@ partial class Resolver {
       base.PostVisitOneExpression(expr, context);
     }
 
+    protected override void VisitExtendedPattern(ExtendedPattern pattern, TypeInferenceCheckingContext context) {
+      base.VisitExtendedPattern(pattern, context);
+
+      if (pattern is IdPattern { BoundVar: { } bv }) {
+        CheckTypeIsDetermined(bv.Tok, bv.Type, "bound variable");
+      }
+    }
+
     public static bool IsDetermined(Type t) {
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy) || ((TypeProxy)t).T == null);
@@ -386,7 +389,7 @@ partial class Resolver {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Requires(what != null);
-      t = t.NormalizeExpand();
+      t = t.NormalizeExpandKeepConstraints();
 
       if (t is TypeProxy) {
         var proxy = (TypeProxy)t;

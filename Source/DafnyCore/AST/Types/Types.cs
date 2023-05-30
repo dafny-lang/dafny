@@ -169,11 +169,11 @@ public abstract class Type : TokenNode {
         if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
           // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
           // it is the non-null type declaration that is visible, not the class/trait declaration itself.
-          if (rtd is ClassDecl cl) {
+          if (rtd is ClassLikeDecl cl) {
             Contract.Assert(cl.NonNullTypeDecl != null);
             Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
           } else {
-            Contract.Assert(rtd is OpaqueTypeDecl);
+            Contract.Assert(rtd is AbstractTypeDecl);
           }
         }
 
@@ -199,7 +199,7 @@ public abstract class Type : TokenNode {
           // it is the non-null type declaration that is visible, not the class/trait declaration itself.
           var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
           Contract.Assert(rhs is UserDefinedType);
-          var cl = ((UserDefinedType)rhs).ResolvedClass as ClassDecl;
+          var cl = ((UserDefinedType)rhs).ResolvedClass as ClassLikeDecl;
           Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
           Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
         }
@@ -242,7 +242,7 @@ public abstract class Type : TokenNode {
       if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
         // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
         // it is the non-null type declaration that is visible, not the class/trait declaration itself.
-        var cl = rtd as ClassDecl;
+        var cl = rtd as ClassLikeDecl;
         Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
         Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
       }
@@ -354,8 +354,8 @@ public abstract class Type : TokenNode {
     var udt = (UserDefinedType)t;
     var cl = udt.ResolvedClass;
     Contract.Assert(cl != null);
-    if (cl is OpaqueTypeDecl) {
-      var otd = (OpaqueTypeDecl)cl;
+    if (cl is AbstractTypeDecl) {
+      var otd = (AbstractTypeDecl)cl;
       return CharacteristicToAutoInitInfo(otd.Characteristics);
     } else if (cl is TypeParameter) {
       var tp = (TypeParameter)cl;
@@ -408,8 +408,12 @@ public abstract class Type : TokenNode {
           Contract.Assert(false); // unexpected case
           throw new cce.UnreachableException();
       }
+    } else if (cl is TraitDecl traitDecl) {
+      return traitDecl.IsReferenceTypeDecl ? AutoInitInfo.CompilableValue : AutoInitInfo.MaybeEmpty;
     } else if (cl is ClassDecl) {
       return AutoInitInfo.CompilableValue; // null is a value of this type
+    } else if (cl is ArrowTypeDecl) {
+      return AutoInitInfo.CompilableValue;
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
       var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
@@ -477,8 +481,7 @@ public abstract class Type : TokenNode {
 
   public bool IsRefType {
     get {
-      var udt = NormalizeExpand() as UserDefinedType;
-      return udt != null && udt.ResolvedClass is ClassDecl && !(udt.ResolvedClass is ArrowTypeDecl);
+      return NormalizeExpand() is UserDefinedType { ResolvedClass: ClassLikeDecl { IsReferenceTypeDecl: true } };
     }
   }
 
@@ -510,8 +513,7 @@ public abstract class Type : TokenNode {
   /// </summary>
   public bool IsObjectQ {
     get {
-      var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
-      return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObjectTrait;
+      return NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: TraitDecl { IsObjectTrait: true } };
     }
   }
   /// <summary>
@@ -522,7 +524,7 @@ public abstract class Type : TokenNode {
       var nn = AsNonNullRefType;
       if (nn != null) {
         var nonNullRefDecl = (NonNullTypeDecl)nn.ResolvedClass;
-        return nonNullRefDecl.Class.IsObjectTrait;
+        return nonNullRefDecl.Class is TraitDecl { IsObjectTrait: true };
       }
       return false;
     }
@@ -611,8 +613,7 @@ public abstract class Type : TokenNode {
   }
   public ArrayClassDecl/*?*/ AsArrayType {
     get {
-      var t = NormalizeExpand();
-      var udt = UserDefinedType.DenotesClass(t);
+      var udt = UserDefinedType.DenotesClass(this);
       return udt?.ResolvedClass as ArrayClassDecl;
     }
   }
@@ -814,13 +815,13 @@ public abstract class Type : TokenNode {
       return ct?.ResolvedClass as TypeParameter;
     }
   }
-  public bool IsOpaqueType {
-    get { return AsOpaqueType != null; }
+  public bool IsAbstractType {
+    get { return AsAbstractType != null; }
   }
-  public OpaqueTypeDecl AsOpaqueType {
+  public AbstractTypeDecl AsAbstractType {
     get {
       var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
-      return udt?.ResolvedClass as OpaqueTypeDecl;
+      return udt?.ResolvedClass as AbstractTypeDecl;
     }
   }
 
@@ -869,7 +870,7 @@ public abstract class Type : TokenNode {
   public bool IsOrdered {
     get {
       var ct = NormalizeExpand();
-      return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+      return !ct.IsTypeParameter && !ct.IsAbstractType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
     }
   }
 
@@ -961,8 +962,8 @@ public abstract class Type : TokenNode {
         a = b = u;
         return true;
       }
-      var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
-      var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
+      var tt = ((UserDefinedType)t).ResolvedClass as ClassLikeDecl;
+      var uu = ((UserDefinedType)u).ResolvedClass as ClassLikeDecl;
       if (uu.HeadDerivesFrom(tt)) {
         a = b = t;
         return true;
@@ -1075,8 +1076,7 @@ public abstract class Type : TokenNode {
       var asub = sub as ArrowType;
       return asub != null && asuper.Arity == asub.Arity;
     } else if (super.IsObjectQ) {
-      var clSub = sub as UserDefinedType;
-      return sub.IsObjectQ || (clSub != null && clSub.ResolvedClass is ClassDecl);
+      return sub.IsObjectQ || (sub is UserDefinedType { ResolvedClass: ClassLikeDecl cl } && cl.IsReferenceTypeDecl);
     } else if (super is UserDefinedType) {
       var udtSuper = (UserDefinedType)super;
       Contract.Assert(udtSuper.ResolvedClass != null);
@@ -1101,8 +1101,8 @@ public abstract class Type : TokenNode {
                 return true;
               }
             }
-          } else if (udtSub.ResolvedClass is ClassDecl) {
-            var cl = (ClassDecl)udtSub.ResolvedClass;
+          } else if (udtSub.ResolvedClass is ClassLikeDecl) {
+            var cl = (TopLevelDeclWithMembers)udtSub.ResolvedClass;
             return cl.HeadDerivesFrom(udtSuper.ResolvedClass);
           } else {
             return false;
@@ -1284,8 +1284,8 @@ public abstract class Type : TokenNode {
     Contract.Requires(b != null);
     Contract.Requires(builtIns != null);
     var j = JoinX(a, b, builtIns);
-    if (builtIns.Options.TypeInferenceDebug) {
-      Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      builtIns.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }
@@ -1423,7 +1423,7 @@ public abstract class Type : TokenNode {
       var udtA = (UserDefinedType)a;
       return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1442,9 +1442,9 @@ public abstract class Type : TokenNode {
         var udt = (UserDefinedType)a;
         var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
         return abNonNullTypes ? UserDefinedType.CreateNonNullType(xx) : xx;
-      } else if (aa is ClassDecl && bb is ClassDecl) {
-        var A = (ClassDecl)aa;
-        var B = (ClassDecl)bb;
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
+        var A = (TopLevelDeclWithMembers)aa;
+        var B = (TopLevelDeclWithMembers)bb;
         if (A.HeadDerivesFrom(B)) {
           var udtB = (UserDefinedType)b;
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
@@ -1497,7 +1497,7 @@ public abstract class Type : TokenNode {
     if (j != null && joinNeedsNonNullConstraint && !j.IsNonNullRefType) {
       // try to make j into a non-null type; if that's not possible, then there is no meet
       var udt = j as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is ClassDecl) {
+      if (udt != null && udt.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         // add the non-null constraint back in
         j = UserDefinedType.CreateNonNullType(udt);
       } else {
@@ -1505,8 +1505,8 @@ public abstract class Type : TokenNode {
         j = null;
       }
     }
-    if (builtIns.Options.TypeInferenceDebug) {
-      Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+    if (builtIns.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      builtIns.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
     }
     return j;
   }
@@ -1647,7 +1647,7 @@ public abstract class Type : TokenNode {
     } else if (a.IsObjectQ) {
       return b.IsRefType ? b : null;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1665,7 +1665,7 @@ public abstract class Type : TokenNode {
         }
         var udt = (UserDefinedType)a;
         return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-      } else if (aa is ClassDecl && bb is ClassDecl) {
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         if (a.IsSubtypeOf(b, false, false)) {
           return a;
         } else if (b.IsSubtypeOf(a, false, false)) {
@@ -2286,7 +2286,7 @@ public class UserDefinedType : NonProxyType {
     var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
     if (cd is ArrowTypeDecl) {
       return new ArrowType(tok, (ArrowTypeDecl)cd, args);
-    } else if (cd is ClassDecl && !(cd is DefaultClassDecl)) {
+    } else if (cd is ClassLikeDecl { IsReferenceTypeDecl: true }) {
       return new UserDefinedType(tok, cd.Name + "?", cd, args);
     } else {
       return new UserDefinedType(tok, cd.Name, cd, args);
@@ -2329,7 +2329,7 @@ public class UserDefinedType : NonProxyType {
     Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
     // The following is almost a precondition. In a few places, the source program names a class, not a type,
     // and in then name==cd.Name for a ClassDecl.
-    //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
+    //Contract.Requires(!(cd is ClassDecl) || name == cd.Name + "?");
     Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
     Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
     this.tok = tok;
@@ -2349,8 +2349,8 @@ public class UserDefinedType : NonProxyType {
 
   public static UserDefinedType CreateNonNullType(UserDefinedType udtNullableType) {
     Contract.Requires(udtNullableType != null);
-    Contract.Requires(udtNullableType.ResolvedClass is ClassDecl);
-    var cl = (ClassDecl)udtNullableType.ResolvedClass;
+    Contract.Requires(udtNullableType.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true });
+    var cl = (ClassLikeDecl)udtNullableType.ResolvedClass;
     return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
   }
 
@@ -2370,9 +2370,7 @@ public class UserDefinedType : NonProxyType {
   }
 
   /// <summary>
-  /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
-  /// constructor for that).
+  /// This constructor constructs a resolved type parameter
   /// </summary>
   public UserDefinedType(IToken tok, TypeParameter tp) {
     Contract.Requires(tok != null);
@@ -2516,8 +2514,10 @@ public class UserDefinedType : NonProxyType {
 
   public override bool SupportsEquality {
     get {
-      if (ResolvedClass is ClassDecl || ResolvedClass is NewtypeDecl) {
+      if (ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true } || ResolvedClass is NewtypeDecl) {
         return ResolvedClass.IsRevealedInScope(Type.GetScope());
+      } else if (ResolvedClass is ClassDecl) {
+        return false;
       } else if (ResolvedClass is CoDatatypeDecl) {
         return false;
       } else if (ResolvedClass is IndDatatypeDecl) {
@@ -2549,8 +2549,8 @@ public class UserDefinedType : NonProxyType {
         }
       } else if (ResolvedClass is TypeParameter) {
         return ((TypeParameter)ResolvedClass).SupportsEquality;
-      } else if (ResolvedClass is OpaqueTypeDecl) {
-        return ((OpaqueTypeDecl)ResolvedClass).SupportsEquality;
+      } else if (ResolvedClass is AbstractTypeDecl) {
+        return ((AbstractTypeDecl)ResolvedClass).SupportsEquality;
       }
       Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
       return true;
@@ -2585,7 +2585,7 @@ public class UserDefinedType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     if (ResolvedClass is ArrowTypeDecl) {
       return TypeArgs.Any(ta => ta.ComputeMayInvolveReferences(visitedDatatypes));
-    } else if (ResolvedClass is ClassDecl) {
+    } else if (ResolvedClass is ClassLikeDecl) {
       return true;
     } else if (ResolvedClass is NewtypeDecl) {
       return false;
@@ -2634,7 +2634,7 @@ public class UserDefinedType : NonProxyType {
       } else {
         return !typeParameter.Characteristics.ContainsNoReferenceTypes;
       }
-    } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
+    } else if (ResolvedClass is AbstractTypeDecl opaqueTypeDecl) {
       return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
     }
     Contract.Assume(false);  // unexpected or not successfully resolved Type
@@ -2769,7 +2769,7 @@ public abstract class TypeProxy : Type {
       return Family.ValueType;
     } else if (t.IsRefType) {
       return Family.Ref;
-    } else if (t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym) {
+    } else if (t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym) {
       return Family.Opaque;
     } else if (t is TypeProxy) {
       return ((TypeProxy)t).family;
@@ -2789,7 +2789,7 @@ public abstract class TypeProxy : Type {
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
-    if (options.TypeInferenceDebug) {
+    if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
       return T == null ? "?" + id : T.TypeName(options, context);
     }
 #endif

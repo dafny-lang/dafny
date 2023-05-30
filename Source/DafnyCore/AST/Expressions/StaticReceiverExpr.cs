@@ -38,7 +38,7 @@ public class StaticReceiverExpr : LiteralExpr {
     Contract.Requires(tok != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-    Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
+    Type = new UserDefinedType(tok, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
@@ -80,6 +80,17 @@ public class StaticReceiverExpr : LiteralExpr {
   }
 
   public override bool IsImplicit { get; }
+
+  public override IEnumerable<Expression> SubExpressions {
+    get {
+      if (ObjectToDiscard != null) {
+        yield return ObjectToDiscard;
+      }
+      foreach (var ee in base.SubExpressions) {
+        yield return ee;
+      }
+    }
+  }
 
   public override IEnumerable<Node> Children =>
     new[] { ObjectToDiscard, ContainerExpression }.Where(x => x != null).Concat(Type.Nodes);

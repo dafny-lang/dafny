@@ -236,28 +236,20 @@ def pack(args, releases):
 def check_version_cs(args):
     # Checking Directory.Build.props
     with open(path.join(SOURCE_DIRECTORY, "Directory.Build.props")) as fp:
-        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+).([0-9]+)', fp.read())
+        match = re.search(r'\<VersionPrefix\>([0-9]+.[0-9]+.[0-9]+)', fp.read())
         if match:
-            (v1, v2) = match.groups()
+            source_version = match.groups()[0]
         else:
             flush("The AssemblyVersion attribute in Directory.Build.props could not be found.")
             return False
-    now = time.localtime()
-    year = now[0]
-    month = now[1]
-    day = now[2]
-    v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
-    if v2 != v3:
-        flush("The date in Directory.Build.props does not agree with today's date: " + v3 + " vs. " + v2)
     if "-" in args.version:
         hy = args.version[:args.version.index('-')]
     else:
         hy = args.version
-    if hy != v1:
-        flush("The version number in Directory.Build.props does not agree with the given version: " + hy + " vs. " + v1)
-    if (v2 != v3 or hy != v1):
+    if hy != source_version:
+        flush("The version number in Directory.Build.props does not agree with the given version: " + source_version + " vs. " + hy)
         return False
-    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + v1 + "." + v2)
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: " + source_version)
     return True
 
 def parse_arguments():

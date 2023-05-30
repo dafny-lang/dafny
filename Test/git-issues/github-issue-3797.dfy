@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %baredafny verify %args "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype uint16 = x | 0 <= x < 0x1_0000

@@ -13,7 +13,7 @@ on:
     # Chosen to be hopefully outside of business hours for most contributors'
     # time zones, and not on the hour to avoid heavy scheduled-job times:
     # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
-    - cron: "30 6 * * *"
+    - cron: "30 14 * * *"
   workflow_dispatch:
 
 jobs:
@@ -32,6 +32,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.sha }}
+          submodules: recursive
 
       - name: Get short sha
         run: echo "sha_short=`git rev-parse --short HEAD`" >> $GITHUB_ENV

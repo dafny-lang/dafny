@@ -52,11 +52,12 @@ public class Compilation {
   public Task<DocumentAfterTranslation> TranslatedDocument { get; }
 
   public Compilation(IServiceProvider services,
+    DafnyOptions options,
     DocumentTextBuffer textBuffer,
     VerificationTree? migratedVerificationTree) {
-    options = services.GetRequiredService<DafnyOptions>();
-    logger = services.GetRequiredService<ILogger<Compilation>>();
+    this.options = options;
     documentLoader = services.GetRequiredService<ITextDocumentLoader>();
+    logger = services.GetRequiredService<ILogger<Compilation>>();
     notificationPublisher = services.GetRequiredService<INotificationPublisher>();
     verifier = services.GetRequiredService<IProgramVerifier>();
     statusPublisher = services.GetRequiredService<ICompilationStatusNotificationPublisher>();
@@ -79,7 +80,7 @@ public class Compilation {
   private async Task<DocumentAfterParsing> ResolveAsync() {
     try {
       await started.Task;
-      var documentAfterParsing = await documentLoader.LoadAsync(TextBuffer, cancellationSource.Token);
+      var documentAfterParsing = await documentLoader.LoadAsync(options, TextBuffer, cancellationSource.Token);
 
       // TODO, let gutter icon publications also used the published CompilationView.
       var state = documentAfterParsing.InitialIdeState(options);
@@ -125,12 +126,14 @@ public class Compilation {
   public async Task<DocumentAfterTranslation> PrepareVerificationTasksAsync(
     DocumentAfterResolution loaded,
     CancellationToken cancellationToken) {
-    if (loaded.ParseAndResolutionDiagnostics.Any(d =>
+    if (loaded.AllFileDiagnostics.Any(d =>
           d.Level == ErrorLevel.Error &&
           d.Source != MessageSource.Compiler &&
           d.Source != MessageSource.Verifier)) {
       throw new TaskCanceledException();
     }
+
+    statusPublisher.SendStatusNotification(loaded.TextDocumentItem, CompilationStatus.PreparingVerification);
 
     var verificationTasks =
       await verifier.GetVerificationTasksAsync(loaded, cancellationToken);
@@ -155,7 +158,7 @@ public class Compilation {
 
     var translated = new DocumentAfterTranslation(services,
       loaded.TextDocumentItem, loaded.Program,
-      loaded.ParseAndResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
+      loaded.ResolutionDiagnostics, loaded.SymbolTable, loaded.SignatureAndCompletionTable, loaded.GhostDiagnostics, verificationTasks,
       new(),
       initialViews,
       migratedVerificationTree ?? new DocumentVerificationTree(loaded.TextDocumentItem));
@@ -293,7 +296,7 @@ public class Compilation {
 
   private bool ReportGutterStatus => options.Get(ServerCommand.LineVerificationStatus);
 
-  private List<DafnyDiagnostic> GetDiagnosticsFromResult(Document document, VerificationResult result) {
+  private List<DafnyDiagnostic> GetDiagnosticsFromResult(DocumentAfterResolution document, VerificationResult result) {
     var errorReporter = new DiagnosticErrorReporter(options, document.TextDocumentItem.Text, document.Uri);
     foreach (var counterExample in result.Errors) {
       errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(result.Outcome, options.ForceBplErrors));
@@ -320,6 +323,10 @@ public class Compilation {
         return completed.Result.Outcome == ConditionGeneration.Outcome.Correct
           ? PublishedVerificationStatus.Correct
           : PublishedVerificationStatus.Error;
+      case BatchCompleted batchCompleted:
+        return batchCompleted.VcResult.outcome == ProverInterface.Outcome.Valid
+          ? PublishedVerificationStatus.Correct
+          : PublishedVerificationStatus.Error;
       default:
         throw new ArgumentOutOfRangeException();
     }
@@ -333,14 +340,14 @@ public class Compilation {
   private readonly DafnyOptions options;
 
   public void MarkVerificationStarted() {
-    logger.LogDebug("MarkVerificationStarted called");
+    logger.LogTrace("MarkVerificationStarted called");
     if (verificationCompleted.Task.IsCompleted) {
       verificationCompleted = new TaskCompletionSource();
     }
   }
 
   public void MarkVerificationFinished() {
-    logger.LogDebug("MarkVerificationFinished called");
+    logger.LogTrace("MarkVerificationFinished called");
     verificationCompleted.TrySetResult();
   }
 
@@ -363,7 +370,7 @@ public class Compilation {
   public async Task<TextEditContainer?> GetTextEditToFormatCode() {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var parsedDocument = await ResolvedDocument;
-    if (parsedDocument.Diagnostics.Any(diagnostic =>
+    if (parsedDocument.AllFileDiagnostics.Any(diagnostic =>
           diagnostic.Level == ErrorLevel.Error &&
           diagnostic.Source == MessageSource.Parser
         )) {

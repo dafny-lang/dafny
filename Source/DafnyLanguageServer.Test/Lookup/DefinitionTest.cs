@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DefinitionTest : ClientBasedLanguageServerTest {
@@ -294,7 +295,8 @@ method DoIt() {
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.False((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
+      var locations = await RequestDefinition(documentItem, (2, 14)).AsTask();
+      Assert.False(locations.Any());
     }
 
     [Fact]
@@ -461,6 +463,9 @@ module B refines ><A {
   }
 }".TrimStart();
       await AssertPositionsLineUpWithRanges(source);
+    }
+
+    public DefinitionTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

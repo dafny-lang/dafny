@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       this.entryDocumentUri = entryDocumentUri;
     }
 
-    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> AllDiagnosticsCopy => diagnostics.ToImmutableDictionary();
 
     public IReadOnlyList<DafnyDiagnostic> GetDiagnostics(DocumentUri documentUri) {
       rwLock.EnterReadLock();
@@ -180,7 +181,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private DocumentUri GetDocumentUriOrDefault(IToken token) {
-      return token.Filename == null
+      return token.Filepath == null
         ? entryDocumentUri
         : token.GetDocumentUri();
     }

@@ -1,0 +1,27 @@
+#! /usr/bin/env bash
+
+d=$(dirname ${BASH_SOURCE[0]})
+cd $d
+
+echo ">>>> REFINEMENT"
+
+csfiles="../../Source/DafnyCore/Rewriters/RefinementTransformer.cs"
+./check-errors-a Errors-Refinement.md "$csfiles" ../../Source/DafnyCore/Rewriters/RefinementErrors.cs
+
+exit 0
+echo ">>>> REWRITER"
+
+csfiles="../../Source/DafnyCore/Rewriters/*.cs ../../Source/DafnyCore/Rewriters/*/*.cs"
+./check-errors-a Errors-Rewriter.md "$csfiles" ../../Source/DafnyCore/Rewriters/RewriterErrors.cs
+
+exit 0
+
+echo ">>>> COMPILER"
+
+csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
+./check-errors-a Errors-Compiler.md "$csfiles" ../../Source/DafnyCore/Compilers/CompilerErrors.cs
+
+##echo ">>>> PARSER"
+
+##./check-errors-a Errors-Parser.md ../../Source/DafnyCore/Dafny.atg ../../Source/DafnyCore/AST/Grammar/ParseErrors.cs
+

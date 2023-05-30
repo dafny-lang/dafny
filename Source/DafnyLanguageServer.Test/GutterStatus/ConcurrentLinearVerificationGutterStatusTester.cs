@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.JsonRpc;
+using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
@@ -50,7 +51,7 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
  .  S [S][ ][I][S][ ]:method H()
  .  S [=][=][-][~][O]:  ensures F(1)
  .  S [=][=][-][~][=]:{//Next: { assert false;
- .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, verificationStatusGutterReceivers[i]));
+ .  S [S][ ][I][S][ ]:}", $"testfile{i}.dfy", true, true, verificationStatusGutterReceivers[i]));
     }
 
     for (var i = 0; i < MaxSimultaneousVerificationTasks; i++) {
@@ -58,4 +59,6 @@ public class ConcurrentLinearVerificationGutterStatusTester : LinearVerification
     }
   }
 
+  public ConcurrentLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
+  }
 }

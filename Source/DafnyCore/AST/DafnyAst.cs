@@ -16,6 +16,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Auditor;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -38,6 +39,19 @@ namespace Microsoft.Dafny {
       Contract.Invariant(DefaultModule != null);
     }
 
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyVerifiedRoots;
+    // TODO move to Compilation once that's used by the CLI
+    public ISet<Uri> AlreadyCompiledRoots;
+
+    public List<Include> Includes => DefaultModuleDef.Includes;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToVerify;
+    // TODO move to DocumentAfterParsing once that's used by the CLI
+    [FilledInDuringResolution]
+    public ISet<Uri> UrisToCompile;
+
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
@@ -46,22 +60,24 @@ namespace Microsoft.Dafny {
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly ModuleDecl DefaultModule;
-    public readonly ModuleDefinition DefaultModuleDef;
+    public readonly LiteralModuleDecl DefaultModule;
+    public readonly DefaultModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] ModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter) {
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
-      Contract.Requires(module is LiteralModuleDecl);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)((LiteralModuleDecl)module).ModuleDef;
+      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
+      AlreadyVerifiedRoots = alreadyVerifiedRoots;
+      AlreadyCompiledRoots = alreadyCompiledRoots;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
       CompileModules = new List<ModuleDefinition>();
     }
@@ -94,13 +110,14 @@ namespace Microsoft.Dafny {
     /// Get the first token that is in the same file as the DefaultModule.RootToken.FileName
     /// (skips included tokens)
     public IToken GetFirstTopLevelToken() {
-      if (DefaultModule.RootToken.Next == null) {
+      var rootToken = DefaultModuleDef.RangeToken.StartToken;
+      if (rootToken.Next == null) {
         return null;
       }
 
-      var firstToken = DefaultModule.RootToken.Next;
+      var firstToken = rootToken;
       // We skip all included files
-      while (firstToken is { Next: { } } && firstToken.Next.Filename != DefaultModule.RootToken.Filename) {
+      while (firstToken is { Next: { } } && firstToken.Next.Filepath != rootToken.Filepath) {
         firstToken = firstToken.Next;
       }
 
@@ -114,34 +131,10 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Node> Children => new[] { DefaultModule };
 
     public override IEnumerable<Node> PreResolveChildren => Children;
-  }
 
-  public class Include : TokenNode, IComparable {
-    public string IncluderFilename { get; }
-    public string IncludedFilename { get; }
-    public string CanonicalPath { get; }
-    public bool CompileIncludedCode { get; }
-    public bool ErrorReported;
-
-    public Include(IToken tok, string includer, string theFilename, bool compileIncludedCode) {
-      this.tok = tok;
-      this.IncluderFilename = includer;
-      this.IncludedFilename = theFilename;
-      this.CanonicalPath = DafnyFile.Canonicalize(theFilename).LocalPath;
-      this.ErrorReported = false;
-      CompileIncludedCode = compileIncludedCode;
+    public override IEnumerable<Assumption> Assumptions(Declaration decl) {
+      return Modules().SelectMany(m => m.Assumptions(decl));
     }
-
-    public int CompareTo(object obj) {
-      if (obj is Include include) {
-        return CanonicalPath.CompareTo(include.CanonicalPath);
-      } else {
-        throw new NotImplementedException();
-      }
-    }
-
-    public override IEnumerable<Node> Children => Enumerable.Empty<Node>();
-    public override IEnumerable<Node> PreResolveChildren => Enumerable.Empty<Node>();
   }
 
   /// <summary>
@@ -184,6 +177,16 @@ namespace Microsoft.Dafny {
       Name = name;
       Args = args;
       Prev = prev;
+    }
+
+    public override string ToString() {
+      string result = Prev?.ToString() + "{:" + Name;
+      if (Args == null || Args.Count() == 0) {
+        return result + "}";
+      } else {
+        var exprs = String.Join(", ", Args.Select(e => e.ToString()));
+        return result + " " + exprs + "}";
+      }
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
@@ -393,6 +396,11 @@ namespace Microsoft.Dafny {
     string CompileName {
       get;
     }
+
+    PreType PreType {
+      get;
+      set;
+    }
     Type Type {
       get;
     }
@@ -456,6 +464,9 @@ namespace Microsoft.Dafny {
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
       }
     }
+
+    public PreType PreType { get; set; }
+
     public bool IsMutable {
       get {
         throw new NotImplementedException();
@@ -556,6 +567,8 @@ namespace Microsoft.Dafny {
     Type type;
     public bool IsTypeExplicit = false;
     public Type SyntacticType { get { return type; } }  // returns the non-normalized type
+    public PreType PreType { get; set; }
+
     public Type Type {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
@@ -636,6 +649,11 @@ namespace Microsoft.Dafny {
       sanitizedName ??= SanitizeName(Name); // No unique-ification
     public override string CompileName =>
       compileName ??= SanitizeName(NameForCompilation);
+
+    public override IEnumerable<Node> Children =>
+      DefaultValue != null ? new List<Node>() { DefaultValue } : Enumerable.Empty<Node>();
+
+    public override IEnumerable<Node> PreResolveChildren => Children;
   }
 
   /// <summary>

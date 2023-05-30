@@ -27,6 +27,17 @@ public abstract class DafnyCodeActionProvider {
   /// <param name="selection">The current selection</param>
   /// <returns>Potential quickfixes</returns>
   public abstract IEnumerable<DafnyCodeAction> GetDafnyCodeActions(IDafnyCodeActionInput input, Range selection);
+
+  // When building DafnyCodeActionEdit (what DafnyCodeAction return),
+  // use this to create ranges suitable for insertion
+  protected static RangeToken InsertBefore(IToken tok) {
+    return new RangeToken(tok, null);
+  }
+  protected static RangeToken InsertAfter(IToken tok) {
+    return new RangeToken(new Token(tok.line, tok.col + tok.val.Length) {
+      pos = tok.pos + tok.val.Length,
+    }, null);
+  }
 }
 
 /// <summary>

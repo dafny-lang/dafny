@@ -20,9 +20,11 @@ using MediatR;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Client;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
+
     protected readonly string SlowToVerify = @"
 lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
   requires p > 0 && q > 0
@@ -47,13 +49,16 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     public const string LanguageId = "dafny";
     protected static int fileIndex;
+    protected readonly TextWriter output;
 
     public ILanguageServer Server { get; private set; }
 
     public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
 
-    public DafnyLanguageServerTestBase() : base(new JsonRpcTestOptions(LoggerFactory.Create(
-      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) { }
+    public DafnyLanguageServerTestBase(ITestOutputHelper output) : base(new JsonRpcTestOptions(LoggerFactory.Create(
+      builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning)))) {
+      this.output = new WriterFromOutputHelper(output);
+    }
 
     protected virtual IServiceCollection ServerOptionsAction(LanguageServerOptions serverOptions) {
       return serverOptions.Services.AddSingleton<IProgramVerifier>(serviceProvider => new SlowVerifier(
@@ -65,7 +70,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     protected virtual async Task<ILanguageClient> InitializeClient(
       Action<LanguageClientOptions> clientOptionsAction = null,
       Action<DafnyOptions> modifyOptions = null) {
-      var dafnyOptions = DafnyOptions.Create();
+      var dafnyOptions = DafnyOptions.Create(output);
       modifyOptions?.Invoke(dafnyOptions);
 
       void NewServerOptionsAction(LanguageServerOptions options) {
@@ -84,12 +89,12 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
 
     private static void ApplyDefaultOptionValues(DafnyOptions dafnyOptions) {
       var testCommand = new System.CommandLine.Command("test");
-      foreach (var serverOption in new ServerCommand().Options) {
+      foreach (var serverOption in ServerCommand.Instance.Options) {
         testCommand.AddOption(serverOption);
       }
 
       var result = testCommand.Parse("test");
-      foreach (var option in new ServerCommand().Options) {
+      foreach (var option in ServerCommand.Instance.Options) {
         if (!dafnyOptions.Options.OptionArguments.ContainsKey(option)) {
           var value = result.GetValueForOption(option);
 

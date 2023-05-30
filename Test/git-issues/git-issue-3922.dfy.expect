@@ -1,0 +1,6 @@
+git-issue-3922.dfy(13,16): Error: match source type 'object' not assignable to bound variable (of type 'C')
+git-issue-3922.dfy(28,12): Error: match source type 'object' not assignable to bound variable (of type 'MyClx<U>')
+git-issue-3922.dfy(36,12): Error: match source type 'object' not assignable to bound variable (of type 'MyClx<U>')
+git-issue-3922.dfy(51,12): Error: match source type 'object' not assignable to bound variable (of type 'MyClx<U>')
+git-issue-3922.dfy(59,12): Error: match source type 'object' not assignable to bound variable (of type 'MyClx<U>')
+5 resolution/type errors detected in git-issue-3922.dfy

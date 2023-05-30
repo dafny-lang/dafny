@@ -4,10 +4,20 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
 public class IncludeFileTest : ClientBasedLanguageServerTest {
+
+  [Fact]
+  public async Task MutuallyRecursiveIncludes() {
+    string rootFile = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "includesBincludesA.dfy");
+    var documentItem2 = CreateTestDocument(await File.ReadAllTextAsync(rootFile), rootFile);
+    client.OpenDocument(documentItem2);
+    var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
+    Assert.Empty(verificationDiagnostics);
+  }
 
   [Fact]
   public async Task MethodWhosePostConditionFailsAndDependsOnIncludedFile() {
@@ -30,5 +40,8 @@ ensures Foo(x) {{
     var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
     Assert.Single(verificationDiagnostics);
     await AssertNoDiagnosticsAreComing(CancellationToken);
+  }
+
+  public IncludeFileTest(ITestOutputHelper output) : base(output) {
   }
 }

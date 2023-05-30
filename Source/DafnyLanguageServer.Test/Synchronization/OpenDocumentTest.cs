@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
+using Xunit.Abstractions;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
@@ -82,8 +83,8 @@ method Recurse(x: int) returns (r: int) {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var document = await Documents.GetLastDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
-      Assert.Equal(1, document.Diagnostics.Count(d => d.Level == ErrorLevel.Error));
-      var message = document.Diagnostics.First(d => d.Level == ErrorLevel.Error);
+      Assert.Equal(1, document.AllFileDiagnostics.Count(d => d.Level == ErrorLevel.Error));
+      var message = document.AllFileDiagnostics.First(d => d.Level == ErrorLevel.Error);
       Assert.Equal(MessageSource.Verifier, message.Source);
     }
 
@@ -135,6 +136,9 @@ method Recurse(x: int) returns (r: int) {
       var document = await Documents.GetResolvedDocumentAsync(documentItem.Uri);
       Assert.NotNull(document);
       Assert.True(!document.Diagnostics.Any());
+    }
+
+    public OpenDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

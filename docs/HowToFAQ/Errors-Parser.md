@@ -222,7 +222,7 @@ abstract module M { newtype T = int }
 module N refines M { newtype T = ... int }
 ```
 
-There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an opaque type into a newtype, however.
+There are limitations on refining a newtype, namely that the base type cannot be changed. You can change an abstract type into a newtype, however.
 
 ## **Error: formal cannot be declared 'ghost' in this context** {#p_output_of_function_not_ghost}
 
@@ -359,7 +359,7 @@ type T(000)
 ```
 
 [Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
 ## **Error: extra comma or missing type characteristic: should be one of == or 0 or 00 or !new** {#p_missing_type_characteristic}
@@ -370,7 +370,7 @@ type T(0,,0)
 ```
 
 [Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
 
@@ -381,7 +381,7 @@ type T(X)
 ```
 
 [Type parameters](../DafnyRef/DafnyRef#sec-type-parameters), 
-indicated in parentheses after the type name, state properties of the otherwise uninterpreted or opaque type.
+indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
 The currently defined type parameters are designated by `==` (equality-supporting), `0` (auto-initializable), `00` (non-empty), and `!new` (non-reference).
 
 ## **Warning: the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'** {#p_deprecated_colemma}
@@ -808,6 +808,7 @@ No other words are allowed here, including writing them with different case.
 
 These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
 That is, the code
+<!-- %check-resolve %exit 0 -->
 ```dafny
 method m() {
   var to: int := 6;
@@ -1135,7 +1136,7 @@ method m() {
 ```
 
 Like local variables, let variables are initialized with `:=` (and sometimes with `:-` or `:|`), but not with `=`.
-In Dafny `=` is used only in type definitions.
+In Dafny, `=` is used only in type definitions.
 
 ## **Error: LHS of let-such-that expression must be variables, not general patterns**
 

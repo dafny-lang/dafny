@@ -10,7 +10,7 @@ public abstract class MemberDecl : Declaration {
   public readonly bool HasStaticKeyword;
   public virtual bool IsStatic {
     get {
-      return HasStaticKeyword || (EnclosingClass is ClassDecl && ((ClassDecl)EnclosingClass).IsDefaultClass);
+      return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
     }
   }
 
@@ -18,6 +18,20 @@ public abstract class MemberDecl : Declaration {
 
   protected readonly bool isGhost;
   public bool IsGhost { get { return isGhost; } }
+
+  public string ModifiersAsString() {
+    string result = "";
+    if (IsGhost) {
+      result += "ghost ";
+    }
+    if (IsStatic) {
+      result += "static ";
+    }
+    if (IsOpaque) {
+      result += "opaque ";
+    }
+    return result;
+  }
 
   /// <summary>
   /// The term "instance independent" can be confusing. It means that the constant does not get its value in
@@ -97,6 +111,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
+  public PreType PreType;
   public readonly Type Type;
   [ContractInvariantMethod]
   void ObjectInvariant() {

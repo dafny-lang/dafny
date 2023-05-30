@@ -8,6 +8,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
@@ -40,7 +41,7 @@ namespace Microsoft.Dafny {
         FreeVariablesUtil.ComputeFreeVariables(reporter.Options, oldExpr.E, fvs, ref usesHeap, true);
         if (!usesHeap) {
           oldExpr.Useless = true;
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, oldExpr.tok,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_old_argument_not_on_heap, oldExpr.tok,
             $"Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect");
         }
       }
@@ -52,7 +53,7 @@ namespace Microsoft.Dafny {
       // be a mistake, especially if the programmer is coming from Rust.
       if (stmt is AssertStmt { Expr: UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not, E: ParensExpression } negationExpression }) {
         if (stmt.tok.pos + 6/*="assert".Length*/ == negationExpression.tok.pos) {
-          reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, stmt.tok,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_warn_negated_assertion, stmt.tok,
             "You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' " +
             "suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, " +
             "remove the '!' and the parentheses; if you do want the negation, please add a space between the 'assert' and '!'.");

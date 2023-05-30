@@ -24,6 +24,10 @@ Italicized words in the given messages indicate variable content.
 _This section is a work in progress_
 <!--  include_relative Errors-CommandLine.md--> 
 
+# **Generic Erros and Warnings**
+
+{% include_relative Errors-Generic.md %}
+
 # **Parser Errors and Warnings**
 
 {% include_relative Errors-Parser.md %}
