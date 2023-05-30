@@ -202,7 +202,7 @@ dafny -verificationLogger:z
 ```
 
 The `verificationLogger` option has these alternatives: trx, csv, text.
-The option name in the new cli is `--log-format`.
+The option name in the new CLI is `--log-format`.
 
 ## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
