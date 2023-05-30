@@ -520,7 +520,7 @@ module Q refines P {
 ```
 
 If a function is declared ghost in a base module, it can then be given a body and declared non-ghost in the refined version of the module.
-But in the case where the the base declaration already has a body and is `ghost`, the refined declaraqtion cannot then change the function to non-ghost.
+But in the case where the the base declaration already has a body and is `ghost`, the refined declaration cannot then change the function to non-ghost.
 
 ## **Error: the name of function return value '_function_'(_result_) differs from the name of corresponding function return value in the module it refines (_otherresult_)** {#ref_mismatched_function_return_name}
 
