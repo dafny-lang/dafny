@@ -39,7 +39,7 @@ module Q refines P {
 }
 ```
 
-A refining declaration that uses `...` must actually be refining a corresponding declaration in the 
+A refining declaration that uses `...` must actually be refining a corresponding declaration in the base module.
 
 ## **Error: can't change if a module export is default (_name_)** {#ref_default_export_unchangeable}
 
