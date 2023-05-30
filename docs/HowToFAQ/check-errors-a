@@ -12,8 +12,8 @@ touch tmp-ids-add
 
 for f in $srcfile ; do
  echo FILE $f
- grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
- grep -E 'SemErr|Error[(]|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids-cs
+ grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
+ grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids-cs
 done
 
 ## ErrorIds from md file
@@ -34,7 +34,7 @@ done
 ## ErrorIds from Add
 
 for f in $errfiles ; do
-  echo ENUM FILE $f
+  echo ENUM FILE ADD $f
   grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,]?[ \t]*$//'   >> tmp-ids-add
 done
 
