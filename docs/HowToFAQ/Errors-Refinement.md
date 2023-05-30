@@ -667,7 +667,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `ghost`
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like being or not being `ghost`
 may not change for methods.
 
 
