@@ -110,12 +110,14 @@ module ModC {
     
     var secondFile = CreateTestDocument(source, "secondFile");
     await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    // No hit because Uri has changed
     Assert.Equal(0, await WaitAndCountHits());
 
     ApplyChange(ref secondFile, ((0, 0), (0, 0)), "// Make the file larger\n");
+    // No hit because start of the file has changed
     Assert.Equal(0, await WaitAndCountHits());
 
-    // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
+    // No hit because end of file has changed
     ApplyChange(ref secondFile, ((19, 0), (19, 0)), "// Make the file larger\n");
     Assert.Equal(0, await WaitAndCountHits());
   }
