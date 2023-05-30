@@ -67,7 +67,7 @@ namespace IntegrationTests {
       var commands = new Dictionary<string, Func<IEnumerable<string>, LitTestConfiguration, ILitCommand>> {
         {
           "%baredafny", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[]{"--show-snippets:false"}, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(args, config, InvokeMainMethodsDirectly)
         }, {
           "%resolve", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)

@@ -81,7 +81,10 @@ namespace Microsoft.Dafny {
       "/compileVerbose:0",
       
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "/timeLimit:300"
+      "/timeLimit:300",
+
+      // test results do not include source code snippets
+      "/showSnippets:0"
     };
 
     public static readonly string[] NewDefaultArgumentsForTesting = new[] {
@@ -92,7 +95,10 @@ namespace Microsoft.Dafny {
       "--use-basename-for-filename",
 
       // Set a default time limit, to catch cases where verification time runs off the rails
-      "--verification-time-limit=300"
+      "--verification-time-limit=300",
+
+      // test results do not include source code snippets
+      "--show-snippets:false"
     };
 
     public static int Main(string[] args) {
