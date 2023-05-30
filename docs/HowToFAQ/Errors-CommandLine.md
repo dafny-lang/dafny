@@ -126,6 +126,12 @@ during the creation of the counterexamples.
 method m() {}
 ```
 
+The backends that Dafny supports have their own limitations on the ability to implement some of Dafny's features. 
+This error message indicates that the Dafny program in question has hit one of these limitations. 
+Some limitations are inherent in the language, but others are a question of implementation priorities to date.
+If the feature is an important one for your project, communicate with the Dafny team to determine if the 
+omission can be corrected.
+
 ## **Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.** {#f_missing_format_option}
 
 <!-- %check-cli -->
