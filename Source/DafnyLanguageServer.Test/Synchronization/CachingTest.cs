@@ -41,7 +41,7 @@ module ModC {
 
     async Task<int> WaitAndCountHits() {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      return sink.LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+      return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
     }
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
@@ -57,6 +57,67 @@ module ModC {
     var hitCount3 = await WaitAndCountHits();
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2 + 1, hitCount3);
+  }
+
+  /// <summary>
+  /// This test uses a file larger than the chunkSize used by CachingParser when chunking files.
+  /// </summary>
+  [Fact]
+  public async Task CachingDetectsStartAndEndAndUriChanges() {
+    var source = @"
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+// Make the file larger
+".TrimStart();
+
+    var firstFile = CreateTestDocument(source, "firstFile");
+    await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
+
+    async Task<int> WaitAndCountHits() {
+      await client.WaitForNotificationCompletionAsync(firstFile.Uri, CancellationToken);
+      return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+    }
+
+    ApplyChange(ref firstFile, ((0, 0), (0, 0)), "// Make the file larger\n");
+    Assert.Equal(0, await WaitAndCountHits());
+
+    // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
+    ApplyChange(ref firstFile, ((19, 0), (19, 0)), "// Make the file larger\n");
+    Assert.Equal(0, await WaitAndCountHits());
+
+    var secondFile = CreateTestDocument(source, "secondFile");
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    Assert.Equal(0, await WaitAndCountHits());
   }
 
   public CachingTest(ITestOutputHelper output) : base(output) {
