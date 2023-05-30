@@ -136,7 +136,7 @@ dafny format --stdin
 The dafny `format` command formats its input dafny program. The default behavior is to format the input files
 in place. It can instead just check that the file is formatted (`--check`) or print the formatted version to 
 stdout (`--print`). If the `--stdin` option is used, the input dafny program is taken from stdin, in which case
-it cannot be formatted in place, so either the `--check` or --print` options must be used in conjunction with `--stdin`.
+it cannot be formatted in place, so either the `--check` or `--print` options must be used in conjunction with `--stdin`.
 
 ## **The file _file_ needs to be formatted** {#f_file_needs_formatting}
 
