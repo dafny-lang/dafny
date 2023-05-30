@@ -5,7 +5,7 @@ newtype uint8 = i:int | 0 <= i < 0x100
 newtype uint32 = i:int | 0 <= i < 0x100000000
 
 class C {
-  var x:uint8;
+  var x:uint8
 }
 
 method TestSeqOfClass() returns (s:seq<C>)

@@ -1107,8 +1107,8 @@ map from explicit mappings. For example:
 
 <!-- %check-resolve -->
 ```dafny
-const m := map[1 := "a", 2 := "b"];
-ghost const im := imap[1 := "a", 2 := "b"];
+const m := map[1 := "a", 2 := "b"]
+ghost const im := imap[1 := "a", 2 := "b"]
 ```
 
 See [Section 5.5.4](#sec-maps) for more details on maps and imaps.

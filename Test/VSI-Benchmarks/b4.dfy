@@ -78,7 +78,7 @@ class Map<Key(==),Value> {
       invariant p != null ==> p in spine
       invariant p == head ==> prev == null
       invariant p != head ==> prev in Spine && prev.next == p && head !in spine
-      invariant key in M ==> exists n :: n in spine && n.key == key;
+      invariant key in M ==> exists n :: n in spine && n.key == key
       decreases spine
     {
       if p.key == key {

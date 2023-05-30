@@ -121,8 +121,8 @@ module DecreasesFields {
   }
 
   iterator Dieter0(c: Cell)
-    requires c != null;
-    decreases c.data, c.data, c != null;
+    requires c != null
+    decreases c.data, c.data, c != null
   {
     assert _decreases0 == _decreases1;
     assert _decreases2;
@@ -132,7 +132,7 @@ module DecreasesFields {
   }
 
   iterator Dieter1(c: Cell)
-    requires c != null;
+    requires c != null
   {
     assert _decreases0 == c;
     assert _decreases1;  // error: there is no _decreases1

@@ -9,7 +9,7 @@ ghost function UnAckedMessages(s:SendState) : set<int>
 }
 
 ghost function UnAckedMessagesForDst(s:SendState, dst:int) : set<int>
-    requires dst in s;
+    requires dst in s
 {
     set m | m in s[dst] :: m
 }

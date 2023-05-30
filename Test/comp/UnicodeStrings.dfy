@@ -39,7 +39,7 @@ const AllCasesAsCodePoints := [
             // is the same, but UTF-16 doesn't.
   0x1_F680, // Typical non-BMP codepoint (🚀)
   0x10_FFFF // Maximum value
-];
+]
 
 
 // The primary definition of the character values is casting to characters from integers.
@@ -138,7 +138,7 @@ method Main(args: seq<string>) {
 }
 
 // Not including any non-printable characters in this one
-const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}";
+const stringThatNeedsEscaping := "D\0\r\n\\\"\'\U{1F60E}"
 
 method CharPrinting() {
   var chars := stringThatNeedsEscaping;

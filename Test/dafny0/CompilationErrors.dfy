@@ -13,7 +13,7 @@ class TestClass {
       assume {:axiom} true;
     }
   }
-  ghost var g: int;
+  ghost var g: int
 }
 
 ghost function F(): int  // compile error: body-less ghost function

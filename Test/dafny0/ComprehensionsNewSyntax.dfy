@@ -36,7 +36,7 @@ method Main()
 method PrintSet<T>(s: set<T>) {
   var q := s;
   while (q != {})
-    decreases q;
+    decreases q
   {
     var x :| x in q;
     print x, " ";
