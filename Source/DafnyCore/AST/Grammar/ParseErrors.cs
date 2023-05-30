@@ -129,8 +129,6 @@ public class ParseErrors {
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
     p_file_has_no_code, // TODO no description yet
-
-    p_no_empty_type_parameter_list
   }
 
   static ParseErrors() {
