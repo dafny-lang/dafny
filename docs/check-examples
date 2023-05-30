@@ -1,16 +1,107 @@
 #! /usr/bin/env bash
 
-## This file accepts a couple options (before any files)
-## and then iterates over the remaining command-line arguments as files.
-## The options are
-##    -d <name>  -- here <name> is a default command (see below)
-##    -l <lang>  -- <lang> is the name of a language to use as default
-##                   (a language name as used with ```, e.g.,
-##                   dafny, java, text, cli, ...)
-##    -x <int>   -- <int> is an (non-negative) integer literal giving 
-##                  a default exit code
-##    -m         -- compare against error messages in headings
-## It expects a file to be in github markdown format.
+## This bash script checks that example code in markdown files
+## runs as expected.
+##  -- the script expects to be located in dafny/docs
+##      and finds other parts of the dafny working tree
+##      relative to that location
+##  -- There is only one command-line option, '-c', which
+##     if present must be first. It sets the coverage mode
+##     described below.
+##
+## What is checked?
+## In each input file in turn, each code block delineated by
+## markdown ``` pairs is checked, as described below.
+## -- Each block is expected to have a language tag. Often this
+##    tag is "dafny" (as in ```dafny) but may be other tags as well.
+##    A reasonable tag to disable checking is "text".
+##    If there is no tag a default tag is used (see below).
+##    The script warns if there is no tag and no default.
+## -- There may be no whitespace between ``` and the tag.
+## -- Markdown itself does not allow any other text on this delimiter line.
+## -- The script is not robust against mismatched ``` pairs.
+##
+## Operational modes -- there are three modes of operation.
+##    -- checking the code against an expected output file (the default behavior)
+##    -- checking the code for a given error message (if %useHeadings has been set)
+##    -- producing lit files for coverage checking (if the -c command-line option is present)
+##
+## What command is used to check?
+## Instructions for checking each cod block are given in a single-line HTML
+## comment (which is also a markdown comment), namely, keywords
+## enclosed in <!-- and -->. The text inside any such comment is 
+## interpreted as potential command information. 
+##
+## Global defaults.
+## If the command information line contains '%default', then the 
+## contents of the line are used to set defaults that apply for the
+## remainder of the file (until a subsequent default setting command).
+## Possible settings are:
+## - if '%useHeadings' is present then the checks are against error messages, as described below
+## - if '%check-ids' is present, the error-ids are checked as described below
+## - if '%lang=' is present, then the alha-numeric word after the = sign is now the default language
+## - if '%options' is present, then everything that follows is the default string of command options
+## - the first word of a default line is taken as the default command, if that word is not %default
+##   e.g. <!-- %check-resolve %default --> sets the default command to %check-resolve
+##
+## Each code block is checked according to command information set just before the code block.
+## For example:
+##   <!-- %check-resolve -->
+##   ```dafny
+##     ... code...
+##   ```
+## The command information has the format <!-- command [ expected-output ] [ other options ]  -->
+## - The command has one of the forms
+##    %no-check  -- meaning to skip any checking of this block
+##    %check-cli -- meaning to execute the code as bash shell commands. The language must be 'bash'
+##    %check-legacy -- meaning to check with dafny's legacy cli
+##    %check-verb -- where 'verb' is one of dafny's new-cli verbs (e.g. resolve or verify or test)
+##    The %check-verb form can have '-warn' appended to indicate that only warnings, not errors are expected
+## - If the expected-output is present it is a file name (of a file in the same folder as the markdown file 
+##    being tested). If the name is present, then the output of the command is checked against the content of the file
+##    (and is expected to match exactly).
+## - The 'other options' can be any one of these:
+##    %save <file> -- save the cxode block (including anything prepended from %use) in the given temporary file
+##    %use <file> -- prepend to the code block the content of the given file (often a temporary saved by a previous %save)
+##    %exit <n> -- set the expected exit code of the command. The default exit code is
+##          -- 0 if there is no output file and %iuseHeadings is not being used
+##          -- 0 if the command includes 'warn'
+##          -- if there is an output file and no 'warn', then the default exit code depends on the verb
+##    %options ... -- must be last; everything that follows is the list of options to use. If not present, then the default
+##          option list is used. If that is not present a built-in default is used.
+##
+## Mode: Compare against output file
+##   In this mode, the command is assembled as stated above and run against the code block.
+##   Note that the code block (together with anything included via %use) must be a full dafny
+##   program. There is no support for testing just simple expressions.
+##   The exit code is compared agsint the expeted exit code.
+##   The actual output is compared aginst the stated output file, if any.
+##
+## Mode: Compare against error message
+##   This mode is for the special case of checking the error catalog (the HowToFAQ/Errors-*.md files).
+##   These files consist of sections, each of which has a heading stating an error message and errorid,
+##   a ```-delineated code snippet that is an exmaple of the error message, and then more explanation of the error.
+##   In the %useHeadings mode, the heading line (which starts with '## **Error:' or '## **Warning:') is parsed to
+##   determine the errorid and a regular expression that matches the expeted error messages.
+##   The test consists of running the command against the code snippet, extracting the error message and errorid
+##   from the output and checking those against the expected values.
+##
+##   The error message as given in the header has italics words (markdown: _word_) for variable text in the error 
+##   message. The script turns these headings into regular expressions, which can be tricky given the presence of 
+##   characters special to regex processing.
+##
+## Mode: Generate lit
+##   The -c option to the script causes lit files to be generated and written to Test/docexamples (see $outdir in the script below)
+##   If these files are generated curing CI, prior to running integration tests then they are both executed
+##   as part of the integration tests and included in the coverage metrics. Importantly, all the error
+##   catalog tests are then part of the ocverage metrics.
+##
+##   Currently, the generated lit commands just run dafny against the given dafny code.
+##   They do not check the results -- that is, they are really only good for coverage.
+##   Perhaps someday the full test will be made into a lit test and we won't need this script to do the testing.
+
+
+
 ##
 ## It extracts each block of text that is between lines bounded by a pair
 ## of lines beginning with ```. The opening ``` is typically follwed
@@ -74,16 +165,13 @@ defaultCommand=
 defaultExit=
 defaultLang=
 useHeadings=0
+checkIds=0
 coverage=0
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
 
-while getopts 'cmd:x:l:' opt; do
+while getopts 'c' opt; do
   case "$opt" in
-    "d") defaultCommand="$OPTARG";;
-    "x") defaultExit="$OPTARG";;
-    "l") defaultLang="$OPTARG";;
-    "m") useHeadings=1 ;;
     "c") coverage=1; rm -rf $outdir; mkdir -p $outdir ;;
   esac
 done
@@ -107,13 +195,13 @@ n=0
 inblock=0
 
 msg=
-## Read and process each line of the file.  The file is input on stdin 
-## by redirection after the 'done' corresponding to this while-do
 use=
 command=
-expect=
+expectFile=
 options=( )
 default=0
+## Read and process each line of the file.  The file is input on stdin 
+## by redirection after the 'done' corresponding to this while-do
 while IFS= read -r line
 do 
   let n++
@@ -121,13 +209,15 @@ do
   ## For header lines, extract the error message from the header text
   ## (everything but the initial ##[ ]*, the enclosing ** and the appended {#_errorid_})
   ## The sed commands turn this into a pattern matching regex to match against the output of applying dafny to the example in the text:
-  ## remove the trailing error id if present; remove initial ## **; remove trailing '**'; turn any italicized text, which marks some
-  ## hole in the template to a '.*' matcher.
-  ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
+  ## remove the trailing error id if present; remove initial ## **; remove trailing '**' and errorid; turn any italicized text, which marks some
+  ## hole in the template to a '.*' matcher. Also, escape any regex-special characters.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
    && msg=`echo "$line" | sed -E -e 's/ \{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'` \
    && expid=`echo $line | sed -e 's/^.*[\{][\#]//' -e 's/[\}]$//'`
+  if [ "$checkIds" == "0" ]; then expid= ; fi
+  ## msg - the error message turned into a regex
+  ## expid -- the expected errorId if any
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -139,11 +229,16 @@ do
         default=1; 
         echo "$line" | grep -e '%useHeadings' > /dev/null
         if [ "$?" == "0" ]; then useHeadings=1; fi
+        echo "$line" | grep -e '%lang=' > /dev/null
+        if [ "$?" == "0" ]; then defaultLang=`echo "$line" | sed -e 's/^.*%lang=//' | sed -e 's/ .*$//'` ; fi
+        echo "$line" | grep -e '%check-ids' > /dev/null
+        if [ "$?" == "0" ]; then checkIds=1; fi
         defaultCommand=${contents[0]}
         continue
       fi
       command=${contents[0]}
       contents=( ${contents[@]:1} )
+      expectedExit=
       while [ ${#contents[@]} != "0" ]; do
         if [ "${contents[0]}" == "%use" ]; then
           use=${contents[1]}
@@ -152,7 +247,7 @@ do
           save=${contents[1]}
           contents=( ${contents[@]:2} )
         elif [ "${contents[0]}" == "%exit" ]; then
-          ex=${contents[1]}
+          expectedExit=${contents[1]}
           contents=( ${contents[@]:2} )
         elif [ "${contents[0]}" == "%options" ]; then
           contents=${contents[@]:1}
@@ -170,6 +265,7 @@ do
   echo "$line" | grep -e '^[ ]*[`][`][`]' > /dev/null 
   if [ "$?" == "0" ]; then
     if [ "$inblock" == "0" ]; then
+      ## Start of backtick block
       ## get language
       lang=`echo "$line" | sed -e 's/^[ ]*\`\`\`[\`]*//' -e 's/[ ]*$//'`
       if [ -z "$lang" ]; then
@@ -204,46 +300,42 @@ do
       if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
         echo "TESTING $n $file $command $expect $expid"
       fi
+      ischeck=0
+      echo $command | grep '%check-' >> /dev/null
+      if [ "$?" == "0" ]; then ischeck=1; fi
+      iswarn=0
+      echo $command | grep -e '-warn$' >> /dev/null
+      if [ "$?" == "0" ]; then iswarn=1; fi
+      verb=`echo $command | sed -e 's/%check-//' -e 's/-warn//'`
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn" -o "$command" == "%check-build" -o "$command" == "%check-legacy" ]; then
+      elif [ "$ischeck" == "1" ]; then
         capture=1
         dOptions=$defOptions
-        if [ "$command" == "%check-verify" ]; then
-          ##cat $text
-          com=verify
-          ec=4
-        elif [ "$command" == "%check-verify-warn" ]; then
-          com=verify
-          ec=0
-        elif [ "$command" == "%check-resolve" ]; then
-          com=resolve
-          ec=2
-        elif [ "$command" == "%check-resolve-warn" ]; then
-          com=resolve
-          ec=0
-        elif [ "$command" == "%check-translate" ]; then
-          com=translate
-          ec=3
-        elif [ "$command" == "%check-build" ]; then
-          com=build
-          ec=0
-        elif [ "$command" == "%check-run" ]; then
-          com=run
-          ec=0
-          if [ "$useHeadings" == "1" ]; then ec=3; fi
-        elif [ "$command" == "%check-test" ]; then
-          com=test
-          ec=2
-          ##if [ "$useHeadings" == "1" ]; then ec=3; fi
-        elif [ "$command" == "%check-legacy" ]; then
+	com=$verb
+        if [ "iswarn" == "1" ]; then
+          defaultExit=0
+        elif [ "$verb" == "verify" ]; then
+          defaultExit=4
+        elif [ "$verb" == "resolve" ]; then
+          defaultExit=2
+        elif [ "$verb" == "translate" ]; then
+          defaultExit=3
+        elif [ "$verb" == "build" ]; then
+          defaultExit=0
+        elif [ "$verb" == "run" ]; then
+          defaultExit=0
+          if [ "$useHeadings" == "1" ]; then defaultExit=3; fi
+        elif [ "$verb" == "test" ]; then
+          defaultExit=2
+        elif [ "$verb" == "legacy" ]; then
           com=
-          ec=0
+          defaultExit=0
           dOptions=$legacyOptions
-          if [ "$useHeadings" == "1" ]; then ec=3; fi
-          if [ "$defaultCommand" == "%check-resolve" ]; then ec=2 ; fi
+          if [ "$useHeadings" == "1" ]; then defaultExit=3; fi
+          if [ "$defaultCommand" == "%check-resolve" ]; then defaultExit=2 ; fi
         fi
-        if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
+        if [ -n "$expectedExit" ]; then defaultExit=$expectedExit ; expectedExit= ; fi
         if [ "$lang" != "dafny" ]; then
           echo EXPECTED A dafny BLOCK, NOT $lang
           FAIL=1
@@ -270,19 +362,21 @@ do
           elif [ "$command" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text  > actual
           else
-            "$dafny" $com --function-syntax:4 --verbose $dOptions ${options[@]} $text > actual
+            isverbose=
+            if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
+            "$dafny" $com --function-syntax:4 $isverbose $dOptions ${options[@]} $text > actual
           fi
           actualec=$?
           if [ "$useHeadings" == "1" ]; then
             cat actual | grep -E '(Error|Warning):' > actual_error
-            eid=
+            actualid=
             grep 'ID:' actual_error > /dev/null
-            if [ "$?" == "0" ]; then
-              eid=`cat actual_error | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
+            if [ "$?" == "0" -a "$checkIds" == "1" ]; then
+              actualid=`cat actual_error | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
             fi
             act=`cat actual_error | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//'`
-            if [ "$eid" != "$expid" ] ; then
-              echo ERROR ID MISMATCH "$eid : $expid"
+            if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
+              echo ERROR ID MISMATCH "$actualid : $expid"
             fi
             if [ -n "$msg" ]; then
               dif=`echo $act | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
@@ -297,8 +391,8 @@ do
                  echo DIF "$dif"
                  FAIL=1
               fi
-              if [ "$actualec" != "$ec" ]; then
-                echo EXPECTED EXIT CODE $ec, got $actualec
+              if [ "$actualec" != "$defaultExit" ]; then
+                echo EXPECTED EXIT CODE $defaultExit, got $actualec
                 FAIL=1
               fi
             else 
@@ -324,7 +418,7 @@ do
               FAIL=1
             fi
           else
-            if [ "$actualec" != "$ec" ]; then
+            if [ "$actualec" != "$defaultExit" ]; then
               echo EXPECTED EXIT CODE $ec, got $actualec
               FAIL=1
             fi
@@ -391,7 +485,7 @@ do
       options=( )
     fi
   elif [ "$inblock" == "1" ]; then
-    ## If in a backtick block, save the text to the temporary file
+    ## If in a backtick block, save the text to the temporary file - erase any ... which are just placeholders in some examples
     echo "$line" | sed -e 's/^[ ]*\.\.\./   /' >> $text
   fi
 done < $file
