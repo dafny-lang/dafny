@@ -65,10 +65,10 @@ public class Parser {
     errDist = 0;
   }
 
-  public void SemErr(object errorId, IToken tok, string msg) {
+  public void SemErr(ErrorId errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    errors.SemErr(errorId.ToString(), tok, msg);
+    errors.SemErr(errorId, tok, msg);
   }
 
   void Get() {
