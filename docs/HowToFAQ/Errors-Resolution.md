@@ -75,7 +75,7 @@ method m(d:D)
 ```
 
 Datatypes may have ghost variants (where the datatype constructor is itself declared ghost), but constructing or updating such variants is a ghost operation.
-Consequently such expressions may not be present in compiled code.vi che
+Consequently such expressions may not be present in compiled code.
 
 ## **Error: a call to a _kind_ is allowed only in specification contexts_hint_** {#r_ghost_call_only_in_specification}
 
