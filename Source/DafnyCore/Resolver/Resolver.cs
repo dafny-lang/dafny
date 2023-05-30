@@ -17,7 +17,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
   interface ICanResolve {
@@ -6016,7 +6016,7 @@ namespace Microsoft.Dafny {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
-          origReporter.Deprecated(MessageSource.Resolver, ErrorRegistry.NoneId, tok,
+          origReporter.Deprecated(MessageSource.Resolver, ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {
