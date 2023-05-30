@@ -722,7 +722,7 @@ This message then is stating that the right operand has a different type.
 function ff(i: int, j: real): bool { i in j }
 ```
 
-The operators `in` and `!in`test membership of a value in a container,
+The operators `in` and `!in` test membership of a value in a container,
 so the right-hand operand must be a container of some sort.
 It may also be a map, in which case membership in the map's domain is checked, but this use
 is deprecated in favor of `i in m.Keys`,
