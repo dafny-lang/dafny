@@ -107,16 +107,16 @@ module ModC {
       await client.WaitForNotificationCompletionAsync(firstFile.Uri, CancellationToken);
       return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
     }
+    
+    var secondFile = CreateTestDocument(source, "secondFile");
+    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    Assert.Equal(0, await WaitAndCountHits());
 
-    ApplyChange(ref firstFile, ((0, 0), (0, 0)), "// Make the file larger\n");
+    ApplyChange(ref secondFile, ((0, 0), (0, 0)), "// Make the file larger\n");
     Assert.Equal(0, await WaitAndCountHits());
 
     // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
-    ApplyChange(ref firstFile, ((19, 0), (19, 0)), "// Make the file larger\n");
-    Assert.Equal(0, await WaitAndCountHits());
-
-    var secondFile = CreateTestDocument(source, "secondFile");
-    await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
+    ApplyChange(ref secondFile, ((19, 0), (19, 0)), "// Make the file larger\n");
     Assert.Equal(0, await WaitAndCountHits());
   }
 
