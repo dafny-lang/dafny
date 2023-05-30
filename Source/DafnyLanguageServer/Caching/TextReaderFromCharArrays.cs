@@ -26,6 +26,9 @@ class TextReaderFromCharArrays : TextReader {
     }
 
     var array = arrays[arrayIndex];
+    if (elementIndex == array.Length) {
+      return -1;
+    }
     var result = array[elementIndex++];
     if (array.Length == elementIndex) {
       arrayIndex++;

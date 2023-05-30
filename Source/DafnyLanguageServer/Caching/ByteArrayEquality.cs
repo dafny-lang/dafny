@@ -26,6 +26,9 @@ class ByteArrayEquality : IEqualityComparer<byte[]> {
   }
 
   public int GetHashCode(byte[] obj) {
+    if (obj.Length == 0) {
+      return 0;
+    }
     return BitConverter.ToInt32(obj, 0);
   }
 }
