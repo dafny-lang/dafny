@@ -3,8 +3,8 @@
 
 module Math__div_def_i {
 	function my_div_pos(x:int, d:int) : int
-		requires d >  0;
-		decreases if x < 0 then (d - x) else x;
+		requires d >  0
+		decreases if x < 0 then (d - x) else x
 	{
 		if x < 0 then
 			-1 + my_div_pos(x+d, d)

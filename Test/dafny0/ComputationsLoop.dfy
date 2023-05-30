@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 ghost function KeepDoin'It(x: nat): nat
-  decreases x;
+  decreases x
 {
   KeepDoin'It(x + 1)
 }

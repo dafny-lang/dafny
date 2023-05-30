@@ -26,7 +26,7 @@ module TestMod {
   type {:extern "struct"} DestructorFunction<A>
 
   class C {
-    var s:state;
+    var s:state
 
     constructor (i:state) {
       this.s := i;
@@ -34,7 +34,7 @@ module TestMod {
   }
 
   class D {
-    var s:uint64;
+    var s:uint64
 
     constructor (i:uint64) {
       this.s := i;

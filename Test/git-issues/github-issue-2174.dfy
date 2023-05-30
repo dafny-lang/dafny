@@ -33,8 +33,8 @@ lemma lmnat'(val: bv16, idx: nat)
           val as bv32 << idx32 == (val << idx32) as bv32
 {}
 
-const Half: bv128 := 0xffff_ffff_ffff_ffff;
-const Ones: bv128 := 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff;
+const Half: bv128 := 0xffff_ffff_ffff_ffff
+const Ones: bv128 := 0xffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff
 
 method M(i: nat) {
   if i == 64 {
@@ -58,17 +58,17 @@ lemma MaskedCommLShiftUpCast(v: bv64, idx: nat)
 lemma PushUpCastIntoLShift(v: bv64, idx: nat)
   requires idx <= 64
   requires v as bv128 << idx < 1 << 64
-  ensures (v as bv128 << idx) as bv64 == v as bv64 << idx;
+  ensures (v as bv128 << idx) as bv64 == v as bv64 << idx
 {}
 
 lemma UpCastLShiftMasking(v: bv64, idx: nat)
   requires 0 <= idx <= 64
-  ensures v as bv128 << 64 == (v as bv128 << 64) & (Ones << idx);
+  ensures v as bv128 << 64 == (v as bv128 << 64) & (Ones << idx)
 {}
 
 lemma UpCastRShiftMasking(v: bv64, idx: nat)
   requires 0 <= idx <= 64
-  ensures v as bv128 == (v as bv128) & (Ones >> idx);
+  ensures v as bv128 == (v as bv128) & (Ones >> idx)
 {}
 
 lemma RightMask(v: bv64, i: nat)

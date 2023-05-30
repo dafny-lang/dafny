@@ -46,7 +46,7 @@ module MainImpl {
     import PI = ProtocolImpl
 
     method Test(h1:HISpec.HostT, h2:HISpec.HostT)
-        requires HISpec.foo(h1) == HISpec.foo(h2);
+        requires HISpec.foo(h1) == HISpec.foo(h2)
         requires PISpec.Init(HISpec.foo(h1))
     {
         var a := HI.foo(h1);

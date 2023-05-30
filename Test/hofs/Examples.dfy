@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 function Apply<A,B>(f: A ~> B, x: A): B
-  reads f.reads(x);
-  requires f.requires(x);
+  reads f.reads(x)
+  requires f.requires(x)
 {
   f(x)
 }

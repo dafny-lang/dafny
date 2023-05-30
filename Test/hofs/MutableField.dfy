@@ -5,9 +5,9 @@
 class C {
   function f(x : int) : int { x }
 
-  var g : int -> int;
+  var g : int -> int
 
-  method M() modifies this;
+  method M() modifies this
   {
     f := g; // not ok
   }
