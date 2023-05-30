@@ -66,7 +66,7 @@ is allowed only in ghost contexts.
 ## **Error: in a compiled context, update of _deconstructors_ cannot be applied to a datatype value of a ghost variant (ghost constructor _constructor_)** {#r_ghost_destructor_update_not_compilable}
 
 ```dafny
-datatype D = A | ghost B( c: int)
+datatype D = A | ghost B(c: int)
 method m(d:D) 
   requires d.B?
 {
