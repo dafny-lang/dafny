@@ -305,7 +305,7 @@ module Q refines P {
 ```
 
 Following the general rule that declarations in the base module are replaced by more specific declarations of the same kind in the refining module,
-a `const` declaration in the refining module must replace a `const` declaration in the base (with the same type).
+a `const` declaration in the refining module must replace a `const` declaration in the base module (with the same type).
 
 ## **Error: the type of a const declaration (_name_) in a refining class (_class_) must be syntactically the same as for the const being refined** {#ref_no_changed_const_type}
 
