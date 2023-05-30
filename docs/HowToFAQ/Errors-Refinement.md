@@ -41,9 +41,19 @@ module Q refines P {
 
 A refining declaration that uses `...` must actually be refining a corresponding declaration in the 
 
-## ** Error: can't change if a module export is default (_name_)** {#ref_default_export_unchangeable}
+## **Error: can't change if a module export is default (_name_)** {#ref_default_export_unchangeable}
 
-<!-- TODO -->
+```dafny
+module P {
+  const c: int
+  export reveals c
+}
+module Q refines P {
+  export P ...
+}
+```
+
+If a base module P has a default export (implicitly named P), then a refining module, Q, may not declare an export set P with the intention of refining it.
 
 ## **Error: a module (_name_) must refine another module** {#ref_module_must_refine_module}
 
