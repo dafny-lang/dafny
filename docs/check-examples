@@ -126,7 +126,7 @@ do
   ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/'  -e 's/_[A-Za-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/\[/\\\[/g' -e 's/\]/\\\]/g' -e 's/_[A-Za-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
