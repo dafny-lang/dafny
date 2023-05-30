@@ -389,7 +389,7 @@ module Q refines P {
 ```
 
 Following the general rule that declarations in the base module are replaced by more specific declarations of the same kind in the refining module,
-a `var` declaration in a refining class must replace a `var` declaration in the class in the base (with the same type).
+a `var` declaration in a refining class must replace a `var` declaration in the class of the base module (with the same type).
 
 
 ## **Error: a field declaration (_name_) in a refining class (_class_) must repeat the syntactically same type as the field has in the refinement base** {#ref_mismatched_field_name}
