@@ -800,7 +800,7 @@ module Q refines P {
 ```
 
 There are restrictions on what can be changed in a refinement. 
-In particular, for convenience and readability. the names of formal parameters
+In particular, for convenience and readability, the names of formal parameters
 may not change for any declaration.
 
 
