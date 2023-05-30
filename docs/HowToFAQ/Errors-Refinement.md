@@ -682,7 +682,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like the number of type parameters
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like the number of type parameters
 may not change for any declaration.
 
 
