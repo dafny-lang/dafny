@@ -513,7 +513,7 @@ function f(i: set<int>): set<int> { set k: int <- i |  true || k  }
 
 In a quantification using the `<-` syntax, the type of the quantified variable is
 determined by its explicit declaration or by the type of the elements of the container
-(the right-hand operand). If then the quantified variable is used as a `bool` value
+(the right-hand operand). If the quantified variable is used as a `bool` value
 when it is not a `bool`, this error message occurs.
 
 ## **Error: arguments must have comparable types (got _type_ and _type_)**
