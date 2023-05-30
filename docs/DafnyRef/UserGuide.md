@@ -606,7 +606,8 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 
 ### 13.5.5. Project files
 
-Commands on the Dafny CLI that can be passed a Dafny file, can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains, and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. Here's an example of a Dafny project file:
+Commands on the Dafny CLI that can be passed a Dafny file can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. 
+Here's an example of a Dafny project file:
 
 ```toml
 includes = ["src/**/*.dfy"]
@@ -617,9 +618,14 @@ enforce-determinism = true
 warn-shadowing = true
 ```
 
-Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied or are misspelled, are ignored.
-
-When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file it can find. Options from the project file will override options passed to `dafny server`.
+- At most one `.toml` file may be named on the command-line; when using the command-line no `.toml` file is used by default.
+- In the `includes` and `excludes` lists, the file paths may have wildcards, including `**` to mean any number of directory levels; filepaths are relative to the location of the `.toml` file in which they are named.
+- Dafny will process the union of (a) the files on the command-line and (b) the files designated in the `.toml` file, which are those specified by the `includes`, omitting those specified by the `excludes`.
+The `excludes` does not remove any files that are listed explicitly on the command-line.
+- Under the section `[options]`, any options from the Dafny CLI can be specified using the option's name without the `--` prefix. 
+- When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied are ignored; options that are invalid for any dafny command trigger warnings.
+- Options specified on the command-line take precedence over any specified in the project file, no matter the order of items on the command-line.
+- When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file to the dfy being parsed that it can find. Options from the project file will override options passed to `dafny server`.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
