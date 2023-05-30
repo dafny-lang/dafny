@@ -609,7 +609,7 @@ module Q refines P {
 ```
 
 A method in a refining module must be able to be used in the same way as the abstract method in the base module.
-If there are additional objects in the modifies clause, then the uses of the refined module may have more effect than known by the basea method signature.
+If there are additional objects in the modifies clause, then the usage of the refined module may have more effect than known by the base method signature.
 Thus no new modifies clauses may be added. This is a syntactic check, so no modifies clauses can be added even if they
 do not actually add any new objects to the modifies set.
 
