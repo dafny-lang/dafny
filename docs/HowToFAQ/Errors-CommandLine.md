@@ -146,7 +146,7 @@ dafny format testsource/test2.dfy
 
 This message is not an error. Rather it is the expected output of the `dafny format` command when
 `--check` is used: it states that the named input file is not formatted according to Dafny style.
-You can use `--print` to see the output. Also for an input file `test.dfy, the command
+You can use `--print` to see the output. Also for an input file `test.dfy`, the command
 `dafny format --print test.dfy | diff test.dfy -` provides a diff between the original and the formatted files
 (without making any changes).
 
