@@ -254,7 +254,7 @@ do
          cp $text $save
          save=
       fi
-      if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
+      if [ "$lang" == "dafny" -o "$lang" == "cli" -o "$lang" == "bash" ]; then
         ## This script can take some time, so this reports progress
         echo "TESTING $n $file $command $expect $expid"
       fi
@@ -337,6 +337,8 @@ do
             echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
             echo " " >> $f
             cat $text >> $f
+          elif [ "$command" == "%check-cli" ]; then
+            echo "// RUN: %exits-with" $ec "%bare$text" " > /dev/null 2> /dev/null" > $f
           else
             echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
             echo " " >> $f
