@@ -890,9 +890,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Contract.Invariant(CallGraph != null);
   }
 
-  public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
+  public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : this(cloner, original) {
     NameNode = name;
     IsBuiltinName = true;
+  }
+
+  public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
+    IsBuiltinName = original.IsBuiltinName;
+    NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;

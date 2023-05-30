@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks.Dataflow;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
@@ -11,6 +14,19 @@ class TextReaderFromCharArrays : TextReader {
 
   public TextReaderFromCharArrays(List<char[]> arrays) {
     this.arrays = arrays;
+  }
+
+  public string Text {
+    get {
+      var size = arrays.Sum(a => a.Length);
+      var result = new char[size];
+      var offset = 0;
+      foreach (var array in arrays) {
+        Array.Copy(array, 0, result, offset, array.Length);
+        offset += array.Length;
+      }
+      return new string(result);
+    }
   }
 
   public override int Peek() {

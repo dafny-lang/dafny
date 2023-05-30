@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -18,22 +20,22 @@ public class CachingParser : ProgramParser {
   }
 
   protected override DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) {
-    var (newReader, hash) = ComputeHashFromReader(reader, HashAlgorithm.Create("SHA256")!);
+    var (newReader, hash) = ComputeHashFromReader(uri, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
       result = base.ParseFile(options, newReader, uri);
       parseCache.Set(hash, result);
     } else {
-      // Clone declarations since they are mutable.
-      // We should cache an immutable version of the AST: https://github.com/dafny-lang/dafny/issues/4086
-      var cloner = new Cloner();
-      result = result! with {
-        Module = new FileModuleDefinition(cloner, result.Module)
-      };
       logger.LogDebug("Parse cache hit");
     }
 
-    return result!;
+    // Clone declarations since they are mutable.
+    // We should cache an immutable version of the AST: https://github.com/dafny-lang/dafny/issues/4086
+    var cloner = new Cloner();
+    var clonedResult = result! with {
+      Module = new FileModuleDefinition(cloner, result.Module)
+    };
+    return clonedResult;
   }
 
   /// <summary>
@@ -43,10 +45,14 @@ public class CachingParser : ProgramParser {
   /// <param name="reader"></param>
   /// <param name="hashAlgorithm"></param>
   /// <returns></returns>
-  private static (TextReader reader, byte[] hash) ComputeHashFromReader(TextReader reader, HashAlgorithm hashAlgorithm) {
+  private static (TextReader reader, byte[] hash) ComputeHashFromReader(Uri uri, TextReader reader, HashAlgorithm hashAlgorithm) {
     var result = new List<char[]>();
     const int chunkSize = 1024;
     hashAlgorithm.Initialize();
+    var uriBytes = Encoding.UTF8.GetBytes(uri.ToString());
+    
+    // We need to include the uri as part of the hash, because the parsed AST contains tokens that refer to the filename. 
+    var uriWritten = hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
     while (true) {
       var chunk = new char[chunkSize];
       var readCount = reader.ReadBlock(chunk, 0, chunk.Length);
@@ -55,8 +61,8 @@ public class CachingParser : ProgramParser {
         Array.Copy(chunk, 0, shortenedChunk, 0, readCount);
         result.Add(shortenedChunk);
         var charArray = Encoding.UTF8.GetBytes(shortenedChunk);
-        var hash = hashAlgorithm.TransformFinalBlock(charArray, 0, charArray.Length);
-        return (new TextReaderFromCharArrays(result), hash);
+        hashAlgorithm.TransformFinalBlock(charArray, 0, charArray.Length);
+        return (new TextReaderFromCharArrays(result), hashAlgorithm.Hash!);
       } else {
         var charArray = Encoding.UTF8.GetBytes(chunk);
         hashAlgorithm.TransformBlock(charArray, 0, charArray.Length, null, 0);
