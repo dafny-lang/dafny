@@ -290,7 +290,7 @@ module Q refines P {
 ```
 
 There are restrictions on what may change when refining an iterator. In particular, no new decreases clause may be added
-even if if is the same as or implied by the base declaration's decreases clause.
+even if it is the same as or implied by the base declaration's decreases clause.
 
 
 ## **Error: a const declaration (_name_) in a refining class (_class_) must replace a const in the refinement base** {#ref_const_must_refine_const}
