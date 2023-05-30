@@ -2331,7 +2331,7 @@ GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
   (
-    ">" (. SemErr(null, t, "empty type parameter lists are not permitted"); .)
+    ">" (. SemErr(ErrorId.p_no_empty_type_parameter_list, t, "empty type parameter lists are not permitted"); .)
   |
     Type<out ty>                     (. gt.Add(ty); .)
     { "," Type<out ty>               (. gt.Add(ty); .)

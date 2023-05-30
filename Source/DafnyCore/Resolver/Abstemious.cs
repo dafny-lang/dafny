@@ -1,5 +1,6 @@
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
@@ -15,7 +16,7 @@ public class Abstemious {
       var abstemious = true;
       if (Attributes.ContainsBool(fn.Attributes, "abstemious", ref abstemious) && abstemious) {
         if (CoCallResolution.GuaranteedCoCtors(fn) == 0) {
-          reporter.Error(MessageSource.Resolver, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_abstemious_needs_conconstructor, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
         } else {
           CheckDestructsAreAbstemiousCompliant(fn.Body);
         }
@@ -33,7 +34,7 @@ public class Abstemious {
         if (ide != null && ide.Var is Formal) {
           // cool
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "an abstemious function is allowed to invoke a codatatype destructor only on its parameters");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_destructor, expr, "an abstemious function is allowed to invoke a codatatype destructor only on its parameters");
         }
         return;
       }
@@ -43,7 +44,7 @@ public class Abstemious {
         if (ide != null && ide.Var is Formal) {
           // cool; fall through to check match branches
         } else {
-          reporter.Error(MessageSource.Resolver, nestedMatchExpr.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_nested_match, nestedMatchExpr.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
           return;
         }
       }
@@ -54,7 +55,7 @@ public class Abstemious {
         if (ide != null && ide.Var is Formal) {
           // cool; fall through to check match branches
         } else {
-          reporter.Error(MessageSource.Resolver, e.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_match, e.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
           return;
         }
       }
@@ -62,7 +63,7 @@ public class Abstemious {
       var e = (BinaryExpr)expr;
       if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
         if (e.E0.Type.IsCoDatatype) {
-          reporter.Error(MessageSource.Resolver, expr, "an abstemious function is not only allowed to check codatatype equality");
+          reporter.Error(MessageSource.Resolver, ErrorId.r_bad_astemious_codatatype_equality, expr, "an abstemious function is not allowed to check codatatype equality");
           return;
         }
       }

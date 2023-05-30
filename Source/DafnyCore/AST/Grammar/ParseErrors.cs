@@ -10,6 +10,8 @@ public class ParseErrors {
 
   public enum ErrorId {
     g_include_has_errors, // In Reporting.cs
+    p_generic_syntax_error,
+    p_generic_semantic_error,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
@@ -62,6 +64,9 @@ public class ParseErrors {
     p_deprecated_semicolon,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
+    p_file_has_no_code, // TODO no description yet
+
+    p_no_empty_type_parameter_list
   }
 
   static ParseErrors() {
