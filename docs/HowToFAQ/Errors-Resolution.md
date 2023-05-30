@@ -629,7 +629,7 @@ See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail
 
 <!-- TODO - not sure this is reachable -->
 
-Variables marked with `{:assumption} must be declared within methods.
+Variables marked with `{:assumption}` must be declared within methods.
 See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
