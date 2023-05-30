@@ -165,7 +165,7 @@ do
   ## hole in the template to a '.*' matcher. Also, escape any regex-special characters.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[a-z]+_/.*/g'` \
+   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/_[-A-Za-z]+_/.*/g'` \
    && expid=`echo $line | sed -e 's/^.*[\{][\#]//' -e 's/[\}]$//'`
   if [ "$checkIds" == "0" ]; then expid= ; fi
   ## msg - the error message turned into a regex
@@ -365,7 +365,7 @@ do
               echo ERROR ID MISMATCH "$actualid : $expid"
             fi
             if [ -n "$msg" ]; then
-              dif=`echo $act | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
+              dif=`echo "$act" | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
               if [ -z "$act" -a "$expectedExit" != "0" ] ; then
                  echo NO ERROR MESSAGE FOUND
                  FAIL=1
