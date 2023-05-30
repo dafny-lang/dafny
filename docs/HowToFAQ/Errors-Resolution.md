@@ -621,7 +621,7 @@ method m() {
 }
 ```
 
-Variables marked with `{:assumption} must be ghost.
+Variables marked with `{:assumption}` must be ghost.
 See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
 
 
