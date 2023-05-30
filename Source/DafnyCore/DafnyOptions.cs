@@ -117,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // but it is now used by the LibraryBackend when building .doo files as well. 
             options.Set(option, PrintModes.Serialization);
           } else {
-            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+            InvalidArgumentError(option.Name, ps);
           }
         }
       }
@@ -800,7 +800,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
