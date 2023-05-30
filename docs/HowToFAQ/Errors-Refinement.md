@@ -563,7 +563,7 @@ module Q refines P {
 }
 ```
 
-When refining any kind of function, the refining declaration can not include a body if the b ase declaration has a body, even if the text of the bodies are identical.
+When refining a function, the refining declaration can not include a body if the base declaration has a body, even if the texts of the bodies are identical.
 
 ## Error: a method declaration (_name_) can only refine a method** {#ref_method_refines_method}
 
