@@ -381,7 +381,7 @@ size operator -- not arrays, `iset`, or `imap`.
 
 ```dafny
 class B {}
-const bbb:B
+const bbb: B
 predicate p() { allocated(bbb) }
 ```
 
