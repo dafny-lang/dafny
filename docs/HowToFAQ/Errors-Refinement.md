@@ -868,7 +868,7 @@ module Q refines P {
 }
 ```
 
-When refining a predicate, a formal parameter may not change from onder to non-older or vice versa.
+When refining a predicate, a formal parameter may not change from older to non-older or vice versa.
 
 ## **Error: the type of _kind_ '_n_' is different from the type of the same _kind_ in the corresponding _thing_ in the module it refines ('_name_' instead of '_oldname_')** {#ref_mismatched_parameter_type}
 
