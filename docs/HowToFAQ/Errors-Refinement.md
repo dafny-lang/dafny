@@ -389,7 +389,7 @@ module Q refines P {
 ```
 
 Following the general rule that declarations in the base module are replaced by more specific declarations of the same kind in the refining module,
-a `var` declaration in a refining class must replace a `var` declaration in the class in the base (with the same type).
+a `var` declaration in a refining class must replace a `var` declaration in the class of the base module (with the same type).
 
 
 ## **Error: a field declaration (_name_) in a refining class (_class_) must repeat the syntactically same type as the field has in the refinement base** {#ref_mismatched_field_name}
@@ -520,7 +520,7 @@ module Q refines P {
 ```
 
 If a function is declared ghost in a base module, it can then be given a body and declared non-ghost in the refined version of the module.
-But in the case where the the base declaration already has a body and is `ghost`, the refined declaraqtion cannot then change the function to non-ghost.
+But in the case where the the base declaration already has a body and is `ghost`, the refined declaration cannot then change the function to non-ghost.
 
 ## **Error: the name of function return value '_function_'(_result_) differs from the name of corresponding function return value in the module it refines (_otherresult_)** {#ref_mismatched_function_return_name}
 
@@ -549,7 +549,7 @@ module Q refines P {
 
 When refining a function, the input and output signature must stay precisely the same -- formals, types, and names --
 including the type of the function result. The types must be syntactically identical; it is not allowed
-to use a type and an equivalent type sysnonym, for example.
+to use a type and an equivalent type synonym, for example.
 
 ## **Error: a refining _kind_ is not allowed to extend/change the body** {#ref_mismatched_refinement_body}
 
@@ -562,7 +562,7 @@ module Q refines P {
 }
 ```
 
-When refining any kind of function, the refining declaration can not include a body if the b ase declaration has a body, even if the text of the bodies are identical.
+When refining a function, the refining declaration can not include a body if the base declaration has a body, even if the texts of the bodies are identical.
 
 ## Error: a method declaration (_name_) can only refine a method** {#ref_method_refines_method}
 
@@ -638,7 +638,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `static`
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like being or not being `static`
 may not change for any kind of declaration.
 
 ## **Error: a ghost method cannot be changed into a non-ghost method in a refining module: _name_** {#ref_mismatched_method_non_ghost}
@@ -652,7 +652,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `ghost`
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like being or not being `ghost`
 may not change for methods.
 
 ## **Error: a method cannot be changed into a ghost method in a refining module: _name_** {#ref_mismatched_method_ghost}
@@ -666,7 +666,7 @@ module Q refines P {
 }
 ```
 
-There are restrictions on what can be changed in a refinement. In particular, a basic charaacteristic like being or not being `ghost`
+There are restrictions on what can be changed in a refinement. In particular, a basic characteristic like being or not being `ghost`
 may not change for methods.
 
 
