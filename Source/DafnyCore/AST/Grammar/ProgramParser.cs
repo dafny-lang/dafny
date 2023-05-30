@@ -244,7 +244,7 @@ public class ProgramParser {
 
     if (parser.theModule.DefaultClass.Members.Count == 0 && parser.theModule.Includes.Count == 0 && !parser.theModule.SourceDecls.Any()
         && (parser.theModule.PrefixNamedModules == null || parser.theModule.PrefixNamedModules.Count == 0)) {
-      batchErrorReporter.Warning(MessageSource.Parser, null, new Token(1, 1) { Uri = uri }, "File contains no code");
+      batchErrorReporter.Warning(MessageSource.Parser, (string)null, new Token(1, 1) { Uri = uri }, "File contains no code");
     }
 
     return new DfyParseResult(batchErrorReporter, parser.theModule, parser.BuiltinsModifiers);
