@@ -4,7 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Microsoft.Dafny;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using TestDafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,11 +25,15 @@ namespace IntegrationTests {
     // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
     private const bool InvokeMainMethodsDirectly = false;
 
+    private const bool ConvertNonUniformTests = false;
+
     private static readonly Assembly DafnyDriverAssembly = typeof(Dafny.Dafny).Assembly;
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string
+      RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
       "/proverOpt:O:auto_config=false",
@@ -51,10 +58,13 @@ namespace IntegrationTests {
       }
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
-      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultVerifyArgs = new[]
+        { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultBuildArgs = new[]
+        { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultRunArgs = new[]
+        { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
@@ -73,7 +83,7 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%translate", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[]{"translate"}, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(AddExtraArgs(new[] { "translate" }, args), config, InvokeMainMethodsDirectly)
         }, {
           "%verify", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
@@ -88,7 +98,8 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(DafnyDriver.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
         }, {
           "%testDafnyForEachCompiler", (args, config) =>
-            MainMethodLitCommand.Parse(TestDafnyAssembly, new []{ "for-each-compiler" }.Concat(args), config, InvokeMainMethodsDirectly)
+            MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(args), config,
+              InvokeMainMethodsDirectly)
         }, {
           "%server", (args, config) => // TODO
           {
@@ -157,10 +168,12 @@ namespace IntegrationTests {
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);
     }
 
-    public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
+    public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config,
+      bool invokeDirectly) {
       return invokeDirectly
         ? new DafnyDriverLitCommand(arguments, config)
-        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments), config.PassthroughEnvironmentVariables);
+        : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
+          config.PassthroughEnvironmentVariables);
     }
 
     private readonly ITestOutputHelper output;
@@ -170,49 +183,182 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
-              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
-              })]
+    [FileData(Directory = "/Users/salkeldr/Documents/GitHub/dafny/Test/comp",
+      Includes = new[] { "**/*.dfy", "**/*.transcript" },
+      Excludes = new[] {
+        "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
+      })]
     public void LitTest(string path) {
-      var testCase = LitTestCase.Read(path, Config);
-      if (testCase.Commands.Any(NonUniformBackendTestCommand)) {
-        throw new Exception("NON UNIFORM");
+      if (ConvertNonUniformTests) {
+        ConvertToMultiBackendTestIfNecessary(path);
+      } else {
+        LitTestCase.Run(path, Config, output);
       }
-      // testCase.Execute(outputHelper);
     }
 
-    [Fact]
-    public void ConversionTest() {
-      var testCase = LitTestCase.Read("TestFiles/LitTests/LitTest/comp/Arrays.dfy", Config);
-      MultiBackendTest.ConvertToMultiBackendTest(testCase, Config);
-    }
-    
-    private static bool NonUniformBackendTestCommand(ILitCommand c) {
-      String s = c.ToString();
-      if (s.Contains("/compile:3") || s.Contains("/compile:4") || s.Contains("build") || s.Contains("run")) {
-        return true;
+    private static bool NeedsConverting(LitTestCase testCase) {
+      var allOtherFileExtensions = DafnyOptions.Default.Plugins.SelectMany(plugin => plugin.GetCompilers(DafnyOptions.Default))
+        .SelectMany(compiler => compiler.SupportedExtensions).ToHashSet();
+      allOtherFileExtensions.Remove(".dfy");
+
+      foreach (var command in testCase.Commands) {
+        var leafCommand = GetLeafCommand(command);
+        
+        if (leafCommand is NonUniformTestCommand) {
+          return false;
+        }
+
+        if (leafCommand is ShellLitCommand slc) {
+          if (slc.Arguments.Any(arg => allOtherFileExtensions.Any(ext => 
+                arg.EndsWith(ext) && !arg.EndsWith("Dafny.dll")))) {
+            return false;
+          }
+          if (slc.Arguments.Any(arg => arg is "/compile:3" or "/compile:4" or "run")) {
+            return true;
+          }
+        }
       }
 
       return false;
     }
+    
+    public static void ConvertToMultiBackendTestIfNecessary(string path) {
+      var testCase = LitTestCase.Read(path, Config);
+
+      if (!NeedsConverting(testCase)) {
+        return;
+      }
+      
+      // TODO: HACK
+      var wasLegacyCli = testCase.Commands.Any(c => c.ToString().Contains("/compile"));
+      
+      bool IgnoreArgument(string arg, string testFilePath) {
+        if (arg == testFilePath) {
+          return true;
+        }
+        
+        if (DafnyDriver.NewDefaultArgumentsForTesting.Contains(arg)) {
+          return true;
+        }
+        if (DafnyDriver.DefaultArgumentsForTesting.Contains(arg)) {
+          return true;
+        }
+        
+        if (arg is "%dafny" or "%basedafny" or "%args" or "verify" or "run" or "--no-verify" or "/noVerify") {
+          return true;
+        }
+      
+        if (arg.StartsWith("/compile:") || arg.StartsWith("/compileTarget:")) {
+          return true;
+        }
+        if (arg.StartsWith("--target") || arg.StartsWith("-t:") || arg.StartsWith("-t=")) {
+          return true;
+        }
+      
+        return false;
+      }
+      
+      var commonExtraOptions = new HashSet<string>();
+      var extraOptionsLocked = false;
+      string? expectFile = null;
+      foreach (var command in testCase.Commands) {
+        var leafCommand = GetLeafCommand(command);
+        if (leafCommand is ShellLitCommand slc) {
+          // Filter out options we can ignore
+          var options = slc.Arguments[1..].Where(arg => !IgnoreArgument(arg, testCase.FilePath));
+          if (extraOptionsLocked) {
+            foreach (string arg in options) {
+              if (!commonExtraOptions.Contains(arg)) {
+                throw new ArgumentException($"Inconsistent option: {arg}");
+              }
+            }
+          } else {
+            foreach (var arg in options) {
+              commonExtraOptions.Add(arg);
+            }
+            if (!slc.Arguments.Any(arg => arg is "verify" or "/compile:0")) {
+              extraOptionsLocked = true;
+            }
+          }
+        } else if (leafCommand is DiffCommand diffCommand) {
+          // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
+          expectFile = diffCommand.ExpectedPath;
+        } else {
+          throw new ArgumentException($"Unrecognized command type: {command}");
+        }
+      }
+      
+      if (expectFile == null) {
+        throw new ArgumentException($"No %diff command found");
+      }
+      var expectContent = File.ReadAllText(expectFile);
+      
+      // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
+      var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
+      var chunks = delimiter.Split(expectContent).Where(chunk => !string.IsNullOrWhiteSpace(chunk));
+      var newExpect = chunks.FirstOrDefault("");
+      var mismatchedChunk = chunks.Where(chunk => chunk != newExpect).FirstOrDefault();
+      if (mismatchedChunk != null) {
+        throw new ArgumentException($"Not all expected outputs match:\n{AssertWithDiff.GetDiffMessage(newExpect, mismatchedChunk)}");
+      }
+      File.WriteAllText(expectFile, newExpect);
+      
+      var testFileLines = File.ReadAllLines(testCase.FilePath);
+      
+      var multiBackendCommand = "// RUN: %testDafnyForEachCompiler \"%s\"";
+      var testDafnyExtraArgs = new SortedSet<string>();
+      foreach (var extraOption in commonExtraOptions) {
+        testDafnyExtraArgs.Add(extraOption switch {
+          "/unicodeChar:0" => "--unicode-char:false",
+          "/spillTargetCode:2" => "--spill-translation",
+          "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
+          _ => extraOption
+        });
+      }
+      if (wasLegacyCli) {
+        // Accounting for different defaults
+        testDafnyExtraArgs.Add("--relax-definite-assignment");
+      }
+      if (testDafnyExtraArgs.Any()) {
+        multiBackendCommand += " -- " + string.Join(" ", testDafnyExtraArgs);
+      }
+      
+      var newLines = new List<string> {
+        multiBackendCommand,
+      };
+      newLines.AddRange(testFileLines.Where(line => ILitCommand.Parse(line, Config) == null));
+      File.WriteAllLines(testCase.FilePath, newLines);
+    }
+
+    private static ILitCommand GetLeafCommand(ILitCommand command) {
+      if (command is LitCommandWithRedirection lcwr) {
+        return GetLeafCommand(lcwr.Command);
+      }
+
+      if (command is DelayedLitCommand dlc) {
+        return GetLeafCommand(dlc.Factory());
+      }
+
+      return command;
+    }
   }
 
   class DafnyDriverLitCommand : ILitCommand {
-    private readonly string[] arguments;
+    public string[] Arguments { get; }
 
     public DafnyDriverLitCommand(IEnumerable<string> arguments, LitTestConfiguration config) {
-      this.arguments = arguments.ToArray();
+      this.Arguments = arguments.ToArray();
     }
 
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter,
       TextWriter errorWriter) {
-      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, arguments);
+      var exitCode = DafnyDriver.MainWithWriters(outputWriter, errorWriter, inputReader, Arguments);
       return (exitCode, "", "");
     }
 
     public override string ToString() {
-      return $"dafny {string.Join(" ", arguments)}";
+      return $"dafny {string.Join(" ", Arguments)}";
     }
   }
 
@@ -231,4 +377,3 @@ namespace IntegrationTests {
     }
   }
 }
-

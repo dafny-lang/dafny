@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.CommandLine;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
@@ -25,7 +26,8 @@ public class ForEachCompilerOptions {
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
 public class FeaturesOptions {
-  [Value(1)] public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
+  [Value(1)] 
+  public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
 public class MultiBackendTest {
@@ -77,7 +79,7 @@ public class MultiBackendTest {
     var dafnyArgs = new List<string>() {
       $"verify",
       options.TestFile!
-    }.Concat(options.OtherArgs).ToArray();
+    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     output.WriteLine("Verifying...");
 
@@ -118,6 +120,18 @@ public class MultiBackendTest {
     } else {
       return -1;
     }
+  }
+
+  private bool OptionAppliesToVerifyCommand(string option) {
+    if (option is "--spill-translation") {
+      return false;
+    }
+
+    if (option.StartsWith("--optimize-erasable-datatype-wrapper")) {
+      return false;
+    }
+
+    return true;
   }
 
   private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
@@ -223,34 +237,6 @@ public class MultiBackendTest {
     // This is an internal inconsistency error
     throw new Exception(
       $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
-  }
-
-  public static void ConvertToMultiBackendTest(LitTestCase testCase, LitTestConfiguration config) {
-    // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
-    var commandList = testCase.Commands.ToList();
-    if (commandList[^1] is not LitCommandWithRedirection { Command: DelayedLitCommand delayedLitCommand }) {
-      throw new ArgumentException("Last command expected to be %diff");
-    }
-    if (delayedLitCommand.Factory() is not DiffCommand diffCommand) {
-      throw new ArgumentException("Last command expected to be %diff");
-    }
-
-    var expectFile = diffCommand.ExpectedPath;
-    var expectContent = File.ReadAllText(expectFile);
-    
-    // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
-    var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
-    var chunks = delimiter.Split(expectContent);
-    var newExpect = chunks.Where(chunk => !string.IsNullOrWhiteSpace(chunk)).First();
-    File.WriteAllText(expectFile, newExpect);
-
-    var testFileLines = File.ReadAllLines(testCase.FilePath);
-    var newLines = new List<string> {
-      "// RUN: %testDafnyForEachCompiler \"%s\"",
-      ""
-    };
-    newLines.AddRange(testFileLines.Where(line => ILitCommand.Parse(line, config) == null));
-    File.WriteAllLines(testCase.FilePath, newLines);
   }
 
   private int GenerateCompilerTargetSupportTable(FeaturesOptions featuresOptions) {

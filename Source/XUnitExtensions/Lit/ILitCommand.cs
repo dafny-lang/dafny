@@ -45,6 +45,7 @@ namespace XUnitExtensions.Lit {
       CommandParsers.Add("RUN:", RunCommand.Parse);
       CommandParsers.Add("UNSUPPORTED:", UnsupportedCommand.Parse);
       CommandParsers.Add("XFAIL:", XFailCommand.Parse);
+      CommandParsers.Add("NONUNIFORM:", NonUniformTestCommand.Parse);
     }
 
     public static ILitCommand? Parse(string line, LitTestConfiguration config) {
