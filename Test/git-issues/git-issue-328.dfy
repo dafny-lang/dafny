@@ -5,7 +5,7 @@ module Z {
   datatype T = T(i: int)
   type X
   ghost function z(): int { 0 }
-  const c := 10;
+  const c := 10
 }
 
 module B {
@@ -28,7 +28,7 @@ module D {
   ghost function f(t: T) : T { t } // OK. B.T and C.T are both A.T
   ghost function g(k: K) : K { k } // Error: ambiguous
   ghost function h(): int { z() }
-  const d := c;
+  const d := c
 }
 
 module E {
@@ -37,5 +37,5 @@ module E {
 
   method g(x: X) {}  // OK - Z.X and C.X are the same
   ghost function h(): int { z() }
-  const d := c;
+  const d := c
 }

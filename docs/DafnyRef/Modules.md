@@ -425,12 +425,12 @@ not be further exported. For example,
 <!-- %check-verify -->
 ```dafny
 module A {
-  const a := 10;
-  const z := 10;
+  const a := 10
+  const z := 10
 }
 module B {
   import opened Z = A // includes a, declares Z
-  const b := Z.a; // OK
+  const b := Z.a // OK
 }
 module C {
   import opened B // includes b, Z, but not a
@@ -494,8 +494,8 @@ For example, in the following code the constant `a` is exported as provided.
 ```dafny
 module A {
   export provides a
-  const a := 10;
-  const b := 20;
+  const a := 10
+  const b := 20
 }
 
 module B {
@@ -517,8 +517,8 @@ its value is known and the assertion can be proved.
 ```dafny
 module A {
   export reveals a
-  const a := 10;
-  const b := 20;
+  const a := 10
+  const b := 20
 }
 
 module B {
@@ -742,9 +742,9 @@ included in the declaration. So for example in
 <!-- %check-resolve -->
 ```dafny
 module M {
-  const a := 10;
-  const b := 10;
-  const c := 10;
+  const a := 10
+  const b := 10
+  const c := 10
   export A reveals a
   export B reveals b
   export C extends A, B

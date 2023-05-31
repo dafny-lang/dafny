@@ -3,7 +3,7 @@
 
 trait J
 {
-  var x: int;
+  var x: int
 }
 
 class C extends J

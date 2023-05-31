@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Queue<T(0)> {

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file was created in the early stages of Dafny, when the

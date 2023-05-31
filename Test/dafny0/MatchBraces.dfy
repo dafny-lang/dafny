@@ -122,7 +122,7 @@ method P(c: Color, d: Color) {
 }
 
 lemma HeatIsEven(c: Color)
-  ensures Heat(c) % 2 == 0;
+  ensures Heat(c) % 2 == 0
 {
   match c
   case Red =>
@@ -134,7 +134,7 @@ lemma HeatIsEven(c: Color)
 }
 
 method DegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   match c
   case Red =>
@@ -145,7 +145,7 @@ method DegenerateExamples(c: Color)
 }
 
 method MoreDegenerateExamples(c: Color)
-  requires Heat(c) == 10;  // this implies c == Red
+  requires Heat(c) == 10  // this implies c == Red
 {
   if c == Green {
     var x: int := match c;

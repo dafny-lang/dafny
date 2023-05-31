@@ -73,5 +73,5 @@ method Print(s: seq<char>, i: bv24, j: bv10)
     var t := s[..i] + s[i..j] + s[j..];
   }
 }
-const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 

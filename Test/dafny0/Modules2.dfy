@@ -4,14 +4,14 @@
 module A {
   class C {
     constructor () { }
-    var f: int;
+    var f: int
   }
   datatype D = E(int) | F(int)
   ghost function f(n:nat): nat
 }
 module B {
   class C {
-    var f: int;
+    var f: int
   }
   datatype D = E(int) | F(int)
   ghost function f(n:nat): nat
