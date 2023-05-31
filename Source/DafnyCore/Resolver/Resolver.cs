@@ -477,7 +477,6 @@ namespace Microsoft.Dafny {
       }
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
-      prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
@@ -557,35 +556,9 @@ namespace Microsoft.Dafny {
           Type.PopScope(tempVis);
 
           if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
-            // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
-            var nw = cloner.CloneModuleDefinition(m, compileName);
-            compilationModuleClones.Add(m, nw);
-            var oldErrorsOnly = reporter.ErrorsOnly;
-            reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            // Next, compute the compile signature
-            Contract.Assert(!useCompileSignatures);
-            useCompileSignatures = true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
-            Type.DisableScopes();
-            var compileSig = RegisterTopLevelDecls(nw, true);
-            compileSig.Refines = refinementTransformer.RefinedSig;
-            sig.CompileSignature = compileSig;
-            foreach (var exportDecl in sig.ExportSets.Values) {
-              exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
-            }
-            // Now we're ready to resolve the cloned module definition, using the compile signature
-
-            ResolveModuleDefinition(nw, compileSig);
-
             foreach (var rewriter in rewriters) {
-              rewriter.PostCompileCloneAndResolve(nw);
+              rewriter.PostCompileCloneAndResolve(m);
             }
-
-            prog.CompileModules.Add(nw);
-            useCompileSignatures = false; // reset the flag
-            Type.EnableScopes();
-            reporter.ErrorsOnly = oldErrorsOnly;
           }
         } else if (decl is AliasModuleDecl alias) {
           // resolve the path
