@@ -25,11 +25,11 @@ public class CachingParser : ProgramParser {
       result = base.ParseFile(options, newReader, uri);
       parseCache.Set(hash, result);
     } else {
-      logger.LogDebug("Parse cache hit");
+      logger.LogDebug($"Parse cache hit for {uri}");
     }
 
-    // Clone declarations since they are mutable.
-    // We should cache an immutable version of the AST: https://github.com/dafny-lang/dafny/issues/4086
+    // Clone declarations before returning them, since they are mutable and we don't want to mutate the one in the cache.
+    // We should cache an immutable version of the AST instead: https://github.com/dafny-lang/dafny/issues/4086
     var cloner = new Cloner(true, false);
     var clonedResult = result! with {
       Module = new FileModuleDefinition(cloner, result.Module)
@@ -38,12 +38,9 @@ public class CachingParser : ProgramParser {
   }
 
   /// <summary>
-  /// We read the contents of the reader and store them in memory using chunks,
+  /// We read the contents of the reader and store them in memory using chunks
   /// to prevent allocating a large array of memory.
   /// </summary>
-  /// <param name="reader"></param>
-  /// <param name="hashAlgorithm"></param>
-  /// <returns></returns>
   private static (TextReader reader, byte[] hash) ComputeHashFromReader(Uri uri, TextReader reader, HashAlgorithm hashAlgorithm) {
     var result = new List<char[]>();
     const int chunkSize = 1024;
@@ -51,7 +48,7 @@ public class CachingParser : ProgramParser {
     var uriBytes = Encoding.UTF8.GetBytes(uri.ToString());
 
     // We need to include the uri as part of the hash, because the parsed AST contains tokens that refer to the filename. 
-    var uriWritten = hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
+    hashAlgorithm.TransformBlock(uriBytes, 0, uriBytes.Length, null, 0);
     while (true) {
       var chunk = new char[chunkSize];
       var readCount = reader.ReadBlock(chunk, 0, chunk.Length);

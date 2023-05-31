@@ -1,1 +1,1 @@
-When using the Dafny IDE, parsing is now cached by default, which improves performance when making changes in multi-file projects. An option has been added to `dafny server` to enable turning off caching. 
+When using the Dafny IDE, parsing is now cached by default, which improves performance when making changes in multi-file projects. 
