@@ -210,6 +210,7 @@ classes, traits and iterators.
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_always_static}
 
+<!-- %check-resolve-warn -->
 ```dafny
 static method m() {}
 static predicate p() { true }
@@ -231,6 +232,7 @@ To correct the error, add an identifier and either or both a type and initializi
 
 ## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here" {#p_module_level_const_always_static}
 
+<!-- %check-resolve-warn -->
 ```dafny
 static const i := 9
 ```
@@ -1399,6 +1401,7 @@ Given the parser logic, that parsing should never fail.
 
 ## **Warning: constructors no longer need 'this' to be listed in modifies clauses** {#p_deprecated_this_in_constructor_modifies_clause}
 
+<!-- %check-resolve-warn -->
 ```dafny
 class A {
   constructor () modifies this {}
