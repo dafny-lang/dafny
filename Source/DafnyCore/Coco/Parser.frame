@@ -193,16 +193,16 @@ public class Errors {
     Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
   }
 
-  public void Deprecated(IToken tok, string msg) {
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    Reporting.Deprecated(MessageSource.Parser, ErrorId.p_generic_semantic_error, tok, msg);
-  }
+//  public void Deprecated(IToken tok, string msg) {
+//    Contract.Requires(tok != null);
+//    Contract.Requires(msg != null);
+//    Reporting.Deprecated(MessageSource.Parser, ErrorId.p_generic_semantic_error, tok, msg);
+//  }
 
-  public void Warning(IToken tok, string msg) {
+  public void Warning(ErrorId errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, ErrorId.p_generic_semantic_error, tok, msg);
+    Reporting.Warning(MessageSource.Parser, errorId, tok, msg);
   }
 
 } // Errors

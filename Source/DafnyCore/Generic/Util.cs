@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.ParseErrors;
 
 
 namespace Microsoft.Dafny {
@@ -421,14 +422,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(ErrorId.p_deprecated_this_in_constructors, fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(ErrorId.p_deprecated_this_in_constructors, e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {

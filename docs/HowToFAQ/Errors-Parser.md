@@ -73,7 +73,7 @@ opaque module M {}
 Only some kinds of declarations can be declared 'opaque':
 const fields and the various kinds of functions.
 
-## **Warning: Attribute _attribute_ is deprecated and will be removed in Dafny 4.0 {#p_deprecated_attribute}
+## **Warning: attribute _attribute_ is deprecated {#p_deprecated_attribute}
 
 Deprecated attributes have been removed. This message should not currently appear.
 
@@ -145,6 +145,19 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
+## **Warning: the _name_ token  the identifier for the export set, not an adjective for an extreme predicate** {#p_misplaced_least_or_greatest}
+
+```dafny
+export
+least predicate p()
+```
+
+A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous:
+it can be either the name of the export set or associated with the `predicate` declaration. 
+The parser associates it with the `export`. To avoid this error do not put the
+`least` or `greatest` token on the same line as the `predicate` token.
+If you intend for the `least` to go with the predicate, change the order of the declarations.
+
 ## **Error: no comma is allowed between provides and reveals and extends clauses in an export declaration** {#p_extraneous_comma_in_export}
 
 ```dafny
@@ -195,6 +208,16 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
+## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_always_static}
+
+```dafny
+static method m() {}
+static predicate p() { true }
+```
+
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+
 ## **Error: expected an identifier after 'const' and any attributes** {#p_const_decl_missing_identifier}
 
 ```dafny
@@ -205,6 +228,16 @@ const d := 5
 
 This error arises from a truncated declarations of a const field, namely just a const keyword.
 To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
+
+## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here" {#p_module_level_const_always_static}
+
+```dafny
+static const i := 9
+```
+
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+
 
 ## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
 
@@ -1362,7 +1395,13 @@ Given the parser logic, that parsing should never fail.
 
 <!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
 
-<!-- Scanner.frame -->
+<!-- FILE ./DafnyCore/Generic/Util.cs -->
+
+## **Warning: constructors no longer need 'this' to be listed in modifies clauses** {#p_deprecated_this_in_constructors}
+
+<!-- TODO - 2 instances -->
+
+<!-- FILE ./DafnyCore/CoCo/Scanner.frame -->
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 

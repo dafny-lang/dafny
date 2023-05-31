@@ -20,18 +20,21 @@ public class ParseErrors {
     p_ghost_forbidden,
     p_no_static,
     p_no_opaque,
-    p_deprecated_attribute, // TODO
+    p_deprecated_attribute,
     p_literal_string_required,
     p_no_leading_underscore,
     p_bitvector_too_large,
     p_array_dimension_too_large,
     p_superfluous_export,
     p_bad_module_decl,
+    p_misplaced_least_or_greatest,
     p_extraneous_comma_in_export,
     p_top_level_field,
     p_bad_datatype_refinement,
     p_no_mutable_fields_in_value_types,
+    p_module_level_always_static,
     p_const_decl_missing_identifier,
+    p_module_level_const_always_static,
     p_bad_const_initialize_op,
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
@@ -127,6 +130,7 @@ public class ParseErrors {
     p_deprecated_modify_statement_with_block,
     p_deprecated_opaque_as_identifier,
     p_deprecated_semicolon,
+    p_deprecated_this_in_constructors, // TODO no description is provided
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
     p_file_has_no_code, // TODO no description yet
@@ -248,6 +252,16 @@ This error message often occurs if the `refines` keyword is misspelled.
     OneAction("remove '" + range.PrintOriginal() + "'", range, "", true)
   });
 
+    Add(ErrorId.p_misplaced_least_or_greatest,
+    @"
+A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous: 
+it can be either the name of the export set or associated with the `predicate` declaration. 
+The parser associates it with the `export`. To avoid this error do not put the
+`least` or `greatest` token on the same line as the `predicate` token.
+If you intend for the `least` to go with the predicate, change the order of the
+declarations.
+"); // TODO - could use a quick fix
+
     Add(ErrorId.p_extraneous_comma_in_export,
     @"
 An export declaration consists of one or more `reveals`, `provides`, and extends clauses. Each clause contains
@@ -276,11 +290,23 @@ classes, traits and iterators.
 `const` declarations can be members of value-types, such as datatypes.
 ", Replace("const"));
 
+    Add(ErrorId.p_module_level_always_static,
+    @"
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+", Remove(true));
+
     Add(ErrorId.p_const_decl_missing_identifier,
     @"
 This error arises from a truncated declarations of a const field, namely just a const keyword.
 To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
 ");
+
+    Add(ErrorId.p_module_level_const_always_static,
+    @"
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+", Remove(true));
 
     Add(ErrorId.p_bad_const_initialize_op,
     @"
