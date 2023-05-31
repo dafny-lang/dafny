@@ -129,10 +129,11 @@ public class ParseErrors {
     p_deprecated_modify_statement_with_block,
     p_deprecated_opaque_as_identifier,
     p_deprecated_semicolon,
-    p_deprecated_this_in_constructor_modifies_clause, // TODO no description is provided
+    p_deprecated_this_in_constructor_modifies_clause,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
     p_file_has_no_code, // TODO no description yet
+    p_cli_option_error, // Has no description yet
   }
 
   static ParseErrors() {

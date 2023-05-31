@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ParseErrors;
+using static Microsoft.Dafny.GenericErrors;
 
 
 namespace Microsoft.Dafny {
@@ -202,20 +202,20 @@ namespace Microsoft.Dafny {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
           if (token.StartsWith("\\u")) {
-            errors.SemErr(t, "\\u escape sequences are not permitted when Unicode chars are enabled");
+            errors.SemErr(ErrorId.g_no_old_unicode_char, t, "\\u escape sequences are not permitted when Unicode chars are enabled");
           }
 
           if (token.StartsWith("\\U")) {
             var hexDigits = RemoveUnderscores(token[3..^1]);
             if (hexDigits.Length > 6) {
-              errors.SemErr(t, "\\U{X..X} escape sequence must have at most six hex digits");
+              errors.SemErr(ErrorId.g_unicode_escape_must_have_six_digits, t, "\\U{X..X} escape sequence must have at most six hex digits");
             } else {
               var codePoint = Convert.ToInt32(hexDigits, 16);
               if (codePoint >= 0x11_0000) {
-                errors.SemErr(t, "\\U{X..X} escape sequence must be less than 0x110000");
+                errors.SemErr(ErrorId.g_unicode_escape_is_too_large, t, "\\U{X..X} escape sequence must be less than 0x110000");
               }
               if (codePoint is >= 0xD800 and < 0xE000) {
-                errors.SemErr(t, "\\U{X..X} escape sequence must not be a surrogate");
+                errors.SemErr(ErrorId.g_unicode_escape_may_not_be_surogate, t, "\\U{X..X} escape sequence must not be a surrogate");
               }
             }
           }
@@ -223,7 +223,7 @@ namespace Microsoft.Dafny {
       } else {
         foreach (var token2 in TokensWithEscapes(s, isVerbatimString)) {
           if (token2.StartsWith("\\U")) {
-            errors.SemErr(t, "\\U escape sequences are not permitted when Unicode chars are disabled");
+            errors.SemErr(ErrorId.g_U_unicode_chars_are_disallowed, t, "\\U escape sequences are not permitted when Unicode chars are disabled");
           }
         }
       }
@@ -422,14 +422,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(ErrorId.p_deprecated_this_in_constructor_modifies_clause, fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(ErrorId.p_deprecated_this_in_constructor_modifies_clause, e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(ErrorId.g_deprecated_this_in_constructor_modifies_clause, e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {

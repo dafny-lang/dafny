@@ -65,7 +65,7 @@ public class Parser {
     errDist = 0;
   }
 
-  public void SemErr(ErrorId errorId, IToken tok, string msg) {
+  public void SemErr(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     errors.SemErr(errorId, tok, msg);
@@ -167,14 +167,7 @@ public class Errors {
     return s;
   }
 
-//  public void SemErr(IToken tok, string msg) {  // semantic errors
-//    Contract.Requires(tok != null);
-//    Contract.Requires(msg != null);
-//    ErrorCount++;
-//    Reporting.Error(MessageSource.Parser, "", tok, msg);
-//  }
-
-  public void SemErr(ErrorId errorId, IToken tok, string msg) {  // semantic errors
+  public void SemErr(Enum errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     ErrorCount++;
@@ -187,7 +180,7 @@ public class Errors {
     Reporting.Error(MessageSource.Parser, errorId, uri, line, col, msg);
   }
 
-  public void Deprecated(ErrorId errorId, IToken tok, string msg) {
+  public void Deprecated(Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
