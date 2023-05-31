@@ -9,6 +9,7 @@ namespace Microsoft.Dafny;
 public class ParseErrors {
 
   public enum ErrorId {
+    // ReSharper disable once InconsistentNaming
     g_include_has_errors, // In Reporting.cs
     p_generic_syntax_error,
     p_generic_semantic_error,

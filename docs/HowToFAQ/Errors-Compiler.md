@@ -1,4 +1,4 @@
-<!-- %default %useHeadings -->
+<!-- %default %useHeadings %check-ids -->
 
 <!-- The file Errors-Compiler.template is used along with Compiler-Errors.cs to produce Errors-Compiler.md.
      Errors-Compiler.template holds the structure of the markdown file and the examples of each error message.

@@ -1,5 +1,5 @@
 
-<!-- %check-resolve %default %useHeadings -->
+<!-- %check-resolve %default %useHeadings %check-ids -->
 
 <!-- FILE ./DafnyCore/Rewriters/TimeLimitRewriter.cs -->
 
