@@ -303,7 +303,7 @@ do
         fi
       elif [ "$ischeck" == "1" ]; then ## Not cli though
         dOptions=$defOptions
-        if [ -z "$expect" ]; then
+        if [ -z "$expect" -a "$useHeadings" == "0" ]; then
           defaultExit=0
         elif [ "$iswarn" == "1" ]; then
           defaultExit=0
@@ -321,11 +321,13 @@ do
         elif [ "$verb" == "test" ]; then
           defaultExit=2
         elif [ "$verb" == "legacy" ]; then
-          verb=
           defaultExit=0
-          dOptions=$legacyOptions
           if [ "$useHeadings" == "1" ]; then defaultExit=3; fi
           if [ "$defaultCommand" == "%check-resolve" ]; then defaultExit=2 ; fi
+        fi
+        if [ "$verb" == "legacy" ]; then 
+          dOptions=$legacyOptions
+          verb= 
         fi
         if [ -z "$expectedExit" ]; then expectedExit=$defaultExit ; fi
         if [ "$coverage" == "1" ] ; then
