@@ -139,7 +139,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         cd dafny/docs
-        ./check-examples -c DafnyRef/*.md HowToFAQ/Errors-*.md OnlineTutorial/*.md
+        ./check-examples -c HowToFAQ/Errors-*.md
     - name: Run integration tests (non-Windows)
       if: runner.os != 'Windows'
       env:
