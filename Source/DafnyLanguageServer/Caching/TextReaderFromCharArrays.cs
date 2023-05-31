@@ -7,12 +7,12 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-class TextReaderFromCharArrays : TextReader {
-  private readonly List<char[]> arrays;
+public class TextReaderFromCharArrays : TextReader {
+  private readonly IReadOnlyList<char[]> arrays;
   private int arrayIndex;
   private int elementIndex;
 
-  public TextReaderFromCharArrays(List<char[]> arrays) {
+  public TextReaderFromCharArrays(IReadOnlyList<char[]> arrays) {
     this.arrays = arrays;
   }
 
@@ -63,7 +63,7 @@ class TextReaderFromCharArrays : TextReader {
       elementIndex += readCount;
       index += readCount;
       remainingCount -= readCount;
-      if (readCount == currentRemainder) {
+      while (arrayIndex < arrays.Count && elementIndex == arrays[arrayIndex].Length) {
         arrayIndex++;
         elementIndex = 0;
       }

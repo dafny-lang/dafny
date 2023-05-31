@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Security.Policy;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
-  private readonly TickingCache<byte[], DfyParseResult> parseCache = new(new ByteArrayEquality());
+  private readonly TickingCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
 
   public CachingParser(ILogger<ProgramParser> logger) : base(logger) {
   }
