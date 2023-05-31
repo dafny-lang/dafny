@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /deprecation:0 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // VSComp 2010, problem 2, compute the inverse 'B' of a permutation 'A' and prove that 'B' is

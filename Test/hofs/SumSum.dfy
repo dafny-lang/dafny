@@ -66,7 +66,7 @@ lemma BetaReduction0(n: nat, g: (int,int) -> int, i: int)
 }
 
 lemma BetaReduction1(n': nat, g: (int,int) -> int, i: int)
-  ensures g(i,n') + Sum(n', y => g(i,y)) == (x => g(x,n') + Sum(n', y => g(x,y)))(i);
+  ensures g(i,n') + Sum(n', y => g(i,y)) == (x => g(x,n') + Sum(n', y => g(x,y)))(i)
 {
 }
 

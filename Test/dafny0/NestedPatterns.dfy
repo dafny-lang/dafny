@@ -25,7 +25,7 @@ method MethodB<T>(xs: List<T>)
 }
 
 method MethodC<T>(xs: List<T>) returns (ys: List<T>)
-  requires xs.Cons? ==> !xs.tail.Cons?;
+  requires xs.Cons? ==> !xs.tail.Cons?
 {
   match xs
   case Nil =>
@@ -50,7 +50,7 @@ method MethodE<T>(xs: List<T>) returns (ys: List<T>)
 }
 
 method MethodF<T>(xs: List<T>) returns (ys: List<T>)
-  requires xs.Cons? ==> !xs.tail.Cons?;
+  requires xs.Cons? ==> !xs.tail.Cons?
 {
   match xs
   case Nil =>

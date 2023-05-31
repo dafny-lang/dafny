@@ -117,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // but it is now used by the LibraryBackend when building .doo files as well. 
             options.Set(option, PrintModes.Serialization);
           } else {
-            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+            InvalidArgumentError(option.Name, ps);
           }
         }
       }
@@ -798,7 +798,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -1315,7 +1315,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /deprecation:<n>
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
-    2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
     Treat warnings as errors.

@@ -16,13 +16,13 @@ ghost predicate valid(x:int)
 }
 
 ghost function ref1(y:int) : int
-  requires valid(y);
+  requires valid(y)
 {
   y - 1
 }
 
 lemma assumption1()
-  ensures forall a, b :: valid(a) && valid(b) && ref1(a) == ref1(b) ==> a == b;
+  ensures forall a, b :: valid(a) && valid(b) && ref1(a) == ref1(b) ==> a == b
 {
 }
 
@@ -59,13 +59,13 @@ method test1()
 }
 
 ghost function {:opaque} ref2(y:int) : int        // Now with an opaque attribute
-  requires valid(y);
+  requires valid(y)
 {
   y - 1
 }
 
 lemma assumption2()
-  ensures forall a, b :: valid(a) && valid(b) && ref2(a) == ref2(b) ==> a == b;
+  ensures forall a, b :: valid(a) && valid(b) && ref2(a) == ref2(b) ==> a == b
 {
   reveal ref2();
 }

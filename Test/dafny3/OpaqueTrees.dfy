@@ -18,7 +18,7 @@ ghost function {:opaque} mirror<T>(t: Tree<T>): Tree<T>
 }
 
 lemma {:induction false} MirrorSize(t: Tree)
-  ensures size(mirror(t)) == size(t);
+  ensures size(mirror(t)) == size(t)
 {
   match t {
     case Leaf(x) =>

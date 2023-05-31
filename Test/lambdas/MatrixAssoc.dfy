@@ -221,7 +221,7 @@ lemma {:vcs_split_on_every_assert} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix
             forall k: Index
                 ensures Sum((l: Index) => b(k)(l) * c(l)(j)) * a(i)(k)
                         ==
-                        Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k));
+                        Sum((l: Index) => b(k)(l) * c(l)(j) * a(i)(k))
             {
                 var g := (l: Index) => b(k)(l) * c(l)(j);
                 var x := a(i)(k);

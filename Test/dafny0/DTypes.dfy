@@ -31,7 +31,7 @@ class C {
     assert forall b: CP?<int,Stack> {:nowarn} :: x == b ==> b == null;  // follows from type antecedents
   }
 
-  var a2x: set<CP?<C,Node>>;
+  var a2x: set<CP?<C,Node>>
   method A2(b: set<CP?<Node,C>>)
     requires null !in b
   {
@@ -57,12 +57,12 @@ class C {
   }
 
   method A5()
-    decreases *;
+    decreases *
   {
     var a := new CP<int,C>;
     var b := new CP<int,object>;
     while (a != null)  // warning: "a" is never null
-      decreases *;  // omit loop termination check (in fact, the loop does not terminate)
+      decreases *  // omit loop termination check (in fact, the loop does not terminate)
     {
       var x: object? := a;
       var y: object? := b;
@@ -175,7 +175,7 @@ abstract module OpaqueTypesWithParameters {
     // However, it is NOT necessarily the case that the type parameters of an opaque
     // type actually make the abstract type different.  For example, see the refinement
     // module CaseInPoint below.
-    ensures a != b;  // error
+    ensures a != b  // error
   {
   }
 }
