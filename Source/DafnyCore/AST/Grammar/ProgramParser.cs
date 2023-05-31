@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
@@ -18,6 +19,9 @@ public record DfyParseResult(
 
 public class ProgramParser {
   protected readonly ILogger<ProgramParser> logger;
+
+  public ProgramParser() : this(NullLogger<ProgramParser>.Instance) {
+  }
 
   public ProgramParser(ILogger<ProgramParser> logger) {
     this.logger = logger;

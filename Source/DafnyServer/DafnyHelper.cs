@@ -44,8 +44,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var logger = NullLoggerFactory.Instance.CreateLogger<ProgramParser>();
-      var program = new ProgramParser(logger).ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;

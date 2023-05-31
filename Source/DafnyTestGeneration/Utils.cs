@@ -82,8 +82,7 @@ namespace DafnyTestGeneration {
       uri ??= new Uri(Path.GetTempPath());
       var reporter = new BatchErrorReporter(options);
 
-      var logger = NullLoggerFactory.Instance.CreateLogger<ProgramParser>();
-      var program = new ProgramParser(logger).ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       if (!resolve) {
