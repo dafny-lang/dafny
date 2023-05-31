@@ -98,7 +98,7 @@ A submodule M within a module that is refining some base module must refine some
 
 ## **Error: a type declaration that requires equality support cannot be replaced by a codatatype** {#ref_equality_support_precludes_codatatype}
 
-``dafny
+```dafny
 module P {
   type T(==)
 }
@@ -250,7 +250,7 @@ even if they are implied by the base declarations's preconditions.
 
 ## **Error: a refining iterator is not allowed to extend the reads clause** {#ref_no_new_iterator_reads}
 
-<```dafny
+```dafny
 module P {
   iterator I() yields (x: int)
 }

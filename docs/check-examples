@@ -264,7 +264,11 @@ do
       fi
       if [ "$lang" == "dafny" -o "$lang" == "cli" -o "$lang" == "bash" ]; then
         ## This script can take some time, so this reports progress
-        echo "TESTING $n $file $command $expect $expid"
+        if [ "$coverage" == "1" ]; then
+          echo "GENERATING $n $file $command $expect $expid"
+        else
+          echo "TESTING $n $file $command $expect $expid"
+        fi
       fi
       ischeck=0
       echo $command | grep '%check-' >> /dev/null
