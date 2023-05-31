@@ -1,7 +1,5 @@
 
-
-
-<!-- %check-resolve %default %useHeadings -->
+<!-- %check-resolve %default %useHeadings %check-ids -->
 
 <!-- FILE DafnyCore/Resolver/ExpressionTester.cs -->
 

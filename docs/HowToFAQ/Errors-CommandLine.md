@@ -1,5 +1,5 @@
 
-<!-- %default %useHeadings -->
+<!-- %default %useHeadings %check-ids -->
 
 <!-- DafnyDriver/DafnyDriver.cs -->
 

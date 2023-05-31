@@ -1,7 +1,7 @@
 
-<!-- %check-resolve %default %useHeadings -->
+<!-- %check-resolve %default %useHeadings %check-ids -->
 
-<!-- ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
+<!-- FILE ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
 
 ## **Error: newtypes must be based on some numeric type (got _type_)**
 

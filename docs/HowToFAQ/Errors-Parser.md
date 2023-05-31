@@ -1,4 +1,4 @@
-<!-- %check-resolve %default %useHeadings -->
+<!-- %check-resolve %default %useHeadings %check-ids -->
 
 <!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
 

@@ -42,6 +42,7 @@
 ## - if '%useHeadings' is present then the checks are against error messages, as described below
 ## - if '%check-ids' is present, the error-ids are checked as described below
 ## - if '%lang=' is present, then the alpha-numeric word after the = sign is now the default language
+## - if '%exit=n' is present, then the default exit code is the value of n
 ## - if '%options' is present, then everything that follows is the default string of command options
 ## - the first word of a default line is taken as the default command, if that word is not %default
 ##   e.g. <!-- %check-resolve %default --> sets the default command to %check-resolve
@@ -68,7 +69,9 @@
 ##    %save <file> -- save the code block (including anything appended from %use) in the given temporary file
 ##    %use <file> -- append to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %nomsg -- forget the error pattern from the heading (in the case of subsequent working examples in the explanation)
-##    %exit <n> -- set the expected exit code of the command. The default exit code is
+##    %exit <n> -- set the expected exit code of the command.
+##       If not set, the default set in the %default command is used.
+##       If that is not set,  The default exit code is
 ##          -- 0 if there is no output file and %iuseHeadings is not being used
 ##          -- 0 if the command includes 'warn'
 ##          -- if there is an output file and no 'warn', then the default exit code depends on the verb
@@ -136,6 +139,7 @@ ANYFAIL=0
 
 ## Loop over all remaining command-line arguments
 for file in $@ ; do
+if [ "$coverage" == "1" ]; then echo "FILE $file" ; fi
 dir=$(dirname "$file")
 
 ## Whether this file fails
@@ -152,6 +156,7 @@ command=
 expectFile=
 options=( )
 default=0
+globalDefaultExit=
 ## Read and process each line of the file.  The file is input on stdin 
 ## by redirection after the 'done' corresponding to this while-do
 while IFS= read -r line
@@ -183,6 +188,8 @@ do
         if [ "$?" == "0" ]; then useHeadings=1; fi
         echo "$line" | grep -e '%lang=' > /dev/null
         if [ "$?" == "0" ]; then defaultLang=`echo "$line" | sed -e 's/^.*%lang=//' | sed -e 's/ .*$//'` ; fi
+        echo "$line" | grep -e '%exit=' > /dev/null
+        if [ "$?" == "0" ]; then globalDefaultExit=`echo "$line" | sed -e 's/^.*%exit=//' | sed -e 's/ .*$//'` ; fi
         echo "$line" | grep -e '%check-ids' > /dev/null
         if [ "$?" == "0" ]; then checkIds=1; fi
         defaultCommand=${contents[0]}
@@ -295,7 +302,9 @@ do
         fi
       elif [ "$ischeck" == "1" ]; then ## Not cli though
         dOptions=$defOptions
-        if [ "$iswarn" == "1" ]; then
+        if [ -z "$expect" ]; then
+          defaultExit=0
+        elif [ "$iswarn" == "1" ]; then
           defaultExit=0
         elif [ "$verb" == "verify" ]; then
           defaultExit=4
@@ -335,11 +344,11 @@ do
           if [ "$command" == "%check-legacy" ]; then
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="/compileVerbose:0" ; fi
-            "$dafny" $verb $dOptions $isverbose ${options[@]} $text  > actual
+            (cd "dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > actual
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            "$dafny" $verb $isverbose $dOptions ${options[@]} $text > actual
+            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > actual
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
@@ -349,7 +358,7 @@ do
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
               actualid=`cat actual_error | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
             fi
-            act=`cat actual_error | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//'`
+            act=`cat actual_error | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
             if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
             fi
