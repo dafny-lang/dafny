@@ -133,7 +133,7 @@ done
 shift $(($OPTIND - 1))
 
 ## Temporary file
-text=text.dfy
+text="$dir/text.dfy"
 
 ## Tracks if there have been any failures
 ANYFAIL=0
