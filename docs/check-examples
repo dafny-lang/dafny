@@ -141,9 +141,11 @@ if [ "$coverage" == "1" ]; then echo "FILE $file" ; fi
 dir=$(dirname "$file")
 dir=`cd "$dir" && pwd`
 
-## Temporary file
+## Temporary files
 text="$dir/text.dfy"
-actualError="$dir/actual_error"
+actualOut="$dir/actual_out.tmp"
+actualMsgs="$dir/actual_msgs.tmp"
+actualError="$dir/actual_error.tmp"
 
 ## Whether this file fails
 FAIL=0
@@ -245,8 +247,8 @@ do
     fi
 
     inblock=1
-    rm -f $text
-    touch $text
+    rm -f "$text"
+    touch "$text"
   else
       ## End of backtick block, so check the text
       if [ -z "$command" -a "$lang" == "dafny" ]; then
@@ -293,13 +295,15 @@ do
 	  f="$outdir/$(basename $file)_${n}.dfy"
           echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`" " > /dev/null 2> /dev/null" > "$f"
         else
-          . $text > actual 2> errortext
+          isverbose=
+          if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
+          . $text $isverbose > "$actualOut" 2> "$actualError"
           actualExit=$?
           if [ "$actualExit" != "$expectedExit" ]; then
              echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
              FAIL=1
           else
-            act=`cat actual | sed -e 's/^[*]*[ ]*//'`
+            act=`cat "$actualOut" | sed -e 's/^[*]*[ ]*//'`
             dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
             if [ -n "$dif" ]; then
               echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
@@ -357,20 +361,22 @@ do
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > actual
+            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut"
+            echo "$dafny" $verb $isverbose $dOptions ${options[@]} $text
+            cat "$actualOut"
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
-            cat actual | grep -E '(Error|Warning):' > "$actualError"
+            cat "$actualOut" | grep -E '(Error|Warning):' > "$actualMsgs"
             actualid=
-            grep 'ID:' "$actualError" > /dev/null
+            grep 'ID:' "$actualMsgs" > /dev/null
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
-              actualid=`cat "$actualError" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
+              actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
             fi
-            act=`cat "$actualError" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
+            act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
             if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
-              cat "$actualError"
+              cat "$actualMsgs"
             fi
             if [ -n "$msg" ]; then
               dif=`echo "$act" | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
@@ -403,13 +409,13 @@ do
             # No output file -- so no error expected
             if [ "$actualExit" != "0" ]; then
               echo "TEST FAILED" $file line $n  $command $expect
-              cat $text
-              cat actual
+              cat "$text"
+              cat "$actualOut"
               FAIL=1
             fi
-            if [ `cat actual | wc -l ` != "2" ]; then
+            if [ `cat "$actualOut" | wc -l ` != "2" ]; then
               echo ACTUAL ERROR OUTPUT BUT NONE EXPECTED
-              cat actual
+              cat "$actualOut"
               FAIL=1
             fi
           else
@@ -423,12 +429,12 @@ do
                 FAIL=1
                 echo Actual output differs from expected
                 echo "TEST FAILED" $file line $n  $command $expect
-                cat $text
-                cat actual
+                cat "$text"
+                cat "$actualOut"
               fi
             else
               echo EXPECT FILE $expect DOES NOT EXIST
-              cat actual
+              cat "$actualOut"
               FAIL=1
             fi
           fi
