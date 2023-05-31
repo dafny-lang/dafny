@@ -14,7 +14,7 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler
+    Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);
@@ -85,6 +85,13 @@ namespace Microsoft.Dafny {
       Error(source, (string)null, d.tok, msg, args);
     }
 
+    public void Error(MessageSource source, Enum errorId, Declaration d, string msg, params object[] args) {
+      Contract.Requires(d != null);
+      Contract.Requires(msg != null);
+      Contract.Requires(args != null);
+      Error(source, errorId, d.tok, msg, args);
+    }
+
     public void Error(MessageSource source, string errorId, Declaration d, string msg, params object[] args) {
       Contract.Requires(d != null);
       Contract.Requires(msg != null);
@@ -117,14 +124,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorId.ToString(), v.Tok, msg, args);
+      Error(source, errorId, v.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Enum errorId, Expression e, string msg, params object[] args) {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, errorId.ToString(), e.tok, msg, args);
+      Error(source, errorId, e.tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {

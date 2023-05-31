@@ -127,7 +127,7 @@ do
   ## May not be robust against parentheses, brackets or other regex-special symbols in the error message -- none of these encountered so far.
 
   ( echo "$line" | grep -E -e '[#][#] ' > /dev/null ) \
-   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/'  -e 's/_[a-z]+_/.*/g'`
+   && msg=`echo "$line" | sed -E -e 's/ [ ]*\{#.*\}[ ]*$//' -e 's/^##[ ]*[*]*//' -e 's/[*]*$//' -e 's/\\*/\\\\*/' -e 's/\[/\\\[/g' -e 's/\]/\\\]/g' -e 's/_[A-Za-z]+_/.*/g'`
 
   ## Check for the test command information
   echo "$line" | grep '^[ ]*<!-- [ ]*%' > /dev/null
@@ -201,7 +201,7 @@ do
          cp $text $save
          save=
       fi
-      if [ "$lang" == "dafny" -o "$lang" == "cli" ]; then
+      if [ "$lang" == "dafny" -o "$lang" == "cli" -o "$lang" == "bash" ]; then
         echo TESTING $n $file "$command" $expect
       fi
       if [ "$command" == "%no-check" ]; then
@@ -256,8 +256,6 @@ do
             cat $text >> $f
           elif [ "$command" == "%check-cli" ]; then
             echo "// RUN: %exits-with" $ec "%bare$text" " > /dev/null 2> /dev/null" > $f
-            echo GENERATING $f
-            cat $f
           else
             echo "// RUN: %exits-with" $ec "%baredafny" $com $permOptions "--function-syntax:4" $dOptions ${options[@]} '"%s" > "%t"' > $f
             ##echo '// RUN: %diff "%s.expect" "%t"' >> $f
@@ -336,6 +334,8 @@ do
           fi
         fi
       elif [ "$command" == "%check-cli" ]; then
+        ec=1
+        if [ -n "$ex" ]; then ec=$ex ; ex= ; fi
         if [ "$lang" != "bash" ]; then
           echo EXPECTED A bash BLOCK, NOT $lang
           FAIL=1
@@ -345,18 +345,19 @@ do
           f=$outdir/$(basename $file)_${n}.dfy
 
             echo "// RUN: %exits-with" $ec "%bare`cat $text`"  > $f
-            echo GENERATING $f
-            echo TEXT $text
-            cat $f
         else
-          . $text > actual 2> errortext
-          ec=$?
-          if [ "$ec" != "1" ]; then
-             echo EXPECTED EXIT CODE OF 1, GOT $ec
+          if [ "$command" == "%check-cli" ]; then
+            . $text > actual 2> /dev/null
+          else
+            . $text 2> actual > /dev/null
+          fi
+          actualec=$?
+          if [ "$actualec" != "$ec" ]; then
+             echo EXPECTED EXIT CODE OF $ec, GOT $actualec
              FAIL=1
           else
-            act=`cat actual`
-	    dif=`echo "$act" | sed -e "s/$msg//"`
+            act=`cat actual | sed -e 's/^[*]*[ ]*//'`
+	    dif=`echo "$act" | tr "\n" " " | sed -e 's/ $//' -e "s@$msg@@"`
             if [ -n "$dif" ]; then
               echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
               FAIL=1

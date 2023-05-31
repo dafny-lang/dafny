@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 trait Base {}
-class Derived extends Base { var n: int; constructor() { n := 0; } }
+class Derived extends Base { var n: int constructor() { n := 0; } }
 
 method f(b: Base) {
   if (b is Derived) {

@@ -833,7 +833,16 @@ heap, as a `new` expression does. Typically a proof uses expressions that are va
 
 ## **Error: _proof_ is not allowed to make heap updates** {#r_no_heap_update_in_proof}
 
-<!-- TODO -->
+```dafny
+class A { ghost var k: int }
+lemma m(a: A)
+{
+  a.k := 9;
+}
+```
+
+An update to a field of a heap object is not allowed in a proof context such as the body of a lemma.
+This is the case even if the field in question is a ghost field of its containing class or trait.
 
 ## **Error: assignment to _kind_ is not allowed in this context, because _reason_** {#r_assignment_forbidden_in_context}
 

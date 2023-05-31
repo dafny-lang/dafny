@@ -107,7 +107,7 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(resolutionDiagnostics);
 
-    ApplyChange(ref documentItem, null, "method u() ensures true; { var x: bool := true; }");
+    ApplyChange(ref documentItem, null, "method u() ensures true { var x: bool := true; }");
     var verificationDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Empty(verificationDiagnostics);
 
