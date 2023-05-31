@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
-      reporter.Error(MessageSource.Compiler, errorId.ToString(), tok, msg, args);
+      reporter.Error(MessageSource.Compiler, errorId, tok, msg, args);
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
     }
 
