@@ -112,6 +112,7 @@
 
 
 dir=$(dirname "${BASH_SOURCE[0]}")
+dir=`cd $dir && pwd`
 dafny="$dir/../Scripts/dafny"
 outdir="$dir/../Test/docexamples"
 
