@@ -34,7 +34,11 @@ public class TextReaderFromCharArrays : TextReader {
     if (arrayIndex == arrays.Count) {
       return -1;
     }
-    return arrays[arrayIndex][elementIndex];
+    var array = arrays[arrayIndex];
+    if (elementIndex == array.Length) {
+      return -1;
+    }
+    return array[elementIndex];
   }
 
   public override int Read() {

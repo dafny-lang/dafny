@@ -21,12 +21,7 @@ Italicized words in the given messages indicate variable content.
 
 # **Command-line Errors and Warnings**
 
-_This section is a work in progress_
-<!--  include_relative Errors-CommandLine.md--> 
-
-# **Generic Errors and Warnings**
-
-{% include_relative Errors-Generic.md %}
+{% include_relative Errors-CommandLine.md %} 
 
 # **Parser Errors and Warnings**
 
@@ -35,9 +30,9 @@ _This section is a work in progress_
 # **Name and Type Resolution Errors and Warnings**
 
 {% include_relative Errors-Resolution.md %}
+{% include_relative Errors-Resolver2.md %}
+{% include_relative Errors-Resolver3.md %}
 {% include_relative Errors-Rewriter.md %}
-
-_This section is a work in progress_
 
 # **Verification Errors**
 
