@@ -528,7 +528,39 @@ Hi!
 PASSED
 ```
 
-#### 13.5.1.11. `dafny generate-tests` {#sec-dafny-generate-tests}
+#### 13.5.1.11. `dafny doc` [Experimental] {#sec-dafny-doc}
+
+The `dafny doc` command generates HTML documentation pages describing the contents of each
+module in a set of files, using the documentation comments in the source files.
+This command is experimental; user feedback and contributor PRs on the layout of information and the navigation are welcome.
+
+* The format of the documentation comments is described [here](#sec-documentation-comments).
+* The `dafny doc` command accepts either files or folders as command-line arguments. A folder
+represents all the `.dfy` files contained recursively in that folder. A file that is a `.toml`
+[project file](#sec-project-files) represents all the files and options listed in the project file.
+* The command first parses and resolves the given files; it only proceeds to produce documentation
+if type resolution is successful (on all files). All the command-line options relevant to 
+`dafny resolve` are available for `dafny doc`.
+* The value of the `--output` option is a folder in which all the generated files will be placed.
+The default location is `./docs`. The folder is created if it does not already exist.
+Any existing content of the folder is overwritten.
+* If `--verbose` is enabled, a list of the generated files is emitted to stdout.
+* The output files contain information stating the source .dfy file in which the module is
+declared. The `--file-name` option controls the form of the filename in that information:
+   * --file-name:none -- no source file information is emitted
+   * --file-name:name -- (default) just the file name is emitted (e.g., `Test.dfy`)
+   * --file-name:absolute -- an absolute full path is emitted
+   * --file-name:relative=<prefix> -- a file name relative to the given prefix is emitted
+* If `--modify-time` is enabled, then the generated files contain information stating the
+last modified time of the source of the module being documented.
+* The `--program-name` option states text that will be included in the heading of the TOC and index pages
+
+The output files are HTML files, all contained in the given folder, one per module plus an 
+`index.html` file giving an overall table of contents and a `nameindex.html` file containing
+an alphabetical by name list of all the declarations in all the modules.
+The documentation for the root module is in `_.html`.
+
+#### 13.5.1.12. `dafny generate-tests` {#sec-dafny-generate-tests}
 
 This _experimental_ command (verifies the program and) then generates unit test code (as Dafny source code) that provides
 complete coverage of the method.
@@ -537,20 +569,20 @@ Such methods must be static and have no input parameters.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.12. `dafny find-dead-code` {#sec-dafny-find-dead-code}
+#### 13.5.1.13. `dafny find-dead-code` {#sec-dafny-find-dead-code}
 
 This _experimental_ command finds dead code in a program, that is, code branches within a method that are not reachable by any inputs that satisfy 
 the method's preconditions.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.13. `dafny measure-complexity` {#sec-dafny-measure-complexity}
+#### 13.5.1.14. `dafny measure-complexity` {#sec-dafny-measure-complexity}
 
 This _experimental_ command reports complexity metrics of a program.
 
 _This command is under development and not yet functional._
 
-#### 13.5.1.14. Plugins
+#### 13.5.1.15. Plugins
 
 This execution mode is not a command, per se, but rather a command-line option that enables executing plugins to the dafny tool.
 Plugins may be either standalone tools or be additions to existing commands.
@@ -560,7 +592,7 @@ where the argument to `--plugin` gives the path to the compiled assembly of the 
 
 More on writing and building plugins can be found [in this section](#sec-plugins).
 
-#### 13.5.1.15. Legacy operation
+#### 13.5.1.16. Legacy operation
 
 Prior to implementing the command-based CLI, the `dafny` command-line simply took files and options and the arguments to options.
 That legacy mode of operation is still supported, though discouraged. The command `dafny -?` produces the list of legacy options.
@@ -604,7 +636,7 @@ Most output from `dafny` is directed to the standard output of the shell invokin
 - Dafny `expect` statements (when they fail) send a message to **standard-out**.
 - Dafny I/O libraries send output explicitly to either **standard-out or standard-error**
 
-### 13.5.5. Project files
+### 13.5.5. Project files {#sec-project-files}
 
 Commands on the Dafny CLI that can be passed a Dafny file can also be passed a Dafny project file. Such a project file may define which Dafny files the project contains and which Dafny options it uses. The project file must be a [TOML](https://toml.io/en/) file named `dfyconfig.toml` for it to work on both the CLI and in the Dafny IDE, although the CLI will accept any `.toml` file. 
 Here's an example of a Dafny project file:
