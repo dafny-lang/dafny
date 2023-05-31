@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class RewriterErrors {
 
   public enum ErrorId {
-
+    // ReSharper disable once InconsistentNaming
     rw_timelimit_multiplier,
     rw_old_argument_not_on_heap,
     rw_warn_negated_assertion,

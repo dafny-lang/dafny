@@ -6,6 +6,7 @@ namespace Microsoft.Dafny;
 public class RefinementErrors {
 
   public enum ErrorId {
+    // ReSharper disable once InconsistentNaming
     ref_refinement_import_must_match_opened_base,
     ref_refinement_import_must_match_non_opened_base,
     ref_refinement_type_must_match_base,

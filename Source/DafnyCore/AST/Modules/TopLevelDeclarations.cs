@@ -581,6 +581,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public readonly VisibilityScope ThisScope;
 
+  public ModuleDefinition EffectiveModule = null;
+
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
     : base(rangeToken, name, parent, false, isRefining) {
