@@ -14,6 +14,7 @@ public class TextReaderFromCharArrays : TextReader {
 
   public TextReaderFromCharArrays(IReadOnlyList<char[]> arrays) {
     this.arrays = arrays;
+    UpdateIndices();
   }
 
   public string Text {
@@ -46,10 +47,7 @@ public class TextReaderFromCharArrays : TextReader {
       return -1;
     }
     var result = array[elementIndex++];
-    if (array.Length == elementIndex) {
-      arrayIndex++;
-      elementIndex = 0;
-    }
+    UpdateIndices();
     return result;
   }
 
@@ -63,12 +61,16 @@ public class TextReaderFromCharArrays : TextReader {
       elementIndex += readCount;
       index += readCount;
       remainingCount -= readCount;
-      while (arrayIndex < arrays.Count && elementIndex == arrays[arrayIndex].Length) {
-        arrayIndex++;
-        elementIndex = 0;
-      }
+      UpdateIndices();
     }
 
     return count - remainingCount;
+  }
+
+  private void UpdateIndices() {
+    while (arrayIndex < arrays.Count && elementIndex == arrays[arrayIndex].Length) {
+      arrayIndex++;
+      elementIndex = 0;
+    }
   }
 }

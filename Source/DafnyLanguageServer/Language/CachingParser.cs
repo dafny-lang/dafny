@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
-  private readonly TickingCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
+  private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
 
   public CachingParser(ILogger<ProgramParser> logger) : base(logger) {
   }

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny; 
 
-public class TickingCache<TKey, TValue>
+public class PruneIfNotUsedSinceLastPruneCache<TKey, TValue>
   where TValue : class
   where TKey : notnull {
   class Item {
@@ -20,7 +20,7 @@ public class TickingCache<TKey, TValue>
 
   private readonly ConcurrentDictionary<TKey, Item> items;
 
-  public TickingCache(IEqualityComparer<TKey> comparer) {
+  public PruneIfNotUsedSinceLastPruneCache(IEqualityComparer<TKey> comparer) {
     items = new(comparer);
   }
 
