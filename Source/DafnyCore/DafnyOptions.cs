@@ -1560,7 +1560,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   }
 
   public override void Error(string message, params string[] args) {
-    errors.SemErr(token, string.Format(message, args));
+    errors.Error(ErrorId.p_cli_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
   }
 }

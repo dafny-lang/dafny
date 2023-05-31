@@ -12,7 +12,6 @@ public class ParseErrors {
     // ReSharper disable once InconsistentNaming
     g_include_has_errors, // In Reporting.cs
     p_generic_syntax_error,
-    p_generic_semantic_error,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
@@ -130,7 +129,7 @@ public class ParseErrors {
     p_deprecated_modify_statement_with_block,
     p_deprecated_opaque_as_identifier,
     p_deprecated_semicolon,
-    p_deprecated_this_in_constructors, // TODO no description is provided
+    p_deprecated_this_in_constructor_modifies_clause, // TODO no description is provided
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
     p_file_has_no_code, // TODO no description yet
@@ -1078,6 +1077,18 @@ This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 ");
 
+    Add(ErrorId.p_deprecated_this_in_constructor_modifies_clause,
+    @"
+The purpose of a constructor is to initialize a newly allocated instance of a cl
+ass.
+Hence it always modifies the `this` object.
+Previously it was required to list `this` in the modifies clause of the
+constructor to specify this property, but now `this` is always implicitly 
+a part of the modifies clause. 
+If the constructor only modifies its own object (as is the very common case)
+then no explicit modifies clause is needed at all.
+"); // TODO _ add a quick fix to remove the this, or maybe the whole clause
+
     Add(ErrorId.p_bad_number_format,
     @"
 This error can only result from an internal bug in the Dafny parser.
@@ -1101,6 +1112,22 @@ The parser recognizes a legitimate Dafny decimal number
 and then passes that string to a library routine to create a BigDecimal. 
 Given the parser logic, that parsing should never fail.
 ");
+
+    Add(ErrorId.p_generic_syntax_error,
+    @"
+This ""invalid something"" message where the something is typically  
+the name of an internal parser non-terminal means that the text being parsed
+is a badly malformed instance of whatever parser entity was being parsed.
+This is an automatically generated message by the CoCo parser generator
+for a situation in which no specific recovery or a
+more informative error message was implemented.
+
+The only advice we can give is to carefully scrutinize the location of the
+error to see what might be wrong with the text.If you think this is a
+common or confusing enough occurrence to warrant special error handling.
+please suggest the improvement, with this sample code, to the Dafny team.
+");
+
 
     Add(ErrorId.p_deprecated_semicolon,
     @"

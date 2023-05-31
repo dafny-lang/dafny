@@ -129,7 +129,7 @@ bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // range is from opening brace to closing brace
   if (attr.val == "ignore") {
     errors.Warning(ErrorId.p_deprecated_attribute, 
-      attr,
+      range,
       $"attribute :{attr.val} is deprecated");
     return false;
   }

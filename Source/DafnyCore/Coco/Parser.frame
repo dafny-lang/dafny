@@ -167,12 +167,12 @@ public class Errors {
     return s;
   }
 
-  public void SemErr(IToken tok, string msg) {  // semantic errors
-    Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
-    ErrorCount++;
-    Reporting.Error(MessageSource.Parser, "", tok, msg);
-  }
+//  public void SemErr(IToken tok, string msg) {  // semantic errors
+//    Contract.Requires(tok != null);
+//    Contract.Requires(msg != null);
+//    ErrorCount++;
+//    Reporting.Error(MessageSource.Parser, "", tok, msg);
+//  }
 
   public void SemErr(ErrorId errorId, IToken tok, string msg) {  // semantic errors
     Contract.Requires(tok != null);
@@ -192,12 +192,6 @@ public class Errors {
     Contract.Requires(msg != null);
     Reporting.Deprecated(MessageSource.Parser, errorId, tok, msg);
   }
-
-//  public void Deprecated(IToken tok, string msg) {
-//    Contract.Requires(tok != null);
-//    Contract.Requires(msg != null);
-//    Reporting.Deprecated(MessageSource.Parser, ErrorId.p_generic_semantic_error, tok, msg);
-//  }
 
   public void Warning(ErrorId errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);

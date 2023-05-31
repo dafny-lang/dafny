@@ -1397,9 +1397,44 @@ Given the parser logic, that parsing should never fail.
 
 <!-- FILE ./DafnyCore/Generic/Util.cs -->
 
-## **Warning: constructors no longer need 'this' to be listed in modifies clauses** {#p_deprecated_this_in_constructors}
+## **Warning: constructors no longer need 'this' to be listed in modifies clauses** {#p_deprecated_this_in_constructor_modifies_clause}
 
-<!-- TODO - 2 instances -->
+```dafny
+class A {
+  constructor () modifies this {}
+}
+```
+
+The purpose of a constructor is to initialize a newly allocated instance of a class.
+Hence it always modifies the `this` object.
+Previously it was required to list `this` in the modifies clause of the
+constructor to specify this property, but now `this` is always implicitly 
+a part of the modifies clause. 
+If the constructor only modifies its own object (as is the very common case)
+then no explicit modifies clause is needed at all.
+
+<!-- TODO - 2 instances i-- needs an example using set display-->
+
+<!-- FILE ./DafnyCore/CoCo/Parser.frame -->
+
+## **Error: invalid _entity_** {#p_generic_syntax_error}
+
+```dafny
+method .
+```
+
+This "invalid something" message where the something is typically 
+the name of an internal parser non-terminal means that the text being parsed
+is a badly malformed instance of whatever parser entity was being parsed.
+This is an automatically generated message by the CoCo parser generator
+for a situation in which no specific recovery or a
+more informative error message was implemented.
+
+The only advice we can give is to carefully scrutinize the location of the 
+error to see what might be wrong with the text. If you think this is a
+common or confusing enough occurrence to warrant special error handling.
+please suggest the improvement, with this sample code, to the Dafny team.
+
 
 <!-- FILE ./DafnyCore/CoCo/Scanner.frame -->
 
