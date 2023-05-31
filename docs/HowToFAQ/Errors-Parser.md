@@ -154,7 +154,7 @@ least predicate p()
 
 A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous:
 it can be either the name of the export set or associated with the `predicate` declaration. 
-The parser associates it with the `export`. To avoid this error do not put the
+The parser associates it with the `export`. To avoid this warning do not put the
 `least` or `greatest` token on the same line as the `predicate` token.
 If you intend for the `least` to go with the predicate, change the order of the declarations.
 
@@ -1428,7 +1428,7 @@ the name of an internal parser non-terminal means that the text being parsed
 is a badly malformed instance of whatever parser entity was being parsed.
 This is an automatically generated message by the CoCo parser generator
 for a situation in which no specific recovery or a
-more informative error message was implemented.
+more informative error message has been implemented.
 
 The only advice we can give is to carefully scrutinize the location of the 
 error to see what might be wrong with the text. If you think this is a
