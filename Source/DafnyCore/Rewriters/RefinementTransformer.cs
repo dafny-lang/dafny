@@ -772,7 +772,7 @@ namespace Microsoft.Dafny {
             } else if (newConst.HasStaticKeyword != origConst.HasStaticKeyword) {
               Error(ErrorId.ref_mismatched_module_static, nwMember, "a const in a refining module cannot be changed from static to non-static or vice versa: {0}", nwMember.Name);
             } else if (origConst.IsGhost && !newConst.IsGhost) {
-              Error(ErrorId.ref_mismatched_const_ghost, nwMember, "a const re-declaration ({0}) is not allowed to remove 'ghost' from the const", nwMember.Name);
+              Error(ErrorId.ref_mismatched_const_ghost, nwMember, "a const re-declaration ({0}) is not allowed to remove 'ghost' from the const declaration", nwMember.Name);
             } else if (newConst.Rhs == null && origConst.IsGhost == newConst.IsGhost) {
               Error(ErrorId.ref_refinement_must_add_const_ghost, nwMember, "a const re-declaration ({0}) must be to add 'ghost' to the const declaration{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
             }
