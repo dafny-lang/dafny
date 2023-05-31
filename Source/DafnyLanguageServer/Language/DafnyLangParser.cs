@@ -60,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
-        telemetryPublisher.PublishTime("Parse", DateTime.Now - beforeParsing);
+        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         return result;
       }
       finally {
