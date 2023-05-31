@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,7 +30,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = Setup.GetDafnyOptions(output);
-      var program = Utils.Parse(options, source);
+      var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m =>
@@ -57,7 +58,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(2, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
@@ -91,7 +92,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(7, methods.Count);
       Assert.True(
@@ -124,7 +125,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.Create(output), source);
+      var program = Utils.Parse(DafnyOptions.Create(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(
@@ -155,7 +156,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
@@ -186,7 +187,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(2, methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));

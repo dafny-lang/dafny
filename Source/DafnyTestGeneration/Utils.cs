@@ -7,7 +7,6 @@ using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Errors = Microsoft.Dafny.Errors;
-using Function = Microsoft.Dafny.Function;
 using Parser = Microsoft.Dafny.Parser;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
@@ -24,9 +23,12 @@ namespace DafnyTestGeneration {
       var ret = new List<Microsoft.Boogie.Program> { };
       var thread = new System.Threading.Thread(
         () => {
+          var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
+          program.Reporter.Options.PrintInstrumented = true;
           ret = Translator
             .Translate(program, program.Reporter)
             .ToList().ConvertAll(tuple => tuple.Item2);
+          program.Reporter.Options.PrintInstrumented = oldPrintInstrumented;
         },
         0x10000000); // 256MB stack size to prevent stack overflow
       thread.Start();
@@ -89,9 +91,6 @@ namespace DafnyTestGeneration {
       if (!resolve) {
         return program;
       }
-
-      // Substitute function methods with function-by-methods
-      new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(program);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
@@ -163,60 +162,6 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Turns each function into a function-by-method.
-    /// Copies body of the function into the body of the corresponding method.
-    /// </summary>
-    private class AddByMethodRewriter : IRewriter {
-
-      protected internal AddByMethodRewriter(ErrorReporter reporter) : base(reporter) { }
-
-      internal void PreResolve(Program program) {
-        AddByMethod(program.DefaultModule);
-      }
-
-      private static void AddByMethod(TopLevelDecl d) {
-        if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
-        } else if (d is TopLevelDeclWithMembers withMembers) {
-          withMembers.Members.OfType<Function>().Iter(AddByMethod);
-        }
-      }
-
-      private static Attributes RemoveOpaqueAttr(Attributes attributes, Cloner cloner) {
-        if (attributes == null) {
-          return null;
-        }
-        if (attributes.Name == "opaque") {
-          RemoveOpaqueAttr(attributes.Prev, cloner);
-        }
-        if (attributes is UserSuppliedAttributes) {
-          var usa = (UserSuppliedAttributes)attributes;
-          return new UserSuppliedAttributes(
-            cloner.Tok(usa.tok),
-            cloner.Tok(usa.OpenBrace),
-            cloner.Tok(usa.CloseBrace),
-            attributes.Args.ConvertAll(cloner.CloneExpr),
-            RemoveOpaqueAttr(attributes.Prev, cloner));
-        }
-        return new Attributes(attributes.Name,
-          attributes.Args.ConvertAll(cloner.CloneExpr),
-          RemoveOpaqueAttr(attributes.Prev, cloner));
-      }
-
-      private static void AddByMethod(Function func) {
-        func.Attributes = RemoveOpaqueAttr(func.Attributes, new Cloner());
-        if (func.IsGhost || func.Body == null || func.ByMethodBody != null) {
-          return;
-        }
-        var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
-        func.ByMethodBody = new BlockStmt(
-          new RangeToken(new Token(), new Token()),
-          new List<Statement> { returnStatement });
-      }
-    }
-
-    /// <summary>
     /// Scan an unresolved dafny program to look for a specific attribute
     /// </summary>
     internal class AttributeFinder {
@@ -237,7 +182,7 @@ namespace DafnyTestGeneration {
         return false;
       }
 
-      private static bool MembersHasAttribute(MemberDecl member, string attribute) {
+      public static bool MembersHasAttribute(MemberDecl member, string attribute) {
         var attributes = member.Attributes;
         while (attributes != null) {
           if (attributes.Name == attribute) {

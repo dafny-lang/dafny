@@ -157,6 +157,14 @@ namespace DafnyTestGeneration {
         return counterexampleLog;
       }
       var log = writer.ToString();
+      const string executionTraceString = "Execution trace";
+      var firstTraceIndex = log.IndexOf(executionTraceString, 0, StringComparison.Ordinal);
+      if (firstTraceIndex > 0 && log.Length > firstTraceIndex + executionTraceString.Length) {
+        var secondTraceIndex = log.IndexOf(executionTraceString, firstTraceIndex + executionTraceString.Length, StringComparison.Ordinal);
+        if (secondTraceIndex > 0) {
+          log = log[..secondTraceIndex];
+        }
+      }
       // make sure that there is a counterexample (i.e. no parse errors, etc):
       var stringReader = new StringReader(log);
       while (await stringReader.ReadLineAsync() is { } line) {
@@ -164,11 +172,11 @@ namespace DafnyTestGeneration {
           counterexampleLog = log;
           counterexampleStatus = Status.Success;
           var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
-          coversBlocks.Add(blockId);
           if (Options.TestGenOptions.Verbose &&
-              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path) {
+              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !coversBlocks.Contains(blockId)) {
             await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
           }
+          coversBlocks.Add(blockId);
         }
       }
       if (Options.TestGenOptions.Verbose && counterexampleLog == null) {

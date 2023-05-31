@@ -20,12 +20,12 @@ namespace DafnyTestGeneration {
     /// loop unrolling may cause false negatives.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program) {
+    public static async IAsyncEnumerable<string> GetDeadCodeStatistics(Program program, Uri uri=null) {
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
       var cache = new Modifications(program.Options);
-      var modifications = GetModifications(cache, program).ToList();
+      var modifications = GetModifications(cache, program, uri).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -58,32 +58,26 @@ namespace DafnyTestGeneration {
     public static async IAsyncEnumerable<string> GetDeadCodeStatistics(string sourceFile, DafnyOptions options) {
       options.PrintMode = PrintModes.Everything;
       var source = await new StreamReader(sourceFile).ReadToEndAsync();
-      var program = Utils.Parse(options, source, true, new Uri(sourceFile));
+      var program = Utils.Parse(options, source, false, new Uri(sourceFile));
       if (program == null) {
         yield return "Cannot parse program";
         yield break;
       }
-      await foreach (var line in GetDeadCodeStatistics(program)) {
+      await foreach (var line in GetDeadCodeStatistics(program, new Uri(sourceFile))) {
         yield return line;
       }
     }
 
-    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Modifications cache, Program program, Uri uri) {
       var options = program.Options;
+      var boogieProgram = Inlining.Preprocessor.PreprocessDafny(program, options, uri);
       var dafnyInfo = new DafnyInfo(program);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
-      // Translate the Program to Boogie:
-      var oldPrintInstrumented = options.PrintInstrumented;
-      options.PrintInstrumented = true;
-      var boogiePrograms = Utils.Translate(program);
-      options.PrintInstrumented = oldPrintInstrumented;
-
       if (options.TestGenOptions.TargetMethod != null) {
-        var targetFound = boogiePrograms.Any(program =>
-          program.Implementations.Any(i =>
+        var targetFound = boogieProgram.Implementations.Any(i =>
             i.Name.StartsWith("Impl$$") &&
             i.VerboseName.Split(" ")[0]
-            == options.TestGenOptions.TargetMethod));
+            == options.TestGenOptions.TargetMethod);
         if (!targetFound) {
           options.Printer.ErrorWriteLine(options.ErrorWriter,
             "Error: Cannot find method " +
@@ -99,23 +93,23 @@ namespace DafnyTestGeneration {
         options.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier(cache)
           : new BlockBasedModifier(cache);
-      return programModifier.GetModifications(boogiePrograms, dafnyInfo);
+      return programModifier.GetModifications(boogieProgram, dafnyInfo);
     }
 
     /// <summary>
     /// Generate test methods for a certain Dafny program.
     /// </summary>
     /// <returns></returns>
-    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache=null) {
+    public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Uri uri=null, Modifications cache=null) {
 
       var options = program.Options;
       options.PrintMode = PrintModes.Everything;
-      var dafnyInfo = new DafnyInfo(program);
-      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       // Generate tests based on counterexamples produced from modifications
 
       cache ??= new Modifications(options);
-      var programModifications = GetModifications(cache, program).ToList();
+      var programModifications = GetModifications(cache, program, uri).ToList();
+      var dafnyInfo = new DafnyInfo(program);
+      setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       foreach (var modification in programModifications) {
 
         var log = await modification.GetCounterExampleLog(cache);
@@ -146,12 +140,9 @@ namespace DafnyTestGeneration {
       if (Utils.AttributeFinder.ProgramHasAttribute(program,
             TestGenerationOptions.TestInlineAttribute)) {
         options.VerifyAllModules = true;
-        program = Utils.Parse(options, source, true, uri);
-        if (program == null) {
-          yield break;
-        }
       }
       var dafnyInfo = new DafnyInfo(program);
+      program = Utils.Parse(options, source, false, uri);
       setNonZeroExitCode = dafnyInfo.SetNonZeroExitCode || setNonZeroExitCode;
       var rawName = Regex.Replace(sourceFile, "[^a-zA-Z0-9_]", "");
 
@@ -171,7 +162,7 @@ namespace DafnyTestGeneration {
       
       var cache = new Modifications(options);
       var methodsGenerated = 0;
-      await foreach (var method in GetTestMethodsForProgram(program, cache)) {
+      await foreach (var method in GetTestMethodsForProgram(program, new Uri(sourceFile), cache)) {
         yield return method.ToString();
         methodsGenerated++;
       }

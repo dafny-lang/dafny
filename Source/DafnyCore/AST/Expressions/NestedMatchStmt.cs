@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat, INestedMatch, ICanResolve {
-  public Expression Source { get; }
+  public Expression Source { get; set; }
   public string MatchTypeName => "statement";
   public readonly List<NestedMatchCaseStmt> Cases;
   public readonly bool UsesOptionalBraces;

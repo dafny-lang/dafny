@@ -18,6 +18,9 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public override IToken Tok {
     get {
       var previous = Rhs.StartToken.Prev;
+      if (previous == null) {
+        return Rhs.StartToken;
+      }
       // If there was a single assignment, report on the operator.
       var singleAssignment = previous.val == ":=";
       // If there was an implicit return assignment, report on the return.
