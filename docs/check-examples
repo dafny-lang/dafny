@@ -112,7 +112,7 @@
 
 
 dir=$(dirname "${BASH_SOURCE[0]}")
-dir=`cd $dir && pwd`
+dir=`cd "$dir" && pwd`
 dafny="$dir/../Scripts/dafny"
 outdir="$dir/../Test/docexamples"
 
@@ -132,9 +132,6 @@ while getopts 'c' opt; do
 done
 shift $(($OPTIND - 1))
 
-## Temporary file
-text="$dir/text.dfy"
-
 ## Tracks if there have been any failures
 ANYFAIL=0
 
@@ -142,6 +139,11 @@ ANYFAIL=0
 for file in $@ ; do
 if [ "$coverage" == "1" ]; then echo "FILE $file" ; fi
 dir=$(dirname "$file")
+dir=`cd "$dir" && pwd`
+
+## Temporary file
+text="$dir/text.dfy"
+actualError="$dir/actual_error"
 
 ## Whether this file fails
 FAIL=0
@@ -337,15 +339,15 @@ do
         if [ "$coverage" == "1" ] ; then
           f=$outdir/$(basename $file)_${n}.dfy
           if  [ "$command" == "%check-legacy" ]; then
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > "$f"
             echo " " >> $f
             cat $text >> $f
           elif [ "$command" == "%check-cli" ]; then
             echo "// RUN: %exits-with $expectedExit %bare`cat $text` > /dev/null 2> /dev/null" > $f
           else
-            echo "// RUN: %exits-with $expectedExit %baredafny $verb $dOptions ${options[@]}" '"%s" > "%t"' > $f
-            echo " " >> $f
-            cat $text >> $f
+            echo "// RUN: %exits-with $expectedExit %baredafny $verb $dOptions ${options[@]}" '"%s" > "%t"' > "$f"
+            echo " " >> "$f"
+            cat "$text" >> "$f"
           fi
         else
           if [ "$command" == "%check-legacy" ]; then
@@ -359,15 +361,16 @@ do
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
-            cat actual | grep -E '(Error|Warning):' > actual_error
+            cat actual | grep -E '(Error|Warning):' > "$actualError"
             actualid=
-            grep 'ID:' actual_error > /dev/null
+            grep 'ID:' "$actualError" > /dev/null
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
-              actualid=`cat actual_error | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
+              actualid=`cat "$actualError" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
             fi
-            act=`cat actual_error | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
+            act=`cat "$actualError" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
             if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
+              cat "$actualError"
             fi
             if [ -n "$msg" ]; then
               dif=`echo "$act" | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
@@ -440,7 +443,7 @@ do
       expectedExit=
       options=( )
   fi
-done < $file
+done < "$file"
 rm -rf *.tmp $text.*
 
 if [ "$inblock" == "1" ]; then
