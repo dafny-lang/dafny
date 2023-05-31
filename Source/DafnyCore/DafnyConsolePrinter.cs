@@ -50,7 +50,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     return "<nonexistent line>";
   }
 
-  private void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
+  public void WriteSourceCodeSnippet(Boogie.IToken tok, TextWriter tw) {
     string line = GetFileLine(((IToken)tok).Filepath, tok.line - 1);
     string lineNumber = tok.line.ToString();
     string lineNumberSpaces = new string(' ', lineNumber.Length);
