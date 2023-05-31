@@ -160,13 +160,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // public void Warning(MessageSource source, string errorId, IToken tok, string format, params object[] args) {
-    //   Contract.Requires(tok != null);
-    //   Contract.Requires(format != null);
-    //   Contract.Requires(args != null);
-    //   Warning(source, errorId, tok, String.Format(format, args));
-    // }
-
     public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
