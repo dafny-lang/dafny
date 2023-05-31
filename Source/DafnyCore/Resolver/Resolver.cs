@@ -560,7 +560,7 @@ namespace Microsoft.Dafny {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
             var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
-            var nw = cloner.CloneModuleDefinition(m, compileName);
+            var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -1190,7 +1190,7 @@ namespace Microsoft.Dafny {
 
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
-        var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
+        var exportView = cloner.CloneModuleDefinition(m, m.EnclosingModule, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);

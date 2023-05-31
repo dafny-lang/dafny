@@ -813,6 +813,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     : base(cloner, original) {
     name = original.Name;
     OptionalType = cloner.CloneType(original.OptionalType);
+    IsTypeExplicit = original.IsTypeExplicit;
     IsGhost = original.IsGhost;
 
     if (cloner.CloneResolvedFields) {

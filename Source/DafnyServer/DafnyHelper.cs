@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading;
 using Microsoft.Boogie;
 using DafnyServer;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -42,7 +44,7 @@ namespace Microsoft.Dafny {
     private bool Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
-      var program = ParseUtils.ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+      var program = new ProgramParser().ParseFiles(fname, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
         reporter, CancellationToken.None);
 
       var success = reporter.ErrorCount == 0;

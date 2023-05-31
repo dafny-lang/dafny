@@ -70,8 +70,8 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
 
   public bool ScopeIsInherited { get { return scopeIsInherited; } }
 
-  public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
-    if (IsOpaque) {
+  public void AddVisibilityScope(VisibilityScope scope, bool isOpaque) {
+    if (isOpaque) {
       opaqueScope.Augment(scope);
     } else {
       revealScope.Augment(scope);
@@ -816,7 +816,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 }
 
-public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration {
+public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -892,15 +892,20 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Contract.Invariant(CallGraph != null);
   }
 
-  public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : base(cloner, original) {
+  public ModuleDefinition(Cloner cloner, ModuleDefinition original, Name name) : this(cloner, original) {
     NameNode = name;
     IsBuiltinName = true;
+  }
+
+  public ModuleDefinition(Cloner cloner, ModuleDefinition original) : base(cloner, original) {
+    IsBuiltinName = original.IsBuiltinName;
+    NameNode = original.NameNode;
     PrefixIds = original.PrefixIds.Select(cloner.Tok).ToList();
+
     IsFacade = original.IsFacade;
     Attributes = original.Attributes;
     IsAbstract = original.IsAbstract;
     RefinementQId = original.RefinementQId;
-    EnclosingModule = original.EnclosingModule;
     defaultClassFirst = original.defaultClassFirst;
     foreach (var d in original.SourceDecls) {
       SourceDecls.Add(cloner.CloneDeclaration(d, this));
@@ -1167,9 +1172,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return TopLevelDecls.SelectMany(m => m.Assumptions(decl));
   }
+
+  public ModuleDefinition Clone(Cloner cloner) {
+    return new ModuleDefinition(cloner, this);
+  }
 }
 
-public class DefaultModuleDefinition : ModuleDefinition {
+public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModuleDefinition> {
 
   public List<Include> Includes { get; } = new();
   public IList<Uri> RootSourceUris { get; }
@@ -1186,6 +1195,9 @@ public class DefaultModuleDefinition : ModuleDefinition {
 
   public override bool IsDefaultModule => true;
   public override IEnumerable<Node> PreResolveChildren => Includes.Concat(base.PreResolveChildren);
+  public new DefaultModuleDefinition Clone(Cloner cloner) {
+    return new DefaultModuleDefinition(cloner, this);
+  }
 }
 
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
