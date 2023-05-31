@@ -355,15 +355,12 @@ do
           fi
         else
           if [ "$command" == "%check-legacy" ]; then
-            isverbose=
-            if [ "$checkIds" == "1" ]; then isverbose="/compileVerbose:0" ; fi
-            (cd "dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > actual
+            isverbose=-compileVerbose:$checkIds
+            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut"
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
             ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut"
-            echo "$dafny" $verb $isverbose $dOptions ${options[@]} $text
-            cat "$actualOut"
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
@@ -424,7 +421,7 @@ do
               FAIL=1
             fi
             if [ -e "$dir/$expect" ]; then
-              diff actual "$dir/$expect"
+              diff "$actualOut" "$dir/$expect"
               if [ "$?" != "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected
@@ -462,6 +459,6 @@ if [ "$FAIL" == "1" ] ; then
   ANYFAIL=1
 fi
 
-rm -f actual $text *.tmp
+rm -f $text *.tmp
 done
 exit $ANYFAIL
