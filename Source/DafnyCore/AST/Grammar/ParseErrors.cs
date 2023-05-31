@@ -10,7 +10,7 @@ public class ParseErrors {
 
   public enum ErrorId {
     // ReSharper disable once InconsistentNaming
-    g_include_has_errors, // In Reporting.cs
+    none,
     p_generic_syntax_error,
     p_duplicate_modifier,
     p_abstract_not_allowed,
@@ -132,13 +132,15 @@ public class ParseErrors {
     p_deprecated_this_in_constructor_modifies_clause,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
-    p_file_has_no_code, // TODO no description yet
     p_cli_option_error, // Has no description yet
+    p_internal_exception,
+    p_file_has_no_code,
+    p_include_has_errors
   }
 
   static ParseErrors() {
 
-    Add(ErrorId.g_include_has_errors,
+    Add(ErrorId.p_include_has_errors,
     @"
 This error is shown when parsing a file A that includes another file B when B has errors of its own.
 Without this message it can be easy to miss the fact that other errors in A are in fact caused

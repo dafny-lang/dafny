@@ -7,6 +7,8 @@ public class GenericErrors {
 
   public enum ErrorId {
     g_cli_option_error,
+    g_include_has_errors, // In Reporting.cs
+
     g_fuel_must_increase,
     g_no_old_unicode_char,
     g_unicode_escape_must_have_six_digits,

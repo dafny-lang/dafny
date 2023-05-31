@@ -5657,10 +5657,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
