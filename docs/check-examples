@@ -267,8 +267,8 @@ do
       verb=`echo $command | sed -e 's/%check-//' -e 's/-warn//'`
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-cli" ]; then
-        // These are command-line error tests, so the expected exit is typically 1
+      elif [ "$verb" == "cli" ]; then
+        ## These are command-line error tests, so the expected exit is typically 1
         if [ -z "$expectedExit" ]; then expectedExit=1 ; fi
         if [ "$lang" != "bash" ]; then
           echo EXPECTED A bash BLOCK, NOT $lang
@@ -276,18 +276,8 @@ do
         elif [ "$coverage" == "1" ]; then
           ## The lit tests currently expect the text of the test to start with 'dafny' and become '%baredafny'
           
-	  f=$outdir/$(basename $file)_${n}.dfy
-          if  [ "$command" == "%check-legacy" ]; then
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $dOptions ${options[@]} '"%s" > "%t"' > $f
-            echo " " >> $f
-            cat $text >> $f
-          elif [ "$command" == "%check-cli" ]; then
-            echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`" " > /dev/null 2> /dev/null" > $f
-          else
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
-            echo " " >> $f
-            cat $text >> $f
-          fi
+	  f="$outdir/$(basename $file)_${n}.dfy"
+          echo "// RUN: %exits-with" $expectedExit "%bare`cat $text`" " > /dev/null 2> /dev/null" > "$f"
         else
           . $text > actual 2> errortext
           actualExit=$?
@@ -328,19 +318,16 @@ do
           if [ "$defaultCommand" == "%check-resolve" ]; then defaultExit=2 ; fi
         fi
         if [ -z "$expectedExit" ]; then expectedExit=$defaultExit ; fi
-        if [ "$lang" != "dafny" ]; then
-          echo EXPECTED A dafny BLOCK, NOT $lang
-          FAIL=1
-        elif [ "$coverage" == "1" ] ; then
+        if [ "$coverage" == "1" ] ; then
           f=$outdir/$(basename $file)_${n}.dfy
           if  [ "$command" == "%check-legacy" ]; then
             echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
             echo " " >> $f
             cat $text >> $f
           elif [ "$command" == "%check-cli" ]; then
-            echo "// RUN: %exits-with" $ec "%bare$text" " > /dev/null 2> /dev/null" > $f
+            echo "// RUN: %exits-with $expectedExit %bare`cat $text` > /dev/null 2> /dev/null" > $f
           else
-            echo "// RUN: %exits-with" $expectedExit "%baredafny" $verb $dOptions ${options[@]} '"%s" > "%t"' > $f
+            echo "// RUN: %exits-with $expectedExit %baredafny $verb $dOptions ${options[@]}" '"%s" > "%t"' > $f
             echo " " >> $f
             cat $text >> $f
           fi
@@ -352,7 +339,7 @@ do
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            "$dafny" $verb --function-syntax:4 $isverbose $dOptions ${options[@]} $text > actual
+            "$dafny" $verb $isverbose $dOptions ${options[@]} $text > actual
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
@@ -446,7 +433,7 @@ if [ "$inblock" == "1" ]; then
 fi
 
 if [ "$FAIL" == "1" ] ; then 
-  echo Test Failure: $file
+  echo "Test Failure: $file"
   ANYFAIL=1
 fi
 

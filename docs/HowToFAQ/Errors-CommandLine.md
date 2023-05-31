@@ -160,7 +160,7 @@ You can use `--print` to see the output. Also for an input file `test.dfy`, the 
 
 ## **dafny: Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -printMode:zzz
 ```
@@ -180,18 +180,18 @@ But 'json' is also an option. Any other choice is illegal and results in this er
 
 ## **dafny: Error: Invalid argument _argument_ to option functionSyntax_help_** {#cli_function_syntax}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -functionSyntax:z
 ```
 
-The `functionSynax` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
+The `functionSyntax` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
 most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
 It is also recommended to use the new CLI, with the option `--function-syntax`.
 
 ## **dafny: Error: Invalid argument _argument_ to option quantifierSyntax_help_** {#cli_quantifier_syntax}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -quantifierSyntax:z
 ```
@@ -202,7 +202,7 @@ It is also recommended to use the new CLI, with the option `--quantifier-syntax`
 
 ## **dafny: Error: Invalid argument _argument_ to option verificationLogger _help_** {#cli_verification_logger}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -verificationLogger:z
 ```
@@ -212,7 +212,7 @@ The option name in the new CLI is `--log-format`.
 
 ## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -testContracts:z
 ```
@@ -222,7 +222,7 @@ The similar option in the new CLI is `--test-assumptions`.
 
 ## **dafny: Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny -printIncludes:z
 ```
@@ -231,7 +231,7 @@ The `printIncludes` option has these alternatives: None, Immediate, Transitive.
 
 ## **Argument '_argument_' not recognized. _Alternatives_** {#cli_quantifier_syntax}
 
-<!-- %check-cli-err -->
+<!-- %check-cli -->
 ```bash 
 dafny resolve --quantifier-syntax:2 null.dfy
 ```
