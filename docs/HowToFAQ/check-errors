@@ -23,6 +23,12 @@ csfiles="../../Source/DafnyCore/Rewriters/*.cs ../../Source/DafnyCore/Rewriters/
 
 exit 0
 
+echo ">>>> REFINEMENT"
+
+csfiles="../../Source/DafnyCore/Resolver/RefinementTransformer.cs"
+./check-errors-a Errors-Refinement.md "$csfiles" ../../Source/DafnyCore/Resolver/RefinementErrors.cs
+
+exit 0
 echo ">>>> COMPILER"
 
 csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
