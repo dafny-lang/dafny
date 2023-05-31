@@ -4,7 +4,7 @@
 datatype Foo = Foo(x: nat)
 {
   // the following once generated malformed Boogie
-  const good?: bool := 0 < x < 5;
+  const good?: bool := 0 < x < 5
 }
 
 method Main()

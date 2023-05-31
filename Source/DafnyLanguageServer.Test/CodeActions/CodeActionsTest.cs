@@ -63,7 +63,7 @@ method f(b: bool) returns (i: int)
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10 ><{
   (>Assert postcondition at return location where it fails->  assert i > 10;
@@ -74,7 +74,7 @@ const x := 1;
     public async Task CodeActionSuggestsInliningPostConditionWithExtraTabIndentation() {
       var t = "\t";
       await TestCodeAction($@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
 {t}{t}{t}{t}{t}{t}ensures i > 10 ><{{
 {t}{t}{t}(>Assert postcondition at return location where it fails->{t}assert i > 10;
@@ -84,7 +84,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
 ><{
@@ -95,7 +95,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2bis() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
 ><{
@@ -108,7 +108,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation2C() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
   ><{(>Assert postcondition at return location where it fails-> assert i > 10;
@@ -118,7 +118,7 @@ const x := 1;
     [Fact]
     public async Task CodeActionSuggestsInliningPostConditionWithExtraIndentation3() {
       await TestCodeAction(@"
-const x := 1;
+const x := 1
   method f() returns (i: int)
     ensures i > 10
   ><{

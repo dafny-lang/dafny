@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 method m_unproven(x:int) returns (y:int)
-  ensures y == 2*x;
+  ensures y == 2*x
 {  // error: postcondition violation
 }
 
@@ -14,10 +14,10 @@ ghost function f(x:int) : int
 abstract module Abstract
 {
   function inc(x:int) :int
-    ensures inc(x) > x;
+    ensures inc(x) > x
 
   method M(x: int) returns (r: int)
-    ensures r == x;
+    ensures r == x
   {  // error: postcondition violation
     var y :| 0 <= y;
     r := x + 3;

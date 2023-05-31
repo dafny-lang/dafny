@@ -119,7 +119,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
     dmod.IsStatic = false;
   }
   if (dmod.IsOpaque && ((allowed & AllowedDeclModifiers.Opaque) == 0)) {
-    SemErr(dmod.OpaqueToken, $"{declCaption} cannot be declared 'opaque'");
+    SemErr(ErrorId.p_no_opaque, dmod.OpaqueToken, $"{declCaption} cannot be declared 'opaque'");
     dmod.IsOpaque = false;
   }
 }
@@ -999,7 +999,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
-    (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.tok.Prev,
+    (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.RangeToken,
           "There is no point to an export declaration at the top level");
     .)
   )
@@ -1333,7 +1333,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   [ GenericParameters<typeArgs, true> ]
   (
   "="                                      (. bodyStart = t; .)
-  [ ellipsis                               (. SemErr(t, // Help users adjust to the new syntax
+  [ ellipsis                               (. SemErr(ErrorId.p_bad_datatype_refinement, t, // Help users adjust to the new syntax
       $"in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement"); .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
@@ -1431,7 +1431,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
-    (. SemErr(la, "expected an identifier after 'const' and any attributes"); .)
+    (. SemErr(ErrorId.p_const_decl_missing_identifier, la, "expected an identifier after 'const' and any attributes"); .)
   |
     CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
     [ ellipsis ]
@@ -1581,9 +1581,9 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
   .)
   { IF(IsKeywordForFormal())
     ( "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'ghost' in this context"); } .)
-    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'new' in this context"); } .)
-    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'nameonly' in this context"); } .)
-    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorId.p_output_of_function_not_ghost, t, "formal cannot be declared 'older' in this context"); } .)
+    | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(ErrorId.p_no_new_on_output_formals, t, "formal cannot be declared 'new' in this context"); } .)
+    | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(ErrorId.p_no_nameonly_on_output_formals, t, "formal cannot be declared 'nameonly' in this context"); } .)
+    | "older"                    (. if (allowOlderKeyword) { isOlder = true; } else { SemErr(ErrorId.p_no_older_on_output_formals, t, "formal cannot be declared 'older' in this context"); } .)
     )
   }
   IdentType<out var id, out var originalId, out ty, false> 
@@ -1597,7 +1597,12 @@ FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
   ( ":" Type<out ty> 
   | (. SemErr(ErrorId.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
-  [ ( ":=" | "=" ) (. SemErr(ErrorId.p_no_init_for_var_field, t, "a mutable field may not have an initializer"); Expression e; .) Expression<out e, true, true> ]
+  [ ( ":=" | "=" ) (. var optoken = t; Expression e; .)
+    Expression<out e, true, true> 
+      (.              var erange = new RangeToken(optoken, e.EndToken);
+                      SemErr(ErrorId.p_no_init_for_var_field, erange, "a mutable field may not have an initializer"); 
+      .) 
+  ]
   .
 
 CIdentType<out Name/*!*/ name, out Type ty>
@@ -1911,15 +1916,16 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                          // Note: When ranges are refactored, make the first use of openBracket a range
                                          // that extends through closeBracket
                                          SemErr(ErrorId.p_extraneous_k, 
-                                                Errors.CodeAction(openBracket, closeBracket.Next), 
+                                                new RangeToken(openBracket, closeBracket), 
                                                 "type of _k can only be specified for least and greatest lemmas"); 
                                        } 
                                     .)
     ]
     (. var isCompilable = (isPlainOlMethod || isConstructor) && !dmod.IsGhost; .)
     Formals<true, isCompilable, isTwoStateLemma, false, ins>
-    [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
+    [ "returns"                                 (. var returnsToken = t; .)
       Formals<false, isCompilable, false, false, outs>
+      (. if (isConstructor) { SemErr(ErrorId.p_constructors_have_no_out_parameters, new RangeToken(returnsToken, t), "constructors cannot have out-parameters"); } .)
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )                                             (. tokenWithTrailingDocString = t; .)
@@ -2022,7 +2028,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
-       SemErr(ErrorId.p_reads_star_must_be_alone, fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -2108,7 +2114,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
   [ ":="        (. tok = t; .)
     Expression<out defaultValue, true, true>
     (. if (!incoming) {
-         SemErr(ErrorId.p_no_defaults_for_out_parameters, Errors.CodeAction(tok,t.Next), "out-parameters cannot have default-value expressions");
+         SemErr(ErrorId.p_no_defaults_for_out_parameters, new RangeToken(tok,t), "out-parameters cannot have default-value expressions");
          defaultValue = null;
        }
     .)
@@ -2168,7 +2174,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_set_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "set type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "set type expects only one type argument");
                                        }
                                        ty = new SetType(true, gt != null ?gt[0] : null);
                                     .)
@@ -2176,7 +2182,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_iset_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "iset type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "iset type expects only one type argument");
                                        }
                                        ty = new SetType(false, gt != null ? gt[0] : null);
                                     .)
@@ -2184,7 +2190,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_multiset_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "multiset type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "multiset type expects only one type argument");
                                        }
                                        ty = new MultiSetType(gt != null ? gt[0] : null);
                                     .)
@@ -2192,7 +2198,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. if (gt != null && gt.Count > 1) {
                                          SemErr(ErrorId.p_seq_only_one_type_parameter, 
-                                           Errors.CodeAction(startToken.Next, t), "seq type expects only one type argument");
+                                           new RangeToken(startToken.Next, t), "seq type expects only one type argument");
                                        }
                                        ty = new SeqType(gt != null ? gt[0] : null);
                                     .)
@@ -2205,7 +2211,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(true, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr(ErrorId.p_map_needs_two_type_parameters, 
-                                           Errors.CodeAction(startToken.Next, t), "map type expects two type arguments");
+                                           new RangeToken(startToken.Next, t), "map type expects two type arguments");
                                          ty = new MapType(true, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(true, gt[0], gt[1]);
@@ -2217,7 +2223,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                          ty = new MapType(false, null, null);
                                        } else if (gt.Count != 2) {
                                          SemErr(ErrorId.p_imap_needs_two_type_parameters, 
-                                           Errors.CodeAction(startToken.Next, t), "imap type expects two type arguments");
+                                           new RangeToken(startToken.Next, t), "imap type expects two type arguments");
                                          ty = new MapType(false, gt[0], gt.Count == 1 ? new InferredTypeProxy() : gt[1]);
                                        } else {
                                          ty = new MapType(false, gt[0], gt[1]);
@@ -2236,7 +2242,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
   )
-  (. startToken =  startToken ?? ty.StartToken ?? tok;
+  (. startToken = startToken ?? ty.StartToken ?? tok;
      ty.RangeToken = new RangeToken(startToken, t);
   .)
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2252,7 +2258,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
        } else {
          // make sure no "ghost" keyword was used in the tuple-looking type
          foreach (var ghostToken in argumentGhostTokens.Where(ghostToken => ghostToken != null)) {
-           SemErr(ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
+           SemErr(ErrorId.p_no_ghost_arrow_type_arguments, ghostToken, $"arrow-type arguments may not be declared as 'ghost'");
          }
          gt = tupleArgTypes;
        }
@@ -2436,7 +2442,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType, out IToken openBracket, out IToken closeBracket> 
-        (. SemErr(t, "a formal [ ] declaration is only allowed for least and greatest predicates"); .)
+        (. SemErr(ErrorId.p_formal_ktype_only_in_least_and_greatest_predicates,
+                  new RangeToken(openBracket, t), 
+                  "a formal [ ] declaration is only allowed for least and greatest predicates");
+        .)
       ]
       [ Formals<true, true, isTwoState, true, formals>
       ]
@@ -2448,7 +2457,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
     ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
+    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_inductive_predicate, t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
     (. isLeastPredicate = true; .)
@@ -2467,7 +2476,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     .)
     ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
       "predicate"     
-    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
+    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_copredicate, t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
     { Attribute<ref attrs> }
@@ -2498,12 +2507,14 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        var what = isPredicate || isLeastPredicate || isGreatestPredicate ? "predicate" : "function";
  
        if (isTwoState) {
-         SemErr(byMethodBody.Tok, $"a 'by method' implementation is not allowed on a twostate {what}");
+         var byrange = new RangeToken(byMethodTok, byMethodBody.EndToken);
+         SemErr(ErrorId.p_no_by_method_in_twostate, byrange, $"a 'by method' implementation is not allowed on a twostate {what}");
          byMethodBody = null;
          functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
 
        } else if (isLeastPredicate || isGreatestPredicate) {
-         SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
+         var byrange = new RangeToken(byMethodTok, byMethodBody.EndToken);
+         SemErr(ErrorId.p_no_by_method_in_extreme_predicate, byrange, "a 'by method' implementation is not allowed on an extreme predicate");
          byMethodBody = null;
          functionMethodToken = null; // to avoid a confusing error message below, drop the "method" keyword, if present
        }
@@ -2512,7 +2523,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         * "functionMethodToken" and "dmod" variables to erase having seen any illegal tokens.
         */
        if (functionMethodToken != null) {
-         SemErr(functionMethodToken,
+         SemErr(ErrorId.p_no_by_method_for_ghost_function, functionMethodToken,
            $"to use a 'by method' implementation with a {what}, declare '{name.Value}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
@@ -2527,7 +2538,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          var adjective = isTwoState ? "twostate" : isLeastPredicate ? "least" : "greatest";
 
          if (functionMethodToken != null) {
-           SemErr(functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
+           SemErr(ErrorId.p_twostate_and_extreme_are_always_ghost, functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
            functionMethodToken = null;
          }
          AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
@@ -2538,19 +2549,29 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          Contract.Assert(headToken != null);
          if (functionMethodToken != null) {
            if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(t, $"a {what} is always ghost and is declared with '{what}'");
+             SemErr(ErrorId.p_old_ghost_syntax, functionMethodToken, $"a {what} is always ghost and is declared with '{what}'");
              functionMethodToken = null;
              dmod.IsGhost = false; // don't report errors about 'ghost', too
            } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version4 ||
                       theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
-             SemErr(functionMethodToken, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             var erange = new RangeToken(functionMethodToken.Prev, functionMethodToken);
+             if (isPredicate) {
+              SemErr(ErrorId.p_deprecating_predicate_method, erange, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             } else {
+              SemErr(ErrorId.p_deprecating_function_method, erange, $"the phrase '{what} method' is not allowed when using --function-syntax:4; to declare a compiled {what}, use just '{what}'");
+             }
              functionMethodToken = null;
            } else if (dmod.IsGhost && theOptions.FunctionSyntax != FunctionSyntaxOptions.Version3) {
-             SemErr(t, $"there is no such thing as a 'ghost {what} method'");
+             var erange = new RangeToken(headToken, functionMethodToken);
+             if (isPredicate) {
+              SemErr(ErrorId.p_no_ghost_predicate_method, erange, $"there is no such thing as a 'ghost {what} method'");
+             } else {
+              SemErr(ErrorId.p_no_ghost_function_method, erange, $"there is no such thing as a 'ghost {what} method'");
+             }
              functionMethodToken = null;
            }
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
-           SemErr(headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method' when using --function-syntax:migration3to4");
+           SemErr(ErrorId.p_migration_syntax, headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method' when using --function-syntax:migration3to4");
          }
          AllowedDeclModifiers allowed = AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
@@ -2612,7 +2633,16 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           SemErr(formal.tok, "formal cannot be declared 'ghost' in this context");
+           IToken t = formal.tok;
+           IToken ghostToken = null;
+           while (t != null && t.val != "," && t.val != "(") {
+            if (t.val == "ghost") {
+              ghostToken = t;
+              break;
+            }
+            t = t.Prev;
+           }
+           SemErr(ErrorId.p_no_ghost_formal, ghostToken ?? formal.tok, "formal cannot be declared 'ghost' in this context");
          }
        }
      }
@@ -2671,12 +2701,17 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
   { RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
   | EnsuresClause<ens, false>
-  | (. if (decreases == null) {
-         SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+  | (. var decreasesToken = la;
+       var decreasesForbidden = decreases == null;
+       if (decreases == null) {
          decreases = new List<Expression/*!*/>();
        }
     .)
     DecreasesClause<decreases, ref decAttrs, false, false>
+    (. if (decreasesForbidden) {
+       var erange = new RangeToken(decreasesToken, t);
+       SemErr(ErrorId.p_no_decreases_for_extreme_predicates, erange, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+    }.)
   }
   .
 
@@ -2690,14 +2725,14 @@ PredicateResult<string name, out Formal result>
      "("
        GIdentType<false, false, false, false, out var range, out var nameId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (.
-          if(ty is not BoolType) {
-            SemErr(t, $"{name} return type should be bool, got {ty}");
+          if (ty is not BoolType) {
+            SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
           result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, false)
             { RangeToken = range, IsTypeExplicit = ty != null };
        .)
      ")"
-     | Type<out returnType> (. SemErr(t, $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
+     | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.StartToken, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)
   )
   .
 
@@ -2710,7 +2745,7 @@ PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
    */
   ( "*"                        (. e = new WildcardExpr(t);
                                   if (!allowWild) {
-                                    SemErr(e.tok, "A '*' expression is not allowed here");
+                                    SemErr(ErrorId.p_no_wild_expression, e.tok, "A '*' expression is not allowed here");
                                   }
                                .)
   | Expression<out e, false, allowLambda>
@@ -2729,7 +2764,7 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowLemma,
    */
   ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null);
                                   if (!allowWild) {
-                                     SemErr(t, "A '*' frame expression is not permitted here");
+                                     SemErr(ErrorId.p_no_wild_frame_expression, t, "A '*' frame expression is not permitted here");
                                   }
                                .)
   | FrameExpression<out fe, allowLemma, allowLambda>
@@ -2764,7 +2799,8 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
-  [ "by" "method"             (. byMethodTok = t; .)
+  [ "by"                      (. byMethodTok = t; .)
+    "method"
     BlockStmt<out byMethodBody, out _, out _>
   ]
   .
@@ -2856,7 +2892,7 @@ SkeletonStmt<out Statement s>
   ellipsis                             (. dotdotdot = t; .)
   ";"
   (. s = new SkeletonStatement(new RangeToken(dotdotdot, t));
-     errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+     errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
   .)
   .
 
@@ -2967,7 +3003,7 @@ UpdateStmt<out Statement/*!*/ s>
       }
     )
     ";"                            (. endTok = t; .)
-  | ":"                            (. SemErr(t, "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
+  | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   )
 | ":-"                             (. x = t; startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
@@ -3060,7 +3096,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
     [ "(" Expression<out arrayElementInit, true, true>
       ")"
     | "["                            (. if (ee.Count > 1) {
-                                          SemErr(t, "An initializing element display is allowed only for 1-dimensional arrays");
+                                          SemErr(ErrorId.p_initializing_display_only_for_1D_arrays, t, "An initializing element display is allowed only for 1-dimensional arrays");
                                         }
                                         display = new List<Expression>();
                                      .)
@@ -3103,7 +3139,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { Attribute<ref attrs> }
       LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     }
-    [ ( ":=" | "=" (. SemErr(t, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
+    [ ( ":=" | "=" (. SemErr(ErrorId.p_no_equal_for_initializing, t, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
                                      (. assignTok = t; .)
       Rhs<out r>                     (. rhss.Add(r); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -3157,7 +3193,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     CasePatternLocal<out pat, isGhost>
     ( ":="
     | { Attribute<ref attrs> }
-      ":|"                          (.  SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
+      ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
     )
     Expression<out e, false, true>
 
@@ -3196,7 +3232,7 @@ IfStmt<out Statement/*!*/ ifStmt>
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
     | ellipsis                           (. guardEllipsis = t;
-                                            errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                            errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                          .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd> 
@@ -3300,7 +3336,7 @@ WhileStmt<out Statement stmt>
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; 
-                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                    errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                  .)
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
@@ -3308,7 +3344,7 @@ WhileStmt<out Statement stmt>
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
       ellipsis                   (. bodyEllipsis = t; isDirtyLoop = false;
-                                    errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                    errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                   .)
     | /* go body-less */
     )
@@ -3316,7 +3352,7 @@ WhileStmt<out Statement stmt>
       var rangeToken = new RangeToken(startToken, t);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
-          SemErr(mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
+          SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.tok, "'modifies' clauses are not allowed on refining loops");
         }
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
@@ -3387,7 +3423,7 @@ ForLoopDirection<out bool goingUp>
   (. if (t.val == "downto") {
        goingUp = false;
      } else if (t.val != "to") {
-       SemErr(t, "Expected 'to' or 'downto'");
+       SemErr(ErrorId.p_to_or_downto, t, "Expected 'to' or 'downto'");
      }
   .)
   .
@@ -3410,7 +3446,7 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
-       SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
+       SemErr(ErrorId.p_no_decreases_expressions_with_star, e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
      }
   .)
   .
@@ -3556,11 +3592,11 @@ AssertStmt<out Statement/*!*/ s>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     | (.
-        SemErr(t, "expected either 'by' or a semicolon following the assert expression");
+        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
       .)
     )
   | ellipsis                                   (. dotdotdot = t; 
-                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                  errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
     ";"
   )
@@ -3584,7 +3620,7 @@ ExpectStmt<out Statement/*!*/ s>
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
   | ellipsis                                   (. dotdotdot = t; 
-                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                  errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
   )
   [ "," Expression<out m, false, true> ]
@@ -3609,7 +3645,7 @@ AssumeStmt<out Statement/*!*/ s>
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
   | ellipsis                                   (. dotdotdot = t; 
-                                                  errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                                  errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
   )
   ";"
@@ -3674,7 +3710,7 @@ ForallStmt<out Statement/*!*/ s>
           QuantifierDomain<out bvars, out qattrs, out range, true, true, true>
         ]
   )
-  (. if (bvars == null) errors.Deprecated(startToken, "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
+  (. if (bvars == null) errors.Deprecated(ErrorId.p_deprecated_forall_with_no_bound_variables, startToken, "a forall statement with no bound variables is deprecated; use an 'assert by' statement instead");
      if (bvars == null) { bvars = new List<BoundVar>(); }
      if (range == null) { range = new LiteralExpr(x, true); }
   .)
@@ -3686,7 +3722,7 @@ ForallStmt<out Statement/*!*/ s>
     BlockStmt<out block, out bodyStart, out bodyEnd>
   ]
   (. if (theOptions.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
-        SemErr(t, "a forall statement with an ensures clause must have a body");
+        SemErr(ErrorId.p_forall_with_ensures_must_have_body, t, "a forall statement with an ensures clause must have a body");
      }
 
      s = new ForallStmt(new RangeToken(startToken, t), bvars, qattrs, range, ens, block);
@@ -3712,11 +3748,11 @@ ModifyStmt<out Statement s>
     { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
   | ellipsis                            (. ellipsisToken = t; 
-                                           errors.Deprecated(t, "the ... refinement feature in statements is deprecated");
+                                           errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                          .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
-                                        (. errors.Deprecated(t, "the modify statement with a block statement is deprecated");
+                                        (. errors.Deprecated(ErrorId.p_deprecated_modify_statement_with_block, t, "the modify statement with a block statement is deprecated");
                                          .)
   | SYNC ";"         (. endTok = t; .)
   )
@@ -3745,7 +3781,7 @@ CalcStmt<out Statement s>
   "calc"                                                  (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
   [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
-                                                               SemErr(opTok, "the main operator of a calculation must be transitive");
+                                                               SemErr(ErrorId.p_calc_operator_must_be_transitive, opTok, "the main operator of a calculation must be transitive");
                                                              } else {
                                                                resOp = userSuppliedOp;
                                                              }
@@ -3756,7 +3792,7 @@ CalcStmt<out Statement s>
     ";"
     [ CalcOp<out opTok, out op>                           (. var maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
-                                                               SemErr(opTok, "this operator cannot continue this calculation");
+                                                               SemErr(ErrorId.p_invalid_calc_op_combination, opTok, "this operator cannot continue this calculation");
                                                              } else {
                                                                stepOp = op;
                                                                resOp = maybeOp;
@@ -3786,7 +3822,7 @@ CalcStmt<out Statement s>
   "}"
   (.
     if (danglingOperator != null) {
-      SemErr(danglingOperator, "a calculation cannot end with an operator");
+      SemErr(ErrorId.p_calc_dangling_operator, danglingOperator, "a calculation cannot end with an operator");
     }
     if (lines.Count > 0) {
       // Repeat the last line to create a dummy line for the dangling hint
@@ -3858,7 +3894,7 @@ QSep = "::".
  */
 Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken semiToken; .)
-  [ "new" (. SemErr(t, "Side-effect methods calls such as constructors are not allowed in expressions."); .) ]
+  [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowLemma, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
@@ -3913,7 +3949,7 @@ ImpliesExpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, b
                                                                  e0.RangeToken = new RangeToken(startToken, t);
                                                               .)
       }
-      [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) 
+      [ IF(IsImpliesOp()) ImpliesOp (. SemErr(ErrorId.p_ambiguous_implies, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) 
         LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> { IF(IsImpliesOp() || IsExpliesOp()) ((ImpliesOp | ExpliesOp) LogicalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> ) } // resynch after error
       ]
     )
@@ -3925,7 +3961,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp() || IsExpliesOp())
-    ( ImpliesOp | ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
+    ( ImpliesOp | ExpliesOp (. SemErr(ErrorId.p_ambiguous_implies, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
     (. x = t; .)
     ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
                                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
@@ -3949,7 +3985,7 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
   { IF(IsAndOp() || IsOrOp())  /* read a LogicalExpression as far as possible */
     ( AndOp | OrOp ) (. x = t; 
                         if (firstOp == null) firstOp = t; 
-                        if (firstOp.kind != t.kind) SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate.");
+                        if (firstOp.kind != t.kind) SemErr(ErrorId.p_ambiguous_and_or, t, "Ambiguous use of && and ||. Use parentheses to disambiguate.");
                      .)
     RelationalExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>
          (. startToken = e0.StartToken;
@@ -4029,27 +4065,27 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                    .)
       RelOp<out x, out op, out k>  (. switch (op) {
                                         case BinaryExpr.Opcode.Eq:
-                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "chaining not allowed from the previous operator"); kind = 3; }
+                                          if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_equal_chaining, x, "chaining not allowed from the previous operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Neq:
-                                          if (hasSeenNeq) { SemErr(x, "a chain cannot have more than one != operator"); kind = 3; }
-                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(x, "this operator cannot continue this chain"); kind = 3; }
+                                          if (hasSeenNeq) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "a chain cannot have more than one != operator"); kind = 3; }
+                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "this operator cannot continue this chain"); kind = 3; }
                                           hasSeenNeq = true;  break;
                                         case BinaryExpr.Opcode.Lt:
                                         case BinaryExpr.Opcode.Le:
                                           if (kind == 0) { kind = 1; }
-                                          else if (kind != 1) { SemErr(x, "this operator chain cannot continue with an ascending operator"); kind = 3; }
+                                          else if (kind != 1) { SemErr(ErrorId.p_invalid_descending_chaining, x, "this operator chain cannot continue with an ascending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Gt:
                                         case BinaryExpr.Opcode.Ge:
                                           if (kind == 0) { kind = 2; }
-                                          else if (kind != 2) { SemErr(x, "this operator chain cannot continue with a descending operator"); kind = 3; }
+                                          else if (kind != 2) { SemErr(ErrorId.p_invalid_ascending_chaining, x, "this operator chain cannot continue with a descending operator"); kind = 3; }
                                           break;
                                         case BinaryExpr.Opcode.Disjoint:
-                                          if (kind != 4) { SemErr(x, "can only chain disjoint (!!) with itself"); kind = 3; }
+                                          if (kind != 4) { SemErr(ErrorId.p_invalid_disjoint_chaining, x, "can only chain disjoint (!!) with itself"); kind = 3; }
                                           break;
                                         default:
-                                          SemErr(x, "this operator cannot be part of a chain");
+                                          SemErr(ErrorId.p_operator_does_not_chain, x, "this operator cannot be part of a chain");
                                           kind = 3;  break;
                                       }
                                    .)
@@ -4088,9 +4124,9 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
     [ IF(la.val == "!")
       "!"          (. y = t; .)
     ]              (. if (y == Token.NoToken) {
-                        SemErr(x, "invalid relational operator");
+                        SemErr(ErrorId.p_bang_not_a_relational_op, x, "invalid relational operator");
                       } else if (y.pos != x.pos + 1) {
-                        SemErr(x, "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
+                        SemErr(ErrorId.p_invalid_relational_op, new RangeToken(x,y), "invalid relational operator (perhaps you intended \"!!\" with no intervening whitespace?)");
                       } else {
                         x.val = "!!";
                         y.val = "";
@@ -4186,7 +4222,7 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
     )
     AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>   (. var startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
     { IF(IsBitwiseOp())
-      ( "&" | "|" | "^" )                                (. if (x.kind != t.kind && !ambig) { ambig = true; SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); }
+      ( "&" | "|" | "^" )                                (. if (x.kind != t.kind && !ambig) { ambig = true; SemErr(ErrorId.p_ambiguous_bitop, t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); }
                                                             x = t; .)
       AsExpression<out e1, allowLemma, allowLambda, allowBitwiseOps> (. startToken = e0.StartToken; e0 = new BinaryExpr(x, op, e0, e1); e0.RangeToken = new RangeToken(startToken, t); .)
     }
@@ -4294,7 +4330,7 @@ LiteralExpression<out Expression e>
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
                                                   Util.ValidateEscaping(theOptions, t, s, false, errors);
                                                   if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
-                                                    errors.SemErr(t, "too many characters in character literal");
+                                                    errors.SemErr(ErrorId.p_invalid_char_literal, t, "too many characters in character literal");
                                                   }
                                                   e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
@@ -4354,17 +4390,17 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
-= (. IToken x;
+= (. IToken lp; IToken rp;
      var args = new List<ActualBinding>();
   .)
-  "("                                        (. x = t; .)
+  "("                                        (. lp = t; .)
   [ TupleArgs<args> ]
-  ")"
+  ")"                                        (. rp = t; .)
   (. if (args.Count == 1 && !args[0].IsGhost) {
        if (args[0].FormalParameterName != null) {
-         SemErr(args[0].FormalParameterName, "binding not allowed in parenthesized expression");
+         SemErr(ErrorId.p_no_parenthesized_binding, new RangeToken(lp,rp), "binding not allowed in parenthesized expression");
        }
-       e = new ParensExpression(x, args[0].Actual);
+       e = new ParensExpression(lp, args[0].Actual);
      } else {
        // Compute the actual position of ghost arguments
        var ghostness = new bool[args.Count];
@@ -4386,8 +4422,8 @@ ParensExpression<out Expression e>
        }
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       BuiltinsModifiers.Add(b => b.TupleType(x, args.Count, true, argumentGhostness));
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
+       BuiltinsModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
+       e = new DatatypeValue(lp, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorName(args.Count), args);
      }
   .)
   .
@@ -4435,7 +4471,7 @@ SetDisplayExpr<out Expression e>
     "("                                       (. x = t; startToken = startToken ?? t; .)
      Expression<out e, true, true>            (.
                                                   if (token == null || token.kind != _multiset) {
-                                                    SemErr(x, "A forming expression must be a multiset");
+                                                    SemErr(ErrorId.p_must_be_multiset, x, "A forming expression must be a multiset");
                                                   }
                                                   e = new MultiSetFormingExpr(x, e);
                                                .)
@@ -4448,15 +4484,16 @@ SetDisplayExpr<out Expression e>
 SeqDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
+     IToken startInstantiation = null;
      Type explicitTypeArg = null;
      Expression n, f;
      e = dummyExpr;
   .)
   (
     "seq"                          (. x = t; .)
-    [ (. var gt = new List<Type>(); .)
+    [ (. var gt = new List<Type>(); startInstantiation = la; .)
     GenericInstantiation<gt>     (. if (gt.Count > 1) {
-                                      SemErr("seq type expects only one type argument");
+                                      SemErr(ErrorId.p_seq_has_one_type_argument, new RangeToken(startInstantiation,t), "seq type expects only one type argument");
                                     } else {
                                       explicitTypeArg = gt[0];
                                     }
@@ -4520,7 +4557,7 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
     ":=" Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (bodyLeft == null && bvars.Count != 1) {
-       SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
+       SemErr(ErrorId.p_map_comprehension_must_have_term_expression, t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
        e = dummyExpr;
      } else {
        e = new MapComprehension(mapToken, new RangeToken(mapToken, t), finite, bvars, range ?? new LiteralExpr(Token.NoToken, true), bodyLeft, bodyRight, attrs);
@@ -4617,12 +4654,12 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
-                                           SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
+                                           SemErr(ErrorId.p_no_patterns_in_let_such_that, lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
                                          }
                                        }
                                     .)
     | ":-"                          (. isLetOrFail = true; .)
-    | "=" (. SemErr(t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
+    | "=" (. SemErr(ErrorId.p_no_equal_in_let_initialization, t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); lastRHS = la; .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
@@ -4636,14 +4673,16 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
       if (letLHSs.Count == 1) {
         lhs = letLHSs[0];
       } else {
-        SemErr(lastLHS, "':-' can have at most one left-hand side");
+        var erange = new RangeToken(letLHSs[1].StartToken.Prev, letLHSs[^1].EndToken);
+        SemErr(ErrorId.p_elephant_has_one_lhs, erange, "':-' can have at most one left-hand side");
       }
       Expression rhs = null;
       Contract.Assert(letRHSs.Count > 0);
       if (letRHSs.Count == 1) {
         rhs = letRHSs[0];
       } else {
-        SemErr(lastRHS, "':-' must have exactly one right-hand side");
+        var erange = new RangeToken(letRHSs[0].EndToken.Next, letRHSs[^1].EndToken);
+        SemErr(ErrorId.p_elephant_has_one_rhs, erange, "':-' must have exactly one right-hand side");
       }
       e = new LetOrFailExpr(x, lhs, rhs, e);
     } else {
@@ -5091,7 +5130,7 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
     Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (body == null && bvars.Count != 1) {
-       SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
+       SemErr(ErrorId.p_set_comprehension_needs_term_expression, t, "a set comprehension with more than one bound variable must have a term expression");
        q = dummyExpr;
      } else {
        // This production used to have its own version of QuantifierDomain in which the
@@ -5142,7 +5181,7 @@ Ident<out IToken/*!*/ x>
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
   | "opaque"     (. t.kind = _ident; .) // convert it to an ident
-                 (. errors.Deprecated(t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
+                 (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   )
   (. x = t; .)
   .
@@ -5169,7 +5208,7 @@ DotSuffix<out IToken x, out IToken y>
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
                         // Also it is not currently reachable, because decimaldigits does not yet support exponents
-                        SemErr(x, "invalid name after a '.'");
+                        SemErr(ErrorId.p_invalid_name_after_dot, x, "invalid name after a '.'");
                       } else {
                         int dot = x.val.IndexOf('.');
                         if (0 <= dot) {
@@ -5296,7 +5335,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
    */
-  [ SYNC ";"    (. errors.DeprecatedStyle(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
+  [ SYNC ";"    (. errors.Deprecated(ErrorId.p_deprecated_semicolon, t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
 /*------------------------------------------------------------------------*/
@@ -5309,7 +5348,7 @@ Nat<out BigInteger n>
        try {
          n = BigIntegerParser.Parse(S);
        } catch (System.FormatException) {
-         SemErr("incorrectly formatted number");
+         SemErr(ErrorId.p_bad_number_format, t, "incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
@@ -5319,7 +5358,7 @@ Nat<out BigInteger n>
          // note: leading 0 required when parsing positive hex numbers
          n = BigIntegerParser.Parse("0" + S, System.Globalization.NumberStyles.HexNumber);
        } catch (System.FormatException) {
-         SemErr("incorrectly formatted number");
+         SemErr(ErrorId.p_bad_hex_number_format, t, "incorrectly formatted number");
          n = BigInteger.Zero;
        }
     .)
@@ -5334,7 +5373,7 @@ Dec<out BaseTypes.BigDec d>
        try {
          d = BaseTypes.BigDec.FromString(S);
        } catch (System.FormatException) {
-         SemErr("incorrectly formatted number");
+         SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
          d = BaseTypes.BigDec.ZERO;
        }
     .)
