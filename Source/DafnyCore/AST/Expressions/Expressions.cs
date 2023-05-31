@@ -773,7 +773,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(new_body != null);
     Contract.Ensures(Contract.Result<MatchCaseExpr>() != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     var newVars = old_case.Arguments.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x => (NonglobalVariable)x), newVars, new_body);
 
@@ -802,7 +802,7 @@ public abstract class Expression : TokenNode {
     Contract.Requires(LHSs.Count == RHSs.Count);
     Contract.Requires(body != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     var newLHSs = LHSs.ConvertAll(cloner.CloneCasePattern);
 
     var oldVars = new List<BoundVar>();
@@ -823,7 +823,7 @@ public abstract class Expression : TokenNode {
   public static Expression CreateQuantifier(QuantifierExpr expr, bool forall, Expression body = null) {
     Contract.Requires(expr != null);
 
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     var newVars = expr.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
 
     if (body == null) {

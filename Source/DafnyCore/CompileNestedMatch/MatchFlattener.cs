@@ -124,7 +124,7 @@ public class MatchFlattener : IRewriter {
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
     var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt)
-      .Select(nms => nms.Clone(new Cloner(true)))
+      .Select(nms => nms.Clone(new Cloner(false, true)))
       .ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
@@ -422,7 +422,7 @@ public class MatchFlattener : IRewriter {
 
   private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
       var body = UnboxStmt(statement).Select(cloner.CloneStmt).ToList();
       newMatchCase = new MatchCaseStmt(tok.ToRange(), ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
