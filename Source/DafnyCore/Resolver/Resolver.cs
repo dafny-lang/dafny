@@ -1213,6 +1213,8 @@ namespace Microsoft.Dafny {
 
         if (wasError) {
           reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
+        } else {
+          exportDecl.EffectiveModule = exportView;
         }
       }
 
