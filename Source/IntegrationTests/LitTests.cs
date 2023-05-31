@@ -183,14 +183,18 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(Directory = "/Users/salkeldr/Documents/GitHub/dafny/Test/comp",
+    [FileData(
       Includes = new[] { "**/*.dfy", "**/*.transcript" },
       Excludes = new[] {
         "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
       })]
     public void LitTest(string path) {
       if (ConvertNonUniformTests) {
-        ConvertToMultiBackendTestIfNecessary(path);
+        // Need to convert the original source path,
+        // not the copy in the output directory of this project.
+        var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
+        var sourcePath = Path.Join(Environment.GetEnvironmentVariable("TEST_DIR"), testPath);
+        ConvertToMultiBackendTestIfNecessary(sourcePath);
       } else {
         LitTestCase.Run(path, Config, output);
       }
@@ -254,6 +258,10 @@ namespace IntegrationTests {
         if (arg.StartsWith("--target") || arg.StartsWith("-t:") || arg.StartsWith("-t=")) {
           return true;
         }
+        // TODO: keep these (by always using them in MultiBackendTest)
+        if (arg.StartsWith("/print") || arg.StartsWith("/dprint") || arg.StartsWith("/rprint")) {
+          return true;
+        }
       
         return false;
       }
@@ -310,6 +318,9 @@ namespace IntegrationTests {
       foreach (var extraOption in commonExtraOptions) {
         testDafnyExtraArgs.Add(extraOption switch {
           "/unicodeChar:0" => "--unicode-char:false",
+          "/unicodeChar:1" => "--unicode-char:true",
+          "/functionSyntax:3" => "--function-syntax:3",
+          "/functionSyntax:4" => "--function-syntax:4",
           "/spillTargetCode:2" => "--spill-translation",
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
           _ => extraOption
