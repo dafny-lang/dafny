@@ -255,6 +255,13 @@ namespace Microsoft.Dafny {
         } else {
           errorLine += "\n";
         }
+
+        if (Options.Get(DafnyConsolePrinter.ShowSnippets)) {
+          TextWriter tw = new StringWriter();
+          new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
+          Options.OutputWriter.Write(tw.ToString());
+        }
+
         Options.OutputWriter.Write(errorLine);
 
         if (Options.OutputWriter == Console.Out) {
