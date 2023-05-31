@@ -247,8 +247,8 @@ do
     fi
 
     inblock=1
-    rm -f "$text"
-    touch "$text"
+    rm -f $text
+    touch $text
   else
       ## End of backtick block, so check the text
       if [ -z "$command" -a "$lang" == "dafny" ]; then
@@ -374,6 +374,7 @@ do
             if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
               cat "$actualMsgs"
+
             fi
             if [ -n "$msg" ]; then
               dif=`echo "$act" | sed -e "s@$msg@@g" | sed -e 's/[ ]*//'`
