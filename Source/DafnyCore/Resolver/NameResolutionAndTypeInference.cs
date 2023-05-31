@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
         AddXConstraint(newtypeDecl.tok, "NumericType", newtypeDecl.BaseType, "newtypes must be based on some numeric type (got {0})");
         // type check the constraint, if any
         if (newtypeDecl.Var != null) {
-          Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type, newtypeDecl.BaseType));  // follows from NewtypeDecl invariant
+          Contract.Assert(object.ReferenceEquals(newtypeDecl.Var.Type, newtypeDecl.BaseType.NormalizeExpand(true)));  // follows from NewtypeDecl invariant
           Contract.Assert(newtypeDecl.Constraint != null);  // follows from NewtypeDecl invariant
 
           scope.PushMarker();

@@ -279,7 +279,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is true, since And short-circuits
-            var cloner = new Cloner(true);
+            var cloner = new Cloner(false, true);
             var e0 = cloner.CloneExpr(e.E0);
             reqs.Add(Expression.CreateImplies(e0, req));
           }
@@ -289,7 +289,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is false, since Or short-circuits
-            var cloner = new Cloner(true);
+            var cloner = new Cloner(false, true);
             var e0 = cloner.CloneExpr(e.E0);
             reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e0), req));
           }

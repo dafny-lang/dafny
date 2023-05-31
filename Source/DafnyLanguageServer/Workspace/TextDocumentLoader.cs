@@ -66,7 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet."
+          Message = "Resolution diagnostics have not been computed yet.",
+          Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(0, 0, 0,0)
         }}
       );
     }
