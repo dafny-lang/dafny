@@ -134,26 +134,13 @@ public class ParseErrors {
     p_generic_syntax_error,
     sc_malformed_pragma,
     sc_unknown_pragma,
-
-    // TODO _ where are these
-    p_include_has_errors,
-    p_cli_option_error, // Has no description yet
+    p_deprecated_statement_refinement,
     p_internal_exception,
     p_file_has_no_code,
-    p_deprecated_this_in_constructor_modifies_clause,
-    p_deprecated_statement_refinement,
 
   }
 
   static ParseErrors() {
-
-    Add(ErrorId.p_include_has_errors,
-    @"
-This error is shown when parsing a file A that includes another file B when B has errors of its own.
-Without this message it can be easy to miss the fact that other errors in A are in fact caused
-by errors in B. Some of the error messages shown may pertain to B rather than to A.
-");
-
 
     Add(ErrorId.p_duplicate_modifier,
       @"
@@ -1124,19 +1111,8 @@ This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 ");
 
-    Add(ErrorId.p_deprecated_this_in_constructor_modifies_clause,
-    @"
-The purpose of a constructor is to initialize a newly allocated instance of a class.
-Hence it always modifies the `this` object.
-Previously it was required to list `this` in the modifies clause of the
-constructor to specify this property, but now `this` is always implicitly 
-a part of the modifies clause. 
-If the constructor only modifies its own object (as is the very common case)
-then no explicit modifies clause is needed at all.
-"); // TODO _ add a quick fix to remove the this, or maybe the whole clause
-
     Add(ErrorId.p_bad_number_format,
-    @"
+   @"
 This error can only result from an internal bug in the Dafny parser.
 The parser recognizes a legitimate sequence of digits (as an integer literal
 and then passes that string to a library routine to create a BigInteger
@@ -1180,5 +1156,20 @@ Semicolons are required after statements and declarations in method bodies,
 but are deprecated after declarations within modules and types.
 ", Remove(true, "remove semicolon"));
 
+    //     Add(ErrorId.p_include_has_errors,
+    //     @"
+    // This error is shown when parsing a file A that includes another file B when B has errors of its own.
+    // Without this message it can be easy to miss the fact that other errors in A are in fact caused
+    // by errors in B. Some of the error messages shown may pertain to B rather than to A.
+    // ");
+
+    Add(ErrorId.p_file_has_no_code,
+      @"
+The indicated file has no code. This can be because it is empty, because some parse error
+left the top-level module with no well-formed declarations, or because a unclosed comment
+has commented-out the whole file.
+");
+
   }
+
 }

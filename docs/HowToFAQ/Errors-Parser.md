@@ -1541,4 +1541,20 @@ This pragma syntax is no longer supported. If this message is seen, please repor
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
 scanner recognizes. The only pragma ever recognized was `#line`.
 
+<!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
+
+## **Warning: File has no code** {#p_file_has_no_code}
+
+``dafny
+// const c := 42
+``
+
+The indicated file has no code. This can be because the file is empty, because some parse error
+left the top-level module with no well-formed declarations, or because a unclosed comment
+has commented-out the whole file.
+
+## **Error: [internal error] Parser exception: _message_** {#p_internal_exception}
+
+Theis error indicates an internal crashing bug in Dafny. Please report it with as much of the source code that
+cuases te problem as possible.
 

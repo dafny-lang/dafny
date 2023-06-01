@@ -13,33 +13,46 @@ touch tmp-ids-cs
 touch tmp-ids-enum
 touch tmp-ids-add
 
+rm tmp-ids
+touch tmp-ids 
 for f in $srcfile ; do
  echo FILE $f
  grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
- grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' | $SORT >> tmp-ids-cs
+ ##grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' | $SORT >> tmp-ids-cs
+ grep -E 'ErrorId[.]' $f | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids
 done
+cat tmp-ids | $SORT > tmp-ids-cs
 
 ## ErrorIds from md file
 
+rm tmp-ids
+touch tmp-ids 
 for f in $mdfiles ; do
  echo FILE $f
   grep -E '^[#][#]' $f  | grep -v -E '[*][*](Error|Warning)'
-  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' | sort -u >> tmp-ids-md
+  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' | sort -u >> tmp-ids
 done
+cat tmp-ids | $SORT > tmp-ids-md
 
 ## ErrorIds from enum
 
+rm tmp-ids
+touch tmp-ids 
 for f in $errfiles ; do
   echo ENUM FILE $f
-  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,].*$//' | grep -v ' ' | sort -u  >> tmp-ids-enum
+  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,].*$//' | grep -v ' ' | sort -u  >> tmp-ids
 done
+cat tmp-ids | $SORT > tmp-ids-enum
 
 ## ErrorIds from Add
 
+rm tmp-ids
+touch tmp-ids 
 for f in $errfiles ; do
   echo ENUM FILE ADD $f
-  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,].*$//' | $SORT   >> tmp-ids-add
+  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,].*$//' | sort -u  >> tmp-ids
 done
+cat tmp-ids | $SORT > tmp-ids-add
 
 ## Diffs
 echo DIFFS CS

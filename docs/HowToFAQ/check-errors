@@ -7,8 +7,13 @@ D=../../Source/DafnyCore
 
 echo ">>>> PARSER"
 
-./check-errors-a Errors-Parser.md "$D/Dafny.atg $D/CoCo/Parser.frame $D/CoCo/Scanner.frame" $D/AST/Grammar/ParseErrors.cs
+./check-errors-a Errors-Parser.md "$D/Dafny.atg $D/CoCo/Parser.frame $D/CoCo/Scanner.frame" "$D/AST/Grammar/ParseErrors.cs $D/AST/Grammar/ProgramParser.cs"
 
+
+
+echo ">>>> GENERIC"
+
+./check-errors-a Errors-Generic.md "$D/Generic/Util.cs $D/DafnyOptions.cs" "$D/Generic/GenericErrors.cs"
 
 
 exit 0
