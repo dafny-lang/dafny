@@ -190,8 +190,8 @@ DatatypeDefaultValues.GenericTree.Leaf
   DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
-ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
-ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
+Library.Color.Red(0) and Library.Color.Red(0)
+Library.CoColor.Yellow and Library.CoColor.Yellow
+Library.MoColor.MoYellow and Library.MoColor.MoYellow
 0.0 and 0.0
 13
