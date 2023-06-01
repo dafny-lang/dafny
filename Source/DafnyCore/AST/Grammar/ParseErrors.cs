@@ -106,7 +106,7 @@ public class ParseErrors {
     p_ambiguous_and_or,
     p_invalid_equal_chaining,
     p_invalid_notequal_chaining,
-    p_invalid_operator,
+    p_invalid_operator_in_chain,
     p_invalid_descending_chaining,
     p_invalid_ascending_chaining,
     p_invalid_disjoint_chaining,
@@ -185,20 +185,20 @@ a discussion of options to control this feature.
     Add(ErrorId.p_ghost_forbidden,
     @"
 Only some kinds of declarations can be declared `ghost`, most often functions,
-fields, and local declarations. In the example, a `module` may not be `ghost`.
+fields, and local declarations.
 ", Remove(true));
 
     Add(ErrorId.p_no_static,
     @"
 Only some kinds of declarations can be declared 'static', most often
-fields, constants, methods, and functions, and only within classes. 
+fields, constants, methods, and functions, and only within classes.
 Modules and the declarations within them are already always static.
 ", Remove(true));
 
     Add(ErrorId.p_no_opaque,
     @"
 Only some kinds of declarations can be declared 'opaque':
-const fields and functions, which include predicates.
+const fields and the various kinds of functions.
 ", Remove(true));
 
     // TODO - not used at present
@@ -216,7 +216,7 @@ The value of an options attribute cannot be a computed expression. It must be a 
 
     // TODO - what about multiple leading underscores
     Add(ErrorId.p_no_leading_underscore,
-  @"
+    @"
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
@@ -226,7 +226,7 @@ that is a single underscore is used as a wild-card match.
   });
 
     Add(ErrorId.p_no_leading_underscore_2,
-  @"
+    @"
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
@@ -270,12 +270,11 @@ This error message often occurs if the `refines` keyword is misspelled.
 
     Add(ErrorId.p_misplaced_least_or_greatest,
     @"
-A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous: 
-it can be either the name of the export set or associated with the `predicate` declaration. 
+A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous:
+it can be either the name of the export set or associated with the `predicate` declaration.
 The parser associates it with the `export`. To avoid this warning, do not put the
 `least` or `greatest` token on the same line as the `predicate` token.
-If you intend for the `least` to go with the predicate, change the order of the
-declarations.
+If you intend for the `least` to go with the predicate, change the order of the declarations.
 "); // TODO - could use a quick fix
 
     Add(ErrorId.p_extraneous_comma_in_export,
@@ -440,7 +439,8 @@ The currently defined type characteristics are designated by `==` (equality-supp
 [Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
 state properties of the otherwise uninterpreted or abstract type.
 They are given in a parentheses-enclosed, comma-separated list after the type name.
-The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
+The currently defined type characteristics are designated by `==` (equality - supporting),
+`0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 ", range =>
     range.Prev.val == "," ?
       new List<DafnyAction> {
@@ -458,10 +458,11 @@ The currently defined type characteristics are designated by `==` (equality - su
 
     Add(ErrorId.p_illegal_type_characteristic,
     @"
-[Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters), 
+[Type characteristics](https://dafny.org/latest/DafnyRef/DafnyRef#sec-type-parameters),
 indicated in parentheses after the type name, state properties of the otherwise uninterpreted or abstract type.
-The currently defined type characteristics are designated by `==` (equality - supporting), `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
-Type parameters are given in a parentheses-enclosed, comma-separated list after the type name.
+The currently defined type characteristics are designated by `==` (equality - supporting),
+`0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
+Type characteristics are given in a parentheses-enclosed, comma-separated list after the type name.
 ", Replacements(new[] {
       ("==", "replace with '==' - this type supports equality"),
       ("0", "replace with '0' - this type is auto-initializable"),
@@ -580,7 +581,12 @@ except that the types used cannot be declared as ghost.
 
     Add(ErrorId.p_no_empty_type_parameter_list,
     @"
-This error message should not be reachable. Please report the problem with the source code that shows it.
+An instantiation of a generic type consists of the generic type name followed by a comma-separated
+list of type arguments enclosed in angle brackets. If a type has no type arguments, then
+there is no list and no angle brackets either.
+
+However, this particular error message is not reachable in the current parser. 
+If the message is seen, please report the code that caused it so that the bug or documentation can be corrected.
 ");
 
     Add(ErrorId.p_formal_ktype_only_in_least_and_greatest_predicates,
@@ -633,21 +639,21 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 
     Add(ErrorId.p_deprecating_predicate_method,
     @"
-    From Dafny 4 on, the phrases `function method` and `predicate method` are no
-    longer accepted. Use `function` for compiled, non-ghost functions and
-    `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-    See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-    ", range => new List<DafnyAction> {
+From Dafny 4 on, the phrases `function method` and `predicate method` are no
+longer accepted. Use `function` for compiled, non-ghost functions and
+`ghost function` for non-compiled, ghost functions, and similarly for predicates.
+See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
+", range => new List<DafnyAction> {
     OneAction("remove 'method'", range, "predicate", false),
 });
 
     Add(ErrorId.p_deprecating_function_method,
     @"
-    From Dafny 4 on, the phrases `function method` and `predicate method` are no
-    longer accepted. Use `function` for compiled, non-ghost functions and
-    `ghost function` for non-compiled, ghost functions, and similarly for predicates.
-    See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-    ", range => new List<DafnyAction> {
+From Dafny 4 on, the phrases `function method` and `predicate method` are no
+longer accepted. Use `function` for compiled, non-ghost functions and
+`ghost function` for non-compiled, ghost functions, and similarly for predicates.
+See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
+", range => new List<DafnyAction> {
     OneAction("remove 'method'", range, "function", false),
 });
 
@@ -797,7 +803,7 @@ No other words are allowed here, including writing them with different case.
 
 These two words have special meaning only in this part of a for-loop; they are not reserved words elsewhere.
 That is, the code
-<!-- %check-resolve %exit 0 -->
+<!-- %check-resolve %exit 0 %nomsg -->
 ```dafny
 method m() {
   var to: int := 6;
@@ -935,6 +941,15 @@ But there are limitations on which operators can be in one chain together.
 In particular for this error message, one cannot have chains that include more than one `!=` operator.
 ");
 
+    Add(ErrorId.p_invalid_operator_in_chain,
+    @"
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitations on which operators can be in one chain together.
+
+In particular for this error message, the designated operator is not permitted to extend the existing chain.
+");
+
     Add(ErrorId.p_invalid_descending_chaining,
     @"
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
@@ -977,8 +992,10 @@ Use parentheses if necessary. Such expressions are usually not type-correct in a
 
     Add(ErrorId.p_bang_not_a_relational_op,
     @"
-const s : set<int>
-const r := s ! s
+The parser is expecting a relational expression, that is, two expressions separated by a relational operator
+(one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw just a `!` ,
+which could be the beginning of `!=`, `!!`, or `!in`, but is not continued as such.
+So perhaps there is extraneous white space or something else entirely is intended.
 ", range => new List<DafnyAction> {
     OneAction("replace with `!=`", range, "!=", false),
     OneAction("replace with `!!`", range, "!!", false),
@@ -1028,8 +1045,8 @@ One form is a list of values enclosed by curly braces: `var c := multiset{1,2,2,
 The other appears as a conversion operation: `var c := multiset(s)`.
 However, this second form can only be used to convert a set to a multiset.
 
-In the current parser, however, this error message is unreachable, so if it appears
-please report the error.
+In the current parser, however, this error message is unreachable,
+so if it appears please report the error.
 The tests that check for this error case are already known to be false by previous testing.
 ");
 
@@ -1055,8 +1072,8 @@ which defines the mappings `(12=>21, 13=>31, 14=>41, 23=>32, 24=>42, 34=>43)`.
 But when there are multiple variables, one cannot abbreviate the `:=` syntax with just its right-hand expression,
 because it is not clear what the left-hand expression should be. 
 
-Incorrect text like `const s := map x, y  | 0 <= x < y < 10 :: x*y` should be written
- as `const s := map x, y  | 0 <= x < y < 10 :: f(x,y) := x*y` for some `f(x,y)` that gives
+Incorrect text like `const s := map x, y | 0 <= x < y < 10 :: x*y` should be written
+as `const s := map x, y | 0 <= x < y < 10 :: f(x,y) := x*y` for some `f(x,y)` that gives
 a unique value for each pair of `x,y` permitted by the range expression (here `0 <= x < y < 10`).
 ");
 
@@ -1137,7 +1154,7 @@ Given the parser logic, that parsing should never fail.
 
     Add(ErrorId.p_generic_syntax_error,
     @"
-This ""invalid something"" message where the something is typically  
+This ""invalid something"" message where the something is typically
 the name of an internal parser non-terminal means that the text being parsed
 is a badly malformed instance of whatever parser entity was being parsed.
 This is an automatically generated message by the CoCo parser generator
@@ -1156,18 +1173,49 @@ Semicolons are required after statements and declarations in method bodies,
 but are deprecated after declarations within modules and types.
 ", Remove(true, "remove semicolon"));
 
-    //     Add(ErrorId.p_include_has_errors,
-    //     @"
-    // This error is shown when parsing a file A that includes another file B when B has errors of its own.
-    // Without this message it can be easy to miss the fact that other errors in A are in fact caused
-    // by errors in B. Some of the error messages shown may pertain to B rather than to A.
-    // ");
-
     Add(ErrorId.p_file_has_no_code,
       @"
-The indicated file has no code. This can be because it is empty, because some parse error
+The indicated file has no code. This can be because the file is empty, because some parse error
 left the top-level module with no well-formed declarations, or because a unclosed comment
 has commented-out the whole file.
+");
+
+    Add(ErrorId.p_internal_exception,
+      @"
+This error indicates an internal crashing bug in Dafny. Please report it with as much of 
+the source code that causes the problem as possible.
+");
+
+    Add(ErrorId.p_deprecated_inductive_predicate,
+    @"
+The terms `least predicate` and `greatest predicate` are more descriptive of the relationship between them than was the old terminology.
+");
+
+    Add(ErrorId.p_deprecated_copredicate,
+    @"
+The terms `least predicate` and `greatest predicate` are more descriptive of the relationship between them than was the old terminology.
+");
+
+    Add(ErrorId.p_deprecated_statement_refinement,
+    @"
+Statement refinement has been deprecated. Refinement is restricted to changing declarations, not bodies of methods or functions.
+");
+
+    Add(ErrorId.p_deprecated_forall_with_no_bound_variables,
+    @"
+<!-- TODO -->
+");
+
+    Add(ErrorId.p_deprecated_modify_statement_with_block,
+    @"
+<!-- TODO-->
+");
+
+    Add(ErrorId.p_deprecated_opaque_as_identifier,
+     @"
+Because of the value to proof success of using `opaque` declarations and `reveal`ing them in appropriate contexts,
+the word `opaque` is being converted to a reserved keyword, whereas it used to be a normal identifier.
+Please rename your use of opaque as an identifier to some other name.
 ");
 
   }

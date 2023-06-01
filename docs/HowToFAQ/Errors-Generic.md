@@ -23,36 +23,36 @@ then no explicit modifies clause is needed at all.
 
 ## **Error: \\u escape sequences are not permitted when Unicode chars are enabled** {#g_no_old_unicode_char}
 
-<!-- %check-resolve %options --unicode-chars=true -->
+<!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-char c := '\u0000';
+const c := '\u0000'
 ```
 
 When using the option `--unicode-chars=true` all unicode characters are written with `\\U`, not `\\`.
 
 ## **Error: \\U{X..X} escape sequence must have at most six hex digits** {#g_unicode_escape_must_have_six_digits}
 
-<!-- %check-resolve %options --unicode-chars=true -->
+<!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-char c := '\U00AABBCC';
+const c := '\U00AABBCC'
 ```
 
 When using the option `--unicode-chars=true` all unicode characters are written with `\\U`, not `\\`.
 
 ## **Error: \\U{X..X} escape sequence must be less than 0x110000** {#g_unicode_escape_is_too_large}
 
-<!-- %check-resolve %options --unicode-chars=true -->
+<!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-char c := '\U110011';
+const c := '\U110011'
 ```
 
 Unicode characters (with `--unicode-chars=true`) are defined only up through `0x110000`.
 
 ## **Error: \\U{X..X} escape sequence must be less than 0x110000** {#g_unicode_escape_may_not_be_surrogate}
 
-<!-- %check-resolve %options --unicode-chars=true -->
+<!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-char c := '\UD900';
+const c := '\UD900'
 ```
 
 The allowed range of unicode characters in Dafny excludes the surrogate characters in the range 0xD800 .. 0xE000.
@@ -60,9 +60,9 @@ The allowed range of unicode characters in Dafny excludes the surrogate characte
 
 ## **Error: \\U escape sequences are not permitted when Unicode chars are disabled** {#g_U_unicode_chars_are_disallowed}
 
-<!-- %check-resolve %options --unicode-chars=false -->
+<!-- %check-resolve %options --unicode-char=false -->
 ```dafny
-char c := '\UD000';
+const c := '\UD000'
 ```
 
 With `--unicode-chars=false`, all unicode characters are written with a lower-case `u`.

@@ -37,7 +37,6 @@ public class TestCommand : ICommandSpec {
     dafnyOptions.RunAfterCompile = true;
     dafnyOptions.RunAllTests = true;
     dafnyOptions.ForceCompile = dafnyOptions.Get(BoogieOptionBag.NoVerify);
-    dafnyOptions.Verbose = false;
     dafnyOptions.MainMethod = RunAllTestsMainMethod.SyntheticTestMainName;
   }
 }

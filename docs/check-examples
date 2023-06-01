@@ -69,6 +69,7 @@
 ##    %save <file> -- save the code block (including anything appended from %use) in the given temporary file
 ##    %use <file> -- append to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %nomsg -- forget the error pattern from the heading (in the case of subsequent working examples in the explanation)
+##    %first -- only look at the first error message produced (usually because the error recovery is poor)
 ##    %exit <n> -- set the expected exit code of the command.
 ##       If not set, the default set in the %default command is used.
 ##       If that is not set,  The default exit code is
@@ -161,6 +162,7 @@ command=
 expectFile=
 options=( )
 default=0
+first=0
 globalDefaultExit=
 ## Read and process each line of the file.  The file is input on stdin 
 ## by redirection after the 'done' corresponding to this while-do
@@ -212,6 +214,9 @@ do
         elif [ "${contents[0]}" == "%exit" ]; then
           expectedExit=${contents[1]}
           contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%first" ]; then
+          first=1
+          contents=( ${contents[@]:1} )
         elif [ "${contents[0]}" == "%nomsg" ]; then
           msg=
           contents=( ${contents[@]:1} )
@@ -364,7 +369,11 @@ do
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
-            cat "$actualOut" | grep -E '(Error|Warning):' > "$actualMsgs"
+            if [ "$first" == "1" ]; then
+              cat "$actualOut" | grep -E '(Error|Warning):' | head -1 > "$actualMsgs"
+            else
+              cat "$actualOut" | grep -E '(Error|Warning):' > "$actualMsgs"
+            fi
             actualid=
             grep 'ID:' "$actualMsgs" > /dev/null
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
@@ -376,7 +385,7 @@ do
               actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//' | sort -u`
             fi
             act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' `
-            if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
+            if [ "$checkIds" == "1" -a "$actualid" != "$expid" -a -n "$msg" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
               cat "$actualMsgs"
             fi
@@ -393,8 +402,8 @@ do
                  echo DIF "$dif"
                  FAIL=1
               fi
-              if [ "$actualExit" != "$defaultExit" ]; then
-                echo EXPECTED EXIT CODE $defaultExit, got $actualec
+              if [ "$actualExit" != "$expectedExit" ]; then
+                echo EXPECTED EXIT CODE $expectedExit, got $actualec
                 FAIL=1
               fi
             else 

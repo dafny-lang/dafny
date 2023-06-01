@@ -735,7 +735,8 @@ int StringToInt(string s, int defaultValue, string errString, IToken tok) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large : ErrorId.p_bitvector_too_large, 
+    SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large
+                                       : ErrorId.p_bitvector_too_large, 
       tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
@@ -4070,7 +4071,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                           break;
                                         case BinaryExpr.Opcode.Neq:
                                           if (hasSeenNeq) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "a chain cannot have more than one != operator"); kind = 3; }
-                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_operator, x, "this operator cannot continue this chain"); kind = 3; }
+                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_operator_in_chain, x, "this operator cannot continue this chain"); kind = 3; }
                                           hasSeenNeq = true;  break;
                                         case BinaryExpr.Opcode.Lt:
                                         case BinaryExpr.Opcode.Le:

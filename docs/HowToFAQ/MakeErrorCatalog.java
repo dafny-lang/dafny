@@ -21,7 +21,7 @@ public class MakeErrorCatalog {
             System.out.println("SYNTAX ERROR LINE " + number + ": New errorid while still in text block");
             System.exit(1);
           }
-          errorid = line.replace("Add(ErrorId.","").replace(",","").trim();
+          errorid = line.replace("Add(ErrorId.","").replaceAll(",.*","").trim();
           ids.add(errorid);
           if (errorid.length() == 0 || errorid.contains(" ")) {
             System.out.println("SYNTAX ERROR LINE " + number + ": Invalid errorid: " + errorid);
