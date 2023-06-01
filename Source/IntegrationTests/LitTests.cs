@@ -205,7 +205,7 @@ namespace IntegrationTests {
             Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NON-UNIFORM <reason>' command");
           }
           break;
-        case null:
+        case null or "":
           LitTestCase.Run(path, Config, output);
           break;
         default:
@@ -338,23 +338,27 @@ namespace IntegrationTests {
       
       // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
       var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
+      // TODO: why skip(1)?
       var chunks = delimiter.Split(expectContent).Skip(1).ToArray();
       if (chunks.Length != backends.Count) {
         throw new ArgumentException();
       }
+      string verifierChunk = chunks.First();
+      if (!string.IsNullOrWhiteSpace(verifierChunk)) {
+        var verifierExpectPath = $"{path}.verifier.expect";
+        File.WriteAllText(verifierExpectPath, verifierChunk);
 
-      string? verifierChunk = null;
+      }
       string? commonExpectChunk = null;
       var exceptions = false;
       foreach (var (backend, chunk) in backends.Zip(chunks)) {
-        if (backend == null) {
-          verifierChunk = chunk;
-        } else {
+        if (backend != null) {
+          var expectedChunk = chunk.Replace(verifierChunk, "");
           if (commonExpectChunk == null) {
-            commonExpectChunk = chunk;
-          } else if (commonExpectChunk != chunk) {
+            commonExpectChunk = expectedChunk;
+          } else if (commonExpectChunk != expectedChunk) {
             var exceptionPath = $"{path}.{backend}.expect";
-            File.WriteAllText(exceptionPath, chunk);
+            File.WriteAllText(exceptionPath, expectedChunk);
             exceptions = true;
           }
         }

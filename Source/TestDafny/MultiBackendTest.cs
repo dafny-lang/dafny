@@ -99,6 +99,20 @@ public class MultiBackendTest {
       output.WriteLine(error);
       return exitCode;
     }
+    var expectFileForVerifier = $"{options.TestFile}.verifier.expect";
+    if (File.Exists(expectFileForVerifier)) {
+      var expectedOutput = File.ReadAllText(expectFileForVerifier);
+      // Chop off the "Dafny program verifier finished with..." trailer
+      var trailer = new Regex("\nDafny program verifier[^\n]*\n").Match(outputString);
+      var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
+      var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
+      if (diffMessage == null) {
+        return 0;
+      }
+
+      output.WriteLine(diffMessage);
+      return 1;
+    }
 
     // Then execute the program for each available compiler.
 
