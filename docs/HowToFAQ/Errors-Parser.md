@@ -119,7 +119,6 @@ The value of an options attribute cannot be a computed expression. It must be a 
 ## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
 ```dafny
-//const _myconst := 5
 function m(): (_: int) {0}
 ```
 
@@ -1459,8 +1458,7 @@ If it occurs, please report an internal bug (or obsolete documentation).
 
 ```dafny
 const _myconst := 5
-//function m(): (_: int) {0}
-```
+q```
 
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.

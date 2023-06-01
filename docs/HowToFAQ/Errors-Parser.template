@@ -100,7 +100,6 @@ module {:options opt} M{}
 ## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
 ```dafny
-//const _myconst := 5
 function m(): (_: int) {0}
 ```
 
@@ -1118,7 +1117,6 @@ const opaque: int
 
 ```dafny
 const _myconst := 5
-//function m(): (_: int) {0}
 ```
 
 <!-- INSERT-TEXT -->

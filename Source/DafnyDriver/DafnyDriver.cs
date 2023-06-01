@@ -25,7 +25,6 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.Dafny.Plugins;
-//using static Microsoft.Dafny.Compilers.CompilerErrors;
 
 namespace Microsoft.Dafny {
 
