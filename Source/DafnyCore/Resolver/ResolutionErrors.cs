@@ -8,6 +8,8 @@ namespace Microsoft.Dafny;
 public class ResolutionErrors {
 
   public enum ErrorId {
+    // ReSharper disable once InconsistentNaming
+    none,
     r_ghost_var_only_in_specifications,
     r_only_in_specification,
     r_ghost_parameters_only_in_specification,

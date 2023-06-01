@@ -889,7 +889,7 @@ class MutexGuardU32 extends OwnedObject {
   constructor {:vcs_split_on_every_assert} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
     requires universe.globalInv() && { running, scope, mutex, mutexScope } <= universe.content
     requires scope.owner == running && mutexScope.owner == running && scope != mutexScope
-    requires universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, scope) && scope.unused();
+    requires universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, scope) && scope.unused()
     requires !mutex.locked
     // The user should be able to remove objects owned by the running thread from the modifies clause
     modifies universe, universe.content - (set l: Lifetime | l in universe.content && l.owner == running) + {scope, mutexScope}

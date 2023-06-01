@@ -3,7 +3,7 @@
 
 
 method Apply(x : int) returns (i : int)
-  ensures i == x;
+  ensures i == x
 {
   i := (x => x)(x);
 }

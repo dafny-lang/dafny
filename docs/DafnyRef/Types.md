@@ -2676,13 +2676,13 @@ Here is an example showing a definition and use of an iterator.
 <!-- %check-verify -->
 ```dafny
 iterator Iter<T(0)>(s: set<T>) yields (x: T)
-  yield ensures x in s && x !in xs[..|xs|-1];
-  ensures s == set z | z in xs;
+  yield ensures x in s && x !in xs[..|xs|-1]
+  ensures s == set z | z in xs
 {
   var r := s;
   while (r != {})
     invariant r !! set z | z in xs
-    invariant s == r + set z | z in xs;
+    invariant s == r + set z | z in xs
   {
     var y :| y in r;
     assert y !in xs;
@@ -2694,14 +2694,14 @@ iterator Iter<T(0)>(s: set<T>) yields (x: T)
 }
 
 method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var m := new Iter(s);
   while (true)
-    invariant m.Valid() && fresh(m._new);
-    invariant t == set z | z in m.xs;
-    decreases s - t;
+    invariant m.Valid() && fresh(m._new)
+    invariant t == set z | z in m.xs
+    decreases s - t
   {
     var more := m.MoveNext();
     if (!more) { break; }
@@ -3181,7 +3181,7 @@ greatest lemma Theorem_BelowSquare(a: IStream<int>)
 
 // an incorrect property and a bogus proof attempt
 greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
-  ensures Below(Mult(a, a), a); // ERROR
+  ensures Below(Mult(a, a), a) // ERROR
 {
   NotATheorem_SquareBelow(a);
 }
@@ -4577,8 +4577,8 @@ function f(x: int, y: int := 10): int
 may be called as either
 <!-- %check-resolve %use f.tmp -->
 ```dafny
-const i := f(1, 2);
-const j := f(1);
+const i := f(1, 2)
+const j := f(1)
 ```
 where `f(1)` is equivalent to `f(1, 10)` in this case.
 

@@ -67,7 +67,7 @@ ghost function seq_dec''(xs: seq<int>): int
 }
 
 ghost function seq_dec'''(xs: seq<int>): int
-  decreases |xs|;
+  decreases |xs|
 {
   if (|xs|==0) then 0 else
   var i :| 0 <= i < |xs|;
