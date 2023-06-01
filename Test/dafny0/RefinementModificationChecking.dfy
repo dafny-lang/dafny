@@ -3,9 +3,9 @@
 
 abstract module R1 {
   class HappyBay {
-    var f: int;
+    var f: int
     method m(y: set<int>) returns (r: int)
-      modifies this;
+      modifies this
     {
       var t := y;
     }
@@ -14,7 +14,7 @@ abstract module R1 {
 
 module R2 refines R1 {
   class HappyBay ... {
-    var g: nat;
+    var g: nat
     method m ...
     {
       ...;
@@ -31,10 +31,10 @@ module R2 refines R1 {
 abstract module M0 {
   class C {
     method Init()
-      modifies this;
+      modifies this
     { }
     method InitWithSideEffects(c: C)
-      modifies c;
+      modifies c
     { }
     method mmm(arr: array<int>) {
       var a: C :| true;

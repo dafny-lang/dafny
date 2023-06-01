@@ -1,10 +1,10 @@
--------
+---
 title: Installation Instructions
--------
+---
 
 This page has instructions for installing Dafny by typical users:
 
-* Using IDEs: [VSCode](#Visual-studio-code), [Emacs](#Emacs)
+* Using IDEs: [VSCode](#Visual-Studio-Code), [Emacs](#Emacs)
 * Installing a binary build ([Windows](#windows-binary), [Linux](#linux-binary), or [Mac](#Mac-binary))
 * [Installing the tools necessary to compile to other languages](#compiling-dafny)
 
@@ -28,7 +28,7 @@ In addition to running dafny, the host OS must also be able to run the Z3 execut
 - MacOS: `dafny` is tested on MacOS 11 (Big Sur) and MacOS 12 (Monterey)
 - Windows: `dafny` is tested on Windows 2019 and Windows 2022
 
-## Compilers
+## Compilers {#compiling-dafny}
 
 The Dafny compiler performs two tasks:
 - It translates a Dafny program into a target (source) programming language. This action requires only
@@ -80,7 +80,7 @@ the background. Be sure to check out the [Dafny tutorial](https://dafny.org/late
 
 For most users, we recommend using Dafny with VS Code, which has an easy installation, as explained next:
 
-## Visual Studio Code
+## Visual Studio Code {#Visual-Studio-Code}
 
 0. Install [Visual Studio Code](https://code.visualstudio.com/)
 1. If you are on a Mac or Linux, install .NET 6.0, as described under those platforms below.  
@@ -88,9 +88,7 @@ For most users, we recommend using Dafny with VS Code, which has an easy install
 3. If you open a `.dfy` file, Dafny VSCode will offer to download and install the latest Dafny. You can also browse extensions: 
   ![vs-code-dafny-2 0 1-install](https://user-images.githubusercontent.com/3601079/141353551-5cb5e23b-5536-47be-ba17-e5af494b775c.gif)
 
-
-
-## Emacs
+## Emacs {#Emacs}
 
 The README at [https://github.com/boogie-org/boogie-friends](https://github.com/boogie-org/boogie-friends) has plenty of
 information on how to set-up Emacs to work with Dafny. In short, it boils down
@@ -113,7 +111,7 @@ tell you how to install Dafny so that you can run it from various operating syst
 If you wish to compile to target languages, see the instructions in a subsequent section to
 install the correct dependencies for the desired language.
 
-## Windows (Binary)
+## Windows (Binary) {#windows-binary}
 
 To install Dafny on your own machine, 
 
@@ -126,7 +124,7 @@ Then:
 
 -   To run Dafny from the command line, simply run `Dafny.exe`.
 
-## Linux (Binary)
+## Linux (Binary) {#linux-binary}
 
 To install a binary installation of dafny on Linux (e.g., Ubuntu), do the following:
 * Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-6.0`
@@ -140,7 +138,7 @@ If you intend to use the Dafny compiler, install the appropriate tools as descri
 After the compiler dependencies are installed, you can run a quick test of the installation by running the script 
 `$INSTALL/dafny/quicktest.sh`
 
-## Mac (Binary)
+## Mac (Binary) {#Mac-binary}
 
 To install a binary installation of dafny on Mac OS, do one of the following:
 Either

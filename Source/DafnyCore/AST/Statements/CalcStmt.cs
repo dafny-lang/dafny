@@ -199,8 +199,9 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   public readonly List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
   public readonly List<BlockStmt> Hints;     // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
   public readonly CalcOp UserSuppliedOp;     // may be null, if omitted by the user
-  public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
   public readonly List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
+  [FilledInDuringResolution]
+  public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
   [FilledInDuringResolution] public readonly List<Expression> Steps;    // expressions li op l<i + 1> (last step is dummy)
   [FilledInDuringResolution] public Expression Result;                  // expression l0 ResultOp ln
 

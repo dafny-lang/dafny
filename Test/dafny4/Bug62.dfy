@@ -11,7 +11,7 @@ class C {
 
 class D {
   method Main()  // not Main since it has modifies clause.
-   modifies this;
+   modifies this
   {
     print "hello, I'm running ... in D\n";
   }
@@ -20,7 +20,7 @@ class D {
 
 class E {
   static method Main()  // not Main since it has requires clause.
-   requires true;
+   requires true
   {
     print "hello, I'm running ... in E\n";
   }

@@ -13,8 +13,8 @@ abstract module m2 {
     import m1
 
     lemma Test(s0:m1.ints) returns (s1:m1.ints)
-        requires s0.Cons?;
-        ensures  m1.TailIs(s0, s1);
+        requires s0.Cons?
+        ensures  m1.TailIs(s0, s1)
     {
         s1 := s0.tl;
     }

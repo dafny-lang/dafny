@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
     }
 
     protected void ReportInfo(IToken tok, string msg, params object[] args) {
@@ -74,8 +74,8 @@ namespace Microsoft.Dafny {
       }
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
-        var at = resolver.builtIns.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true);
+        BuiltIns.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.builtIns);
         decl = resolver.builtIns.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,

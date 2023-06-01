@@ -3,7 +3,7 @@
 
 module A {
   class E {}
-  class D { var e: E; constructor(e: E) { this.e := e; } }
+  class D { var e: E constructor(e: E) { this.e := e; } }
 }
 
 module B {

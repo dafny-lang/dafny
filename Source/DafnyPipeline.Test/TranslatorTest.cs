@@ -6,6 +6,8 @@ using Bpl = Microsoft.Boogie;
 using Xunit;
 using Microsoft.Dafny;
 using Microsoft.Dafny.ProofObligationDescription;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DafnyPipeline.Test;
 
@@ -75,19 +77,15 @@ public class TranslatorTest {
     Microsoft.Dafny.Type.ResetScopes();
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
-    var defaultModuleDefinition = new DefaultModuleDefinition(new List<Uri>() { uri });
-    var module = new LiteralModuleDecl(defaultModuleDefinition, null);
-    BatchErrorReporter reporter = new BatchErrorReporter(options, defaultModuleDefinition);
-    var builtIns = new BuiltIns(options);
-    var dafnyProgram = new Program("programName", module, builtIns, reporter, Sets.Empty<Uri>(), Sets.Empty<Uri>());
-    Parser.Parse(program, uri, module, builtIns, reporter);
+    BatchErrorReporter reporter = new BatchErrorReporter(options);
+    var dafnyProgram = new ProgramParser().Parse(program, uri, reporter);
     if (reporter.ErrorCount > 0) {
-      var error = reporter.AllMessages[ErrorLevel.Error][0];
+      var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
     DafnyMain.Resolve(dafnyProgram);
     if (reporter.ErrorCount > 0) {
-      var error = reporter.AllMessages[ErrorLevel.Error][0];
+      var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
       Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
     }
 

@@ -22,7 +22,6 @@ public interface ICommandSpec {
 
   public static IEnumerable<Option> FormatOptions => new Option[] {
     CommonOptionBag.Check,
-    CommonOptionBag.Verbose,
     CommonOptionBag.FormatPrint,
   }.Concat(ParserOptions);
 
@@ -69,8 +68,10 @@ public interface ICommandSpec {
 
   public static IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
     CommonOptionBag.StdIn,
+    CommonOptionBag.Verbose,
     BoogieOptionBag.Cores,
     CommonOptionBag.Libraries,
+    CommonOptionBag.WarnDeprecation,
     CommonOptionBag.Plugin,
     CommonOptionBag.Prelude,
     Function.FunctionSyntaxOption,

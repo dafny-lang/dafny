@@ -8,7 +8,7 @@ abstract module M0 {
   type State(!new)
   ghost function DomSt(st: State): set<Path>
   ghost function GetSt(p: Path, st: State): Artifact
-    requires p in DomSt(st);
+    requires p in DomSt(st)
 
   // cached part of state
   type HashValue
@@ -27,7 +27,7 @@ abstract module M0 {
       // in the cache, and that the cache remains consistent.  It says nothing else about what might
       // be in the cache or what happened to previous things in the cache.
       (ConsistentCache(st) ==> ConsistentCache(st')) &&
-      forall e :: e in exps ==> Hash(Loc(cmd, deps, e)) in DomC(st');
+      forall e :: e in exps ==> Hash(Loc(cmd, deps, e)) in DomC(st')
 
 
   ghost predicate ValidState(st: State)
@@ -46,7 +46,7 @@ abstract module M0 {
       DomSt(result) == DomSt(st) + DomSt(st') &&
       (forall p :: p in DomSt(result) ==>
         GetSt(p, result) == GetSt(p, if p in DomSt(st') then st' else st)) &&
-      (useCache ==> DomC(result) == DomC(st) + DomC(st'));
+      (useCache ==> DomC(result) == DomC(st) + DomC(st'))
 
 
   ghost predicate Compatible(sts: set<State>)
@@ -55,14 +55,14 @@ abstract module M0 {
       forall p :: p in DomSt(st) && p in DomSt(st') ==> GetSt(p, st) == GetSt(p, st')
   }
   lemma CompatibleProperty(stOrig: State, sts: set<State>)
-    requires forall s :: s in sts ==> Extends(stOrig, s);
-    ensures Compatible(sts);
+    requires forall s :: s in sts ==> Extends(stOrig, s)
+    ensures Compatible(sts)
   {
     reveal Extends();
   }
 
   ghost function {:opaque} Combine(sts: set<State>, useCache: bool): State
-    requires sts != {};
+    requires sts != {}
   {
     var st := PickOne(sts);
     if sts == {st} then
@@ -71,7 +71,7 @@ abstract module M0 {
       Union(Combine(sts - {st}, useCache), st, useCache)
   }
   ghost function PickOne<T>(s: set<T>): T
-    requires s != {};
+    requires s != {}
   {
     var x :| x in s; x
   }
@@ -80,14 +80,14 @@ abstract module M0 {
     requires
       sts != {} &&
       (forall st :: st in sts ==> ValidState(st) && Extends(parent, st)) &&
-      (useCache ==> forall st :: st in sts ==> ConsistentCache(st));
+      (useCache ==> forall st :: st in sts ==> ConsistentCache(st))
     ensures
       var stCombined := Combine(sts, useCache);
       ValidState(stCombined) && Extends(parent, stCombined) &&
       (useCache ==>
         ConsistentCache(stCombined) &&
         (forall st :: st in sts ==> DomC(st) <= DomC(stCombined)) &&
-        (forall h :: h in DomC(stCombined) ==> exists st :: st in sts && h in DomC(st)));
+        (forall h :: h in DomC(stCombined) ==> exists st :: st in sts && h in DomC(st)))
   {
     reveal Combine();
     var st := PickOne(sts);
@@ -99,12 +99,12 @@ abstract module M0 {
       assert stCombined == Union(smallerCombination, st, useCache);
 
       forall p | p !in DomSt(smallerCombination) && p in DomSt(stCombined)
-        ensures GetSt(p, stCombined) == Oracle(p, smallerCombination);
+        ensures GetSt(p, stCombined) == Oracle(p, smallerCombination)
       {
         reveal Extends();
         OracleProperty(p, parent, smallerCombination);
       }
-      forall ensures Extends(smallerCombination, stCombined); {
+      forall ensures Extends(smallerCombination, stCombined) {
         reveal Extends();
       }
       Lemma_ExtendsTransitive(parent, smallerCombination, stCombined);
@@ -128,13 +128,13 @@ abstract module M0 {
   type Env
   ghost predicate ValidEnv(env: Env)
   ghost function EmptyEnv(): Env
-    ensures ValidEnv(EmptyEnv());
+    ensures ValidEnv(EmptyEnv())
   ghost function GetEnv(id: Identifier, env: Env): Expression
-    requires ValidEnv(env);
-    ensures Value(GetEnv(id, env));
+    requires ValidEnv(env)
+    ensures Value(GetEnv(id, env))
   ghost function SetEnv(id: Identifier, expr: Expression, env: Env): Env
-    requires ValidEnv(env) && Value(expr);
-    ensures ValidEnv(SetEnv(id, expr, env));
+    requires ValidEnv(env) && Value(expr)
+    ensures ValidEnv(SetEnv(id, expr, env))
 
   /******* Primitive function 'exec' *******/
   ghost function exec(cmd: string, deps: set<Path>, exps: set<string>, st: State): Tuple<set<Path>, State>
@@ -143,7 +143,7 @@ abstract module M0 {
     requires
       ValidState(st) &&
       deps <= DomSt(st) &&
-      Pre(cmd, deps, exps, st);
+      Pre(cmd, deps, exps, st)
     ensures
       var result := exec(cmd, deps, exps, st);
       var paths, st' := result.fst, result.snd;
@@ -151,7 +151,7 @@ abstract module M0 {
       Extends(st, st') && ExtendsLimit(cmd, deps, exps, st, st') &&
       DomC(st) == DomC(st') &&  // no changes to the cache
       OneToOne(cmd, deps, exps, paths) &&
-      Post(cmd, deps, exps, st');
+      Post(cmd, deps, exps, st')
 
   ghost predicate Pre(cmd: string, deps: set<Path>, exps: set<string>, st: State)
   {
@@ -188,8 +188,8 @@ abstract module M0 {
   // The oracle never changes its mind.  Therefore, if st0 is extended into st1 only by following
   // what the oracle predicts, then no predictions change.
   lemma OracleProperty(p: Path, st0: State, st1: State)
-    requires Extends(st0, st1);
-    ensures Oracle(p, st0) == Oracle(p, st1);
+    requires Extends(st0, st1)
+    ensures Oracle(p, st0) == Oracle(p, st1)
 
   ghost predicate {:opaque} Extends(st: State, st': State)
   {
@@ -199,8 +199,8 @@ abstract module M0 {
   }
 
   lemma Lemma_ExtendsTransitive(st0: State, st1: State, st2: State)
-    requires Extends(st0, st1) && Extends(st1, st2);
-    ensures Extends(st0, st2);
+    requires Extends(st0, st1) && Extends(st1, st2)
+    ensures Extends(st0, st2)
   {
     reveal Extends();
     forall p { OracleProperty(p, st0, st1); }
@@ -263,14 +263,14 @@ abstract module M0 {
 
   /******* Function 'build' *******/
   ghost function build(prog: Program, st: State, useCache: bool): Tuple<Expression, State>
-    requires Legal(prog.stmts);
+    requires Legal(prog.stmts)
   {
     do(prog.stmts, st, EmptyEnv(), useCache)
   }
 
   /******* Function 'do' *******/
   ghost function do(stmts: seq<Statement>, st: State, env: Env, useCache: bool): Tuple<Expression, State>
-    requires Legal(stmts) && ValidEnv(env);
+    requires Legal(stmts) && ValidEnv(env)
   {
     var stmt := stmts[0];
     if stmt.stmtVariable? then
@@ -296,8 +296,8 @@ abstract module M0 {
 
   /******* Function 'eval' *******/
   ghost function {:opaque} eval(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
-     requires ValidEnv(env);
-     decreases expr;
+     requires ValidEnv(env)
+     decreases expr
   {
     if Value(expr) then
       Pair(expr, st)
@@ -374,7 +374,7 @@ abstract module M0 {
   }
 
   ghost function evalFunArgs(expr: Expression, st: State, env: Env, useCache: bool): Triple<Expression, seq<Expression>, set<State>>
-    requires expr.exprInvocation? && ValidEnv(env);
+    requires expr.exprInvocation? && ValidEnv(env)
   {
     var resultFun := eval(expr.fun, st, env, useCache);
     var fun', st' := resultFun.fst, resultFun.snd;
@@ -385,13 +385,13 @@ abstract module M0 {
   }
 
   lemma Lemma_EvalFunArgs_TwoState(expr: Expression, st: State, stC: State, env: Env, p: Triple<Expression, seq<Expression>, set<State>>, pC: Triple<Expression, seq<Expression>, set<State>>)
-    requires expr.exprInvocation? && ValidState(st) && ValidState(stC) && ValidEnv(env);
-    requires ConsistentCache(stC);
-    requires StateCorrespondence(st, stC);
-    requires p == evalFunArgs(expr, st, env, false);
-    requires pC == evalFunArgs(expr, stC, env, true);
-    ensures p.0 == pC.0 && p.1 == pC.1;
-    decreases expr, 0;
+    requires expr.exprInvocation? && ValidState(st) && ValidState(stC) && ValidEnv(env)
+    requires ConsistentCache(stC)
+    requires StateCorrespondence(st, stC)
+    requires p == evalFunArgs(expr, st, env, false)
+    requires pC == evalFunArgs(expr, stC, env, true)
+    ensures p.0 == pC.0 && p.1 == pC.1
+    decreases expr, 0
   {
     var fun, funC := eval(expr.fun, st, env, false).fst, eval(expr.fun, stC, env, true).fst;
     var args, argsC := evalArgs(expr, expr.args, st, env, false).fst, evalArgs(expr, expr.args, stC, env, true).fst;
@@ -406,13 +406,13 @@ abstract module M0 {
   }
 
   lemma Lemma_EvalFunArgs_TwoState_StateCorrespondence(expr: Expression, st: State, stC: State, env: Env, p: Triple<Expression, seq<Expression>, set<State>>, pC: Triple<Expression, seq<Expression>, set<State>>)
-    requires expr.exprInvocation? && ValidState(st) && ValidState(stC) && ValidEnv(env);
-    requires ConsistentCache(stC);
-    requires StateCorrespondence(st, stC);
-    requires p == evalFunArgs(expr, st, env, false);
-    requires pC == evalFunArgs(expr, stC, env, true);
-    ensures StateCorrespondence(Combine(p.2, false), Combine(pC.2, true));
-    decreases expr, 0;
+    requires expr.exprInvocation? && ValidState(st) && ValidState(stC) && ValidEnv(env)
+    requires ConsistentCache(stC)
+    requires StateCorrespondence(st, stC)
+    requires p == evalFunArgs(expr, st, env, false)
+    requires pC == evalFunArgs(expr, stC, env, true)
+    ensures StateCorrespondence(Combine(p.2, false), Combine(pC.2, true))
+    decreases expr, 0
   {
     var fun, funC := eval(expr.fun, st, env, false).fst, eval(expr.fun, stC, env, true).fst;
     var args, argsC := evalArgs(expr, expr.args, st, env, false).fst, evalArgs(expr, expr.args, stC, env, true).fst;
@@ -432,11 +432,11 @@ abstract module M0 {
   }
 
   lemma Lemma_EvalFunArgs(expr: Expression, st: State, env: Env, useCache: bool, sts'': set<State>)
-    requires expr.exprInvocation? && ValidState(st) && ValidEnv(env);
-    requires useCache ==> ConsistentCache(st);
-    requires evalFunArgs(expr, st, env, useCache).2 == sts'';
-    ensures Compatible(sts'');
-    ensures forall s :: s in sts'' ==> ValidState(s) && Extends(st, s) && (useCache ==> ConsistentCache(s));
+    requires expr.exprInvocation? && ValidState(st) && ValidEnv(env)
+    requires useCache ==> ConsistentCache(st)
+    requires evalFunArgs(expr, st, env, useCache).2 == sts''
+    ensures Compatible(sts'')
+    ensures forall s :: s in sts'' ==> ValidState(s) && Extends(st, s) && (useCache ==> ConsistentCache(s))
   {
     var resultFun := eval(expr.fun, st, env, useCache);
     var fun', st' := resultFun.fst, resultFun.snd;
@@ -445,14 +445,14 @@ abstract module M0 {
     assert sts'' == {st'} + sts';
 
     forall
-      ensures ValidState(st') && Extends(st, st');
-      ensures useCache ==> ConsistentCache(st');
+      ensures ValidState(st') && Extends(st, st')
+      ensures useCache ==> ConsistentCache(st')
     {
       var _, _ := EvalLemma(expr.fun, st, env, useCache);
     }
     forall s | s in sts'
-      ensures ValidState(s) && Extends(st, s);
-      ensures useCache ==> ConsistentCache(s);
+      ensures ValidState(s) && Extends(st, s)
+      ensures useCache ==> ConsistentCache(s)
     {
       var _, _ := EvalArgsLemma(expr, expr.args, st, env, useCache);
     }
@@ -462,14 +462,14 @@ abstract module M0 {
   }
 
   lemma Equiv_SuperCore(expr: Expression, st: State, env: Env, useCache: bool)
-    requires expr.exprInvocation? && ValidEnv(env);
-    ensures eval(expr, st, env, useCache) == evalSuperCore(expr, st, env, useCache);
+    requires expr.exprInvocation? && ValidEnv(env)
+    ensures eval(expr, st, env, useCache) == evalSuperCore(expr, st, env, useCache)
   {
     reveal eval();
   }
 
   ghost function evalSuperCore(expr: Expression, st: State, env: Env, useCache: bool): Tuple<Expression, State>
-    requires expr.exprInvocation? && ValidEnv(env);
+    requires expr.exprInvocation? && ValidEnv(env)
   {
     var tri := evalFunArgs(expr, st, env, useCache);
     var fun', args', sts'' := tri.0, tri.1, tri.2;
@@ -477,7 +477,7 @@ abstract module M0 {
   }
 
   ghost function evalCompatCheckCore(stOrig: State, sts: set<State>, fun: Expression, args: seq<Expression>, useCache: bool): Tuple<Expression, State>
-    requires sts != {};
+    requires sts != {}
   {
     if !Compatible(sts) then
       Pair(exprError(rCompatibility), stOrig)
@@ -512,8 +512,8 @@ abstract module M0 {
            Tuple<seq<Expression>, set<State>>
     requires
       ValidEnv(env) &&
-      forall arg :: arg in args ==> arg < context;
-    decreases context, |args|;
+      forall arg :: arg in args ==> arg < context
+    decreases context, |args|
   {
     if args == [] then
       Pair([], {})
@@ -531,8 +531,8 @@ abstract module M0 {
   }
 
   ghost predicate ValidArgs(prim: Primitive, args: seq<Expression>, st: State)
-    requires prim.primExec? ==> |args| == 3;
-    requires prim.primCreatePath? ==> |args| == 1;
+    requires prim.primExec? ==> |args| == 3
+    requires prim.primCreatePath? ==> |args| == 1
   {
     match prim
     case primCreatePath => false
@@ -547,40 +547,40 @@ abstract module M0 {
 
   /******* Parallel builds are race-free *******/
   lemma ParallelBuildsTheorem(prog: Program, st: State, useCache: bool)
-    requires Legal(prog.stmts) && ValidState(st);
-    requires useCache ==> ConsistentCache(st);
+    requires Legal(prog.stmts) && ValidState(st)
+    requires useCache ==> ConsistentCache(st)
     ensures
       var result := build(prog, st, useCache);
       var expr', st' := result.fst, result.snd;
       ValidState(st') &&
-      (expr'.exprError? ==> expr'.r != rCompatibility);
+      (expr'.exprError? ==> expr'.r != rCompatibility)
   {
     BuildLemma(prog, st, useCache);
   }
 
   lemma BuildLemma(prog: Program, st: State, useCache: bool)
-    requires Legal(prog.stmts) && ValidState(st);
-    requires useCache ==> ConsistentCache(st);
+    requires Legal(prog.stmts) && ValidState(st)
+    requires useCache ==> ConsistentCache(st)
     ensures
       var result := build(prog, st, useCache);
       var expr', st' := result.fst, result.snd;
       ValidState(st') &&
       Extends(st, st') &&
-      (expr'.exprError? ==> expr'.r != rCompatibility);
+      (expr'.exprError? ==> expr'.r != rCompatibility)
   {
     DoLemma(prog.stmts, st, EmptyEnv(), useCache);
   }
 
   lemma DoLemma(stmts: seq<Statement>, st: State, env: Env, useCache: bool)
-    requires Legal(stmts) && ValidState(st) && ValidEnv(env);
-    requires useCache ==> ConsistentCache(st);
+    requires Legal(stmts) && ValidState(st) && ValidEnv(env)
+    requires useCache ==> ConsistentCache(st)
     ensures
       var result := do(stmts, st, env, useCache);
       var expr', st' := result.fst, result.snd;
       ValidState(st') &&
       Extends(st, st') &&
       (useCache ==> ConsistentCache(st)) &&
-      (expr'.exprError? ==> expr'.r != rCompatibility);
+      (expr'.exprError? ==> expr'.r != rCompatibility)
   {
     var stmt := stmts[0];
     if stmt.stmtVariable? {
@@ -603,28 +603,28 @@ abstract module M0 {
   }
 
   lemma LittleEvalLemma(expr: Expression, st: State, env: Env, useCache: bool, outExpr: Expression, outSt: State)
-    requires ValidState(st) && ValidEnv(env);
-    requires useCache ==> ConsistentCache(st);
-    requires eval(expr, st, env, useCache) == Pair(outExpr, outSt);
+    requires ValidState(st) && ValidEnv(env)
+    requires useCache ==> ConsistentCache(st)
+    requires eval(expr, st, env, useCache) == Pair(outExpr, outSt)
     ensures
       ValidState(outSt) &&
       Extends(st, outSt) &&
       (useCache ==> ConsistentCache(outSt)) &&
-      (outExpr.exprError? ==> outExpr.r != rCompatibility);
+      (outExpr.exprError? ==> outExpr.r != rCompatibility)
   {
     var _, _ := EvalLemma(expr, st, env, useCache);
   }
 
   lemma {:induction false} {:timeLimit 30} EvalLemma(expr: Expression, st: State, env: Env, useCache: bool) returns (outExpr: Expression, outSt: State)
-    requires ValidState(st) && ValidEnv(env);
-    requires useCache ==> ConsistentCache(st);
+    requires ValidState(st) && ValidEnv(env)
+    requires useCache ==> ConsistentCache(st)
     ensures
       eval(expr, st, env, useCache) == Pair(outExpr, outSt) &&
       ValidState(outSt) &&
       Extends(st, outSt) &&
       (useCache ==> ConsistentCache(outSt)) &&
-      (outExpr.exprError? ==> outExpr.r != rCompatibility);
-    decreases expr;
+      (outExpr.exprError? ==> outExpr.r != rCompatibility)
+    decreases expr
   {
     var result := eval(expr, st, env, useCache);
     outExpr, outSt := result.fst, result.snd;
@@ -710,13 +710,13 @@ abstract module M0 {
     requires
       ValidState(stOrig) && ValidEnv(env) &&
       (useCache ==> ConsistentCache(stOrig)) &&
-      forall arg :: arg in args ==> arg < context;
+      forall arg :: arg in args ==> arg < context
     ensures
       evalArgs(context, args, stOrig, env, useCache) == Pair(exprs, sts) &&
       forall st' :: st' in sts ==>
         ValidState(st') && Extends(stOrig, st') &&
-        (useCache ==> ConsistentCache(st'));
-    decreases context, |args|;
+        (useCache ==> ConsistentCache(st'))
+    decreases context, |args|
   {
     if args == [] {
       exprs, sts := [], {};
@@ -733,10 +733,10 @@ abstract module M0 {
       Legal(prog.stmts) &&
       ValidState(st) &&
       ValidState(stC) && ConsistentCache(stC) &&
-      StateCorrespondence(st, stC);
+      StateCorrespondence(st, stC)
     ensures
       var Pair(_, st'), Pair(_, stC') := build(prog, st, false), build(prog, stC, true);
-      StateCorrespondence(st', stC');
+      StateCorrespondence(st', stC')
   {
     var _, _ := Lemma_Do(prog.stmts, st, stC, EmptyEnv());
   }
@@ -746,11 +746,11 @@ abstract module M0 {
       Legal(stmts) && ValidEnv(env) &&
       ValidState(st) &&
       ValidState(stC) && ConsistentCache(stC) &&
-      StateCorrespondence(st, stC);
+      StateCorrespondence(st, stC)
     ensures
       st' == do(stmts, st, env, false).snd &&
       stC' == do(stmts, stC, env, true).snd &&
-      StateCorrespondence(st', stC');
+      StateCorrespondence(st', stC')
   {
     var result, resultC := do(stmts, st, env, false), do(stmts, stC, env, true);
     st', stC' := result.snd, resultC.snd;
@@ -772,14 +772,14 @@ abstract module M0 {
     requires
       ValidState(st) && ValidEnv(env) &&
       ValidState(stC) && ConsistentCache(stC) &&
-      StateCorrespondence(st, stC);
+      StateCorrespondence(st, stC)
     ensures
       Pair(outExpr, outSt) == eval(expr, st, env, false) &&
       Pair(outExpr, outStC) == eval(expr, stC, env, true) &&
       ValidState(outSt) && Extends(st, outSt) &&
       ValidState(outStC) && Extends(stC, outStC) && ConsistentCache(outStC) &&
-      StateCorrespondence(outSt, outStC);
-    decreases expr;
+      StateCorrespondence(outSt, outStC)
+    decreases expr
   {
     var result, resultC := eval(expr, st, env, false), eval(expr, stC, env, true);
     outExpr, outSt, outStC := result.fst, result.snd, resultC.snd;
@@ -840,12 +840,12 @@ abstract module M0 {
       expr.exprInvocation? &&
       ValidState(st) && ValidEnv(env) &&
       ValidState(stC) && ConsistentCache(stC) &&
-      StateCorrespondence(st, stC);
+      StateCorrespondence(st, stC)
     ensures
       Pair(outExpr, outSt) == eval(expr, st, env, false) &&
       Pair(outExpr, outStC) == eval(expr, stC, env, true) &&
-      StateCorrespondence(outSt, outStC);
-    decreases expr, 1;
+      StateCorrespondence(outSt, outStC)
+    decreases expr, 1
   {
     var tri := evalFunArgs(expr, st, env, false);
     var fun', args', sts'' := tri.0, tri.1, tri.2;
@@ -876,14 +876,14 @@ abstract module M0 {
   }
 
   lemma CompatCheckCore_StateCorrespondence(stOrig: State, sts: set<State>, stOrigC: State, stsC: set<State>, fun: Expression, args: seq<Expression>)
-    requires ValidState(stOrig) && ValidState(stOrigC);
-    requires StateCorrespondence(stOrig, stOrigC);
-    requires sts != {} && stsC != {};
-    requires Compatible(sts) && Compatible(stsC);
-    requires forall s :: s in sts ==> ValidState(s) && Extends(stOrig, s);
-    requires forall s :: s in stsC ==> ValidState(s) && Extends(stOrigC, s) && ConsistentCache(s);
-    requires StateCorrespondence(Combine(sts, false), Combine(stsC, true));
-    ensures StateCorrespondence(evalCompatCheckCore(stOrig, sts, fun, args, false).snd, evalCompatCheckCore(stOrigC, stsC, fun, args, true).snd);
+    requires ValidState(stOrig) && ValidState(stOrigC)
+    requires StateCorrespondence(stOrig, stOrigC)
+    requires sts != {} && stsC != {}
+    requires Compatible(sts) && Compatible(stsC)
+    requires forall s :: s in sts ==> ValidState(s) && Extends(stOrig, s)
+    requires forall s :: s in stsC ==> ValidState(s) && Extends(stOrigC, s) && ConsistentCache(s)
+    requires StateCorrespondence(Combine(sts, false), Combine(stsC, true))
+    ensures StateCorrespondence(evalCompatCheckCore(stOrig, sts, fun, args, false).snd, evalCompatCheckCore(stOrigC, stsC, fun, args, true).snd)
   {
     var p, pC := evalCompatCheckCore(stOrig, sts, fun, args, false), evalCompatCheckCore(stOrigC, stsC, fun, args, true);
     var stCombined := Combine(sts, false);
@@ -904,15 +904,15 @@ abstract module M0 {
   lemma Continuation(p: Tuple<Expression, State>, st: State, sts'': set<State>,
                      pC: Tuple<Expression, State>, stC: State, stsC'': set<State>,
                      fun: Expression, args: seq<Expression>)
-    requires sts'' != {} && Compatible(sts'');
-    requires stsC'' != {} && Compatible(stsC'');
-    requires p == evalCompatCheckCore(st, sts'', fun, args, false);
-    requires pC == evalCompatCheckCore(stC, stsC'', fun, args, true);
-    requires forall s :: s in sts'' ==> ValidState(s) && Extends(st, s);
-    requires forall s :: s in stsC'' ==> ValidState(s) && Extends(stC, s) && ConsistentCache(s);
-    requires StateCorrespondence(st, stC);
-    requires StateCorrespondence(Combine(sts'', false), Combine(stsC'', true));
-    ensures p.fst == pC.fst;
+    requires sts'' != {} && Compatible(sts'')
+    requires stsC'' != {} && Compatible(stsC'')
+    requires p == evalCompatCheckCore(st, sts'', fun, args, false)
+    requires pC == evalCompatCheckCore(stC, stsC'', fun, args, true)
+    requires forall s :: s in sts'' ==> ValidState(s) && Extends(st, s)
+    requires forall s :: s in stsC'' ==> ValidState(s) && Extends(stC, s) && ConsistentCache(s)
+    requires StateCorrespondence(st, stC)
+    requires StateCorrespondence(Combine(sts'', false), Combine(stsC'', true))
+    ensures p.fst == pC.fst
   {
     var outExpr, outExprC := p.fst, pC.fst;
     var stCombined := Combine(sts'', false);
@@ -951,13 +951,13 @@ abstract module M0 {
   lemma EvalCoreDeepen(p: Tuple<Expression, State>, st: State, stCombined: State,
                        pC: Tuple<Expression, State>, stC: State, stCombinedC: State,
                        fun: Expression, args: seq<Expression>)
-    requires p == evalCore(st, stCombined, args, false);
-    requires pC == evalCore(stC, stCombinedC, args, true);
-    requires ValidState(stCombined) && ValidState(stCombinedC);
-    requires ConsistentCache(stCombinedC);
-    requires StateCorrespondence(st, stC) && StateCorrespondence(stCombined, stCombinedC);
-    ensures p.fst == pC.fst;
-    ensures StateCorrespondence(p.snd, pC.snd);
+    requires p == evalCore(st, stCombined, args, false)
+    requires pC == evalCore(stC, stCombinedC, args, true)
+    requires ValidState(stCombined) && ValidState(stCombinedC)
+    requires ConsistentCache(stCombinedC)
+    requires StateCorrespondence(st, stC) && StateCorrespondence(stCombined, stCombinedC)
+    ensures p.fst == pC.fst
+    ensures StateCorrespondence(p.snd, pC.snd)
   {
     assume |args| == Arity(primExec) ==>
       ValidArgs(primExec, args, stCombined) == ValidArgs(primExec, args, stCombinedC);  // TODO:  This will require some work!
@@ -988,7 +988,7 @@ abstract module M0 {
         assert newPaths <= DomSt(stCombinedC);
         assert DomSt(p.snd) <= DomSt(pC.snd);
         forall pth | pth in DomSt(p.snd)
-          ensures GetSt(pth, p.snd) == GetSt(pth, stCombinedC);
+          ensures GetSt(pth, p.snd) == GetSt(pth, stCombinedC)
         {
           if pth in DomSt(stCombined) {
             // follows from StateCorrespondence(stCombined, stCombinedC)
@@ -1015,7 +1015,7 @@ abstract module M0 {
         assert Extends(stCombined, ps.snd) && Extends(stCombinedC, stC');
         assert DomSt(ps.snd) <= DomSt(st') == DomSt(stC');
         forall pth | pth in DomSt(ps.snd)
-          ensures GetSt(pth, ps.snd) == GetSt(pth, st');
+          ensures GetSt(pth, ps.snd) == GetSt(pth, st')
         {
           if pth in DomSt(stCombined) {
           } else {
@@ -1040,7 +1040,7 @@ abstract module M0 {
           }
         }
         forall pth | pth !in DomSt(p.snd) && pth in DomSt(st')
-          ensures GetSt(pth, st') == Oracle(pth, p.snd);
+          ensures GetSt(pth, st') == Oracle(pth, p.snd)
         {
           assert pth !in DomSt(stCombined);
           if pth in DomSt(stCombinedC) {
@@ -1068,13 +1068,13 @@ abstract module M0 {
   }
 
   lemma Lemma_Extends_StateCorrespondence(st: State, st': State, stC: State)
-    requires Extends(st, st') && StateCorrespondence(st, stC) && DomSt(st') <= DomSt(stC);
-    ensures StateCorrespondence(st', stC);
+    requires Extends(st, st') && StateCorrespondence(st, stC) && DomSt(st') <= DomSt(stC)
+    ensures StateCorrespondence(st', stC)
   {
     reveal Extends();
     reveal StateCorrespondence();
     forall p | p !in DomSt(st') && p in DomSt(stC)
-      ensures GetSt(p, stC) == Oracle(p, st');
+      ensures GetSt(p, stC) == Oracle(p, st')
     {
       OracleProperty(p, st, st');
     }
@@ -1088,15 +1088,15 @@ abstract module M0 {
       ValidState(stOrig) && ValidEnv(env) &&
       ValidState(stOrigC) && ConsistentCache(stOrigC) &&
       StateCorrespondence(stOrig, stOrigC) &&
-      forall arg :: arg in args ==> arg < context;
-    decreases context, 0, |args|;
+      forall arg :: arg in args ==> arg < context
+    decreases context, 0, |args|
     ensures
       Pair(exprs, sts) == evalArgs(context, args, stOrig, env, false) &&
       Pair(exprs, stsC) == evalArgs(context, args, stOrigC, env, true) &&
       (forall s :: s in sts ==> ValidState(s) && Extends(stOrig, s)) &&
       (forall sC :: sC in stsC ==> ValidState(sC) && Extends(stOrigC, sC) && ConsistentCache(sC)) &&
       (args == [] ==> sts == stsC == {}) &&
-      (args != [] ==> sts != {} && stsC != {} && StateCorrespondence(Combine(sts, false), Combine(stsC, true)));
+      (args != [] ==> sts != {} && stsC != {} && StateCorrespondence(Combine(sts, false), Combine(stsC, true)))
   {
     if args == [] {
       exprs, sts, stsC := [], {}, {};
@@ -1116,13 +1116,13 @@ abstract module M0 {
     var st := PickOne(sts); DomSt(st) + DomSt_Union(sts - {st})
   }
   lemma Combine_DomSt_X(sts: set<State>, useCache: bool)
-    requires sts != {};
-    ensures DomSt(Combine(sts, useCache)) == DomSt_Union(sts);
+    requires sts != {}
+    ensures DomSt(Combine(sts, useCache)) == DomSt_Union(sts)
   {
     reveal Combine();
   }
   lemma DomSt_Union_Cons(st: State, sts: set<State>)
-    ensures DomSt_Union({st} + sts) == DomSt(st) + DomSt_Union(sts);
+    ensures DomSt_Union({st} + sts) == DomSt(st) + DomSt_Union(sts)
   {
     var big := {st} + sts;
     if st in sts {
@@ -1150,8 +1150,8 @@ abstract module M0 {
   }
 
   lemma Combine_DomSt(st: State, sts: set<State>, useCache: bool)
-    requires sts != {};
-    ensures DomSt(Combine({st} + sts, useCache)) == DomSt(st) + DomSt(Combine(sts, useCache));
+    requires sts != {}
+    ensures DomSt(Combine({st} + sts, useCache)) == DomSt(st) + DomSt(Combine(sts, useCache))
   {
     var big := {st} + sts;
     if st in sts {
@@ -1197,13 +1197,13 @@ abstract module M0 {
     }
   }
   lemma {:timeLimit 15} StateCorrespondence_Ctor(stOrig: State, st: State, sts: set<State>, stC: State, stsC: set<State>)
-    requires ValidState(st) && forall s :: s in sts ==> ValidState(s);
-    requires Extends(stOrig, st) && forall s :: s in sts ==> Extends(stOrig, s);
-    requires StateCorrespondence(st, stC);
-    requires sts == {} <==> stsC == {};
-    requires sts != {} && stsC != {} ==> StateCorrespondence(Combine(sts, false), Combine(stsC, true));
-    requires Compatible({st} + sts) && Compatible({stC} + stsC);
-    ensures StateCorrespondence(Combine({st} + sts, false), Combine({stC} + stsC, true));
+    requires ValidState(st) && forall s :: s in sts ==> ValidState(s)
+    requires Extends(stOrig, st) && forall s :: s in sts ==> Extends(stOrig, s)
+    requires StateCorrespondence(st, stC)
+    requires sts == {} <==> stsC == {}
+    requires sts != {} && stsC != {} ==> StateCorrespondence(Combine(sts, false), Combine(stsC, true))
+    requires Compatible({st} + sts) && Compatible({stC} + stsC)
+    ensures StateCorrespondence(Combine({st} + sts, false), Combine({stC} + stsC, true))
   {
     reveal Combine();
     if sts == {} {
@@ -1227,7 +1227,7 @@ abstract module M0 {
       assert DomSt(a) <= DomSt(b);
 
       forall p | p in DomSt(a)
-        ensures GetSt(p, a) == GetSt(p, b);
+        ensures GetSt(p, a) == GetSt(p, b)
       {
         var stRepr := Combine_Representative(p, {st} + sts, false);
         if stRepr == st {
@@ -1244,9 +1244,9 @@ abstract module M0 {
         }
       }
       forall p | p !in DomSt(a) && p in DomSt(b)
-        ensures GetSt(p, b) == Oracle(p, a);
+        ensures GetSt(p, b) == Oracle(p, a)
       {
-        forall ensures p !in DomSt(st); {
+        forall ensures p !in DomSt(st) {
           CombineExpandsDomain(p, st, {st} + sts, false);
         }
         var stReprC := Combine_Representative(p, {stC} + stsC, true);
@@ -1293,16 +1293,16 @@ abstract module M0 {
   }
 
   lemma CompatiblePick(p: Path, st: State, sts: set<State>, useCache: bool)
-    requires st in sts;
-    requires Compatible(sts);
-    requires p in DomSt(st) && p in DomSt(Combine(sts, useCache));
-    ensures GetSt(p, Combine(sts, useCache)) == GetSt(p, st);
+    requires st in sts
+    requires Compatible(sts)
+    requires p in DomSt(st) && p in DomSt(Combine(sts, useCache))
+    ensures GetSt(p, Combine(sts, useCache)) == GetSt(p, st)
   {
     reveal Combine();
   }
   lemma Combine_Representative(p: Path, sts: set<State>, useCache: bool) returns (stRepr: State)
-    requires sts != {} && p in DomSt(Combine(sts, useCache));
-    ensures stRepr in sts && p in DomSt(stRepr) && GetSt(p, stRepr) == GetSt(p, Combine(sts, useCache));
+    requires sts != {} && p in DomSt(Combine(sts, useCache))
+    ensures stRepr in sts && p in DomSt(stRepr) && GetSt(p, stRepr) == GetSt(p, Combine(sts, useCache))
   {
     reveal Combine();
     var stPick := PickOne(sts);
@@ -1314,8 +1314,8 @@ abstract module M0 {
     }
   }
   lemma CombineExpandsDomain(p: Path, st: State, sts: set<State>, useCache: bool)
-    requires st in sts;
-    ensures p in DomSt(st) ==> p in DomSt(Combine(sts, useCache));
+    requires st in sts
+    ensures p in DomSt(st) ==> p in DomSt(Combine(sts, useCache))
   {
     reveal Combine();
   }

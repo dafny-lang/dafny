@@ -5,13 +5,13 @@ module A {
   class X { }
   class T {
     method M(x: int) returns (y: int)
-      requires 0 <= x;
-      ensures 0 <= y;
+      requires 0 <= x
+      ensures 0 <= y
     {
       y := 2 * x;
     }
     method Q() returns (q: int, r: int, s: int)
-      ensures 0 <= q && 0 <= r && 0 <= s;
+      ensures 0 <= q && 0 <= r && 0 <= s
     {  // error: failure to establish postcondition about q
       r, s := 100, 200;
     }
@@ -27,10 +27,10 @@ module B refines A {
       p := 18;
     }
     method M(x: int) returns (y: int)
-      ensures y % 2 == 0;  // add a postcondition
+      ensures y % 2 == 0  // add a postcondition
     method Q ...
-      ensures 12 <= r;
-      ensures 1200 <= s;  // error: postcondition is not established by
+      ensures 12 <= r
+      ensures 1200 <= s   // error: postcondition is not established by
                           // inherited method body
   }
 }
@@ -39,9 +39,9 @@ module B refines A {
 
 module A_AnonymousClass {
   class XX {
-    var x: int;
+    var x: int
     method Increment(d: int)
-      modifies this;
+      modifies this
     {
       x := x + d;
     }
@@ -51,16 +51,16 @@ module A_AnonymousClass {
 module B_AnonymousClass refines A_AnonymousClass {
   class XX ... {
     method Increment...
-      ensures x <= old(x) + d;
+      ensures x <= old(x) + d
   }
 }
 
 module C_AnonymousClass refines B_AnonymousClass {
   class XX ... {
     method Increment(d: int)
-      ensures old(x) + d <= x;
+      ensures old(x) + d <= x
     method Main()
-      modifies this;
+      modifies this
     {
       x := 25;
       Increment(30);
@@ -75,12 +75,12 @@ module C_AnonymousClass refines B_AnonymousClass {
 
 module BodyFree {
   ghost function F(x: int): int
-    ensures 0 <= F(x);
+    ensures 0 <= F(x)
   method TestF() {
     assert F(6) == F(7);  // error: no information about F so far
   }
   method M() returns (a: int, b: int)
-    ensures a == b;
+    ensures a == b
 }
 
 module SomeBody refines BodyFree {

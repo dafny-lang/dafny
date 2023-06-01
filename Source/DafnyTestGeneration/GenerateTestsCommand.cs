@@ -22,7 +22,6 @@ public class GenerateTestsCommand : ICommandSpec {
       BoogieOptionBag.SolverPlugin,
       BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
-      Verbose,
       PrintBpl,
       DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).

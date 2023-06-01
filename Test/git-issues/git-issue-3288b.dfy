@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny verify %args "%s" > "%t"
+// RUN: %exits-with 2 %baredafny verify --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.expect" "%t" 
 
 module M {
