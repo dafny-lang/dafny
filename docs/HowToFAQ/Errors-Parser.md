@@ -163,7 +163,7 @@ If the implicit module cannot be imported, there is no point to any export decla
 
 ## **Error: expected either a '{' or a 'refines' keyword here, found _token_** {#p_bad_module_decl}
 
-<!-- %first -->
+<!-- %check-resolve %first -->
 ```dafny
 module M {}
 module N refine M {}
