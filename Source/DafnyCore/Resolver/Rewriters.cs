@@ -12,8 +12,6 @@ public static class Rewriters {
         result.Add(new Auditor.Auditor(reporter));
       }
 
-      var refinementTransformer = new RefinementTransformer(program);
-      result.Add(refinementTransformer);
       if (!program.Options.VerifyAllModules)
       {
         result.Add(new IncludedLemmaBodyRemover(program, reporter));
