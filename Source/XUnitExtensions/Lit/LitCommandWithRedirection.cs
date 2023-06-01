@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -79,13 +80,23 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(TextReader inReader, TextWriter outWriter,
       TextWriter errWriter) {
+      var outputWriters = new List<TextWriter>() { outWriter };
+      if (outputFile != null) {
+        outputWriters.Add(new StreamWriter(outputFile, append));
+      }
+      
+      var errorWriters = new List<TextWriter>() { errWriter };
+      if (errorFile != null) {
+        errorWriters.Add(new StreamWriter(errorFile, append));
+      }
       var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
-      var outputWriter = outputFile != null ? new StreamWriter(outputFile, append) : outWriter;
-      var errorWriter = errorFile != null ? new StreamWriter(errorFile, append) : errWriter;
-      var result = command.Execute(inputReader, outputWriter, errorWriter);
-      inputReader?.Close();
-      outputWriter?.Close();
-      errorWriter?.Close();
+      var result = command.Execute(inputReader, 
+        new CombinedWriter(outWriter.Encoding, outputWriters), 
+        new CombinedWriter(errWriter.Encoding, errorWriters));
+      inputReader.Close();
+      foreach (var writer in outputWriters.Concat(errorWriters)) {
+        writer.Close();
+      }
       return result;
     }
 
@@ -115,27 +126,5 @@ namespace XUnitExtensions.Lit {
       }
       return builder.ToString();
     }
-  }
-}
-
-public class WriterFromOutputHelper : TextWriter {
-  private readonly ITestOutputHelper output;
-
-  public WriterFromOutputHelper(ITestOutputHelper output) {
-    this.output = output;
-  }
-
-  public override void Write(char value) {
-
-  }
-
-  public override Encoding Encoding => Encoding.Default;
-
-  public override void WriteLine(string? value) {
-    output.WriteLine(value);
-  }
-
-  public override void WriteLine(string format, params object?[] arg) {
-    output.WriteLine(format, arg);
   }
 }
