@@ -104,7 +104,7 @@ void CheckDeclModifiers(ref DeclModifierData dmod, string declCaption, AllowedDe
         SemErr(ErrorId.p_no_ghost_for_by_method, dmod.GhostToken,
           $"{declCaption} has a ghost function body and a non-ghost method body; {declCaption} declaration does not use the 'ghost' keyword.");
       } else if (declCaption == "a function" || declCaption == "a predicate") {
-        SemErr(ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
+        SemErr(ErrorId.p_ghost_forbidden_default_3, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)");
       } else {
         SemErr(ErrorId.p_ghost_forbidden_default, dmod.GhostToken, $"{declCaption} cannot be declared 'ghost' (it is 'ghost' by default)");
       }
@@ -735,7 +735,8 @@ int StringToInt(string s, int defaultValue, string errString, IToken tok) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large : ErrorId.p_bitvector_too_large, 
+    SemErr(errString.Contains("array") ? ErrorId.p_array_dimension_too_large
+                                       : ErrorId.p_bitvector_too_large, 
       tok, string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
@@ -1295,13 +1296,13 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
-         errors.Warning(ErrorId.p_module_level_always_static, dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
+         errors.Warning(ErrorId.p_module_level_function_always_static, dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
          dmod.IsStatic = false;
        }
     .)
     FunctionDecl<dmod, out f>                   (. mm.Add(f); .)
   | (. if (moduleLevelDecl && dmod.StaticToken != null) {
-         errors.Warning(ErrorId.p_module_level_always_static, dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
+         errors.Warning(ErrorId.p_module_level_method_always_static, dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
          dmod.IsStatic = false;
        }
     .)
@@ -3962,7 +3963,7 @@ ImpliesExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsImpliesOp() || IsExpliesOp())
-    ( ImpliesOp | ExpliesOp (. SemErr(ErrorId.p_ambiguous_implies, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
+    ( ImpliesOp | ExpliesOp (. SemErr(ErrorId.p_ambiguous_implies_2, t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) )
     (. x = t; .)
     ImpliesExpression<out e1, allowLemma, allowLambda, allowBitwiseOps>       (. var startToken = e0.StartToken;
                                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); 
@@ -4070,7 +4071,7 @@ RelationalExpression<out Expression e, bool allowLemma, bool allowLambda, bool a
                                           break;
                                         case BinaryExpr.Opcode.Neq:
                                           if (hasSeenNeq) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "a chain cannot have more than one != operator"); kind = 3; }
-                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_notequal_chaining, x, "this operator cannot continue this chain"); kind = 3; }
+                                          else if (kind != 0 && kind != 1 && kind != 2) { SemErr(ErrorId.p_invalid_operator_in_chain, x, "this operator cannot continue this chain"); kind = 3; }
                                           hasSeenNeq = true;  break;
                                         case BinaryExpr.Opcode.Lt:
                                         case BinaryExpr.Opcode.Le:
@@ -4494,7 +4495,7 @@ SeqDisplayExpr<out Expression e>
     "seq"                          (. x = t; .)
     [ (. var gt = new List<Type>(); startInstantiation = la; .)
     GenericInstantiation<gt>     (. if (gt.Count > 1) {
-                                      SemErr(ErrorId.p_seq_has_one_type_argument, new RangeToken(startInstantiation,t), "seq type expects only one type argument");
+                                      SemErr(ErrorId.p_seq_display_has_one_type_argument, new RangeToken(startInstantiation,t), "seq type expects only one type argument");
                                     } else {
                                       explicitTypeArg = gt[0];
                                     }
@@ -5269,7 +5270,7 @@ Name<out Name name>
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. if (x.val.StartsWith("_")) {
-                        SemErr(ErrorId.p_no_leading_underscore, x, 
+                        SemErr(ErrorId.p_no_leading_underscore_2, x, 
                           "cannot declare identifier beginning with underscore");
                       }
                    .)
