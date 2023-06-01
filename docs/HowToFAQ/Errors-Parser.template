@@ -1190,9 +1190,9 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 ## **Warning: File has no code** {#p_file_has_no_code}
 
 <!-- %check-resolve-warn -->
-``dafny
+```dafny
 // const c := 42
-``
+```
 
 <!-- INSERT-TEXT -->
 

@@ -1458,7 +1458,7 @@ If it occurs, please report an internal bug (or obsolete documentation).
 
 ```dafny
 const _myconst := 5
-q```
+```
 
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
@@ -1554,9 +1554,9 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 ## **Warning: File has no code** {#p_file_has_no_code}
 
 <!-- %check-resolve-warn -->
-``dafny
+```dafny
 // const c := 42
-``
+```
 
 The indicated file has no code. This can be because the file is empty, because some parse error
 left the top-level module with no well-formed declarations, or because a unclosed comment
