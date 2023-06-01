@@ -248,8 +248,8 @@ do
     fi
 
     inblock=1
-    rm -f $text
-    touch $text
+    rm -f "$text"
+    touch "$text"
   else
       ## End of backtick block, so check the text
       if [ -z "$command" -a "$lang" == "dafny" ]; then

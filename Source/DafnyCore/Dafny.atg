@@ -128,8 +128,8 @@ bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
   // attr is the identifier of the Attribute
   // range is from opening brace to closing brace
   if (attr.val == "ignore") {
-    errors.Warning(
-      attr,
+    errors.Warning(ErrorId.p_deprecated_attribute, 
+      range,
       $"attribute :{attr.val} is deprecated");
     return false;
   }
@@ -1096,7 +1096,8 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   [ IF(IsIdentifier(la.kind) || la.kind==_digits) ExportId<out exportId>   // If the next token is 'least' or 'greatest' use it as the export id, 
                                                                            // not the beginning of a subsequent extreme predicate declaration
     (. if (exportId.line == la.line && (exportId.val == "least" || exportId.val == "greatest") && la.kind == _predicate)
-           errors.Warning(exportId, $"the {exportId.val} token is the identifier for the export set, not an adjective for an extreme predicate");
+           errors.Warning(ErrorId.p_misplaced_least_or_greatest, exportId, 
+               $"the {exportId.val} token is the identifier for the export set, not an adjective for an extreme predicate");
     .)
   ]
   [ ellipsis  (. isRefining = true; .) ]
@@ -1294,13 +1295,13 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
-         errors.Warning(dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
+         errors.Warning(ErrorId.p_module_level_always_static, dmod.StaticToken, "module-level functions are always non-instance, so the 'static' keyword is not allowed here");
          dmod.IsStatic = false;
        }
     .)
     FunctionDecl<dmod, out f>                   (. mm.Add(f); .)
   | (. if (moduleLevelDecl && dmod.StaticToken != null) {
-         errors.Warning(dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
+         errors.Warning(ErrorId.p_module_level_always_static, dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
          dmod.IsStatic = false;
        }
     .)
@@ -1422,7 +1423,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      Type/*!*/ ty;
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
-       errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
+       errors.Warning(ErrorId.p_module_level_const_always_static, dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
