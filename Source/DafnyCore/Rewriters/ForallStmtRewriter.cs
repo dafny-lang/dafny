@@ -10,7 +10,7 @@ public class ForallStmtRewriter : IRewriter {
     Contract.Requires(reporter != null);
   }
 
-  internal override void PostResolveIntermediate(ModuleDefinition m) {
+  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
     var forallVisitor = new ForAllStmtVisitor(Reporter);
     foreach (var decl in ModuleDefinition.AllCallablesIncludingPrefixDeclarations(m.TopLevelDecls)) {
       forallVisitor.Visit(decl, true);

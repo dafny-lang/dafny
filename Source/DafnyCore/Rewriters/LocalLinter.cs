@@ -13,8 +13,8 @@ using static Microsoft.Dafny.RewriterErrors;
 namespace Microsoft.Dafny {
 
   public class LocalLinter : IRewriter {
-    internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-      base.PostResolveIntermediate(moduleDefinition);
+    internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition moduleDefinition) {
+      base.PostResolveIntermediate(resolver, moduleDefinition);
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var callable in topLevelDecl.Members.OfType<ICallable>()) {
           var visitor = new UselessOldLinterVisitor(Reporter);

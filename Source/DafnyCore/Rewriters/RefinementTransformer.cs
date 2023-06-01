@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal override void PostResolveIntermediate(ModuleDefinition m) {
+    internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
       if (m == moduleUnderConstruction) {
         while (this.postTasks.Count != 0) {
           var a = postTasks.Dequeue();

@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Plugins;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -33,6 +34,7 @@ namespace Microsoft.Dafny {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
   public class Program : TokenNode {
+    public IList<IRewriter> Rewriters { get; set; }
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);

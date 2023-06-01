@@ -851,8 +851,7 @@ namespace Microsoft.Dafny {
     public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
 
-      var rewriters = Rewriters.GetRewriters(dafnyProgram, new FreshIdGenerator());
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in dafnyProgram.Rewriters) {
         rewriter.PostVerification(dafnyProgram);
       }
       

@@ -236,7 +236,6 @@ namespace Microsoft.Dafny {
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
 
-    private IList<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
     public Resolver(DafnyOptions options) {
@@ -429,9 +428,9 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
+      prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
       refinementTransformer = new RefinementTransformer(prog);
-      rewriters.Insert(0, refinementTransformer);
+      prog.Rewriters.Insert(0, refinementTransformer);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
@@ -451,7 +450,7 @@ namespace Microsoft.Dafny {
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
         new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in prog.Rewriters) {
         rewriter.PreResolve(prog);
       }
 
@@ -475,7 +474,7 @@ namespace Microsoft.Dafny {
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
           }
 
-          foreach (var rewriter in rewriters) {
+          foreach (var rewriter in prog.Rewriters) {
             rewriter.PreResolve(m);
           }
 
@@ -501,11 +500,11 @@ namespace Microsoft.Dafny {
 
           prog.ModuleSigs[m] = sig;
 
-          foreach (var rewriter in rewriters) {
+          foreach (var rewriter in prog.Rewriters) {
             if (!good || reporter.ErrorCount != preResolveErrorCount) {
               break;
             }
-            rewriter.PostResolveIntermediate(m);
+            rewriter.PostResolveIntermediate(this, m);
           }
           if (good && reporter.ErrorCount == errorCount) {
             m.SuccessfullyResolved = true;
@@ -578,7 +577,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        foreach (var rewriter in rewriters) {
+        foreach (var rewriter in prog.Rewriters) {
           rewriter.PostCyclicityResolve(module);
         }
       }
@@ -608,7 +607,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var module in prog.Modules()) {
-        foreach (var rewriter in rewriters) {
+        foreach (var rewriter in prog.Rewriters) {
           rewriter.PostDecreasesResolve(module);
         }
       }
@@ -663,12 +662,12 @@ namespace Microsoft.Dafny {
       CheckDupModuleNames(prog);
 
       foreach (var module in prog.Modules()) {
-        foreach (var rewriter in rewriters) {
+        foreach (var rewriter in prog.Rewriters) {
           rewriter.PostResolve(module);
         }
       }
 
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in prog.Rewriters) {
         rewriter.PostResolve(prog);
       }
     }
@@ -4821,7 +4820,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    TopLevelDeclWithMembers currentClass;
+    private TopLevelDeclWithMembers currentClass;
     public Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;

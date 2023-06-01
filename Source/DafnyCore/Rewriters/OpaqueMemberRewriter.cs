@@ -28,7 +28,7 @@ public class OpaqueMemberRewriter : IRewriter {
     }
   }
 
-  internal override void PostResolveIntermediate(ModuleDefinition m) {
+  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
     foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
       if (decl is Lemma or TwoStateLemma) {
         var lem = (Method)decl;
