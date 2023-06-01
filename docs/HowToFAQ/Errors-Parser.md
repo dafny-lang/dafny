@@ -638,6 +638,7 @@ This special formal is not permitted in a regular (non-extreme) predicate.
 
 ## **Warning: the old keyword phrase 'inductive predicate' has been renamed to 'least predicate' {#p_deprecated_inductive_predicate}
 
+<!-- %check-resolve-warn -->
 ```dafny
 inductive predicate p()
 ```
@@ -646,6 +647,7 @@ The terms `least predicate` and `greatest predicate` are more descriptive of the
 
 ## **Warning: the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate' {#p_deprecated_copredicate}
 
+<!-- %check-resolve-warn -->
 ```dafny
 copredicate p()
 ```
@@ -869,6 +871,7 @@ Insert a specific reads expression.
 
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}
 
+<!-- %check-resolve-warn -->
 ```dafny
 method m() {
   assert ...;
@@ -1551,6 +1554,7 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 
 ## **Warning: File has no code** {#p_file_has_no_code}
 
+<!-- %check-resolve-warn -->
 ``dafny
 // const c := 42
 ``

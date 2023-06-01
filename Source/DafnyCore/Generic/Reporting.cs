@@ -251,6 +251,7 @@ namespace Microsoft.Dafny {
         if (Options.OutputWriter == Console.Out) {
           Console.ForegroundColor = previousColor;
         }
+        System.Console.WriteLine(new Exception().StackTrace);
         return true;
       }
 

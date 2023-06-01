@@ -14,6 +14,7 @@ public class GenericErrors {
     g_unicode_escape_may_not_be_surrogate,
     g_U_unicode_chars_are_disallowed,
     g_cli_option_error,
+    g_feature_unsupported,
 
   }
 
@@ -29,7 +30,6 @@ a part of the modifies clause.
 If the constructor only modifies its own object (as is the very common case)
 then no explicit modifies clause is needed at all.
 "); // TODO _ add a quick fix to remove the this, or maybe the whole clause
-
 
   }
 }
