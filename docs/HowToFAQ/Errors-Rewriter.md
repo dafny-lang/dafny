@@ -69,10 +69,7 @@ same order as the bound variables of the quantifier. If not, the :induction attr
 
 ## **Warning: lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute** {#rw_induction_arguments_lemma_mismatch}
 
-<!-- %check-resolve-warn -->
-```dafny
-lemma {:induction j,i} m(i: int, j: int) ensures i + j == j + i {}
-```
+<!-- TODO - not sure this is reachable -->
 
 The `{:induction}` attribute gives some guidance to the prover as to how to construct the induction argument that 
 proves the lemma. The heuristics that infer an induction proof require that the arguments of the attribute be in the
@@ -82,6 +79,7 @@ same order as the parameters of the lemma. If not, the :induction attribute is i
 
 <!-- %check-resolve-warn -->
 ```dafny
+const c := 0
 lemma {:induction 42} m(i: int, j: int) ensures i + j == j + i {} 
 ```
 

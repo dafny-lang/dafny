@@ -47,6 +47,9 @@ public class CompilerErrors {
     c_abstract_type_cannot_be_compiled_extern,
     c_Go_unsupported_field,
     c_Go_infeasible_conversion,
+
+    f_unsupported_feature,
+
   }
 
   static CompilerErrors() {
