@@ -860,6 +860,13 @@ namespace Microsoft.Dafny {
 
                 case BinaryExpr.ResolvedOpcode.EqCommon:
                   keepLits = true;
+                  if (ModeledAsBoxType(e.E0.Type)) {
+                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                  } else if (ModeledAsBoxType(e.E1.Type)) {
+                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                  }
                   var cot = e.E0.Type.AsCoDatatype;
                   if (cot != null) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
@@ -872,6 +879,13 @@ namespace Microsoft.Dafny {
                   typ = Boogie.Type.Bool;
                   bOpcode = BinaryOperator.Opcode.Eq; break;
                 case BinaryExpr.ResolvedOpcode.NeqCommon:
+                  if (ModeledAsBoxType(e.E0.Type)) {
+                    e1 = BoxIfNecessary(expr.tok, e1, e.E1.Type);
+                    oe1 = BoxIfNecessary(expr.tok, oe1, e.E1.Type);
+                  } else if (ModeledAsBoxType(e.E1.Type)) {
+                    e0 = BoxIfNecessary(expr.tok, e0, e.E0.Type);
+                    oe0 = BoxIfNecessary(expr.tok, oe0, e.E0.Type);
+                  }
                   var cotx = e.E0.Type.AsCoDatatype;
                   if (cotx != null) {
                     var e0args = e.E0.Type.NormalizeExpand().TypeArgs;

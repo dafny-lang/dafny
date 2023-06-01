@@ -369,3 +369,28 @@ module StaticMemberInheritance {
     return x;
   }
 }
+
+module Equality {
+  trait GrandParentTrait { }
+
+  trait ParentTrait extends GrandParentTrait { }
+
+  newtype MyInt extends ParentTrait = x | 0 <= x < 100
+
+  method Test() {
+    var mi: MyInt := 15;
+    var p: ParentTrait := mi;
+    var g: GrandParentTrait := mi;
+
+    assert mi is MyInt && p is MyInt && g is MyInt;
+    assert mi is ParentTrait && p is ParentTrait && g is ParentTrait;
+    assert mi is GrandParentTrait && p is GrandParentTrait && g is GrandParentTrait;
+
+    var w: ParentTrait := g as ParentTrait;
+    var x: MyInt := p as MyInt;
+    var x': MyInt := g as MyInt;
+    var x'': MyInt := mi as MyInt;
+
+    assert x == x' == x'' == x == mi == p == g == w == x;
+  }
+}
