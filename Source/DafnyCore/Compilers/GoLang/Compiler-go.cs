@@ -266,10 +266,17 @@ namespace Microsoft.Dafny.Compilers {
       var instanceFieldWriter = w.NewBlock(string.Format("type {0} struct", name));
 
       w.WriteLine();
-      CreateInitializer(name, w, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
+      CreateInitializer(classContext, name, w, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
+      var isNewtypeWithTraits = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } };
+
+      var rtdCount = 0;
       if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFields(typeParameters, false, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+        rtdCount = WriteRuntimeTypeDescriptorsFields(typeParameters, false, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+      }
+      if (isNewtypeWithTraits) {
+        var udt = UserDefinedType.FromTopLevelDecl(classContext.tok, classContext);
+        rtdParamWriter.Write($"value {TypeName(udt, rtdParamWriter, classContext.tok)}");
       }
 
       w.WriteLine();
@@ -291,11 +298,15 @@ namespace Microsoft.Dafny.Compilers {
 
       w.WriteLine();
       if (includeString) {
-        var wString = w.NewNamedBlock("func (*{0}) String() string", name);
-
-        // Be consistent with other back ends, which don't fold _module into the main module
-        var module = ModuleName == MainModuleName ? "_module" : ModuleName;
-        wString.WriteLine("return \"{0}.{1}\"", module, name);
+        if (isNewtypeWithTraits) {
+          var wString = w.NewNamedBlock("func (_this *{0}) String() string", name);
+          wString.WriteLine("return _dafny.String(_this._value)");
+        } else {
+          var wString = w.NewNamedBlock("func (*{0}) String() string", name);
+          // Be consistent with other back ends, which don't fold _module into the main module
+          var module = ModuleName == MainModuleName ? "_module" : ModuleName;
+          wString.WriteLine("return \"{0}.{1}\"", module, name);
+        }
       }
 
       if (includeRtd) {
@@ -390,11 +401,13 @@ namespace Microsoft.Dafny.Compilers {
       return cw;
     }
 
-    protected void CreateInitializer(string name, ConcreteSyntaxTree wr, out ConcreteSyntaxTree instanceFieldInitWriter, out ConcreteSyntaxTree traitInitWriter, out ConcreteSyntaxTree rtdParamWriter) {
+    protected void CreateInitializer(TopLevelDecl classContext, string name, ConcreteSyntaxTree wr,
+      out ConcreteSyntaxTree instanceFieldInitWriter, out ConcreteSyntaxTree traitInitWriter, out ConcreteSyntaxTree rtdParamWriter) {
       wr.Write("func {0}(", FormatInitializerName(name));
       rtdParamWriter = wr.Fork();
       var w = wr.NewNamedBlock(") *{0}", name);
-      w.WriteLine("_this := {0}{{}}", name);
+      var parameters = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } } ? "value" : "";
+      w.WriteLine($"_this := {name}{{{parameters}}}");
 
       w.WriteLine();
       instanceFieldInitWriter = w.Fork();
@@ -927,7 +940,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = CreateClass(nt, IdName(nt), false, null, null, null, null, wr, includeRtd: false, includeEquals: false, includeString: true);
+      var cw = CreateClass(nt, IdName(nt), false, null, nt.TypeArgs,
+        nt.ParentTypeInformation.UniqueParentTraits(), null, wr, includeRtd: false, includeEquals: false, includeString: true);
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
@@ -952,13 +966,19 @@ namespace Microsoft.Dafny.Compilers {
           wWitness.WriteLine(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
         }
       }
+
+      var udt = UserDefinedType.FromTopLevelDecl(nt.tok, nt);
       // RTD
       {
         CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
-        var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
+
+      if (nt.ParentTraits.Count != 0) {
+        cw.InstanceFieldWriter.WriteLine($"_value {TypeName(udt, cw.InstanceFieldWriter, nt.tok)}");
+      }
+
       return cw;
     }
 
@@ -1243,9 +1263,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void WriteRuntimeTypeDescriptorsFields(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree/*?*/ wr, ConcreteSyntaxTree/*?*/ wInit, ConcreteSyntaxTree/*?*/ wParams) {
+    int WriteRuntimeTypeDescriptorsFields(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree/*?*/ wr, ConcreteSyntaxTree/*?*/ wInit, ConcreteSyntaxTree/*?*/ wParams) {
       Contract.Requires(typeParams != null);
 
+      var count = 0;
       var sep = "";
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
@@ -1263,8 +1284,11 @@ namespace Microsoft.Dafny.Compilers {
             wParams.Write($"{sep}{name} {DafnyTypeDescriptor}");
             sep = ", ";
           }
+
+          count++;
         }
       }
+      return count;
     }
 
     void WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, ConcreteSyntaxTree wr) {
@@ -3498,6 +3522,8 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{HelperModulePrefix}InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
       } else if (toType.IsRefType) {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, ({TypeName(toType, wr, tok)})(nil))");
+      } else if (fromType.IsTraitType && toType.AsNewtype != null) {
+        wr.Write($"{HelperModulePrefix}InstanceOf({localName}, (*{ClassName(toType, wr, tok)})(nil))");
       } else {
         wr.Write($"{HelperModulePrefix}InstanceOf({localName}, {TypeName(toType, wr, tok)}{{}})");
       }
@@ -3514,9 +3540,26 @@ namespace Microsoft.Dafny.Compilers {
       return Type.SameHead(type1, type2) || (type1.IsArrayType && type1.IsArrayType);
     }
 
+    protected override ConcreteSyntaxTree UnboxNewtypeValue(ConcreteSyntaxTree wr) {
+      var w = wr.ForkInParens();
+      wr.Write($"._value");
+      return w;
+    }
+
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, IToken tok, ConcreteSyntaxTree wr) {
       if (to == null) {
         return wr;
+      }
+
+      if (from != null && from.IsTraitType && to.AsNewtype != null) {
+        wr = UnboxNewtypeValue(wr);
+        var w = wr.ForkInParens();
+        wr.Write($".(*{UserDefinedTypeName(to.AsNewtype, true)})");
+        return w;
+      }
+      if (from != null && from.AsNewtype != null && to.IsTraitType && (enclosingMethod != null || enclosingFunction != null)) {
+        wr.Write(TypeName_Initializer(from, wr, tok));
+        return wr.ForkInParens();
       }
 
       from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
