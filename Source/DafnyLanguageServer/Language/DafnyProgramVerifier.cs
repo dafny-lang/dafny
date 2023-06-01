@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       engine = new ExecutionEngine(options, cache);
     }
 
-    private const int TranslatorMaxStackSize = 0x20000000; // 512MB
+    private const int TranslatorMaxStackSize = 0x10000000; // 256MB
 
     public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document,
       CancellationToken cancellationToken) {
