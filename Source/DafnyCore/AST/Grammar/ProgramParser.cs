@@ -230,8 +230,9 @@ public class ProgramParser {
         val = string.Empty
       };
       var reporter = new BatchErrorReporter(options);
-      reporter.Error(MessageSource.Parser, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message);
+      reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
+        "[internal error] Parser exception: " + e.Message + (!options.Verbose ? "" :
+            "\n" + e.StackTrace));
       return new DfyParseResult(reporter, null, new Action<BuiltIns>[] { });
     }
   }
