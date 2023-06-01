@@ -19,7 +19,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   public override IEnumerable<Node> PreResolveChildren => Exports;
 
   public readonly VisibilityScope ThisScope;
-  
+
   public ModuleDefinition EffectiveModule = null;
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
