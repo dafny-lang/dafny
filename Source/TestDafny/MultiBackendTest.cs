@@ -120,7 +120,8 @@ public class MultiBackendTest {
         string? checkFile = null;
         var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
         if (File.Exists(expectFileForBackend)) {
-          expectedOutput = File.ReadAllText(expectFileForBackend);
+          expectedOutput = "\nDafny program verifier did not attempt verification\n" +
+                           File.ReadAllText(expectFileForBackend);
         }
         var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
         if (File.Exists(checkFileForBackend)) {
@@ -184,6 +185,10 @@ public class MultiBackendTest {
     if (checkFile != null) {
       var outputLines = new List<string>();
       var reader = new StringReader(outputString);
+      while (reader.ReadLine() is { } line) {
+        outputLines.Add(line);
+      }
+      reader = new StringReader(error);
       while (reader.ReadLine() is { } line) {
         outputLines.Add(line);
       }
