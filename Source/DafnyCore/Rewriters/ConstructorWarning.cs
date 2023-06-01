@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Reactive;
 using Microsoft.Dafny;
-
+using static Microsoft.Dafny.RewriterErrors;
 /*
    * Code Example that displays the Warnings
    *
@@ -61,7 +61,7 @@ class ConstructorWarningVisitor : TopDownVisitor<Unit> {
         CheckPattern(nestedPattern);
       }
       if (!idPattern.HasParenthesis) {
-        this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, idPattern.tok,
+        reporter.Warning(MessageSource.Rewriter, ErrorId.rw_warn_constructor_parentheses, idPattern.tok,
           $"Constructor name '{idPattern}' should be followed by parentheses");
       }
     }

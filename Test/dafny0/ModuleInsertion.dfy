@@ -92,6 +92,6 @@ module MyModule {
   module Q.W.E.R.T {
   }
   module Q.W.E.R.T.Y {
-    const h := 2;
+    const h := 2
   }
 }

@@ -1,8 +1,9 @@
-<!-- %check-resolve %default %useHeadings -->
 
-<!-- DafnyCore/Resolver/ExpressionTester.cs -->
+<!-- %check-resolve %default %useHeadings %check-ids -->
 
-## **Error: ghost variables such as _name_ are allowed only in specification contexts. _name_ was inferred to be ghost based on its declaration or initialization.**
+<!-- FILE DafnyCore/Resolver/ExpressionTester.cs -->
+
+## **Error: ghost variables such as _name_ are allowed only in specification contexts. _name_ was inferred to be ghost based on its declaration or initialization.** {#r_ghost_var_only_in_specifications}
 
 <!-- %check-resolve -->
 ```dafny
@@ -18,7 +19,7 @@ compiled code. So ghost variables may not be used in any non-ghost (compiled) st
 Note that variables can be ghost because they are explicitly declared to be ghost
 or because they are initialized with a value that is derived from a ghost expression.
 
-## **Error: a _what_ is allowed only in specification contexts**
+## **Error: a _what_ is allowed only in specification contexts** {#r_only_in_specification}
 
 ```dafny
 datatype A = A(x: int, ghost y: int)
@@ -29,19 +30,52 @@ method m(a: A) returns (r: int) {
 
 Ghost expressions, including ghost fields or destructors, are allowed only in ghost code.
 
-## **Error: a _what_ with ghost parameters can be used as a value only in specification contexts**
+## **Error: a _what_ with ghost parameters can be used as a value only in specification contexts** {#r_ghost_parameters_only_in_specification}
 
-<!-- TODO -->
+```dafny
+class A { 
+  function f(ghost i: int): int {0}
+}
+method m(a:A) 
+{
+  print a.f;
+}
+```
 
-## **Error: _what_ '_name_' can be used only in specification contexts**
+Functions may have some (or all) formal parameters be ghost. Such parameters can only be used in ghost expressions
+within the function body. There are limits though on where such a function may be used.
+For example, passing the value of the function itself (not a call of the function) is restricted to ghost contexts.
 
-<!-- TODO -->
+## **Error: _what_ '_name_' can be used only in specification contexts** {#r_used_only_in_specification}
 
-## **Error: in a compiled context, update of _deconstructors_ cannot be applied to a datatype value of a ghost variant (ghost constructor _constructor_)**
+```dafny
+datatype D = J | ghost K(i: int)
+method m(d:D) 
+  requires d.K?
+{
+  print d.i;
+}
+```
 
-<!-- TODO -->
+A datatype may have ghost constructors, but accessing the value of one of the fields (destructors) of such a ghost constructor is
+a ghost operation. Consequently an expression like `d.i` (where `i` is a destructor of a ghost constructor for the datatype of which `d` is a value)
+is allowed only in ghost contexts.
 
-## **Error: a call to a _kind_ is allowed only in specification contexts**
+## **Error: in a compiled context, update of _deconstructors_ cannot be applied to a datatype value of a ghost variant (ghost constructor _constructor_)** {#r_ghost_destructor_update_not_compilable}
+
+```dafny
+datatype D = A | ghost B(c: int)
+method m(d:D) 
+  requires d.B?
+{
+  print d.(c := 0);
+}
+```
+
+Datatypes may have ghost variants (where the datatype constructor is itself declared ghost), but constructing or updating such variants is a ghost operation.
+Consequently such expressions may not be present in compiled code.
+
+## **Error: a call to a _kind_ is allowed only in specification contexts_hint_** {#r_ghost_call_only_in_specification}
 
 ```dafny
 twostate function f(): int { 42 }
@@ -50,22 +84,10 @@ method m() returns (r: int) {
 }
 ```
 
-`twostate`, extreme predicates, and prefix lemmas are functions that are always ghost (even without a `ghost` keyword).
+`twostate` declarations, extreme predicates, and prefix lemmas are always ghost (even without a `ghost` keyword).
 Thus they may never be used outside a ghost context.
 
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')**
-
-For Dafny 3:
-<!-- %check-resolve %options --function-syntax:3 -->
-```dafny
-function f(): int { 42 }
-method m() returns (a: int)
-{
-  a := f();
-}
-```
-
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)**
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ without the 'ghost' keyword)** {#r_ghost_call_only_in_specification_function_4}
 For Dafny 4:
 <!-- %check-resolve %options --function-syntax:4 -->
 ```dafny
@@ -82,25 +104,25 @@ in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function
 in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
 for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with '_what_ method')**
+## **Error: a call to a ghost _what_ is allowed only in specification contexts (consider declaring the _what_ with 'function method')** {#r_ghost_call_only_in_specification_function_3}
 
+For Dafny 3:
 <!-- %check-resolve %options --function-syntax:3 -->
 ```dafny
-function f(i: int): int
-method m() {
-   print f(1);
+function f(): int { 42 }
+method m() returns (a: int)
+{
+  a := f();
 }
 ```
 
-Dafny has a fundamental distinction between _ghost_ code and _compiled_ code. Ghost code is not compiled; 
-compiled code cannot contain ghost-only features. A function that is explicitly ghost is not permitted in
-a context that is compiled, such as a print statement. The distinction can seem a bit blurry because Dafny 
-in part infers what is ghost code because of the presence of some ghost features -- so ghost code may not 
-be explictly so. Also remember that the declarations of functions in Dafny 4 is 'ghost function' for
-ghost and 'function' for non-ghost; in Dafny 3 the declarations are 'function' for ghost, 
-and 'function method' for non-ghost.
+A ghost function can only be called in a ghost context; assigning to an out-parameter is
+always a non-ghost context. If you declare the function to be compilable, then it can be used
+in a non-ghost context. In Dafny 3 a non-ghost function is declared as `function method` (and just `function` is ghost);
+in Dafny 4, `function` is non-ghost and `ghost function` is ghost (like the declarations
+for methods). See [the reference manual on --function-syntax](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: ghost constructor is allowed only in specification contexts**
+## **Error: ghost constructor is allowed only in specification contexts** {#r_ghost_constructors_only_in_ghost_context}
 
 <!-- %check-resolve -->
 ```dafny
@@ -116,7 +138,7 @@ may only be used in ghost contexts.
 For example, a ghost constructor cannot be assigned to a non-ghost out-parameter
 or used in the then- or else-branch of a non-ghost if statment.
 
-## **Error: old expressions are allowed only in specification and ghost contexts**
+## **Error: old expressions are allowed only in specification and ghost contexts** {#r_old_expressions_only_in_ghost_context}
 
 ```dafny
 class A {}
@@ -131,11 +153,11 @@ But in situations where it is definitely not a ghost context, such as
 assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter, then `old` cannot be used.
 
-## **Error: an expression of type '_type_' is not run-time checkable to be a '_type_'**
+## **Error: an expression of type '_type_' is not run-time checkable to be a '_type_'** {#r_type_test_not_runtime_checkable}
 
 <!-- TODO -->
 
-## **Error: fresh expressions are allowed only in specification and ghost contexts**
+## **Error: fresh expressions are allowed only in specification and ghost contexts** {#r_fresh_expressions_only_in_ghost_context}
 
 ```dafny
 class A {}
@@ -150,7 +172,7 @@ So `fresh` cannot be used in situations where it is definitely not a ghost conte
 assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter.
 
-## **Error: unchanged expressions are allowed only in specification and ghost contexts**
+## **Error: unchanged expressions are allowed only in specification and ghost contexts** {#r_unchanged_expressions_only_in_ghost_context}
 
 ```dafny
 class A {}
@@ -165,7 +187,7 @@ So `unchanged` cannot be used in situations where it is definitely not a ghost c
 assigning to a non-ghost out-parameter or the actual argument for a
 non-ghost formal parameter.
 
-## **Error: rank comparisons are allowed only in specification and ghost contexts**
+## **Error: rank comparisons are allowed only in specification and ghost contexts** {#r_rank_expressions_only_in_ghost_context}
 
 ```dafny
 datatype D = A | B
@@ -181,7 +203,7 @@ the right-hand operand must be structurally deeper than the left for the result
 of the operator to be true. However, this operation is always a ghost operation 
 and is never compiled. So it cannot appear in a non-ghost context.
 
-## **Error: prefix equalities are allowed only in specification and ghost contexts**
+## **Error: prefix equalities are allowed only in specification and ghost contexts** {#r_prefix_equalities_only_in_ghost_context}
 
 ```dafny
 codatatype Stream = SNil | SCons(head: int, tail: Stream)
@@ -194,7 +216,7 @@ The `==#[k]` syntax is [_prefix equality_](../DafnyRef/DafnyRef#sec-co-equality)
 It means that the two values have the same prefix of k values.
 Such operations are not compilable and only allowed in ghost contexts.
 
-## **Error: _what_ in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '_name_'**
+## **Error: _what_ in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '_name_'** {#r_unknown_bounds}
 
 ```dafny
 const s := iset i: int :: i*2 
@@ -208,7 +230,7 @@ does not know how to, and will not, compile the code. Where possible, adding in 
 range predicate, even if it is a superset of the actual range, can give the compiler
 enough hints to construct a compiled version of the program.
 
-## **Error: match expression is not compilable, because it depends on a ghost constructor**
+## **Error: match expression is not compilable, because it depends on a ghost constructor** {#r_match_not_compilable}
 
 <!-- TODO - does not fail -->
 <!-- %no-check -->
@@ -225,20 +247,17 @@ match expression is ghost. That match expression cannot then be used in a compil
 context, such as a print statement.
 
 
+<!-- FILE ./DafnyCore/Resolver/TypeInferenceChecker.cs -->
 
-
-
-<!-- ./DafnyCore/Resolver/TypeInferenceChecker.cs -->
-
-## **Error: newtype's base type is not fully determined; add an explicit type for '_name_'**
+## **Error: newtype's base type is not fully determined; add an explicit type for '_name_'** {#r_newtype_base_undetermined}
 
 <!-- TODO -->
 
-## **Error: subset type's base type is not fully determined; add an explicit type for '_name_'**
+## **Error: subset type's base type is not fully determined; add an explicit type for '_name_'** {#r_subset_type_base_undetermined}
 
 <!-- TODO -->
 
-## **Error: shared destructors must have the same type, but '_name_' has type '_type_' in constructor '_name_' and type '_type_' in constructor '_name_'**
+## **Error: shared destructors must have the same type, but '_name_' has type '_type_' in constructor '_name_' and type '_type_' in constructor '_name_'** {#r_shared_destructors_have_different_types}
 
 ```dafny
 datatype D = A(x: int) | B (x: bool)
@@ -250,7 +269,7 @@ do, the two instances must be declared with the same type. To correct this, eith
 used the same name, in which case change the name of one of them, or (b) they are
 intended to be the same, in which case a common type must be chosen.
 
-## **Error: literal (_literal_) is too large for the bitvector type _type_**
+## **Error: literal (_literal_) is too large for the bitvector type _type_** {#r_literal_too_large_for_bitvector}
 
 ```dafny
 const b: bv4 := 30
@@ -264,7 +283,7 @@ Negative values are allowed: a value of -n corresponds to the bit vector
 value which, when added to the bitvector value of n, gives 0.
 For bv4, -n is the same as 16-n.
 
-## **Error: unary minus (-_num_, type _type_) not allowed in case pattern**
+## **Error: unary minus (-_num_, type _type_) not allowed in case pattern** {#r_no_unary_minus_in_case_patterns}
 
 ```dafny
 const d: bv4
@@ -278,19 +297,19 @@ some other places in Dafny.
 <!-- NOTE: This message is also present in Expressions/LitPattern.cs; I believe the message
 here in TypeInferenceChecker is never reachable. -->
 
-## **Error: type of type parameter could not be determined; please specify the type explicitly**
+## **Error: type of type parameter could not be determined; please specify the type explicitly** {#r_type_parameter_undetermined}
 
 <!-- TODO -->
 
-## **Error: type of bound variable '_name_' could not be determined; please specify the type explicitly**
+## **Error: type of bound variable '_name_' could not be determined; please specify the type explicitly** {#r_bound_variable_undetermined}
 
 <!-- TODO -->
 
-## **Error: type of bound variable '_name_' ('_type_') is not allowed to use type ORDINAL**
+## **Error: type of bound variable '_name_' ('_type_') is not allowed to use type ORDINAL** {#r_bound_variable_may_not_be_ORDINAL}
 
 <!-- TODO -->
 
-## **Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning**
+## **Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning** {#r_exists_quantifier_warning}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -304,43 +323,46 @@ More often one means `exists i :: 0 <= i < 10 && a[i] == 0`, that is, is there a
 which the array element is 0. This is such a common mistake that this warning warns about it and asks for
 a syntax that explicitly states that the writer means it.
 
-## **Error: type parameter '_name_' (inferred to be '_type_') to the _kind_ '_name_' could not be determined**
+## **Error: type parameter '_name_' (inferred to be '_type_') to the _kind_ '_name_' could not be determined** {#r_type_parameter_not_determined}
 
 <!-- TODO -->
 
-## **Error: type parameter '_name_' (passed in as '_type_') to the _kind_ '_name_' is not allowed to use ORDINAL**
+## **Error: type parameter '_name_' (passed in as '_type_') to the _kind_ '_name_' is not allowed to use ORDINAL** {#r_type_parameter_may_not_be_ORDINAL}
 
 <!-- TODO -->
 
-## **Error: type parameter '_name_' (inferred to be '_type_') in the function call to '_name_' could not be determined**
+## **Error: type parameter '_name_' (inferred to be '_type_') in the function call to '_name_' could not be determined** {#r_function_type_parameter_undetermined}
 
 <!-- TODO -->
 
-## **Error: type parameter '_name_' (inferred to be '_type_') in the function call to '_name_' could not be determined. If you are making an opaque function, make sure that the function can be called.**
+## **Error: type parameter '_name_' (passed in as '_type_') to function call '_name_' is not allowed to use ORDINAL** {#r_function_type_parameter_may_not_be_ORDINAL}
 
 <!-- TODO -->
 
-## **Error: type parameter '_name_' (passed in as '_type_') to function call '_name_' is not allowed to use ORDINAL**
+## **Error: the type of the bound variable '_var_' could not be determined** {#r_bound_variable_type_undetermined}
 
 <!-- TODO -->
 
-## **Error: the type of the bound variable '_var_' could not be determined**
+## **Error: a type cast to a reference type (_type_) must be from a compatible type (got _type_); this cast could never succeed** {#r_never_succeeding_type_cast}
 
 <!-- TODO -->
 
-## **Error: a type cast to a reference type (_type_) must be from a compatible type (got _type_); this cast could never succeed**
+## **Error: a type test to '_type_' must be from a compatible type (got '_type_')** {#r_never_succeeding_type_test}
 
 <!-- TODO -->
 
-## **a type test to '_type_' must be from a compatible type (got '_type_')**
+## **Error: a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')** {#r_unsupported_type_test}
 
-<!-- TODO -->
+```dafny
+type Small = i: nat | i < 10
+const i := 10
+const b := i is Small
+```
 
-## **a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')**
+The `is` type test is currently somewhat limited in Dafny, and more limited than the companion `as` conversion.
+In particular, `is` is not allowed to test that a value is a member of a subset type.
 
-<!-- TODO -->
-
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_'**
+## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_'_hint_** {#r_trivial_null_test}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -348,6 +370,7 @@ class C {}
 function f(): C
 method m(c: C) {
   var b: bool := f() != null;
+  var a: bool := c != null;
 }
 ```
 
@@ -357,24 +380,7 @@ whereas `C?` does. So if an expression `e` having type `C` is compared against `
 that comparison will always be `false`. If the logic of the program allows `e` to be sometimes `null`,
 then it should be declared with a type like `C?`.
 
-## **Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return '_bool_' (to make it possible for _name_ to have the value 'null', declare its type to be '_type_')**
-
-<!-- %check-resolve-warn -->
-```dafny
-class C {}
-method m(c: C) {
-  var b: bool := c != null;
-}
-```
-
-Dafny does have a `null` value and variables of types that include `null` can have a `null` value.
-But in Dafny, for each class type `C` there is a corresponding type `C?`; `C` does not include `null`,
-whereas `C?` does. So if a variable `v` declared as type `C` is compared against `null`, as in `v == null`,
-that comparison will always be `false`. If the logic of the program allows `v` to be sometimes `null`,
-then it should be declared with a type like `C?`.
-
-
-## **Warning: the type of the other operand is a _what_ of non-null elements, so the _non_inclusion test of 'null' will always return '_bool_'**
+## **Warning: the type of the other operand is a _what_ of non-null elements, so the _non_inclusion test of 'null' will always return '_bool_'** {#r_trivial_null_inclusion_test}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -390,7 +396,7 @@ But the elements of the container are of a type that does not include `null`, so
 be `false` (or `true`).  Either the type of the container's elements should be a nullable type (a `C?` instead of a `C`)
 or the test is unnecessary. 
 
-## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'**
+## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'** {#r_trivial_map_null_inclusion_test}
 
 <!-- %check-resolve-warn -->
 ```dafny
@@ -405,12 +411,12 @@ fail (for `in`) or succeed (for `!in`). If it is actually the case that the map'
 then the domain type should be a nullable type like `T?`. If it is not the case that null could be in the domain,
 then this test is not needed at all.
 
-## **Error: the type of this _var_ is underspecified**
+## **Error: the type of this _var_ is underspecified** {#r_var_type_undetermined}
 
 <!-- TODO -->
 
-## **Error: an ORDINAL type is not allowed to be used as a type argument**
-
+## **Error: an ORDINAL type is not allowed to be used as a type argument** {#r_no_ORDINAL_as_type_parameter}
+<!-- TODO _ this one is misplaced -->
 <!-- %no-check This example does not work TODO -->
 ```dafny
 type X<T>
@@ -423,34 +429,77 @@ are ORDINALs that are larger than any `nat`. Logical reasoning with ORDINALs is 
 a bit counter-intuitive at times. For logical implementation reasons, Dafny limits where
 ORDINALs can be used; one restriction is that the ORDINAL type may not be a type argument.
 
-<!-- ./DafnyCore/Resolver/Abstemious.cs-->
+<!-- FILE ./DafnyCore/Resolver/Abstemious.cs -->
 
-## **the value returned by an abstemious function must come from invoking a co-constructor**
+## **Error: the value returned by an abstemious function must come from invoking a co-constructor** {#r_abstemious_needs_conconstructor}
 
-<!-- TODO -->
-
-## **an abstemious function is allowed to invoke a codatatype destructor only on its parameters**
-
-<!-- TODO -->
-
-## **an abstemious function is allowed to codatatype-match only on its parameters**
+```dafny
+codatatype D = A | B
+function {:abstemious} f(): int {0}
+```
 
 <!-- TODO -->
+_Abstemious functions are not documented. Please report occurences of this error message._
 
-## **an abstemious function is allowed to codatatype-match only on its parameters**
+## **Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters** {#r_bad_astemious_destructor}
+
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
+{ 
+  Node(t.left, t.val, t.right.right)  // error: cannot destruct t.right
+}   
+```
 
 <!-- TODO -->
+_Abstemious functions are not documented. Please report occurences of this error message._
 
-## **an abstemious function is not only allowed to check codatatype equality**
+## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_nested_match}
+
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+{ 
+  match t.right  // error: cannot destruct t.right
+  case Node(a, x, b) =>
+    Node(a, x, b)
+}
+```
 
 <!-- TODO -->
+_Abstemious functions are not documented. Please report occurences of this error message._
 
-<!-- TODO: Oddly worded message -->
+## **Error: an abstemious function is allowed to codatatype-match only on its parameters** {#r_bad_astemious_match}
+
+```dafny
+codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+ghost function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+{ 
+  match t.right  // error: cannot destruct t.right
+  case Node(a, x, b) =>
+    Node(a, x, b)
+}
+```
+
+<!-- TODO -->
+_Abstemious functions are not documented. Please report occurences of this error message._
+
+## **Error: an abstemious function is not allowed to check codatatype equality** {#r_bad_astemious_codatatype_equality}
+
+```dafny
+codatatype D = A | B(i: bool)
+ghost function {:abstemious} f(d: D, e: D): D { B(d == e) }
+```
+
+Abstemious functions have some restrictions. One of these is that an abstemious function
+may not invoke test of equality over codatatypes, even though this is allowed for
+non-abstemious ghost functions.
+See the [reference manual](../DafnyRef/DafnyRef#sec-abstemious) for more information on using abstemious functions.
 
 
-<!-- ./DafnyCore/Resolver/GhostInterestVisitor.cs-->
+<!-- FILE ./DafnyCore/Resolver/GhostInterestVisitor.cs -->
 
-## **Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
+## **Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)** {#r_expect_statement_is_not_ghost}
 
 <!-- %check-resolve -->
 ```dafny
@@ -467,7 +516,7 @@ But a ghost context can also be implicit, and not so obvious: if part of a state
 such as the condition of an if statement or loop or the expression being matched in a match 
 statement, is ghost, then the rest of the statement may be required to be ghost.
 
-## **Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)**
+## **Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)** {#r_print_statement_is_not_ghost}
 
 <!-- %check-resolve -->
 ```dafny
@@ -483,9 +532,12 @@ But a ghost context can also be implicit, and not so obvious: if something ghost
 such as the condition of an `if` statement or loop or the expression being matched in a match 
 statement, then the rest of the statement may be required to be ghost.
 
-<!-- TODO: comment on tracking of printeffects -->
+In addition, methods must be marked with the `{:print}` attribute if 
+it has `print` statements or calls methods marked with `{:print}`
+and `--track-print-effects` is enabled.
+[See the reference manual discussion on :print and tracking print effects](../DafnyRef/DafnyRef#sec-print).
 
-## **Error: ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_**
+## **Error: ghost-context _kind_ statement is not allowed to _kind_ out of non-ghost _target_** {#r_ghost_break}
 
 ```dafny
 method m(i: int) {
@@ -505,7 +557,7 @@ non-ghost, we have the situation of ghost code affecting the flow of control of 
 Consequently a ghost break or continue statement must have as its target some enclosing ghost
 block or loop. 
 
-## **Error: _kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)**
+## **Error: _kind_ statement is not allowed in this context (because it is guarded by a specification-only expression)** {#r_produce_statement_not_allowed_in_ghost}
 
 ```dafny
 method m() {
@@ -519,15 +571,67 @@ considered ghost. And then the statement can contain no substatements that are f
 `return` and `yield` stastements are never ghost, so they cannot appear in a statement whose guarding
 value is ghost.
 
-## **cannot assign to _var_ in a ghost context**
+## **Error: cannot assign to _var_ in a ghost context** {#r_no_assign_to_var_in_ghost}
 
-<!-- TODO -->
+```dafny
+method m(ghost c: int) 
+{
+  var x := 7;
+  if (c == 1) { x :| x < 8; }
+}
+```
 
-## **_var_ cannot be assigned a value that depends on a ghost**
+No changes to non-ghost variables may occur in ghost contexts.
+Ghost context can be implicit, such as the branches of an if-statement
+whose condition is a ghost expression.
 
-<!-- TODO -->
+## **Error: non-ghost _var_ cannot be assigned a value that depends on a ghost** {#r_no_assign_ghost_to_var}
 
-## **Error: in _proof_, calls are allowed only to lemmas**
+```dafny
+method m(ghost c: int) 
+{
+  var x := 8;
+  x :| x < c;
+}
+```
+
+In a assign-such-that statement, the LHS gets some value that satisfies the boolean expression on the RHS.
+If the LHS is non-ghost, then the RHS must be non-ghost, because non-ghost code may not depend on
+ghost code.
+
+## **Error: assumption variable must be of type 'bool'** {#r_assumption_var_must_be_bool}
+
+```dafny
+method m() {
+  ghost var {:assumption} b: int;
+}
+```
+
+Variables marked with `{:assumption}` must have bool type.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
+
+## **Error: assumption variable must be ghost** {#r_assumption_var_must_be_ghost}
+
+```dafny
+method m() {
+  var {:assumption} b: bool;
+}
+```
+
+Variables marked with `{:assumption}` must be ghost.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
+
+## **Error: assumption variables can only be declared in a method** {#r_assumption_var_must_be_in_method}
+
+<!-- TODO - not sure this is reachable -->
+
+Variables marked with `{:assumption}` must be declared within methods.
+See [the reference manual](#../DafnyRef/DafnyRef#sec-assumption) for more detail on the use of this attribute.
+
+
+## **Error: in _proof_, calls are allowed only to lemmas** {#r_no_calls_in_proof}
 
 ```dafny
 method n() {}
@@ -546,7 +650,7 @@ and calc statements. A proof context is a ghost context.
 In ghost context, no methods may be called, even ghost methods.
 Only lemmas may be called.
 
-## **Error: only ghost methods can be called from this context**
+## **Error: only ghost methods can be called from this context** {#r_only_ghost_calls}
 
 ```dafny
 method n() {}
@@ -560,15 +664,17 @@ The body of a ghost method is a ghost context. So if there are any
 method calls in that body, they must be ghost.
 Lemmas and ghost functions may also be called.
 
-## **Error: actual out-parameter _parameter_ is required to be a ghost variable**
+## **Error: actual out-parameter _parameter_ is required to be a ghost variable** {#r_out_parameter_must_be_ghost}
 
 ```dafny
 method n() returns (r: int, ghost s: int) {}
-method m() returns (r: bool)
+method m(a: array<int>) returns (r: bool)
+  requires a.Length > 1
 { 
   var x: int;
   var y: int;
   x, y := n();
+  a[0] := 0;
 }
 ```
 
@@ -582,7 +688,7 @@ arrays are never ghost.
 
 <!-- 2 instances -->
 
-## **Error: actual out-parameter _parameter_ is required to be a ghost field**
+## **Error: actual out-parameter _parameter_ is required to be a ghost field** {#r_out_parameter_must_be_ghost_field}
 
 ```dafny
 class A { var a: int }
@@ -602,7 +708,7 @@ the field itself must be ghost, not simply the whole object.
 Note that out-parameters are numbered beginning with 0.
 
 
-## **Error: a loop in _context_ is not allowed to use 'modifies' clauses**
+## **Error: a loop in _context_ is not allowed to use 'modifies' clauses** {#r_loop_may_not_use_modifies}
 
 ```dafny
 class A { var a: int }
@@ -628,7 +734,7 @@ for ghost contexts is that nothing on the heap may be modified in ghost context.
 Consequently there is no need for a modifies clause for loops that might
 be used to support the proof in the `by` block.
 
-## **Error: 'decreases *' is not allowed on ghost loops**
+## **Error: 'decreases *' is not allowed on ghost loops** {#r_decreases_forbidden_on_ghost_loops}
 
 <!-- %check-resolve -->
 ```dafny
@@ -652,9 +758,9 @@ Hence, indications of non-terminating loops, that is, `decreases *`, are not per
 
 This does mean that the specifier has to do the work of designing a valid terminating condition and proving it.
 
-<!-- 2 instances -->
+<!-- 3 instances -->
 
-## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses**
+## **Error: a loop in _proof_ is not allowed to use 'modifies' clauses** {#r_loop_in_proof_may_not_use_modifies}
 
 ```dafny
 class A {  }
@@ -672,19 +778,29 @@ anything on the heap. If there is nothing that may be modified, then there is no
 a `modifies` clause for a loop. Note that the `modifies` clause does not list any local 
 variables that are changed in a loop in any case.
 
-## **Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause**
+<!-- 2 instances -->
+
+## **Error: a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause** {#r_ghost_loop_must_terminate}
 
 <!-- TODO -->
 
-## **Error: _proof_ is not allowed to perform an aggregate heap update**
+## **Error: _proof_ is not allowed to perform an aggregate heap update** {#r_no_aggregate_heap_update_in_proof}
 
-<!-- TODO -->
+```dafny
+lemma p(a: array<int>)
+{
+  forall i | 0 <= i < a.Length { a[i] := 0; } 
+}
+```
 
-## **Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '_name_'**
+Proof contexts, such as bodies of lemmas or by-blocks, cannot perform any changes to the heap.
+In particular that disallows assignments to array elements using a `forall` aggregate update.
+
+## **Error: forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '_name_'** {#r_unknown_bounds_for_forall}
 
 <!-- TODO ; this might be shadowed by a similar message in ExpressionTester -->
 
-## **Error: a modify statement is not allowed in _proof_**
+## **Error: a modify statement is not allowed in _proof_** {#r_modify_forbidden_in_proof}
 
 ```dafny
 class A {  }
@@ -698,7 +814,7 @@ A proof context, such as the body of a lemma or a `by` block, is ghost context a
 not allowed to modify anything on the heap. If there is nothing that may be modified, 
 then there is no need for a `modify` statement in such a context.
 
-## **Error: _proof_ is not allowed to use 'new'**
+## **Error: _proof_ is not allowed to use 'new'** {#r_new_forbidden_in_proof}
 
 ```dafny
 class A {  }
@@ -713,27 +829,26 @@ not allowed to modify anything on the heap. That includes allocating new things 
 heap, as a `new` expression does. Typically a proof uses expressions that are value types
 (sequences, sets, maps) to formulate the proof and not heap operations.
 
-## **Error: _proof_ is not allowed to make heap updates**
-
-<!-- TODO -->
-
-## **Error: assignment to _kind_ is not allowed in this context, because this is a ghost _thing_**
+## **Error: _proof_ is not allowed to make heap updates** {#r_no_heap_update_in_proof}
 
 ```dafny
-class A { var a: int }
-lemma m(aa: A) {
-  aa.a := 1;
+class A { ghost var k: int }
+lemma m(a: A)
+{
+  a.k := 9;
 }
 ```
 
-This message can occur in many program situations: the fault is an assignment to a field in the heap
-that is not permitted because the assignment statement occurs in a ghost context such as the body
-of a lemma or ghost function.
+An update to a field of a heap object is not allowed in a proof context such as the body of a lemma.
+This is the case even if the field in question is a ghost field of its containing class or trait.
 
-## **Error: assignment to _kind_ is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression**
+## **Error: assignment to _kind_ is not allowed in this context, because _reason_** {#r_assignment_forbidden_in_context}
 
 ```dafny
 class A { var a: int }
+lemma lem(aa: A) {
+  aa.a := 1;
+}
 method m(aa: A) {
   ghost var b := true;
   if b { aa.a := 1; }
@@ -746,8 +861,7 @@ non-ghost environment. A common example is the then or else branch of a `if` sta
 deemed a ghost context because the controlling condition for the loop is a ghost expression.
 Similar situations arise for loops and match statements.
 
-
-## **Error: the result of a ghost constructor can only be assigned to a ghost variable**
+## **Error: the result of a ghost constructor can only be assigned to a ghost variable** {#r_assignment_to_ghost_constructor_only_in_ghost}
 
 ```dafny
 class A { constructor I() {} ghost constructor Init(i: int) {} }
@@ -760,4 +874,5 @@ method m() returns (a: A)
 Classes may have ghost constructors along with regular, non-ghost constructors.
 However, ghost constructors may only be called in ghost context, including that
 the newly allocated object be assigned to a ghost location (such as a ghost variable). 
+
 

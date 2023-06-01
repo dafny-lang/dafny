@@ -1,4 +1,12 @@
-<!-- %default %useHeadings -->
+<!-- %default %useHeadings %check-ids -->
+
+<!-- The file Errors-Compiler.template is used along with Compiler-Errors.cs to produce Errors-Compiler.md.
+     Errors-Compiler.template holds the structure of the markdown file and the examples of each error message.
+     Compiler-Errors.cs holds the text of error explanations, so they are just in the source code rather than duplicated also in markdown.
+     The content of Errors-Compiler.template and Compiler-Errors.cs are tied together by the errorids.
+     Thus Errors-Compiler.md is a generated file that should not be edited itself.
+     The program make-error-catalog does the file generation.
+-->
 
 <!-- DafnyCore/Compilers/ExecutableBackend.cs -->
 
@@ -34,8 +42,8 @@ This messages indicates two problems:
 - the given feature is not supported in the compiler for the target language but is present in the program,
 so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
-The latter is a (minor) bug in the in-tool documentation. Please report this error message and the part of the
-program provoking it to the Dafny team's [issue tracker](https://github.com/davidcok/dafny/issues).
+The latter is an omission in the in-tool documentation. Please report this error message and the part of the
+program provoking it to the Dafny team's [issue tracker](https://github.com/dafny-lang/dafny/issues).
 
 ## **Error: Abstract type ('_type_') with extern attribute requires a compile hint. Expected {:extern _hint_}** {#c_abstract_type_needs_hint}
 
@@ -229,8 +237,6 @@ or as `function method` instead of `function` in Dafny 3.
 ## **Error: Method _name_ is annotated with :synthesize but is not static, has a body, or does not return anything** {#c_invalid_synthesize_method}
 
 <!-- TODO: Need example? -->
-
-
 The `{:synthesize}` attribute is an experimental attribute used to create 
 a mock object for methods that do not have bodies.
 It is currently only available for compiling to C# and in conjunction with the Moq library.
@@ -278,7 +284,7 @@ method m(a: array<int>) {
 A method may be parsed and verified even if a [forall statement](../DafnyRef/DafnyRef#sec-forall-statement) is missing a body. 
 However, the body must be supplied before the program can be compiled,
 even if the method is `ghost`. Body-less foralls in ghost methods are 
-similar to unchecked assumptions.
+unchecked assumptions.
 
 ## **Error: a loop without a body cannot be compiled** {#c_loop_has_no_body}
 
@@ -333,13 +339,13 @@ there may be no program statements that have an arbitrary, even if deterministic
 Hence this 'assign any value that satisfies the predicate' (`:|`) statement is not permitted with `--enforce-determinism`,
 even if there is only one such possible value.
 (The tool does not try to determine whether there is just one value and
-whether there is a reasonable way to compute it.)
-
+whether there is a reasonable way to compute the value.)
 
 ## **Error: this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_assign_such_that_is_too_complex}
 
-<!-- TODO -->
-_The documentation of this problem is in progress._
+<!-- TODO - needs example -->
+To compile an assign-such-that statement, Dafny needs to find some appropriate bounds for each variable.
+However, in this case the expression is too complex for Dafny's heuristics.
 
 ## **Error: nondeterministic if statement forbidden by the --enforce-determinism option** {#c_nondeterministic_if_forbidden}
 
@@ -375,8 +381,8 @@ given predicate is satisfiable by some value. If not, then the 'else' branch is 
 but if so, the 'then' branch is executed with an arbitrary value that satisifies the predicate.
 Because of this arbitrary selection, the if-with-binding-guard is not permitted with `--enforce-determinism`,
 even if there is exactly one value that satisfies the predicate.
-(The tool does not try to determine whether there is just one value and
-whether there is a reasonable way to compute it.)
+(The tool does not try to determine whether there is just one value or
+whether there is a reasonable way to compute a value.)
 
 ## **Error: case-based if statement forbidden by the --enforce-determinism option** {#c_case_based_if_forbidden}
 
@@ -399,7 +405,6 @@ an arbitrary one of those found to be true is chosen to be executed.
 Hence the case-based if is not permitted with `--enforce-determinism`.
 
 To enforce a deterministic order to the evaluation, use a chain of if-then-else statements.
-
 
 ## **Error: nondeterministic loop forbidden by the --enforce-determinism option** {#c_non_deterministic_loop_forbidden}
 
@@ -442,7 +447,7 @@ or series of `if` statements in which the then-branch ends in a continue stateme
 
 ## **Error: compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements** {#c_no_assignments_to_seven_d_arrays}
 
-<!-- TODO -->
+<!-- TODO -- needs example and explanation -->
 _The documentation of this problem is in progress._
 
 ## **Error: modify statement without a body forbidden by the --enforce-determinism option** {#c_bodyless_modify_statement_forbidden}
@@ -469,34 +474,29 @@ Hence such a statement is not permitted with `--enforce-determinism`.
 
 Note that a `modify` statement with a body is deprecated.
 
-
 ## **Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '_name_'** {#c_let_such_that_is_too_complex}
 
-<!-- TODO -->
+<!-- TODO: needs example and explanataion -->
 _The documentation of this problem is in progress._
-
 
 <!-- DafnyCore/Compilers/CSharp/Synthesizer-Csharp.cs -->
 
 ## **Error: Post-conditions on function _function_ might be unsatisfied when synthesizing code for method _name_" {#c_possibly_unsatisfied_postconditions}
 
 <!-- TODO: Example? Say more? Better documentation? -->
-
 This message relates to mocking methods in C# with the Moq framework. 
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
 
 ## **Error: Stubbing fields is not recommended (field _name_ of object _object_ inside method _method_)** {#c_stubbing_fields_not_recommended}
 
 <!-- TODO: Example? Say more? Better documentation? -->
-
 This message relates to mocking methods in C# with the Moq framework. 
 See the [reference manual section on {:synthesize}](../DafnyRef/DafnyRef#sec-synthesize-attr) for more detail.
-
 
 <!-- DafnyCore/Compilers/Cplusplus/Compiler-Cpp.cs -->
 
  
-## **Error: Opaque type ('_type_') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
+## **Error: Abstract type ('_type_') with unrecognized extern attribute _attr_ cannot be compiled.  Expected {:extern compile_type_hint}, e.g., 'struct'.** {#c_abstract_type_cannot_be_compiled_extern}
 
 <!-- %check-run %options --enforce-determinism --target cpp --unicode-char:false -->
 ```dafny
@@ -511,7 +511,7 @@ Note that Dafny's C++ compiler is very preliminary, partial and experimental.
 
 ## **Error: Unsupported field _name_ in extern trait** {#c_Go_unsupported_field}
 
-<!-- TODO -->
+<!-- TODO: needs example and explanation -->
 _Documentation of the Go compiler errors is in progress._
 
 ## **Error: Cannot convert from _type_ to _target-type_** {#c_Go_infeasible_conversion}

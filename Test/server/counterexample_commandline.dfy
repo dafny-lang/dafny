@@ -10,7 +10,7 @@ module Patterns {
 
     class Simple {
 
-        var p:string;
+        var p:string
 
         method Match(s: string) returns (b: bool) 
             requires |p| == 1 // this is to make counterexample deterministic

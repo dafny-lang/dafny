@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
-      var s = string.Format("namespace {0} ", IdProtect(moduleName));
+      var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
       string footer1 = "// end of " + s + " datatype declarations";
@@ -1125,7 +1125,7 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 

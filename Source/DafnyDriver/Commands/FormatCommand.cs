@@ -20,5 +20,6 @@ Use '--print -' to output the content of the formatted files instead of overwrit
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
     dafnyOptions.Format = true;
     dafnyOptions.Compile = false;
+    dafnyOptions.AllowSourceFolders = true;
   }
 }

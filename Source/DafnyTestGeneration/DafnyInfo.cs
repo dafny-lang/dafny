@@ -484,7 +484,10 @@ which may not match the associated condition, if any".TrimStart();
         } else if (d.FullDafnyName != "") {
           info.ToImportAs[d.FullDafnyName] = d.Name;
         }
-        d.ModuleDef.TopLevelDecls.ForEach(Visit);
+
+        foreach (var topLevelDecl in d.ModuleDef.TopLevelDecls) {
+          Visit(topLevelDecl);
+        }
       }
 
       private void Visit(IndDatatypeDecl d) {

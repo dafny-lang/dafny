@@ -20,7 +20,7 @@
 
 ghost predicate P(b: nat)
 ghost function f(a: int): int
-class C { var x: int; }
+class C { var x: int }
 
 method M(s: set<C>)
   requires forall n: nat :: 0 <= f(n) && P(f(n))

@@ -43,11 +43,7 @@ namespace Microsoft.Dafny {
 
     public ProjectFile ProjectFile { get; set; }
     public Command CurrentCommand { get; set; }
-    public bool NonGhostsUseHeap => Allocated == 1 || Allocated == 2;
-    public bool AlwaysUseHeap => Allocated == 2;
-    public bool CommonHeapUse => Allocated >= 2;
-    public bool FrugalHeapUse => Allocated >= 3;
-    public bool FrugalHeapUseX => Allocated == 4;
+
 
     static DafnyOptions() {
       RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
@@ -121,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // but it is now used by the LibraryBackend when building .doo files as well. 
             options.Set(option, PrintModes.Serialization);
           } else {
-            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+            InvalidArgumentError(option.Name, ps);
           }
         }
       }
@@ -282,7 +278,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
-    public List<string> FoldersToFormat { get; } = new();
+    public bool AllowSourceFolders = false;
+    public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -296,6 +293,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public Command Command = null;
     public bool Format = false;
     public bool FormatCheck = false;
 
@@ -348,7 +346,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public bool IncludeRuntime = true;
     public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
-    public int Allocated = 4;
     public bool UseStdin = false;
     public bool WarningsAsErrors = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
@@ -699,14 +696,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             return true;
           }
 
-        case "allocated": {
-            ps.GetIntArgument(ref Allocated, 5);
-            if (Allocated != 4) {
-              Printer.AdvisoryWriteLine(OutputWriter, "The /allocated:<n> option is deprecated");
-            }
-            return true;
-          }
-
         case "optimizeResolution": {
             int d = 2;
             if (ps.GetIntArgument(ref d, 3)) {
@@ -811,7 +800,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -1328,7 +1317,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /deprecation:<n>
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
-    2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
     Treat warnings as errors.
@@ -1396,31 +1384,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
        effects.
     1 - A compiled method, constructor, or iterator is allowed to have
        print effects only if it is marked with {{:print}}.
-
-/allocated:<n>
-    This option is deprecated. Going forward, only what is /allocated:4
-    will be supported.
-    Specify defaults for where Dafny should assert and assume
-    allocated(x) for various parameters x, local variables x, bound
-    variables x, etc. Lower <n> may require more manual allocated(x)
-    annotations and thus may be more difficult to use. Warning: this
-    option should be chosen consistently across an entire project; it
-    would be unsound to use different defaults for different files or
-    modules within a project. And even so, modes /allocated:0 and
-    /allocated:1 let functions depend on the allocation state, which is
-    not sound in general.
-
-    0 - Nowhere (never assume/assert allocated(x) by default).
-    1 - Assume allocated(x) only for non-ghost variables and fields
-        (these assumptions are free, since non-ghost variables always
-        contain allocated values at run-time). This option may speed up
-        verification relative to /allocated:2.
-    2 - Assert/assume allocated(x) on all variables, even bound
-        variables in quantifiers. This option is the easiest to use for
-        heapful code.
-    3 - Frugal use of heap parameter (not sound).
-    4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
-        allocatedness.
 
 /definiteAssignment:<n>
     0 - Ignores definite-assignment rules. This mode is for testing
@@ -1599,7 +1562,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   }
 
   public override void Error(string message, params string[] args) {
-    errors.SemErr(token, string.Format(message, args));
+    errors.SemErr(GenericErrors.ErrorId.g_cli_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
   }
 }
