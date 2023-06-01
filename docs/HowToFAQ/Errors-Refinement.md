@@ -116,7 +116,7 @@ module P {
   type T(==)
 }
 module Q refines P {
-  class A{}
+  codatatype A = B | C
   type T = A
 }
 ```

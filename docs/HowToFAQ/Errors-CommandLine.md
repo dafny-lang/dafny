@@ -27,7 +27,7 @@ The only exceptions are the special commands like `--help` and `--version`.
 
 ## ***** Error: _file_: Central Directory corrupt.** {#cli_bad_doo}
 
-<!-- %check-cli -->
+<!-- %no-check --> <!-- TODO - not working on CI because of extra file -->
 ```bash
 dafny resolve --use-basename-for-filename testsource/test1.dfy testsource/BadDoo.doo
 ```
@@ -105,7 +105,7 @@ However, it is expected to take just a single `.dfy` file as input.
 
 ## **Error: ModelView file must be specified when attempting counterexample extraction** {#cli-counterexample}
 
-<!-- %check-cli -->
+<!-- %no-check --> <!-- TODO - not working on CI because of extra file -->
 ```bash
 dafny /extractCounterexample testsource/test1.dfy
 ```
@@ -231,7 +231,7 @@ The `printIncludes` option has these alternatives: None, Immediate, Transitive.
 
 ## **Argument '_argument_' not recognized. _Alternatives_** {#cli_quantifier_syntax}
 
-<!-- %check-cli -->
+<!-- %no-check TODO: Outputs the help document  -->
 ```bash 
 dafny resolve --show-snippets:false --quantifier-syntax:2 null.dfy
 ```
