@@ -84,14 +84,14 @@ namespace XUnitExtensions.Lit {
       if (outputFile != null) {
         outputWriters.Add(new StreamWriter(outputFile, append));
       }
-      
+
       var errorWriters = new List<TextWriter>() { errWriter };
       if (errorFile != null) {
         errorWriters.Add(new StreamWriter(errorFile, append));
       }
       var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
-      var result = command.Execute(inputReader, 
-        new CombinedWriter(outWriter.Encoding, outputWriters), 
+      var result = command.Execute(inputReader,
+        new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
       inputReader.Close();
       foreach (var writer in outputWriters.Concat(errorWriters)) {
