@@ -3,8 +3,17 @@
 d=$(dirname ${BASH_SOURCE[0]})
 cd $d
 
+D=../../Source/DafnyCore
 
-csfiles="../../Source/DafnyCore/Resolver/*.cs ../../Source/DafnyCore/Resolver/*/*.cs"
+echo ">>>> PARSER"
+
+./check-errors-a Errors-Parser.md "$D/Dafny.atg $D/CoCo/Parser.frame $D/CoCo/Scanner.frame" $D/AST/Grammar/ParseErrors.cs
+
+
+
+exit 0
+
+csfiless="../../Source/DafnyCore/Resolver/*.cs ../../Source/DafnyCore/Resolver/*/*.cs"
 csfiles="../../Source/DafnyCore/Resolver/ExpressionTester.cs ../../Source/DafnyCore/Resolver/TypeInferenceChecker.cs ../../Source/DafnyCore/Resolver/GhostInterestVisitor.cs"
 ./check-errors-a Errors-Resolution.md "$csfiles" ../../Source/DafnyCore/Resolver/ResolutionErrors.cs
 
@@ -34,7 +43,4 @@ echo ">>>> COMPILER"
 csfiles="../../Source/DafnyCore/Compilers/*.cs ../../Source/DafnyCore/Compilers/*/*.cs"
 ./check-errors-a Errors-Compiler.md "$csfiles" ../../Source/DafnyCore/Compilers/CompilerErrors.cs
 
-##echo ">>>> PARSER"
-
-##./check-errors-a Errors-Parser.md ../../Source/DafnyCore/Dafny.atg ../../Source/DafnyCore/AST/Grammar/ParseErrors.cs
 

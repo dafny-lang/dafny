@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
 
+SORT="cat -"
+SORT="sort"
+SORT="sort -u"
 mdfiles=$1
 srcfile=$2
 errfiles=$3
@@ -13,7 +16,7 @@ touch tmp-ids-add
 for f in $srcfile ; do
  echo FILE $f
  grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | grep -v ErrorId
- grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' >> tmp-ids-cs
+ grep -E 'SemErr|Error[(]|Warning|Deprecated[^C]|DeprecatedStyle' $f | grep -v UnsupportedFeatureError | sed -e 's/^.*ErrorId[.]//' -e 's/[,].*$//' | $SORT >> tmp-ids-cs
 done
 
 ## ErrorIds from md file
@@ -21,21 +24,21 @@ done
 for f in $mdfiles ; do
  echo FILE $f
   grep -E '^[#][#]' $f  | grep -v -E '[*][*](Error|Warning)'
-  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' >> tmp-ids-md
+  grep -E '^[#][#]' $f  | sed -e 's/^.*{#//' -e 's/}//' | sort -u >> tmp-ids-md
 done
 
 ## ErrorIds from enum
 
 for f in $errfiles ; do
   echo ENUM FILE $f
-  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,]?[ \t]*$//' | grep -v ' '  >> tmp-ids-enum
+  grep "_" $f | grep -v -E '[{}()]' | sed -E -e 's/^[ \t]*//' -e 's/[,].*$//' | grep -v ' ' | sort -u  >> tmp-ids-enum
 done
 
 ## ErrorIds from Add
 
 for f in $errfiles ; do
   echo ENUM FILE ADD $f
-  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,]?[ \t]*$//'   >> tmp-ids-add
+  grep "Add" $f | sed -E -e 's/^[ \t]*Add[(]ErrorId[.]//' -e 's/[,].*$//' | $SORT   >> tmp-ids-add
 done
 
 ## Diffs

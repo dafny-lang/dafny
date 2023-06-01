@@ -1,6 +1,6 @@
 <!-- %check-resolve %default %useHeadings %check-ids -->
 
-<!-- Parser.cs, but not Deprecated warnings or syntactic errors -->
+<!-- Dafny.atg -->
 
 ## **Error: Duplicate declaration modifier: abstract** {#p_duplicate_modifier}
 
@@ -30,11 +30,26 @@ ghost function f(): int
 }
 ```
 
-## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default}
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)** {#p_ghost_forbidden_default_3}
 
 ```dafny
 module {:options "--function-syntax:3"} M {
   ghost function f(): int { 42 }
+}
+```
+
+For versions prior to Dafny 4, the `function` keyword meant a ghost function
+and `function method` meant a non-ghost function. 
+From Dafny 4 on, `ghost function` means a ghost function and 
+`function` means a non-ghost function. 
+See the discussion [here](../DafnyRef/DafnyRef#sec-function-syntax) for
+a discussion of options to control this feature.
+
+## **Error: _decl_ cannot be declared 'ghost' (it is 'ghost' by default)** {#p_ghost_forbidden_default}
+
+```dafny
+module {:options "--function-syntax:4"} M {
+  ghost least predicate p()
 }
 ```
 
@@ -85,11 +100,8 @@ import opened N
 module {:options opt} M{}
 ```
 
-The value of an options attribute cannot be a computed expression. It must be a literal string.
-
 ## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore}
 
-// TODO - check that both errors are checked
 ```dafny
 const _myconst := 5
 function m(): (_: int) {0}
@@ -145,11 +157,14 @@ The [syntax for a module declaration](../DafnyRef/DafnyRef#sec-modules) is eithe
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
 
-## **Warning: the _name_ token  the identifier for the export set, not an adjective for an extreme predicate** {#p_misplaced_least_or_greatest}
+## **Warning: the _name_ token is the identifier for the export set, not an adjective for an extreme predicate** {#p_misplaced_least_or_greatest}
 
+<!-- %check-resolve-warn -->
 ```dafny
-export
-least predicate p()
+module M {
+  export
+  least predicate p()
+}
 ```
 
 A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous:
@@ -188,6 +203,27 @@ module M {
 But mutable field declarations are not permitted at the static module level, including in the (implicit) toplevel module.
 Rather, you may want the declaration to be a `const` declaration or you may want the mutable field to be declared in the body of a class.
 
+## **Warning: module-level functions are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_function_always_static}
+
+<!-- %check-resolve-warn -->
+```dafny
+static predicate p() { true }
+```
+
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+
+## **Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_method_always_static}
+
+<!-- %check-resolve-warn -->
+```dafny
+static method m() {}
+```
+
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+
+
 ## **Error: in refining a datatype, the '...' replaces the '=' token and everything up to a left brace starting the declaration of the body; only members of the body may be changed in a datatype refinement** {#p_bad_datatype_refinement}
 
 ```dafny
@@ -208,12 +244,12 @@ The `var` declaration declares a mutable field, which is only permitted within
 classes, traits and iterators. 
 `const` declarations can be members of value-types, such as datatypes.
 
-## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here** {#p_module_level_always_static}
+
+## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here {#p_module_level_const_always_static}
 
 <!-- %check-resolve-warn -->
 ```dafny
-static method m() {}
-static predicate p() { true }
+static const i := 9
 ```
 
 All names declared in a module (outside a class-like entity) are implicitly `static`.
@@ -229,17 +265,6 @@ const d := 5
 
 This error arises from a truncated declarations of a const field, namely just a const keyword.
 To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
-
-## **Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here" {#p_module_level_const_always_static}
-
-<!-- %check-resolve-warn -->
-```dafny
-static const i := 9
-```
-
-All names declared in a module (outside a class-like entity) are implicitly `static`.
-Dafny does not allow them to be explictly, redundantly, declared `static`.
-
 
 ## **Error: a const field should be initialized using ':=', not '='** {#p_bad_const_initialize_op}
 
@@ -280,17 +305,6 @@ twostate function p(i: int): (ghost r: int) { true }
 The output of a predicate or function cannot be ghost.
 It is implicitly ghost if the function is ghost itself.
 
-<!-- MISPLACED TODO -->
-## **Error: formal cannot be declared 'ghost' in this context** {#p_ghost_function_output_not_ghost}
-
-```dafny
-ghost function m(ghost i: int): int {
-  42
-}
-```
-
-If a method, function, or predicate is declared as ghost, then its formal parameters may not also be declared ghost.
-Any use of this construct will always be in ghost contexts.
 
 ## **Error: formal cannot be declared 'new' in this context** {#p_no_new_on_output_formals}
 
@@ -562,14 +576,11 @@ The type parameters are listed in a comma-separated list between `<` and `>`, af
 
 ```dafny
 const c: seq<int,bool>
-const s := seq<int,int>(3, i=>i+1)
 ```
 
 A `seq` type has one type parameter, namely the type of the elements of the sequence.
 The error message states that the parser sees some number of type parameters different than one.
 The type parameters are listed in a comma-separated list between `<` and `>`, after the type name.
-
-<!-- There are two instances of this error. -->
 
 ## **Error: map type expects two type arguments** {#p_map_needs_two_type_parameters}
 
@@ -621,6 +632,23 @@ The type of that special formal is given in square brackets between the
 predicate name and the opening parenthesis of the formals.
 The type may be either `nat` or `ORDINAL`.
 This special formal is not permitted in a regular (non-extreme) predicate.
+
+## **Warning: the old keyword phrase 'inductive predicate' has been renamed to 'least predicate' {#p_deprecated_inductive_predicate}
+
+```dafny
+inductive predicate p()
+```
+
+The terms `least predicate` and `greatest predicate` are more descriptive of the relationship between them than was the old terminology.
+
+## **Warning: the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate' {#p_deprecated_copredicate}
+
+```dafny
+copredicate p()
+```
+
+The terms `least predicate` and `greatest predicate` are more descriptive of the relationship between them than was the old terminology.
+
 
 ## **Error: a 'by method' implementation is not allowed on a twostate _what_** {#p_no_by_method_in_twostate}
 
@@ -693,11 +721,11 @@ It indicates that `predicates` are always ghost and cannot be declared with the 
 - If you intend to predicate to be ghost, remove `method`.
 - If you intend the predicate to be non-ghost, you either cannot use `experimentalPredicateAlwaysGhost` or you should use `function` with a `bool` return type instead of `predicate`
 
-## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled function, use just 'function'** {#p_deprecating_predicate_method}
+## **Error: the phrase '_what_ method' is not allowed when using --function-syntax:4; to declare a compiled predicate, use just 'predicate'** {#p_deprecating_predicate_method}
 
 ```dafny
 module {:options "--function-syntax:4"} M {
-  function method f(): int { 42 }
+  predicate method f() { true }
 }
 ```
 
@@ -719,11 +747,11 @@ longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: there is no such thing as a 'ghost function method'** {#p_no_ghost_function_method}
+## **Error: there is no such thing as a 'ghost predicate method'** {#p_no_ghost_predicate_method}
 
 ```dafny
 module {:options "--function-syntax:experimentalDefaultGhost"} M {
-  ghost function method f(): int { 42 }
+  ghost predicate method f() { true }
 }
 ```
 
@@ -737,7 +765,7 @@ and there is no longer any declaration of the form `function method`, and simila
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
 
-## **Error: there is no such thing as a 'ghost predicate method'** {#p_no_ghost_predicate_method}
+## **Error: there is no such thing as a 'ghost function method'** {#p_no_ghost_function_method}
 
 ```dafny
 module {:options "--function-syntax:experimentalDefaultGhost"} M {
@@ -841,6 +869,8 @@ iterator Gen(start: int) yields (x: int)
 A `reads *` clause means the reads clause allows the functions it specifies to read anything.
 Such a clause is not allowed in an iterator specification.
 Insert a specific reads expression.
+
+<!-- TODO: p_deprecated_statement_refinement -->
 
 ## **Error: invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)** {#p_invalid_colon}
 
@@ -961,6 +991,10 @@ Assert statements, like all statements, end in either a semicolon or a block. Mo
 but an assert-by statement has the form `assert expr by { ... }` where the by-block contains statements such as lemma calls
 that assist in proving the validity of the asserted expression.
 
+## **Warning: a forall statement with no bound variables is deprecated; use an 'assert by' statement instead** {#p_deprecated_forall_with_no_bound_variables}
+
+<!-- TODO  -->
+
 ## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
 
 <!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
@@ -980,6 +1014,8 @@ A forall statement without a body is like an assume statement: the ensures claus
 Assumptions like that are a risk to soundness because there is no check that the assumption is true.
 Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
 
+## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
+<!-- TODO-->
 
 ## **Error: the main operator of a calculation must be transitive** {#p_calc_operator_must_be_transitive}
 
@@ -1066,6 +1102,23 @@ This check is syntactic, so even methods that do not modify anything are not per
 
 ```dafny
 const b := true ==> false <== true
+const q := true <== false ==> true
+```
+
+The `==>` and `<==` operators have the same precedence but do not associate with each other.
+You must use parentheses to show how they are grouped. Write `p ==> q <== r` as either
+`(p ==> q) <== r` or `p ==> (q <== r)`.
+
+In contrast, `p ==> q ==> r` is `p ==> (q ==> r)` and
+`p <== q <== r` is `(p <== q) <== r`.
+
+See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
+
+## **Error: Ambiguous use of ==> and <==. Use parentheses to disambiguate.** {#p_ambiguous_implies_2}
+
+```dafny
+const b := true ==> false <== true
+const q := true <== false ==> true
 ```
 
 The `==>` and `<==` operators have the same precedence but do not associate with each other.
@@ -1114,10 +1167,22 @@ But there are limitations on which operators can be in one chain together.
 
 In particular for this error message, one cannot have chains that include more than one `!=` operator.
 
+## **Error: this operator cannot continue this chain** {#p_invalid_operator}
+
+```dafny
+const c := {} !! {} != {}
+```
+
+[Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
+are a sequence of binary operations without parentheses: _a op b op c op d op e_.
+But there are limitations on which operators can be in one chain together.
+
+In particular for this error message, one cannot have chains that include more than one `!=` operator.
+
 ## **Error: this operator chain cannot continue with an ascending operator** {#p_invalid_descending_chaining}
 
 ```dafny
-const c := 4 > 3 < 2
+const c := 2 > 3 < 4
 ```
 
 [Chained operations](../DafnyRef/DafnyRef#sec-basic-types)
@@ -1239,10 +1304,10 @@ However, this second form can only be used to convert a set to a multiset.
 In the current parser, however, this error message is unreachable.
 The tests that check for this error case are already known to be false by previous testing.
 
-## **Error: seq type expects only one type argument** {#p_seq_has_one_type_argument}
+## **Error: seq type expects only one type argument** {#p_seq_display_has_one_type_argument}
 
 ```dafny
-const c: seq<int,int>
+const c: seq<int,int>(5, i=>i)
 ```
 
 The built-in `seq` (sequence) type takes one type parameter, which in some situations is inferred.
@@ -1367,12 +1432,42 @@ But if more than one variable is declared, then there is no natural implicit exp
 so some expression is required. The failing example above, for example, might use the expression `x * y`, as in 
 `set x, y  | 0 <= x < y < 10 :: x * y`, or any other expression over `x` and `y`.
 
+## **Warning: deprecated: opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name.** {#p_deprecated_opaque_as_identifier}
+
+```dafny
+const opaque: int
+```
+
+Because of the value to proof success of using `opaque` declarations and `reveal`ing them in appropriate contexts,
+the word `opaque` is being converted to a reserved keyword, whereas it used to be a normal identifier.
+Please rename your use of opaque as an identifier to some other name.
 
 ## **Error: invalid name after a '.'** {#p_invalid_name_after_dot}
 
 This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 
+## **Error: cannot declare identifier beginning with underscore** {#p_no_leading_underscore_2}
+
+```dafny
+const _myconst := 5
+function m(): (_: int) {0}
+```
+
+User-declared identifiers may not begin with an underscore; 
+such identifiers are reserved for internal use. 
+In match statements and expressions, an identifier
+that is a single underscore is used as a wild-card match.
+
+## **Warning: deprecated: a semi-colon is not needed here {#p_deprecated_semicolon}
+
+<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+```dafny
+const c := 5;
+```
+
+Semicolons are required after statements and declarations in method bodies,  
+but are deprecated after declarations within modules and types.
 
 ## **Error: incorrectly formatted number** {#p_bad_number_format}
 
@@ -1395,28 +1490,6 @@ The parser recognizes a legitimate Dafny decimal number
 and then passes that string to a library routine to create a BigDecimal. 
 Given the parser logic, that parsing should never fail.
 
-<!-- There are three instances of this message, one for digits one for hexdigits, one for decimaldigits -->
-
-<!-- FILE ./DafnyCore/Generic/Util.cs -->
-
-## **Warning: constructors no longer need 'this' to be listed in modifies clauses** {#p_deprecated_this_in_constructor_modifies_clause}
-
-<!-- %check-resolve-warn -->
-```dafny
-class A {
-  constructor () modifies this {}
-}
-```
-
-The purpose of a constructor is to initialize a newly allocated instance of a class.
-Hence it always modifies the `this` object.
-Previously it was required to list `this` in the modifies clause of the
-constructor to specify this property, but now `this` is always implicitly 
-a part of the modifies clause. 
-If the constructor only modifies its own object (as is the very common case)
-then no explicit modifies clause is needed at all.
-
-<!-- TODO - 2 instances i-- needs an example using set display-->
 
 <!-- FILE ./DafnyCore/CoCo/Parser.frame -->
 
@@ -1440,16 +1513,6 @@ please suggest the improvement, with this sample code, to the Dafny team.
 
 
 <!-- FILE ./DafnyCore/CoCo/Scanner.frame -->
-
-## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
-
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
-```dafny
-const c := 5;
-```
-
-Semicolons are required after statements and declarations in method bodies,  
-but are deprecated after declarations within modules and types.
 
 ## **Error: Malformed _template_ pragma: #_source_** {#sc_malformed_pragma}
 
@@ -1477,4 +1540,5 @@ const s := @"
 This pragma syntax is no longer supported. If this message is seen, please report it to the Dafny development team.
 The Dafny scanner saw a pragma -- the first character of the line is a # character. But it is not one that the
 scanner recognizes. The only pragma ever recognized was `#line`.
+
 

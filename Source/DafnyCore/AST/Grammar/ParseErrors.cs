@@ -11,10 +11,10 @@ public class ParseErrors {
   public enum ErrorId {
     // ReSharper disable once InconsistentNaming
     none,
-    p_generic_syntax_error,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
+    p_ghost_forbidden_default_3,
     p_ghost_forbidden_default,
     p_ghost_forbidden,
     p_no_static,
@@ -29,16 +29,16 @@ public class ParseErrors {
     p_misplaced_least_or_greatest,
     p_extraneous_comma_in_export,
     p_top_level_field,
+    p_module_level_function_always_static,
+    p_module_level_method_always_static,
     p_bad_datatype_refinement,
     p_no_mutable_fields_in_value_types,
-    p_module_level_always_static,
-    p_const_decl_missing_identifier,
     p_module_level_const_always_static,
+    p_const_decl_missing_identifier,
     p_bad_const_initialize_op,
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
     p_output_of_function_not_ghost,
-    p_ghost_function_output_not_ghost, // TODO - unused?
     p_no_new_on_output_formals,
     p_no_nameonly_on_output_formals,
     p_no_older_on_output_formals,
@@ -68,6 +68,8 @@ public class ParseErrors {
     p_no_ghost_arrow_type_arguments,
     p_no_empty_type_parameter_list,
     p_formal_ktype_only_in_least_and_greatest_predicates,
+    p_deprecated_inductive_predicate,
+    p_deprecated_copredicate,
     p_no_by_method_in_twostate,
     p_no_by_method_in_extreme_predicate,
     p_no_by_method_for_ghost_function,
@@ -75,14 +77,15 @@ public class ParseErrors {
     p_old_ghost_syntax,
     p_deprecating_predicate_method,
     p_deprecating_function_method,
-    p_no_ghost_function_method,
     p_no_ghost_predicate_method,
+    p_no_ghost_function_method,
     p_migration_syntax,
     p_no_ghost_formal,
     p_no_decreases_for_extreme_predicates,
     p_predicate_return_type_must_be_bool,
     p_no_return_type_for_predicate,
     p_no_wild_expression,
+    p_no_wild_frame_expression,
     p_invalid_colon,
     p_initializing_display_only_for_1D_arrays,
     p_no_equal_for_initializing,
@@ -91,15 +94,19 @@ public class ParseErrors {
     p_to_or_downto,
     p_no_decreases_expressions_with_star,
     p_assert_needs_by_or_semicolon,
+    p_deprecated_forall_with_no_bound_variables,
     p_forall_with_ensures_must_have_body,
+    p_deprecated_modify_statement_with_block,
     p_calc_operator_must_be_transitive,
     p_invalid_calc_op_combination,
     p_calc_dangling_operator,
     p_no_side_effects_in_expressions,
     p_ambiguous_implies,
+    p_ambiguous_implies_2,
     p_ambiguous_and_or,
     p_invalid_equal_chaining,
     p_invalid_notequal_chaining,
+    p_invalid_operator,
     p_invalid_descending_chaining,
     p_invalid_ascending_chaining,
     p_invalid_disjoint_chaining,
@@ -110,32 +117,32 @@ public class ParseErrors {
     p_invalid_char_literal,
     p_no_parenthesized_binding,
     p_must_be_multiset,
-    p_seq_has_one_type_argument, // TODO - needs a token position?
+    p_seq_display_has_one_type_argument,
+    p_map_comprehension_must_have_term_expression,
+    p_no_patterns_in_let_such_that,
     p_no_equal_in_let_initialization,
     p_elephant_has_one_lhs,
     p_elephant_has_one_rhs,
     p_set_comprehension_needs_term_expression,
-    p_map_comprehension_must_have_term_expression,
-    p_no_patterns_in_let_such_that,
-    p_no_wild_frame_expression,
+    p_deprecated_opaque_as_identifier,
     p_invalid_name_after_dot, // not reachable
+    p_no_leading_underscore_2,
+    p_deprecated_semicolon,
     p_bad_number_format,
     p_bad_hex_number_format,
     p_bad_decimal_number_format,
-    p_deprecated_inductive_predicate,
-    p_deprecated_copredicate,
-    p_deprecated_statement_refinement,
-    p_deprecated_forall_with_no_bound_variables,
-    p_deprecated_modify_statement_with_block,
-    p_deprecated_opaque_as_identifier,
-    p_deprecated_semicolon,
-    p_deprecated_this_in_constructor_modifies_clause,
-    sc_malformed_pragma, // TODO no description is provided
-    sc_unknown_pragma, // TODO no description is provided
+    p_generic_syntax_error,
+    sc_malformed_pragma,
+    sc_unknown_pragma,
+
+    // TODO _ where are these
+    p_include_has_errors,
     p_cli_option_error, // Has no description yet
     p_internal_exception,
     p_file_has_no_code,
-    p_include_has_errors
+    p_deprecated_this_in_constructor_modifies_clause,
+    p_deprecated_statement_refinement,
+
   }
 
   static ParseErrors() {
@@ -166,6 +173,16 @@ section to their body can be used both in ghost contexts and in non-ghost contex
 in ghost contexts the function body is used and in compiled contexts
 the by-method body is used. The `ghost` keyword is not permitted on the
 declaration.
+", Remove(true));
+
+    Add(ErrorId.p_ghost_forbidden_default_3,
+    @"
+For versions prior to Dafny 4, the `function` keyword meant a ghost function
+and `function method` meant a non-ghost function. 
+From Dafny 4 on, `ghost function` means a ghost function and 
+`function` means a non-ghost function. 
+See the discussion [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax) for
+a discussion of options to control this feature.
 ", Remove(true));
 
     Add(ErrorId.p_ghost_forbidden_default,
@@ -212,6 +229,16 @@ The value of an options attribute cannot be a computed expression. It must be a 
 
     // TODO - what about multiple leading underscores
     Add(ErrorId.p_no_leading_underscore,
+  @"
+User-declared identifiers may not begin with an underscore;
+such identifiers are reserved for internal use.
+In match statements and expressions, an identifier
+that is a single underscore is used as a wild-card match.
+", range => new List<DafnyAction> {
+    OneAction("remove underscore", range, range.PrintOriginal().Substring(1))
+  });
+
+    Add(ErrorId.p_no_leading_underscore_2,
   @"
 User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
@@ -292,7 +319,13 @@ classes, traits and iterators.
 `const` declarations can be members of value-types, such as datatypes.
 ", Replace("const"));
 
-    Add(ErrorId.p_module_level_always_static,
+    Add(ErrorId.p_module_level_function_always_static,
+    @"
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+", Remove(true));
+
+    Add(ErrorId.p_module_level_method_always_static,
     @"
 All names declared in a module (outside a class-like entity) are implicitly `static`.
 Dafny does not allow them to be explictly, redundantly, declared `static`.
@@ -877,6 +910,17 @@ In contrast, `p ==> q ==> r` is `p ==> (q ==> r)` and
 
 See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
 "); // TODO - would be nice to have code actions for the alternatives, but that requires passing multiple ranges
+    Add(ErrorId.p_ambiguous_implies_2,
+    @"
+The `==>` and `<==` operators have the same precedence but do not associate with each other.
+You must use parentheses to show how they are grouped. Write `p ==> q <== r` as either
+`(p ==> q) <== r` or `p ==> (q <== r)`.
+
+In contrast, `p ==> q ==> r` is `p ==> (q ==> r)` and
+`p <== q <== r` is `(p <== q) <== r`.
+
+See [this section](../DafnyRef/DafnyRef#sec-implication-and-reverse-implication) for more information.
+"); // TODO - would be nice to have code actions for the alternatives, but that requires passing multiple ranges
 
     Add(ErrorId.p_ambiguous_and_or,
      @"
@@ -1002,7 +1046,7 @@ please report the error.
 The tests that check for this error case are already known to be false by previous testing.
 ");
 
-    Add(ErrorId.p_seq_has_one_type_argument,
+    Add(ErrorId.p_seq_display_has_one_type_argument,
     @"
 The built-in `seq` (sequence) type takes one type parameter, which in some situations is inferred.
 That type parameter is the type of the sequence elements.
@@ -1130,13 +1174,11 @@ common or confusing enough occurrence to warrant special error handling,
 please suggest the improvement, with this sample code, to the Dafny team.
 ");
 
-
     Add(ErrorId.p_deprecated_semicolon,
     @"
 Semicolons are required after statements and declarations in method bodies,  
 but are deprecated after declarations within modules and types.
 ", Remove(true, "remove semicolon"));
-
 
   }
 }

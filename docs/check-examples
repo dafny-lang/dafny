@@ -368,9 +368,14 @@ do
             actualid=
             grep 'ID:' "$actualMsgs" > /dev/null
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
-              actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
+              num=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//' | sort -u | wc -l | sed -e 's/[ \t]*//'`
+              if [ "$num" != "1" ]; then
+                 echo "UNEXPECTED NUMBER OF DIFFERENT IDS: $num"
+                 FAIL=1
+              fi
+              actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//' | sort -u`
             fi
-            act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
+            act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' `
             if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
               cat "$actualMsgs"
