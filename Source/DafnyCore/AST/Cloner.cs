@@ -632,7 +632,8 @@ namespace Microsoft.Dafny {
         return new TwoStateLemma(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
-        return new Method(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(o => CloneFormal(o, false)),
+        return new Method(Range(m.RangeToken), m.NameNode.Clone(this), m.HasStaticKeyword, m.IsGhost, tps, ins,
+          m.Outs.ConvertAll(o => CloneFormal(o, false)),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m.IsByMethod);
       }
     }
@@ -713,8 +714,8 @@ namespace Microsoft.Dafny {
   /// It does not clone method bodies, and it copies module signatures.
   /// </summary>
   class ClonerButDropMethodBodies : DeepModuleSignatureCloner {
-    public ClonerButDropMethodBodies()
-      : base() {
+    public ClonerButDropMethodBodies(bool cloneResolvedFields = false) : base(cloneResolvedFields)
+    {
     }
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {

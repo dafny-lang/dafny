@@ -15,9 +15,8 @@ namespace Microsoft.Dafny;
 ///    wrapper definition.
 /// </summary>
 public class ExpectContracts : IRewriter {
-  private readonly ClonerButDropMethodBodies cloner = new();
+  private readonly ClonerButDropMethodBodies cloner = new(false);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
-  private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
   private readonly CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) {
@@ -87,6 +86,8 @@ public class ExpectContracts : IRewriter {
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok;
 
+    // TODO need to generate resolved code.
+    
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
@@ -137,6 +138,7 @@ public class ExpectContracts : IRewriter {
       // We especially want to remove {:extern} from the wrapper, but also any other attributes.
       newDecl.Attributes = null;
 
+      newDecl.EnclosingClass = parent; // TODO consider setting EnclosingClass when cloning
       wrappedDeclarations.Add(decl, newDecl);
       parent.Members.Add(newDecl);
       callRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
@@ -146,8 +148,7 @@ public class ExpectContracts : IRewriter {
   /// <summary>
   /// Add wrappers for certain top-level declarations in the given module.
   /// This runs after the first pass of resolution so that it has access to
-  /// attributes and call targets, but it generates pre-resolution syntax.
-  /// This is okay because the program gets resolved again during compilation.
+  /// ghostness information, attributes and call targets.
   /// </summary>
   /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
@@ -175,7 +176,7 @@ public class ExpectContracts : IRewriter {
   /// check contracts using expect statements.
   /// </summary>
   private class CallRedirector : TopDownVisitor<MemberDecl> {
-    internal readonly Dictionary<MemberDecl, MemberDecl> newRedirections = new();
+    internal Dictionary<MemberDecl, MemberDecl> newRedirections = new();
     internal readonly Dictionary<MemberDecl, string> newFullNames = new();
     private readonly ErrorReporter reporter;
     internal readonly HashSet<MemberDecl> calledWrappers = new();
@@ -244,31 +245,32 @@ public class ExpectContracts : IRewriter {
     }
   }
 
-  internal override void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      // Keep track of current declarations by name to avoid redirecting
-      // calls to functions or methods from obsolete modules (those that
-      // existed prior to processing by CompilationCloner).
-      foreach (var decl in topLevelDecl.Members) {
-        var noCompileName = decl.FullName.Replace("_Compile", "");
-        newDeclarationsByName.Add(noCompileName, decl);
-      }
-    }
+  public override void PostVerification(Program program) {
+    callRedirector.newRedirections = wrappedDeclarations;
+    // foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+    //   // Keep track of current declarations by name to avoid redirecting
+    //   // calls to functions or methods from obsolete modules (those that
+    //   // existed prior to processing by CompilationCloner).
+    //   foreach (var decl in topLevelDecl.Members) {
+    //     newDeclarationsByName.Add(decl.FullName, decl);
+    //   }
+    // }
+    //
+    // foreach (var (origCallee, newCallee) in wrappedDeclarations) {
+    //   var origCalleeFullName = origCallee.FullName;
+    //   var newCalleeFullName = callRedirector.newFullNames[newCallee];
+    //   if (newDeclarationsByName.ContainsKey(origCalleeFullName) &&
+    //       newDeclarationsByName.ContainsKey(newCalleeFullName)) {
+    //     var origCalleeDecl = newDeclarationsByName[origCallee.FullName];
+    //     var newCalleeDecl = newDeclarationsByName[newCalleeFullName];
+    //     if (!callRedirector.newRedirections.ContainsKey(origCalleeDecl)) {
+    //       callRedirector.newRedirections.Add(origCalleeDecl, newCalleeDecl);
+    //     }
+    //   }
+    // }
 
-    foreach (var (origCallee, newCallee) in wrappedDeclarations) {
-      var origCalleeFullName = origCallee.FullName;
-      var newCalleeFullName = callRedirector.newFullNames[newCallee];
-      if (newDeclarationsByName.ContainsKey(origCalleeFullName) &&
-          newDeclarationsByName.ContainsKey(newCalleeFullName)) {
-        var origCalleeDecl = newDeclarationsByName[origCallee.FullName];
-        var newCalleeDecl = newDeclarationsByName[newCalleeFullName];
-        if (!callRedirector.newRedirections.ContainsKey(origCalleeDecl)) {
-          callRedirector.newRedirections.Add(origCalleeDecl, newCalleeDecl);
-        }
-      }
-    }
-
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+    foreach (var topLevelDecl in 
+             program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
           callRedirector.Visit(callable, decl);

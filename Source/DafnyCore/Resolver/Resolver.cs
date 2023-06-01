@@ -511,12 +511,6 @@ namespace Microsoft.Dafny {
             m.SuccessfullyResolved = true;
           }
           Type.PopScope(tempVis);
-
-          if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
-            foreach (var rewriter in rewriters) {
-              rewriter.PostCompileCloneAndResolve(m);
-            }
-          }
         } else if (decl is AliasModuleDecl alias) {
           // resolve the path
           ModuleSignature p;

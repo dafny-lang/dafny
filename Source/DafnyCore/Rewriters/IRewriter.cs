@@ -68,18 +68,6 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Phase 4/8
-    /// Override this method to obtain a module definition after the module
-    /// has been cloned and re-resolved prior to compilation.
-    /// You can then report errors using reporter.Error (see above)
-    /// </summary>
-    /// <param name="moduleDefinition">A module definition after it
-    /// is cloned and re-resolved for compilation.</param>
-    internal virtual void PostCompileCloneAndResolve(ModuleDefinition moduleDefinition) {
-      Contract.Requires(moduleDefinition != null);
-    }
-
-    /// <summary>
     /// Phase 5/8
     /// Override this method to obtain the module definition after resolution and
     /// SCC/Cyclicity/Recursivity analysis.
