@@ -2,6 +2,7 @@
 // RUN: %dafny /noVerify /compile:4 /generalTraits:1 /typeSystemRefresh:1 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /generalTraits:1 /typeSystemRefresh:1 /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /generalTraits:1 /typeSystemRefresh:1 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /generalTraits:1 /typeSystemRefresh:1 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
