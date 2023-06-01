@@ -5,16 +5,29 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
 
-public record DfyParseResult(BatchErrorReporter ErrorReporter, FileModuleDefinition Module,
-  IReadOnlyList<Action<BuiltIns>> ModifyBuiltins);
+public record DfyParseResult(
+  BatchErrorReporter ErrorReporter,
+  FileModuleDefinition Module,
+  IReadOnlyList<Action<BuiltIns>> ModifyBuiltins
+  );
 
-public class ParseUtils {
+public class ProgramParser {
+  protected readonly ILogger<ProgramParser> logger;
 
-  public static Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
+  public ProgramParser() : this(NullLogger<ProgramParser>.Instance) {
+  }
+
+  public ProgramParser(ILogger<ProgramParser> logger) {
+    this.logger = logger;
+  }
+
+  public Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
     var builtIns = new BuiltIns(options);
@@ -44,6 +57,9 @@ public class ParseUtils {
           dafnyFile.Content,
           dafnyFile.Uri
         );
+        if (parseResult.ErrorReporter.ErrorCount != 0) {
+          logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
+        }
 
         AddParseResultToProgram(parseResult, program);
         if (defaultModule.RangeToken.StartToken.Uri == null) {
@@ -51,6 +67,7 @@ public class ParseUtils {
         }
 
       } catch (Exception e) {
+        logger.LogDebug(e, $"encountered an exception while parsing {dafnyFile.Uri}");
         var internalErrorDummyToken = new Token {
           Uri = dafnyFile.Uri,
           line = 1,
@@ -130,7 +147,7 @@ public class ParseUtils {
     defaultModule.DefaultClass.SetMembersBeforeResolution();
   }
 
-  public static IList<DfyParseResult> TryParseIncludes(
+  public IList<DfyParseResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     BuiltIns builtIns,
@@ -199,7 +216,7 @@ public class ParseUtils {
   /// Returns the number of parsing errors encountered.
   /// Note: first initialize the Scanner.
   ///</summary>
-  private static DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) /* throws System.IO.IOException */ {
+  protected virtual DfyParseResult ParseFile(DafnyOptions options, TextReader reader, Uri uri) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
     try {
@@ -213,8 +230,9 @@ public class ParseUtils {
         val = string.Empty
       };
       var reporter = new BatchErrorReporter(options);
-      reporter.Error(MessageSource.Parser, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message);
+      reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
+        "[internal error] Parser exception: " + e.Message + (!options.Verbose ? "" :
+            "\n" + e.StackTrace));
       return new DfyParseResult(reporter, null, new Action<BuiltIns>[] { });
     }
   }
@@ -255,7 +273,7 @@ public class ParseUtils {
     return new Parser(errorReporter.Options, scanner, errors);
   }
 
-  public static Program Parse(string source, Uri uri, ErrorReporter reporter) {
+  public Program Parse(string source, Uri uri, ErrorReporter reporter) {
     var files = new[] { new DafnyFile(reporter.Options, uri, new StringReader(source)) };
     return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
