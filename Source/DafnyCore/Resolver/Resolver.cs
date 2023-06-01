@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
 
-      return useCompileSignatures || d.IsRevealedInScope(moduleInfo.VisibilityScope);
+      return d.IsRevealedInScope(moduleInfo.VisibilityScope);
     }
 
     private bool VisibleInScope(Declaration d) {
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
 
-      return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
+      return d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
     public FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
@@ -235,7 +235,6 @@ namespace Microsoft.Dafny {
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
-    private bool useCompileSignatures = false;
 
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
@@ -790,7 +789,7 @@ namespace Microsoft.Dafny {
       var oldModuleInfo = moduleInfo;
       moduleInfo = MergeSignature(sig, systemNameInfo);
       Type.PushScope(moduleInfo.VisibilityScope);
-      ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
+      ResolveOpenedImports(moduleInfo, m, this); // opened imports do not persist
       var datatypeDependencies = new Graph<IndDatatypeDecl>();
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(m.TopLevelDecls).ToList();
@@ -1527,15 +1526,14 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures,
-      Resolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       var topLevelDeclReplacements = new List<TopLevelDecl>();
       foreach (var top in declarations) {
         if (top is ModuleDecl md && md.Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures, out var topLevelDeclReplacement);
+          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, out var topLevelDeclReplacement);
           if (topLevelDeclReplacement != null) {
             topLevelDeclReplacements.Add(topLevelDeclReplacement);
           }
@@ -1575,10 +1573,10 @@ namespace Microsoft.Dafny {
     /// to the caller, and let the caller remap the symbol after all opened imports have been processed.
     /// </summary>
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
-      bool useCompileSignatures, out TopLevelDecl topLevelDeclReplacement) {
+      out TopLevelDecl topLevelDeclReplacement) {
 
       topLevelDeclReplacement = null;
-      var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
+      var s = GetSignatureExt(im.AccessibleSignature(false));
 
       if (importedSigs.Contains(s)) {
         return; // we've already got these declarations
@@ -2011,7 +2009,6 @@ namespace Microsoft.Dafny {
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
-      sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
       var good = ResolveModuleDefinition(mod, sig);
@@ -2134,12 +2131,6 @@ namespace Microsoft.Dafny {
             Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
             ModuleSignature merged = MergeSignature(p, pp.Signature);
             merged.ModuleDef = pp.Signature.ModuleDef;
-            if (p.CompileSignature != null) {
-              Contract.Assert(pp.Signature.CompileSignature != null);
-              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
-            } else {
-              Contract.Assert(pp.Signature.CompileSignature == null);
-            }
             p = merged;
           } else {
             reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
@@ -6428,19 +6419,14 @@ namespace Microsoft.Dafny {
       return isGhost ? "ghost " : "";
     }
 
-    private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
+    private static ModuleSignature GetSignatureExt(ModuleSignature sig) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
-      if (useCompileSignatures) {
-        while (sig.CompileSignature != null) {
-          sig = sig.CompileSignature;
-        }
-      }
       return sig;
     }
 
     private ModuleSignature GetSignature(ModuleSignature sig) {
-      return GetSignatureExt(sig, useCompileSignatures);
+      return GetSignatureExt(sig);
     }
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {

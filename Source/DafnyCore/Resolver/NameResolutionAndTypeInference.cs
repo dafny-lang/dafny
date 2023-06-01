@@ -3908,7 +3908,7 @@ namespace Microsoft.Dafny {
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
 
@@ -6173,7 +6173,7 @@ namespace Microsoft.Dafny {
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
         // For 1:
@@ -6292,7 +6292,7 @@ namespace Microsoft.Dafny {
         // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
         expr.Type = new InferredTypeProxy();
       } else {
-        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, useCompileSignatures, isLastNameSegment);
+        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, false, isLastNameSegment);
         expr.ResolvedExpression = r;
         expr.Type = r.Type;
       }
