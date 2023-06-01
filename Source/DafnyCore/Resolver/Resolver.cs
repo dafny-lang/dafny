@@ -236,7 +236,7 @@ namespace Microsoft.Dafny {
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
 
-    private List<IRewriter> rewriters;
+    private IList<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
 
     public Resolver(DafnyOptions options) {
@@ -429,51 +429,9 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      rewriters = new List<IRewriter>();
-
-      if (Options.AuditProgram) {
-        rewriters.Add(new Auditor.Auditor(reporter));
-      }
-
+      rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
       refinementTransformer = new RefinementTransformer(prog);
-      rewriters.Add(refinementTransformer);
-      if (!Options.VerifyAllModules) {
-        rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
-      }
-      rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
-      rewriters.Add(new AutoReqFunctionRewriter(this.reporter, this.builtIns));
-      rewriters.Add(new TimeLimitRewriter(reporter));
-      rewriters.Add(new ForallStmtRewriter(reporter));
-      rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
-      rewriters.Add(new MatchFlattener(this.reporter, defaultTempVarIdGenerator));
-
-      if (Options.AutoTriggers) {
-        rewriters.Add(new QuantifierSplittingRewriter(reporter));
-        rewriters.Add(new TriggerGeneratingRewriter(reporter));
-      }
-
-      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
-        rewriters.Add(new ExpectContracts(reporter));
-      }
-
-      if (Options.RunAllTests) {
-        rewriters.Add(new RunAllTestsMainMethod(reporter));
-      }
-
-      rewriters.Add(new InductionRewriter(reporter));
-      rewriters.Add(new PrintEffectEnforcement(reporter));
-      rewriters.Add(new BitvectorOptimization(builtIns, reporter));
-
-      if (Options.DisallowConstructorCaseWithoutParentheses) {
-        rewriters.Add(new ConstructorWarning(reporter));
-      }
-      rewriters.Add(new LocalLinter(reporter));
-      rewriters.Add(new PrecedenceLinter(reporter));
-
-      foreach (var plugin in Options.Plugins) {
-        rewriters.AddRange(plugin.GetRewriters(reporter));
-      }
+      rewriters.Insert(0, refinementTransformer);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);

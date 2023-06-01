@@ -16,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
@@ -24,6 +25,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -848,6 +850,12 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static async Task<bool> CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
+
+      var rewriters = Rewriters.GetRewriters(dafnyProgram, new FreshIdGenerator());
+      foreach (var rewriter in rewriters) {
+        rewriter.PostVerification(dafnyProgram);
+      }
+      
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 

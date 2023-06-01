@@ -84,7 +84,7 @@ public class RunAllTestsMainMethod : IRewriter {
   ///   print "Test failures occurred: see above.\n";
   /// }
   /// </summary>
-  internal override void PostResolve(Program program) {
+  public override void PostVerification(Program program) {
     var tok = program.GetFirstTopLevelToken();
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
