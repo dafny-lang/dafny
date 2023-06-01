@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] {BuiltIns.SystemModule }.Concat(Modules());
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { BuiltIns.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
