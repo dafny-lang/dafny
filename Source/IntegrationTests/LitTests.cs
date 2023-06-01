@@ -298,6 +298,9 @@ namespace IntegrationTests {
             }
             
             var backend = GetBackendFromCommand(arguments);
+            if (backends.Contains(backend)) {
+              throw new ArgumentException($"More than one command for the same backend: {backend}");
+            }
             backends.Add(backend);
             
             // Filter out options we can ignore
