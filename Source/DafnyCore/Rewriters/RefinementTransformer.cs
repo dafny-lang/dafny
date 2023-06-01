@@ -253,14 +253,14 @@ namespace Microsoft.Dafny {
           var clone = refinementCloner.CloneDeclaration(originalDeclaration, module);
           module.SourceDecls.Add(clone);
         } else {
-          var newDeclarration = newPointer.Get();
-          if (originalDeclaration.Name == "_default" || newDeclarration.IsRefining || originalDeclaration is AbstractTypeDecl) {
+          var newDeclaration = newPointer.Get();
+          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || newDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
-          } else if (newDeclarration is TypeSynonymDecl) {
-            var msg = $"a type synonym ({newDeclarration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";
-            Error(ErrorId.ref_refinement_type_must_match_base, newDeclarration.tok, msg);
+          } else if (newDeclaration is TypeSynonymDecl) {
+            var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";
+            Error(ErrorId.ref_refinement_type_must_match_base, newDeclaration.tok, msg);
           } else if (!(originalDeclaration is AbstractModuleDecl)) {
-            Error(ErrorId.ref_refining_notation_needed, newDeclarration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.RefinementQId}', you must use the refining (`...`) notation");
+            Error(ErrorId.ref_refining_notation_needed, newDeclaration.tok, $"to redeclare and refine declaration '{originalDeclaration.Name}' from module '{module.RefinementQId}', you must use the refining (`...`) notation");
           }
         }
       }

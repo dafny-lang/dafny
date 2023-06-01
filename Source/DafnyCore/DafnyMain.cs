@@ -14,6 +14,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
 using Microsoft.Boogie;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
@@ -59,15 +61,13 @@ namespace Microsoft.Dafny {
       program = null;
 
       var defaultClassFirst = options.VerifyAllModules;
-      var defaultModuleDefinition =
-        new DefaultModuleDefinition(files.Where(f => !f.IsPreverified).Select(f => f.Uri).ToList(), defaultClassFirst);
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
         DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      program = ParseUtils.ParseFiles(programName, files, reporter, CancellationToken.None);
+      program = new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
       var errorCount = program.Reporter.ErrorCount;
       if (errorCount != 0) {
         return $"{errorCount} parse errors detected in {program.Name}";

@@ -309,8 +309,8 @@ namespace Microsoft.Dafny {
             options.Printer.ErrorWriteLine(options.OutputWriter, $"*** Error: file {nameToShow} not found");
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
-        } else if (options.Format && Directory.Exists(file)) {
-          options.FoldersToFormat.Add(file);
+        } else if (options.AllowSourceFolders && Directory.Exists(file)) {
+          options.SourceFolders.Add(file);
         } else if (!isDafnyFile) {
           if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
             options.Printer.ErrorWriteLine(options.OutputWriter,
@@ -330,16 +330,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (dafnyFiles.Count == 0) {
-        if (!options.Format) {
+      if (dafnyFiles.Count == 0 && options.SourceFolders.Count == 0) {
+        if (!options.AllowSourceFolders) {
+          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
           // TODO: With the test on CliRootUris.Count above, this code is no longer reachable
           options.Printer.ErrorWriteLine(options.OutputWriter, "*** Error: The command-line contains no .dfy files");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
-        }
-
-        if (options.FoldersToFormat.Count == 0) {
-          options.Printer.ErrorWriteLine(options.OutputWriter,
-            "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
+        } else {
+          options.Printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files or folders");
+          //options.Printer.ErrorWriteLine(Console.Out,
+          //  "Usage:\ndafny format [--check] [--print] <file/folder> <file/folder>...\nYou can use '.' for the current directory");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
       }
@@ -416,11 +416,15 @@ namespace Microsoft.Dafny {
 
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       string err;
-      if (Options.Format) {
-        return DoFormatting(dafnyFiles, Options, programName, options.ErrorWriter);
+      if (options.Format) {
+        return DoFormatting(dafnyFiles, options, programName, options.ErrorWriter);
+      }
+      if (options.Command?.Name == "doc") {
+        // dafny doc accepts folders as well as files, so it handles 'dafnyFiles' a bit differently than ParseCheck below
+        return DafnyDoc.DoDocumenting(dafnyFiles, options.SourceFolders, programName, options);
       }
 
-      err = DafnyMain.ParseCheck(Options.Input, dafnyFiles, programName, options, out var dafnyProgram);
+      err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out var dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
@@ -461,8 +465,8 @@ namespace Microsoft.Dafny {
 
     private static ExitValue DoFormatting(IReadOnlyList<DafnyFile> dafnyFiles, DafnyOptions options, string programName, TextWriter errorWriter) {
       var exitValue = ExitValue.SUCCESS;
-      Contract.Assert(dafnyFiles.Count > 0 || options.FoldersToFormat.Count > 0);
-      dafnyFiles = dafnyFiles.Concat(options.FoldersToFormat.SelectMany(folderPath => {
+      Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
+      dafnyFiles = dafnyFiles.Concat(options.SourceFolders.SelectMany(folderPath => {
         return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
             .Select(name => new DafnyFile(options, new Uri(name))).ToList();
       })).ToList();

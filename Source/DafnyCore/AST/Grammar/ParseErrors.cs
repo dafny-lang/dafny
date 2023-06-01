@@ -9,9 +9,9 @@ namespace Microsoft.Dafny;
 public class ParseErrors {
 
   public enum ErrorId {
-    g_include_has_errors, // In Reporting.cs
+    // ReSharper disable once InconsistentNaming
+    none,
     p_generic_syntax_error,
-    p_generic_semantic_error,
     p_duplicate_modifier,
     p_abstract_not_allowed,
     p_no_ghost_for_by_method,
@@ -19,18 +19,21 @@ public class ParseErrors {
     p_ghost_forbidden,
     p_no_static,
     p_no_opaque,
-    p_deprecated_attribute, // TODO
+    p_deprecated_attribute,
     p_literal_string_required,
     p_no_leading_underscore,
     p_bitvector_too_large,
     p_array_dimension_too_large,
     p_superfluous_export,
     p_bad_module_decl,
+    p_misplaced_least_or_greatest,
     p_extraneous_comma_in_export,
     p_top_level_field,
     p_bad_datatype_refinement,
     p_no_mutable_fields_in_value_types,
+    p_module_level_always_static,
     p_const_decl_missing_identifier,
+    p_module_level_const_always_static,
     p_bad_const_initialize_op,
     p_const_is_missing_type_or_init,
     p_misplaced_ellipsis_in_newtype,
@@ -126,14 +129,18 @@ public class ParseErrors {
     p_deprecated_modify_statement_with_block,
     p_deprecated_opaque_as_identifier,
     p_deprecated_semicolon,
+    p_deprecated_this_in_constructor_modifies_clause,
     sc_malformed_pragma, // TODO no description is provided
     sc_unknown_pragma, // TODO no description is provided
-    p_file_has_no_code, // TODO no description yet
+    p_cli_option_error, // Has no description yet
+    p_internal_exception,
+    p_file_has_no_code,
+    p_include_has_errors
   }
 
   static ParseErrors() {
 
-    Add(ErrorId.g_include_has_errors,
+    Add(ErrorId.p_include_has_errors,
     @"
 This error is shown when parsing a file A that includes another file B when B has errors of its own.
 Without this message it can be easy to miss the fact that other errors in A are in fact caused
@@ -247,6 +254,16 @@ This error message often occurs if the `refines` keyword is misspelled.
     OneAction("remove '" + range.PrintOriginal() + "'", range, "", true)
   });
 
+    Add(ErrorId.p_misplaced_least_or_greatest,
+    @"
+A `least` or `greatest` token between `export` and `predicate` is a bit ambiguous: 
+it can be either the name of the export set or associated with the `predicate` declaration. 
+The parser associates it with the `export`. To avoid this warning, do not put the
+`least` or `greatest` token on the same line as the `predicate` token.
+If you intend for the `least` to go with the predicate, change the order of the
+declarations.
+"); // TODO - could use a quick fix
+
     Add(ErrorId.p_extraneous_comma_in_export,
     @"
 An export declaration consists of one or more `reveals`, `provides`, and extends clauses. Each clause contains
@@ -275,11 +292,23 @@ classes, traits and iterators.
 `const` declarations can be members of value-types, such as datatypes.
 ", Replace("const"));
 
+    Add(ErrorId.p_module_level_always_static,
+    @"
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+", Remove(true));
+
     Add(ErrorId.p_const_decl_missing_identifier,
     @"
 This error arises from a truncated declarations of a const field, namely just a const keyword.
 To correct the error, add an identifier and either or both a type and initializing expression (or remove the const keyword).
 ");
+
+    Add(ErrorId.p_module_level_const_always_static,
+    @"
+All names declared in a module (outside a class-like entity) are implicitly `static`.
+Dafny does not allow them to be explictly, redundantly, declared `static`.
+", Remove(true));
 
     Add(ErrorId.p_bad_const_initialize_op,
     @"
@@ -1051,6 +1080,17 @@ This error message is not reachable in current Dafny.
 If it occurs, please report an internal bug (or obsolete documentation).
 ");
 
+    Add(ErrorId.p_deprecated_this_in_constructor_modifies_clause,
+    @"
+The purpose of a constructor is to initialize a newly allocated instance of a class.
+Hence it always modifies the `this` object.
+Previously it was required to list `this` in the modifies clause of the
+constructor to specify this property, but now `this` is always implicitly 
+a part of the modifies clause. 
+If the constructor only modifies its own object (as is the very common case)
+then no explicit modifies clause is needed at all.
+"); // TODO _ add a quick fix to remove the this, or maybe the whole clause
+
     Add(ErrorId.p_bad_number_format,
     @"
 This error can only result from an internal bug in the Dafny parser.
@@ -1074,6 +1114,22 @@ The parser recognizes a legitimate Dafny decimal number
 and then passes that string to a library routine to create a BigDecimal. 
 Given the parser logic, that parsing should never fail.
 ");
+
+    Add(ErrorId.p_generic_syntax_error,
+    @"
+This ""invalid something"" message where the something is typically  
+the name of an internal parser non-terminal means that the text being parsed
+is a badly malformed instance of whatever parser entity was being parsed.
+This is an automatically generated message by the CoCo parser generator
+for a situation in which no specific recovery or a
+more informative error message has been implemented.
+
+The only advice we can give is to carefully scrutinize the location of the
+error to see what might be wrong with the text. If you think this is a
+common or confusing enough occurrence to warrant special error handling,
+please suggest the improvement, with this sample code, to the Dafny team.
+");
+
 
     Add(ErrorId.p_deprecated_semicolon,
     @"

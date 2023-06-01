@@ -6,7 +6,7 @@ class SubstitutingCloner : Cloner {
   private readonly Dictionary<IVariable, Expression> substitutions;
 
   public SubstitutingCloner(Dictionary<IVariable, Expression> substitutions, bool cloneResolvedFields)
-    : base(cloneResolvedFields) {
+    : base(false, cloneResolvedFields) {
     this.substitutions = substitutions;
   }
 
