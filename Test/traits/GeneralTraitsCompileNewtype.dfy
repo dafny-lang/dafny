@@ -13,33 +13,11 @@ method Main() {
 }
 
 module TypeTestsAndConversions {
-  trait GrandParentTrait {
-    method A() {
-      print " A";
-    }
-    method B()
-    method C()
-  }
+  trait GrandParentTrait { }
 
-  trait ParentTrait extends GrandParentTrait {
-    method B() {
-      print " B";
-    }
-    method D()
-  }
+  trait ParentTrait extends GrandParentTrait { }
 
   newtype MyInt extends ParentTrait = x | 0 <= x < 100
-  {
-    method C() {
-      print " C";
-    }
-    method D() {
-      print " D";
-    }
-    method E() {
-      print " E";
-    }
-  }
 
   method Test() {
     var mi: MyInt := 15;
