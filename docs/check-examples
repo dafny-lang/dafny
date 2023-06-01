@@ -435,7 +435,7 @@ do
               FAIL=1
             fi
             if [ -e "$dir/$expect" ]; then
-              diff "$actualOut" "$dir/$expect"
+              diff -b -B "$actualOut" "$dir/$expect"
               if [ "$?" != "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected

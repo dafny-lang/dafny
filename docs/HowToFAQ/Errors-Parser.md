@@ -880,7 +880,6 @@ Insert a specific reads expression.
 
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}
 
-<!-- %check-resolve-warn -->
 <!-- TODO -->
 
 Statement refinement has been deprecated. Refinement is restricted to changing declarations, not bodies of methods or functions.
@@ -1509,10 +1508,7 @@ Given the parser logic, that parsing should never fail.
 
 ## **Error: invalid _entity_** {#p_generic_syntax_error}
 
-```dafny
-const c := 10
-#
-```
+<!-- TODO -->
 
 This "invalid something" message where the something is typically
 the name of an internal parser non-terminal means that the text being parsed

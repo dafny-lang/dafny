@@ -715,7 +715,6 @@ iterator Gen(start: int) yields (x: int)
 
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}
 
-<!-- %check-resolve-warn -->
 <!-- TODO -->
 
 <!-- INSERT-TEXT -->
@@ -1155,10 +1154,7 @@ const c := 5;
 
 ## **Error: invalid _entity_** {#p_generic_syntax_error}
 
-```dafny
-const c := 10
-#
-```
+<!-- TODO -->
 
 <!-- INSERT-TEXT -->
 
