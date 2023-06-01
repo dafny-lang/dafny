@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.Compilers {
       var relevantTypeParameters = typeParameters.Where(NeedsTypeDescriptor);
       var args = relevantTypeParameters.Comma(tp => tp.GetCompileName(Options));
       if (!string.IsNullOrEmpty(args)) { args = $", {args}"; }
-      var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { } parentTraits } && parentTraits.Count > 0;
+      var isNewtypeWithTraits = cls is NewtypeDecl { ParentTraits: { Count: > 0 } };
       if (isNewtypeWithTraits) {
         args += ", value";
       }
@@ -661,12 +661,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     internal override string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, MemberDecl/*?*/ member = null) {
-      return TypeName(type, wr, tok, boxed: false, member);
-    }
-    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
-      return TypeName(type, wr, tok, boxed, false, member);
-    }
-    private string TypeName(Type type, ConcreteSyntaxTree wr, IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -674,6 +668,15 @@ namespace Microsoft.Dafny.Compilers {
 
       if (xType.IsObjectQ) {
         return "object";
+      }
+
+      if (xType.AsNewtype != null && member == null) {
+        // when member is given, use UserDefinedType case below
+        var nativeType = xType.AsNewtype.NativeType;
+        if (nativeType != null) {
+          return GetNativeTypeName(nativeType);
+        }
+        return TypeName(xType.AsNewtype.BaseType, wr, tok, member);
       }
 
       switch (xType) {

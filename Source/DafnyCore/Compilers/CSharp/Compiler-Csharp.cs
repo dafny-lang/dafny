@@ -3152,8 +3152,7 @@ namespace Microsoft.Dafny.Compilers {
       if (fromType.IsTraitType && toType.AsNewtype != null) {
         toTypeString = toType.AsNewtype.GetFullCompileName(Options);
       } else {
-        var toClass = toType.NormalizeExpand();
-        toTypeString = TypeName(toClass, wr, tok);
+        toTypeString = TypeName(toType, wr, tok);
       }
       wr.Write($"{localName} is {toTypeString}");
 

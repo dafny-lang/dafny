@@ -687,7 +687,7 @@ namespace Microsoft.Dafny.Compilers {
         if (nativeType != null) {
           return GetNativeTypeName(nativeType, boxed);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok, boxed);
+        return TypeName(xType.AsNewtype.BaseType, wr, tok, boxed, erased);
       } else if (xType.IsObjectQ) {
         return "Object";
       } else if (xType.IsArrayType) {
