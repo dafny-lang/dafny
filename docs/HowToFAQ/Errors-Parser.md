@@ -1,6 +1,14 @@
 <!-- %check-resolve %default %useHeadings %check-ids -->
 
-<!-- Dafny.atg -->
+<!-- The file Errors-Parser.template is used along with Parser-Errors.cs to produce Errors-Parser.md.
+     Errors-Parser.template holds the structure of the markdown file and the examples of each error message.
+     Parser-Errors.cs holds the text of error explanations, so they are just in the source code rather than duplicated also in markdown.
+     The content of Errors-Parser.template and Parser-Errors.cs are tied together by the errorids.
+     Thus Errors-Parser.md is a generated file that should not be edited itself.
+     The program make-error-catalog does the file generation.
+-->
+
+<!-- ./DafnyCore/Dafny.atg -->
 
 ## **Error: Duplicate declaration modifier: abstract** {#p_duplicate_modifier}
 
@@ -155,6 +163,7 @@ If the implicit module cannot be imported, there is no point to any export decla
 
 ## **Error: expected either a '{' or a 'refines' keyword here, found _token_** {#p_bad_module_decl}
 
+<!-- %first -->
 ```dafny
 module M {}
 module N refine M {}
@@ -872,11 +881,7 @@ Insert a specific reads expression.
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}
 
 <!-- %check-resolve-warn -->
-```dafny
-method m() {
-  assert ...;
-}
-```
+<!-- TODO -->
 
 Statement refinement has been deprecated. Refinement is restricted to changing declarations, not bodies of methods or functions.
 
