@@ -26,17 +26,17 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
+ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
+ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -65,17 +65,17 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
+ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
+ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -104,17 +104,17 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
+ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
+ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -143,17 +143,17 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
+ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
+ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -182,16 +182,16 @@ null null null
 null null
 null null null
 null null null
-DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
-  DatatypeDefaultValues_Compile.IntList.Nil
+DatatypeDefaultValues.EnumDatatype.MakeZero
+  DatatypeDefaultValues.IntList.Nil
   0
-DatatypeDefaultValues_Compile.GenericTree.Leaf
-  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
-  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(0)
+DatatypeDefaultValues.GenericTree.Leaf
+  DatatypeDefaultValues.Complicated.ComplA(0, false)
+  DatatypeDefaultValues.CellCell.MakeCellCell(0)
 null
   null
-ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
-ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
-ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
+ImportedTypes_mLibrary.Color.Red(0) and ImportedTypes_mLibrary.Color.Red(0)
+ImportedTypes_mLibrary.CoColor.Yellow and ImportedTypes_mLibrary.CoColor.Yellow
+ImportedTypes_mLibrary.MoColor.MoYellow and ImportedTypes_mLibrary.MoColor.MoYellow
 0.0 and 0.0
 13
