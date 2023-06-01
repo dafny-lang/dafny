@@ -798,7 +798,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    protected static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 

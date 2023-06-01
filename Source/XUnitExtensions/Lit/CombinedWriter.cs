@@ -16,6 +16,17 @@ class CombinedWriter : TextWriter {
 
   public override Encoding Encoding { get; }
 
+  public override void Flush() {
+    foreach (var writer in writers) {
+      writer.Flush();
+    }
+    base.Flush();
+  }
+
+  public override Task FlushAsync() {
+    return Task.WhenAll(writers.Select(w => w.FlushAsync()));
+  }
+
   public override void Write(char value) {
     foreach (var writer in writers) {
       writer.Write(value);

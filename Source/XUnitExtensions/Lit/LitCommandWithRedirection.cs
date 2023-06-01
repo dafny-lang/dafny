@@ -78,8 +78,8 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter,
-      TextWriter errWriter) {
+    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter, TextWriter errWriter) 
+    {
       var outputWriters = new List<TextWriter>() { outWriter };
       if (outputFile != null) {
         outputWriters.Add(new StreamWriter(outputFile, append));
