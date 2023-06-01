@@ -103,7 +103,7 @@ public class MultiBackendTest {
     // Then execute the program for each available compiler.
 
     string expectFile = options.TestFile + ".expect";
-    var expectedOutput = "\nDafny program verifier did not attempt verification\n" +
+    var commonExpectedOutput = "\nDafny program verifier did not attempt verification\n" +
                          File.ReadAllText(expectFile);
 
     var success = true;
@@ -114,7 +114,20 @@ public class MultiBackendTest {
           // Such as empty constructors with ensures clauses, generated from iterators
           continue;
         }
-        var result = RunWithCompiler(options, compiler, expectedOutput);
+        
+        // Check for backend-specific exceptions (because of known bugs or inconsistencies)
+        var expectedOutput = commonExpectedOutput;
+        string? checkFile = null;
+        var expectFileForBackend = $"{options.TestFile}.{compiler.TargetId}.expect";
+        if (File.Exists(expectFileForBackend)) {
+          expectedOutput = File.ReadAllText(expectFileForBackend);
+        }
+        var checkFileForBackend = $"{options.TestFile}.{compiler.TargetId}.check";
+        if (File.Exists(checkFileForBackend)) {
+          checkFile = checkFileForBackend;
+        }
+
+        var result = RunWithCompiler(options, compiler, expectedOutput, checkFile);
         if (result != 0) {
           success = false;
         }
@@ -142,7 +155,7 @@ public class MultiBackendTest {
     return true;
   }
 
-  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput) {
+  private int RunWithCompiler(ForEachCompilerOptions options, IExecutableBackend backend, string expectedOutput, string? checkFile) {
     output.WriteLine($"Executing on {backend.TargetName}...");
     var dafnyArgs = new List<string>() {
       "run",
@@ -163,11 +176,29 @@ public class MultiBackendTest {
       return 1;
     }
 
-    // If we hit errors, check for known unsupported features for this compilation target
+    // If we hit errors, check for known unsupported features or bugs for this compilation target
     if (error == "" && OnlyUnsupportedFeaturesErrors(backend, outputString)) {
       return 0;
     }
 
+    if (checkFile != null) {
+      var outputLines = new List<string>();
+      var reader = new StringReader(outputString);
+      while (reader.ReadLine() is { } line) {
+        outputLines.Add(line);
+      }
+      var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
+      var (checkResult, checkOutput, checkError) = OutputCheckCommand.Execute(outputLines, checkDirectives);
+      if (checkResult != 0) {
+        output.WriteLine($"OutputCheck on {checkFile} failed:");
+        output.WriteLine(checkOutput);
+        output.WriteLine("Error:");
+        output.WriteLine(checkError);
+      }
+
+      return checkResult;
+    }
+    
     output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
     output.WriteLine(outputString);
     output.WriteLine("Error:");
