@@ -11,6 +11,7 @@ method Main() {
   Methods.Test();
   Functions.Test();
   Consts.Test();
+  TailRecursion.Test();
 }
 
 module TypeTestsAndConversions {
@@ -213,5 +214,110 @@ module Consts {
   method ReadConstsAsGrandParent(g: GrandParentTrait) {
     print "hello GrandParent: ";
     print g.A, "\n";
+  }
+}
+
+module TailRecursion {
+  method Test() {
+    var mi: MyInt := 29;
+    var dt: IntList := Cons(8, Nil);
+    var c: C := new C;
+
+    var p: Trait := mi;
+    var s := [p/*mi*/, dt, c];
+    for i := 0 to |s| {
+      var p: Trait := s[i];
+      p.Print();
+      p.A(31);
+      p.B(31);
+      print p.F(25), " ", p.G(25), "\n";
+    }
+  }
+
+  trait Trait {
+    predicate GoodToPrint()
+    method Print() {
+      if GoodToPrint() {
+        print this, "\n";
+      } else {
+        print "Not so good to print\n";
+      }
+    }
+    method {:tailrecursion} A(n: nat) {
+      if n != 0 {
+        A(n - 1);
+      }
+    }
+    method B(n: nat)
+      decreases n
+    function {:tailrecursion} F(n: nat): nat {
+      if n == 0 then 0 else 1 + F(n - 1)
+    }
+    function G(n: nat): nat
+      decreases n
+  }
+
+  newtype MyInt extends Trait = x | 0 <= x < 100
+  {
+    predicate GoodToPrint() {
+      true
+    }
+    method {:tailrecursion} B(n: nat)
+      decreases n
+    {
+      if n == 7 {
+        print "MyInt.B(7) reached\n";
+      }
+      if n != 0 {
+        B(n - 1);
+      }
+    }
+    function G(n: nat): nat
+      decreases n
+    {
+      if n == 0 then 0 else 100 + G(n - 1)
+    }
+  }
+
+  datatype IntList extends Trait = Nil | Cons(int, IntList) {
+    predicate GoodToPrint() {
+      true
+    }
+    method {:tailrecursion} B(n: nat)
+      decreases n
+    {
+      if n == 7 {
+        print "IntList.B(7) reached\n";
+      }
+      if n != 0 {
+        B(n - 1);
+      }
+    }
+    function G(n: nat): nat
+      decreases n
+    {
+      if n == 0 then 1 else 100 + G(n - 1)
+    }
+  }
+
+  class C extends Trait {
+    predicate GoodToPrint() {
+      false
+    }
+    method {:tailrecursion} B(n: nat)
+      decreases n
+    {
+      if n == 7 {
+        print "C.B(7) reached\n";
+      }
+      if n != 0 {
+        B(n - 1);
+      }
+    }
+    function G(n: nat): nat
+      decreases n
+    {
+      if n == 0 then 2 else 100 + G(n - 1)
+    }
   }
 }
