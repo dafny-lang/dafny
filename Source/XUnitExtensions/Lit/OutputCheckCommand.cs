@@ -186,11 +186,16 @@ namespace XUnitExtensions.Lit {
   }
 
   public static IList<CheckDirective> ParseCheckFile(string fileName) {
-    return File.ReadAllLines(fileName)
+    var result = File.ReadAllLines(fileName)
       .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
       .Where(e => e != null).Cast<CheckDirective>()
       .Select(e => e!)
       .ToList();
+    if (!result.Any()) {
+      throw new ArgumentException($"'{fileName}' does not contain any CHECK directives");
+    }
+
+    return result;
   }
 
   public (int, string, string) Execute(TextReader inputReader,
@@ -204,11 +209,7 @@ namespace XUnitExtensions.Lit {
     if (fileName == null) {
       return (0, "", "");
     }
-
     var checkDirectives = ParseCheckFile(options.CheckFile!);
-    if (!checkDirectives.Any()) {
-      return (1, "", $"ERROR: '{fileName}' does not contain any CHECK directives");
-    }
 
     return Execute(linesToCheck, checkDirectives);
   }

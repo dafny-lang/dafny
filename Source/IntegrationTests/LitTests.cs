@@ -276,6 +276,9 @@ namespace IntegrationTests {
         if (arg.StartsWith("/print") || arg.StartsWith("/dprint") || arg.StartsWith("/rprint")) {
           return true;
         }
+        if (arg.StartsWith("/env")) {
+          return true;
+        }
 
         return false;
       }
