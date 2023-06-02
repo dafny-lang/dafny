@@ -157,10 +157,10 @@ module N refines M
       var documentItem = CreateTestDocument(source);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.Single(diagnostics);
+      Assert.Equal(2, diagnostics.Length);
       Assert.Equal(
         "static non-ghost const field 't' of type 'T' (which does not have a default compiled value) must give a defining value",
-        diagnostics[0].Message);
+        diagnostics[1].Message);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
