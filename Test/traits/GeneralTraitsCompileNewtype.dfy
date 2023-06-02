@@ -223,8 +223,7 @@ module TailRecursion {
     var dt: IntList := Cons(8, Nil);
     var c: C := new C;
 
-    var p: Trait := mi;
-    var s := [p/*mi*/, dt, c];
+    var s := [mi, dt, c];
     for i := 0 to |s| {
       var p: Trait := s[i];
       p.Print();

@@ -1726,7 +1726,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(ct is SeqType ? DafnySeqMakerFunction : TypeHelperName(ct));
       wr.Write("(");
       wr.Write(open);
-      TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
       wr.Write(close);
       wr.Write(")");
     }

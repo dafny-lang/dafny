@@ -705,7 +705,7 @@ namespace Microsoft.Dafny.Compilers {
         _ => ("{", "}")
       };
       wr.Write(open);
-      TrExprList(elements, wr, inLetExprBody, wStmts, parens: false);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
       wr.Write(close);
     }
 

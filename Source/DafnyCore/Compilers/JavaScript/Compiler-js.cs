@@ -2442,12 +2442,7 @@ namespace Microsoft.Dafny.Compilers {
           wrElements = wr.Fork();
           wr.Write(")");
         }
-        string sep = "";
-        foreach (var e in elements) {
-          wrElements.Write(sep);
-          wrElements.Append(Expr(e, inLetExprBody, wStmts));
-          sep = ", ";
-        }
+        TrExprList(elements, wrElements, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
       }
     }
 

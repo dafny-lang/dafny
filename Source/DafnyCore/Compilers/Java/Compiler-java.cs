@@ -1259,13 +1259,11 @@ namespace Microsoft.Dafny.Compilers {
         sep = ", ";
       }
 
-      foreach (Expression e in elements) {
+      if (elements.Count != 0) {
         wr.Write(sep);
-        var elementWriter = wr.Fork();
-        elementWriter = EmitCoercionIfNecessary(e.Type, NativeObjectType, Token.NoToken, elementWriter);
-        elementWriter.Append(Expr(e, inLetExprBody, wStmts));
-        sep = ", ";
       }
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
+
       wr.Write(")");
     }
 
