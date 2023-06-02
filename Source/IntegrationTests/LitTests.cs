@@ -405,7 +405,9 @@ namespace IntegrationTests {
           "/spillTargetCode:3" => "--spill-translation",
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
           "/verifyAllModules" => "--verify-included-files",
-          "/errorLimit:0" => "--verification-error-limit:0",
+          "/errorLimit:0" => "--error-limit:0",
+          "/deprecation:0" => "--warn-deprecation:false",
+          "/printTooltips" => "--show-tooltips",
           _ => extraOption
         });
       }
