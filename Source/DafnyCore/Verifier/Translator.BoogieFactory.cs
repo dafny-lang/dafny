@@ -403,25 +403,26 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.SeqEmpty: {
             Contract.Assert(args.Length == 0);
             Contract.Assert(typeInstantiation != null);
-            Bpl.Type resultType = predef.SeqType(tok, typeInstantiation);
-            return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
+            Bpl.Type resultType = predef.SeqType(tok);
+            //return Bpl.Expr.CoerceType(tok, FunctionCall(tok, "Seq#Empty", resultType, args), resultType);
+            return FunctionCall(tok, "Seq#Empty", resultType, args);
           }
         case BuiltinFunction.SeqBuild:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Build", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Build", predef.SeqType(tok), args);
         case BuiltinFunction.SeqAppend:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Append", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Append", predef.SeqType(tok), args);
         case BuiltinFunction.SeqIndex:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Index", typeInstantiation, args);
+          return FunctionCall(tok, "Seq#Index", predef.BoxType, args);
         case BuiltinFunction.SeqUpdate:
           Contract.Assert(args.Length == 3);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Update", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Update", predef.SeqType(tok), args);
         case BuiltinFunction.SeqContains:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -429,11 +430,11 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.SeqDrop:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Drop", predef.SeqType(tok), args);
         case BuiltinFunction.SeqTake:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#Take", predef.SeqType(tok, typeInstantiation), args);
+          return FunctionCall(tok, "Seq#Take", predef.SeqType(tok), args);
         case BuiltinFunction.SeqEqual:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
@@ -445,7 +446,7 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.SeqFromArray:
           Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "Seq#FromArray", typeInstantiation, args);
+          return FunctionCall(tok, "Seq#FromArray", predef.SeqType(tok), args);
         case BuiltinFunction.SeqRank:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);
