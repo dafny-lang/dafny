@@ -5,7 +5,7 @@ datatype T = T(n:int)
 ghost function P(x: int) : int { x - 1}
 
 ghost function ToInt(t:T) : int
- ensures ToInt(t) == t.n as int;
+ ensures ToInt(t) == t.n as int
  {
     t.n as int
  }

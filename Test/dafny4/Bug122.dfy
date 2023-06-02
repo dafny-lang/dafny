@@ -4,7 +4,7 @@
 method Try (a:int)
 {
 	forall
-    ensures a == a;
+    ensures a == a
 	{
 	}
 }

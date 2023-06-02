@@ -9,7 +9,7 @@ ghost predicate IsLessThanSuccesor(i:int)
 lemma LemmaWithoutTriggerOnForallStatement()
 {
   forall i
-    ensures IsLessThanSuccesor(i);
+    ensures IsLessThanSuccesor(i)
   {
   }
 }
