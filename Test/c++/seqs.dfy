@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp /unicodeChar:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 newtype uint8 = i:int | 0 <= i < 0x100
 newtype uint32 = i:int | 0 <= i < 0x100000000

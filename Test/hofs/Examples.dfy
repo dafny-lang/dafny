@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 /print:"%t.print" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 function Apply<A,B>(f: A ~> B, x: A): B
   reads f.reads(x);

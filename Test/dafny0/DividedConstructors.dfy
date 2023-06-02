@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment /env:0
+// RUN: %dafny /compile:3 /env:0 /dprint:- "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method Main() {
   var m := new M0.MyClass.Init(20);
