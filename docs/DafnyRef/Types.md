@@ -626,6 +626,30 @@ listed comma-separated,
 inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
+When an actual type is substituted for a type parameter in a generic type instantiation,
+the actual type must have the declared or inferred type characteristics of the type parameter.
+These characteristics might also be inferred for the actual type. For example, a numeric-based
+subset or newtype automatically has the `==` relationship of its base type. Similarly, 
+type synonyms have the characteristics of the type they represent.
+
+An abstract type has no known characteristics. If it is intended to be defined only as types
+that have certain characteristics, then those characteristics must be declared.
+For example,
+<!-- %check-resolve Types.26.expect -->
+```dafny
+class A<T(00)> {}
+type Q
+const a: A<Q>
+```
+will give an error because it is not known whether the type `Q` is non-empty (`00`).
+Instead, one needs to write
+<!-- %check-resolve -->
+```dafny
+class A<T(00)> {}
+type Q(00)
+const a: A?<Q> := null
+```
+
 #### 5.3.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
@@ -772,7 +796,7 @@ the instantiation `Result<int>` satisfies `(!new)`, whereas
 
 Note that this characteristic of a type parameter is operative for both
 verification and compilation.
-Also, opaque types at the topmost scope are always implicitly `(!new)`.
+Also, abstract types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
 <!-- %check-resolve Types.9.expect -->
@@ -1268,6 +1292,26 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
+To avoid cuasing circular reasoning chains or providing too much informatino that might
+complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
+For example, the following does not prove:
+<!-- %check-verify Types.25.expect -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert v in mm.Values;
+  }
+```
+Rather, one must provide an intermediate step, which is not entirely obvious:
+<!-- %check-verify -->
+```dafny
+method mmm<K(==),V(==)>(m: map<K,V>, k: K, v: V) {
+    var mm := m[k := v];
+    assert k in mm.Keys;
+    assert v in mm.Values;
+  }
+```
+
 ### 5.5.5. Iterating over collections
 
 Collections are very commonly used in programming and one frequently
@@ -1366,7 +1410,7 @@ It is sometimes useful to know a type by several names or to treat a
 type abstractly. There are several mechanisms in Dafny to do this:
 
 * ([Section 5.6.1](#sec-synonym-type)) A typical _synonym type_, in which a type name is a synonym for another type
-* ([Section 5.6.2](#sec-opaque-types)) An _opaque type_, in which a new type name is declared as an uninterpreted type
+* ([Section 5.6.2](#sec-abstract-types)) An _abstract type_, in which a new type name is declared as an uninterpreted type
 * ([Section 5.6.3](#sec-subset-types)) A _subset type_, in which a new type name is given to a subset of the values of a given type
 * ([Section 0.0){#sec-newtypes)) A _newtype_, in which a subset type is declared, but with restrictions on converting to and from its base type
 
@@ -1385,7 +1429,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.
 If the `= G` is omitted then the declaration just declares a name as an uninterpreted
-_opaque_ type, as described in [Section 5.6.2](#sec-opaque-types).  Such types may be
+_opaque_ type, as described in [Section 5.6.2](#sec-abstract-types).  Such types may be
 given a definition elsewhere in the Dafny program.
 
   Here, `T` is a
@@ -1404,8 +1448,12 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
-The new type name itself may have type characteristics declared, though these are typically
-inferred from the definition, if there is one.
+The new type name itself may have [type characteristics](#sec-type-characteristics) declared, and may need to if there is no definition.
+If there is a definition, the type characteristics are typically inferred from the definition. The syntax is like this:
+<!-- %no-check -->
+```dafny
+type Z(==)<T(0)>
+```
 
 As already described in [Section 5.5.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
@@ -1430,7 +1478,7 @@ const q: IntPair := IntPair(3,4) // Error
 
 In the declaration of `q`, `IntPair` is the name of a type, not the name of a function or datatype constructor.
 
-### 5.6.2. Opaque types ([grammar](#g-type-definition)) {#sec-opaque-types}
+### 5.6.2. Abstract types ([grammar](#g-type-definition)) {#sec-abstract-types}
 
 Examples:
 <!-- %check-resolve -->
@@ -1439,7 +1487,7 @@ type T
 type Q { function toString(t: T): string }
 ```
 
-An opaque type is a special case of a type synonym that is underspecified.  Such
+An abstract type is a special case of a type synonym that is underspecified.  Such
 a type is declared simply by:
 <!-- %check-resolve -->
 ```dafny
@@ -1466,7 +1514,7 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-Even as an opaque type, the type
+Even as an abstract type, the type
 may be given members such as constants, methods or functions.
 For example,
 <!-- %check-resolve -->
@@ -1886,7 +1934,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.38](#sec-compile-time-constants).
+in [Section 9.37](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 
@@ -2628,13 +2676,13 @@ Here is an example showing a definition and use of an iterator.
 <!-- %check-verify -->
 ```dafny
 iterator Iter<T(0)>(s: set<T>) yields (x: T)
-  yield ensures x in s && x !in xs[..|xs|-1];
-  ensures s == set z | z in xs;
+  yield ensures x in s && x !in xs[..|xs|-1]
+  ensures s == set z | z in xs
 {
   var r := s;
   while (r != {})
     invariant r !! set z | z in xs
-    invariant s == r + set z | z in xs;
+    invariant s == r + set z | z in xs
   {
     var y :| y in r;
     assert y !in xs;
@@ -2646,14 +2694,14 @@ iterator Iter<T(0)>(s: set<T>) yields (x: T)
 }
 
 method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var m := new Iter(s);
   while (true)
-    invariant m.Valid() && fresh(m._new);
-    invariant t == set z | z in m.xs;
-    decreases s - t;
+    invariant m.Valid() && fresh(m._new)
+    invariant t == set z | z in m.xs
+    decreases s - t
   {
     var more := m.MoveNext();
     if (!more) { break; }
@@ -3133,7 +3181,7 @@ greatest lemma Theorem_BelowSquare(a: IStream<int>)
 
 // an incorrect property and a bogus proof attempt
 greatest lemma NotATheorem_SquareBelow(a: IStream<int>)
-  ensures Below(Mult(a, a), a); // ERROR
+  ensures Below(Mult(a, a), a) // ERROR
 {
   NotATheorem_SquareBelow(a);
 }
@@ -4502,4 +4550,65 @@ imposed on the body of `ReachableVia` makes sure that, if the
 predicate returns `true`, then every object reference in `p` is as old
 as some object reference in another parameter to the predicate.
 
+## 6.5. Nameonly Formal Parameters and Default-Value Expressions
+
+A formal parameter of a method, constructor in a class, iterator,
+function, or datatype constructor can be declared with an expression
+denoting a _default value_. This makes the parameter _optional_,
+as opposed to _required_.
+
+For example,
+<!-- %check-resolve %save f.tmp -->
+```dafny
+function f(x: int, y: int := 10): int
+```
+may be called as either
+<!-- %check-resolve %use f.tmp -->
+```dafny
+const i := f(1, 2)
+const j := f(1)
+```
+where `f(1)` is equivalent to `f(1, 10)` in this case.
+
+The above function may also be called as
+<!-- %no-check -->
+```dafny
+var k := f(y := 10, x := 2);
+```
+using names; actual arguments with names may be given in any order,
+though they must be after actual arguments without names. 
+
+Formal parameters may also be declared `nameonly`, in which case a call site
+must always explicitly name the formal when providing its actual argument.
+
+For example, a function `ff` declared as
+<!-- %check-resolve -->
+```dafny
+function ff(x: int, nameonly y: int): int
+```
+must be called either by listing the value for x and then y with a name, 
+as in `ff(0, y := 4)` or by giving both actuals by name (in any order). 
+A `nameonly` formal may also have a default value and thus be optional.
+
+Any formals after a `nameonly` formal must either be `nameonly` themselves or have default values.
+
+The formals of datatype constructors are not required to have names.
+A nameless formal may not have a default value, nor may it follow a formal
+that has a default value.
+
+The default-value expression for a parameter is allowed to mention the
+other parameters, including `this` (for instance methods and instance
+functions), but not the implicit `_k` parameter in least and greatest
+predicates and lemmas. The default value of a parameter may mention
+both preceding and subsequent parameters, but there may not be any
+dependent cycle between the parameters and their default-value
+expressions.
+
+The well-formedness of default-value expressions is checked independent
+of the precondition of the enclosing declaration. For a function, the
+parameter default-value expressions may only read what the function's
+`reads` clause allows. For a datatype constructor, parameter default-value
+expressions may not read anything. A default-value expression may not be
+involved in any recursive or mutually recursive calls with the enclosing
+declaration.
 

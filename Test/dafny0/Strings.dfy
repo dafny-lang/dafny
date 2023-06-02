@@ -19,7 +19,7 @@ method {:MyAttribute "hello", "hi" + "there", 57} AttrTest()
 }
 
 method M(a: char, b: char) returns (s: string, t: seq<char>)
-  ensures |s| == 3 ==> t == [a, b, b];
+  ensures |s| == 3 ==> t == [a, b, b]
 { 
   s := *;
   s := s + [a, b, b] + s;

@@ -1,4 +1,6 @@
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tomlyn;
 
 namespace DafnyCore.Test;
@@ -31,13 +33,10 @@ public class DooFileTest {
   private static Program ParseProgram(string dafnyProgramText, DafnyOptions options) {
     const string fullFilePath = "untitled:foo";
     var rootUri = new Uri(fullFilePath);
-    var outerModule = new DefaultModuleDefinition(new List<Uri> { rootUri });
-    var module = new LiteralModuleDecl(outerModule, null);
     Microsoft.Dafny.Type.ResetScopes();
-    var builtIns = new BuiltIns(options);
-    var errorReporter = new ConsoleErrorReporter(options, outerModule);
-    var parseResult = Parser.Parse(dafnyProgramText, rootUri, module, builtIns, errorReporter);
-    Assert.Equal(0, parseResult);
-    return new Program(fullFilePath, module, builtIns, errorReporter);
+    var errorReporter = new ConsoleErrorReporter(options);
+    var program = new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
+    Assert.Equal(0, errorReporter.ErrorCount);
+    return program;
   }
 }

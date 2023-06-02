@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr seq = etran.TrExpr(e.Seq);
             if (eSeqType.IsArrayType) {
               builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array")));
-              if (!options.CommonHeapUse || etran.UsesOldHeap) {
+              if (etran.UsesOldHeap) {
                 builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
               }
             }
@@ -437,7 +437,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Array, wfOptions, locals, builder, etran);
             Bpl.Expr array = etran.TrExpr(e.Array);
             builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array")));
-            if (!options.CommonHeapUse || etran.UsesOldHeap) {
+            if (etran.UsesOldHeap) {
               builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
             }
             for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
@@ -615,7 +615,7 @@ namespace Microsoft.Dafny {
               } else if (e.Receiver.Type.IsArrowType) {
                 CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
               }
-              if (!e.Function.IsStatic && options.CommonHeapUse && !etran.UsesOldHeap) {
+              if (!e.Function.IsStatic && !etran.UsesOldHeap) {
                 // the argument can't be assumed to be allocated for the old heap
                 Type et = UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass).Subst(e.GetTypeArgumentSubstitutions());
                 builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
@@ -645,7 +645,7 @@ namespace Microsoft.Dafny {
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
                 Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
-                if (options.CommonHeapUse && !etran.UsesOldHeap) {
+                if (!etran.UsesOldHeap) {
                   // the argument can't be assumed to be allocated for the old heap
                   builder.Add(new Bpl.CommentCmd("assume allocatedness for argument to function"));
                   builder.Add(TrAssumeCmd(e.Args[i].tok, MkIsAlloc(lhs, et, etran.HeapExpr)));
@@ -698,9 +698,8 @@ namespace Microsoft.Dafny {
               // check that the preconditions for the call hold
               foreach (AttributedExpression p in e.Function.Req) {
                 Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
-                bool splitHappened;  // we don't actually care
                 string errorMessage = CustomErrorMessage(p.Attributes);
-                foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
+                foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                   if (ss.IsChecked) {
                     var tok = new NestedToken(GetToken(expr), ss.Tok);
                     var desc = new PODesc.PreconditionSatisfied(errorMessage);
@@ -1197,9 +1196,6 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
         builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
-        if (options.AlwaysUseHeap) {
-          builder.Add(TrAssumeCmd(expr.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
-        }
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
     }
@@ -1411,9 +1407,6 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(letBody.tok, Bpl.Expr.Eq(result, bResult)));
           builder.Add(TrAssumeCmd(letBody.tok, CanCallAssumption(letBody, etran)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
-          if (options.AlwaysUseHeap) {
-            builder.Add(TrAssumeCmd(letBody.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
-          }
           builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
         }
       }

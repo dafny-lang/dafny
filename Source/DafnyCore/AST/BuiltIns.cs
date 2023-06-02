@@ -8,7 +8,8 @@ namespace Microsoft.Dafny;
 
 public class BuiltIns {
   public DafnyOptions Options { get; }
-  public readonly ModuleDefinition SystemModule = new ModuleDefinition(RangeToken.NoToken, new Name("_System"), new List<IToken>(), false, false, null, null, null, true, true, true);
+  public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+    false, false, null, null, null, true, false);
   internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -34,7 +35,7 @@ public class BuiltIns {
     var str = new TypeSynonymDecl(RangeToken.NoToken, new Name("string"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
-    SystemModule.TopLevelDecls.Add(str);
+    SystemModule.SourceDecls.Add(str);
     // create subset type 'nat'
     var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
     var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
@@ -42,10 +43,10 @@ public class BuiltIns {
     NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
-    SystemModule.TopLevelDecls.Add(NatDecl);
+    SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
     ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
-    SystemModule.TopLevelDecls.Add(ObjectDecl);
+    SystemModule.SourceDecls.Add(ObjectDecl);
     // add one-dimensional arrays, since they may arise during type checking
     // Arrays of other dimensions may be added during parsing as the parser detects the need for these
     UserDefinedType tmp = ArrayType(1, Type.Int, true);
@@ -63,12 +64,18 @@ public class BuiltIns {
     return new Attributes("axiom", new List<Expression>(), null);
   }
 
+  /// <summary>
+  /// Ensures this instance contains the requested type
+  /// </summary>
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
-    return ArrayType(Token.NoToken, dims, new List<Type>() { arg }, allowCreationOfNewClass);
+    var (result, mod) = ArrayType(Token.NoToken, dims, new List<Type> { arg }, allowCreationOfNewClass);
+    mod(this);
+    return result;
   }
-  public UserDefinedType ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+
+  public static (UserDefinedType type, Action<BuiltIns> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -76,22 +83,29 @@ public class BuiltIns {
 
     var arrayName = ArrayClassName(dims);
     if (useClassNameType) {
-      arrayName = arrayName + "?";
+      arrayName += "?";
     }
-    if (allowCreationOfNewClass && !arrayTypeDecls.ContainsKey(dims)) {
-      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
+
+    void ModifyBuiltins(BuiltIns builtIns) {
+      if (!allowCreationOfNewClass || builtIns.arrayTypeDecls.ContainsKey(dims)) {
+        return;
+      }
+
+      ArrayClassDecl arrayClass = new ArrayClassDecl(dims, builtIns.SystemModule, builtIns.DontCompile());
       for (int d = 0; d < dims; d++) {
         string name = dims == 1 ? "Length" : "Length" + d;
         Field len = new SpecialField(RangeToken.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
-        len.EnclosingClass = arrayClass;  // resolve here
+        len.EnclosingClass = arrayClass; // resolve here
         arrayClass.Members.Add(len);
       }
-      arrayTypeDecls.Add(dims, arrayClass);
-      SystemModule.TopLevelDecls.Add(arrayClass);
-      CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
+
+      builtIns.arrayTypeDecls.Add(dims, arrayClass);
+      builtIns.SystemModule.SourceDecls.Add(arrayClass);
+      builtIns.CreateArrowTypeDecl(dims); // also create an arrow type with this arity, since it may be used in an initializing expression for the array
     }
-    UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
-    return udt;
+
+    var udt = new UserDefinedType(tok, arrayName, optTypeArgs);
+    return (udt, ModifyBuiltins);
   }
 
   public static string ArrayClassName(int dims) {
@@ -145,7 +159,7 @@ public class BuiltIns {
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
     ArrowTypeDecls.Add(arity, arrowDecl);
-    SystemModule.TopLevelDecls.Add(arrowDecl);
+    SystemModule.SourceDecls.Add(arrowDecl);
 
     // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
     tps = Util.Map(Enumerable.Range(0, arity + 1),
@@ -158,7 +172,7 @@ public class BuiltIns {
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, reads, tps, false), SubsetTypeDecl.WKind.Special, null, DontCompile());
     PartialArrowTypeDecls.Add(arity, partialArrow);
-    SystemModule.TopLevelDecls.Add(partialArrow);
+    SystemModule.SourceDecls.Add(partialArrow);
 
     // declaration of total arrow-type
 
@@ -172,7 +186,7 @@ public class BuiltIns {
       new TypeParameter.TypeParameterCharacteristics(false), tps, SystemModule,
       id, ArrowSubtypeConstraint(tok, tok.ToRange(), id, req, tps, true), SubsetTypeDecl.WKind.Special, null, DontCompile());
     TotalArrowTypeDecls.Add(arity, totalArrow);
-    SystemModule.TopLevelDecls.Add(totalArrow);
+    SystemModule.SourceDecls.Add(totalArrow);
   }
 
   /// <summary>
@@ -263,7 +277,7 @@ public class BuiltIns {
       }
 
       tupleTypeDecls.Add(argumentGhostness, tt);
-      SystemModule.TopLevelDecls.Add(tt);
+      SystemModule.SourceDecls.Add(tt);
     }
     return tt;
   }

@@ -7,6 +7,7 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -38,6 +39,7 @@ public static class CommandRegistry {
     AddCommand(new RunCommand());
     AddCommand(new TranslateCommand());
     AddCommand(new FormatCommand());
+    AddCommand(new DocCommand());
     AddCommand(new MeasureComplexityCommand());
     AddCommand(ServerCommand.Instance);
     AddCommand(new TestCommand());
@@ -58,6 +60,7 @@ public static class CommandRegistry {
         GetValueForOptionMethod = method;
       }
     }
+    Debug.Assert(GetValueForOptionMethod != null);
   }
 
   public static Argument<FileInfo> FileArgument { get; }
@@ -131,21 +134,22 @@ public static class CommandRegistry {
     }
     dafnyOptions.UsingNewCli = true;
 
-    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny /help' to see help for a previous CLI format.");
+    var rootCommand = new RootCommand("The Dafny CLI enables working with Dafny, a verification-aware programming language. Use 'dafny -?' to see help for the previous CLI format.");
     foreach (var command in commandToSpec.Keys) {
       rootCommand.AddCommand(command);
     }
 
-    var failedToProcessFile = false;
+    var errorOccurred = false;
     void CommandHandler(InvocationContext context) {
       wasInvoked = true;
       var command = context.ParseResult.CommandResult.Command;
       var commandSpec = commandToSpec[command];
+      dafnyOptions.Command = command;
 
       var singleFile = context.ParseResult.GetValueForArgument(FileArgument);
       if (singleFile != null) {
         if (!ProcessFile(dafnyOptions, singleFile)) {
-          failedToProcessFile = true;
+          errorOccurred = true;
           return;
         }
       }
@@ -153,7 +157,7 @@ public static class CommandRegistry {
       if (files != null) {
         foreach (var file in files) {
           if (!ProcessFile(dafnyOptions, file)) {
-            failedToProcessFile = true;
+            errorOccurred = true;
             return;
           }
         }
@@ -162,7 +166,7 @@ public static class CommandRegistry {
       foreach (var option in command.Options) {
         var result = context.ParseResult.FindResultFor(option);
         object projectFileValue = null;
-        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, Console.Error, out projectFileValue) ?? false;
+        var hasProjectFileValue = dafnyOptions.ProjectFile?.TryGetValue(option, errorWriter, out projectFileValue) ?? false;
         object value;
         if (option.Arity.MaximumNumberOfValues <= 1) {
           // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -188,7 +192,14 @@ public static class CommandRegistry {
         }
 
         options.OptionArguments[option] = value;
-        dafnyOptions.ApplyBinding(option);
+        try {
+          dafnyOptions.ApplyBinding(option);
+        } catch (Exception e) {
+          errorOccurred = true;
+          dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+            $"Invalid value for option {option.Name}: {e.Message}");
+          return;
+        }
       }
 
       dafnyOptions.CurrentCommand = command;
@@ -203,7 +214,7 @@ public static class CommandRegistry {
     var exitCode = builder.Build().InvokeAsync(arguments, console).Result;
 #pragma warning restore VSTHRD002
 
-    if (failedToProcessFile) {
+    if (errorOccurred) {
       return new ParseArgumentFailure(DafnyDriver.CommandLineArgumentsResult.PREPROCESSING_ERROR);
     }
 
@@ -237,25 +248,28 @@ public static class CommandRegistry {
   }
 
   private static bool ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
+    var filePathForErrors = dafnyOptions.UseBaseNameForFileName
+      ? Path.GetFileName(singleFile.FullName)
+      : singleFile.FullName;
     if (Path.GetExtension(singleFile.FullName) == ".toml") {
       if (dafnyOptions.ProjectFile != null) {
-        Console.Error.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {singleFile.FullName} were specified");
+        dafnyOptions.ErrorWriter.WriteLine($"Only one project file can be used at a time. Both {dafnyOptions.ProjectFile.Uri.LocalPath} and {filePathForErrors} were specified");
         return false;
       }
 
       if (!File.Exists(singleFile.FullName)) {
-        Console.Error.WriteLine($"Error: file {singleFile.FullName} not found");
+        dafnyOptions.ErrorWriter.WriteLine($"Error: file {filePathForErrors} not found");
         return false;
       }
-      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), Console.Error);
+      var projectFile = ProjectFile.Open(new Uri(singleFile.FullName), dafnyOptions.OutputWriter, dafnyOptions.ErrorWriter);
       if (projectFile == null) {
         return false;
       }
-      projectFile.Validate(AllOptions);
+      projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
       dafnyOptions.ProjectFile = projectFile;
       projectFile.AddFilesToOptions(dafnyOptions);
     } else {
-      dafnyOptions.CliRootUris.Add(new Uri(singleFile.FullName));
+      dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     }
     return true;
   }

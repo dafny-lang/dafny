@@ -30,7 +30,7 @@ namespace DafnyServer {
 
     private void AddMethods(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                 Where(e => e != null && !e.Tok.WasIncluded(_dafnyProgram))) {
+                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
 
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
@@ -87,7 +87,7 @@ namespace DafnyServer {
 
     private void AddFields(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var fs in ModuleDefinition.AllFields(module.TopLevelDecls).
-                 Where(e => e != null && !e.Tok.WasIncluded(_dafnyProgram))) {
+                 Where(e => e != null && !e.Tok.FromIncludeDirective(_dafnyProgram))) {
 
         var fieldSymbol = new SymbolInformation {
           Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
@@ -107,8 +107,8 @@ namespace DafnyServer {
     }
 
     private void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
-      foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).
-                 Where(cl => !cl.Tok.WasIncluded(_dafnyProgram))) {
+      foreach (var cs in module.TopLevelDecls.Where(t => t is ClassLikeDecl or DefaultClassDecl).
+                 Where(cl => !cl.Tok.FromIncludeDirective(_dafnyProgram))) {
         if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
             Module = cs.EnclosingModuleDefinition.Name,
@@ -255,7 +255,7 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Tok.WasIncluded(_dafnyProgram))) {
+                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }
@@ -274,7 +274,7 @@ namespace DafnyServer {
 
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
-                   Where(e => !e.Tok.WasIncluded(_dafnyProgram))) {
+                   Where(e => !e.Tok.FromIncludeDirective(_dafnyProgram))) {
           if (!(clbl is Method)) {
             continue;
           }

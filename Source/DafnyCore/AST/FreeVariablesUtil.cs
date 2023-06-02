@@ -61,7 +61,7 @@ namespace Microsoft.Dafny {
         return;
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
-        if (e.Obj.Type.IsRefType && !(e.Member is ConstantField)) {
+        if (e.Member is not Field { IsMutable: false }) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
         usesHeap = true;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (options.AlwaysUseHeap || e.Function == null || e.Function.ReadsHeap) {
+        if (e.Function == null || e.Function.ReadsHeap) {
           usesHeap = true;
         }
         if (e.AtLabel != null) {

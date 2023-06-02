@@ -156,7 +156,7 @@ public class GoBackend : ExecutableBackend {
     } else {
       relTgtFilename = tgtFilename;
     }
-    if (Options.CompileVerbose) {
+    if (Options.Verbose) {
       outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
     }
     return true;

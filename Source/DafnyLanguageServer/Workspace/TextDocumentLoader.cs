@@ -66,7 +66,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           // This diagnostic never gets sent to the client,
           // instead it forces the first computed diagnostics for a document to always be sent.
           // The message here describes the implicit client state before the first diagnostics have been sent.
-          Message = "Resolution diagnostics have not been computed yet."
+          Message = "Resolution diagnostics have not been computed yet.",
+          Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(0, 0, 0,0)
         }}
       );
     }
@@ -82,16 +83,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private DocumentAfterParsing LoadInternal(DafnyOptions options, DocumentTextBuffer textDocument,
       CancellationToken cancellationToken) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
-      var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
-      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.Parsing);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
-      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.GetDiagnostics(textDocument.Uri));
+      var documentAfterParsing = new DocumentAfterParsing(textDocument, program, errorReporter.AllDiagnosticsCopy);
       if (errorReporter.HasErrors) {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return documentAfterParsing;
       }
 
+      statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
@@ -106,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       return new DocumentAfterResolution(textDocument,
         program,
-        errorReporter.GetDiagnostics(textDocument.Uri),
+        errorReporter.AllDiagnosticsCopy,
         newSymbolTable,
         symbolTable,
         ghostDiagnostics

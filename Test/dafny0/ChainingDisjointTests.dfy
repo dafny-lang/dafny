@@ -17,7 +17,7 @@ module TestDisjointSets {
   }
 
   method testing2(a: set<int>, b: set<int>, c: set<int>)
-     requires a !! b !! c;
+     requires a !! b !! c
   {
      assert a !! b;
      assert a !! c;
@@ -25,7 +25,7 @@ module TestDisjointSets {
   }
 
   method testing3(a: set<int>, b: set<int>, c: set<int>, d: set<int>) // again with the four.
-     requires a !! b !! c !! d;
+     requires a !! b !! c !! d
   {
      assert a !! b;
      assert a !! c;
@@ -45,7 +45,7 @@ module TestTernary {
     requires s ==#[k] t
     // Regression test:  once upon a time, a bug in Dafny dropped any part of a chain
     // left of a ==#[k] or !=#[k].  The following assertion tests that it is included.
-    ensures u ==#[k] s ==#[k] t;  // error: the first part of the chain does not hold: "u ==#[k] s"
+    ensures u ==#[k] s ==#[k] t  // error: the first part of the chain does not hold: "u ==#[k] s"
   {
   }
 }  // module TestTernary

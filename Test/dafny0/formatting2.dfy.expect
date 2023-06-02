@@ -1,4 +1,1 @@
-(0,-1): Error: Unable to open included file
-
-1 file failed to parse:
-  unexisting.dfy
+*** Error: file unexisting.dfy not found

@@ -194,14 +194,14 @@ namespace Microsoft.Dafny {
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
-            if (2 <= reporter.Options.Allocated && !context.AllowedToDependOnAllocationState) {
+            if (!context.AllowedToDependOnAllocationState) {
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
                          ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";
                 var message =
                   $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +
                   $" but values of '{bv.Name}' (of type '{bv.Type}') may contain references";
-                if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
+                if (bv.Type.IsTypeParameter || bv.Type.IsAbstractType) {
                   message += $" (perhaps declare its type as '{bv.Type}(!new)')";
                 }
                 message += " (see documentation for 'older' parameters)";

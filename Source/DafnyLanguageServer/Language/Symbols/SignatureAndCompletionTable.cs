@@ -43,8 +43,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly DafnyLangTypeResolver typeResolver;
 
     public static SignatureAndCompletionTable Empty(DafnyOptions options, DocumentTextBuffer textDocument) {
-      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() });
-      var errorReporter = new DiagnosticErrorReporter(options, outerModule, textDocument.Text, textDocument.Uri);
+      var outerModule = new DefaultModuleDefinition(new List<Uri>() { textDocument.Uri.ToUri() }, false);
+      var errorReporter = new DiagnosticErrorReporter(options, textDocument.Text, textDocument.Uri);
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
         new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           new LiteralModuleDecl(outerModule, null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
-          errorReporter
+          errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
         )),
         new Dictionary<object, ILocalizableSymbol>(),
         new Dictionary<ISymbol, SymbolLocation>(),

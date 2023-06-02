@@ -151,7 +151,7 @@ Ignore the declaration (after checking for duplicate names).
 
 * to alter the `CompileName` of entities such as modules, classes, methods, etc.,
 * to alter the `ReferenceName` of the entities,
-* to decide how to define external opaque types,
+* to decide how to define external abstract types,
 * to decide whether to emit target code or not, and
 * to decide whether a declaration is allowed not to have a body.
 
@@ -163,7 +163,7 @@ A common use case of `{:extern}` is to avoid name clashes with existing library 
 
 - `{:extern}`: Dafny will use the Dafny-determined name as the `CompileName` and not affect the `ReferenceName`
 - `{:extern s1}`: Dafny will use `s1` as the `CompileName`, and replaces the last portion of the `ReferenceName` by `s1`.
-     When used on an opaque type, s1 is used as a hint as to how to declare that type when compiling.
+     When used on an abstract type, s1 is used as a hint as to how to declare that type when compiling.
 - `{:extern s1, s2}` Dafny will use `s2` as the `CompileName`.
      Dafny will use a combination of `s1` and `s2` such as for example `s1.s2` as the `ReferenceName`
      It may also be the case that one of the arguments is simply ignored.
@@ -671,7 +671,7 @@ You can achieve the same effect using [labelled assertions](#sec-labeling-reveal
 
 ## 11.4. Attributes on variable declarations
 
-### 11.4.1. `{:assumption}`
+### 11.4.1. `{:assumption}` {#sec-assumption}
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
