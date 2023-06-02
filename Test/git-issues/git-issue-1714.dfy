@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 trait Base {}
 class Derived extends Base { var n: int; constructor() { n := 0; } }

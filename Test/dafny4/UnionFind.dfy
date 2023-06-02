@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 // Rustan Leino, Nov 2015
 
 // Module M0 gives the high-level specification of the UnionFind data structure

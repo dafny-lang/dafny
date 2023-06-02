@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /autoTriggers:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment /autoTriggers:0
 
 // The tests in this file are designed to run through the compiler.  They contain
 // program snippets that are tricky to compile or whose compilation once was buggy.
