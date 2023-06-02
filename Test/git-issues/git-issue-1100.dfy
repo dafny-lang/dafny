@@ -1,4 +1,3 @@
-// RUN: %dafny  /compile:3 /unicodeChar:0 /compileTarget:cpp %S/../c++/arrays.dfy > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --unicode-char:false /Users/salkeldr/Documents/GitHub/dafny/Test/git-issues/../c++/arrays.dfy
 
 // Test compilation of a file in another directory
