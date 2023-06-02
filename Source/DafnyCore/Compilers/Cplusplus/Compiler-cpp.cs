@@ -2168,8 +2168,7 @@ namespace Microsoft.Dafny.Compilers {
           if (resultType.IsCharType || AsNativeType(resultType) != null) {
             opString = "-";
           } else {
-            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes,
-                          "Subtraction of non-native type");
+            throw new UnsupportedFeatureException(tok, Feature.NonNativeNewtypes);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:

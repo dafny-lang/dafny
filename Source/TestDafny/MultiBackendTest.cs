@@ -77,16 +77,18 @@ public class MultiBackendTest {
     // Here we only ensure that the exit code is 0.
 
     // We also use --print and --print-bpl to catch bugs with valid but unprintable programs.
-    // string fileName = Path.GetFileName(options.TestFile!);
-    // var testDir = Path.GetDirectoryName(options.TestFile!);
-    // var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
-    // var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
+    string fileName = Path.GetFileName(options.TestFile!);
+    var testDir = Path.GetDirectoryName(options.TestFile!);
+    var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
+    var tmpRPrint = Path.Join(testDir, "Output", $"{fileName}.rprint");
+    var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
 
     var dafnyArgs = new List<string>() {
       $"verify",
-      options.TestFile!
-      // $"--print:{tmpDPrint}",
-      // $"--print-bpl:{tmpPrint}",
+      options.TestFile!,
+      $"--print:{tmpDPrint}",
+      $"--rprint:{tmpRPrint}",
+      $"--bprint:{tmpPrint}"
     }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     output.WriteLine("Verifying...");

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /env:0 /rprint:- "%s" > "%t"
+// RUN: %dafny /compile:3 /print:"%t.print" /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype Handful = x | 0 <= x < 0x8000  // this type turns native
