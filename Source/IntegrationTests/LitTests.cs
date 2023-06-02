@@ -395,13 +395,17 @@ namespace IntegrationTests {
       var multiBackendCommand = "// RUN: %testDafnyForEachCompiler \"%s\"";
       var testDafnyExtraArgs = new SortedSet<string>();
       foreach (var extraOption in commonExtraOptions) {
+        // Map some common legacy options to new CLI options
         testDafnyExtraArgs.Add(extraOption switch {
           "/unicodeChar:0" => "--unicode-char:false",
           "/unicodeChar:1" => "--unicode-char:true",
           "/functionSyntax:3" => "--function-syntax:3",
           "/functionSyntax:4" => "--function-syntax:4",
           "/spillTargetCode:2" => "--spill-translation",
+          "/spillTargetCode:3" => "--spill-translation",
           "/optimizeErasableDatatypeWrapper:0" => "--optimize-erasable-datatype-wrapper:false",
+          "/verifyAllModules" => "--verify-included-files",
+          "/errorLimit:0" => "--verification-error-limit:0",
           _ => extraOption
         });
       }
