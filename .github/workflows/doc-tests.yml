@@ -50,6 +50,11 @@ jobs:
         which java
         chmod +x dafny/docs/HowToFAQ/make-error-catalog
         ./dafny/docs/HowToFAQ/make-error-catalog
+    - name: Check Error Catalog examples
+      run: |
+        cd dafny/docs
+        chmod +x ./check-examples
+        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
     - name: Check OnlineTutorial examples
       run: |
         cd dafny/docs
@@ -60,11 +65,6 @@ jobs:
         cd dafny/docs
         chmod +x ./check-examples
         PATH=../bin:$PATH ./check-examples DafnyRef/*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
-    - name: Check Error Catalog examples
-      run: |
-        cd dafny/docs
-        chmod +x ./check-examples
-        PATH=../bin:$PATH ./check-examples HowToFAQ/Errors-*.md || ( echo Tests Failed; exit 1 ) && echo Tests Succeeded
     - name: Check ProofOptimization examples
       run: |
         cd dafny/docs
