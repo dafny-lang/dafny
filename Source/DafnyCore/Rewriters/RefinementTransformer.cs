@@ -254,7 +254,7 @@ namespace Microsoft.Dafny {
           module.SourceDecls.Add(clone);
         } else {
           var newDeclaration = newPointer.Get();
-          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || newDeclaration is AbstractTypeDecl) {
+          if (originalDeclaration.Name == "_default" || newDeclaration.IsRefining || originalDeclaration is AbstractTypeDecl) {
             MergeTopLevelDecls(module, newPointer, originalDeclaration);
           } else if (newDeclaration is TypeSynonymDecl) {
             var msg = $"a type synonym ({newDeclaration.Name}) is not allowed to replace a {originalDeclaration.WhatKind} from the refined module ({module.RefinementQId}), even if it denotes the same type";

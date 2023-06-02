@@ -858,7 +858,7 @@ namespace Microsoft.Dafny {
       foreach (var rewriter in dafnyProgram.Rewriters) {
         rewriter.PostVerification(dafnyProgram);
       }
-      
+
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 

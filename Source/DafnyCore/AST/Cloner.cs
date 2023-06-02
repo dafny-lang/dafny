@@ -625,8 +625,7 @@ namespace Microsoft.Dafny {
   /// It does not clone method bodies, and it copies module signatures.
   /// </summary>
   class ClonerButDropMethodBodies : DeepModuleSignatureCloner {
-    public ClonerButDropMethodBodies(bool cloneResolvedFields = false) : base(cloneResolvedFields)
-    {
+    public ClonerButDropMethodBodies(bool cloneResolvedFields = false) : base(cloneResolvedFields) {
     }
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {

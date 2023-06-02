@@ -5981,17 +5981,13 @@ namespace Microsoft.Dafny {
       return rWithArgs;
     }
 
-    public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token)
-    {
+    public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
       Expression receiver;
-      if (member.IsStatic)
-      {
+      if (member.IsStatic) {
         receiver = new StaticReceiverExpr(token,
           UserDefinedType.FromTopLevelDecl(token, container, container.TypeArgs),
           (TopLevelDeclWithMembers)member.EnclosingClass, true);
-      }
-      else
-      {
+      } else {
         receiver = new ImplicitThisExpr(token);
         receiver.Type = GetThisType(token, container); // resolve here
       }

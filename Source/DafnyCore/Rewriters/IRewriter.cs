@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
     internal virtual void PostResolve(Program program) {
       Contract.Requires(program != null);
     }
-  
+
     public virtual void PostVerification(Program program) {
       Contract.Requires(program != null);
     }

@@ -88,7 +88,7 @@ public class ExpectContracts : IRewriter {
     var tok = decl.tok;
 
     // TODO need to generate resolved code.
-    
+
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
@@ -120,7 +120,7 @@ public class ExpectContracts : IRewriter {
         TypeApplication_JustFunction = new(), // TODO fix
         Type = origFunc.ResultType,
       };
-      
+
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
@@ -258,7 +258,7 @@ public class ExpectContracts : IRewriter {
 
   public override void PostVerification(Program program) {
     callRedirector.newRedirections = wrappedDeclarations;
-    foreach (var topLevelDecl in 
+    foreach (var topLevelDecl in
              program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
