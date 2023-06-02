@@ -1,4 +1,10 @@
-// RUN: %testDafnyForEachCompiler "%s"
+// RUN: %baredafny verify %args "%s" > "%t"
+// RUN: %baredafny run --no-verify -t=cs %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=js %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=go %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=java %args "%s" >> "%t"
+// RUN: %baredafny run --no-verify -t=py %args "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method Main() {
   var a: A, b: B, c: C, k: K, l: L := new M, new M, new M, new K<real>, new L<real>;

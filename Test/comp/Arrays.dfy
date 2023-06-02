@@ -1,5 +1,10 @@
-// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --unicode-char:false
+// RUN: %baredafny verify %args --relax-definite-assignment "%s" > "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=cs %args "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=js %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=go %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=java %args  "%s" >> "%t"
+// RUN: %baredafny run --unicode-char:false --no-verify --target=py %args  "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
   ensures 0 <= n <= a.Length

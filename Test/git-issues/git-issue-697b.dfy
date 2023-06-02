@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 datatype Cell = Cell(x: int)
 type EvenCell = c: Cell | c.x % 2 == 0 witness Cell(0)
