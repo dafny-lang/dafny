@@ -1,5 +1,4 @@
-// RUN: %baredafny run %args --relax-definite-assignment --quantifier-syntax:4 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --quantifier-syntax:4 --relax-definite-assignment
 
 method Main() {
   var c := new MyClass;

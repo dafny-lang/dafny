@@ -1,0 +1,8 @@
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]

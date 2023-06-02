@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 /deprecation:0 "%s" > "%t"
-// RUN: %dafny /noVerify /deprecation:0 /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /deprecation:0 /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /deprecation:0 /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /deprecation:0 /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /deprecation:0 /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment /deprecation:0
 
 datatype Co<+T> = Co(z: T) {
     const x: int;
