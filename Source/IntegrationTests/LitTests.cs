@@ -343,17 +343,21 @@ namespace IntegrationTests {
       if (chunks.Length != backends.Count) {
         throw new ArgumentException();
       }
-      string verifierChunk = chunks.First();
-      if (!string.IsNullOrWhiteSpace(verifierChunk)) {
-        var verifierExpectPath = $"{path}.verifier.expect";
-        File.WriteAllText(verifierExpectPath, verifierChunk);
 
+      string? verifierChunk = null;
+      if (backends.First() == null) {
+        verifierChunk = chunks.First();
+        if (!string.IsNullOrWhiteSpace(verifierChunk)) {
+          var verifierExpectPath = $"{path}.verifier.expect";
+          File.WriteAllText(verifierExpectPath, verifierChunk);
+        }
       }
+
       string? commonExpectChunk = null;
       var exceptions = false;
       foreach (var (backend, chunk) in backends.Zip(chunks)) {
         if (backend != null) {
-          var expectedChunk = chunk.Replace(verifierChunk, "");
+          var expectedChunk = string.IsNullOrWhiteSpace(verifierChunk) ? chunk : chunk.Replace(verifierChunk, "");
           if (commonExpectChunk == null) {
             commonExpectChunk = expectedChunk;
           } else if (commonExpectChunk != expectedChunk) {
