@@ -499,123 +499,8 @@ namespace Microsoft.Dafny {
         rewriter.PreResolve(prog);
       }
 
-      var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
-        if (decl is LiteralModuleDecl) {
-          // The declaration is a literal module, so it has members and such that we need
-          // to resolve. First we do refinement transformation. Then we construct the signature
-          // of the module. This is the public, externally visible signature. Then we add in
-          // everything that the system defines, as well as any "import" (i.e. "opened" modules)
-          // directives (currently not supported, but this is where we would do it.) This signature,
-          // which is only used while resolving the members of the module is stored in the (basically)
-          // global variable moduleInfo. Then the signatures of the module members are resolved, followed
-          // by the bodies.
-          var literalDecl = (LiteralModuleDecl)decl;
-          var m = literalDecl.ModuleDef;
-
-          var errorCount = reporter.ErrorCount;
-          if (m.RefinementQId != null) {
-            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
-            m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
-          }
-
-          foreach (var rewriter in rewriters) {
-            rewriter.PreResolve(m);
-          }
-
-          literalDecl.Signature = RegisterTopLevelDecls(m, true);
-          literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
-
-          var sig = literalDecl.Signature;
-          // set up environment
-          var preResolveErrorCount = reporter.ErrorCount;
-
-          ResolveModuleExport(literalDecl, sig);
-          var good = ResolveModuleDefinition(m, sig);
-
-          if (good && reporter.ErrorCount == preResolveErrorCount) {
-            // Check that the module export gives a self-contained view of the module.
-            CheckModuleExportConsistency(prog, m);
-          }
-
-          var tempVis = new VisibilityScope();
-          tempVis.Augment(sig.VisibilityScope);
-          tempVis.Augment(systemNameInfo.VisibilityScope);
-          Type.PushScope(tempVis);
-
-          prog.ModuleSigs[m] = sig;
-
-          foreach (var rewriter in rewriters) {
-            if (!good || reporter.ErrorCount != preResolveErrorCount) {
-              break;
-            }
-            rewriter.PostResolveIntermediate(m);
-          }
-          if (good && reporter.ErrorCount == errorCount) {
-            m.SuccessfullyResolved = true;
-          }
-          Type.PopScope(tempVis);
-
-          if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
-            // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-            CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
-            var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
-            var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
-            compilationModuleClones.Add(m, nw);
-            var oldErrorsOnly = reporter.ErrorsOnly;
-            reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-            // Next, compute the compile signature
-            Contract.Assert(!useCompileSignatures);
-            useCompileSignatures = true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
-            Type.DisableScopes();
-            var compileSig = RegisterTopLevelDecls(nw, true);
-            compileSig.Refines = refinementTransformer.RefinedSig;
-            sig.CompileSignature = compileSig;
-            foreach (var exportDecl in sig.ExportSets.Values) {
-              exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
-            }
-            // Now we're ready to resolve the cloned module definition, using the compile signature
-
-            ResolveModuleDefinition(nw, compileSig);
-
-            foreach (var rewriter in rewriters) {
-              rewriter.PostCompileCloneAndResolve(nw);
-            }
-
-            prog.CompileModules.Add(nw);
-            useCompileSignatures = false; // reset the flag
-            Type.EnableScopes();
-            reporter.ErrorsOnly = oldErrorsOnly;
-          }
-        } else if (decl is AliasModuleDecl alias) {
-          // resolve the path
-          ModuleSignature p;
-          if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter)) {
-            if (alias.Signature == null) {
-              alias.Signature = p;
-            }
-          } else {
-            alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
-          }
-        } else if (decl is AbstractModuleDecl abs) {
-          ModuleSignature p;
-          if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
-            abs.OriginalSignature = p;
-            abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs, compilationModuleClones);
-          } else {
-            abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
-          }
-        } else if (decl is ModuleExportDecl) {
-          ((ModuleExportDecl)decl).SetupDefaultSignature();
-
-          Contract.Assert(decl.Signature != null);
-          Contract.Assert(decl.Signature.VisibilityScope != null);
-
-        } else {
-          Contract.Assert(false); // Unknown kind of ModuleDecl
-        }
-
-        Contract.Assert(decl.Signature != null);
+        ResolveModuleDeclaration(prog, decl);
       }
 
       if (reporter.ErrorCount != origErrorCount) {
@@ -749,6 +634,152 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl)
+    {
+      if (decl is LiteralModuleDecl)
+      {
+        // The declaration is a literal module, so it has members and such that we need
+        // to resolve. First we do refinement transformation. Then we construct the signature
+        // of the module. This is the public, externally visible signature. Then we add in
+        // everything that the system defines, as well as any "import" (i.e. "opened" modules)
+        // directives (currently not supported, but this is where we would do it.) This signature,
+        // which is only used while resolving the members of the module is stored in the (basically)
+        // global variable moduleInfo. Then the signatures of the module members are resolved, followed
+        // by the bodies.
+        var literalDecl = (LiteralModuleDecl)decl;
+        var m = literalDecl.ModuleDef;
+
+        var errorCount = reporter.ErrorCount;
+        if (m.RefinementQId != null)
+        {
+          ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
+          m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
+        }
+
+        foreach (var rewriter in rewriters)
+        {
+          rewriter.PreResolve(m);
+        }
+
+        literalDecl.Signature = RegisterTopLevelDecls(m, true);
+        literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
+
+        var sig = literalDecl.Signature;
+        // set up environment
+        var preResolveErrorCount = reporter.ErrorCount;
+
+        ResolveModuleExport(literalDecl, sig);
+        var good = ResolveModuleDefinition(m, sig);
+
+        if (good && reporter.ErrorCount == preResolveErrorCount)
+        {
+          // Check that the module export gives a self-contained view of the module.
+          CheckModuleExportConsistency(prog, m);
+        }
+
+        var tempVis = new VisibilityScope();
+        tempVis.Augment(sig.VisibilityScope);
+        tempVis.Augment(systemNameInfo.VisibilityScope);
+        Type.PushScope(tempVis);
+
+        prog.ModuleSigs[m] = sig;
+
+        foreach (var rewriter in rewriters)
+        {
+          if (!good || reporter.ErrorCount != preResolveErrorCount)
+          {
+            break;
+          }
+
+          rewriter.PostResolveIntermediate(m);
+        }
+
+        if (good && reporter.ErrorCount == errorCount)
+        {
+          m.SuccessfullyResolved = true;
+        }
+
+        Type.PopScope(tempVis);
+
+        if (reporter.ErrorCount == errorCount && !m.IsAbstract)
+        {
+          // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
+          CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
+          var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
+          var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
+          compilationModuleClones.Add(m, nw);
+          var oldErrorsOnly = reporter.ErrorsOnly;
+          reporter.ErrorsOnly = true; // turn off warning reporting for the clone
+          // Next, compute the compile signature
+          Contract.Assert(!useCompileSignatures);
+          useCompileSignatures =
+            true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+          Type.DisableScopes();
+          var compileSig = RegisterTopLevelDecls(nw, true);
+          compileSig.Refines = refinementTransformer.RefinedSig;
+          sig.CompileSignature = compileSig;
+          foreach (var exportDecl in sig.ExportSets.Values)
+          {
+            exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
+          }
+          // Now we're ready to resolve the cloned module definition, using the compile signature
+
+          ResolveModuleDefinition(nw, compileSig);
+
+          foreach (var rewriter in rewriters)
+          {
+            rewriter.PostCompileCloneAndResolve(nw);
+          }
+
+          prog.CompileModules.Add(nw);
+          useCompileSignatures = false; // reset the flag
+          Type.EnableScopes();
+          reporter.ErrorsOnly = oldErrorsOnly;
+        }
+      }
+      else if (decl is AliasModuleDecl alias)
+      {
+        // resolve the path
+        ModuleSignature p;
+        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter))
+        {
+          if (alias.Signature == null)
+          {
+            alias.Signature = p;
+          }
+        }
+        else
+        {
+          alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
+        }
+      }
+      else if (decl is AbstractModuleDecl abs)
+      {
+        ModuleSignature p;
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter))
+        {
+          abs.OriginalSignature = p;
+          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs);
+        }
+        else
+        {
+          abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
+        }
+      }
+      else if (decl is ModuleExportDecl)
+      {
+        ((ModuleExportDecl)decl).SetupDefaultSignature();
+
+        Contract.Assert(decl.Signature != null);
+        Contract.Assert(decl.Signature.VisibilityScope != null);
+      }
+      else
+      {
+        Contract.Assert(false); // Unknown kind of ModuleDecl
+      }
+
+      Contract.Assert(decl.Signature != null);
+    }
 
 
     private void ResolveValuetypeDecls() {
@@ -2017,12 +2048,10 @@ namespace Microsoft.Dafny {
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height,
-      Dictionary<ModuleDefinition, ModuleSignature> mods,
-      Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+      Dictionary<ModuleDefinition, ModuleSignature> mods) {
       Contract.Requires(p != null);
       Contract.Requires(Name != null);
       Contract.Requires(mods != null);
-      Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
       var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
@@ -2030,13 +2059,13 @@ namespace Microsoft.Dafny {
       mod.Height = Height;
       foreach (var kv in p.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
-          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name, compilationModuleClones);
+          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name);
           mod.SourceDecls.Add(clone);
         }
       }
 
       var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name, compilationModuleClones);
+      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name);
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -2052,18 +2081,15 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m,
-      Dictionary<ModuleDefinition, ModuleSignature> mods, string Name,
-      Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+      Dictionary<ModuleDefinition, ModuleSignature> mods, string Name) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
       Contract.Requires(mods != null);
       Contract.Requires(Name != null);
-      Contract.Requires(compilationModuleClones != null);
 
       if (d is AbstractModuleDecl) {
         var abs = (AbstractModuleDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods,
-          compilationModuleClones);
+        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
         var a = new AbstractModuleDecl(abs.RangeToken, abs.QId, abs.NameNode, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
