@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // The birthday book example from the Z Reference Manual
 // Rustan Leino, 22 Feb 2018

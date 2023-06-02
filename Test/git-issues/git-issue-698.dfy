@@ -1,4 +1,7 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 type Small = x: int | 0 <= x < 100 && x != 3
 

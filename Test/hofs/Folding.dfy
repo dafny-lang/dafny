@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment /induction:3
+// RUN: %dafny /compile:3 /induction:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // Specifications and proofs involving foldr (inspired by Liquid Haskell) and foldl
 // Rustan Leino
