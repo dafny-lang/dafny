@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
-    ModuleSignature moduleInfo = null;
+    public ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
@@ -235,11 +235,11 @@ namespace Microsoft.Dafny {
     internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
-    private ModuleSignature systemNameInfo = null;
-    private bool useCompileSignatures = false;
+    public ModuleSignature systemNameInfo = null;
+    public bool useCompileSignatures = false;
 
-    private List<IRewriter> rewriters;
-    private RefinementTransformer refinementTransformer;
+    public List<IRewriter> rewriters;
+    public RefinementTransformer refinementTransformer;
 
     public Resolver(DafnyOptions options) {
       Options = options;
@@ -518,7 +518,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CheckForFuelAdjustments(ModuleDefinition module) {
+    public void CheckForFuelAdjustments(ModuleDefinition module) {
       CheckForFuelAdjustments(module.tok, module.Attributes, module);
       foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
         Statement body = null;
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void FillInAdditionalInformation(ModuleDefinition module) {
+    public void FillInAdditionalInformation(ModuleDefinition module) {
       foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
         Statement body = null;
         if (clbl is ExtremeLemma) {
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void FillInDecreasesClauses(ModuleDefinition module) {
+    public void FillInDecreasesClauses(ModuleDefinition module) {
       // fill in default decreases clauses:  for functions and methods, and for loops
       new InferDecreasesClause(this).FillInDefaultDecreasesClauses(module);
 
@@ -581,7 +581,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ComputeIsRecursiveBit(ModuleDefinition module) {
+    public void ComputeIsRecursiveBit(ModuleDefinition module) {
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
         if (clbl is Function) {
@@ -620,8 +620,8 @@ namespace Microsoft.Dafny {
     }
 
     private void ResolveModuleDeclaration(Program prog, ModuleDecl decl) {
-      if (decl is LiteralModuleDecl) {
-        ResolveLiteralModuleDeclaration(prog, decl);
+      if (decl is LiteralModuleDecl literalModuleDecl) {
+        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -650,131 +650,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveLiteralModuleDeclaration(Program prog, ModuleDecl decl)
-    {
-      // The declaration is a literal module, so it has members and such that we need
-      // to resolve. First we do refinement transformation. Then we construct the signature
-      // of the module. This is the public, externally visible signature. Then we add in
-      // everything that the system defines, as well as any "import" (i.e. "opened" modules)
-      // directives (currently not supported, but this is where we would do it.) This signature,
-      // which is only used while resolving the members of the module is stored in the (basically)
-      // global variable moduleInfo. Then the signatures of the module members are resolved, followed
-      // by the bodies.
-      var literalDecl = (LiteralModuleDecl)decl;
-      var m = literalDecl.ModuleDef;
-
-      var errorCount = reporter.ErrorCount;
-      if (m.RefinementQId != null)
-      {
-        ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
-        m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
-      }
-
-      foreach (var rewriter in rewriters)
-      {
-        rewriter.PreResolve(m);
-      }
-
-      literalDecl.Signature = RegisterTopLevelDecls(m, true);
-      literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
-
-      var sig = literalDecl.Signature;
-      // set up environment
-      var preResolveErrorCount = reporter.ErrorCount;
-
-      ResolveModuleExport(literalDecl, sig);
-      var good = ResolveModuleDefinition(m, sig);
-
-      if (good && reporter.ErrorCount == preResolveErrorCount)
-      {
-        // Check that the module export gives a self-contained view of the module.
-        CheckModuleExportConsistency(prog, m);
-      }
-
-      var tempVis = new VisibilityScope();
-      tempVis.Augment(sig.VisibilityScope);
-      tempVis.Augment(systemNameInfo.VisibilityScope);
-      Type.PushScope(tempVis);
-
-      prog.ModuleSigs[m] = sig;
-
-      foreach (var rewriter in rewriters)
-      {
-        if (!good || reporter.ErrorCount != preResolveErrorCount)
-        {
-          break;
-        }
-
-        rewriter.PostResolveIntermediate(m);
-      }
-
-      if (good && reporter.ErrorCount == errorCount)
-      {
-        m.SuccessfullyResolved = true;
-      }
-
-      Type.PopScope(tempVis);
-
-      if (reporter.ErrorCount == errorCount && !m.IsAbstract)
-      {
-        // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-        CompilationCloner cloner = new CompilationCloner();
-        var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
-        var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
-        var oldErrorsOnly = reporter.ErrorsOnly;
-        reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-        // Next, compute the compile signature
-        Contract.Assert(!useCompileSignatures);
-        useCompileSignatures =
-          true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
-        Type.DisableScopes();
-        var compileSig = RegisterTopLevelDecls(nw, true);
-        compileSig.Refines = refinementTransformer.RefinedSig;
-        sig.CompileSignature = compileSig;
-        foreach (var exportDecl in sig.ExportSets.Values)
-        {
-          exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
-        }
-        // Now we're ready to resolve the cloned module definition, using the compile signature
-
-        ResolveModuleDefinition(nw, compileSig);
-
-        foreach (var rewriter in rewriters)
-        {
-          rewriter.PostCompileCloneAndResolve(nw);
-        }
-
-        prog.CompileModules.Add(nw);
-        useCompileSignatures = false; // reset the flag
-        Type.EnableScopes();
-        reporter.ErrorsOnly = oldErrorsOnly;
-      }
-
-      if (reporter.ErrorCount != errorCount)
-      {
-        return;
-      }
-
-      Type.PushScope(tempVis);
-      ComputeIsRecursiveBit(m);
-      FillInDecreasesClauses(m);
-      foreach (var iter in m.TopLevelDecls.OfType<IteratorDecl>())
-      {
-        reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
-      }
-
-      foreach (var rewriter in rewriters)
-      {
-        rewriter.PostDecreasesResolve(m);
-      }
-
-      FillInAdditionalInformation(m);
-      CheckForFuelAdjustments(m);
-
-      Type.PopScope(tempVis);
-    }
-
-
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
       foreach (var valueTypeDecl in valuetypeDecls) {
@@ -790,81 +665,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// Resolves the module definition.
-    /// A return code of "false" is an indication of an error that may or may not have
-    /// been reported in an error message. So, in order to figure out if m was successfully
-    /// resolved, a caller has to check for both a change in error count and a "false"
-    /// return value.
-    /// </summary>
-    private bool ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig, bool isAnExport = false) {
-      Contract.Requires(AllTypeConstraints.Count == 0);
-      Contract.Ensures(AllTypeConstraints.Count == 0);
-
-      sig.VisibilityScope.Augment(systemNameInfo.VisibilityScope);
-      // make sure all imported modules were successfully resolved
-      foreach (var d in m.TopLevelDecls) {
-        if (d is AliasModuleDecl || d is AbstractModuleDecl) {
-          ModuleSignature importSig;
-          if (d is AliasModuleDecl) {
-            var alias = (AliasModuleDecl)d;
-            importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
-          } else {
-            importSig = ((AbstractModuleDecl)d).OriginalSignature;
-          }
-
-          if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
-            if (!m.IsEssentiallyEmptyModuleBody()) {
-              // say something only if this will cause any testing to be omitted
-              reporter.Error(MessageSource.Resolver, d,
-                "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
-            }
-
-            return false;
-          }
-        } else if (d is LiteralModuleDecl) {
-          var nested = (LiteralModuleDecl)d;
-          if (!nested.ModuleDef.SuccessfullyResolved) {
-            if (!m.IsEssentiallyEmptyModuleBody()) {
-              // say something only if this will cause any testing to be omitted
-              reporter.Error(MessageSource.Resolver, nested,
-                "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name,
-                nested.Name);
-            }
-
-            return false;
-          }
-        }
-      }
-
-      // resolve
-      var oldModuleInfo = moduleInfo;
-      moduleInfo = MergeSignature(sig, systemNameInfo);
-      Type.PushScope(moduleInfo.VisibilityScope);
-      ResolveOpenedImports(moduleInfo, m, useCompileSignatures, this); // opened imports do not persist
-      var datatypeDependencies = new Graph<IndDatatypeDecl>();
-      var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-      var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(m.TopLevelDecls).ToList();
-      int prevErrorCount = reporter.Count(ErrorLevel.Error);
-      ResolveTopLevelDecls_Signatures(m, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
-      Contract.Assert(AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
-
-      scope.PushMarker();
-      scope.AllowInstance = false;
-      ResolveAttributes(m, new ResolutionContext(new NoContext(m.EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
-      scope.PopMarker();
-
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, m.Name, isAnExport);
-      }
-
-      Type.PopScope(moduleInfo.VisibilityScope);
-      moduleInfo = oldModuleInfo;
-      return true;
-    }
-
     // Resolve the exports and detect cycles.
-    private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
+    public void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
       ModuleDefinition m = literalDecl.ModuleDef;
       literalDecl.DefaultExport = sig;
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
@@ -1180,9 +982,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    //check for export consistency by resolving internal modules
-    //this should be effect-free, as it only operates on clones
-    private void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
+    public void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
+      //check for export consistency by resolving internal modules
+      //this should be effect-free, as it only operates on clones
+      
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
@@ -1231,7 +1034,7 @@ namespace Microsoft.Dafny {
           String.Format("Raised while checking export set {0}: ", exportDecl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
-        ResolveModuleDefinition(exportView, testSig, true);
+        exportView.ResolveModuleDefinition(testSig, this, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -1711,7 +1514,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
+    public ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
@@ -2065,7 +1868,7 @@ namespace Microsoft.Dafny {
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
-      var good = ResolveModuleDefinition(mod, sig);
+      var good = mod.ResolveModuleDefinition(sig, this);
       if (good && reporter.Count(ErrorLevel.Error) == errCount) {
         mod.SuccessfullyResolved = true;
       }
