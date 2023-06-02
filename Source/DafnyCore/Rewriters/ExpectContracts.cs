@@ -81,10 +81,9 @@ public class ExpectContracts : IRewriter {
   /// all of its postconditions before returning. Then add the new wrapper
   /// as a sibling of the original declaration.
   /// </summary>
-  /// <param name="resolver"></param>
   /// <param name="parent">The declaration containing the on to be wrapped.</param>
   /// <param name="decl">The declaration to be wrapped.</param>
-  private void GenerateWrapper(Resolver resolver, TopLevelDeclWithMembers parent, MemberDecl decl) {
+  private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok;
 
     // TODO need to generate resolved code.
@@ -98,9 +97,9 @@ public class ExpectContracts : IRewriter {
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var receiver = Resolver.GetReceiver(parent, newMethod, decl.tok);
+      var receiver = Resolver.GetReceiver(parent, origMethod, decl.tok);
       var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
-      memberSelectExpr.Member = newMethod;
+      memberSelectExpr.Member = origMethod;
       memberSelectExpr.TypeApplication_JustMember = new(); // TODO fix
       memberSelectExpr.TypeApplication_AtEnclosingClass = new(); // TODO fix
       var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
@@ -113,9 +112,9 @@ public class ExpectContracts : IRewriter {
       newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var receiver = Resolver.GetReceiver(parent, newFunc, decl.tok);
+      var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
       var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
-        Function = newFunc,
+        Function = origFunc,
         TypeApplication_AtEnclosingClass = new(), // TODO fix
         TypeApplication_JustFunction = new(), // TODO fix
         Type = origFunc.ResultType,
@@ -142,6 +141,8 @@ public class ExpectContracts : IRewriter {
         body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
+      Resolver.RegisterByMethod(newFunc, parent);
+      
       newDecl = newFunc;
     }
 
@@ -177,7 +178,7 @@ public class ExpectContracts : IRewriter {
 
     // Generate a wrapper for each of the members identified above.
     foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(resolver, topLevelDecl, decl);
+      GenerateWrapper(topLevelDecl, decl);
     }
   }
 

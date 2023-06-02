@@ -1912,7 +1912,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
+    public static void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
       var tok = f.ByMethodTok;
