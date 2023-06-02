@@ -198,14 +198,9 @@ public class MultiBackendTest {
 
     if (checkFile != null) {
       var outputLines = new List<string>();
-      var reader = new StringReader(outputString);
-      while (reader.ReadLine() is { } line) {
-        outputLines.Add(line);
-      }
-      reader = new StringReader(error);
-      while (reader.ReadLine() is { } line) {
-        outputLines.Add(line);
-      }
+      // Concatenate stdout and stderr so either can be checked against
+      outputLines.AddRange(ReadAllLines(outputString));
+      outputLines.AddRange(ReadAllLines(error));
       var checkDirectives = OutputCheckCommand.ParseCheckFile(checkFile);
       var (checkResult, checkOutput, checkError) = OutputCheckCommand.Execute(outputLines, checkDirectives);
       if (checkResult != 0) {
@@ -223,6 +218,15 @@ public class MultiBackendTest {
     output.WriteLine("Error:");
     output.WriteLine(error);
     return exitCode;
+  }
+
+  public static IList<string> ReadAllLines(string s) {
+    var result = new List<string>();
+    var reader = new StringReader(s);
+    while (reader.ReadLine() is { } line) {
+      result.Add(line);
+    }
+    return result;
   }
 
   private static (int, string, string) RunDafny(IEnumerable<string> arguments) {

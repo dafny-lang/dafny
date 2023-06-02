@@ -283,6 +283,7 @@ namespace IntegrationTests {
         return false;
       }
 
+      // Analyze the commands to figure out any extra options to %testDafnyForEachCompiler
       var commonExtraOptions = new HashSet<string>();
       var extraOptionsLocked = false;
       string? expectFile = null;
@@ -341,22 +342,37 @@ namespace IntegrationTests {
       }
       var expectContent = File.ReadAllText(expectFile);
 
-      // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
+      // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines.
+      // Each call to dafny creates such a line, so splitting on them results in one more chunk than calls.
       var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
-      // TODO: why skip(1)?
-      var chunks = delimiter.Split(expectContent).Skip(1).ToArray();
-      if (chunks.Length != backends.Count) {
+      var chunks = delimiter.Split(expectContent).ToList();
+      if (chunks.Count != backends.Count + 1) {
         throw new ArgumentException();
       }
 
-      string? verifierChunk = null;
-      if (backends.First() == null) {
-        verifierChunk = chunks.First();
-        if (!string.IsNullOrWhiteSpace(verifierChunk)) {
-          var verifierExpectPath = $"{path}.verifier.expect";
-          File.WriteAllText(verifierExpectPath, verifierChunk);
-        }
+      // Whether we called dafny normally for each backend,
+      // or whether we first just verified,
+      // the first chunk will include any warnings that we will want to check
+      // in our own first verify-only call
+      // and remove from the other output chunks.
+      string verifierChunk = chunks.First();
+      if (!string.IsNullOrWhiteSpace(verifierChunk)) {
+        var verifierExpectPath = $"{path}.verifier.expect";
+
+        // Need to adjust the line numbers of any warnings or errors
+        // since we're replacing many individual RUN lines with one :P
+        var adjustedVerifierChunk = AdjustLineNumbers(verifierChunk, 1 - testCase.Commands.Count());
+        
+        File.WriteAllText(verifierExpectPath, adjustedVerifierChunk);
       }
+
+      if (backends.First() == null) {
+        backends.RemoveAt(0);
+        chunks.RemoveAt(0);
+      }
+      // Now the first chunk is the verifier output before the execution output,
+      // so skip it.
+      chunks.RemoveAt(0);
 
       string? commonExpectChunk = null;
       var exceptions = false;
@@ -409,6 +425,17 @@ namespace IntegrationTests {
       File.WriteAllLines(testCase.FilePath, newLines);
     }
 
+    private static string AdjustLineNumbers(string messages, int delta) {
+      var lines = MultiBackendTest.ReadAllLines(messages);
+      var pattern = new Regex("\\((\\d*),");
+      var adjusted = lines.Select(line =>
+        pattern.Replace(line, match =>
+          $"({int.Parse(match.Groups[1].Value) + delta},"
+        ) + Environment.NewLine
+      );
+      return string.Join("", adjusted);
+    }
+    
     private static ILitCommand GetLeafCommand(ILitCommand command) {
       if (command is LitCommandWithRedirection lcwr) {
         return GetLeafCommand(lcwr.Command);
