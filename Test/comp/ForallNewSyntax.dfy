@@ -1,10 +1,4 @@
-// RUN: %baredafny verify %args --relax-definite-assignment --function-syntax:3 --quantifier-syntax:4 "%s" > "%t"
-// RUN: %baredafny run %args --function-syntax:3 --quantifier-syntax:4 --no-verify --target:cs "%s" >> "%t"
-// RUN: %baredafny run %args --function-syntax:3 --quantifier-syntax:4 --no-verify --target:js "%s" >> "%t"
-// RUN: %baredafny run %args --function-syntax:3 --quantifier-syntax:4 --no-verify --target:go "%s" >> "%t"
-// RUN: %baredafny run %args --function-syntax:3 --quantifier-syntax:4 --no-verify --target:java "%s" >> "%t"
-// RUN: %baredafny run %args --function-syntax:3 --quantifier-syntax:4 --no-verify --target:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --function-syntax:3 --quantifier-syntax:4 --relax-definite-assignment
 
 method Main() {
   var arrayTests := new ArrayTests();
