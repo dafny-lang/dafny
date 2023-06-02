@@ -419,3 +419,57 @@ module UninitializedStaticConsts {
   class ClassWithParentWithoutConstructor extends ReferenceTrait {
   }
 }
+
+module ComparableTypes0 {
+  trait ObjectA extends object { }
+  trait ObjectB extends ObjectA { }
+  trait ObjectC extends object { }
+
+  method ReferenceEquality(o: object, a: ObjectA, b: ObjectB, c: ObjectC) {
+    var r;
+    r := o == o && o == a && o == b && o == c;
+    r := o in {o, a, b, c} && o in {a, b};
+
+    r := a == o && a == a && a == b;
+    r := a == c; // error: ObjectA and ObjectC are not comparable types
+    r := a in {o, a, b, c} && a in {a, b};
+
+    r := b == o && b == a && b == b;
+    r := b == c; // error: ObjectB and ObjectC are not comparable types
+    r := b in {o, a, b, c} && b in {a, b};
+  }
+
+  trait TraitA { }
+  trait TraitB extends TraitA { }
+
+  method NonReferenceEquality(o: object, a: TraitA, b: TraitB) {
+    var r;
+    r := o == o;
+    r := o == a; // error: object and TraitA are incomparable
+    r := o == b; // error: object and TraitB are incomparable
+    r := a == o; // error: TraitA and object are incomparable
+    r := b == o; // error: TraitB and object are incomparable
+  }
+}
+
+module ComparableTypes1 {
+  trait TraitA { }
+  trait TraitB extends TraitA { }
+
+  method NonReferenceEquality(a: TraitA, b: TraitB) {
+    var r;
+    r := a == b; // error: TraitA and TraitB are incomparable
+  }
+}
+
+module EqualitySupport {
+  trait TraitA { }
+  trait TraitB extends TraitA { }
+
+  method NonReferenceEquality(a: TraitA, b: TraitB) {
+    var r;
+    r := a == a; // error: TraitA is not an equality-supporting type
+    r := b == b; // error: TraitB is not an equality-supporting type
+    r := a in {a}; // error: TraitA is not an equality-supporting type
+  }
+}

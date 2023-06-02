@@ -55,3 +55,56 @@ module ExportThings {
   type ProvidedAbstractType extends Trait { } // fine
   type RevealedAbstractType extends Trait { } // error: the "extends" clause is exported, but Trait is not known to be a trait
 }
+
+module ComparableTypes0 {
+  trait TraitA { }
+  trait TraitB extends TraitA { }
+  trait TraitC extends TraitA { }
+  newtype MyInt extends TraitB = x | 0 <= x < 100
+  datatype Dt extends TraitB = Grey | Orange
+
+  method Tests(o: object, a: TraitA, b: TraitB, c: TraitC, mi: MyInt, dt: Dt) {
+    var r;
+    r := mi == mi;
+
+    r := o == mi; // error: object and MyInt are incomparable
+    r := c == mi; // error: TraitC and MyInt are incomparable
+
+    r := mi == o; // error: MyInt and object are incomparable
+    r := mi == c; // error: MyInt and TraitC are incomparable
+
+    r := dt == dt;
+
+    r := o == dt; // error: object and Dt are incomparable
+    r := c == dt; // error: TraitC and Dt are incomparable
+
+    r := dt == o; // error: Dt and object are incomparable
+    r := dt == c; // error: Dt and TraitC are incomparable
+  }
+}
+
+module ComparableTypes1 {
+  trait TraitA { }
+  trait TraitB extends TraitA { }
+  trait TraitC extends TraitA { }
+  newtype MyInt extends TraitB = x | 0 <= x < 100
+  datatype Dt extends TraitB = Grey | Orange
+
+  method Tests(a: TraitA, b: TraitB, c: TraitC, mi: MyInt, dt: Dt) {
+    var r;
+    r := a == mi; // error: TraitA does not support equality
+    r := b == mi; // error: TraitB does not support equality
+
+    r := mi == a; // error: TraitA does not support equality
+    r := mi == b; // error: TraitB does not support equality
+
+    r := a == dt; // error: TraitA does not support equality
+    r := b == dt; // error: TraitB does not support equality
+
+    r := dt == a; // error: TraitA does not support equality
+    r := dt == b; // error: TraitB does not support equality
+
+    r := a == Grey; // error: TraitA does not support equality
+    r := Grey == a; // error: TraitA does not support equality
+  }
+}

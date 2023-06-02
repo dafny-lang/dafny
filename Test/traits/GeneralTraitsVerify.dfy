@@ -394,3 +394,28 @@ module Equality {
     assert x == x' == x'' == x == mi == p == g == w == x;
   }
 }
+
+module MoreEquality {
+
+  trait Trait { }
+  newtype MyInt extends Trait = x | 0 <= x < 100
+  newtype YoInt extends Trait = x | 20 <= x < 25 witness 24
+
+  method Tests() {
+    var mi: MyInt := 22;
+    var yi: YoInt := 22;
+
+    var a: Trait := mi;
+    var b: Trait := yi;
+
+    assert a == mi;
+    assert b == yi;
+    assert b == mi;
+    assert a == yi;
+    assert a == b;
+
+    assert a is MyInt;
+    assert a is YoInt;
+    assert false; // error: the previous two lines should not cause any contradiction
+  }
+}
