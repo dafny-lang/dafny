@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
@@ -499,125 +500,11 @@ namespace Microsoft.Dafny {
         rewriter.PreResolve(prog);
       }
 
+      // var sortedSet = sortedDecls.ToHashSet();
+      // var modulesSet = prog.Modules().ToHashSet();
+      // Debug.Assert(Enumerable.Union<ModuleDecl>(sortedSet, modulesSet).Count() == sortedSet.Count == modulesSet.Count);
       foreach (var decl in sortedDecls) {
         ResolveModuleDeclaration(prog, decl);
-      }
-
-      if (reporter.ErrorCount != origErrorCount) {
-        // do nothing else
-        return;
-      }
-
-      // compute IsRecursive bit for mutually recursive functions and methods
-      foreach (var module in prog.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
-          if (clbl is Function) {
-            var fn = (Function)clbl;
-            if (!fn.IsRecursive) { // note, self-recursion has already been determined
-              int n = module.CallGraph.GetSCCSize(fn);
-              if (2 <= n) {
-                // the function is mutually recursive (note, the SCC does not determine self recursion)
-                fn.IsRecursive = true;
-              }
-            }
-            if (fn.IsRecursive && fn is ExtremePredicate) {
-              // this means the corresponding prefix predicate is also recursive
-              var prefixPred = ((ExtremePredicate)fn).PrefixPredicate;
-              if (prefixPred != null) {
-                prefixPred.IsRecursive = true;
-              }
-            }
-          } else {
-            var m = (Method)clbl;
-            if (!m.IsRecursive) {
-              // note, self-recursion has already been determined
-              int n = module.CallGraph.GetSCCSize(m);
-              if (2 <= n) {
-                // the function is mutually recursive (note, the SCC does not determine self recursion)
-              }
-            }
-          }
-        }
-
-        foreach (var rewriter in rewriters) {
-          rewriter.PostCyclicityResolve(module);
-        }
-      }
-
-      // fill in default decreases clauses:  for functions and methods, and for loops
-      new InferDecreasesClause(this).FillInDefaultDecreasesClauses(prog);
-      foreach (var module in prog.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
-          Statement body = null;
-          if (clbl is Method) {
-            body = ((Method)clbl).Body;
-          } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
-          }
-
-          if (body != null) {
-            var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
-            c.Visit(body);
-          }
-        }
-      }
-
-      foreach (var module in prog.Modules()) {
-        foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
-          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
-        }
-      }
-
-      foreach (var module in prog.Modules()) {
-        foreach (var rewriter in rewriters) {
-          rewriter.PostDecreasesResolve(module);
-        }
-      }
-
-      // fill in other additional information
-      foreach (var module in prog.Modules()) {
-        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
-          Statement body = null;
-          if (clbl is ExtremeLemma) {
-            body = ((ExtremeLemma)clbl).PrefixLemma.Body;
-          } else if (clbl is Method) {
-            body = ((Method)clbl).Body;
-          } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
-          }
-
-          if (body != null) {
-            var c = new ReportOtherAdditionalInformation_Visitor(this);
-            c.Visit(body);
-          }
-        }
-      }
-
-      // Determine, for each function, whether someone tries to adjust its fuel parameter
-      foreach (var module in prog.Modules()) {
-        CheckForFuelAdjustments(module.tok, module.Attributes, module);
-        foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
-          Statement body = null;
-          if (clbl is Method) {
-            body = ((Method)clbl).Body;
-            CheckForFuelAdjustments(clbl.Tok, ((Method)clbl).Attributes, module);
-          } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
-            CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
-          } else if (clbl is Function) {
-            CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
-            var c = new FuelAdjustment_Visitor(this);
-            var bodyExpr = ((Function)clbl).Body;
-            if (bodyExpr != null) {
-              c.Visit(bodyExpr, new FuelAdjustment_Context(module));
-            }
-          }
-
-          if (body != null) {
-            var c = new FuelAdjustment_Visitor(this);
-            c.Visit(body, new FuelAdjustment_Context(module));
-          }
-        }
       }
 
       Type.DisableScopes();
@@ -634,10 +521,109 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl)
-    {
-      if (decl is LiteralModuleDecl)
-      {
+    private void CheckForFuelAdjustments(ModuleDefinition module) {
+      CheckForFuelAdjustments(module.tok, module.Attributes, module);
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is Method) {
+          body = ((Method)clbl).Body;
+          CheckForFuelAdjustments(clbl.Tok, ((Method)clbl).Attributes, module);
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+          CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
+        } else if (clbl is Function) {
+          CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
+          var c = new FuelAdjustment_Visitor(this);
+          var bodyExpr = ((Function)clbl).Body;
+          if (bodyExpr != null) {
+            c.Visit(bodyExpr, new FuelAdjustment_Context(module));
+          }
+        }
+
+        if (body != null) {
+          var c = new FuelAdjustment_Visitor(this);
+          c.Visit(body, new FuelAdjustment_Context(module));
+        }
+      }
+    }
+
+    private void FillInAdditionalInformation(ModuleDefinition module) {
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is ExtremeLemma) {
+          body = ((ExtremeLemma)clbl).PrefixLemma.Body;
+        } else if (clbl is Method) {
+          body = ((Method)clbl).Body;
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+        }
+
+        if (body != null) {
+          var c = new ReportOtherAdditionalInformation_Visitor(this);
+          c.Visit(body);
+        }
+      }
+    }
+
+    private void FillInDecreasesClauses(ModuleDefinition module) {
+      // fill in default decreases clauses:  for functions and methods, and for loops
+      new InferDecreasesClause(this).FillInDefaultDecreasesClauses(module);
+
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is Method) {
+          body = ((Method)clbl).Body;
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+        }
+
+        if (body != null) {
+          var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
+          c.Visit(body);
+        }
+      }
+    }
+
+    private void ComputeIsRecursiveBit(ModuleDefinition module) {
+      // compute IsRecursive bit for mutually recursive functions and methods
+      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+        if (clbl is Function) {
+          var fn = (Function)clbl;
+          if (!fn.IsRecursive) {
+            // note, self-recursion has already been determined
+            int n = module.CallGraph.GetSCCSize(fn);
+            if (2 <= n) {
+              // the function is mutually recursive (note, the SCC does not determine self recursion)
+              fn.IsRecursive = true;
+            }
+          }
+
+          if (fn.IsRecursive && fn is ExtremePredicate) {
+            // this means the corresponding prefix predicate is also recursive
+            var prefixPred = ((ExtremePredicate)fn).PrefixPredicate;
+            if (prefixPred != null) {
+              prefixPred.IsRecursive = true;
+            }
+          }
+        } else {
+          var m = (Method)clbl;
+          if (!m.IsRecursive) {
+            // note, self-recursion has already been determined
+            int n = module.CallGraph.GetSCCSize(m);
+            if (2 <= n) {
+              // the function is mutually recursive (note, the SCC does not determine self recursion)
+            }
+          }
+        }
+      }
+
+      foreach (var rewriter in rewriters) {
+        rewriter.PostCyclicityResolve(module);
+      }
+    }
+
+    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl) {
+      if (decl is LiteralModuleDecl) {
         // The declaration is a literal module, so it has members and such that we need
         // to resolve. First we do refinement transformation. Then we construct the signature
         // of the module. This is the public, externally visible signature. Then we add in
@@ -650,14 +636,12 @@ namespace Microsoft.Dafny {
         var m = literalDecl.ModuleDef;
 
         var errorCount = reporter.ErrorCount;
-        if (m.RefinementQId != null)
-        {
+        if (m.RefinementQId != null) {
           ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
           m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
         }
 
-        foreach (var rewriter in rewriters)
-        {
+        foreach (var rewriter in rewriters) {
           rewriter.PreResolve(m);
         }
 
@@ -671,8 +655,7 @@ namespace Microsoft.Dafny {
         ResolveModuleExport(literalDecl, sig);
         var good = ResolveModuleDefinition(m, sig);
 
-        if (good && reporter.ErrorCount == preResolveErrorCount)
-        {
+        if (good && reporter.ErrorCount == preResolveErrorCount) {
           // Check that the module export gives a self-contained view of the module.
           CheckModuleExportConsistency(prog, m);
         }
@@ -684,30 +667,25 @@ namespace Microsoft.Dafny {
 
         prog.ModuleSigs[m] = sig;
 
-        foreach (var rewriter in rewriters)
-        {
-          if (!good || reporter.ErrorCount != preResolveErrorCount)
-          {
+        foreach (var rewriter in rewriters) {
+          if (!good || reporter.ErrorCount != preResolveErrorCount) {
             break;
           }
 
           rewriter.PostResolveIntermediate(m);
         }
 
-        if (good && reporter.ErrorCount == errorCount)
-        {
+        if (good && reporter.ErrorCount == errorCount) {
           m.SuccessfullyResolved = true;
         }
 
         Type.PopScope(tempVis);
 
-        if (reporter.ErrorCount == errorCount && !m.IsAbstract)
-        {
+        if (reporter.ErrorCount == errorCount && !m.IsAbstract) {
           // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-          CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
+          CompilationCloner cloner = new CompilationCloner();
           var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
           var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
-          compilationModuleClones.Add(m, nw);
           var oldErrorsOnly = reporter.ErrorsOnly;
           reporter.ErrorsOnly = true; // turn off warning reporting for the clone
           // Next, compute the compile signature
@@ -718,16 +696,14 @@ namespace Microsoft.Dafny {
           var compileSig = RegisterTopLevelDecls(nw, true);
           compileSig.Refines = refinementTransformer.RefinedSig;
           sig.CompileSignature = compileSig;
-          foreach (var exportDecl in sig.ExportSets.Values)
-          {
+          foreach (var exportDecl in sig.ExportSets.Values) {
             exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
           }
           // Now we're ready to resolve the cloned module definition, using the compile signature
 
           ResolveModuleDefinition(nw, compileSig);
 
-          foreach (var rewriter in rewriters)
-          {
+          foreach (var rewriter in rewriters) {
             rewriter.PostCompileCloneAndResolve(nw);
           }
 
@@ -736,45 +712,48 @@ namespace Microsoft.Dafny {
           Type.EnableScopes();
           reporter.ErrorsOnly = oldErrorsOnly;
         }
-      }
-      else if (decl is AliasModuleDecl alias)
-      {
+
+        if (reporter.ErrorCount != errorCount) {
+          return;
+        }
+
+        Type.PushScope(tempVis);
+        ComputeIsRecursiveBit(m);
+        FillInDecreasesClauses(m);
+        foreach (var iter in m.TopLevelDecls.OfType<IteratorDecl>()) {
+          reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(Reporter.Options, iter));
+        }
+        foreach (var rewriter in rewriters) {
+          rewriter.PostDecreasesResolve(m);
+        }
+        FillInAdditionalInformation(m);
+        CheckForFuelAdjustments(m);
+
+        Type.PopScope(tempVis);
+      } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
-        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter))
-        {
-          if (alias.Signature == null)
-          {
+        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter)) {
+          if (alias.Signature == null) {
             alias.Signature = p;
           }
-        }
-        else
-        {
+        } else {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
-      }
-      else if (decl is AbstractModuleDecl abs)
-      {
+      } else if (decl is AbstractModuleDecl abs) {
         ModuleSignature p;
-        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter))
-        {
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
           abs.OriginalSignature = p;
           abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs);
-        }
-        else
-        {
+        } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
-      }
-      else if (decl is ModuleExportDecl)
-      {
+      } else if (decl is ModuleExportDecl) {
         ((ModuleExportDecl)decl).SetupDefaultSignature();
 
         Contract.Assert(decl.Signature != null);
         Contract.Assert(decl.Signature.VisibilityScope != null);
-      }
-      else
-      {
+      } else {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
 
