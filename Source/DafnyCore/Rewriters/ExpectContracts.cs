@@ -17,6 +17,7 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(false);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly Dictionary<string, MemberDecl> newDeclarationsByName = new();
   private readonly CallRedirector callRedirector;
 
   public ExpectContracts(ErrorReporter reporter) : base(reporter) {
@@ -86,8 +87,6 @@ public class ExpectContracts : IRewriter {
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok;
 
-    // TODO need to generate resolved code.
-
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
@@ -97,12 +96,9 @@ public class ExpectContracts : IRewriter {
 
       var args = newMethod.Ins.Select(Expression.CreateIdentExpr).ToList();
       var outs = newMethod.Outs.Select(Expression.CreateIdentExpr).ToList();
-      var receiver = Resolver.GetReceiver(parent, origMethod, decl.tok);
-      var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
-      memberSelectExpr.Member = origMethod;
-      memberSelectExpr.TypeApplication_JustMember = new(); // TODO fix
-      memberSelectExpr.TypeApplication_AtEnclosingClass = new(); // TODO fix
-      var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
+      var applyExpr = ApplySuffix.MakeRawApplySuffix(tok, origMethod.Name, args);
+      var applyRhs = new ExprRhs(applyExpr);
+      var callStmt = new UpdateStmt(decl.RangeToken, outs, new List<AssignmentRhs>() { applyRhs });
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
       newMethod.Body = body;
@@ -112,14 +108,7 @@ public class ExpectContracts : IRewriter {
       newFunc.NameNode.Value = newName;
 
       var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
-      var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
-      var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
-        Function = origFunc,
-        TypeApplication_AtEnclosingClass = new(), // TODO fix
-        TypeApplication_JustFunction = new(), // TODO fix
-        Type = origFunc.ResultType,
-      };
-
+      var callExpr = ApplySuffix.MakeRawApplySuffix(tok, origFunc.Name, args);
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
@@ -141,8 +130,6 @@ public class ExpectContracts : IRewriter {
         body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
-      Resolver.RegisterByMethod(newFunc, parent);
-      
       newDecl = newFunc;
     }
 
@@ -150,7 +137,6 @@ public class ExpectContracts : IRewriter {
       // We especially want to remove {:extern} from the wrapper, but also any other attributes.
       newDecl.Attributes = null;
 
-      newDecl.EnclosingClass = parent; // TODO consider setting EnclosingClass when cloning
       wrappedDeclarations.Add(decl, newDecl);
       parent.Members.Add(newDecl);
       callRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
@@ -258,12 +244,30 @@ public class ExpectContracts : IRewriter {
   }
 
   public override void PostVerification(Program program) {
-    callRedirector.newRedirections = wrappedDeclarations;
-    foreach (var topLevelDecl in
-             program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (decl is ICallable callable) {
-          callRedirector.Visit(callable, decl);
+    foreach (var moduleDefinition in program.CompileModules) {
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        // Keep track of current declarations by name to avoid redirecting
+        // calls to functions or methods from obsolete modules.
+        foreach (var decl in topLevelDecl.Members) {
+          newDeclarationsByName.Add(decl.FullName, decl);
+        }
+      }
+
+      foreach (var (origCallee, newCallee) in wrappedDeclarations) {
+        var origCalleeFullName = origCallee.FullName;
+        var newCalleeFullName = callRedirector.newFullNames[newCallee];
+        if (newDeclarationsByName.ContainsKey(origCalleeFullName) &&
+            newDeclarationsByName.TryGetValue(newCalleeFullName, out var newCalleeDecl)) {
+          var origCalleeDecl = newDeclarationsByName[origCallee.FullName];
+          callRedirector.newRedirections.TryAdd(origCalleeDecl, newCalleeDecl);
+        }
+      }
+
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (decl is ICallable callable) {
+            callRedirector.Visit(callable, decl);
+          }
         }
       }
     }
