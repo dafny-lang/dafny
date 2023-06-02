@@ -501,11 +501,10 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var decl in sortedDecls) {
-        ResolveModuleDeclaration(prog, decl);
+        ResolveModuleDeclaration(prog, decl, origErrorCount);
       }
 
       if (reporter.ErrorCount != origErrorCount) {
-        // do nothing else
         return;
       }
       
@@ -624,9 +623,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl) {
+    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog);
+        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;

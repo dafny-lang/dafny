@@ -80,7 +80,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog)
+  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount)
   {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
@@ -179,7 +179,11 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       resolver.reporter.ErrorsOnly = oldErrorsOnly;
     }
 
-    if (resolver.reporter.ErrorCount != errorCount)
+    /* It's strange to stop here when _any_ module has had resolution errors.
+     * Either stop here when _this_ module has had errors,
+     * or completely stop module resolution after one of them has errors
+     */
+    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount)
     {
       return;
     }
