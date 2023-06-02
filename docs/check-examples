@@ -305,15 +305,18 @@ do
           . $text $isverbose > "$actualOut" 2> "$actualError"
           actualExit=$?
           if [ "$actualExit" != "$expectedExit" ]; then
-             echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
-             FAIL=1
-          else
-            act=`cat "$actualOut" | sed -e 's/^[*]*[ ]*//'`
-            dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
-            if [ -n "$dif" ]; then
-              echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
-              FAIL=1
-            fi
+             if [ "$actualExit" == "127" -a "$expectedExit" == "1" ]; then
+               echo EXIT CODE is $actualExit
+             else
+               echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
+               FAIL=1
+             fi
+          fi
+          act=`cat "$actualOut" | sed -e 's/^[*]*[ ]*//'`
+          dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
+          if [ -n "$dif" ]; then
+            echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
+            FAIL=1
           fi
         fi
       elif [ "$ischeck" == "1" ]; then ## Not cli though
