@@ -302,6 +302,7 @@ do
         else
           isverbose=
           if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
+          which dafny
           . $text $isverbose > "$actualOut" 2> "$actualError"
           actualExit=$?
           if [ "$actualExit" != "$expectedExit" ]; then
