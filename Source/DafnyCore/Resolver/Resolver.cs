@@ -461,7 +461,7 @@ namespace Microsoft.Dafny {
       if (reporter.ErrorCount != origErrorCount) {
         return;
       }
-      
+
       Type.DisableScopes();
       CheckDupModuleNames(prog);
 
@@ -943,7 +943,7 @@ namespace Microsoft.Dafny {
     public void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
-      
+
       var oldModuleInfo = moduleInfo;
       foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
