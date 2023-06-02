@@ -2577,13 +2577,13 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(ParensList(
           Expr(source, inLetExprBody, wStmts),
           Expr(index, inLetExprBody, wStmts),
-          Expr(value, inLetExprBody, wStmts)));
+          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Update");
         wr.Append(ParensList(
           Expr(index, inLetExprBody, wStmts),
-          Expr(value, inLetExprBody, wStmts)));
+          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
       }
     }
 

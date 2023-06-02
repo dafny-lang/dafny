@@ -2855,13 +2855,13 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(", ");
         TrExprToSizeT(index, inLetExprBody, wr, wStmts);
         wr.Write(", ");
-        wr.Append(Expr(value, inLetExprBody, wStmts));
+        wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
         wr.Write(")");
       } else {
         EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
         TrParenExpr(source, wSource, inLetExprBody, wSource);
         wIndex.Append(Expr(index, inLetExprBody, wSource));
-        wValue.Append(Expr(value, inLetExprBody, wSource));
+        wValue.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wSource));
       }
     }
 

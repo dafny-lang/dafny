@@ -223,7 +223,7 @@ module TailRecursion {
     var dt: IntList := Cons(8, Nil);
     var c: C := new C;
 
-    var s := [mi, dt, c];
+    var s: seq<Trait> := [mi, dt, c];
     for i := 0 to |s| {
       var p: Trait := s[i];
       p.Print();
@@ -231,6 +231,10 @@ module TailRecursion {
       p.B(31);
       print p.F(25), " ", p.G(25), "\n";
     }
+
+    // test compilation of additional expressions, to make sure the necessary coercions are used
+    s := s[2 := mi];
+    print s, "\n";
   }
 
   trait Trait {

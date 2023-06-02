@@ -1866,7 +1866,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(".update(");
       wr.Append(Expr(index, inLetExprBody, wStmts));
       wr.Write(", ");
-      wr.Append(Expr(value, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
       wr.Write(")");
     }
 

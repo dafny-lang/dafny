@@ -4764,6 +4764,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
+    protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      var result = new ConcreteSyntaxTree();
+      var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      w.Append(Expr(expr, inLetExprBody, wStmts));
+      return result;
+    }
+
     public ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var wr = result;

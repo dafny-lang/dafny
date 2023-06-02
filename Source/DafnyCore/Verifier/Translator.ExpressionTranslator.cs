@@ -571,10 +571,9 @@ namespace Microsoft.Dafny {
               Boogie.Expr seq = TrExpr(e.Seq);
               var seqType = e.Seq.Type.NormalizeExpand();
               if (seqType is SeqType) {
-                Type elmtType = cce.NonNull((SeqType)seqType).Arg;
                 Boogie.Expr index = TrExpr(e.Index);
                 index = translator.ConvertExpression(GetToken(e.Index), index, e.Index.Type, Type.Int);
-                Boogie.Expr val = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Value), elmtType);
+                Boogie.Expr val = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Value), e.Value.Type);
                 return translator.FunctionCall(GetToken(updateExpr), BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
               } else if (seqType is MapType) {
                 MapType mt = (MapType)seqType;

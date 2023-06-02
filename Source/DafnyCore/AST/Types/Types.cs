@@ -1968,6 +1968,8 @@ public abstract class CollectionType : NonProxyType {
     }
   }  // denotes the Domain type for a Map
   private Type arg;
+  public Type ValueArg => TypeArgs.Last();
+
   // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
   public bool HasTypeArg() {
     return arg != null;

@@ -1661,8 +1661,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(Expr(index, inLetExprBody, wStmts));
       }
       wr.Write(", ");
-      var inner = Expr(value, inLetExprBody, wStmts);
-      wr.Append(CoercionIfNecessary(value.Type, NativeObjectType, Token.NoToken, inner));
+      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
       wr.Write(")");
     }
 
