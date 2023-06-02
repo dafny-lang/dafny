@@ -19,7 +19,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     this.builtIns = builtIns;
   }
 
-  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
+  internal override void PostResolveIntermediate(ModuleDefinition m) {
     var components = m.CallGraph.TopologicallySortedComponents();
 
     foreach (var scComponent in components) {  // Visit the call graph bottom up, so anything we call already has its prequisites calculated

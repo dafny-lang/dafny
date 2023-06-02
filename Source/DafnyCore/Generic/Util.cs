@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
                 errors.SemErr(ErrorId.g_unicode_escape_is_too_large, t, "\\U{X..X} escape sequence must be less than 0x110000");
               }
               if (codePoint is >= 0xD800 and < 0xE000) {
-                errors.SemErr(ErrorId.g_unicode_escape_may_not_be_surogate, t, "\\U{X..X} escape sequence must not be a surrogate");
+                errors.SemErr(ErrorId.g_unicode_escape_may_not_be_surrogate, t, "\\U{X..X} escape sequence must not be a surrogate");
               }
             }
           }

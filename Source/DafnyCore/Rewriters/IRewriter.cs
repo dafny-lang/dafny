@@ -63,7 +63,7 @@ namespace Microsoft.Dafny {
     /// We heavily discourage AST rewriting after this stage, as automatic type checking will not take place anymore.
     /// </summary>
     /// <param name="moduleDefinition">A module definition after it is resolved and type-checked</param>
-    internal virtual void PostResolveIntermediate(Resolver resolver, ModuleDefinition moduleDefinition) {
+    internal virtual void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
       Contract.Requires(moduleDefinition != null);
     }
 

@@ -7,7 +7,7 @@ internal class QuantifierSplittingRewriter : IRewriter {
     Contract.Requires(reporter != null);
   }
 
-  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
+  internal override void PostResolveIntermediate(ModuleDefinition m) {
     var splitter = new Triggers.QuantifierSplitter();
     foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
       splitter.Visit(decl);

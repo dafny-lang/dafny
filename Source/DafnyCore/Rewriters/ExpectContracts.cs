@@ -163,7 +163,7 @@ public class ExpectContracts : IRewriter {
   /// ghostness information, attributes and call targets.
   /// </summary>
   /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
-  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition moduleDefinition) {
+  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
     // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
     List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 

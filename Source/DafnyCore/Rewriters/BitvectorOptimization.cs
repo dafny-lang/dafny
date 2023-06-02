@@ -14,7 +14,7 @@ public class BitvectorOptimization : IRewriter {
     this.builtIns = builtIns;
   }
 
-  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
+  internal override void PostResolveIntermediate(ModuleDefinition m) {
     var visitor = new BitvectorOptimizationVisitor(Reporter.Options, builtIns);
     foreach (var decl in ModuleDefinition.AllItersAndCallables(m.TopLevelDecls)) {
       visitor.Visit(decl);

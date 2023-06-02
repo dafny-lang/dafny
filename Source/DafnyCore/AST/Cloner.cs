@@ -632,5 +632,4 @@ namespace Microsoft.Dafny {
       return null;
     }
   }
-
 }

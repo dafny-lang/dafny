@@ -152,7 +152,7 @@ public class AutoContractsRewriter : IRewriter {
     }
   }
 
-  internal override void PostResolveIntermediate(Resolver resolver, ModuleDefinition m) {
+  internal override void PostResolveIntermediate(ModuleDefinition m) {
     foreach (var d in m.TopLevelDecls) {
       bool sayYes = true;
       if (d is ClassLikeDecl && Attributes.ContainsBool(d.Attributes, "autocontracts", ref sayYes) && sayYes) {
