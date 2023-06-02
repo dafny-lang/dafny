@@ -3,7 +3,7 @@ using System.IO;
 
 namespace XUnitExtensions.Lit; 
 
-public class NonUniformTestCommand  : ILitCommand {
+public class NonUniformTestCommand : ILitCommand {
   private NonUniformTestCommand(string reason) {
     Reason = reason;
   }

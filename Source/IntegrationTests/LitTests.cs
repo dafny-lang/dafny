@@ -48,7 +48,7 @@ namespace IntegrationTests {
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
       InvokeMainMethodsDirectly = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TEST_IN_PROCESS") == "true";
-      
+
       // Allow extra arguments to Dafny subprocesses. This can be especially
       // useful for capturing prover logs.
       var extraDafnyArguments =
@@ -221,7 +221,7 @@ namespace IntegrationTests {
 
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
-        
+
         if (leafCommand is NonUniformTestCommand) {
           return false;
         }
@@ -242,33 +242,30 @@ namespace IntegrationTests {
 
       return false;
     }
-    
+
     private static void ConvertToMultiBackendTestIfNecessary(string path) {
       var testCase = LitTestCase.Read(path, Config);
 
       if (!NeedsConverting(testCase)) {
         return;
       }
-      
-      // TODO: HACK
-      var wasLegacyCli = testCase.Commands.Any(c => c.ToString().Contains("/compile"));
-      
+
       bool IgnoreArgument(string arg, string testFilePath) {
         if (arg == testFilePath) {
           return true;
         }
-        
+
         if (DafnyDriver.NewDefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
         if (DafnyDriver.DefaultArgumentsForTesting.Contains(arg)) {
           return true;
         }
-        
+
         if (arg is "%dafny" or "%basedafny" or "%args" or "verify" or "run" or "--no-verify" or "/noVerify") {
           return true;
         }
-      
+
         if (arg.StartsWith("/compile:") || arg.StartsWith("/compileTarget:")) {
           return true;
         }
@@ -279,49 +276,54 @@ namespace IntegrationTests {
         if (arg.StartsWith("/print") || arg.StartsWith("/dprint") || arg.StartsWith("/rprint")) {
           return true;
         }
-      
+
         return false;
       }
-      
+
       var commonExtraOptions = new HashSet<string>();
       var extraOptionsLocked = false;
       string? expectFile = null;
       // null is used here to mean /compile:0 or dafny verify
       var backends = new List<string?>();
+      var wasLegacyCli = false;
       foreach (var command in testCase.Commands) {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
           case ShellLitCommand or DafnyDriverLitCommand: {
-            var arguments = GetDafnyArguments(leafCommand);
-            if (arguments == null) {
-              throw new ArgumentException();
-            }
-            
-            var backend = GetBackendFromCommand(arguments);
-            if (backends.Contains(backend)) {
-              throw new ArgumentException($"More than one command for the same backend: {backend}");
-            }
-            backends.Add(backend);
-            
-            // Filter out options we can ignore
-            var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
-            if (extraOptionsLocked) {
-              foreach (string arg in options) {
-                if (!commonExtraOptions.Contains(arg)) {
-                  throw new ArgumentException($"Inconsistent option: {arg}");
+              var arguments = GetDafnyArguments(leafCommand);
+              if (arguments == null) {
+                throw new ArgumentException();
+              }
+
+              if (arguments.Any(arg => arg.StartsWith("/compile"))) {
+                wasLegacyCli = true;
+              }
+
+              var backend = GetBackendFromCommand(arguments);
+              if (backends.Contains(backend)) {
+                throw new ArgumentException($"More than one command for the same backend: {backend}");
+              }
+              backends.Add(backend);
+
+              // Filter out options we can ignore
+              var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
+              if (extraOptionsLocked) {
+                foreach (string arg in options) {
+                  if (!commonExtraOptions.Contains(arg)) {
+                    throw new ArgumentException($"Inconsistent option: {arg}");
+                  }
+                }
+              } else {
+                foreach (var arg in options) {
+                  commonExtraOptions.Add(arg);
+                }
+                if (backend != null) {
+                  extraOptionsLocked = true;
                 }
               }
-            } else {
-              foreach (var arg in options) {
-                commonExtraOptions.Add(arg);
-              }
-              if (backend != null) {
-                extraOptionsLocked = true;
-              }
-            }
 
-            break;
-          }
+              break;
+            }
           case DiffCommand diffCommand:
             // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
             expectFile = diffCommand.ExpectedPath;
@@ -330,12 +332,12 @@ namespace IntegrationTests {
             throw new ArgumentException($"Unrecognized command type: {command}");
         }
       }
-      
+
       if (expectFile == null) {
         throw new ArgumentException($"No %diff command found");
       }
       var expectContent = File.ReadAllText(expectFile);
-      
+
       // Partition according to the "\nDafny program verifier did not attempt verification/finished with..." lines
       var delimiter = new Regex("\nDafny program verifier[^\n]*\n");
       // TODO: why skip(1)?
@@ -368,9 +370,9 @@ namespace IntegrationTests {
         }
       }
       File.WriteAllText(expectFile, commonExpectChunk);
-      
+
       var testFileLines = File.ReadAllLines(testCase.FilePath);
-      
+
       var multiBackendCommand = "// RUN: %testDafnyForEachCompiler \"%s\"";
       var testDafnyExtraArgs = new SortedSet<string>();
       foreach (var extraOption in commonExtraOptions) {
@@ -391,7 +393,7 @@ namespace IntegrationTests {
       if (testDafnyExtraArgs.Any()) {
         multiBackendCommand += " -- " + string.Join(" ", testDafnyExtraArgs);
       }
-      
+
       var newLines = new List<string> {
         multiBackendCommand,
       };
@@ -400,7 +402,7 @@ namespace IntegrationTests {
         // This is by far the most common source of inconsistent output.
         newLines.Insert(0, "// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108");
       }
-      
+
       File.WriteAllLines(testCase.FilePath, newLines);
     }
 
@@ -416,14 +418,14 @@ namespace IntegrationTests {
       return command;
     }
 
-    private static IEnumerable<string>? GetDafnyArguments(ILitCommand command) {
+    private static IList<string>? GetDafnyArguments(ILitCommand command) {
       switch (command) {
         case ShellLitCommand slc:
           if (slc.Arguments.Length >= 2 && slc.Arguments[0] == "dotnet" && slc.Arguments[1].EndsWith("Dafny.dll")) {
             return slc.Arguments[2..];
           } else {
             return null;
-          } 
+          }
         case DafnyDriverLitCommand ddlc:
           return ddlc.Arguments;
         default:
@@ -432,7 +434,7 @@ namespace IntegrationTests {
     }
 
     private static string? GetBackendFromCommand(IEnumerable<string> arguments) {
-      
+
       if (arguments.Any(arg => arg is "/compile:0" or "verify")) {
         return null;
       }

@@ -192,7 +192,7 @@ namespace XUnitExtensions.Lit {
       .Select(e => e!)
       .ToList();
   }
-  
+
   public (int, string, string) Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     if (options.FileToCheck == null) {

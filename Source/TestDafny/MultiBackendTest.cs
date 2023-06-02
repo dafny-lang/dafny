@@ -26,7 +26,7 @@ public class ForEachCompilerOptions {
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
 public class FeaturesOptions {
-  [Value(1)] 
+  [Value(1)]
   public IEnumerable<string> OtherArgs { get; set; } = Array.Empty<string>();
 }
 
@@ -81,7 +81,7 @@ public class MultiBackendTest {
     // var testDir = Path.GetDirectoryName(options.TestFile!);
     // var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
     // var tmpPrint = Path.Join(testDir, "Output", $"{fileName}.print");
-    
+
     var dafnyArgs = new List<string>() {
       $"verify",
       options.TestFile!
@@ -128,7 +128,7 @@ public class MultiBackendTest {
           // Such as empty constructors with ensures clauses, generated from iterators
           continue;
         }
-        
+
         // Check for backend-specific exceptions (because of known bugs or inconsistencies)
         var expectedOutput = commonExpectedOutput;
         string? checkFile = null;
@@ -217,7 +217,7 @@ public class MultiBackendTest {
 
       return checkResult;
     }
-    
+
     output.WriteLine("Execution failed, for reasons other than known unsupported features. Output:");
     output.WriteLine(outputString);
     output.WriteLine("Error:");
