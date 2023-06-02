@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype List<A> = Nil | Cons(A, List) | ICons(int, List)
 datatype TwoLists<A> = Two(List, List)

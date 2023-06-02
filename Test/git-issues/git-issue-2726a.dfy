@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:cs "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 const digits := ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 

@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /print:"%t.print" /env:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 newtype Handful = x | 0 <= x < 0x8000  // this type turns native
 newtype Abundance = y | -20 <= y < 0x200_0000_0000  // still fits inside a "long"
