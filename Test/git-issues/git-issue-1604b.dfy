@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --verification-error-limit:0
+// RUN: %dafny /compile:3 /errorLimit:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // Double constraints. Will this still work?
 
