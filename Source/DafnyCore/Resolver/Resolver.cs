@@ -504,6 +504,11 @@ namespace Microsoft.Dafny {
         ResolveModuleDeclaration(prog, decl);
       }
 
+      if (reporter.ErrorCount != origErrorCount) {
+        // do nothing else
+        return;
+      }
+      
       Type.DisableScopes();
       CheckDupModuleNames(prog);
 
