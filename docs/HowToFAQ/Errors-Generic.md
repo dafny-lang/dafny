@@ -34,7 +34,7 @@ When using the option `--unicode-chars=true` all unicode characters are written 
 
 <!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-const c := '\U00AABBCC'
+const c := '\U{00AABBCC}'
 ```
 
 When using the option `--unicode-chars=true` all unicode characters are written with `\\U`, not `\\`.
@@ -43,26 +43,25 @@ When using the option `--unicode-chars=true` all unicode characters are written 
 
 <!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-const c := '\U110011'
+const c := '\U{110011}'
 ```
 
 Unicode characters (with `--unicode-chars=true`) are defined only up through `0x110000`.
 
-## **Error: \\U{X..X} escape sequence must be less than 0x110000** {#g_unicode_escape_may_not_be_surrogate}
+## **Error: \\U{X..X} escape sequence must not be a surrogate** {#g_unicode_escape_may_not_be_surrogate}
 
 <!-- %check-resolve %options --unicode-char=true -->
 ```dafny
-const c := '\UD900'
+const c := '\U{D900}'
 ```
 
 The allowed range of unicode characters in Dafny excludes the surrogate characters in the range 0xD800 .. 0xE000.
-<!-- TODO - need a reference -->
 
 ## **Error: \\U escape sequences are not permitted when Unicode chars are disabled** {#g_U_unicode_chars_are_disallowed}
 
 <!-- %check-resolve %options --unicode-char=false -->
 ```dafny
-const c := '\UD000'
+const c := '\U{D000}'
 ```
 
 With `--unicode-chars=false`, all unicode characters are written with a lower-case `u`.
@@ -70,8 +69,16 @@ With `--unicode-chars=false`, all unicode characters are written with a lower-ca
 
 <!-- FILE DafnyCore/DafnyOptions.cs -->
 
-## **Error: _message_** {#g_cli_option_error}
+## **Error: Option _name_ unrecognized or unsupported in ':options' attributes.** {#g_option_error}
 
-<!-- TODO -->
+<!-- %check-resolve -->
+```dafny
+module {:options "ZZZ"} M {}
+```
+
+Dafny allows certain attributes to be defined for specific scopes (such as modules) in a program.
+Only a small set of attributes are permitted to be locally redefined.
+The error message is indicating that the given attribute is not one of them.
+Note that some attributes (e.g. `--unicode-char`) must be consisten across the whole program.
 
 

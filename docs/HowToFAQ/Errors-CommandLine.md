@@ -84,13 +84,15 @@ target programming language being used, such as `.dll` files for C#
 or `.java` or `.jar` files for Java. The stated extension is not
 recognized.
 
+<!--
 ## **Error: The command-line contains no .dfy files** {#cli-no-dafny-file_2}
 
-<!-- TODO - this appears to be no longer reachable -->
+ TODO - this appears to be no longer reachable -->
 
+<!--
 ## **Error: The command-line contains no .dfy files** {#cli-no-dafny-folder}
 
-<!-- TODO - this appears to be no longer reachable -->
+ TODO - this appears to be no longer reachable -->
 
 ## **Error: Only one .dfy file can be specified for testing** {#cli-test-generation}
 

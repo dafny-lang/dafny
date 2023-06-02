@@ -117,11 +117,6 @@ dir=`cd "$dir" && pwd`
 dafny="$dir/../Scripts/dafny"
 outdir="$dir/../Test/docexamples"
 
-defaultCommand=
-defaultExit=
-defaultLang=
-useHeadings=0
-checkIds=0
 coverage=0
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
@@ -138,9 +133,14 @@ ANYFAIL=0
 
 ## Loop over all remaining command-line arguments
 for file in $@ ; do
-if [ "$coverage" == "1" ]; then echo "FILE $file" ; fi
 dir=$(dirname "$file")
 dir=`cd "$dir" && pwd`
+
+defaultCommand=
+defaultExit=
+defaultLang=
+useHeadings=0
+checkIds=0
 
 ## Temporary files
 text="$dir/text.dfy"
@@ -361,11 +361,11 @@ do
         else
           if [ "$command" == "%check-legacy" ]; then
             isverbose=-compileVerbose:$checkIds
-            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut"
+            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut"
+            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut" 2> "$actualError"
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
