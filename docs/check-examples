@@ -70,6 +70,7 @@
 ##    %use <file> -- append to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %nomsg -- forget the error pattern from the heading (in the case of subsequent working examples in the explanation)
 ##    %first -- only look at the first error message produced (usually because the error recovery is poor)
+##    %err -- check stderr output instead of stdout
 ##    %exit <n> -- set the expected exit code of the command.
 ##       If not set, the default set in the %default command is used.
 ##       If that is not set,  The default exit code is
@@ -147,6 +148,7 @@ text="$dir/text.dfy"
 actualOut="$dir/actual_out.tmp"
 actualMsgs="$dir/actual_msgs.tmp"
 actualError="$dir/actual_error.tmp"
+tocheck="$actualOut"
 
 ## Whether this file fails
 FAIL=0
@@ -161,8 +163,9 @@ expectedExit=
 command=
 expectFile=
 options=( )
-default=0
 first=0
+checkerr=0
+default=0
 globalDefaultExit=
 ## Read and process each line of the file.  The file is input on stdin 
 ## by redirection after the 'done' corresponding to this while-do
@@ -214,6 +217,9 @@ do
         elif [ "${contents[0]}" == "%exit" ]; then
           expectedExit=${contents[1]}
           contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%err" ]; then
+          tocheck="$actualError"
+          contents=( ${contents[@]:1} )
         elif [ "${contents[0]}" == "%first" ]; then
           first=1
           contents=( ${contents[@]:1} )
@@ -302,21 +308,28 @@ do
         else
           isverbose=
           if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-          which dafny
           . $text $isverbose > "$actualOut" 2> "$actualError"
           actualExit=$?
           if [ "$actualExit" != "$expectedExit" ]; then
              if [ "$actualExit" == "127" -a "$expectedExit" == "1" ]; then
                echo EXIT CODE is $actualExit
+               which dafny
              else
                echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
                FAIL=1
              fi
           fi
-          act=`cat "$actualOut" | sed -e 's/^[*]*[ ]*//'`
+          if [ "$first" == "1" ]; then
+            act=`cat "$tocheck" | head -1 | sed -e 's/^.*Error/Error/'`
+          else
+            act=`cat "$tocheck" | sed -e 's/^.*Error/Error/'`
+          fi
           dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
           if [ -n "$dif" ]; then
             echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
+            FAIL=1
+          elif [ -z "$act" -a "$useHeadings" == "1" ]; then
+            echo "NO OUTPUT TO COMPARE"
             FAIL=1
           fi
         fi
@@ -448,7 +461,6 @@ do
                 cat "$actualOut"
               fi
             else
-              echo EXPECT FILE $expect DOES NOT EXIST
               cat "$actualOut"
               FAIL=1
             fi
@@ -463,6 +475,8 @@ do
       expect=
       expectedExit=
       options=( )
+      first=0
+      tocheck="$actualOut"
   fi
 done < "$file"
 rm -rf *.tmp $text.*
