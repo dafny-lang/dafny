@@ -83,6 +83,7 @@ namespace XUnitExtensions.Lit {
       if (outputFile != null) {
         outputWriters.Add(new StreamWriter(outputFile, append));
       }
+      inputReader = inputFile != null ? new StreamReader(inputFile) : inputReader;
 
       var errorWriters = new List<TextWriter> { errWriter };
       if (errorFile != null) {
