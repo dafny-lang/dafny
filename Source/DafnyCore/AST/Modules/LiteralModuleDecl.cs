@@ -80,8 +80,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount)
-  {
+  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -93,14 +92,12 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     var module = ModuleDef;
 
     var errorCount = resolver.reporter.ErrorCount;
-    if (module.RefinementQId != null)
-    {
+    if (module.RefinementQId != null) {
       ModuleDecl md = resolver.ResolveModuleQualifiedId(module.RefinementQId.Root, module.RefinementQId, resolver.reporter);
       module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in resolver.rewriters)
-    {
+    foreach (var rewriter in resolver.rewriters) {
       rewriter.PreResolve(module);
     }
 
@@ -114,8 +111,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     resolver.ResolveModuleExport(this, sig);
     var good = module.ResolveModuleDefinition(sig, resolver);
 
-    if (good && resolver.reporter.ErrorCount == preResolveErrorCount)
-    {
+    if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
       resolver.CheckModuleExportConsistency(prog, module);
     }
@@ -127,25 +123,21 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     prog.ModuleSigs[module] = sig;
 
-    foreach (var rewriter in resolver.rewriters)
-    {
-      if (!good || resolver.reporter.ErrorCount != preResolveErrorCount)
-      {
+    foreach (var rewriter in resolver.rewriters) {
+      if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
 
       rewriter.PostResolveIntermediate(module);
     }
 
-    if (good && resolver.reporter.ErrorCount == errorCount)
-    {
+    if (good && resolver.reporter.ErrorCount == errorCount) {
       module.SuccessfullyResolved = true;
     }
 
     Type.PopScope(tempVis);
 
-    if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract)
-    {
+    if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract) {
       // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
       CompilationCloner cloner = new CompilationCloner();
       var compileName = new Name(module.NameNode.RangeToken, module.GetCompileName(resolver.Options) + "_Compile");
@@ -160,16 +152,14 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       var compileSig = resolver.RegisterTopLevelDecls(nw, true);
       compileSig.Refines = resolver.refinementTransformer.RefinedSig;
       sig.CompileSignature = compileSig;
-      foreach (var exportDecl in sig.ExportSets.Values)
-      {
+      foreach (var exportDecl in sig.ExportSets.Values) {
         exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
       }
       // Now we're ready to resolve the cloned module definition, using the compile signature
 
       nw.ResolveModuleDefinition(compileSig, resolver);
 
-      foreach (var rewriter in resolver.rewriters)
-      {
+      foreach (var rewriter in resolver.rewriters) {
         rewriter.PostCompileCloneAndResolve(nw);
       }
 
@@ -183,21 +173,20 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
      * Either stop here when _this_ module has had errors,
      * or completely stop module resolution after one of them has errors
      */
-    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount)
-    {
+    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount) {
       return;
     }
 
     Type.PushScope(tempVis);
     resolver.ComputeIsRecursiveBit(module);
+    resolver.SolveAllTypeConstraints();
     resolver.FillInDecreasesClauses(module);
-    foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>())
-    {
+
+    foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in resolver.rewriters)
-    {
+    foreach (var rewriter in resolver.rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 
