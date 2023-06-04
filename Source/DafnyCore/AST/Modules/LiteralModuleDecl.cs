@@ -147,7 +147,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       Type.DisableScopes();
       
       ModuleDef.ResolveModuleDefinition(sig, resolver);
-
       Type.EnableScopes();
       resolver.reporter.ErrorsOnly = oldErrorsOnly;
     }

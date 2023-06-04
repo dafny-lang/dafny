@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Xunit.Abstractions;
@@ -78,17 +79,17 @@ namespace XUnitExtensions.Lit {
       this.errorFile = errorFile;
     }
 
-    public (int, string, string) Execute(TextReader inReader, TextWriter outWriter, TextWriter errWriter) {
-      var outputWriters = new List<TextWriter>() { outWriter };
+    public (int, string, string) Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
+      var outputWriters = new List<TextWriter> { outWriter };
       if (outputFile != null) {
         outputWriters.Add(new StreamWriter(outputFile, append));
       }
+      inputReader = inputFile != null ? new StreamReader(inputFile) : inputReader;
 
-      var errorWriters = new List<TextWriter>() { errWriter };
+      var errorWriters = new List<TextWriter> { errWriter };
       if (errorFile != null) {
         errorWriters.Add(new StreamWriter(errorFile, append));
       }
-      var inputReader = inputFile != null ? new StreamReader(inputFile) : inReader;
       var result = command.Execute(inputReader,
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
