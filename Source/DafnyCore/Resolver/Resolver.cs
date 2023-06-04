@@ -504,7 +504,6 @@ namespace Microsoft.Dafny {
         ResolveModuleDeclaration(prog, decl, origErrorCount);
       }
 
-      DafnyMain.MaybePrintProgram(prog, prog.Options.DafnyPrintResolvedFile, true);
       if (reporter.ErrorCount != origErrorCount) {
         return;
       }
