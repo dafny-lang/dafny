@@ -179,7 +179,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PushScope(tempVis);
     resolver.ComputeIsRecursiveBit(module);
-    resolver.SolveAllTypeConstraints();
     resolver.FillInDecreasesClauses(module);
 
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
