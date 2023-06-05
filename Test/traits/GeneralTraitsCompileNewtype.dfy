@@ -235,6 +235,23 @@ module TailRecursion {
     // test compilation of additional expressions, to make sure the necessary coercions are used
     s := s[2 := mi];
     print s, "\n";
+
+/*
+    var m := map[0 := mi, 1 := dt];//[2 := c][3 := mi][2 := mi];
+    m := m[2 := c];
+    m := [3 := mi];
+    m := [2 := mi];
+    print m, "\n";
+*/
+/*
+    var p: Trait := mi;
+    var pair: (Trait, Trait) := (mi, p);
+    pair := (p, mi);
+    print pair, "\n";
+ */
+//    var arrFromDisplay := new Trait[] [mi, dt, c];
+//    var arrFromLambda := new Trait[3](i requires 0 <= i < 3 => s[i]);
+//    var arr := new Trait[3]; // error: cannot initialize Trait
   }
 
   trait Trait {
