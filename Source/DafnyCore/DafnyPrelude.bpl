@@ -1019,7 +1019,7 @@ axiom (forall s0: Seq Box, s1: Seq Box, n: int :: { Seq#Index(Seq#Append(s0,s1),
   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
 
 function Seq#Update<T>(Seq T, int, T): Seq T;
-axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Length(Seq#Update(s,i,v)) }
+axiom (forall s: Seq Box, i: int, v: Box :: { Seq#Length(Seq#Update(s,i,v)) }
   0 <= i && i < Seq#Length(s) ==> Seq#Length(Seq#Update(s,i,v)) == Seq#Length(s));
 axiom (forall s: Seq Box, i: int, v: Box, n: int :: { Seq#Index(Seq#Update(s,i,v),n) }
   0 <= n && n < Seq#Length(s) ==>
@@ -1127,16 +1127,16 @@ axiom (forall h: Heap, i: int, v: Box, a: ref ::
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
 
 // Commutability of Take and Drop with Update.
-axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+axiom (forall s: Seq Box, i: int, v: Box, n: int ::
         { Seq#Take(Seq#Update(s, i, v), n) }
         0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
-axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+axiom (forall s: Seq Box, i: int, v: Box, n: int ::
         { Seq#Take(Seq#Update(s, i, v), n) }
         n <= i && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
-axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+axiom (forall s: Seq Box, i: int, v: Box, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
         0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
-axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
+axiom (forall s: Seq Box, i: int, v: Box, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
         0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 // Extension axiom, triggers only on Takes from arrays.
