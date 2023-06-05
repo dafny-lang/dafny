@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
-    ModuleSignature moduleInfo = null;
+    internal ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();

@@ -316,6 +316,51 @@ namespace Microsoft.Dafny {
       }
     }
 
+    int Height(TopLevelDecl d) {
+      if (d is TopLevelDeclWithMembers md && md.ParentTraitHeads.Count != 0) {
+        return md.ParentTraitHeads.Max(Height) + 1;
+      } else if (d is TraitDecl { IsObjectTrait: true }) {
+        // object is at height 0
+        return 0;
+      } else if (DPreType.IsReferenceTypeDecl(d)) {
+        // any other reference type implicitly has "object" as a parent, so the height is 1
+        return 1;
+      } else {
+        return 0;
+      }
+    }
+
+    /// <summary>
+    /// Return "true" if "super" is a super-(pre)type of "sub".
+    /// Otherwise, return "false".
+    /// Note, if either "super" or "sub" contains a type proxy, then "false" is returned.
+    /// </summary>
+    public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
+      var subAncestors = new HashSet<TopLevelDecl>();
+      ComputeAncestors(sub.Decl, subAncestors);
+      if (!subAncestors.Contains(super.Decl)) {
+        return false;
+      }
+      var s = sub.AsParentType(super.Decl, this);
+      var n = super.Decl.TypeArgs.Count;
+      Contract.Assert(super.Arguments.Count == n);
+      Contract.Assert(s.Arguments.Count == n);
+      for (var i = 0; i < n; i++) {
+        var superI = super.Arguments[i].Normalize() as DPreType;
+        var subI = s.Arguments[i].Normalize() as DPreType;
+        if (superI == null || subI == null) {
+          return false;
+        }
+        if (super.Decl.TypeArgs[i].Variance != TypeParameter.TPVariance.Contra && !IsSuperPreTypeOf(superI, subI)) {
+          return false;
+        }
+        if (super.Decl.TypeArgs[i].Variance != TypeParameter.TPVariance.Co && !IsSuperPreTypeOf(subI, superI)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     public static bool IsBitvectorName(string name, out int width) {
       Contract.Requires(name != null);
       if (name.StartsWith("bv")) {
