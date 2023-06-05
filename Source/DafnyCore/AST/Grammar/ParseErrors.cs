@@ -137,7 +137,7 @@ public class ParseErrors {
     p_deprecated_statement_refinement,
     p_internal_exception,
     p_file_has_no_code,
-
+    p_general_traits_beta,
   }
 
   static ParseErrors() {
@@ -151,6 +151,10 @@ Such repetition would be superfluous even if allowed.
     Add(ErrorId.p_abstract_not_allowed,
     @"
 Only modules may be declared abstract.
+", Remove(true));
+
+    Add(ErrorId.p_general_traits_beta,
+      @"Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:1.
 ", Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,

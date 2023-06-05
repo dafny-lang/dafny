@@ -1173,7 +1173,7 @@ namespace Microsoft.Dafny {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
-          resolver.reporter.Deprecated(MessageSource.Resolver, ErrorRegistry.NoneId, tok,
+          resolver.reporter.Deprecated(MessageSource.Resolver, ResolutionErrors.ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{failureSupportingType}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {

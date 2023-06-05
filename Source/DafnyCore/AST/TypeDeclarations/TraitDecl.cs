@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.Dafny.Auditor;
+using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
