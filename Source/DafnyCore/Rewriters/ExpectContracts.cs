@@ -150,22 +150,6 @@ public class ExpectContracts : IRewriter {
   /// </summary>
   /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
   internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-    // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-    List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
-
-    // Find module members to wrap.
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (ShouldGenerateWrapper(decl)) {
-          membersToWrap.Add((topLevelDecl, decl));
-        }
-      }
-    }
-
-    // Generate a wrapper for each of the members identified above.
-    foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(topLevelDecl, decl);
-    }
   }
 
   /// <summary>
@@ -244,6 +228,34 @@ public class ExpectContracts : IRewriter {
   }
 
   public override void PostVerification(Program program) {
+    var resolver = new Resolver(program.Options);
+    // Turn off error reporting?
+    var literalModules = resolver.DetermineDependencies(program);
+    var cloner = new Cloner();
+    
+    foreach (var literalModule in literalModules.GetVertices().Select(v => v.N).OfType<LiteralModuleDecl>()) {
+      literalModule.ModuleDef = cloner.CloneModuleDefinition(literalModule.ModuleDef, literalModule.ModuleDef.EnclosingModule);
+      
+      // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+
+      // Find module members to wrap.
+      foreach (var topLevelDecl in literalModule.ModuleDef.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (ShouldGenerateWrapper(decl)) {
+            membersToWrap.Add((topLevelDecl, decl));
+          }
+        }
+      }
+
+      // Generate a wrapper for each of the members identified above.
+      foreach (var (topLevelDecl, decl) in membersToWrap) {
+        GenerateWrapper(topLevelDecl, decl);
+      }
+      
+      literalModule.ResolveLiteralModuleDeclaration(resolver, program, resolver.Reporter.ErrorCount);
+    }
+    
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         // Keep track of current declarations by name to avoid redirecting

@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
 
     internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
-    readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
+    private Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>(); // TODO remove init value?
     public ModuleSignature systemNameInfo = null;
     public RefinementTransformer refinementTransformer;
 
@@ -395,22 +395,11 @@ namespace Microsoft.Dafny {
       // and topleveldecls
       prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
-      var bindings = new ModuleBindings(null);
-      var b = BindModuleNames(prog.DefaultModuleDef, bindings);
-      bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
       if (reporter.ErrorCount > 0) {
         return;
       } // if there were errors, then the implict ModuleBindings data structure invariant
 
-      // is violated, so Processing dependencies will not succeed.
-      ProcessDependencies(prog.DefaultModule, b, dependencies);
-      // check for cycles in the import graph
-      foreach (var cycle in dependencies.AllCycles()) {
-        ReportCycleError(cycle, m => m.tok,
-          m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
-          "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
-      }
-
+      dependencies = DetermineDependencies(prog);
       if (reporter.ErrorCount > 0) {
         return;
       } // give up on trying to resolve anything else
@@ -474,6 +463,25 @@ namespace Microsoft.Dafny {
       foreach (var rewriter in prog.Rewriters) {
         rewriter.PostResolve(prog);
       }
+    }
+
+    public Graph<ModuleDecl> DetermineDependencies(Program program)
+    {
+      var result = new Graph<ModuleDecl>();
+      var bindings = new ModuleBindings(null);
+      var moduleBindings = BindModuleNames(program.DefaultModuleDef, bindings);
+      bindings.BindName(program.DefaultModule.Name, program.DefaultModule, moduleBindings);
+      // is violated, so Processing dependencies will not succeed.
+      ProcessDependencies(program.DefaultModule, moduleBindings, result);
+      // check for cycles in the import graph
+      foreach (var cycle in result.AllCycles())
+      {
+        ReportCycleError(cycle, m => m.tok,
+          m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
+          "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
+      }
+
+      return result;
     }
 
     public void CheckForFuelAdjustments(ModuleDefinition module) {
