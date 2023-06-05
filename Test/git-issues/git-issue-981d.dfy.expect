@@ -11,5 +11,5 @@ git-issue-981d.dfy(50,9): Error: Duplicate member name: T3
 git-issue-981d.dfy(51,9): Error: Duplicate member name: T3
 git-issue-981d.dfy(53,9): Error: Duplicate member name: T4
 git-issue-981d.dfy(52,8): Error: duplicate declaration for name T4
-git-issue-981d.dfy(54,8): Error: a module that already contains a top-level declaration 'T4?' is not allowed to declare a class 'T4'
+git-issue-981d.dfy(54,8): Error: a module that already contains a top-level declaration 'T4?' is not allowed to declare a reference type (class) 'T4'
 14 resolution/type errors detected in git-issue-981d.dfy

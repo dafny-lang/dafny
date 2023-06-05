@@ -234,7 +234,7 @@ partial class Resolver {
         var e = (ConversionExpr)expr;
         if (e.ToType.IsRefType) {
           var fromType = e.E.Type;
-          Contract.Assert(fromType.IsRefType);
+          Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) || fromType.IsRefType);
           if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
             // looks good
           } else {
@@ -251,6 +251,8 @@ partial class Resolver {
         } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
           resolver.ReportError(ErrorId.r_never_succeeding_type_test, e.tok,
             "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
+        } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
+          // it's fine
         } else if (!e.ToType.IsRefType) {
           resolver.ReportError(ErrorId.r_unsupported_type_test, e.tok,
             "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);

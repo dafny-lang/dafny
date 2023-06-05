@@ -160,14 +160,14 @@ method SetComprehensionParsingRegression0()
 
 datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
 {
-  var x: int  // error: mutable fields not allowed in datatypes
+  var x: int  // mutable fields not allowed in datatypes, but this is not checked by the parser (any more)
 }
 newtype Pos = x | 0 < x witness 1
 {
-  var x: int  // error: mutable fields not allowed in newtypes
+  var x: int  // mutable fields not allowed in newtypes, but this is not checked by the parser (any more)
 }
 type Opaque {
-  var x: int  // error: mutable field not allowed in abstract type
+  var x: int  // mutable field not allowed in opaque type, but this is not checked by the parser (any more)
 }
 
 // ------------------------- nameonly parameters ------------------------------
