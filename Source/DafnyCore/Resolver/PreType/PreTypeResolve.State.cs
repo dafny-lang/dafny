@@ -317,10 +317,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(sub != null);
         Contract.Requires(tok != null);
         Contract.Requires(errorFormatString != null);
-#if DEBUG
         Contract.Assert(super != null);
         Contract.Assert(sub != null);
-#endif
         Super = super.Normalize();
         Sub = sub.Normalize();
       }
@@ -331,10 +329,8 @@ namespace Microsoft.Dafny {
         Contract.Requires(sub != null);
         Contract.Requires(tok != null);
         Contract.Requires(errorFormatStringProducer != null);
-#if DEBUG
         Contract.Assert(super != null);
         Contract.Assert(sub != null);
-#endif
         Super = super.Normalize();
         Sub = sub.Normalize();
       }
@@ -723,7 +719,8 @@ namespace Microsoft.Dafny {
             AdviceTarget.Int => Type2PreType(Type.Int),
             AdviceTarget.Real => Type2PreType(Type.Real),
             AdviceTarget.String => Type2PreType(StringDecl()),
-            AdviceTarget.Object => Type2PreType(resolver.builtIns.ObjectQ())
+            AdviceTarget.Object => Type2PreType(resolver.builtIns.ObjectQ()),
+            _ => throw new cce.UnreachableException() // unexpected case
           };
           proxy.Set(target);
           anythingChanged = true;
