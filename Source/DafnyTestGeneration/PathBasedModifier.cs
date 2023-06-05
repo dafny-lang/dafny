@@ -26,8 +26,7 @@ namespace DafnyTestGeneration {
       foreach (var path in paths) {
         path.AssertPath();
         var name = TargetImplementationVerboseName ?? path.Impl.VerboseName;
-        yield return modifications.GetProgramModification(p, path.Impl,
-          new HashSet<int>(), new HashSet<string>(), name,
+        yield return modifications.GetProgramModification(p, path.Impl, new HashSet<string>(), name,
           $"{name.Split(" ")[0]}" + path.name);
         path.NoAssertPath();
       }
@@ -53,7 +52,7 @@ namespace DafnyTestGeneration {
         blockToVariable,
         node.Blocks[0],
         new HashSet<Variable>(),
-        new List<Variable>());
+        new List<Block>());
     }
 
     /// <summary>
@@ -89,21 +88,21 @@ namespace DafnyTestGeneration {
     /// <param name="currList">the blocks forming the path</param>
     private void GeneratePaths(Implementation impl,
       Dictionary<Block, Variable> blockToVariable, Block block,
-      HashSet<Variable> currSet, List<Variable> currList) {
+      HashSet<Variable> currSet, List<Block> currList) {
       if (currSet.Contains(blockToVariable[block])) {
         return;
       }
 
       // if the block contains a return command, it is the last one in the path:
       if (block.TransferCmd is ReturnCmd) {
-        paths.Add(new Path(impl, currList, block, 
-          $"(path through {string.Join(",", currList)},{blockToVariable[block]})"));
+        paths.Add(new Path(impl, currSet.ToList(), block, 
+          $"(path through {string.Join(",", currList.ConvertAll(block => Utils.GetBlockId(block)))},{Utils.GetBlockId(block)})"));
         return;
       }
 
       // otherwise, each goto statement presents a new path to take:
       currSet.Add(blockToVariable[block]);
-      currList.Add(blockToVariable[block]);
+      currList.Add(block);
       var gotoCmd = block.TransferCmd as GotoCmd;
       foreach (var b in gotoCmd?.labelTargets ?? new List<Block>()) {
         GeneratePaths(impl, blockToVariable, b, currSet, currList);

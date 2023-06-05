@@ -28,7 +28,9 @@ namespace DafnyTestGeneration {
       if (program == null || implementation == null) {
         return null;
       }
-      if (node.cmds.Count == 0) { // ignore blocks with zero commands
+
+      var state = Utils.GetBlockId(node);
+      if (state == node.Label) { // ignore blocks with zero commands
         return null;
       }
 
@@ -36,8 +38,8 @@ namespace DafnyTestGeneration {
                           implementation.VerboseName;
       node.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
       var record = modifications.GetProgramModification(program, implementation,
-        new HashSet<int>() { node.UniqueId }, ExtractCapturedStates(node),
-          procedureName, $"{procedureName.Split(" ")[0]}(block#{node.UniqueId})");
+        new HashSet<string>() { state },
+          procedureName, $"{procedureName.Split(" ")[0]} ({state})");
 
       node.cmds.RemoveAt(node.cmds.Count - 1);
       if (record.IsCovered(modifications)) {
@@ -69,23 +71,6 @@ namespace DafnyTestGeneration {
           yield return modification;
         }
       }
-    }
-
-    /// <summary>
-    /// Return the list of all states covered by the block.
-    /// A state is represented by the string recorded via :captureState
-    /// </summary>
-    private static HashSet<string> ExtractCapturedStates(Block node) {
-      HashSet<string> result = new();
-      foreach (var cmd in node.cmds) {
-        if (!(cmd is AssumeCmd assumeCmd)) {
-          continue;
-        }
-        if (assumeCmd.Attributes?.Key == "captureState") {
-          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
-        }
-      }
-      return result;
     }
   }
 }

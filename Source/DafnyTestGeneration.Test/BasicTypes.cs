@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Dafny;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
 using Xunit;
@@ -125,7 +126,7 @@ module SimpleTest {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(DafnyOptions.Create(output), source, false);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.True(

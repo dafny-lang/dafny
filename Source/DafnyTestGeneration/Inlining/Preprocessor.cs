@@ -19,7 +19,7 @@ public static class Preprocessor {
     // Substitute functions with function-by-methods
     new AddByMethodRewriter(new ConsoleErrorReporter(options, defaultModuleDefinition)).PreResolve(dafnyProgram);
     // Remove short-circuiting expressions from method bodies
-    new RemoveShortCircuitingRewriter().Visit(dafnyProgram);
+    new RemoveShortCircuitingCloner().Visit(dafnyProgram);
     // Resolve to figure out where all function calls are
     new Resolver(dafnyProgram).ResolveProgram(dafnyProgram); // now resolved
     // Change by-method function calls to method calls

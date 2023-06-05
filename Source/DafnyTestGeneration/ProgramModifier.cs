@@ -297,12 +297,15 @@ namespace DafnyTestGeneration {
       }
 
       public override Block VisitBlock(Block node) {
-        if (node.cmds.Count == 0) {
+        var state = Utils.GetBlockId(node);
+        if (state == node.Label) {
           return base.VisitBlock(node); // ignore blocks with zero commands
         }
         var data = new List<object>
-          { "Block", implementation.Name, node.UniqueId.ToString() };
-        node.cmds.Add(GetAssumePrintCmd(data));
+          { "Block", implementation.Name, state };
+        int afterPartition = node.cmds.FindIndex(cmd =>
+          cmd is not AssumeCmd assumeCmd || assumeCmd.Attributes == null || assumeCmd.Attributes.Key != "partition");
+        node.cmds.Insert(afterPartition, GetAssumePrintCmd(data));
         return node;
       }
 

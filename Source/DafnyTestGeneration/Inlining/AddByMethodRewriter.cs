@@ -5,7 +5,6 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Program = Microsoft.Dafny.Program;
-using Token = Microsoft.Dafny.Token;
 using Function = Microsoft.Dafny.Function;
 
 namespace DafnyTestGeneration.Inlining;
@@ -72,10 +71,11 @@ public class AddByMethodRewriter : IRewriter {
       return;
     }
 
-    var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
+    var returnStatement = new ReturnStmt(func.Body.RangeToken,
       new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
     func.ByMethodBody = new BlockStmt(
-      new RangeToken(new Token(), new Token()),
+      func.Body.RangeToken,
       new List<Statement> { returnStatement });
+    func.ByMethodTok = func.Body.tok;
   }
 }

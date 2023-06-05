@@ -12,6 +12,8 @@ public class DeadCodeCommand : ICommandSpec {
       // appropriately copied over in the GenerateTestCommand.CopyForProcedure method 
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
+      GenerateTestsCommand.Target,
+      GenerateTestsCommand.Verbose,
       BoogieOptionBag.SolverLog,
       BoogieOptionBag.SolverOption,
       BoogieOptionBag.SolverOptionHelp,

@@ -173,14 +173,14 @@ namespace DafnyTestGeneration {
           ProgramModification.Status.Failure);
         int queries = failedQueries + cache.ModificationsWithStatus(implementation,
           ProgramModification.Status.Success);
-        int blocks = implementation.Blocks.Count(block => block.Cmds.Count != 0);
+        int blocks = implementation.Blocks.Count(block => Utils.GetBlockId(block) != block.Label);
         int coveredByCounterexamples = cache.NumberOfBlocksCovered(implementation);
         int coveredByTests = cache.NumberOfBlocksCovered(implementation, onlyIfTestsExists: true);
-        yield return $"// Out of {blocks} non-empty blocks in the " +
+        yield return $"// Out of {blocks} locations in the " +
                      $"{implementation.VerboseName.Split(" ")[0]} method, " +
                      $"{coveredByTests} should be covered by tests " +
                      $"(assuming no tests were found to be duplicates of each other). " +
-                     $"Moreover, {coveredByCounterexamples} blocks have been found to be reachable " +
+                     $"Moreover, {coveredByCounterexamples} locations have been found to be reachable " +
                      $"(i.e. the verifier returned a counterexample and did not timeout). " +
                      $"A total of {queries} SMT queries were made to cover " +
                      $"this method or the method into which this method was inlined. " +

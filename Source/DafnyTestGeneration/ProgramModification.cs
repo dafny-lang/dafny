@@ -19,11 +19,11 @@ namespace DafnyTestGeneration {
 
     private readonly Dictionary<string, ProgramModification> idToModification = new();
     public ProgramModification GetProgramModification(Program program,
-      Implementation impl, HashSet<int> coversBlocks, HashSet<string> capturedStates, string procedure,
+      Implementation impl, HashSet<string> capturedStates, string procedure,
       string uniqueId) {
       if (!idToModification.ContainsKey(uniqueId)) {
         idToModification[uniqueId] =
-          new ProgramModification(options, program, impl, coversBlocks, capturedStates, procedure, uniqueId);
+          new ProgramModification(options, program, impl, capturedStates, procedure, uniqueId);
       }
       return idToModification[uniqueId];
     }
@@ -32,15 +32,15 @@ namespace DafnyTestGeneration {
 
     public int NumberOfBlocksCovered(Implementation implementation, bool onlyIfTestsExists = false) {
       return NumberOfBlocksCovered(implementation, implementation.Blocks
-        .Where(block => block.Cmds.Count != 0)
-        .Select(block => block.UniqueId).ToHashSet(), onlyIfTestsExists);
+        .Where(block => Utils.GetBlockId(block) != block.Label)
+        .Select(Utils.GetBlockId).ToHashSet(), onlyIfTestsExists);
     }
 
-    public int NumberOfBlocksCovered(Implementation implementation, HashSet<int> blockIds, bool onlyIfTestsExists = false) {
+    public int NumberOfBlocksCovered(Implementation implementation, HashSet<string> blockIds, bool onlyIfTestsExists = false) {
       var relevantModifications = ModificationsForImplementation(implementation).Where(modification =>
         modification.counterexampleStatus == ProgramModification.Status.Success && (!onlyIfTestsExists || (modification.testMethod != null && modification.testMethod.IsValid)));
       return blockIds.Count(blockId =>
-        relevantModifications.Any(mod => mod.coversBlocks.Contains(blockId)));
+        relevantModifications.Any(mod => mod.CapturedStates.Contains(blockId)));
     }
 
     public IEnumerable<ProgramModification> ModificationsForImplementation(Implementation implementation) =>
@@ -71,19 +71,17 @@ namespace DafnyTestGeneration {
 
     private readonly string procedure; // procedure to start verification from
     private Program/*?*/ program;
-    internal readonly HashSet<int> coversBlocks;
     private string/*?*/ counterexampleLog;
     internal TestMethod testMethod;
 
     public ProgramModification(DafnyOptions options, Program program, Implementation impl,
-      HashSet<int> coversBlocks, HashSet<string> capturedStates,
+      HashSet<string> capturedStates,
       string procedure, string uniqueId) {
       Options = options;
       implementation = impl;
       counterexampleStatus = Status.Untested;
       this.program = Utils.DeepCloneProgram(options, program);
       this.procedure = procedure;
-      this.coversBlocks = coversBlocks;
       CapturedStates = capturedStates;
       this.uniqueId = uniqueId;
       counterexampleLog = null;
@@ -127,7 +125,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public async Task<string>/*?*/ GetCounterExampleLog(Modifications cache) {
       if (counterexampleStatus != Status.Untested ||
-          (coversBlocks.Count != 0 && IsCovered(cache))) {
+          (CapturedStates.Count != 0 && IsCovered(cache))) {
         return counterexampleLog;
       }
       var options = GenerateTestsCommand.CopyForProcedure(Options, procedure);
@@ -171,19 +169,19 @@ namespace DafnyTestGeneration {
         if (line.StartsWith("Block |")) {
           counterexampleLog = log;
           counterexampleStatus = Status.Success;
-          var blockId = int.Parse(Regex.Replace(line, @"\s+", "").Split('|')[2]);
+          var blockId = Regex.Replace(line, @"\s+", "").Split('|')[2];
           if (Options.TestGenOptions.Verbose &&
-              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !coversBlocks.Contains(blockId)) {
-            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers block {blockId}");
+              Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !CapturedStates.Contains(blockId)) {
+            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers {blockId}");
           }
-          coversBlocks.Add(blockId);
+          CapturedStates.Add(blockId);
         }
       }
       if (Options.TestGenOptions.Verbose && counterexampleLog == null) {
         if (log == "") {
           await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
-            "because the verifier proved that no inputs could cause this block to be visited.");
+            "because the verifier proved that no inputs could cause this location to be visited.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
           await options.OutputWriter.WriteLineAsync(
             $"// No test is generated for {uniqueId} " +
@@ -228,7 +226,7 @@ namespace DafnyTestGeneration {
       return testMethod;
     }
     
-    public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(implementation, coversBlocks) == coversBlocks.Count;
+    public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(implementation, CapturedStates) == CapturedStates.Count;
     
   }
 }
