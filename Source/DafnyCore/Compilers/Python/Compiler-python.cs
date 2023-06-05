@@ -38,8 +38,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.MethodSynthesis
     };
 
-    protected override bool TraitsCanHaveInstanceImplementations => true;
-
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
@@ -488,15 +486,6 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() {
 
       }
-    }
-
-    public override bool NeedsCustomReceiver(MemberDecl member) {
-      Contract.Requires(member != null);
-      // In Python, (Dafny's compilation of) traits can have instance implementations
-      if (!member.IsStatic && member.EnclosingClass is TraitDecl && member is Method { Body: { } } or Function { Body: { } }) {
-        return false;
-      }
-      return base.NeedsCustomReceiver(member);
     }
 
     protected override string CompanionMemberIdName(MemberDecl member) {
