@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
-    ModuleSignature moduleInfo = null;
+    internal ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
       return useCompileSignatures || d.IsRevealedInScope(moduleInfo.VisibilityScope);
     }
 
-    private bool VisibleInScope(Declaration d) {
+    internal bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
+    internal class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
     {
       public static MemberDecl Create(ModuleDefinition m, MemberDecl a, MemberDecl b) {
         ISet<MemberDecl> s;
@@ -235,7 +235,7 @@ namespace Microsoft.Dafny {
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
-    private bool useCompileSignatures = false;
+    internal bool useCompileSignatures = false;
 
     private List<IRewriter> rewriters;
     private RefinementTransformer refinementTransformer;
@@ -480,6 +480,12 @@ namespace Microsoft.Dafny {
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
+
+      if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        PreTypeResolver.ResolveDeclarations(
+          prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is not ClassDecl).ToList(),
+          this, true);
+      }
 
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
@@ -2002,7 +2008,7 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl,
+    internal void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl,
       Dictionary<string, MemberDecl> members) {
       Contract.Requires(moduleDef != null);
       Contract.Requires(cl != null);
@@ -2441,8 +2447,7 @@ namespace Microsoft.Dafny {
 
       if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
         // Resolve all names and infer types.
-        var preTypeResolver = new PreTypeResolver(this);
-        preTypeResolver.ResolveDeclarations(declarations);
+        PreTypeResolver.ResolveDeclarations(declarations, this);
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           var u = new UnderspecificationDetector(this);
@@ -5043,7 +5048,7 @@ namespace Microsoft.Dafny {
 
     TopLevelDeclWithMembers currentClass;
     public Method currentMethod;
-    readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+    internal Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
     Scope<Statement>/*!*/ enclosingStatementLabels;
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
@@ -5930,7 +5935,7 @@ namespace Microsoft.Dafny {
     /// Callers are expected to provide "arg" as an already resolved type.  (Note, a proxy type is resolved--
     /// only types that contain identifiers stand the possibility of not being resolved.)
     /// </summary>
-    Type ResolvedArrayType(IToken tok, int dims, Type arg, ResolutionContext resolutionContext, bool useClassNameType) {
+    internal Type ResolvedArrayType(IToken tok, int dims, Type arg, ResolutionContext resolutionContext, bool useClassNameType) {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
@@ -6279,7 +6284,7 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+    internal Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);
       Contract.Requires(expressionDescription != null);
       Contract.Requires(resolutionContext != null);
@@ -6296,16 +6301,16 @@ namespace Microsoft.Dafny {
       return label;
     }
 
-    private Expression VarDotFunction(IToken tok, string varname, string functionname) {
+    internal Expression VarDotFunction(IToken tok, string varname, string functionname) {
       return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
-    private LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
+    internal LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
       return new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { rhs }, body, true);
     }
 
-    private LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
+    internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
     }
@@ -6594,7 +6599,7 @@ namespace Microsoft.Dafny {
       return isGhost ? "ghost " : "";
     }
 
-    private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
+    internal static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
       if (useCompileSignatures) {
@@ -6647,7 +6652,7 @@ namespace Microsoft.Dafny {
     /// Requires "expr" to be successfully resolved.
     /// Ensures that the set returned has no aliases.
     /// </summary>
-    static ISet<IVariable> FreeVariables(Expression expr) {
+    public static ISet<IVariable> FreeVariables(Expression expr) {
       Contract.Requires(expr != null);
       Contract.Ensures(expr.Type != null);
 
