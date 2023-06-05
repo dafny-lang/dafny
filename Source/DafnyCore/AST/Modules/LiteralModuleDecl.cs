@@ -139,16 +139,16 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract) {
       // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-      var cloner = new Cloner();
-      ModuleDef = cloner.CloneModuleDefinition(module, module.EnclosingModule);
-
-      var oldErrorsOnly = resolver.reporter.ErrorsOnly;
-      resolver.reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-      Type.DisableScopes();
-      
-      ModuleDef.ResolveModuleDefinition(sig, resolver);
-      Type.EnableScopes();
-      resolver.reporter.ErrorsOnly = oldErrorsOnly;
+      // var cloner = new Cloner();
+      // ModuleDef = cloner.CloneModuleDefinition(module, module.EnclosingModule);
+      //
+      // var oldErrorsOnly = resolver.reporter.ErrorsOnly;
+      // resolver.reporter.ErrorsOnly = true; // turn off warning reporting for the clone
+      // Type.DisableScopes();
+      //
+      // ModuleDef.ResolveModuleDefinition(sig, resolver);
+      // Type.EnableScopes();
+      // resolver.reporter.ErrorsOnly = oldErrorsOnly;
     }
 
     /* It's strange to stop here when _any_ module has had resolution errors.

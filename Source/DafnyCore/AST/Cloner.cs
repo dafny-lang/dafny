@@ -126,14 +126,18 @@ namespace Microsoft.Dafny {
         return cl;
       } else if (d is DefaultClassDecl) {
         var dd = (DefaultClassDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new DefaultClassDecl(parent, mm);
+        return new DefaultClassDecl(this, dd);
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+        var mm = new List<MemberDecl>(); //dd.Members.ConvertAll(member => CloneMember(member, false));
+        var newClass = new ClassDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), parent, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+        mm.AddRange(dd.Members.Select(member => {
+          var newMember = CloneMember(member, false);
+          newMember.EnclosingClass = newClass;
+          return newMember;
+        }));
+        return newClass;
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           //var newModuleDefinition = moduleDecl.ModuleDef;

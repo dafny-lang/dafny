@@ -228,7 +228,8 @@ public class ExpectContracts : IRewriter {
   }
 
   public override void PostVerification(Program program) {
-    var resolver = new Resolver(program.Options);
+    var resolver = new Resolver(program);
+    //resolver.Reporter
     // Turn off error reporting?
     var literalModules = resolver.DetermineDependencies(program);
     var cloner = new Cloner();
@@ -252,8 +253,9 @@ public class ExpectContracts : IRewriter {
       foreach (var (topLevelDecl, decl) in membersToWrap) {
         GenerateWrapper(topLevelDecl, decl);
       }
-      
-      literalModule.ResolveLiteralModuleDeclaration(resolver, program, resolver.Reporter.ErrorCount);
+
+      literalModule.ModuleDef.ResolveModuleDefinition(literalModule.Signature, resolver);
+      //literalModule.ResolveLiteralModuleDeclaration(resolver, program, resolver.Reporter.ErrorCount);
     }
     
     foreach (var moduleDefinition in program.CompileModules) {

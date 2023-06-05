@@ -4,6 +4,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
+  public DefaultClassDecl(Cloner cloner, DefaultClassDecl original) : base(cloner, original)
+  {
+  }
+
   public override string WhatKind => "top-level module declaration";
   public override bool AcceptThis => false;
 

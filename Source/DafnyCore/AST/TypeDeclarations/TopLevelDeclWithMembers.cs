@@ -9,6 +9,17 @@ namespace Microsoft.Dafny;
 public abstract class TopLevelDeclWithMembers : TopLevelDecl {
   public readonly List<MemberDecl> Members;
 
+  protected TopLevelDeclWithMembers(Cloner cloner, TopLevelDeclWithMembers original) 
+    : base(cloner.Range(original.RangeToken), original.NameNode.Clone(cloner), 
+      original.EnclosingModuleDefinition, original.TypeArgs.ConvertAll(cloner.CloneTypeParam), cloner.CloneAttributes(original.Attributes), original.IsRefining) 
+  {
+    Members = original.Members.ConvertAll(member => {
+      var newMember = cloner.CloneMember(member, false);
+      newMember.EnclosingClass = this;
+      return newMember;
+    });
+  }
+
   // TODO remove this and instead clone the AST after parsing.
   public ImmutableList<MemberDecl> MembersBeforeResolution;
 
