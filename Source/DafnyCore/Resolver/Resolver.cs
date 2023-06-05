@@ -625,7 +625,7 @@ namespace Microsoft.Dafny {
 
     private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog, beforeModuleResolutionErrorCount);
+        literalModuleDecl.Resolve(this, prog, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -1038,7 +1038,7 @@ namespace Microsoft.Dafny {
           String.Format("Raised while checking export set {0}: ", exportDecl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
-        exportView.ResolveModuleDefinition(testSig, this, true);
+        exportView.Resolve(testSig, this, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -1872,7 +1872,7 @@ namespace Microsoft.Dafny {
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
-      var good = mod.ResolveModuleDefinition(sig, this);
+      var good = mod.Resolve(sig, this);
       if (good && reporter.Count(ErrorLevel.Error) == errCount) {
         mod.SuccessfullyResolved = true;
       }
