@@ -137,20 +137,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
 
-    if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract) {
-      // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-      var cloner = new Cloner();
-      ModuleDef = cloner.CloneModuleDefinition(module, module.EnclosingModule);
-
-      var oldErrorsOnly = resolver.reporter.ErrorsOnly;
-      resolver.reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-      Type.DisableScopes();
-      
-      ModuleDef.ResolveModuleDefinition(sig, resolver);
-      Type.EnableScopes();
-      resolver.reporter.ErrorsOnly = oldErrorsOnly;
-    }
-
     /* It's strange to stop here when _any_ module has had resolution errors.
      * Either stop here when _this_ module has had errors,
      * or completely stop module resolution after one of them has errors

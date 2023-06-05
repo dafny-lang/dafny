@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
@@ -43,6 +45,7 @@ public class ExpectContracts : IRewriter {
       ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
       exprToCheck = new LiteralExpr(tok, true);
+      exprToCheck.Type = Type.Bool;
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
@@ -86,8 +89,6 @@ public class ExpectContracts : IRewriter {
   private void GenerateWrapper(TopLevelDeclWithMembers parent, MemberDecl decl) {
     var tok = decl.tok;
 
-    // TODO need to generate resolved code.
-
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
@@ -124,16 +125,26 @@ public class ExpectContracts : IRewriter {
 
       var localName = origFunc.Result?.Name ?? "__result";
       var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
-      var localExpr = new IdentifierExpr(tok, localName);
+      var localExpr = new IdentifierExpr(tok, localName) {
+        Type = origFunc.ResultType
+      };
+
       var callRhs = new ExprRhs(callExpr);
 
       var lhss = new List<Expression> { localExpr };
       var locs = new List<LocalVariable> { local };
       var rhss = new List<AssignmentRhs> { callRhs };
 
-      Statement callStmt = origFunc.Result?.Name is null
-        ? new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss))
-        : new UpdateStmt(decl.RangeToken, lhss, rhss);
+      var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
+      Statement callStmt;
+      if (origFunc.Result?.Name is null) {
+        callStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
+          ResolvedStatements = new List<Statement>() { assignStmt }
+        });
+      } else {
+        localExpr.Var = origFunc.Result;
+        callStmt = assignStmt;
+      }
 
       var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
@@ -141,8 +152,10 @@ public class ExpectContracts : IRewriter {
         body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
       }
       newFunc.ByMethodBody = body;
-      Resolver.RegisterByMethod(newFunc, parent);
-      
+      // We especially want to remove {:extern} from the wrapper, but also any other attributes.
+      newFunc.Attributes = null;
+      RegisterByMethod(newFunc, parent);
+
       newDecl = newFunc;
     }
 
@@ -155,6 +168,33 @@ public class ExpectContracts : IRewriter {
       parent.Members.Add(newDecl);
       callRedirector.AddFullName(newDecl, decl.FullName + "__dafny_checked");
     }
+  }
+
+
+  public static void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
+
+    var tok = f.ByMethodTok;
+    var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
+    var r = Expression.CreateIdentExpr(resultVar);
+    // To construct the receiver, we want to know if the function is static or instance. That information is ordinarily computed
+    // by f.IsStatic, which looks at f.HasStaticKeyword and f.EnclosingClass. However, at this time, f.EnclosingClass hasn't yet
+    // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
+    var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
+    var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+    var fn = new FunctionCallExpr(tok, f.Name, receiver, null, null,
+      f.Formals.ConvertAll(Expression.CreateIdentExpr));
+    var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
+      Type = Type.Bool
+    });
+    var method = new Method(f.RangeToken, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
+      f.Formals, new List<Formal>() { resultVar },
+      f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+      f.ByMethodBody, f.Attributes, null, true);
+    Contract.Assert(f.ByMethodDecl == null);
+    method.InheritVisibility(f);
+    method.FunctionFromWhichThisIsByMethodDecl = f;
+    method.EnclosingClass = cl;
+    f.ByMethodDecl = method;
   }
 
   /// <summary>
@@ -180,6 +220,7 @@ public class ExpectContracts : IRewriter {
     foreach (var (topLevelDecl, decl) in membersToWrap) {
       GenerateWrapper(topLevelDecl, decl);
     }
+    callRedirector.newRedirections = wrappedDeclarations;
   }
 
   /// <summary>
@@ -258,18 +299,17 @@ public class ExpectContracts : IRewriter {
   }
 
   public override void PostVerification(Program program) {
-    callRedirector.newRedirections = wrappedDeclarations;
     foreach (var topLevelDecl in
              program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
+          // Having verifier run after this causes Boogie resolution errors.
+          // It might be better to investigate why that is.
           callRedirector.Visit(callable, decl);
         }
       }
     }
-  }
 
-  internal override void PostResolve(Program program) {
     if (Reporter.Options.TestContracts != DafnyOptions.ContractTestingMode.TestedExterns) {
       return;
     }
@@ -281,5 +321,8 @@ public class ExpectContracts : IRewriter {
       var uncalledOriginal = uncalledRedirection.Key;
       ReportWarning(ErrorId.rw_unreachable_by_test, uncalledOriginal.tok, $"No :test code calls {uncalledOriginal.FullDafnyName}");
     }
+  }
+
+  internal override void PostResolve(Program program) {
   }
 }
