@@ -926,19 +926,19 @@ function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
 }
 
 // conversion produces a good map.
-axiom (forall<T> s: Seq T :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
+axiom (forall s: Seq Box :: { MultiSet#FromSeq(s) } $IsGoodMultiSet(MultiSet#FromSeq(s)) );
 // cardinality axiom
-axiom (forall<T> s: Seq T ::
+axiom (forall s: Seq Box ::
   { MultiSet#Card(MultiSet#FromSeq(s)) }
     MultiSet#Card(MultiSet#FromSeq(s)) == Seq#Length(s));
 // building axiom
-axiom (forall<T> s: Seq T, v: T ::
+axiom (forall s: Seq Box, v: Box ::
   { MultiSet#FromSeq(Seq#Build(s, v)) }
     MultiSet#FromSeq(Seq#Build(s, v)) == MultiSet#UnionOne(MultiSet#FromSeq(s), v)
   );
 
 // concatenation axiom
-axiom (forall<T> a: Seq T, b: Seq T ::
+axiom (forall a: Seq Box, b: Seq Box ::
   { MultiSet#FromSeq(Seq#Append(a, b)) }
     MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
 
