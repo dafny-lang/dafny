@@ -943,13 +943,13 @@ axiom (forall<T> a: Seq T, b: Seq T ::
     MultiSet#FromSeq(Seq#Append(a, b)) == MultiSet#Union(MultiSet#FromSeq(a), MultiSet#FromSeq(b)) );
 
 // update axiom
-axiom (forall<T> s: Seq T, i: int, v: T, x: T ::
+axiom (forall s: Seq Box, i: int, v: Box, x: Box ::
   { MultiSet#FromSeq(Seq#Update(s, i, v))[x] }
     0 <= i && i < Seq#Length(s) ==>
     MultiSet#FromSeq(Seq#Update(s, i, v))[x] ==
       MultiSet#Union(MultiSet#Difference(MultiSet#FromSeq(s), MultiSet#Singleton(Seq#Index(s,i))), MultiSet#Singleton(v))[x] );
   // i.e. MS(Update(s, i, v)) == MS(s) - {{s[i]}} + {{v}}
-axiom (forall<T> s: Seq T, x: T :: { MultiSet#FromSeq(s)[x] }
+axiom (forall s: Seq Box, x: Box :: { MultiSet#FromSeq(s)[x] }
   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
 
 // ---------------------------------------------------------------
@@ -977,7 +977,7 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) }
 //axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, TSeq(t))} $Is(Seq#Empty(): Seq T, TSeq(t)));
 
 function Seq#Singleton<T>(T): Seq T;
-axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
+axiom (forall t: Box :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
 
 function Seq#Build<T>(s: Seq T, val: T): Seq T;
 function Seq#Build_inv0<T>(s: Seq T) : Seq T;
@@ -990,7 +990,7 @@ axiom (forall<T> s: Seq T, val: T ::
 axiom (forall<T> s: Seq T, v: T ::
   { Seq#Build(s,v) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
-axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
+axiom (forall s: Seq Box, i: int, v: Box :: { Seq#Index(Seq#Build(s,v), i) }
   (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v) &&
   (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == Seq#Index(s, i)));
 
@@ -1013,21 +1013,21 @@ axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
 
 function Seq#Index<T>(Seq T, int): T;
-axiom (forall<T> t: T :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Singleton(t), 0) == t);
-axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
+axiom (forall t: Box :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Singleton(t), 0) == t);
+axiom (forall s0: Seq Box, s1: Seq Box, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
 
 function Seq#Update<T>(Seq T, int, T): Seq T;
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Length(Seq#Update(s,i,v)) }
   0 <= i && i < Seq#Length(s) ==> Seq#Length(Seq#Update(s,i,v)) == Seq#Length(s));
-axiom (forall<T> s: Seq T, i: int, v: T, n: int :: { Seq#Index(Seq#Update(s,i,v),n) }
+axiom (forall s: Seq Box, i: int, v: Box, n: int :: { Seq#Index(Seq#Update(s,i,v),n) }
   0 <= n && n < Seq#Length(s) ==>
     (i == n ==> Seq#Index(Seq#Update(s,i,v),n) == v) &&
     (i != n ==> Seq#Index(Seq#Update(s,i,v),n) == Seq#Index(s,n)));
 
 function Seq#Contains<T>(Seq T, T): bool;
-axiom (forall<T> s: Seq T, x: T :: { Seq#Contains(s,x) }
+axiom (forall s: Seq Box, x: Box :: { Seq#Contains(s,x) }
   Seq#Contains(s,x) <==>
     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
 axiom (forall<T> x: T ::
@@ -1043,19 +1043,19 @@ axiom (forall<T> s: Seq T, v: T, x: T ::  // needed to prove things like '4 in [
   { Seq#Contains(Seq#Build(s, v), x) }
     Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
 
-axiom (forall<T> s: Seq T, n: int, x: T ::
+axiom (forall s: Seq Box, n: int, x: Box ::
   { Seq#Contains(Seq#Take(s, n), x) }
   Seq#Contains(Seq#Take(s, n), x) <==>
     (exists i: int :: { Seq#Index(s, i) }
       0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
-axiom (forall<T> s: Seq T, n: int, x: T ::
+axiom (forall s: Seq Box, n: int, x: Box ::
   { Seq#Contains(Seq#Drop(s, n), x) }
   Seq#Contains(Seq#Drop(s, n), x) <==>
     (exists i: int :: { Seq#Index(s, i) }
       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
 
 function Seq#Equal<T>(Seq T, Seq T): bool;
-axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Equal(s0,s1) }
+axiom (forall s0: Seq Box, s1: Seq Box :: { Seq#Equal(s0,s1) }
   Seq#Equal(s0,s1) <==>
     Seq#Length(s0) == Seq#Length(s1) &&
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
@@ -1064,7 +1064,7 @@ axiom (forall<T> a: Seq T, b: Seq T :: { Seq#Equal(a,b) }  // extensionality axi
   Seq#Equal(a,b) ==> a == b);
 
 function Seq#SameUntil<T>(Seq T, Seq T, int): bool;
-axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#SameUntil(s0,s1,n) }
+axiom (forall s0: Seq Box, s1: Seq Box, n: int :: { Seq#SameUntil(s0,s1,n) }
   Seq#SameUntil(s0,s1,n) <==>
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
@@ -1072,7 +1072,7 @@ axiom (forall<T> s0: Seq T, s1: Seq T, n: int :: { Seq#SameUntil(s0,s1,n) }
 function Seq#Take<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n);
-axiom (forall<T> s: Seq T, n: int, j: int ::
+axiom (forall s: Seq Box, n: int, j: int ::
   {:weight 25}
   { Seq#Index(Seq#Take(s,n), j) }
   { Seq#Index(s, j), Seq#Take(s,n) }
@@ -1082,12 +1082,12 @@ axiom (forall<T> s: Seq T, n: int, j: int ::
 function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
 axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n);
-axiom (forall<T> s: Seq T, n: int, j: int ::
+axiom (forall s: Seq Box, n: int, j: int ::
   {:weight 25}
   { Seq#Index(Seq#Drop(s,n), j) }
   0 <= n && 0 <= j && j < Seq#Length(s)-n ==>
     Seq#Index(Seq#Drop(s,n), j) == Seq#Index(s, j+n));
-axiom (forall<T> s: Seq T, n: int, k: int ::
+axiom (forall s: Seq Box, n: int, k: int ::
   {:weight 25}
   { Seq#Index(s, k), Seq#Drop(s,n) }
   0 <= n && n <= k && k < Seq#Length(s) ==>
