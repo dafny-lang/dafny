@@ -4,8 +4,8 @@
 module M0 {
   class C {
     method M(c: C?, x: int, y: int) returns (r: int)
-      requires 0 <= x && 0 <= y;
-      ensures r < 100;
+      requires 0 <= x && 0 <= y
+      ensures r < 100
     {
       if (c == null) {
         assert c == null;
@@ -18,13 +18,13 @@ module M0 {
     }
 
     ghost predicate Q(x: int)
-      ensures Q(x) ==> x < 60;  // error: postcondition violation
+      ensures Q(x) ==> x < 60  // error: postcondition violation
     {
       true
     }
 
     ghost predicate R(x: int)
-      ensures R(x) ==> x < 60;  // error: postcondition violation
+      ensures R(x) ==> x < 60  // error: postcondition violation
     {
       true
     }

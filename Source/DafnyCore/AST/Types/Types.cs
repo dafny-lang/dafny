@@ -1967,6 +1967,8 @@ public abstract class CollectionType : NonProxyType {
       return arg;
     }
   }  // denotes the Domain type for a Map
+
+  [FilledInDuringResolution]
   private Type arg;
   public Type ValueArg => TypeArgs.Last();
 

@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
 
@@ -22,6 +22,19 @@ partial class Resolver {
     ModuleDefinition IASTVisitorContext.EnclosingModule => astVisitorContext.EnclosingModule;
   }
 
+  public void ReportWarning(ErrorId errorId, IToken t, string msg, params object[] args) {
+    reporter.Warning(MessageSource.Resolver, errorId, t, msg, args);
+  }
+
+  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+    reporter.Error(MessageSource.Resolver, errorId, t, msg, args);
+  }
+
+  public void ReportError(ErrorId errorId, INode t, string msg, params object[] args) {
+    reporter.Error(MessageSource.Resolver, errorId, t, msg, args);
+  }
+
+
   class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     private readonly Resolver resolver;
     private ErrorReporter reporter => resolver.reporter;
@@ -38,14 +51,14 @@ partial class Resolver {
       if (decl is NewtypeDecl newtypeDecl) {
         if (newtypeDecl.Var != null) {
           if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
-            reporter.Error(MessageSource.Resolver, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
+            resolver.ReportError(ErrorId.r_newtype_base_undetermined, newtypeDecl.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'",
               newtypeDecl.Var.Name);
           }
         }
 
       } else if (decl is SubsetTypeDecl subsetTypeDecl) {
         if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
-          reporter.Error(MessageSource.Resolver, subsetTypeDecl.tok,
+          resolver.ReportError(ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
             "subset type's base type is not fully determined; add an explicit type for '{0}'", subsetTypeDecl.Var.Name);
         }
 
@@ -56,7 +69,7 @@ partial class Resolver {
             for (var i = 1; i < dtor.CorrespondingFormals.Count; i++) {
               var other = dtor.CorrespondingFormals[i];
               if (!Type.Equal_Improved(rolemodel.Type, other.Type)) {
-                reporter.Error(MessageSource.Resolver, other,
+                resolver.ReportError(ErrorId.r_shared_destructors_have_different_types, other,
                   "shared destructors must have the same type, but '{0}' has type '{1}' in constructor '{2}' and type '{3}' in constructor '{4}'",
                   rolemodel.Name, rolemodel.Type, dtor.EnclosingCtors[0].Name, other.Type, dtor.EnclosingCtors[i].Name);
               }
@@ -127,20 +140,20 @@ partial class Resolver {
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
           if (e.Type.IsBitVectorType && MaxBV(e.Type.AsBitVectorType.Width) < absN) {
-            resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+            resolver.ReportError(ErrorId.r_literal_too_large_for_bitvector, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
           // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
           if (n < 0 || e.tok.val == "-0") {
             Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
-            resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
+            resolver.ReportError(ErrorId.r_no_unary_minus_in_case_patterns, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
           }
         }
 
         if (expr is StaticReceiverExpr stexpr) {
           foreach (Type t in stexpr.Type.TypeArgs) {
             if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
-              resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
+              resolver.ReportError(ErrorId.r_type_parameter_undetermined, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
             }
           }
         }
@@ -149,10 +162,10 @@ partial class Resolver {
         var e = (ComprehensionExpr)expr;
         foreach (var bv in e.BoundVars) {
           if (!IsDetermined(bv.Type.Normalize())) {
-            resolver.reporter.Error(MessageSource.Resolver, bv.tok,
+            resolver.ReportError(ErrorId.r_bound_variable_undetermined, bv.tok,
               $"type of bound variable '{bv.Name}' could not be determined; please specify the type explicitly");
           } else if (context.IsExtremePredicate) {
-            CheckContainsNoOrdinal(bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
+            CheckContainsNoOrdinal(ErrorId.r_bound_variable_may_not_be_ORDINAL, bv.tok, bv.Type, $"type of bound variable '{bv.Name}' ('{bv.Type}') is not allowed to use type ORDINAL");
           }
         }
 
@@ -160,7 +173,7 @@ partial class Resolver {
           var binBody = ((ExistsExpr)e).Term as BinaryExpr;
           if (binBody != null && binBody.Op == BinaryExpr.Opcode.Imp) {  // check Op, not ResolvedOp, in order to distinguish ==> and <==
                                                                          // apply the wisdom of Claude Marche: issue a warning here
-            resolver.reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, e.tok,
+            resolver.ReportWarning(ErrorId.r_exists_quantifier_warning, e.tok,
               "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
               "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
           }
@@ -175,10 +188,10 @@ partial class Resolver {
               ? e.Member.EnclosingClass.TypeArgs[i]
               : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
             if (!IsDetermined(p.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              resolver.ReportError(ErrorId.r_type_parameter_not_determined, e.tok,
                 $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
             } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
-              CheckContainsNoOrdinal(e.tok, p,
+              CheckContainsNoOrdinal(ErrorId.r_type_parameter_may_not_be_ORDINAL, e.tok, p,
                 $"type parameter '{tp.Name}' (passed in as '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' is not allowed to use ORDINAL");
             }
             i++;
@@ -195,10 +208,10 @@ partial class Resolver {
             var hint = e.Name.StartsWith("reveal_")
               ? ". If you are making an opaque function, make sure that the function can be called."
               : "";
-            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+            resolver.ReportError(ErrorId.r_function_type_parameter_undetermined, e.tok,
               $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else if (!context.IsPrefixPredicate) { // this check is done in extreme predicates, so no need to repeat it here for prefix predicates
-            CheckContainsNoOrdinal(e.tok, p,
+            CheckContainsNoOrdinal(ErrorId.r_function_type_parameter_may_not_be_ORDINAL, e.tok, p,
               $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");
           }
           i++;
@@ -208,7 +221,7 @@ partial class Resolver {
         foreach (var p in e.LHSs) {
           foreach (var x in p.Vars) {
             if (!IsDetermined(x.Type.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, x.tok, $"the type of the bound variable '{x.Name}' could not be determined");
+              resolver.ReportError(ErrorId.r_bound_variable_type_undetermined, x.tok, $"the type of the bound variable '{x.Name}' could not be determined");
             } else {
               CheckTypeArgsContainNoOrdinal(x.tok, x.Type, context);
             }
@@ -225,7 +238,7 @@ partial class Resolver {
           if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
             // looks good
           } else {
-            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+            resolver.ReportError(ErrorId.r_never_succeeding_type_cast, e.tok,
               "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed",
               e.ToType, fromType);
           }
@@ -236,12 +249,12 @@ partial class Resolver {
         if (fromType.IsSubtypeOf(e.ToType, false, true)) {
           // This test is allowed and it always returns true
         } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
-          resolver.reporter.Error(MessageSource.Resolver, e.tok,
+          resolver.ReportError(ErrorId.r_never_succeeding_type_test, e.tok,
             "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
         } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
           // it's fine
         } else if (!e.ToType.IsRefType) {
-          resolver.reporter.Error(MessageSource.Resolver, e.tok,
+          resolver.ReportError(ErrorId.r_unsupported_type_test, e.tok,
             "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
         }
       } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
@@ -296,7 +309,7 @@ partial class Resolver {
                       hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                     }
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, e.tok,
+                    resolver.ReportWarning(ErrorId.r_trivial_null_test, e.tok,
                       $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                   }
                   break;
@@ -314,7 +327,7 @@ partial class Resolver {
                   if (((CollectionType)ty).Arg.IsNonNullRefType) {
                     var non = sense ? "" : "non-";
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, e.tok,
+                    resolver.ReportWarning(ErrorId.r_trivial_null_inclusion_test, e.tok,
                       $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
                   }
                   break;
@@ -325,7 +338,7 @@ partial class Resolver {
                   var ty = other.Type.NormalizeExpand();
                   if (((MapType)ty).Domain.IsNonNullRefType) {
                     var b = sense ? "false" : "true";
-                    resolver.reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, e.tok,
+                    resolver.ReportWarning(ErrorId.r_trivial_map_null_inclusion_test, e.tok,
                       $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
                   }
                   break;
@@ -397,7 +410,7 @@ partial class Resolver {
         var proxy = (TypeProxy)t;
         if (!UnderspecifiedTypeProxies.Contains(proxy)) {
           // report an error for this TypeProxy only once
-          resolver.reporter.Error(MessageSource.Resolver, tok, "the type of this {0} is underspecified", what);
+          resolver.ReportError(ErrorId.r_var_type_undetermined, tok, "the type of this {0} is underspecified", what);
           UnderspecifiedTypeProxies.Add(proxy);
         }
         return false;
@@ -414,19 +427,19 @@ partial class Resolver {
         // need to do them here again for the prefix predicates/lemmas.
       } else {
         t = t.NormalizeExpand();
-        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
+        t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(ErrorId.r_no_ORDINAL_as_type_parameter, tok, rg, "an ORDINAL type is not allowed to be used as a type argument"));
       }
     }
 
-    public void CheckContainsNoOrdinal(IToken tok, Type t, string errMsg) {
+    public void CheckContainsNoOrdinal(ErrorId errorId, IToken tok, Type t, string errMsg) {
       Contract.Requires(tok != null);
       Contract.Requires(t != null);
       Contract.Requires(errMsg != null);
       t = t.NormalizeExpand();
       if (t.IsBigOrdinalType) {
-        resolver.reporter.Error(MessageSource.Resolver, tok, errMsg);
+        resolver.ReportError(errorId, tok, errMsg);
       }
-      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(tok, rg, errMsg));
+      t.TypeArgs.Iter(rg => CheckContainsNoOrdinal(errorId, tok, rg, errMsg));
     }
   }
 }

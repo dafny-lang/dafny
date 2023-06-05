@@ -175,7 +175,7 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.5. Documentation comments
+## 2.5. Documentation comments {#sec-documentation-comments}
 
 Like many other languages, Dafny permits _documentation comments_ in a program file.
 Such comments contain natural language descriptions of program elements and may be used

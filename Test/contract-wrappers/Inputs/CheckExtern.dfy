@@ -22,8 +22,8 @@ function {:extern} Bar(x: int, ghost z: int): (y: int)
   ensures y > z
 
 function BarCaller(x: int): (y: int)
-  requires 1 < x < 10;
-  ensures y >= 10;
+  requires 1 < x < 10
+  ensures y >= 10
 {
   Bar(x, 20)
 }

@@ -615,7 +615,7 @@ method Acquire(universe: Universe, running: Thread, mutex: Mutex)
   label beforeLoop:
   while (wasLocked)
     modifies universe, universe.content
-    invariant universe.globalInv() && universe.baseLegalTransitionsSequence@beforeLoop();
+    invariant universe.globalInv() && universe.baseLegalTransitionsSequence@beforeLoop()
     invariant !wasLocked ==> !mutex.locked
     decreases * // Nothing guarantees that we'll obtain the lock
   {

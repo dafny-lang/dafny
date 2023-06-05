@@ -31,8 +31,8 @@ class Node<T> {
 
   constructor InitAsPredecessor(d: T, succ: Node<T>)
     requires succ.Valid()
-    ensures Valid() && fresh(Repr - succ.Repr);
-    ensures List == [d] + succ.List;
+    ensures Valid() && fresh(Repr - succ.Repr)
+    ensures List == [d] + succ.List
   {
     data, next := d, succ;
     List := [d] + succ.List;

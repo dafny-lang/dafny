@@ -27,8 +27,8 @@ class ScopeCloner : DeepModuleSignatureCloner {
     return d.IsVisibleInScope(scope);
   }
 
-  public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, Name name) {
-    var basem = base.CloneModuleDefinition(m, name);
+  public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, ModuleDefinition newParent, Name name) {
+    var basem = base.CloneModuleDefinition(m, newParent, name);
 
     //Merge signatures for imports which point to the same module
     //This makes the consistency check understand that the same element

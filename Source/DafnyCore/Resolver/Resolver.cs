@@ -17,7 +17,7 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
   interface ICanResolve {
@@ -566,7 +566,7 @@ namespace Microsoft.Dafny {
             // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
             CompilationCloner cloner = new CompilationCloner(compilationModuleClones);
             var compileName = new Name(m.NameNode.RangeToken, m.GetCompileName(Options) + "_Compile");
-            var nw = cloner.CloneModuleDefinition(m, compileName);
+            var nw = cloner.CloneModuleDefinition(m, m.EnclosingModule, compileName);
             compilationModuleClones.Add(m, nw);
             var oldErrorsOnly = reporter.ErrorsOnly;
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
@@ -1194,7 +1194,7 @@ namespace Microsoft.Dafny {
 
         var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
-        var exportView = cloner.CloneModuleDefinition(m, m.NameNode);
+        var exportView = cloner.CloneModuleDefinition(m, m.EnclosingModule, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
@@ -1217,6 +1217,8 @@ namespace Microsoft.Dafny {
 
         if (wasError) {
           reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
+        } else {
+          exportDecl.EffectiveModule = exportView;
         }
       }
 
@@ -5797,10 +5799,10 @@ namespace Microsoft.Dafny {
         case Scope<Thing>.PushResult.Success:
           break;
         case Scope<Thing>.PushResult.Duplicate:
-          reporter.Error(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Duplicate {0} name: {1}", kind, name);
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
     }
@@ -6158,7 +6160,7 @@ namespace Microsoft.Dafny {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
-          origReporter.Deprecated(MessageSource.Resolver, ErrorRegistry.NoneId, tok,
+          origReporter.Deprecated(MessageSource.Resolver, ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
             " declare it to be a function instead");
         } else {

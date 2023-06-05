@@ -34,13 +34,13 @@ method bar(x:int) returns (y: int)
 }
 
 method duplicate_array(input: array<int>, len: int) returns (output: array<int>)
-  requires len == input.Length;
+  requires len == input.Length
 {
   output := new int[len];
   var i := 0;
   while i < len
-    invariant {:error "position variable out of range"} 0 <= i <= len-1;
-    invariant {:error "output array doesn't match input arry"} forall j :: 0 <= j < i ==> output[j] == input[j]+1;
+    invariant {:error "position variable out of range"} 0 <= i <= len-1
+    invariant {:error "output array doesn't match input arry"} forall j :: 0 <= j < i ==> output[j] == input[j]+1
   {
     output[i] := input[i];
     i := i + 1;

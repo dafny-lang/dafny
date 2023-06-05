@@ -1,14 +1,11 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
-using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -21,12 +18,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
     private readonly DafnyOptions options;
+    private readonly ITelemetryPublisher telemetryPublisher;
     private readonly ILogger logger;
     private readonly SemaphoreSlim mutex = new(1);
+    private readonly CachingParser cachingParser;
 
-    private DafnyLangParser(DafnyOptions options, ILogger<DafnyLangParser> logger) {
+    private DafnyLangParser(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
       this.options = options;
-      this.logger = logger;
+      this.telemetryPublisher = telemetryPublisher;
+      logger = loggerFactory.CreateLogger<DafnyLangParser>();
+      cachingParser = new CachingParser(loggerFactory.CreateLogger<CachingParser>());
     }
 
     /// <summary>
@@ -34,8 +35,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
-    public static DafnyLangParser Create(DafnyOptions options, ILogger<DafnyLangParser> logger) {
-      return new DafnyLangParser(options, logger);
+    public static DafnyLangParser Create(DafnyOptions options, ITelemetryPublisher telemetryPublisher, ILoggerFactory loggerFactory) {
+      return new DafnyLangParser(options, telemetryPublisher, loggerFactory);
     }
 
     public Dafny.Program CreateUnparsed(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
@@ -52,19 +53,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       mutex.Wait(cancellationToken);
 
       try {
-        return ParseUtils.ParseFiles(document.Uri.ToString(),
+        var beforeParsing = DateTime.Now;
+        var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
+        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
+        return result;
       }
       finally {
+        cachingParser.Prune();
         mutex.Release();
       }
     }
 
-    private Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
+    private static Dafny.Program NewDafnyProgram(TextDocumentItem document, ErrorReporter errorReporter) {
       // Ensure that the statically kept scopes are empty when parsing a new document.
       Type.ResetScopes();
       return new Dafny.Program(
