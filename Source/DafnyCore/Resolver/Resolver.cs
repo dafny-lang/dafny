@@ -29,6 +29,7 @@ namespace Microsoft.Dafny {
 
   public partial class Resolver {
     public DafnyOptions Options { get; }
+    public bool allowReresolving = false;
     public readonly BuiltIns builtIns;
 
     public ErrorReporter reporter;
@@ -2162,7 +2163,7 @@ namespace Microsoft.Dafny {
       // This pass also computes body surrogates for body-less loops, which is a bit like desugaring
       // such loops.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
+        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(this);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
@@ -2881,7 +2882,7 @@ namespace Microsoft.Dafny {
         currentClass = null;
         new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
         CallGraphBuilder.VisitMethod(prefixLemma, reporter);
-        new BoundsDiscoveryVisitor(reporter).VisitMethod(prefixLemma);
+        new BoundsDiscoveryVisitor(this).VisitMethod(prefixLemma);
       }
     }
 
@@ -5291,7 +5292,7 @@ namespace Microsoft.Dafny {
       //   * a parameter of an inductive datatype in the SCC is ghost
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
-        Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
+        Contract.Assume(allowReresolving || dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         foreach (var ctor in dt.Ctors) {
           if (ctor.IsGhost) {
             MarkSCCAsNotSupportingEquality();

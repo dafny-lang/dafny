@@ -12,6 +12,8 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public partial class Resolver {
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
+      private readonly Resolver resolver;
+
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
         readonly bool inLambdaExpression;
@@ -55,8 +57,9 @@ namespace Microsoft.Dafny {
 
       private readonly ErrorReporter reporter;
 
-      public BoundsDiscoveryVisitor(ErrorReporter reporter) {
-        this.reporter = reporter;
+      public BoundsDiscoveryVisitor(Resolver resolver) {
+        this.resolver = resolver;
+        this.reporter = resolver.Reporter;
       }
 
       public override BoundsDiscoveryContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
@@ -79,7 +82,7 @@ namespace Microsoft.Dafny {
             assignSuchThatStmt.Bounds = DiscoverBestBounds_MultipleVars(varLhss, assignSuchThatStmt.Expr, true);
           }
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
-          oneBodyLoopStmt.ComputeBodySurrogate(reporter);
+          oneBodyLoopStmt.ComputeBodySurrogate(reporter, resolver.allowReresolving);
         }
 
         return base.VisitOneStatement(stmt, context);

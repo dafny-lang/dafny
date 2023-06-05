@@ -139,14 +139,16 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract) {
       // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-      var cloner = new Cloner();
-      ModuleDef = cloner.CloneModuleDefinition(module, module.EnclosingModule);
+      //var cloner = new Cloner();
+      //ModuleDef = cloner.CloneModuleDefinition(module, module.EnclosingModule);
 
       var oldErrorsOnly = resolver.reporter.ErrorsOnly;
       resolver.reporter.ErrorsOnly = true; // turn off warning reporting for the clone
       Type.DisableScopes();
-      
+
+      resolver.allowReresolving = true;
       ModuleDef.ResolveModuleDefinition(sig, resolver);
+      resolver.allowReresolving = false;
       Type.EnableScopes();
       resolver.reporter.ErrorsOnly = oldErrorsOnly;
     }
