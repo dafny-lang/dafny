@@ -1781,7 +1781,11 @@ namespace Microsoft.Dafny {
             CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
           }
         }
-        ins.Add(etran.TrExpr(receiver));
+        var obj = etran.TrExpr(receiver);
+        if (bReceiver == null) {
+          obj = BoxifyForTraitParent(tok, obj, method, dafnyReceiver.Type);
+        }
+        ins.Add(obj);
       } else if (receiver is StaticReceiverExpr stexpr) {
         if (stexpr.ObjectToDiscard != null) {
           TrStmt_CheckWellformed(stexpr.ObjectToDiscard, builder, locals, etran, true);
