@@ -55,6 +55,16 @@ method {:test} GenFunctionTest()
   expect false;
 }
 
+method {:extern} GenMethod<T>(x: int, y: T) returns (z: T)
+  requires x > 3
+
+method {:test} GenMethodTest()
+{
+  var y1 := GenMethod(4, 10);
+  var y2 := GenMethod(3, 10); // Fails
+  expect false;
+}
+
 function {:extern} Baz(x: int): (y: int)
   ensures y == x
 

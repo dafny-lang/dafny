@@ -101,7 +101,7 @@ public class ExpectContracts : IRewriter {
       var receiver = Resolver.GetReceiver(parent, origMethod, decl.tok);
       var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
       memberSelectExpr.Member = origMethod;
-      memberSelectExpr.TypeApplication_JustMember = origMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
+      memberSelectExpr.TypeApplication_JustMember = newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
       memberSelectExpr.TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
       var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
 
@@ -112,20 +112,20 @@ public class ExpectContracts : IRewriter {
       var newFunc = cloner.CloneFunction(origFunc);
       newFunc.NameNode.Value = newName;
 
-      var args = origFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
+      var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
       var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
       var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
         Function = origFunc,
-        TypeApplication_JustFunction = origFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
+        TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
         TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-        Type = origFunc.ResultType,
+        Type = newFunc.ResultType,
       };
 
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
       var localExpr = new IdentifierExpr(tok, localName) {
-        Type = origFunc.ResultType
+        Type = newFunc.ResultType
       };
 
       var callRhs = new ExprRhs(callExpr);
@@ -136,8 +136,8 @@ public class ExpectContracts : IRewriter {
       var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
       Statement callStmt;
       if (origFunc.Result?.Name is null) {
-        var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
-        local.type = origFunc.ResultType;
+        var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
+        local.type = newFunc.ResultType;
         var locs = new List<LocalVariable> { local };
         var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
           ResolvedStatements = new List<Statement>() { assignStmt }

@@ -20,8 +20,12 @@ namespace _module {
       return x;
     }
     
-    public static T GenFunction<T>(T x) {
-      return x;
+    public static T GenFunction<T>(BigInteger x, T y) {
+      return y;
+    }
+    
+    public static T GenMethod<T>(BigInteger x, T y) {
+      return y;
     }
   }
 }
