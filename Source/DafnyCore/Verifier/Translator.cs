@@ -785,7 +785,7 @@ namespace Microsoft.Dafny {
       mods.Insert(0, forModule);
 
       var visibleTopLevelDecls =
-        mods.SelectMany(m => m.TopLevelDecls.FindAll(VisibleInScope));
+        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
 
       if (visibleTopLevelDecls.Any(
             d => d is TopLevelDeclWithMembers memberContainer &&
