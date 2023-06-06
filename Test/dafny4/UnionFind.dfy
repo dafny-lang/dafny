@@ -63,7 +63,7 @@ abstract module M1 refines M0 {
     // This function returns a snapshot of the .c fields of the objects in the domain of M
     ghost function {:autocontracts false} Collect(): CMap
       requires forall f :: f in M && f.c.Link? ==> f.c.next in M
-      reads this, set a | a in M
+      reads this, set a: Element | a in M
       ensures GoodCMap(Collect())
     {
       map e | e in M :: e.c
