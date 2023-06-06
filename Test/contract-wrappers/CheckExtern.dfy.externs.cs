@@ -15,5 +15,13 @@ namespace _module {
     public static BigInteger NotCalled(BigInteger x) {
       return BigInteger.One;
     }
+    
+    public static BigInteger FunctionWithUnnamedResult(BigInteger x) {
+      return x;
+    }
+    
+    public static T GenFunction<T>(T x) {
+      return x;
+    }
   }
 }
