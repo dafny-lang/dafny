@@ -17,7 +17,7 @@ namespace Microsoft.Dafny;
 ///    wrapper definition.
 /// </summary>
 public class ExpectContracts : IRewriter {
-  private readonly ClonerButDropMethodBodies cloner = new(false);
+  private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
   private readonly CallRedirector callRedirector;
 
@@ -101,8 +101,8 @@ public class ExpectContracts : IRewriter {
       var receiver = Resolver.GetReceiver(parent, origMethod, decl.tok);
       var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
       memberSelectExpr.Member = origMethod;
-      memberSelectExpr.TypeApplication_JustMember = new(); // TODO fix
-      memberSelectExpr.TypeApplication_AtEnclosingClass = new(); // TODO fix
+      memberSelectExpr.TypeApplication_JustMember = origMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
+      memberSelectExpr.TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
       var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
 
       var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
@@ -116,15 +116,14 @@ public class ExpectContracts : IRewriter {
       var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
       var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
         Function = origFunc,
-        TypeApplication_AtEnclosingClass = new(), // TODO fix
-        TypeApplication_JustFunction = new(), // TODO fix
+        TypeApplication_JustFunction = origFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
+        TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
         Type = origFunc.ResultType,
       };
 
       newFunc.Body = callExpr;
 
       var localName = origFunc.Result?.Name ?? "__result";
-      var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
       var localExpr = new IdentifierExpr(tok, localName) {
         Type = origFunc.ResultType
       };
@@ -132,15 +131,19 @@ public class ExpectContracts : IRewriter {
       var callRhs = new ExprRhs(callExpr);
 
       var lhss = new List<Expression> { localExpr };
-      var locs = new List<LocalVariable> { local };
       var rhss = new List<AssignmentRhs> { callRhs };
 
       var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
       Statement callStmt;
       if (origFunc.Result?.Name is null) {
-        callStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
+        var local = new LocalVariable(decl.RangeToken, localName, origFunc.ResultType, false);
+        local.type = origFunc.ResultType;
+        var locs = new List<LocalVariable> { local };
+        var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
           ResolvedStatements = new List<Statement>() { assignStmt }
         });
+        localExpr.Var = local;
+        callStmt = varDeclStmt;
       } else {
         localExpr.Var = origFunc.Result;
         callStmt = assignStmt;

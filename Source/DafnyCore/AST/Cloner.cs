@@ -20,10 +20,15 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<Statement, Statement> statementClones = new();
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
+    private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
     private readonly bool cloneLiteralModuleDefinition;
 
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
+    }
+
+    public TopLevelDecl GetCloneIfAvailable(TopLevelDecl topLevelDecl) {
+      return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
@@ -175,7 +180,9 @@ namespace Microsoft.Dafny {
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax, CloneTPChar(tp.Characteristics));
+      return (TypeParameter)typeParameterClones.GetOrCreate(tp,
+        () => new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax,
+          CloneTPChar(tp.Characteristics)));
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member, bool isReference) {
