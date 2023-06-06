@@ -961,9 +961,8 @@ type Seq T;
 function Seq#Length<T>(Seq T): int;
 axiom (forall s: Seq Box :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
-function Seq#Empty<T>(): Seq T uses {
-  axiom (forall<T> :: { Seq#Empty(): Seq T } Seq#Length(Seq#Empty(): Seq T) == 0);
-}
+function Seq#Empty<T>(): Seq T;
+axiom Seq#Length(Seq#Empty(): Seq Box) == 0;
 axiom (forall s: Seq Box :: { Seq#Length(s) }
   (Seq#Length(s) == 0 ==> s == Seq#Empty())
 // The following would be a nice fact to include, because it would enable verifying the
