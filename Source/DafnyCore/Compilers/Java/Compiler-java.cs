@@ -1203,11 +1203,11 @@ namespace Microsoft.Dafny.Compilers {
       return type.IsBoolType || type.IsCharType || AsNativeType(type) != null;
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
-        (thisContext is NewtypeDecl && (enclosingMethod != null || enclosingFunction != null)) ||
+        (thisContext is NewtypeDecl && !callToInheritedMember) ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }
@@ -1262,7 +1262,7 @@ namespace Microsoft.Dafny.Compilers {
       if (elements.Count != 0) {
         wr.Write(sep);
       }
-      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg, parens: false);
+      TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => NativeObjectType, parens: false);
 
       wr.Write(")");
     }
@@ -1650,18 +1650,15 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         wr.Append(Expr(index, inLetExprBody, wStmts));
-      } else if (source.Type.AsMultiSetType != null) {
+      } else {
+        Contract.Assert(source.Type.AsMultiSetType != null);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         wr.Append(Expr(index, inLetExprBody, wStmts));
-      } else {
-        TrParenExpr(source, wr, inLetExprBody, wStmts);
-        wr.Write(".update(");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
       }
       wr.Write(", ");
-      wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts));
       wr.Write(")");
     }
 

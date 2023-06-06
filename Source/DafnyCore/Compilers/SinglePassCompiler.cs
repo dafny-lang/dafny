@@ -877,7 +877,7 @@ namespace Microsoft.Dafny.Compilers {
       return name;
     }
     protected abstract string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null);
-    protected abstract void EmitThis(ConcreteSyntaxTree wr);
+    protected abstract void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember = false);
     protected virtual void EmitNull(Type type, ConcreteSyntaxTree wr) {
       wr.Write("null");
     }
@@ -1998,7 +1998,7 @@ namespace Microsoft.Dafny.Compilers {
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
                   var typeArgs = CombineAllTypeArguments(cf);
-                  EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
+                  EmitMemberSelect(wr => EmitThis(wr), UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
@@ -2034,7 +2034,8 @@ namespace Microsoft.Dafny.Compilers {
             }
 
             if (Attributes.Contains(f.Attributes, "test")) {
-              Error(ErrorId.c_test_function_must_be_compilable, f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
+              Error(ErrorId.c_test_function_must_be_compilable, f.tok,
+                "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
           } else if (c is TraitDecl && !f.IsStatic) {
             if (f.OverriddenMember == null) {
@@ -2060,9 +2061,8 @@ namespace Microsoft.Dafny.Compilers {
             if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
               classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
             } else {
-              Error(ErrorId.c_invalid_synthesize_method, m.tok, "Method {0} is annotated with :synthesize but " +
-                           "is not static, has a body, or does not return " +
-                           "anything",
+              Error(ErrorId.c_invalid_synthesize_method, m.tok,
+                "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 errorWr, m.FullName);
             }
           } else if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
@@ -2162,7 +2162,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(w);
+      EmitThis(w, true);
       wr.Write(")");
     }
 
@@ -2199,7 +2199,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
-      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w);
+      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < f.Formals.Count; j++) {
@@ -2261,7 +2261,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
-      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w);
+      EmitThis(unboxReceiver ? UnboxNewtypeValue(w) : w, true);
       sep = ", ";
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
