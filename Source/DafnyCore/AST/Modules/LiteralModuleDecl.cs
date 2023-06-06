@@ -74,7 +74,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     foreach (var decl2 in ModuleDef.PrefixNamedModules) {
-      formatter.SetDeclIndentation(decl2.Item2, innerIndent);
+      formatter.SetDeclIndentation(decl2.Module, innerIndent);
     }
 
     return true;

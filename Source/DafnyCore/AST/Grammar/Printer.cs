@@ -213,8 +213,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintCallGraph(prog.DefaultModuleDef, 0);
       PrintTopLevelDecls(prog, prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
       foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
-        var decls = new List<TopLevelDecl>() { tup.Item2 };
-        PrintTopLevelDecls(prog, decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
+        var decls = new List<TopLevelDecl>() { tup.Module };
+        PrintTopLevelDecls(prog, decls, 0, tup.Parts, Path.GetFullPath(prog.FullName));
       }
       wr.Flush();
     }
@@ -260,7 +260,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(Program program, IEnumerable<TopLevelDecl> decls, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(Program program, IEnumerable<TopLevelDecl> decls, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -560,7 +560,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintModuleDefinition(Program program, ModuleDefinition module, VisibilityScope scope, int indent, List<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(Program program, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -600,7 +600,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       PrintTopLevelDecls(program, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
-        PrintTopLevelDecls(program, new TopLevelDecl[] { tup.Item2 }, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+        PrintTopLevelDecls(program, new TopLevelDecl[] { tup.Module }, indent + IndentAmount, tup.Parts, fileBeingPrinted);
       }
     }
 

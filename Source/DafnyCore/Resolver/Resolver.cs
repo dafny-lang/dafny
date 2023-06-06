@@ -840,12 +840,11 @@ namespace Microsoft.Dafny {
       //     A.B.C  ,  module D { ... }
       // We collect these according to the first component of the prefix, like so:
       //     "A"   ->   (A.B.C  ,  module D { ... })
-      var prefixNames = new Dictionary<string, List<Tuple<List<IToken>, LiteralModuleDecl>>>();
+      var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
       foreach (var tup in moduleDecl.PrefixNamedModules) {
-        var id = tup.Item1[0].val;
-        List<Tuple<List<IToken>, LiteralModuleDecl>> prev;
-        if (!prefixNames.TryGetValue(id, out prev)) {
-          prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
+        var id = tup.Parts[0].val;
+        if (!prefixNames.TryGetValue(id, out var prev)) {
+          prev = new List<PrefixNameModule>();
         }
 
         prev.Add(tup);
@@ -859,7 +858,7 @@ namespace Microsoft.Dafny {
         if (tld is LiteralModuleDecl) {
           var subdecl = (LiteralModuleDecl)tld;
           // Transfer prefix-named modules downwards into the sub-module
-          List<Tuple<List<IToken>, LiteralModuleDecl>> prefixModules;
+          List<PrefixNameModule> prefixModules;
           if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
             prefixNames.Remove(subdecl.Name);
             prefixModules = prefixModules.ConvertAll(ShortenPrefix);
@@ -875,7 +874,7 @@ namespace Microsoft.Dafny {
       foreach (var entry in prefixNames) {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
-        var tok = prefixNamedModules.First().Item1[0];
+        var tok = prefixNamedModules.First().Parts[0];
         var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
         // Add the new module to the top-level declarations of its parent and then bind its names as usual
         var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
@@ -910,28 +909,28 @@ namespace Microsoft.Dafny {
       return bindings;
     }
 
-    private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup) {
-      Contract.Requires(tup.Item1.Count != 0);
-      var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
-      return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
+    private PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
+      Contract.Requires(prefixNameModule.Parts.Count != 0);
+      var rest = prefixNameModule.Parts.Skip(1).ToList();
+      return prefixNameModule with { Parts = rest };
     }
 
     private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod,
-      List<Tuple<List<IToken>, LiteralModuleDecl>> /*?*/ prefixModules, ModuleBindings parentBindings) {
+      List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
       Contract.Requires(litmod != null);
       Contract.Requires(parentBindings != null);
 
       // Transfer prefix-named modules downwards into the sub-module
       if (prefixModules != null) {
-        foreach (var tup in prefixModules) {
-          if (tup.Item1.Count == 0) {
-            tup.Item2.ModuleDef.EnclosingModule =
+        foreach (var prefixModule in prefixModules) {
+          if (prefixModule.Parts.Count == 0) {
+            prefixModule.Module.ModuleDef.EnclosingModule =
               litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-            var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
+            var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef,
               litmod.ModuleDef); // this will create a ModuleDecl with the right parent
             litmod.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
           } else {
-            litmod.ModuleDef.PrefixNamedModules.Add(tup);
+            litmod.ModuleDef.PrefixNamedModules.Add(prefixModule);
           }
         }
       }

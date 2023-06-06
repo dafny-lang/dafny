@@ -10,11 +10,11 @@ public class SystemModuleManager {
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
     false, false, null, null, null, true, false);
-  internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
-  public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
-  public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-  public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new Dictionary<List<bool>, TupleTypeDecl>(new Dafny.IEnumerableComparer<bool>());
+  internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
+  public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
+  public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
+  public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new();  // same keys as arrowTypeDecl
+  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
   public readonly ISet<int> Bitwidths = new HashSet<int>();
@@ -135,14 +135,14 @@ public class SystemModuleManager {
         : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
-    Function createMember(string name, Type resultType, Function readsFunction = null) {
+    Function CreateMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
       var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, tok, argExprs) {
         Type = new SetType(true, ObjectQ()),
       };
-      var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
+      var readsFrame = new List<FrameExpression> { new(tok, readsIS, null) };
       var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
         new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
@@ -154,8 +154,8 @@ public class SystemModuleManager {
       return function;
     }
 
-    var reads = createMember("reads", new SetType(true, ObjectQ()), null);
-    var req = createMember("requires", Type.Bool, reads);
+    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
     ArrowTypeDecls.Add(arity, arrowDecl);
