@@ -1,0 +1,127 @@
+
+Dafny program verifier finished with 37 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+true true true
+true true true
+true true true
+15 15 15 -- 15 15 15
+hello MyInt: A B C D E
+hello Parent: A B C D
+hello GrandParent: A B C
+hello MyInt: 10 11 12 13 14
+hello Parent: 10 11 12 13
+hello GrandParent: 10 11 12
+hello MyInt: 10 11 12
+hello Parent: 10 11
+hello GrandParent: 10
+29
+MyInt.B(7) reached
+25 2500
+TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil)
+IntList.B(7) reached
+25 2501
+Not so good to print
+C.B(7) reached
+25 2502
+[29, TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil), 29]
+
+Dafny program verifier did not attempt verification
+true true true
+true true true
+true true true
+15 15 15 -- 15 15 15
+hello MyInt: A B C D E
+hello Parent: A B C D
+hello GrandParent: A B C
+hello MyInt: 10 11 12 13 14
+hello Parent: 10 11 12 13
+hello GrandParent: 10 11 12
+hello MyInt: 10 11 12
+hello Parent: 10 11
+hello GrandParent: 10
+29
+MyInt.B(7) reached
+25 2500
+TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil)
+IntList.B(7) reached
+25 2501
+Not so good to print
+C.B(7) reached
+25 2502
+[29, TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil), 29]
+
+Dafny program verifier did not attempt verification
+true true true
+true true true
+true true true
+15 15 15 -- 15 15 15
+hello MyInt: A B C D E
+hello Parent: A B C D
+hello GrandParent: A B C
+hello MyInt: 10 11 12 13 14
+hello Parent: 10 11 12 13
+hello GrandParent: 10 11 12
+hello MyInt: 10 11 12
+hello Parent: 10 11
+hello GrandParent: 10
+29
+MyInt.B(7) reached
+25 2500
+TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil)
+IntList.B(7) reached
+25 2501
+Not so good to print
+C.B(7) reached
+25 2502
+[29, TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil), 29]
+
+Dafny program verifier did not attempt verification
+true true true
+true true true
+true true true
+15 15 15 -- 15 15 15
+hello MyInt: A B C D E
+hello Parent: A B C D
+hello GrandParent: A B C
+hello MyInt: 10 11 12 13 14
+hello Parent: 10 11 12 13
+hello GrandParent: 10 11 12
+hello MyInt: 10 11 12
+hello Parent: 10 11
+hello GrandParent: 10
+29
+MyInt.B(7) reached
+25 2500
+TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil)
+IntList.B(7) reached
+25 2501
+Not so good to print
+C.B(7) reached
+25 2502
+[29, TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil), 29]
+
+Dafny program verifier did not attempt verification
+true true true
+true true true
+true true true
+15 15 15 -- 15 15 15
+hello MyInt: A B C D E
+hello Parent: A B C D
+hello GrandParent: A B C
+hello MyInt: 10 11 12 13 14
+hello Parent: 10 11 12 13
+hello GrandParent: 10 11 12
+hello MyInt: 10 11 12
+hello Parent: 10 11
+hello GrandParent: 10
+29
+MyInt.B(7) reached
+25 2500
+TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil)
+IntList.B(7) reached
+25 2501
+Not so good to print
+C.B(7) reached
+25 2502
+[29, TailRecursion_Compile.IntList.Cons(8, TailRecursion_Compile.IntList.Nil), 29]
