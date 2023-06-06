@@ -37,23 +37,23 @@ class A {
   }
 
   method m(i: int) returns (r: Result<int>, o: int)
-    ensures 0 <= i ==> r.Success? && r.value == i && o == i+i+i;
-    ensures i < 0 ==> r.Failure? && o == i+i;
+    ensures 0 <= i ==> r.Success? && r.value == i && o == i+i+i
+    ensures i < 0 ==> r.Failure? && o == i+i
   {
     if i < 0 { return Failure("negative"), i+i; }
     return Success(i), i+i+i;
   }
 
   method m1(i: int) returns (r: Result<int>)
-    ensures 0 <= i ==> r.Success? && r.value == i;
-    ensures i < 0 ==> r.Failure?;
+    ensures 0 <= i ==> r.Success? && r.value == i
+    ensures i < 0 ==> r.Failure?
   {
     if i < 0 { return Failure("negative"); }
     return Success(i);
   }
 
   method mexp() returns (r: Result<int>, k: int)
-    ensures r.IsFailure() && k == 100;
+    ensures r.IsFailure() && k == 100
   {
     k :- Result<int>.Failure("always"), 100;
     k := 101; // Not executed

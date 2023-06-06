@@ -1,0 +1,7 @@
+git-issue-3304b.dfy(5,9): Error: assertion might not hold
+  |
+5 |   assert false;
+  |          ^^^^^
+
+
+Dafny program verifier finished with 0 verified, 1 error

@@ -117,7 +117,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             // but it is now used by the LibraryBackend when building .doo files as well. 
             options.Set(option, PrintModes.Serialization);
           } else {
-            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
+            InvalidArgumentError(option.Name, ps);
           }
         }
       }
@@ -239,6 +239,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Predicates;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
@@ -278,7 +279,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public int InductionHeuristic = 6;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
-    public List<string> FoldersToFormat { get; } = new();
+    public bool AllowSourceFolders = false;
+    public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -292,6 +294,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
+    public Command Command = null;
     public bool Format = false;
     public bool FormatCheck = false;
 
@@ -798,7 +801,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -1315,7 +1318,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /deprecation:<n>
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
-    2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
     Treat warnings as errors.
@@ -1561,7 +1563,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   }
 
   public override void Error(string message, params string[] args) {
-    errors.SemErr(token, string.Format(message, args));
+    errors.SemErr(GenericErrors.ErrorId.g_cli_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
   }
 }

@@ -114,7 +114,7 @@ method PrintMultiSet(shapes: multiset<Shape>) {
 
 lemma ThereIsASmallestInt(s: set<int>) returns (k: int)
   requires s != {}
-  ensures k in s && forall k' :: k' in s ==> k <= k';
+  ensures k in s && forall k' :: k' in s ==> k <= k'
 {
   k :| k in s;
   if k' :| k' in s && k' < k {

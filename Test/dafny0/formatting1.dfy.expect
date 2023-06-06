@@ -22,7 +22,11 @@ module A {
     }
   }
 }
-formatting1-3.dfy(1,0): Warning: File contains no code
+formatting1-3.dfy(1,0): Warning: File contains no code (ID: p_file_has_no_code)
+
+The indicated file has no code. This can be because the file is empty, because some parse error
+left the top-level module with no well-formed declarations, or because a unclosed comment
+has commented-out the whole file.
 // RUN: echo 'lit should ignore this file' 
 
 1 file needs formatting.

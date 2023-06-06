@@ -2,7 +2,7 @@
 
 module myclass {
   class MyClass {
-    var num: int;
+    var num: int
 
     constructor (x: int) {
       num := x;

@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 class Test<T> {
-  var t:T;
+  var t:T
 
   constructor (e:T) {
     t := e;

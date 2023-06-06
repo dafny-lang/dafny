@@ -115,7 +115,7 @@ abstract module M1 refines M0 {
 
   // stupid help lemma to get around boxing
   lemma MapsEqual<D>(m: map<D, D>, n: map<D, D>)
-    requires forall d :: d in m <==> d in n;
+    requires forall d :: d in m <==> d in n
     requires forall d :: d in m ==> m[d] == n[d]
     ensures m == n
   {
@@ -183,7 +183,7 @@ abstract module M2 refines M1 {
       requires GoodCMap(C)
       requires e in C
       requires Reaches(d, e, r, C)
-      requires tt in C && Reaches(td, tt, tm, C);
+      requires tt in C && Reaches(td, tt, tm, C)
       requires C' == C[tt := Link(tm)] && C'[tt].Link? && tm in C' && C'[tm].Root?
       requires GoodCMap(C')
       ensures Reaches(d, e, r, C')

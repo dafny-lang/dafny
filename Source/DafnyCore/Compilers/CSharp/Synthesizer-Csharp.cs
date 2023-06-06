@@ -286,7 +286,7 @@ public class CsharpSynthesizer {
         wr.Write("\treturn ");
         wr.Append(compiler.Expr(binaryExpr.E0, false, wStmts));
         wr.WriteLine(";");
-        binaryExpr = (BinaryExpr)binaryExpr.E1;
+        binaryExpr = (BinaryExpr)binaryExpr.E1.Resolved;
         break;
       case BinaryExpr.Opcode.Eq:
         wr.WriteLine("\treturn true;");

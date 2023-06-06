@@ -6,6 +6,6 @@ method Main(){
 }
 
 module {:extern "Nested.Library"} Library {
-    const THREE := TWO + 1; 
+    const THREE := TWO + 1
     const TWO: int
 }

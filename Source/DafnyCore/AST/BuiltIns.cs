@@ -64,6 +64,9 @@ public class BuiltIns {
     return new Attributes("axiom", new List<Expression>(), null);
   }
 
+  /// <summary>
+  /// Ensures this instance contains the requested type
+  /// </summary>
   public UserDefinedType ArrayType(int dims, Type arg, bool allowCreationOfNewClass) {
     Contract.Requires(1 <= dims);
     Contract.Requires(arg != null);
