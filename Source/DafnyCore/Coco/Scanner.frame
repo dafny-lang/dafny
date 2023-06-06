@@ -306,6 +306,7 @@ public class Scanner {
   bool triviaTrailing = false;   // The first trivia is always leading
   int triviaNewlines = 0;        // How many newlines in the trivia so far
   bool lastWasCr = false;        // if the last newline character was \r
+  public Token FirstToken { get; }
       
   private Errors/*!*/ errorHandler;
 
@@ -324,6 +325,7 @@ public class Scanner {
     if(firstToken.Uri == null) {
       firstToken.Uri = uri;
     }
+    this.FirstToken = firstToken;
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     try {
@@ -344,6 +346,7 @@ public class Scanner {
     if(firstToken.Uri == null) {
       firstToken.Uri = uri;
     }
+    this.FirstToken = firstToken;
     pt = tokens = firstToken ?? new Token();  // first token is a dummy
     t = firstToken ?? new Token(); // dummy because t is a non-null field
     this._buffer = new Buffer(s, true);

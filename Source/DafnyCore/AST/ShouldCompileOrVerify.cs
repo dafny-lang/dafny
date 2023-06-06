@@ -79,7 +79,7 @@ public static class ShouldCompileOrVerify {
 
     var visited = new HashSet<Uri>();
     var edges = program.Includes.GroupBy(i => i.IncluderFilename)
-      .ToDictionary(g => g.Key, g => g.Select(i => new Uri(i.IncludedFilename)).ToList());
+      .ToDictionary(g => g.Key, g => g.Select(x => x.IncludedFilename).ToList());
     while (toVisit.Any()) {
       var uri = toVisit.Pop();
       if (stopUris.Contains(uri)) {
