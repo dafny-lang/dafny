@@ -5,7 +5,7 @@ module Seq {
 
   /* explains associative property of sequences in addition */
   lemma LemmaConcatIsAssociative<T>(a: seq<T>, b: seq<T>, c: seq<T>)
-    ensures a + (b + c) == (a + b) + c;
+    ensures a + (b + c) == (a + b) + c
   {
   }
 

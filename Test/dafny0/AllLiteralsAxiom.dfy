@@ -8,18 +8,18 @@ module NeedsAllLiteralsAxiom {
   // of including the all-literals axiom is.)
 
   function trick(n: nat, m: nat): nat
-    decreases n;  // note that m is not included
+    decreases n  // note that m is not included
   {
     if n < m || m==0 then n else trick(n-m, m) + m
   }
 
   lemma lemma_trick(n: nat, m: nat)
-    ensures trick(n, m) == n;
+    ensures trick(n, m) == n
   {
   }
 
   lemma calc_trick(n: nat, m: nat)
-    ensures trick(100, 10) == 100;
+    ensures trick(100, 10) == 100
   {
   }
 }

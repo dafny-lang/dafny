@@ -57,7 +57,7 @@ class MyClass<T> {
   // Here are more tests
 
   function F(a: array<T>): bool
-    reads a;
+    reads a
   {
     (exists i :: 0 <= i && i < a.Length / 2 && (forall j :: i <= j && j < a.Length ==> a[i] == a[j]))
   }
@@ -153,12 +153,12 @@ module DependencyOnAllAllocatedObjects {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
   ghost function AllObjects10(): bool
-    reads *;
+    reads *
   {
     forall c: SomeClass :: c.f == 0  // error: not allowed to depend on which objects are allocated
   }
   ghost function AllObjects11(): bool
-    reads *;
+    reads *
   {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
@@ -171,18 +171,18 @@ module DependencyOnAllAllocatedObjects {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
   function AllObjects30(): bool
-    reads *;
+    reads *
   {
     forall c: SomeClass :: c.f == 0  // error: not allowed to depend on which objects are allocated
   }
   function AllObjects31(): bool
-    reads *;
+    reads *
   {
     forall c: SomeClass :: true  // error: not allowed to depend on which objects are allocated
   }
 
   class SomeClass {
-    var f: int;
+    var f: int
   }
 }
 

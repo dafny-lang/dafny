@@ -8,7 +8,7 @@ module A {
     class C
     {
         static method{:axiom} M()
-            ensures P();
+            ensures P()
     }
 }
 

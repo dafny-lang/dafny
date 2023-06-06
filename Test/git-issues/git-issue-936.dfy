@@ -77,7 +77,7 @@ method t2() returns (r: Status, z: int)
 
 method t3() returns (r: Status, z: int)
   ensures r.Failure?
-  ensures z == 0;
+  ensures z == 0
 {
   r := Success;
   z := 0;

@@ -12,8 +12,8 @@
 // RUN: %sed 's/"pos":[0-9]+,//g' "%t".raw3 > "%t"
 // RUN: %diff "%s.expect" "%t"
 newtype byte = i: int | 0 <= i < 256 // Info
-static const x := 1; // Warning
-const y: byte := 257; // Error
+static const x := 1 // Warning
+const y: byte := 257 // Error
 
 method M0() requires true requires false // Related location
 method M1() { M0(); } // Error
