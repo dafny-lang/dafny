@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishTelemetry(kind.ToString(), ImmutableDictionary.Create<string, object>().Add("payload", payload!));
     }
 
-    protected void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload);
+    public void PublishTelemetry(string kind, ImmutableDictionary<string, object> payload);
 
     /// <summary>
     /// Signal the completion of a document update.
