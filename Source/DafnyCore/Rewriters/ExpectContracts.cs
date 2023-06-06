@@ -110,15 +110,13 @@ public class ExpectContracts : IRewriter {
   }
 
   private MemberDecl GenerateFunctionWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Function origFunc,
-    string newName, IToken tok)
-  {
+    string newName, IToken tok) {
     var newFunc = cloner.CloneFunction(origFunc);
     newFunc.NameNode.Value = newName;
 
     var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
     var receiver = Resolver.GetReceiver(parent, origFunc, decl.tok);
-    var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args)
-    {
+    var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
       Function = origFunc,
       TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
       TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
@@ -128,8 +126,7 @@ public class ExpectContracts : IRewriter {
     newFunc.Body = callExpr;
 
     var localName = origFunc.Result?.Name ?? "__result";
-    var localExpr = new IdentifierExpr(tok, localName)
-    {
+    var localExpr = new IdentifierExpr(tok, localName) {
       Type = newFunc.ResultType
     };
 
@@ -140,28 +137,23 @@ public class ExpectContracts : IRewriter {
 
     var assignStmt = new AssignStmt(decl.RangeToken, localExpr, callRhs);
     Statement callStmt;
-    if (origFunc.Result?.Name is null)
-    {
+    if (origFunc.Result?.Name is null) {
       var local = new LocalVariable(decl.RangeToken, localName, newFunc.ResultType, false);
       local.type = newFunc.ResultType;
       var locs = new List<LocalVariable> { local };
-      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss)
-      {
+      var varDeclStmt = new VarDeclStmt(decl.RangeToken, locs, new UpdateStmt(decl.RangeToken, lhss, rhss) {
         ResolvedStatements = new List<Statement>() { assignStmt }
       });
       localExpr.Var = local;
       callStmt = varDeclStmt;
-    }
-    else
-    {
+    } else {
       localExpr.Var = origFunc.Result;
       callStmt = assignStmt;
     }
 
     var body = MakeContractCheckingBody(origFunc.Req, origFunc.Ens, callStmt);
 
-    if (origFunc.Result?.Name is null)
-    {
+    if (origFunc.Result?.Name is null) {
       body.AppendStmt(new ReturnStmt(decl.RangeToken, new List<AssignmentRhs> { new ExprRhs(localExpr) }));
     }
 
@@ -174,8 +166,7 @@ public class ExpectContracts : IRewriter {
   }
 
   private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Method origMethod,
-    string newName)
-  {
+    string newName) {
     MemberDecl newDecl;
     var newMethod = cloner.CloneMethod(origMethod);
     newMethod.NameNode.Value = newName;
