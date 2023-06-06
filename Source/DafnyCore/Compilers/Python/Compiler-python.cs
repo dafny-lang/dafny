@@ -659,15 +659,6 @@ namespace Microsoft.Dafny.Compilers {
         return "object";
       }
 
-      if (xType.AsNewtype != null && member == null) {
-        // when member is given, use UserDefinedType case below
-        var nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
-          return GetNativeTypeName(nativeType);
-        }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok, member);
-      }
-
       switch (xType) {
         case BoolType:
           return "bool";
@@ -1154,7 +1145,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
       wr.Write(isTailRecursive ? "_this" : "self");
     }

@@ -2343,11 +2343,11 @@ namespace Microsoft.Dafny.Compilers {
       return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       var custom =
         (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
         (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
-        (thisContext is NewtypeDecl && (enclosingMethod != null || enclosingFunction != null)) ||
+        (thisContext is NewtypeDecl && !callToInheritedMember) ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }

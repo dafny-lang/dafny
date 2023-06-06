@@ -2482,7 +2482,7 @@ namespace Microsoft.Dafny.Compilers {
              member != null && member.IsExtern(Options, out _, out _);
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       wr.Write("_this");
     }
 
@@ -2857,11 +2857,17 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(", ");
         wr.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
         wr.Write(")");
-      } else {
+      } else if (source.Type.AsMapType != null) {
         EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
         TrParenExpr(source, wSource, inLetExprBody, wSource);
-        wIndex.Append(Expr(index, inLetExprBody, wSource));
-        wValue.Append(CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wSource));
+        wIndex.Append(CoercedExpr(index, ((MapType)resultCollectionType).Domain, inLetExprBody, wSource));
+        wValue.Append(CoercedExpr(value, ((MapType)resultCollectionType).Range, inLetExprBody, wSource));
+      } else {
+        Contract.Assert(source.Type.AsMultiSetType != null);
+        EmitIndexCollectionUpdate(source.Type, out var wSource, out var wIndex, out var wValue, wr, false);
+        TrParenExpr(source, wSource, inLetExprBody, wSource);
+        wIndex.Append(CoercedExpr(index, resultCollectionType.Arg, inLetExprBody, wSource));
+        wValue.Append(Expr(value, inLetExprBody, wSource));
       }
     }
 
