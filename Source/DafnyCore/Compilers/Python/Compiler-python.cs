@@ -396,9 +396,9 @@ namespace Microsoft.Dafny.Compilers {
       block.WriteLine();
 
       if (d is NewtypeDecl newtypeDecl && newtypeDecl.ParentTraits.Count != 0) {
-          // in constructor:
-          //   self._value = value
-          cw.ConstructorWriter.WriteLine("self._value = value");
+        // in constructor:
+        //   self._value = value
+        cw.ConstructorWriter.WriteLine("self._value = value");
       }
 
       return cw;

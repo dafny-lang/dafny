@@ -9188,7 +9188,8 @@ namespace Microsoft.Dafny {
           "it may have read effects");
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
+          targetType.NormalizeExpandKeepConstraints() is UserDefinedType
+          {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
           false, null);
