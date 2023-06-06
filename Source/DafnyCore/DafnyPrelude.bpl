@@ -922,7 +922,7 @@ axiom (forall<T> s: Set T :: { MultiSet#Card(MultiSet#FromSet(s)) }
 
 // conversion to a multiset, from a sequence.
 function MultiSet#FromSeq<T>(Seq T): MultiSet T uses {
-  axiom (forall<T> :: MultiSet#FromSeq(Seq#Empty(): Seq T) == MultiSet#Empty(): MultiSet T);
+  axiom MultiSet#FromSeq(Seq#Empty(): Seq Box) == MultiSet#Empty(): MultiSet Box;
 }
 
 // conversion produces a good map.
@@ -959,12 +959,12 @@ axiom (forall s: Seq Box, x: Box :: { MultiSet#FromSeq(s)[x] }
 type Seq T;
 
 function Seq#Length<T>(Seq T): int;
-axiom (forall<T> s: Seq T :: { Seq#Length(s) } 0 <= Seq#Length(s));
+axiom (forall s: Seq Box :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
 function Seq#Empty<T>(): Seq T uses {
   axiom (forall<T> :: { Seq#Empty(): Seq T } Seq#Length(Seq#Empty(): Seq T) == 0);
 }
-axiom (forall<T> s: Seq T :: { Seq#Length(s) }
+axiom (forall s: Seq Box :: { Seq#Length(s) }
   (Seq#Length(s) == 0 ==> s == Seq#Empty())
 // The following would be a nice fact to include, because it would enable verifying the
 // GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
@@ -974,7 +974,7 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) }
   );
 
 // The empty sequence $Is any type
-//axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, TSeq(t))} $Is(Seq#Empty(): Seq T, TSeq(t)));
+//axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq Box, TSeq(t))} $Is(Seq#Empty(): Seq Box, TSeq(t)));
 
 function Seq#Singleton<T>(T): Seq T;
 axiom (forall t: Box :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
@@ -982,12 +982,12 @@ axiom (forall t: Box :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleto
 function Seq#Build<T>(s: Seq T, val: T): Seq T;
 function Seq#Build_inv0<T>(s: Seq T) : Seq T;
 function Seq#Build_inv1<T>(s: Seq T) : T;
-axiom (forall<T> s: Seq T, val: T ::
+axiom (forall s: Seq Box, val: Box ::
   { Seq#Build(s, val) }
   Seq#Build_inv0(Seq#Build(s, val)) == s &&
   Seq#Build_inv1(Seq#Build(s, val)) == val);
 
-axiom (forall<T> s: Seq T, v: T ::
+axiom (forall s: Seq Box, v: Box ::
   { Seq#Build(s,v) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
 axiom (forall s: Seq Box, i: int, v: Box :: { Seq#Index(Seq#Build(s,v), i) }
@@ -1009,7 +1009,7 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
   Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, ty, heap, init, $Box(i)));
 
 function Seq#Append<T>(Seq T, Seq T): Seq T;
-axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
+axiom (forall s0: Seq Box, s1: Seq Box :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
 
 function Seq#Index<T>(Seq T, int): T;
@@ -1034,12 +1034,12 @@ axiom (forall<T> x: T ::
   { Seq#Contains(Seq#Empty(), x) }
   !Seq#Contains(Seq#Empty(), x));
 
-axiom (forall<T> s0: Seq T, s1: Seq T, x: T ::
+axiom (forall s0: Seq Box, s1: Seq Box, x: Box ::
   { Seq#Contains(Seq#Append(s0, s1), x) }
   Seq#Contains(Seq#Append(s0, s1), x) <==>
     Seq#Contains(s0, x) || Seq#Contains(s1, x));
 
-axiom (forall<T> s: Seq T, v: T, x: T ::  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
+axiom (forall s: Seq Box, v: Box, x: Box ::  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
   { Seq#Contains(Seq#Build(s, v), x) }
     Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
 
@@ -1060,7 +1060,7 @@ axiom (forall s0: Seq Box, s1: Seq Box :: { Seq#Equal(s0,s1) }
     Seq#Length(s0) == Seq#Length(s1) &&
     (forall j: int :: { Seq#Index(s0,j) } { Seq#Index(s1,j) }
         0 <= j && j < Seq#Length(s0) ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
-axiom (forall<T> a: Seq T, b: Seq T :: { Seq#Equal(a,b) }  // extensionality axiom for sequences
+axiom (forall a: Seq Box, b: Seq Box :: { Seq#Equal(a,b) }  // extensionality axiom for sequences
   Seq#Equal(a,b) ==> a == b);
 
 function Seq#SameUntil<T>(Seq T, Seq T, int): bool;
@@ -1070,7 +1070,7 @@ axiom (forall s0: Seq Box, s1: Seq Box, n: int :: { Seq#SameUntil(s0,s1,n) }
         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
 
 function Seq#Take<T>(s: Seq T, howMany: int): Seq T;
-axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Take(s,n)) }
+axiom (forall s: Seq Box, n: int :: { Seq#Length(Seq#Take(s,n)) }
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n);
 axiom (forall s: Seq Box, n: int, j: int ::
   {:weight 25}
@@ -1080,7 +1080,7 @@ axiom (forall s: Seq Box, n: int, j: int ::
     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
 
 function Seq#Drop<T>(s: Seq T, howMany: int): Seq T;
-axiom (forall<T> s: Seq T, n: int :: { Seq#Length(Seq#Drop(s,n)) }
+axiom (forall s: Seq Box, n: int :: { Seq#Length(Seq#Drop(s,n)) }
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s,n)) == Seq#Length(s) - n);
 axiom (forall s: Seq Box, n: int, j: int ::
   {:weight 25}
@@ -1093,7 +1093,7 @@ axiom (forall s: Seq Box, n: int, k: int ::
   0 <= n && n <= k && k < Seq#Length(s) ==>
     Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
 
-axiom (forall<T> s, t: Seq T, n: int ::
+axiom (forall s, t: Seq Box, n: int ::
   { Seq#Take(Seq#Append(s, t), n) }
   { Seq#Drop(Seq#Append(s, t), n) }
   n == Seq#Length(s)
@@ -1144,7 +1144,7 @@ axiom (forall h: Heap, a: ref, n0, n1: int ::
         { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
         n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field Box)) );
 // drop commutes with build.
-axiom (forall<T> s: Seq T, v: T, n: int ::
+axiom (forall s: Seq Box, v: Box, n: int ::
         { Seq#Drop(Seq#Build(s, v), n) }
         0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
@@ -1152,22 +1152,22 @@ function Seq#Rank<T>(Seq T): int;
 axiom (forall s: Seq Box, i: int ::
         { DtRank($Unbox(Seq#Index(s, i)): DatatypeType) }
         0 <= i && i < Seq#Length(s) ==> DtRank($Unbox(Seq#Index(s, i)): DatatypeType) < Seq#Rank(s) );
-axiom (forall<T> s: Seq T, i: int ::
+axiom (forall s: Seq Box, i: int ::
         { Seq#Rank(Seq#Drop(s, i)) }
         0 < i && i <= Seq#Length(s) ==> Seq#Rank(Seq#Drop(s, i)) < Seq#Rank(s) );
-axiom (forall<T> s: Seq T, i: int ::
+axiom (forall s: Seq Box, i: int ::
         { Seq#Rank(Seq#Take(s, i)) }
         0 <= i && i < Seq#Length(s) ==> Seq#Rank(Seq#Take(s, i)) < Seq#Rank(s) );
-axiom (forall<T> s: Seq T, i: int, j: int ::
+axiom (forall s: Seq Box, i: int, j: int ::
         { Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) }
         0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // Additional axioms about common things
-axiom (forall<T> s: Seq T, n: int :: { Seq#Drop(s, n) }
+axiom (forall s: Seq Box, n: int :: { Seq#Drop(s, n) }
         n == 0 ==> Seq#Drop(s, n) == s);
-axiom (forall<T> s: Seq T, n: int :: { Seq#Take(s, n) }
+axiom (forall s: Seq Box, n: int :: { Seq#Take(s, n) }
         n == 0 ==> Seq#Take(s, n) == Seq#Empty());
-axiom (forall<T> s: Seq T, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
+axiom (forall s: Seq Box, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
         0 <= m && 0 <= n && m+n <= Seq#Length(s) ==>
         Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m+n));
 
