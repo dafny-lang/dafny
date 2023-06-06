@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
+public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
+  public Guid UniqueParseContentHash { get; set; }
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -54,7 +57,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   [FilledInDuringResolution]
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]
-  public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
+  public readonly List<PrefixNameModule> PrefixNamedModules = new();  // filled in by the parser; emptied by the resolver
   public virtual IEnumerable<TopLevelDecl> TopLevelDecls =>
     defaultClassFirst ? DefaultClasses.
         Concat(SourceDecls).
@@ -105,7 +108,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     DefaultClass = (DefaultClassDecl)cloner.CloneDeclaration(original.DefaultClass, this);
     foreach (var tup in original.PrefixNamedModules) {
-      var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)cloner.CloneDeclaration(tup.Item2, this));
+      var newTup = tup with {
+        Module = (LiteralModuleDecl)cloner.CloneDeclaration(tup.Module, this)
+      };
       PrefixNamedModules.Add(newTup);
     }
 
@@ -352,13 +357,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     get {
       var attributes = Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>();
       return attributes.Concat(preResolveTopLevelDecls ?? TopLevelDecls).Concat(
-          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Item2)));
+          (preResolvePrefixNamedModules ?? PrefixNamedModules.Select(tuple => tuple.Module)));
     }
   }
 
   public void PreResolveSnapshotForFormatter() {
     preResolveTopLevelDecls = TopLevelDecls.ToImmutableList();
-    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Item2).ToImmutableList();
+    preResolvePrefixNamedModules = PrefixNamedModules.Select(tuple => tuple.Module).ToImmutableList();
   }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
@@ -448,16 +453,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
     //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixNames = new Dictionary<string, List<Tuple<List<IToken>, LiteralModuleDecl>>>();
-    foreach (var tup in PrefixNamedModules) {
-      var id = tup.Item1[0].val;
-      List<Tuple<List<IToken>, LiteralModuleDecl>> prev;
-      if (!prefixNames.TryGetValue(id, out prev)) {
-        prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
-      }
-
-      prev.Add(tup);
-      prefixNames[id] = prev;
+    var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
+    foreach (var prefixNameModule in PrefixNamedModules) {
+      var firstPartName = prefixNameModule.Parts[0].val;
+      var prev = prefixNames.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
+      prev.Add(prefixNameModule);
     }
 
     PrefixNamedModules.Clear();
@@ -480,7 +480,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     foreach (var entry in prefixNames) {
       var name = entry.Key;
       var prefixNamedModules = entry.Value;
-      var tok = prefixNamedModules.First().Item1[0];
+      var tok = prefixNamedModules.First().Parts[0];
       var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
       var subdecl = new LiteralModuleDecl(modDef, this);
@@ -515,9 +515,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup) {
-    Contract.Requires(tup.Item1.Count != 0);
-    var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
-    return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
+  private PrefixNameModule ShortenPrefix(PrefixNameModule tup) {
+    Contract.Requires(tup.Parts.Count != 0);
+    var rest = tup.Parts.Skip(1).ToList();
+    return tup with { Parts = rest };
   }
 }
