@@ -396,14 +396,14 @@ namespace Microsoft.Dafny {
       prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
-      var b = BindModuleNames(prog.DefaultModuleDef, bindings);
-      bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
+      var moduleBindings = prog.DefaultModuleDef.BindModuleNames(this, bindings);
+      bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, moduleBindings);
       if (reporter.ErrorCount > 0) {
         return;
       } // if there were errors, then the implict ModuleBindings data structure invariant
 
       // is violated, so Processing dependencies will not succeed.
-      ProcessDependencies(prog.DefaultModule, b, dependencies);
+      ProcessDependencies(prog.DefaultModule, moduleBindings, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
         ReportCycleError(cycle, m => m.tok,
@@ -1004,163 +1004,6 @@ namespace Microsoft.Dafny {
       }
 
       moduleInfo = oldModuleInfo;
-    }
-
-    public class ModuleBindings {
-      private ModuleBindings parent;
-      private Dictionary<string, ModuleDecl> modules;
-      private Dictionary<string, ModuleBindings> bindings;
-
-      public ModuleBindings(ModuleBindings p) {
-        parent = p;
-        modules = new Dictionary<string, ModuleDecl>();
-        bindings = new Dictionary<string, ModuleBindings>();
-      }
-
-      public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
-        if (modules.ContainsKey(name)) {
-          return false;
-        } else {
-          modules.Add(name, subModule);
-          bindings.Add(name, b);
-          return true;
-        }
-      }
-
-      public bool TryLookup(IToken name, out ModuleDecl m) {
-        Contract.Requires(name != null);
-        return TryLookupFilter(name, out m, l => true);
-      }
-
-      public bool TryLookupFilter(IToken name, out ModuleDecl m, Func<ModuleDecl, bool> filter) {
-        Contract.Requires(name != null);
-        if (modules.TryGetValue(name.val, out m) && filter(m)) {
-          return true;
-        } else if (parent != null) {
-          return parent.TryLookupFilter(name, out m, filter);
-        } else {
-          return false;
-        }
-      }
-
-      public IEnumerable<ModuleDecl> ModuleList {
-        get { return modules.Values; }
-      }
-
-      public ModuleBindings SubBindings(string name) {
-        ModuleBindings v = null;
-        bindings.TryGetValue(name, out v);
-        return v;
-      }
-    }
-
-    private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
-      var bindings = new ModuleBindings(parentBindings);
-
-      // moduleDecl.PrefixNamedModules is a list of pairs like:
-      //     A.B.C  ,  module D { ... }
-      // We collect these according to the first component of the prefix, like so:
-      //     "A"   ->   (A.B.C  ,  module D { ... })
-      var prefixNames = new Dictionary<string, List<Tuple<List<IToken>, LiteralModuleDecl>>>();
-      foreach (var tup in moduleDecl.PrefixNamedModules) {
-        var id = tup.Item1[0].val;
-        List<Tuple<List<IToken>, LiteralModuleDecl>> prev;
-        if (!prefixNames.TryGetValue(id, out prev)) {
-          prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
-        }
-
-        prev.Add(tup);
-        prefixNames[id] = prev;
-      }
-
-      moduleDecl.PrefixNamedModules.Clear();
-
-      // First, register all literal modules, and transferring their prefix-named modules downwards
-      foreach (var tld in moduleDecl.TopLevelDecls) {
-        if (tld is LiteralModuleDecl) {
-          var subdecl = (LiteralModuleDecl)tld;
-          // Transfer prefix-named modules downwards into the sub-module
-          List<Tuple<List<IToken>, LiteralModuleDecl>> prefixModules;
-          if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
-            prefixNames.Remove(subdecl.Name);
-            prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-          } else {
-            prefixModules = null;
-          }
-
-          BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
-        }
-      }
-
-      // Next, add new modules for any remaining entries in "prefixNames".
-      foreach (var entry in prefixNames) {
-        var name = entry.Key;
-        var prefixNamedModules = entry.Value;
-        var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
-        // Add the new module to the top-level declarations of its parent and then bind its names as usual
-        var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
-        moduleDecl.ResolvedPrefixNamedModules.Add(subdecl);
-        BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-      }
-
-      // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
-      foreach (var tld in moduleDecl.TopLevelDecls) {
-        if (tld is AbstractModuleDecl || tld is AliasModuleDecl) {
-          var subdecl = (ModuleDecl)tld;
-          if (bindings.BindName(subdecl.Name, subdecl, null)) {
-            // the add was successful
-          } else {
-            // there's already something with this name
-            ModuleDecl prevDecl;
-            var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
-            Contract.Assert(yes);
-            if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
-                       importDecl.Name == importDecl.TargetQId.rootName()) {
-              importDecl.ShadowsLiteralModule = true;
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok,
-                "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
-            }
-          }
-        }
-      }
-
-      return bindings;
-    }
-
-    private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup) {
-      Contract.Requires(tup.Item1.Count != 0);
-      var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
-      return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
-    }
-
-    private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod,
-      List<Tuple<List<IToken>, LiteralModuleDecl>> /*?*/ prefixModules, ModuleBindings parentBindings) {
-      Contract.Requires(litmod != null);
-      Contract.Requires(parentBindings != null);
-
-      // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModules != null) {
-        foreach (var tup in prefixModules) {
-          if (tup.Item1.Count == 0) {
-            tup.Item2.ModuleDef.EnclosingModule =
-              litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-            var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
-              litmod.ModuleDef); // this will create a ModuleDecl with the right parent
-            litmod.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
-          } else {
-            litmod.ModuleDef.PrefixNamedModules.Add(tup);
-          }
-        }
-      }
-
-      var bindings = BindModuleNames(litmod.ModuleDef, parentBindings);
-      if (!parentBindings.BindName(litmod.Name, litmod, bindings)) {
-        reporter.Error(MessageSource.Resolver, litmod.tok, "Duplicate module name: {0}", litmod.Name);
-      }
     }
 
     private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,

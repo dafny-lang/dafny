@@ -440,4 +440,84 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     resolver.moduleInfo = oldModuleInfo;
     return true;
   }
+
+  public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
+    var bindings = new ModuleBindings(parentBindings);
+
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixNames = new Dictionary<string, List<Tuple<List<IToken>, LiteralModuleDecl>>>();
+    foreach (var tup in PrefixNamedModules) {
+      var id = tup.Item1[0].val;
+      List<Tuple<List<IToken>, LiteralModuleDecl>> prev;
+      if (!prefixNames.TryGetValue(id, out prev)) {
+        prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
+      }
+
+      prev.Add(tup);
+      prefixNames[id] = prev;
+    }
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var tld in TopLevelDecls) {
+      if (tld is LiteralModuleDecl) {
+        var subdecl = (LiteralModuleDecl)tld;
+        // Transfer prefix-named modules downwards into the sub-module
+        if (prefixNames.TryGetValue(subdecl.Name, out var prefixModules)) {
+          prefixNames.Remove(subdecl.Name);
+          prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+        }
+
+        subdecl.BindModuleName(resolver, prefixModules, bindings);
+      }
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var entry in prefixNames) {
+      var name = entry.Key;
+      var prefixNamedModules = entry.Value;
+      var tok = prefixNamedModules.First().Item1[0];
+      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+      var subdecl = new LiteralModuleDecl(modDef, this);
+      ResolvedPrefixNamedModules.Add(subdecl);
+      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+    }
+
+    // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
+    foreach (var tld in TopLevelDecls) {
+      if (tld is AbstractModuleDecl || tld is AliasModuleDecl) {
+        var subdecl = (ModuleDecl)tld;
+        if (bindings.BindName(subdecl.Name, subdecl, null)) {
+          // the add was successful
+        } else {
+          // there's already something with this name
+          ModuleDecl prevDecl;
+          var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
+          Contract.Assert(yes);
+          if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
+            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+          } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+                     importDecl.Name == importDecl.TargetQId.rootName()) {
+            importDecl.ShadowsLiteralModule = true;
+          } else {
+            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
+              "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+          }
+        }
+      }
+    }
+
+    return bindings;
+  }
+
+  private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup) {
+    Contract.Requires(tup.Item1.Count != 0);
+    var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
+    return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
+  }
 }

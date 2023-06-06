@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -160,5 +161,31 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     resolver.CheckForFuelAdjustments(module);
 
     Type.PopScope(tempVis);
+  }
+
+  public void BindModuleName(Resolver resolver,
+    List<Tuple<List<IToken>, LiteralModuleDecl>> /*?*/ prefixModules, ModuleBindings parentBindings) {
+    Contract.Requires(this != null);
+    Contract.Requires(parentBindings != null);
+
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var tup in prefixModules) {
+        if (tup.Item1.Count == 0) {
+          tup.Item2.ModuleDef.EnclosingModule =
+            ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
+          var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
+            ModuleDef); // this will create a ModuleDecl with the right parent
+          ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          ModuleDef.PrefixNamedModules.Add(tup);
+        }
+      }
+    }
+
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
+    if (!parentBindings.BindName(Name, this, bindings)) {
+      resolver.reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+    }
   }
 }
