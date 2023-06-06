@@ -416,7 +416,6 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
     }
 
-    // resolve
     var oldModuleInfo = resolver.moduleInfo;
     resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);

@@ -321,8 +321,6 @@ public class ExpectContracts : IRewriter {
              program.CompileModules.SelectMany(m => m.TopLevelDecls.OfType<TopLevelDeclWithMembers>())) {
       foreach (var decl in topLevelDecl.Members) {
         if (decl is ICallable callable) {
-          // Having verifier run after this causes Boogie resolution errors.
-          // It might be better to investigate why that is.
           callRedirector.Visit(callable, decl);
         }
       }

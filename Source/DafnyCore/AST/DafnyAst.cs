@@ -35,6 +35,7 @@ namespace Microsoft.Dafny {
   }
   public class Program : TokenNode {
     public IList<IRewriter> Rewriters { get; set; }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
