@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
         return;
       }
       var limit = (uint)options.TestGenOptions.SeqLengthLimit;
-      Parser.Parse($"axiom (forall<T> y: Seq T :: " +
+      Parser.Parse($"axiom (forall y: Seq Box :: " +
                    $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});",
         "", out var tmpProgram);
       program.AddTopLevelDeclaration(
