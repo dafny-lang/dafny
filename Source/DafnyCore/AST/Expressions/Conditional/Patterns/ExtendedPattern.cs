@@ -29,7 +29,7 @@ public abstract class ExtendedPattern : TokenNode {
     }
   }
 
-  public abstract void Resolve(Resolver resolver, ResolutionContext resolutionContext,
+  public abstract void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern);
 
@@ -44,7 +44,7 @@ public abstract class ExtendedPattern : TokenNode {
   *  3 - An IdPattern at datatype type representing a constructor of type
   *  4 - An IdPattern at datatype type with no arguments representing a bound variable
   */
-  public void CheckLinearExtendedPattern(Type type, ResolutionContext resolutionContext, Resolver resolver) {
+  public void CheckLinearExtendedPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (type == null) {
       return;
     }

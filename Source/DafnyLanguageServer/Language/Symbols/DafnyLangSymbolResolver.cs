@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
-      var resolver = new Resolver(program);
+      var resolver = new ProgramResolver(program);
       resolver.ResolveProgram(program);
       int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
       if (resolverErrors > 0) {

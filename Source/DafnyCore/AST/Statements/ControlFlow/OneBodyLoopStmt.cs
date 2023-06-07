@@ -42,7 +42,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
-  public void ComputeBodySurrogate(ErrorReporter reporter, bool allowReresolving) {
+  public void ComputeBodySurrogate(ErrorReporter reporter) {
     if (Body != null) {
       // the loop already has a body
       return;
@@ -73,11 +73,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     if (Mod.Expressions != null) {
       usesHeap = true;  // bearing a modifies clause counts as using the heap
     }
-
-    if (BodySurrogate != null && allowReresolving)
-    {
-      return;
-    }
+    
     Contract.Assert(BodySurrogate == null); // .BodySurrogate is set only once
     var loopFrame = new List<IVariable>();
     if (this is ForLoopStmt forLoopStmt) {

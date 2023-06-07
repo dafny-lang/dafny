@@ -82,7 +82,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void Resolve(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public void Resolve(ModuleResolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -104,7 +104,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Signature = module.RegisterTopLevelDecls(resolver, true);
-    Signature.Refines = resolver.refinementTransformer.RefinedSig;
+    Signature.Refines = resolver.ProgramResolver.refinementTransformer.RefinedSig;
 
     var sig = Signature;
     // set up environment
@@ -120,7 +120,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var tempVis = new VisibilityScope();
     tempVis.Augment(sig.VisibilityScope);
-    tempVis.Augment(resolver.systemNameInfo.VisibilityScope);
+    tempVis.Augment(resolver.ProgramResolver.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
     prog.ModuleSigs[module] = sig;
@@ -159,12 +159,12 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     resolver.FillInAdditionalInformation(module);
-    resolver.CheckForFuelAdjustments(module);
+    FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
     Type.PopScope(tempVis);
   }
 
-  public void BindModuleName(Resolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+  public void BindModuleName(ProgramResolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
     Contract.Requires(parentBindings != null);
 
@@ -184,7 +184,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
-      resolver.reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
     }
   }
 }

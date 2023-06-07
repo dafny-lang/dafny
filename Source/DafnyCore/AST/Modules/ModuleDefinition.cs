@@ -382,11 +382,11 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    sig.VisibilityScope.Augment(resolver.systemNameInfo.VisibilityScope);
+    sig.VisibilityScope.Augment(resolver.ProgramResolver.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
@@ -423,9 +423,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
+    resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
@@ -447,7 +447,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
+  public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
     BindPrefixNamedModules(resolver, bindings);
@@ -463,12 +463,12 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
           Contract.Assert(yes);
           if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+            resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
           } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
                      importDecl.Name == importDecl.TargetQId.rootName()) {
             importDecl.ShadowsLiteralModule = true;
           } else {
-            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
+            resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok,
               "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
           }
         }
@@ -478,7 +478,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindPrefixNamedModules(Resolver resolver, ModuleBindings bindings)
+  private void BindPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings)
   {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
@@ -527,7 +527,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return tup with { Parts = rest };
   }
 
-  public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
+  public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;

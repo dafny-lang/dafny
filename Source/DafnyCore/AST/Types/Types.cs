@@ -1886,7 +1886,7 @@ public class BitvectorType : BasicType {
     : base() {
     Contract.Requires(0 <= width);
     Width = width;
-    foreach (var nativeType in Resolver.NativeTypes) {
+    foreach (var nativeType in ModuleResolver.NativeTypes) {
       if (options.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
         NativeType = nativeType;
         break;
@@ -2493,7 +2493,7 @@ public class UserDefinedType : NonProxyType {
       // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
       IEnumerable<bool> argumentGhostness = BuiltIns.ArgumentGhostnessFromString(Name, TypeArgs.Count);
       return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
-        (ty_u) => Resolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(options, context, parseAble)) + ")";
+        (ty_u) => ModuleResolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(options, context, parseAble)) + ")";
     } else if (ArrowType.IsPartialArrowTypeName(Name)) {
       return ArrowType.PrettyArrowTypeName(options, ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
     } else if (ArrowType.IsTotalArrowTypeName(Name)) {
@@ -2732,7 +2732,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     foreach (var c in SubtypeConstraints) {
       yield return c.Sub.NormalizeExpandKeepConstraints();
@@ -2829,11 +2829,11 @@ public abstract class TypeProxy : Type {
     Contract.Requires(t != null);
     return t is ArtificialType;
   }
-  internal Type InClusterOfArtificial(List<Resolver.XConstraint> allXConstraints) {
+  internal Type InClusterOfArtificial(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     return InClusterOfArtificial_aux(new HashSet<TypeProxy>(), allXConstraints);
   }
-  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<Resolver.XConstraint> allXConstraints) {
+  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<XConstraint> allXConstraints) {
     Contract.Requires(visitedProxies != null);
     Contract.Requires(allXConstraints != null);
     if (visitedProxies.Contains(this)) {
