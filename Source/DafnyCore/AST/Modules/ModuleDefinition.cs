@@ -416,11 +416,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
     }
 
-    // resolve
     var oldModuleInfo = resolver.moduleInfo;
     resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.useCompileSignatures, resolver); // opened imports do not persist
+    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();

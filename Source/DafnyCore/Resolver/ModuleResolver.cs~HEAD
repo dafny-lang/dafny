@@ -30,9 +30,11 @@ namespace Microsoft.Dafny {
   public partial class ModuleResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
+    public bool allowReresolving = false;
     public readonly BuiltIns builtIns;
 
-    public IList<IRewriter> rewriters => ProgramResolver.rewriters;
+
+    public List<IRewriter> rewriters => ProgramResolver.rewriters;
 
     public ErrorReporter reporter;
     public ModuleSignature moduleInfo = null;
@@ -71,8 +73,17 @@ namespace Microsoft.Dafny {
       new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+    public bool useCompileSignatures = false;
 
     public ModuleResolver(DafnyOptions options) {
+=======
+    readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
+    public ModuleSignature systemNameInfo = null;
+    public RefinementTransformer refinementTransformer;
+
+    public Resolver(DafnyOptions options) {
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
       Options = options;
     }
 
@@ -93,6 +104,145 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
+    }
+
+    public void FillInAdditionalInformation(ModuleDefinition module) {
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is ExtremeLemma) {
+          body = ((ExtremeLemma)clbl).PrefixLemma.Body;
+        } else if (clbl is Method) {
+          body = ((Method)clbl).Body;
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+        }
+
+        if (body != null) {
+          var c = new ReportOtherAdditionalInformation_Visitor(this);
+          c.Visit(body);
+        }
+      }
+    }
+
+    public void FillInDecreasesClauses(ModuleDefinition module) {
+      // fill in default decreases clauses:  for functions and methods, and for loops
+      new InferDecreasesClause(this).FillInDefaultDecreasesClauses(module);
+
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is Method) {
+          body = ((Method)clbl).Body;
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+        }
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+
+        if (body != null) {
+          var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
+          c.Visit(body);
+        }
+=======
+        h++;
+      }
+
+      prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
+      refinementTransformer = new RefinementTransformer(prog);
+      prog.Rewriters.Insert(0, refinementTransformer);
+
+      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
+      RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
+      ResolveValuetypeDecls();
+
+      // The SystemModule is constructed with all its members already being resolved. Except for
+      // the non-null type corresponding to class types.  They are resolved here:
+      var systemModuleClassesWithNonNullTypes =
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
+      foreach (var cl in systemModuleClassesWithNonNullTypes) {
+        var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
+        allTypeParameters.PushMarker();
+        ResolveTypeParameters(d.TypeArgs, true, d);
+        ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+        allTypeParameters.PopMarker();
+      }
+      ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
+
+      foreach (var rewriter in prog.Rewriters) {
+        rewriter.PreResolve(prog);
+      }
+
+      foreach (var decl in sortedDecls) {
+        ResolveModuleDeclaration(prog, decl, origErrorCount);
+      }
+
+      if (reporter.ErrorCount != origErrorCount) {
+        return;
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
+      }
+    }
+
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+    public void ComputeIsRecursiveBit(ModuleDefinition module) {
+      // compute IsRecursive bit for mutually recursive functions and methods
+      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+        if (clbl is Function) {
+          var fn = (Function)clbl;
+          if (!fn.IsRecursive) {
+            // note, self-recursion has already been determined
+            int n = module.CallGraph.GetSCCSize(fn);
+            if (2 <= n) {
+              // the function is mutually recursive (note, the SCC does not determine self recursion)
+              fn.IsRecursive = true;
+            }
+=======
+      Type.DisableScopes();
+      CheckDupModuleNames(prog);
+
+      foreach (var module in prog.Modules()) {
+        foreach (var rewriter in prog.Rewriters) {
+          rewriter.PostResolve(module);
+        }
+      }
+
+      foreach (var rewriter in prog.Rewriters) {
+        rewriter.PostResolve(prog);
+      }
+    }
+
+    public void CheckForFuelAdjustments(ModuleDefinition module) {
+      CheckForFuelAdjustments(module.tok, module.Attributes, module);
+      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
+        Statement body = null;
+        if (clbl is Method) {
+          body = ((Method)clbl).Body;
+          CheckForFuelAdjustments(clbl.Tok, ((Method)clbl).Attributes, module);
+        } else if (clbl is IteratorDecl) {
+          body = ((IteratorDecl)clbl).Body;
+          CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
+        } else if (clbl is Function) {
+          CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
+          var c = new FuelAdjustment_Visitor(this);
+          var bodyExpr = ((Function)clbl).Body;
+          if (bodyExpr != null) {
+            c.Visit(bodyExpr, new FuelAdjustment_Context(module));
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
+          }
+        }
+
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+          if (fn.IsRecursive && fn is ExtremePredicate) {
+            // this means the corresponding prefix predicate is also recursive
+            var prefixPred = ((ExtremePredicate)fn).PrefixPredicate;
+            if (prefixPred != null) {
+              prefixPred.IsRecursive = true;
+            }
+          }
+=======
+        if (body != null) {
+          var c = new FuelAdjustment_Visitor(this);
+          c.Visit(body, new FuelAdjustment_Context(module));
+        }
+      }
     }
 
     public void FillInAdditionalInformation(ModuleDefinition module) {
@@ -153,6 +303,7 @@ namespace Microsoft.Dafny {
               prefixPred.IsRecursive = true;
             }
           }
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
         } else {
           var m = (Method)clbl;
           if (!m.IsRecursive) {
@@ -165,12 +316,28 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in program.Rewriters) {
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+      foreach (var rewriter in rewriters) {
         rewriter.PostCyclicityResolve(module);
       }
     }
 
     public void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+      if (decl is LiteralModuleDecl literalModuleDecl) {
+        literalModuleDecl.Resolve(this, prog, beforeModuleResolutionErrorCount);
+      } else if (decl is AliasModuleDecl alias) {
+        // resolve the path
+        ModuleSignature p;
+        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter)) {
+          if (alias.Signature == null) {
+            alias.Signature = p;
+=======
+      foreach (var rewriter in program.Rewriters) {
+        rewriter.PostCyclicityResolve(module);
+      }
+    }
+
+    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.Resolve(this, prog, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
@@ -198,6 +365,42 @@ namespace Microsoft.Dafny {
         Contract.Assert(decl.Signature.VisibilityScope != null);
       } else {
         Contract.Assert(false); // Unknown kind of ModuleDecl
+      }
+    }
+
+    private void ResolveValuetypeDecls() {
+      moduleInfo = systemNameInfo;
+      foreach (var valueTypeDecl in valuetypeDecls) {
+        foreach (var member in valueTypeDecl.Members) {
+          if (member is Function function) {
+            ResolveFunctionSignature(function);
+            CallGraphBuilder.VisitFunction(function, reporter);
+          } else if (member is Method method) {
+            ResolveMethodSignature(method);
+            CallGraphBuilder.VisitMethod(method, reporter);
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
+          }
+        } else {
+          alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
+        }
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+      } else if (decl is AbstractModuleDecl abs) {
+        ModuleSignature p;
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
+          abs.OriginalSignature = p;
+          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs);
+        } else {
+          abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
+        }
+      } else if (decl is ModuleExportDecl) {
+        ((ModuleExportDecl)decl).SetupDefaultSignature();
+
+        Contract.Assert(decl.Signature != null);
+        Contract.Assert(decl.Signature.VisibilityScope != null);
+      } else {
+        Contract.Assert(false); // Unknown kind of ModuleDecl
+=======
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
       }
     }
 
@@ -801,7 +1004,12 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, ModuleResolver resolver) {
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures,
+      ModuleResolver resolver) {
+=======
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, Resolver resolver) {
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
@@ -1622,7 +1830,7 @@ namespace Microsoft.Dafny {
       // This pass also computes body surrogates for body-less loops, which is a bit like desugaring
       // such loops.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(reporter);
+        var boundsDiscoveryVisitor = new BoundsDiscoveryVisitor(this);
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
@@ -2341,7 +2549,7 @@ namespace Microsoft.Dafny {
         currentClass = null;
         new CheckTypeInferenceVisitor(this).VisitMethod(prefixLemma);
         CallGraphBuilder.VisitMethod(prefixLemma, reporter);
-        new BoundsDiscoveryVisitor(reporter).VisitMethod(prefixLemma);
+        new BoundsDiscoveryVisitor(this).VisitMethod(prefixLemma);
       }
     }
 
@@ -3329,8 +3537,14 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+<<<<<<< HEAD:Source/DafnyCore/Resolver/ModuleResolver.cs
+    TopLevelDeclWithMembers currentClass;
     public readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+=======
     private TopLevelDeclWithMembers currentClass;
+    public Method currentMethod;
+    readonly Scope<TypeParameter>/*!*/ allTypeParameters;
+>>>>>>> removeCompileModules:Source/DafnyCore/Resolver/Resolver.cs
     public readonly Scope<IVariable>/*!*/ scope;
 
     /// <summary>
@@ -3937,7 +4151,7 @@ namespace Microsoft.Dafny {
       //   * a parameter of an inductive datatype in the SCC is ghost
       //   * the type of a parameter of an inductive datatype in the SCC does not support equality
       foreach (var dt in scc) {
-        Contract.Assume(dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
+        Contract.Assume(allowReresolving || dt.EqualitySupport == IndDatatypeDecl.ES.NotYetComputed);
         foreach (var ctor in dt.Ctors) {
           if (ctor.IsGhost) {
             MarkSCCAsNotSupportingEquality();

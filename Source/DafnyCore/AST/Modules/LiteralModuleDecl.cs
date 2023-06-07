@@ -97,7 +97,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in resolver.rewriters) {
+    foreach (var rewriter in prog.Rewriters) {
       rewriter.PreResolve(module);
     }
 
@@ -123,7 +123,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     prog.ModuleSigs[module] = sig;
 
-    foreach (var rewriter in resolver.rewriters) {
+    foreach (var rewriter in prog.Rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
@@ -137,38 +137,6 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
 
-    if (resolver.reporter.ErrorCount == errorCount && !module.IsAbstract) {
-      // compilation should only proceed if everything is good, including the signature (which preResolveErrorCount does not include);
-      CompilationCloner cloner = new CompilationCloner();
-      var compileName = new Name(module.NameNode.RangeToken, module.GetCompileName(resolver.Options) + "_Compile");
-      var nw = cloner.CloneModuleDefinition(module, module.EnclosingModule, compileName);
-      var oldErrorsOnly = resolver.reporter.ErrorsOnly;
-      resolver.reporter.ErrorsOnly = true; // turn off warning reporting for the clone
-      // Next, compute the compile signature
-      Contract.Assert(!resolver.useCompileSignatures);
-      resolver.useCompileSignatures =
-        true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
-      Type.DisableScopes();
-      var compileSig = resolver.RegisterTopLevelDecls(nw, true);
-      compileSig.Refines = resolver.ProgramResolver.refinementTransformer.RefinedSig;
-      sig.CompileSignature = compileSig;
-      foreach (var exportDecl in sig.ExportSets.Values) {
-        exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
-      }
-      // Now we're ready to resolve the cloned module definition, using the compile signature
-
-      nw.Resolve(compileSig, resolver);
-
-      foreach (var rewriter in resolver.rewriters) {
-        rewriter.PostCompileCloneAndResolve(nw);
-      }
-
-      prog.CompileModules.Add(nw);
-      resolver.useCompileSignatures = false; // reset the flag
-      Type.EnableScopes();
-      resolver.reporter.ErrorsOnly = oldErrorsOnly;
-    }
-
     /* It's strange to stop here when _any_ module has had resolution errors.
      * Either stop here when _this_ module has had errors,
      * or completely stop module resolution after one of them has errors
@@ -178,14 +146,13 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Type.PushScope(tempVis);
-    resolver.ComputeIsRecursiveBit(module);
+    resolver.ComputeIsRecursiveBit(prog, module);
     resolver.FillInDecreasesClauses(module);
-
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in resolver.rewriters) {
+    foreach (var rewriter in prog.Rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 

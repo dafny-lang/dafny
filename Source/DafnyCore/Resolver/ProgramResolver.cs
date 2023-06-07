@@ -11,7 +11,7 @@ public class ProgramResolver {
   public BuiltIns BuiltIns { get; }
   public ErrorReporter Reporter { get; }
 
-  public List<IRewriter> rewriters;
+  public IList<IRewriter> rewriters;
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
   public ModuleSignature systemNameInfo;
@@ -20,9 +20,12 @@ public class ProgramResolver {
 
   public FreshIdGenerator defaultTempVarIdGenerator = new();
 
+  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
+
   public ProgramResolver(Program program) {
     BuiltIns = program.BuiltIns;
     Reporter = program.Reporter;
+    Options = program.Options;
 
     // Map#Items relies on the two destructors for 2-tuples
     BuiltIns.TupleType(Token.NoToken, 2, true);
@@ -179,56 +182,14 @@ public class ProgramResolver {
       h++;
     }
 
-    rewriters = new List<IRewriter>();
-
-    if (Options.AuditProgram) {
-      rewriters.Add(new Auditor.Auditor(Reporter));
-    }
-
-    refinementTransformer = new RefinementTransformer(prog);
-    rewriters.Add(refinementTransformer);
-    if (!Options.VerifyAllModules) {
-      rewriters.Add(new IncludedLemmaBodyRemover(prog, Reporter));
-    }
-    rewriters.Add(new AutoContractsRewriter(Reporter, BuiltIns));
-    rewriters.Add(new OpaqueMemberRewriter(this.Reporter));
-    rewriters.Add(new AutoReqFunctionRewriter(this.Reporter, BuiltIns));
-    rewriters.Add(new TimeLimitRewriter(Reporter));
-    rewriters.Add(new ForallStmtRewriter(Reporter));
-    rewriters.Add(new ProvideRevealAllRewriter(this.Reporter));
-    rewriters.Add(new MatchFlattener(this.Reporter, defaultTempVarIdGenerator));
-
-    if (Options.AutoTriggers) {
-      rewriters.Add(new QuantifierSplittingRewriter(Reporter));
-      rewriters.Add(new TriggerGeneratingRewriter(Reporter));
-    }
-
-    if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
-      rewriters.Add(new ExpectContracts(Reporter));
-    }
-
-    if (Options.RunAllTests) {
-      rewriters.Add(new RunAllTestsMainMethod(Reporter));
-    }
-
-    rewriters.Add(new InductionRewriter(Reporter));
-    rewriters.Add(new PrintEffectEnforcement(Reporter));
-    rewriters.Add(new BitvectorOptimization(Reporter));
-
-    if (Options.DisallowConstructorCaseWithoutParentheses) {
-      rewriters.Add(new ConstructorWarning(Reporter));
-    }
-    rewriters.Add(new LocalLinter(Reporter));
-    rewriters.Add(new PrecedenceLinter(Reporter));
-
-    foreach (var plugin in Options.Plugins) {
-      rewriters.AddRange(plugin.GetRewriters(Reporter));
-    }
+    prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
+    rewriters = prog.Rewriters;
 
     var systemModuleResolver = new ModuleResolver(this);
 
     systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
-    prog.CompileModules.Add(prog.BuiltIns.SystemModule);
+    systemModuleResolver.moduleInfo = systemNameInfo;
+
     systemModuleResolver.RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
     ResolveValuetypeDecls();
 

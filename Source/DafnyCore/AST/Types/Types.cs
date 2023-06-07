@@ -2269,7 +2269,7 @@ public class UserDefinedType : NonProxyType {
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
-      ResolvedClass = original.ResolvedClass;
+      ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
       TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
