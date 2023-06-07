@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       fSeqIndex = new ModelFuncWrapper(this, "Seq#Index", 2, tyArgMultiplier);
       fSeqUpdate = new ModelFuncWrapper(this, "Seq#Update", 3, tyArgMultiplier);
       fSeqCreate = new ModelFuncWrapper(this, "Seq#Create", 4, 0);
-      fSeqEmpty = new ModelFuncWrapper(this, "Seq#Empty", 1, 0);
+      fSeqEmpty = new ModelFuncWrapper(this, "Seq#Empty", 0, 0);
       fSetEmpty = new ModelFuncWrapper(this, "Set#Empty", 1, 0);
       fSetUnion = new ModelFuncWrapper(this, "Set#Union", 2, tyArgMultiplier);
       fSetUnionOne = new ModelFuncWrapper(this, "Set#UnionOne", 2, tyArgMultiplier);
