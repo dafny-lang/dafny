@@ -7,6 +7,7 @@ public static class Rewriters {
     var result = new List<IRewriter>();
     var reporter = program.Reporter;
 
+    result.Add(new RefinementTransformer(reporter));
     if (program.Options.AuditProgram) {
       result.Add(new Auditor.Auditor(reporter));
     }

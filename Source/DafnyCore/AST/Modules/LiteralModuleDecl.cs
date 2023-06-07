@@ -104,7 +104,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Signature = module.RegisterTopLevelDecls(resolver, true);
-    Signature.Refines = resolver.ProgramResolver.refinementTransformer.RefinedSig;
+    Signature.Refines = module.RefinementQId?.Sig;
 
     var sig = Signature;
     // set up environment

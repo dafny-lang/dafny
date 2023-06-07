@@ -7,21 +7,15 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
 using JetBrains.Annotations;
-using Microsoft.BaseTypes;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
-  public record ModuleResolutionResult(Dictionary<ModuleDefinition, ModuleSignature> signatures);
+  public record ModuleResolutionResult(Dictionary<ModuleDefinition, ModuleSignature> Signatures);
   
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
@@ -69,8 +63,8 @@ namespace Microsoft.Dafny {
     public readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
-    public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
-      new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
+    public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =>
+      ProgramResolver.classMembers;
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
 

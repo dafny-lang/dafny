@@ -16,12 +16,10 @@ public class ProgramResolver {
   internal readonly ValuetypeDecl[] valuetypeDecls;
   public ModuleSignature systemNameInfo;
   readonly Graph<ModuleDecl> dependencies = new();
-  public RefinementTransformer refinementTransformer;
 
   public FreshIdGenerator defaultTempVarIdGenerator = new();
-
-  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
-
+  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new ();
+    
   public ProgramResolver(Program program) {
     BuiltIns = program.BuiltIns;
     Reporter = program.Reporter;
@@ -32,7 +30,7 @@ public class ProgramResolver {
     // Several methods and fields rely on 1-argument arrow types
     BuiltIns.CreateArrowTypeDecl(1);
 
-    valuetypeDecls = new ValuetypeDecl[] {
+    valuetypeDecls = new[] {
         new ValuetypeDecl("bool", BuiltIns.SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
         new ValuetypeDecl("int", BuiltIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
         new ValuetypeDecl("real", BuiltIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
@@ -205,7 +203,10 @@ public class ProgramResolver {
     }
 
     foreach (var decl in sortedDecls) {
-      ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
+      var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
+      foreach (var sig in moduleResolutionResult.Signatures) {
+        prog.ModuleSigs.Add(sig.Key, sig.Value);
+      }
     }
 
     if (Reporter.ErrorCount != origErrorCount) {
@@ -226,10 +227,10 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual void ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount)
+  protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount)
   {
     var moduleResolver = new ModuleResolver(this);
-    moduleResolver.ResolveModuleDeclaration(compilation, decl, origErrorCount);
+    return moduleResolver.ResolveModuleDeclaration(compilation, decl, origErrorCount);
   }
 
   private static void SetHeights(List<ModuleDecl> sortedDecls)
