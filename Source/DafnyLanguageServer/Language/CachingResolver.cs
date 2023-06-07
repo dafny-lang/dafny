@@ -3,6 +3,23 @@ using System.Security.Cryptography;
 
 namespace Microsoft.Dafny.LanguageServer.Language; 
 
+/// <summary>
+/// How do I get the cached Literal back into the AST ? Where is it even stored?
+/// ModuleDecls can be part of the TopLevelDecls of other modules, so they're stored in the hierarchy
+/// Are they also stored somewhere else, maybe in program?
+/// Can I get rid of Program.ModuleSigs ???
+/// Seems to relate to AbstractModuleDecl. What are they?
+///
+/// How do I know what pointers there are to a module? I guess that only until after a module resolves do we get outside pointers into it
+/// Side effects of ResolveModuleDeclaration are also, or only?, to update ModuleSigs
+/// 
+/// I could have a Graph<Pointer<ModuleDecl>>
+/// 
+/// What's the purpose of ModuleBindings, how do I cache its update?
+///
+/// What's an alias module decl?
+/// What's an abstract module decl?
+/// </summary>
 public class CachingResolver : Resolver {
   
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], LiteralModuleDecl> resolutionCache = new(new HashEquality());

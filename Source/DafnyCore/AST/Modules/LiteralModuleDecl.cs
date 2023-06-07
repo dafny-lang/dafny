@@ -103,7 +103,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       rewriter.PreResolve(module);
     }
 
-    Signature = resolver.RegisterTopLevelDecls(module, true);
+    Signature = module.RegisterTopLevelDecls(resolver, true);
     Signature.Refines = resolver.refinementTransformer.RefinedSig;
 
     var sig = Signature;
