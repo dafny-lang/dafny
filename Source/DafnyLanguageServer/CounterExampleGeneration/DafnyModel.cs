@@ -65,7 +65,7 @@ namespace DafnyServer.CounterexampleGeneration {
       fSeqIndex = model.MkFunc("Seq#Index", 2);
       fSeqUpdate = model.MkFunc("Seq#Update", 3);
       fSeqCreate = model.MkFunc("Seq#Create", 4);
-      fSeqEmpty = model.MkFunc("Seq#Empty", 1);
+      fSeqEmpty = model.MkFunc("Seq#Empty", 0);
       fSetEmpty = model.MkFunc("Set#Empty", 1);
       fSetUnion = model.MkFunc("Set#Union", 2);
       fSetUnionOne = model.MkFunc("Set#UnionOne", 2);
