@@ -13,6 +13,8 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Policy;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -417,6 +419,25 @@ namespace Microsoft.Dafny {
 
       // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
+      
+      foreach (var moduleDeclaration in sortedDecls) {
+        if (moduleDeclaration is LiteralModuleDecl literalModuleDecl) {
+          var moduleVertex = dependencies.FindVertex(moduleDeclaration);
+          var hashAlgorithm = HashAlgorithm.Create("SHA256");
+          hashAlgorithm.Initialize();
+          var parseHash = literalModuleDecl.ModuleDef.UniqueParseContentHash.ToByteArray();
+          hashAlgorithm.TransformBlock(parseHash, 0, parseHash.Length, null, 0);
+          foreach (var dependencyVertex in moduleVertex.Successors) {
+            var dependency = dependencyVertex.N;
+            var childResolutionHash = literalModuleDecl.ModuleDef.UniqueParseContentHash.ToByteArray();
+            hashAlgorithm.TransformBlock(parseHash, 0, parseHash.Length, null, 0);
+            hashAlgorithm.TransformBlock(chi)
+          }
+
+          literalModuleDecl.ModuleDef.ResolveHash = hashAlgorithm.Hash!;
+        }
+      }
+      
       int h = 0;
       foreach (ModuleDecl md in sortedDecls) {
         md.Height = h;

@@ -12,6 +12,8 @@ public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Mo
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
   public Guid UniqueParseContentHash { get; set; }
+  public byte[] ResolveHash { get; set; }
+  
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
