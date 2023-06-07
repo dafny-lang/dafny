@@ -175,8 +175,8 @@ public class ProgramResolver {
 
     SetHeights(sortedDecls);
 
-    prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
-    rewriters = prog.Rewriters;
+    prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
+    rewriters = prog.Compilation.Rewriters;
 
     var systemModuleResolver = new ModuleResolver(this);
 
@@ -205,7 +205,7 @@ public class ProgramResolver {
     }
 
     foreach (var decl in sortedDecls) {
-      ResolveModuleDeclaration(prog, decl, origErrorCount);
+      ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
     }
 
     if (Reporter.ErrorCount != origErrorCount) {
@@ -226,10 +226,10 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual void ResolveModuleDeclaration(Program program, ModuleDecl decl, int origErrorCount)
+  protected virtual void ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount)
   {
     var moduleResolver = new ModuleResolver(this);
-    moduleResolver.ResolveModuleDeclaration(program, decl, origErrorCount);
+    moduleResolver.ResolveModuleDeclaration(compilation, decl, origErrorCount);
   }
 
   private static void SetHeights(List<ModuleDecl> sortedDecls)

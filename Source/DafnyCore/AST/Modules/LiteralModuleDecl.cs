@@ -82,7 +82,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void Resolve(ModuleResolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public ModuleSignature Resolve(ModuleResolver resolver, CompilationData compilation, int beforeModuleResolutionErrorCount) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -99,7 +99,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PreResolve(module);
     }
 
@@ -115,7 +115,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
-      resolver.CheckModuleExportConsistency(prog, module);
+      resolver.CheckModuleExportConsistency(compilation, module);
     }
 
     var tempVis = new VisibilityScope();
@@ -123,9 +123,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     tempVis.Augment(resolver.ProgramResolver.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
-    prog.ModuleSigs[module] = sig;
-
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       if (!good || resolver.reporter.ErrorCount != preResolveErrorCount) {
         break;
       }
@@ -144,17 +142,17 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
      * or completely stop module resolution after one of them has errors
      */
     if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount) {
-      return;
+      return sig;
     }
 
     Type.PushScope(tempVis);
-    resolver.ComputeIsRecursiveBit(prog, module);
+    resolver.ComputeIsRecursiveBit(compilation, module);
     resolver.FillInDecreasesClauses(module);
     foreach (var iter in module.TopLevelDecls.OfType<IteratorDecl>()) {
       resolver.reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(resolver.Reporter.Options, iter));
     }
 
-    foreach (var rewriter in prog.Rewriters) {
+    foreach (var rewriter in compilation.Rewriters) {
       rewriter.PostDecreasesResolve(module);
     }
 
@@ -162,6 +160,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
     Type.PopScope(tempVis);
+    return sig;
   }
 
   public void BindModuleName(ProgramResolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {

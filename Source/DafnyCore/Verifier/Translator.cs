@@ -169,7 +169,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
-      if (!d.ShouldVerify(program)) {
+      if (!d.ShouldVerify(program.Compilation)) {
         return false;
       }
 
@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
 
     // Don't verify modules which only contain other modules
     private static bool ShouldVerifyModule(Program program, ModuleDefinition m) {
-      if (!m.ShouldVerify(program)) {
+      if (!m.ShouldVerify(program.Compilation)) {
         return false;
       }
 

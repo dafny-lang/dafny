@@ -21,6 +21,8 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
+  public record ModuleResolutionResult(Dictionary<ModuleDefinition, ModuleSignature> signatures);
+  
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
@@ -132,7 +134,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ComputeIsRecursiveBit(Program program, ModuleDefinition module) {
+    public void ComputeIsRecursiveBit(CompilationData compilation, ModuleDefinition module) {
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
         if (clbl is Function) {
@@ -165,14 +167,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in program.Rewriters) {
+      foreach (var rewriter in compilation.Rewriters) {
         rewriter.PostCyclicityResolve(module);
       }
     }
 
-    public void ResolveModuleDeclaration(Program program, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+    public ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+      Dictionary<ModuleDefinition, ModuleSignature> signatures = new();
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.Resolve(this, program, beforeModuleResolutionErrorCount);
+        var signature = literalModuleDecl.Resolve(this, compilation, beforeModuleResolutionErrorCount);
+        signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -187,7 +191,7 @@ namespace Microsoft.Dafny {
         ModuleSignature p;
         if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
           abs.OriginalSignature = p;
-          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, program.ModuleSigs);
+          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, signatures);
         } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
@@ -199,6 +203,8 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
+
+      return new ModuleResolutionResult(signatures);
     }
 
     // Resolve the exports and detect cycles.
@@ -518,7 +524,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
+    public void CheckModuleExportConsistency(CompilationData compilation, ModuleDefinition m) {
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
 
@@ -558,7 +564,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(compilation, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 
@@ -567,7 +573,7 @@ namespace Microsoft.Dafny {
         }
 
         reporter = new ErrorReporterWrapper(reporter,
-          String.Format("Raised while checking export set {0}: ", exportDecl.Name));
+          $"Raised while checking export set {exportDecl.Name}: ");
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         exportView.Resolve(testSig, this, true);

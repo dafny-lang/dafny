@@ -37,7 +37,7 @@ public class DocumentAfterParsing : Document {
   }
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
-    foreach (var include in Program.Includes) {
+    foreach (var include in Program.Compilation.Includes) {
       var messageForIncludedFile =
         ResolutionDiagnostics.GetOrDefault(include.IncludedFilename, Enumerable.Empty<DafnyDiagnostic>);
       if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {

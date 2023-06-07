@@ -35,11 +35,13 @@ public class ProgramParser {
 
     var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
     var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
+    var compilation = new CompilationData(options, defaultModule.Includes, defaultModule.RootSourceUris, verifiedRoots,
+      compiledRoots);
     var program = new Program(
       programName,
       new LiteralModuleDecl(defaultModule, null),
       builtIns,
-      errorReporter, verifiedRoots, compiledRoots
+      errorReporter, compilation
     );
 
     foreach (var dafnyFile in files) {

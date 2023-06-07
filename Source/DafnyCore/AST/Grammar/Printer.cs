@@ -201,7 +201,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog, prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.Compilation, prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -211,10 +211,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      PrintTopLevelDecls(prog, prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
+      PrintTopLevelDecls(prog.Compilation, prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
       foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
         var decls = new List<TopLevelDecl>() { tup.Module };
-        PrintTopLevelDecls(prog, decls, 0, tup.Parts, Path.GetFullPath(prog.FullName));
+        PrintTopLevelDecls(prog.Compilation, decls, 0, tup.Parts, Path.GetFullPath(prog.FullName));
       }
       wr.Flush();
     }
@@ -260,7 +260,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintTopLevelDecls(Program program, IEnumerable<TopLevelDecl> decls, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(CompilationData compilation, IEnumerable<TopLevelDecl> decls, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -377,7 +377,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
-            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(program)) {
+            if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
               // This mode is used to losslessly serialize the source program by the C# and Library backends.
               // Backends don't compile any code for modules not marked for compilation,
               // so it's consistent to skip those modules here too. 
@@ -388,7 +388,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
-            PrintModuleDefinition(program, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
+            PrintModuleDefinition(compilation, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
@@ -447,7 +447,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
 
             wr.WriteLine();
-            PrintModuleExportDecl(program, e, indent + IndentAmount, fileBeingPrinted);
+            PrintModuleExportDecl(compilation, e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
           } else {
             Contract.Assert(false); // unexpected ModuleDecl
@@ -516,7 +516,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    void PrintModuleExportDecl(Program program, ModuleExportDecl m, int indent, string fileBeingPrinted) {
+    void PrintModuleExportDecl(CompilationData compilation, ModuleExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
       if (m.RevealAll) {
@@ -547,7 +547,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           for (int j = start; j < i; j++) {
             var id = m.Exports[j];
             if (id.Decl is TopLevelDecl) {
-              PrintTopLevelDecls(program, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
+              PrintTopLevelDecls(compilation, new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
             } else if (id.Decl is MemberDecl) {
               PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
             }
@@ -560,7 +560,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    public void PrintModuleDefinition(Program program, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
+    public void PrintModuleDefinition(CompilationData compilation, ModuleDefinition module, VisibilityScope scope, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -584,23 +584,23 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else {
         wr.WriteLine("{");
         PrintCallGraph(module, indent + IndentAmount);
-        PrintTopLevelDeclsOrExportedView(program, module, indent, fileBeingPrinted);
+        PrintTopLevelDeclsOrExportedView(compilation, module, indent, fileBeingPrinted);
         Indent(indent);
         wr.WriteLine("}");
       }
       Type.PopScope(scope);
     }
 
-    void PrintTopLevelDeclsOrExportedView(Program program, ModuleDefinition module, int indent, string fileBeingPrinted) {
+    void PrintTopLevelDeclsOrExportedView(CompilationData compilation, ModuleDefinition module, int indent, string fileBeingPrinted) {
       var decls = module.TopLevelDecls;
       // only filter based on view name after resolver.
       if (afterResolver && options.DafnyPrintExportedViews.Count != 0) {
         var views = options.DafnyPrintExportedViews.ToHashSet();
         decls = decls.Where(d => views.Contains(d.FullName));
       }
-      PrintTopLevelDecls(program, decls, indent + IndentAmount, null, fileBeingPrinted);
+      PrintTopLevelDecls(compilation, decls, indent + IndentAmount, null, fileBeingPrinted);
       foreach (var tup in module.PrefixNamedModules) {
-        PrintTopLevelDecls(program, new TopLevelDecl[] { tup.Module }, indent + IndentAmount, tup.Parts, fileBeingPrinted);
+        PrintTopLevelDecls(compilation, new TopLevelDecl[] { tup.Module }, indent + IndentAmount, tup.Parts, fileBeingPrinted);
       }
     }
 
