@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
 
     public Method MainMethod; // Method to be used as main if compiled
     public readonly LiteralModuleDecl DefaultModule;
-    public readonly DefaultModuleDefinition DefaultModuleDef;
+    public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
@@ -76,7 +76,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       BuiltIns = builtIns;
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
