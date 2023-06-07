@@ -80,7 +80,6 @@ namespace Microsoft.Dafny {
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
       AlreadyCompiledRoots = alreadyCompiledRoots;
-      ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
     }
 
     //Set appropriate visibilty before presenting module

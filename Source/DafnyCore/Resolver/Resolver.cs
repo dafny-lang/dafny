@@ -416,21 +416,12 @@ namespace Microsoft.Dafny {
 
       if (reporter.ErrorCount > 0) {
         return;
-      } // give up on trying to resolve anything else
+      }
 
-      // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
 
-      int h = 0;
-      foreach (ModuleDecl md in sortedDecls) {
-        md.Height = h;
-        if (md is LiteralModuleDecl) {
-          var mdef = ((LiteralModuleDecl)md).ModuleDef;
-          mdef.Height = h;
-          prog.ModuleSigs.Add(mdef, null);
-        }
-        h++;
-      }
+      SetModuleHeights(sortedDecls);
+      prog.ModuleSigs = sortedDecls.OfType<LiteralModuleDecl>().ToDictionary(l => l.ModuleDef, l => null);
 
       prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
       refinementTransformer = new RefinementTransformer(prog);
@@ -477,6 +468,19 @@ namespace Microsoft.Dafny {
 
       foreach (var rewriter in prog.Rewriters) {
         rewriter.PostResolve(prog);
+      }
+    }
+
+    private static void SetModuleHeights(List<ModuleDecl> sortedDecls)
+    {
+      foreach (var withIndex in sortedDecls.Zip(Enumerable.Range(0, int.MaxValue)))
+      {
+        var md = withIndex.Item1;
+        md.Height = md.Item2;
+        if (md is LiteralModuleDecl literalModuleDecl)
+        {
+          literalModuleDecl.ModuleDef.Height = md.Height;
+        }
       }
     }
 
