@@ -4833,7 +4833,7 @@ namespace Microsoft.Dafny {
     /// Adds appropriate type constraints that says "expr" evaluates to an integer or (if "allowBitVector" is true) a
     /// a bitvector.  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
     /// </summary>
-    void ConstrainToIntegerType(Expression expr, bool allowBitVector, string errFormat) {
+    public void ConstrainToIntegerType(Expression expr, bool allowBitVector, string errFormat) {
       Contract.Requires(expr != null);
       Contract.Requires(errFormat != null);
       var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
