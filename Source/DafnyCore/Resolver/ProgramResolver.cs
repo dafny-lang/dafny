@@ -205,8 +205,7 @@ public class ProgramResolver {
     }
 
     foreach (var decl in sortedDecls) {
-      var moduleResolver = new ModuleResolver(this);
-      moduleResolver.ResolveModuleDeclaration(prog, decl, origErrorCount);
+      ResolveModuleDeclaration(prog, decl, origErrorCount);
     }
 
     if (Reporter.ErrorCount != origErrorCount) {
@@ -225,6 +224,12 @@ public class ProgramResolver {
     foreach (var rewriter in rewriters) {
       rewriter.PostResolve(prog);
     }
+  }
+
+  protected virtual void ResolveModuleDeclaration(Program program, ModuleDecl decl, int origErrorCount)
+  {
+    var moduleResolver = new ModuleResolver(this);
+    moduleResolver.ResolveModuleDeclaration(program, decl, origErrorCount);
   }
 
   private static void SetHeights(List<ModuleDecl> sortedDecls)

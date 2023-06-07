@@ -170,9 +170,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+    public void ResolveModuleDeclaration(Program program, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.Resolve(this, prog, beforeModuleResolutionErrorCount);
+        literalModuleDecl.Resolve(this, program, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
         ModuleSignature p;
         if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
           abs.OriginalSignature = p;
-          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs);
+          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, program.ModuleSigs);
         } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
@@ -1115,25 +1115,25 @@ namespace Microsoft.Dafny {
       f.ByMethodDecl = method;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height,
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string name, int height,
       Dictionary<ModuleDefinition, ModuleSignature> mods) {
       Contract.Requires(p != null);
-      Contract.Requires(Name != null);
+      Contract.Requires(name != null);
       Contract.Requires(mods != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(Name + ".Abs"), new List<IToken>(), true, true, null, null, null,
+      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), true, true, null, null, null,
         false);
-      mod.Height = Height;
+      mod.Height = height;
       foreach (var kv in p.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
-          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, Name);
+          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, name);
           mod.SourceDecls.Add(clone);
         }
       }
 
       var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name);
+      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, name);
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
@@ -1148,15 +1148,15 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m,
-      Dictionary<ModuleDefinition, ModuleSignature> mods, string Name) {
+      Dictionary<ModuleDefinition, ModuleSignature> mods, string name) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
       Contract.Requires(mods != null);
-      Contract.Requires(Name != null);
+      Contract.Requires(name != null);
 
       if (d is AbstractModuleDecl) {
         var abs = (AbstractModuleDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods);
+        var sig = MakeAbstractSignature(abs.OriginalSignature, name + "." + abs.Name, abs.Height, mods);
         var a = new AbstractModuleDecl(abs.RangeToken, abs.QId, abs.NameNode, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
