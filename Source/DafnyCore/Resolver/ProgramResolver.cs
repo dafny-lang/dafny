@@ -167,20 +167,13 @@ public class ProgramResolver {
 
     if (Reporter.ErrorCount > 0) {
       return;
-    } // give up on trying to resolve anything else
-
-    // fill in module heights
-    List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
-    int h = 0;
-    foreach (ModuleDecl md in sortedDecls) {
-      md.Height = h;
-      if (md is LiteralModuleDecl) {
-        var mdef = ((LiteralModuleDecl)md).ModuleDef;
-        mdef.Height = h;
-        prog.ModuleSigs.Add(mdef, null);
-      }
-      h++;
     }
+
+    var sortedDecls = dependencies.TopologicallySortedComponents();
+    prog.ModuleSigs = sortedDecls.OfType<LiteralModuleDecl>()
+      .ToDictionary(l => l.ModuleDef, l => (ModuleSignature)null);
+
+    SetHeights(sortedDecls);
 
     prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
     rewriters = prog.Rewriters;
@@ -231,6 +224,20 @@ public class ProgramResolver {
 
     foreach (var rewriter in rewriters) {
       rewriter.PostResolve(prog);
+    }
+  }
+
+  private static void SetHeights(List<ModuleDecl> sortedDecls)
+  {
+    foreach (var withIndex in sortedDecls.Zip(Enumerable.Range(0, int.MaxValue)))
+    {
+      var md = withIndex.First;
+      md.Height = withIndex.Second;
+      if (md is LiteralModuleDecl literalModuleDecl)
+      {
+        var mdef = literalModuleDecl.ModuleDef;
+        mdef.Height = withIndex.Second;
+      }
     }
   }
 
