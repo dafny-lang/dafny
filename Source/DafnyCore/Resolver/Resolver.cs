@@ -236,7 +236,7 @@ namespace Microsoft.Dafny {
 
     internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
-    readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
+    protected readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     public ModuleSignature systemNameInfo = null;
     public RefinementTransformer refinementTransformer;
 
@@ -419,25 +419,7 @@ namespace Microsoft.Dafny {
 
       // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
-      
-      foreach (var moduleDeclaration in sortedDecls) {
-        if (moduleDeclaration is LiteralModuleDecl literalModuleDecl) {
-          var moduleVertex = dependencies.FindVertex(moduleDeclaration);
-          var hashAlgorithm = HashAlgorithm.Create("SHA256");
-          hashAlgorithm.Initialize();
-          var parseHash = literalModuleDecl.ModuleDef.UniqueParseContentHash.ToByteArray();
-          hashAlgorithm.TransformBlock(parseHash, 0, parseHash.Length, null, 0);
-          foreach (var dependencyVertex in moduleVertex.Successors) {
-            var dependency = dependencyVertex.N;
-            var childResolutionHash = literalModuleDecl.ModuleDef.UniqueParseContentHash.ToByteArray();
-            hashAlgorithm.TransformBlock(parseHash, 0, parseHash.Length, null, 0);
-            hashAlgorithm.TransformBlock(chi)
-          }
 
-          literalModuleDecl.ModuleDef.ResolveHash = hashAlgorithm.Hash!;
-        }
-      }
-      
       int h = 0;
       foreach (ModuleDecl md in sortedDecls) {
         md.Height = h;
@@ -598,7 +580,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+    protected virtual void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
@@ -1096,6 +1078,20 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// How do I get the cached Literal back into the AST ? Where is it even stored?
+    /// ModuleDecls can be part of the TopLevelDecls of other modules, so they're stored in the hierarchy
+    /// Are they also stored somewhere else, maybe in program?
+    /// I could have a Graph<Pointer<ModuleDecl>>
+    /// 
+    /// What's the purpose of ModuleBindings, how do I cache its update?
+    ///
+    /// What's an alias module decl?
+    /// What's an abstract module decl?
+    /// </summary>
+    /// <param name="moduleDecl"></param>
+    /// <param name="bindings"></param>
+    /// <param name="dependencies"></param>
     private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
       dependencies.AddVertex(moduleDecl);
       if (moduleDecl is LiteralModuleDecl) {
