@@ -80,7 +80,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void Resolve(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public void Resolve(ModuleResolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -102,7 +102,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     Signature = resolver.RegisterTopLevelDecls(module, true);
-    Signature.Refines = resolver.refinementTransformer.RefinedSig;
+    Signature.Refines = resolver.ProgramResolver.refinementTransformer.RefinedSig;
 
     var sig = Signature;
     // set up environment
@@ -118,7 +118,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var tempVis = new VisibilityScope();
     tempVis.Augment(sig.VisibilityScope);
-    tempVis.Augment(resolver.systemNameInfo.VisibilityScope);
+    tempVis.Augment(resolver.ProgramResolver.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
     prog.ModuleSigs[module] = sig;
@@ -150,7 +150,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
         true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
       Type.DisableScopes();
       var compileSig = resolver.RegisterTopLevelDecls(nw, true);
-      compileSig.Refines = resolver.refinementTransformer.RefinedSig;
+      compileSig.Refines = resolver.ProgramResolver.refinementTransformer.RefinedSig;
       sig.CompileSignature = compileSig;
       foreach (var exportDecl in sig.ExportSets.Values) {
         exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);

@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public partial class Resolver {
+  public partial class ModuleResolver {
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
     Scope<Statement>/*!*/ enclosingStatementLabels;
@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny {
       DominatingStatementLabels.PopMarker();
     }
 
-    void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
+    public void ResolveTypeParameters(List<TypeParameter/*!*/>/*!*/ tparams, bool emitErrors, TypeParameter.ParentType/*!*/ parent) {
       Contract.Requires(tparams != null);
       Contract.Requires(parent != null);
       // push non-duplicated type parameter names
@@ -4521,7 +4521,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      foreach (var valuet in valuetypeDecls) {
+      foreach (var valuet in ProgramResolver.valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
           if (classMembers[valuet].TryGetValue(memberName, out var member)) {
             SelfType resultType = null;
@@ -5793,7 +5793,7 @@ namespace Microsoft.Dafny {
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
-        var vtd = AsValuetypeDecl(rType);
+        var vtd = ProgramResolver.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
@@ -5853,7 +5853,7 @@ namespace Microsoft.Dafny {
     }
 
     public record MethodCallInformation(IToken Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
-    
+
     public MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);

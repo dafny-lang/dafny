@@ -74,7 +74,7 @@ public class LitPattern : ExtendedPattern {
     }
   }
 
-  public override void Resolve(Resolver resolver,
+  public override void Resolve(ModuleResolver resolver,
     ResolutionContext resolutionContext,
     Type sourceType, bool isGhost, bool inStatementContext,
     bool inPattern, bool inDisjunctivePattern) {

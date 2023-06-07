@@ -3523,7 +3523,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree guardWriter = new ConcreteSyntaxTree();
       var wStmts = guardWriter.Fork();
       wr = EmitIf(out guardWriter, false, wr);
-      foreach (var bvConstraints in bvs.Select(bv => Resolver.GetImpliedTypeConstraint(bv, bv.Type))) {
+      foreach (var bvConstraints in bvs.Select(bv => ModuleResolver.GetImpliedTypeConstraint(bv, bv.Type))) {
         TrParenExpr(bvConstraints, guardWriter, false, wStmts);
         guardWriter.Write($" {Conj} ");
       }

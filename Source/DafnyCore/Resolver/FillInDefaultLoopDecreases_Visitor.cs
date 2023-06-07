@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
   readonly ICallable EnclosingMethod;
-  public FillInDefaultLoopDecreases_Visitor(Resolver resolver, ICallable enclosingMethod)
+  public FillInDefaultLoopDecreases_Visitor(ModuleResolver resolver, ICallable enclosingMethod)
     : base(resolver) {
     Contract.Requires(resolver != null);
     Contract.Requires(enclosingMethod != null);
@@ -21,7 +21,7 @@ class FillInDefaultLoopDecreases_Visitor : ResolverBottomUpVisitor {
     }
   }
 
-  private static void FillInDefaultLoopDecreases(Resolver resolver, LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
+  private static void FillInDefaultLoopDecreases(ModuleResolver resolver, LoopStmt loopStmt, Expression guard, List<Expression> theDecreases, ICallable enclosingMethod) {
     Contract.Requires(loopStmt != null);
     Contract.Requires(theDecreases != null);
 

@@ -14,7 +14,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class UnderspecificationDetector : ResolverPass {
-    public UnderspecificationDetector(Resolver resolver)
+    public UnderspecificationDetector(ModuleResolver resolver)
       : base(resolver) {
     }
 
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
           var n = (BigInteger)e.Value;
           var absN = n < 0 ? -n : n;
           // For bitvectors, check that the magnitude fits the width
-          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && Resolver.MaxBV(width) < absN) {
+          if (PreTypeResolver.IsBitvectorName(familyDeclName, out var width) && ModuleResolver.MaxBV(width) < absN) {
             cus.ReportError(e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.PreType);
           }
           // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
