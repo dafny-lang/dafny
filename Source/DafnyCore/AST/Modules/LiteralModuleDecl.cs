@@ -190,7 +190,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     }
 
     resolver.FillInAdditionalInformation(module);
-    resolver.CheckForFuelAdjustments(module);
+    FuelAdjustment.CheckForFuelAdjustments(resolver.reporter, module);
 
     Type.PopScope(tempVis);
   }

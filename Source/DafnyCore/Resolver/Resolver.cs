@@ -522,32 +522,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckForFuelAdjustments(ModuleDefinition module) {
-      CheckForFuelAdjustments(module.tok, module.Attributes, module);
-      foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
-        Statement body = null;
-        if (clbl is Method) {
-          body = ((Method)clbl).Body;
-          CheckForFuelAdjustments(clbl.Tok, ((Method)clbl).Attributes, module);
-        } else if (clbl is IteratorDecl) {
-          body = ((IteratorDecl)clbl).Body;
-          CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
-        } else if (clbl is Function) {
-          CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
-          var c = new FuelAdjustment_Visitor(this);
-          var bodyExpr = ((Function)clbl).Body;
-          if (bodyExpr != null) {
-            c.Visit(bodyExpr, new FuelAdjustment_Context(module));
-          }
-        }
-
-        if (body != null) {
-          var c = new FuelAdjustment_Visitor(this);
-          c.Visit(body, new FuelAdjustment_Context(module));
-        }
-      }
-    }
-
     public void FillInAdditionalInformation(ModuleDefinition module) {
       foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
         Statement body = null;
@@ -2581,7 +2555,7 @@ namespace Microsoft.Dafny {
         // Check that usage of "this" is restricted before "new;" in constructor bodies,
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
-        var cdci = new CheckDividedConstructorInit_Visitor(this);
+        var cdci = new CheckDividedConstructorInit_Visitor(reporter);
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
           if (cl is not ClassDecl and not TraitDecl) {
             if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
@@ -3805,54 +3779,6 @@ namespace Microsoft.Dafny {
     // ------------------------------------------------------------------------------------------------------
     #region FuelAdjustmentChecks
 
-    protected void CheckForFuelAdjustments(IToken tok, Attributes attrs, ModuleDefinition currentModule) {
-      List<List<Expression>> results = Attributes.FindAllExpressions(attrs, "fuel");
-
-      if (results != null) {
-        foreach (List<Expression> args in results) {
-          if (args != null && args.Count >= 2) {
-            // Try to extract the function from the first argument
-            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-            if (selectExpr != null) {
-              Function f = selectExpr.Member as Function;
-              if (f != null) {
-                f.IsFueled = true;
-                if (args.Count >= 3) {
-                  LiteralExpr literalLow = args[1] as LiteralExpr;
-                  LiteralExpr literalHigh = args[2] as LiteralExpr;
-                  if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-                    BigInteger low = (BigInteger)literalLow.Value;
-                    BigInteger high = (BigInteger)literalHigh.Value;
-                    if (!(high == low + 1 || (low == 0 && high == 0))) {
-                      reporter.Error(MessageSource.Resolver, tok, "fuel setting for function {0} must have high value == 1 + low value", f.Name);
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    public class FuelAdjustment_Context {
-      public ModuleDefinition currentModule;
-      public FuelAdjustment_Context(ModuleDefinition currentModule) {
-        this.currentModule = currentModule;
-      }
-    }
-
-    class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context> {
-      public FuelAdjustment_Visitor(Resolver resolver)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
-      }
-
-      protected override bool VisitOneStmt(Statement stmt, ref FuelAdjustment_Context st) {
-        resolver.CheckForFuelAdjustments(stmt.Tok, stmt.Attributes, st.currentModule);
-        return true;
-      }
-    }
 
     #endregion FuelAdjustmentChecks
 
@@ -3872,9 +3798,9 @@ namespace Microsoft.Dafny {
     class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       public readonly bool IsCoContext;
       public readonly bool ContinuityIsImportant;
-      public FindFriendlyCalls_Visitor(Resolver resolver, bool co, bool continuityIsImportant)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
+      public FindFriendlyCalls_Visitor(ErrorReporter reporter, bool co, bool continuityIsImportant)
+        : base(reporter) {
+        Contract.Requires(reporter != null);
         this.IsCoContext = co;
         this.ContinuityIsImportant = continuityIsImportant;
       }
@@ -3964,7 +3890,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void KNatMismatchError(IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
+    static void KNatMismatchError(ErrorReporter reporter, IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
       var hint = contextK == ExtremePredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
       reporter.Error(MessageSource.Resolver, tok,
         "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
@@ -3975,9 +3901,9 @@ namespace Microsoft.Dafny {
 
     class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
       readonly ExtremePredicate context;
-      public ExtremePredicateChecks_Visitor(Resolver resolver, ExtremePredicate context)
-        : base(resolver, context is GreatestPredicate, context.KNat) {
-        Contract.Requires(resolver != null);
+      public ExtremePredicateChecks_Visitor(ErrorReporter reporter, ExtremePredicate context)
+        : base(reporter, context is GreatestPredicate, context.KNat) {
+        Contract.Requires(reporter != null);
         Contract.Requires(context != null);
         this.context = context;
       }
@@ -3987,9 +3913,9 @@ namespace Microsoft.Dafny {
           if (ModuleDefinition.InSameSCC(context, e.Function)) {
             // we're looking at a recursive call
             if (!(context is LeastPredicate ? e.Function is LeastPredicate : e.Function is GreatestPredicate)) {
-              resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
+              reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
             } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
-              resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
+              Resolver.KNatMismatchError(reporter, e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
               var msg = string.Format("a {0} can be called recursively only in positive positions", context.WhatKind);
               if (ContinuityIsImportant && cp == CallingPosition.Neither) {
@@ -3999,10 +3925,10 @@ namespace Microsoft.Dafny {
                 // we don't care about the continuity restriction or
                 // the extreme-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
               }
-              resolver.reporter.Error(MessageSource.Resolver, e, msg);
+              reporter.Error(MessageSource.Resolver, e, msg);
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.Yes;
-              resolver.reporter.Info(MessageSource.Resolver, e.tok, e.Function.Name + "#[_k - 1]");
+              reporter.Info(MessageSource.Resolver, e.tok, e.Function.Name + "#[_k - 1]");
             }
           }
           // do the sub-parts with cp := Neither
@@ -4016,7 +3942,7 @@ namespace Microsoft.Dafny {
           var s = (CallStmt)stmt;
           if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
-            resolver.reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
+            reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
           }
           // do the sub-parts with the same "cp"
           return true;
@@ -4029,7 +3955,7 @@ namespace Microsoft.Dafny {
     void ExtremePredicateChecks(Expression expr, ExtremePredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      var v = new ExtremePredicateChecks_Visitor(this, context);
+      var v = new ExtremePredicateChecks_Visitor(reporter, context);
       v.Visit(expr, cp);
     }
     #endregion ExtremePredicateChecks
@@ -4094,18 +4020,18 @@ namespace Microsoft.Dafny {
     #region CheckTypeCharacteristics
     void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
       Contract.Requires(stmt != null);
-      var v = new CheckTypeCharacteristics_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(reporter);
       v.Visit(stmt, isGhost);
     }
     void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
       Contract.Requires(expr != null);
-      var v = new CheckTypeCharacteristics_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(reporter);
       v.Visit(expr, isGhost);
     }
     public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
-      var v = new CheckTypeCharacteristics_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(reporter);
       v.VisitType(tok, type, isGhost);
     }
 
@@ -4116,9 +4042,9 @@ namespace Microsoft.Dafny {
     /// types that really do support equality; this, too, is checked only in compiled contexts.
     /// </summary>
     class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
-      public CheckTypeCharacteristics_Visitor(Resolver resolver)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
+      public CheckTypeCharacteristics_Visitor(ErrorReporter reporter)
+        : base(reporter) {
+        Contract.Requires(reporter != null);
       }
       protected override bool VisitOneStmt(Statement stmt, ref bool inGhostContext) {
         if (stmt.IsGhost) {
@@ -4239,9 +4165,9 @@ namespace Microsoft.Dafny {
               } else if (CanCompareWith(e.E1)) {
                 // oh yeah!
               } else if (!t0.PartiallySupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
               } else if (!t1.PartiallySupportsEquality) {
-                resolver.reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+                reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
               }
               break;
             default:
@@ -4254,12 +4180,12 @@ namespace Microsoft.Dafny {
                 case BinaryExpr.ResolvedOpcode.Prefix:
                 case BinaryExpr.ResolvedOpcode.ProperPrefix:
                   if (!t1.SupportsEquality) {
-                    resolver.reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
+                    reporter.Error(MessageSource.Resolver, e.E1, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t1, TypeEqualityErrorMessageHint(t1));
                   } else if (!t0.SupportsEquality) {
                     if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSeq) {
-                      resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                      reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
                     } else {
-                      resolver.reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
+                      reporter.Error(MessageSource.Resolver, e.E0, "{0} can only be applied to expressions of sequence types that support equality (got {1}){2}", BinaryExpr.OpcodeString(e.Op), t0, TypeEqualityErrorMessageHint(t0));
                     }
                   }
                   break;
@@ -4361,21 +4287,21 @@ namespace Microsoft.Dafny {
           var st = (SetType)type;
           var argType = st.Arg;
           if (!inGhostContext && !argType.SupportsEquality) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
+            reporter.Error(MessageSource.Resolver, tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
           }
           VisitType(tok, argType, inGhostContext);
 
         } else if (type is MultiSetType) {
           var argType = ((MultiSetType)type).Arg;
           if (!inGhostContext && !argType.SupportsEquality) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
+            reporter.Error(MessageSource.Resolver, tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
 
           }
           VisitType(tok, argType, inGhostContext);
         } else if (type is MapType) {
           var mt = (MapType)type;
           if (!inGhostContext && !mt.Domain.SupportsEquality) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
+            reporter.Error(MessageSource.Resolver, tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
           }
           VisitType(tok, mt.Domain, inGhostContext);
           VisitType(tok, mt.Range, inGhostContext);
@@ -4410,7 +4336,7 @@ namespace Microsoft.Dafny {
           var formal = formalTypeArgs[i];
           var actual = actualTypeArgs[i];
           if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsWrong, out var hint)) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
+            reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
               actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
           }
           VisitType(tok, actual, inGhostContext);
@@ -4563,9 +4489,9 @@ namespace Microsoft.Dafny {
     // ------------------------------------------------------------------------------------------------------
     #region CheckDividedConstructorInit
     class CheckDividedConstructorInit_Visitor : ResolverTopDownVisitor<int> {
-      public CheckDividedConstructorInit_Visitor(Resolver resolver)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
+      public CheckDividedConstructorInit_Visitor(ErrorReporter reporter)
+        : base(reporter) {
+        Contract.Requires(reporter != null);
       }
       public void CheckInit(List<Statement> initStmts) {
         Contract.Requires(initStmts != null);
@@ -4622,7 +4548,7 @@ namespace Microsoft.Dafny {
             return false;  // don't continue the recursion
           }
         } else if (expr is ThisExpr && !(expr is ImplicitThisExpr_ConstructorCall)) {
-          resolver.reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
+          reporter.Error(MessageSource.Resolver, expr.tok, "in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields");
         }
         return base.VisitOneExpr(expr, ref unused);
       }
@@ -6625,16 +6551,16 @@ namespace Microsoft.Dafny {
     void CollectFriendlyCallsInExtremeLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context) {
       Contract.Requires(expr != null);
       Contract.Requires(friendlyCalls != null);
-      var visitor = new CollectFriendlyCallsInSpec_Visitor(this, friendlyCalls, co, context);
+      var visitor = new CollectFriendlyCallsInSpec_Visitor(reporter, friendlyCalls, co, context);
       visitor.Visit(expr, position ? CallingPosition.Positive : CallingPosition.Negative);
     }
 
     class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
       readonly ISet<Expression> friendlyCalls;
       readonly ExtremeLemma Context;
-      public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context)
-        : base(resolver, co, context.KNat) {
-        Contract.Requires(resolver != null);
+      public CollectFriendlyCallsInSpec_Visitor(ErrorReporter reporter, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context)
+        : base(reporter, co, context.KNat) {
+        Contract.Requires(reporter != null);
         Contract.Requires(friendlyCalls != null);
         Contract.Requires(context != null);
         this.friendlyCalls = friendlyCalls;
@@ -6650,7 +6576,7 @@ namespace Microsoft.Dafny {
             var fexp = (FunctionCallExpr)expr;
             if (IsCoContext ? fexp.Function is GreatestPredicate : fexp.Function is LeastPredicate) {
               if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
-                resolver.KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
+                Resolver.KNatMismatchError(reporter, expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
               } else {
                 friendlyCalls.Add(fexp);
               }
@@ -6673,10 +6599,10 @@ namespace Microsoft.Dafny {
   }
 
   abstract class ResolverTopDownVisitor<T> : TopDownVisitor<T> {
-    protected Resolver resolver;
-    public ResolverTopDownVisitor(Resolver resolver) {
-      Contract.Requires(resolver != null);
-      this.resolver = resolver;
+    protected ErrorReporter reporter;
+    public ResolverTopDownVisitor(ErrorReporter reporter) {
+      Contract.Requires(reporter != null);
+      this.reporter = reporter;
     }
   }
 
