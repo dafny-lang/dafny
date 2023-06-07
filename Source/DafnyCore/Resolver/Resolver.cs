@@ -872,54 +872,6 @@ namespace Microsoft.Dafny {
       moduleInfo = oldModuleInfo;
     }
 
-    public class ModuleBindings {
-      private ModuleBindings parent;
-      private Dictionary<string, ModuleDecl> modules;
-      private Dictionary<string, ModuleBindings> bindings;
-
-      public ModuleBindings(ModuleBindings p) {
-        parent = p;
-        modules = new Dictionary<string, ModuleDecl>();
-        bindings = new Dictionary<string, ModuleBindings>();
-      }
-
-      public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
-        if (modules.ContainsKey(name)) {
-          return false;
-        } else {
-          modules.Add(name, subModule);
-          bindings.Add(name, b);
-          return true;
-        }
-      }
-
-      public bool TryLookup(IToken name, out ModuleDecl m) {
-        Contract.Requires(name != null);
-        return TryLookupFilter(name, out m, l => true);
-      }
-
-      public bool TryLookupFilter(IToken name, out ModuleDecl m, Func<ModuleDecl, bool> filter) {
-        Contract.Requires(name != null);
-        if (modules.TryGetValue(name.val, out m) && filter(m)) {
-          return true;
-        } else if (parent != null) {
-          return parent.TryLookupFilter(name, out m, filter);
-        } else {
-          return false;
-        }
-      }
-
-      public IEnumerable<ModuleDecl> ModuleList {
-        get { return modules.Values; }
-      }
-
-      public ModuleBindings SubBindings(string name) {
-        ModuleBindings v = null;
-        bindings.TryGetValue(name, out v);
-        return v;
-      }
-    }
-
     private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
       var bindings = new ModuleBindings(parentBindings);
 
@@ -3667,10 +3619,6 @@ namespace Microsoft.Dafny {
       visitor.Visit(stmt, mustBeErasable, proofContext);
     }
 
-    // ------------------------------------------------------------------------------------------------------
-    // ----- ReportMoreAdditionalInformation ----------------------------------------------------------------
-    // ------------------------------------------------------------------------------------------------------
-    #region ReportOtherAdditionalInformation_Visitor
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
       public ReportOtherAdditionalInformation_Visitor(Resolver resolver)
         : base(resolver) {
@@ -3699,7 +3647,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    #endregion ReportOtherAdditionalInformation_Visitor
 
     // ------------------------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
@@ -4719,6 +4666,7 @@ namespace Microsoft.Dafny {
     /// context. 
     /// </summary>
     public void CheckLocalityUpdates(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
+      // TODO it looks like this method has no side-effects and doesn't return anything.
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
