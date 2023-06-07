@@ -250,39 +250,39 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
               sense = false;
               goto case BinaryExpr.ResolvedOpcode.EqCommon;
             case BinaryExpr.ResolvedOpcode.EqCommon: {
-              var nntUdf = other.Type.AsNonNullRefType;
-              if (nntUdf != null) {
-                string name = null;
-                string hint = "";
-                other = other.Resolved;
-                if (other is IdentifierExpr) {
-                  name = $"variable '{((IdentifierExpr)other).Name}'";
-                } else if (other is MemberSelectExpr) {
-                  var field = ((MemberSelectExpr)other).Member as Field;
-                  // The type of the field may be a formal type parameter, in which case the hint is omitted
-                  if (field.Type.IsNonNullRefType) {
-                    name = $"field '{field.Name}'";
+                var nntUdf = other.Type.AsNonNullRefType;
+                if (nntUdf != null) {
+                  string name = null;
+                  string hint = "";
+                  other = other.Resolved;
+                  if (other is IdentifierExpr) {
+                    name = $"variable '{((IdentifierExpr)other).Name}'";
+                  } else if (other is MemberSelectExpr) {
+                    var field = ((MemberSelectExpr)other).Member as Field;
+                    // The type of the field may be a formal type parameter, in which case the hint is omitted
+                    if (field.Type.IsNonNullRefType) {
+                      name = $"field '{field.Name}'";
+                    }
                   }
-                }
-                if (name != null) {
-                  // The following relies on that a NonNullTypeDecl has a .Rhs that is a
-                  // UserDefinedType denoting the possibly null type declaration and that
-                  // these two types have the same number of type arguments.
-                  var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
-                  var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
-                  var possiblyNullTypeDecl = (ClassLikeDecl)possiblyNullUdf.ResolvedClass;
-                  Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
-                  Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
-                  var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
+                  if (name != null) {
+                    // The following relies on that a NonNullTypeDecl has a .Rhs that is a
+                    // UserDefinedType denoting the possibly null type declaration and that
+                    // these two types have the same number of type arguments.
+                    var nonNullTypeDecl = (NonNullTypeDecl)nntUdf.ResolvedClass;
+                    var possiblyNullUdf = (UserDefinedType)nonNullTypeDecl.Rhs;
+                    var possiblyNullTypeDecl = (ClassLikeDecl)possiblyNullUdf.ResolvedClass;
+                    Contract.Assert(nonNullTypeDecl.TypeArgs.Count == possiblyNullTypeDecl.TypeArgs.Count);
+                    Contract.Assert(nonNullTypeDecl.TypeArgs.Count == nntUdf.TypeArgs.Count);
+                    var ty = new UserDefinedType(nntUdf.tok, possiblyNullUdf.Name, possiblyNullTypeDecl, nntUdf.TypeArgs);
 
-                  hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
+                    hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
+                  }
+                  var b = sense ? "false" : "true";
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_test, e.tok,
+                    $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                 }
-                var b = sense ? "false" : "true";
-                resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_test, e.tok,
-                  $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
+                break;
               }
-              break;
-            }
             case BinaryExpr.ResolvedOpcode.NotInSet:
             case BinaryExpr.ResolvedOpcode.NotInSeq:
             case BinaryExpr.ResolvedOpcode.NotInMultiSet:
@@ -291,27 +291,27 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             case BinaryExpr.ResolvedOpcode.InSet:
             case BinaryExpr.ResolvedOpcode.InSeq:
             case BinaryExpr.ResolvedOpcode.InMultiSet: {
-              var ty = other.Type.NormalizeExpand();
-              var what = ty is SetType ? "set" : ty is SeqType ? "seq" : "multiset";
-              if (((CollectionType)ty).Arg.IsNonNullRefType) {
-                var non = sense ? "" : "non-";
-                var b = sense ? "false" : "true";
-                resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_inclusion_test, e.tok,
-                  $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
+                var ty = other.Type.NormalizeExpand();
+                var what = ty is SetType ? "set" : ty is SeqType ? "seq" : "multiset";
+                if (((CollectionType)ty).Arg.IsNonNullRefType) {
+                  var non = sense ? "" : "non-";
+                  var b = sense ? "false" : "true";
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_inclusion_test, e.tok,
+                    $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
+                }
+                break;
               }
-              break;
-            }
             case BinaryExpr.ResolvedOpcode.NotInMap:
               goto case BinaryExpr.ResolvedOpcode.InMap;
             case BinaryExpr.ResolvedOpcode.InMap: {
-              var ty = other.Type.NormalizeExpand();
-              if (((MapType)ty).Domain.IsNonNullRefType) {
-                var b = sense ? "false" : "true";
-                resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_map_null_inclusion_test, e.tok,
-                  $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
+                var ty = other.Type.NormalizeExpand();
+                if (((MapType)ty).Domain.IsNonNullRefType) {
+                  var b = sense ? "false" : "true";
+                  resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_map_null_inclusion_test, e.tok,
+                    $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
+                }
+                break;
               }
-              break;
-            }
             default:
               break;
           }

@@ -1763,32 +1763,6 @@ namespace Microsoft.Dafny {
     public List<TypeConstraint> AllTypeConstraints = new List<TypeConstraint>();
     public List<XConstraint> AllXConstraints = new List<XConstraint>();
 
-    public class XConstraintWithExprs : XConstraint {
-      public readonly Expression[] Exprs;
-      public XConstraintWithExprs(IToken tok, string constraintName, Type[] types, Expression[] exprs, TypeConstraint.ErrorMsg errMsg)
-        : base(tok, constraintName, types, errMsg) {
-        Contract.Requires(tok != null);
-        Contract.Requires(constraintName != null);
-        Contract.Requires(types != null);
-        Contract.Requires(exprs != null);
-        Contract.Requires(errMsg != null);
-        this.Exprs = exprs;
-      }
-    }
-
-    public class XConstraint_EquatableArg : XConstraint {
-      public bool AllowSuperSub;
-      public bool TreatTypeParamAsWild;
-      public XConstraint_EquatableArg(IToken tok, Type a, Type b, bool allowSuperSub, bool treatTypeParamAsWild, TypeConstraint.ErrorMsg errMsg)
-        : base(tok, "EquatableArg", new Type[] { a, b }, errMsg) {
-        Contract.Requires(tok != null);
-        Contract.Requires(a != null);
-        Contract.Requires(b != null);
-        Contract.Requires(errMsg != null);
-        AllowSuperSub = allowSuperSub;
-        TreatTypeParamAsWild = treatTypeParamAsWild;
-      }
-    }
 
     /// <summary>
     /// Solves or simplifies as many type constraints as possible.
@@ -4178,16 +4152,8 @@ namespace Microsoft.Dafny {
       Contract.Assert(r == null);
     }
 
-    public class ResolveTypeReturn {
-      public readonly Type ReplacementType;
-      public readonly ExprDotName LastComponent;
-      public ResolveTypeReturn(Type replacementType, ExprDotName lastComponent) {
-        Contract.Requires(replacementType != null);
-        Contract.Requires(lastComponent != null);
-        ReplacementType = replacementType;
-        LastComponent = lastComponent;
-      }
-    }
+    public record ResolveTypeReturn(Type ReplacementType, ExprDotName LastComponent);
+
     /// <summary>
     /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
     /// One more thing:  if "allowDanglingDotName" is true, then if the resolution would have produced
@@ -6159,29 +6125,5 @@ namespace Microsoft.Dafny {
       }
     }
 
-  }
-
-  public class MethodCallInformation {
-    public readonly IToken Tok;
-    public readonly MemberSelectExpr Callee;
-    public readonly List<ActualBinding> ActualParameters;
-
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(Tok != null);
-      Contract.Invariant(Callee != null);
-      Contract.Invariant(Callee.Member is Method);
-      Contract.Invariant(ActualParameters != null);
-    }
-
-    public MethodCallInformation(IToken tok, MemberSelectExpr callee, List<ActualBinding> actualParameters) {
-      Contract.Requires(tok != null);
-      Contract.Requires(callee != null);
-      Contract.Requires(callee.Member is Method);
-      Contract.Requires(actualParameters != null);
-      this.Tok = tok;
-      this.Callee = callee;
-      this.ActualParameters = actualParameters;
-    }
   }
 }
