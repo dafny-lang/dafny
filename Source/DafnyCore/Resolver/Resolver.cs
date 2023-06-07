@@ -16,6 +16,8 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
+  public record ModuleResolutionResult(Dictionary<ModuleDefinition, ModuleSignature> signatures);
+
   interface ICanResolve {
     void Resolve(Resolver resolver, ResolutionContext context);
   }
@@ -56,7 +58,7 @@ namespace Microsoft.Dafny {
       return freshTempVarName;
     }
 
-    readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
+    public readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
     public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
@@ -172,9 +174,9 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
+      prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
       refinementTransformer = new RefinementTransformer(prog);
-      prog.Rewriters.Insert(0, refinementTransformer);
+      prog.Compilation.Rewriters.Insert(0, refinementTransformer);
 
       systemNameInfo = prog.SystemModuleManager.SystemModule.RegisterTopLevelDecls(this, false);
       RevealAllInScope(prog.SystemModuleManager.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
@@ -195,7 +197,7 @@ namespace Microsoft.Dafny {
         new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.SystemModuleManager.SystemModule.Name);
 
 
-      foreach (var rewriter in prog.Rewriters) {
+      foreach (var rewriter in prog.Compilation.Rewriters) {
         cancellationToken.ThrowIfCancellationRequested();
         rewriter.PreResolve(prog);
       }
@@ -213,14 +215,14 @@ namespace Microsoft.Dafny {
       CheckDupModuleNames(prog);
 
       foreach (var module in prog.Modules()) {
-        foreach (var rewriter in prog.Rewriters) {
+        foreach (var rewriter in prog.Compilation.Rewriters) {
           cancellationToken.ThrowIfCancellationRequested();
           rewriter.PostResolve(module);
         }
       }
 
 
-      foreach (var rewriter in prog.Rewriters) {
+      foreach (var rewriter in prog.Compilation.Rewriters) {
         cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(prog);
       }
@@ -263,7 +265,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ComputeIsRecursiveBit(Program program, ModuleDefinition module) {
+    public void ComputeIsRecursiveBit(CompilationData compilation, ModuleDefinition module) {
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
         if (clbl is Function) {
@@ -296,14 +298,15 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in program.Rewriters) {
+      foreach (var rewriter in compilation.Rewriters) {
         rewriter.PostCyclicityResolve(module);
       }
     }
 
-    private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+    private void ResolveModuleDeclaration(Program program, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+      var compilation = program.Compilation;
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog, beforeModuleResolutionErrorCount);
+        literalModuleDecl.Resolve(this, program, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -318,7 +321,7 @@ namespace Microsoft.Dafny {
         ModuleSignature p;
         if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
           abs.OriginalSignature = p;
-          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, prog.ModuleSigs);
+          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, program.ModuleSigs);
         } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
@@ -664,7 +667,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void CheckModuleExportConsistency(Program program, ModuleDefinition m) {
+    public void CheckModuleExportConsistency(CompilationData compilation, ModuleDefinition m) {
       //check for export consistency by resolving internal modules
       //this should be effect-free, as it only operates on clones
 
@@ -704,7 +707,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(program, exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(compilation, exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
 

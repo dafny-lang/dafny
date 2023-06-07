@@ -34,26 +34,13 @@ namespace Microsoft.Dafny {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
   public class Program : TokenNode {
-    public IList<IRewriter> Rewriters { get; set; }
+    public CompilationData Compilation { get; }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
       Contract.Invariant(DefaultModule != null);
     }
-
-    // TODO move to Compilation once that's used by the CLI
-    public ISet<Uri> AlreadyVerifiedRoots;
-    // TODO move to Compilation once that's used by the CLI
-    public ISet<Uri> AlreadyCompiledRoots;
-
-    public List<Include> Includes => DefaultModuleDef.Includes;
-    // TODO move to DocumentAfterParsing once that's used by the CLI
-    [FilledInDuringResolution]
-    public ISet<Uri> UrisToVerify;
-    // TODO move to DocumentAfterParsing once that's used by the CLI
-    [FilledInDuringResolution]
-    public ISet<Uri> UrisToCompile;
 
     public readonly string FullName;
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
@@ -70,7 +57,7 @@ namespace Microsoft.Dafny {
     public ErrorReporter Reporter { get; set; }
 
     public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
-      ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
+      CompilationData compilation) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
@@ -78,9 +65,8 @@ namespace Microsoft.Dafny {
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
       SystemModuleManager = systemModuleManager;
-      this.Reporter = reporter;
-      AlreadyVerifiedRoots = alreadyVerifiedRoots;
-      AlreadyCompiledRoots = alreadyCompiledRoots;
+      Reporter = reporter;
+      Compilation = compilation;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
     }
 

@@ -478,18 +478,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings)
-  {
+  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings) {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
     //     "A"   ->   (A.B.C  ,  module D { ... })
     var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var tup in PrefixNamedModules)
-    {
+    foreach (var tup in PrefixNamedModules) {
       var id = tup.Parts[0].val;
-      if (!prefixNames.TryGetValue(id, out var prev))
-      {
+      if (!prefixNames.TryGetValue(id, out var prev)) {
         prev = new List<PrefixNameModule>();
       }
 
@@ -500,20 +497,15 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     PrefixNamedModules.Clear();
 
     // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var tld in TopLevelDecls)
-    {
-      if (tld is LiteralModuleDecl)
-      {
+    foreach (var tld in TopLevelDecls) {
+      if (tld is LiteralModuleDecl) {
         var subdecl = (LiteralModuleDecl)tld;
         // Transfer prefix-named modules downwards into the sub-module
         List<PrefixNameModule> prefixModules;
-        if (prefixNames.TryGetValue(subdecl.Name, out prefixModules))
-        {
+        if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
           prefixNames.Remove(subdecl.Name);
           prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-        }
-        else
-        {
+        } else {
           prefixModules = null;
         }
 
@@ -522,8 +514,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixNames)
-    {
+    foreach (var entry in prefixNames) {
       var name = entry.Key;
       var prefixNamedModules = entry.Value;
       var tok = prefixNamedModules.First().Parts[0];
