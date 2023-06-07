@@ -5,7 +5,7 @@ using System.Numerics;
 namespace Microsoft.Dafny; 
 
 public static class FuelAdjustment {
-  
+
   public static void CheckForFuelAdjustments(ErrorReporter reporter, ModuleDefinition module) {
     CheckForFuelAdjustments(reporter, module.tok, module.Attributes, module);
     foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
@@ -56,7 +56,7 @@ public static class FuelAdjustment {
         continue;
       }
 
-      if (args[1] is not LiteralExpr { Value: BigInteger low } || 
+      if (args[1] is not LiteralExpr { Value: BigInteger low } ||
           args[2] is not LiteralExpr { Value: BigInteger high }) {
         continue;
       }
@@ -69,7 +69,7 @@ public static class FuelAdjustment {
 }
 
 class FuelAdjustment_Visitor : ResolverTopDownVisitor<FuelAdjustment_Context> {
-  
+
   public FuelAdjustment_Visitor(ErrorReporter reporter)
     : base(reporter) {
   }

@@ -21,6 +21,28 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public partial class Resolver {
+    List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
+    public readonly Scope<Label>/*!*/ DominatingStatementLabels;
+    Scope<Statement>/*!*/ enclosingStatementLabels;
+    public Method currentMethod;
+
+    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expressionDescription != null);
+      Contract.Requires(resolutionContext != null);
+
+      Label label = null;
+      if (!resolutionContext.IsTwoState) {
+        reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
+      } else if (labelName != null) {
+        label = DominatingStatementLabels.Find(labelName);
+        if (label == null) {
+          reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
+        }
+      }
+      return label;
+    }
+
     /// <summary>
     /// There are two rounds of name resolution + type inference. The "initialRound" parameter says which one to do.
     /// </summary>

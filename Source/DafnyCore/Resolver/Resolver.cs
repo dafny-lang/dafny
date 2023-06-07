@@ -3749,12 +3749,8 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDeclWithMembers currentClass;
-    public Method currentMethod;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
-    Scope<Statement>/*!*/ enclosingStatementLabels;
-    public readonly Scope<Label>/*!*/ DominatingStatementLabels;
-    List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
     /// Resolves the types along .ParentTraits and fills in .ParentTraitHeads
@@ -4819,23 +4815,6 @@ namespace Microsoft.Dafny {
       return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
-    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
-      Contract.Requires(tok != null);
-      Contract.Requires(expressionDescription != null);
-      Contract.Requires(resolutionContext != null);
-
-      Label label = null;
-      if (!resolutionContext.IsTwoState) {
-        reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
-      } else if (labelName != null) {
-        label = DominatingStatementLabels.Find(labelName);
-        if (label == null) {
-          reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
-        }
-      }
-      return label;
-    }
-
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
       return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<ActualBinding>(), tok);
     }
@@ -5029,7 +5008,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private List<DefaultValueExpression> allDefaultValueExpressions = new List<DefaultValueExpression>();
+    private List<DefaultValueExpression> allDefaultValueExpressions = new();
 
     /// <summary>
     /// This method is called at the tail end of Pass1 of the Resolver.

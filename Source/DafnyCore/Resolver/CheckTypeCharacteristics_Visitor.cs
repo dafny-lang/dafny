@@ -14,7 +14,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     : base(reporter) {
     Contract.Requires(reporter != null);
   }
-  
+
 
   public static bool CanCompareWith(Expression expr) {
     Contract.Requires(expr != null);
@@ -40,7 +40,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     }
     return false;
   }
-  
+
   protected override bool VisitOneStmt(Statement stmt, ref bool inGhostContext) {
     if (stmt.IsGhost) {
       inGhostContext = true;

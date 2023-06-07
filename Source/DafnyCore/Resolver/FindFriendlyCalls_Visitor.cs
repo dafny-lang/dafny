@@ -23,7 +23,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       calleeK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
       hint);
   }
-  
+
   static CallingPosition Invert(CallingPosition cp) {
     switch (cp) {
       case CallingPosition.Positive: return CallingPosition.Negative;
@@ -31,7 +31,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       default: return CallingPosition.Neither;
     }
   }
-  
+
   protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
     if (expr is UnaryOpExpr) {
       var e = (UnaryOpExpr)expr;
