@@ -368,4 +368,77 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleDefinition Clone(Cloner cloner) {
     return new ModuleDefinition(cloner, this);
   }
+
+  /// <summary>
+  /// Resolves the module definition.
+  /// A return code of "false" is an indication of an error that may or may not have
+  /// been reported in an error message. So, in order to figure out if m was successfully
+  /// resolved, a caller has to check for both a change in error count and a "false"
+  /// return value.
+  /// </summary>
+  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+    Contract.Requires(resolver.AllTypeConstraints.Count == 0);
+    Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    sig.VisibilityScope.Augment(resolver.systemNameInfo.VisibilityScope);
+    // make sure all imported modules were successfully resolved
+    foreach (var d in TopLevelDecls) {
+      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
+        ModuleSignature importSig;
+        if (d is AliasModuleDecl) {
+          var alias = (AliasModuleDecl)d;
+          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
+        } else {
+          importSig = ((AbstractModuleDecl)d).OriginalSignature;
+        }
+
+        if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
+          if (!IsEssentiallyEmptyModuleBody()) {
+            // say something only if this will cause any testing to be omitted
+            resolver.reporter.Error(MessageSource.Resolver, d,
+              "not resolving module '{0}' because there were errors in resolving its import '{1}'", Name, d.Name);
+          }
+
+          return false;
+        }
+      } else if (d is LiteralModuleDecl) {
+        var nested = (LiteralModuleDecl)d;
+        if (!nested.ModuleDef.SuccessfullyResolved) {
+          if (!IsEssentiallyEmptyModuleBody()) {
+            // say something only if this will cause any testing to be omitted
+            resolver.reporter.Error(MessageSource.Resolver, nested,
+              "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
+              nested.Name);
+          }
+
+          return false;
+        }
+      }
+    }
+
+    // resolve
+    var oldModuleInfo = resolver.moduleInfo;
+    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.systemNameInfo);
+    Type.PushScope(resolver.moduleInfo.VisibilityScope);
+    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.useCompileSignatures, resolver); // opened imports do not persist
+    var datatypeDependencies = new Graph<IndDatatypeDecl>();
+    var codatatypeDependencies = new Graph<CoDatatypeDecl>();
+    var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
+    int prevErrorCount = resolver.reporter.Count(ErrorLevel.Error);
+    resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
+    Contract.Assert(resolver.AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
+
+    resolver.scope.PushMarker();
+    resolver.scope.AllowInstance = false;
+    resolver.ResolveAttributes(this, new ResolutionContext(new NoContext(EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+    resolver.scope.PopMarker();
+
+    if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+      resolver.ResolveTopLevelDecls_Core(allDeclarations, datatypeDependencies, codatatypeDependencies, Name, isAnExport);
+    }
+
+    Type.PopScope(resolver.moduleInfo.VisibilityScope);
+    resolver.moduleInfo = oldModuleInfo;
+    return true;
+  }
 }

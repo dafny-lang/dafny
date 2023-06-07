@@ -10,43 +10,40 @@ public class InferDecreasesClause {
     this.resolver = resolver;
   }
 
-  public void FillInDefaultDecreasesClauses(Program prog) {
-    Contract.Requires(prog != null);
+  public void FillInDefaultDecreasesClauses(ModuleDefinition module) {
 
-    foreach (var module in prog.Modules()) {
-      Contract.Assert(Type.GetScope() != null);
-      foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
-        ICallable m;
-        string s;
-        if (clbl is ExtremeLemma) {
-          var prefixLemma = ((ExtremeLemma)clbl).PrefixLemma;
-          m = prefixLemma;
-          s = prefixLemma.Name + " ";
+    Contract.Assert(Type.GetScope() != null);
+    foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
+      ICallable m;
+      string s;
+      if (clbl is ExtremeLemma) {
+        var prefixLemma = ((ExtremeLemma)clbl).PrefixLemma;
+        m = prefixLemma;
+        s = prefixLemma.Name + " ";
+      } else {
+        m = clbl;
+        s = "";
+      }
+
+      var anyChangeToDecreases = FillInDefaultDecreases(m, true);
+
+      if (anyChangeToDecreases || m.InferredDecreases || m is PrefixLemma) {
+        bool showIt = false;
+        if (m is Function) {
+          // show the inferred decreases clause only if it will ever matter, i.e., if the function is recursive
+          showIt = ((Function)m).IsRecursive;
+        } else if (m is PrefixLemma) {
+          // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
+          showIt = true;
         } else {
-          m = clbl;
-          s = "";
+          showIt = ((Method)m).IsRecursive;
         }
 
-        var anyChangeToDecreases = FillInDefaultDecreases(m, true);
-
-        if (anyChangeToDecreases || m.InferredDecreases || m is PrefixLemma) {
-          bool showIt = false;
-          if (m is Function) {
-            // show the inferred decreases clause only if it will ever matter, i.e., if the function is recursive
-            showIt = ((Function)m).IsRecursive;
-          } else if (m is PrefixLemma) {
-            // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
-            showIt = true;
-          } else {
-            showIt = ((Method)m).IsRecursive;
-          }
-
-          if (showIt) {
-            s += "decreases " + Util.Comma(m.Decreases.Expressions, expr => Printer.ExprToString(prog.Options, expr));
-            // Note, in the following line, we use the location information for "clbl", not "m".  These
-            // are the same, except in the case where "clbl" is a GreatestLemma and "m" is a prefix lemma.
-            resolver.reporter.Info(MessageSource.Resolver, clbl.Tok, s);
-          }
+        if (showIt) {
+          s += "decreases " + Util.Comma(m.Decreases.Expressions, expr => Printer.ExprToString(resolver.Options, expr));
+          // Note, in the following line, we use the location information for "clbl", not "m".  These
+          // are the same, except in the case where "clbl" is a GreatestLemma and "m" is a prefix lemma.
+          resolver.reporter.Info(MessageSource.Resolver, clbl.Tok, s);
         }
       }
     }
