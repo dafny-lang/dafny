@@ -80,7 +80,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public void ResolveLiteralModuleDeclaration(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
+  public void Resolve(Resolver resolver, Program prog, int beforeModuleResolutionErrorCount) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -109,7 +109,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     var preResolveErrorCount = resolver.reporter.ErrorCount;
 
     resolver.ResolveModuleExport(this, sig);
-    var good = module.ResolveModuleDefinition(sig, resolver);
+    var good = module.Resolve(sig, resolver);
 
     if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
@@ -147,7 +147,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       Type.DisableScopes();
 
       resolver.allowReresolving = true;
-      ModuleDef.ResolveModuleDefinition(sig, resolver);
+      ModuleDef.Resolve(sig, resolver);
       resolver.allowReresolving = false;
       Type.EnableScopes();
       resolver.reporter.ErrorsOnly = oldErrorsOnly;

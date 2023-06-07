@@ -376,7 +376,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool ResolveModuleDefinition(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
