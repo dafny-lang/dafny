@@ -10,7 +10,7 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
     Contract.Requires(context != null);
     this.context = context;
   }
-  protected override bool VisitOneExpr(Expression expr, ref Resolver.CallingPosition cp) {
+  protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
     if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;
       if (ModuleDefinition.InSameSCC(context, e.Function)) {
@@ -18,12 +18,13 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
         if (!(context is LeastPredicate ? e.Function is LeastPredicate : e.Function is GreatestPredicate)) {
           reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
         } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
-          Resolver.KNatMismatchError(reporter, e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
-        } else if (cp != Resolver.CallingPosition.Positive) {
-          var msg = string.Format("a {0} can be called recursively only in positive positions", context.WhatKind);
-          if (ContinuityIsImportant && cp == Resolver.CallingPosition.Neither) {
+          KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
+        } else if (cp != CallingPosition.Positive) {
+          var msg = $"a {context.WhatKind} can be called recursively only in positive positions";
+          if (ContinuityIsImportant && cp == CallingPosition.Neither) {
             // this may be inside an non-friendly quantifier
-            msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is LeastPredicate ? "universal" : "existential");
+            msg +=
+              $" and cannot sit inside an unbounded {(context is LeastPredicate ? "universal" : "existential")} quantifier";
           } else {
             // we don't care about the continuity restriction or
             // the extreme-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
@@ -35,12 +36,12 @@ class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor {
         }
       }
       // do the sub-parts with cp := Neither
-      cp = Resolver.CallingPosition.Neither;
+      cp = CallingPosition.Neither;
       return true;
     }
     return base.VisitOneExpr(expr, ref cp);
   }
-  protected override bool VisitOneStmt(Statement stmt, ref Resolver.CallingPosition st) {
+  protected override bool VisitOneStmt(Statement stmt, ref CallingPosition st) {
     if (stmt is CallStmt) {
       var s = (CallStmt)stmt;
       if (ModuleDefinition.InSameSCC(context, s.Method)) {

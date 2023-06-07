@@ -61,46 +61,6 @@ namespace Microsoft.Dafny {
       return freshTempVarName;
     }
 
-    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
-    {
-      public static MemberDecl Create(ModuleDefinition m, MemberDecl a, MemberDecl b) {
-        ISet<MemberDecl> s;
-        var t = AmbiguousThingHelper<MemberDecl>.Create(m, a, b, new Eq(), out s);
-        return t ?? new AmbiguousMemberDecl(m, AmbiguousThingHelper<MemberDecl>.Name(s, member => member.Name), s);
-      }
-
-      class Eq : IEqualityComparer<MemberDecl> {
-        public bool Equals(MemberDecl d0, MemberDecl d1) {
-          return d0 == d1;
-        }
-
-        public int GetHashCode(MemberDecl d) {
-          return d.GetHashCode();
-        }
-      }
-
-      public override string WhatKind {
-        get { return Pool.First().WhatKind; }
-      }
-
-      readonly ISet<MemberDecl> Pool = new HashSet<MemberDecl>();
-
-      ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool {
-        get { return Pool; }
-      }
-
-      private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-        : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), true, pool.First().IsGhost, null, false) {
-        Contract.Requires(name != null);
-        Contract.Requires(pool != null && 2 <= pool.Count);
-        Pool = pool;
-      }
-
-      public string ModuleNames() {
-        return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.EnclosingModuleDefinition.Name);
-      }
-    }
-
     readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
@@ -3660,35 +3620,12 @@ namespace Microsoft.Dafny {
     }
     #endregion
 
-    // ------------------------------------------------------------------------------------------------------
-    // ----- ExtremePredicateChecks -------------------------------------------------------------------------
-    // ------------------------------------------------------------------------------------------------------
-    #region ExtremePredicateChecks
-    public enum CallingPosition { Positive, Negative, Neither }
-    public static CallingPosition Invert(CallingPosition cp) {
-      switch (cp) {
-        case CallingPosition.Positive: return CallingPosition.Negative;
-        case CallingPosition.Negative: return CallingPosition.Positive;
-        default: return CallingPosition.Neither;
-      }
-    }
-
-    public static void KNatMismatchError(ErrorReporter reporter, IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
-      var hint = contextK == ExtremePredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
-      reporter.Error(MessageSource.Resolver, tok,
-        "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
-        contextK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
-        calleeK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
-        hint);
-    }
-
     void ExtremePredicateChecks(Expression expr, ExtremePredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
       var v = new ExtremePredicateChecks_Visitor(reporter, context);
       v.Visit(expr, cp);
     }
-    #endregion ExtremePredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ExtremeLemmaChecks -----------------------------------------------------------------------------

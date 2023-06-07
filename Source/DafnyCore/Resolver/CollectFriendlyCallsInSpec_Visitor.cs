@@ -14,17 +14,17 @@ class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
     this.friendlyCalls = friendlyCalls;
     this.Context = context;
   }
-  protected override bool VisitOneExpr(Expression expr, ref Resolver.CallingPosition cp) {
-    if (cp == Resolver.CallingPosition.Neither) {
+  protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
+    if (cp == CallingPosition.Neither) {
       // no friendly calls in "expr"
       return false;  // don't recurse into subexpressions
     }
     if (expr is FunctionCallExpr) {
-      if (cp == Resolver.CallingPosition.Positive) {
+      if (cp == CallingPosition.Positive) {
         var fexp = (FunctionCallExpr)expr;
         if (IsCoContext ? fexp.Function is GreatestPredicate : fexp.Function is LeastPredicate) {
           if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
-            Resolver.KNatMismatchError(reporter, expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
+            KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
           } else {
             friendlyCalls.Add(fexp);
           }
@@ -33,10 +33,10 @@ class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor {
       return false;  // don't explore subexpressions any further
     } else if (expr is BinaryExpr && IsCoContext) {
       var bin = (BinaryExpr)expr;
-      if (cp == Resolver.CallingPosition.Positive && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
+      if (cp == CallingPosition.Positive && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon && bin.E0.Type.IsCoDatatype) {
         friendlyCalls.Add(bin);
         return false;  // don't explore subexpressions any further
-      } else if (cp == Resolver.CallingPosition.Negative && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
+      } else if (cp == CallingPosition.Negative && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon && bin.E0.Type.IsCoDatatype) {
         friendlyCalls.Add(bin);
         return false;  // don't explore subexpressions any further
       }
