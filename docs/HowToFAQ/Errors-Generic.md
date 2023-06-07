@@ -79,6 +79,6 @@ module {:options "ZZZ"} M {}
 Dafny allows certain attributes to be defined for specific scopes (such as modules) in a program.
 Only a small set of attributes are permitted to be locally redefined.
 The error message is indicating that the given attribute is not one of them.
-Note that some attributes (e.g. `--unicode-char`) must be consisten across the whole program.
+Note that some attributes (e.g. `--unicode-char`) must be consistent across the whole program.
 
 
