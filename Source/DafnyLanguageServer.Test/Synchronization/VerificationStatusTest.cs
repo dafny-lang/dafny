@@ -295,8 +295,8 @@ method Bar() { assert false; }";
 
   [Fact]
   public async Task QueuedMethodGoesThroughAllPhases() {
-    var source = @"method Foo() { assert false; }
-method Bar() { assert false; }";
+    var source = @"method QueuedFoo() { assert false; }
+method QueuedBar() { assert false; }";
 
     await SetUp(options => {
       options.Set(BoogieOptionBag.Cores, 1U);
@@ -306,7 +306,7 @@ method Bar() { assert false; }";
 
     var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout);
     Assert.Empty(resolutionDiagnostics);
-    var barRange = new Range(new Position(1, 7), new Position(1, 10));
+    var barRange = new Range(new Position(1, 7), new Position(1, 16));
 
     await WaitForStatus(barRange, PublishedVerificationStatus.Stale, CancellationToken);
     await WaitForStatus(barRange, PublishedVerificationStatus.Queued, CancellationToken);
