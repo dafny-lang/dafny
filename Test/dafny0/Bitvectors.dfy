@@ -3,6 +3,9 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
+// Note the difference in Java output is due to
+// https://github.com/dafny-lang/dafny/issues/4152
+
 method M(a: bv1, b: bv32) returns (c: bv32, d: bv1)
 {
   c := b;
