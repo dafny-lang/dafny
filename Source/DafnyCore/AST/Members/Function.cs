@@ -48,7 +48,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       yield return a;
     }
 
-    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute) {
+    if (Body is null && HasPostcondition && !EnclosingClass.EnclosingModuleDefinition.IsAbstract && !HasExternAttribute && !HasAxiomAttribute) {
       yield return new Assumption(this, tok, AssumptionDescription.NoBody(IsGhost));
     }
 

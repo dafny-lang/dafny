@@ -60,7 +60,19 @@ public static void process(String file, boolean replace) {
     if (replace) w = new PrintWriter(new BufferedWriter(new FileWriter(file + ".tmp")));
 
     String line;
-    while ((line = r.readLine()) != null) {
+    // For the first line, we read it manually.
+    line = "";
+    char c;
+    while((c = (char)r.read()) != '\0' && c != '\n' && c != '\r') {
+      line = line + (char)c;
+    }
+    // Get the newline character by reading the file itself
+    String newlineChar = c == '\n' ? "\n" : "\r\n";
+    boolean first = true;
+    while ((line = first ? line : r.readLine()) != null) {
+      // Get the newline character by reading the file itself
+      first = false;
+
       String out = line;
       Matcher mid = id.matcher(line);
       if (mid.find()) {
@@ -69,7 +81,7 @@ public static void process(String file, boolean replace) {
       }
       Matcher m = inc.matcher(line);
       if (m.find()) {
-        if (replace) w.println(line);
+        if (replace) w.print(line + newlineChar);
         String rel = m.group(1);
         String newfile = m.group(2);
         if (newfile.endsWith(".md")) {
@@ -128,10 +140,11 @@ public static void process(String file, boolean replace) {
           }
         }
       }
-      if (replace) w.println(out);
+      if (replace) w.print(out + newlineChar);
     }
     if (w != null) {
       w.close();
+      f.close();
       Path a = FileSystems.getDefault().getPath(file + ".tmp");
       Path b = FileSystems.getDefault().getPath(file);
       Files.move(a,b, StandardCopyOption.REPLACE_EXISTING);
