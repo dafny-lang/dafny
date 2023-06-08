@@ -2,33 +2,33 @@
 Dafny program verifier finished with 38 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods.Uni.Uni
+  ++ Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
 {}
   ++ {}
 [] {}
@@ -56,75 +56,75 @@ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
   ++ [] {}
   ++ [] {}
   ++ [] {}
-Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions.Uni.Uni
+  ++ Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
 {2}
   ++ {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+[] ++ [] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni]
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
-  ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ []
+  ++ [Consts.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
 0-0 0.0-0.0 false-false 'D'-'D' 0
@@ -136,41 +136,41 @@ null-null null-null null-null null-null
 0:0:0
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
-DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+DefaultValuedExpressions.Color.Red-DefaultValuedExpressions.Color.Red DefaultValuedExpressions.PossibleCell.Nothing-DefaultValuedExpressions.PossibleCell.Nothing DefaultValuedExpressions.Cell.LittleCell(0)-DefaultValuedExpressions.Cell.LittleCell(0)
 ()-() (0, 0.0)-(0, 0.0)
-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+(DefaultValuedExpressions.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods.Uni.Uni
+  ++ Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
 {}
   ++ {}
 [] {}
@@ -198,75 +198,75 @@ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
   ++ [] {}
   ++ [] {}
   ++ [] {}
-Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions.Uni.Uni
+  ++ Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
 {2}
   ++ {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+[] ++ [] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni]
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
-  ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ []
+  ++ [Consts.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
 0-0 0.0-0.0 false-false 'D'-'D' 0
@@ -278,41 +278,41 @@ null-null null-null null-null null-null
 0:0:0
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
-DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+DefaultValuedExpressions.Color.Red-DefaultValuedExpressions.Color.Red DefaultValuedExpressions.PossibleCell.Nothing-DefaultValuedExpressions.PossibleCell.Nothing DefaultValuedExpressions.Cell.LittleCell(0)-DefaultValuedExpressions.Cell.LittleCell(0)
 ()-() (0, 0.0)-(0, 0.0)
-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+(DefaultValuedExpressions.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods.Uni.Uni
+  ++ Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
 {}
   ++ {}
 [] {}
@@ -340,75 +340,75 @@ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
   ++ [] {}
   ++ [] {}
   ++ [] {}
-Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions.Uni.Uni
+  ++ Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
 {2}
   ++ {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+[] ++ [] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni]
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
-  ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ []
+  ++ [Consts.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
 0-0 0.0-0.0 false-false 'D'-'D' 0
@@ -420,41 +420,41 @@ null-null null-null null-null null-null
 0:0:0
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
-DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+DefaultValuedExpressions.Color.Red-DefaultValuedExpressions.Color.Red DefaultValuedExpressions.PossibleCell.Nothing-DefaultValuedExpressions.PossibleCell.Nothing DefaultValuedExpressions.Cell.LittleCell(0)-DefaultValuedExpressions.Cell.LittleCell(0)
 ()-() (0, 0.0)-(0, 0.0)
-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+(DefaultValuedExpressions.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods.Uni.Uni
+  ++ Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
 {}
   ++ {}
 [] {}
@@ -482,75 +482,75 @@ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
   ++ [] {}
   ++ [] {}
   ++ [] {}
-Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions.Uni.Uni
+  ++ Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
 {2}
   ++ {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+[] ++ [] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni]
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
-  ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ []
+  ++ [Consts.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
 0-0 0.0-0.0 false-false 'D'-'D' 0
@@ -562,41 +562,41 @@ null-null null-null null-null null-null
 0:0:0
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
-DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+DefaultValuedExpressions.Color.Red-DefaultValuedExpressions.Color.Red DefaultValuedExpressions.PossibleCell.Nothing-DefaultValuedExpressions.PossibleCell.Nothing DefaultValuedExpressions.Cell.LittleCell(0)-DefaultValuedExpressions.Cell.LittleCell(0)
 ()-() (0, 0.0)-(0, 0.0)
-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+(DefaultValuedExpressions.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods.Uni.Uni
+  ++ Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
+  ++ Methods.Uni.Uni Methods.Uni.Uni
 {}
   ++ {}
 [] {}
@@ -624,75 +624,75 @@ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
   ++ [] {}
   ++ [] {}
   ++ [] {}
-Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
-  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions.Uni.Uni
+  ++ Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
+  ++ Functions.Uni.Uni Functions.Uni.Uni
 {2}
   ++ {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-[Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-  ++ [Functions_Compile.Uni.Uni] {2}
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
-[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+[Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+  ++ [Functions.Uni.Uni] {2}
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+  ** Consts.Uni.Uni ++ Consts.Uni.Uni ++ Consts.Uni.Uni
+[] ++ [] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni]
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
   ** [] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
-[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
-  ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [] ++ [Consts.Uni.Uni] ++ []
+[Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ [Consts.Uni.Uni] ++ []
+  ++ [Consts.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
 0-0 0.0-0.0 false-false 'D'-'D' 0
@@ -704,9 +704,9 @@ null-null null-null null-null null-null
 0:0:0
 0-0
 {}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
-DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+DefaultValuedExpressions.Color.Red-DefaultValuedExpressions.Color.Red DefaultValuedExpressions.PossibleCell.Nothing-DefaultValuedExpressions.PossibleCell.Nothing DefaultValuedExpressions.Cell.LittleCell(0)-DefaultValuedExpressions.Cell.LittleCell(0)
 ()-() (0, 0.0)-(0, 0.0)
-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+(DefaultValuedExpressions.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions.Color.Red, (0, 0.0), ())
 null-null null-null
 0-0 0-0 0-0 3 4 5
 0-0 11 0-0 8
