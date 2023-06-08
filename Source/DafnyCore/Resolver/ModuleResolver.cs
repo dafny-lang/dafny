@@ -3198,7 +3198,6 @@ namespace Microsoft.Dafny {
     }
 
     public readonly Scope<TypeParameter>/*!*/ allTypeParameters;
-    private TopLevelDeclWithMembers currentClass;
     public readonly Scope<IVariable>/*!*/ scope;
 
     /// <summary>
