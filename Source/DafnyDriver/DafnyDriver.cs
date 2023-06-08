@@ -223,7 +223,7 @@ namespace Microsoft.Dafny {
       if (compiler == null) {
         if (nonOutOptions.CompilerName != null) {
           var known = String.Join(", ", compilers.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(options.ErrorWriter, $"No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
+          options.Printer.ErrorWriteLine(options.ErrorWriter, $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
 

@@ -33,7 +33,6 @@ public class DeadCodeCommand : ICommandSpec {
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.Verbose = false;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
 

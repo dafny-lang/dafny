@@ -14,7 +14,7 @@ errfiles="$2"
 srcfiles="$3"
 
 ## To avoid false alarms because of repeated ErrorIds, use sort -u to remove duplicates
-## But one can use just 'sort' to check for duplicate use, or even just 'cat' to make sure evry file has the 
+## But one can use just 'sort' to check for duplicate use, or even just 'cat' to make sure every file has the 
 ## ids in the same order (convenient for code review, but difficult to maintain)
 ## Put the desired definition last.
 ##
