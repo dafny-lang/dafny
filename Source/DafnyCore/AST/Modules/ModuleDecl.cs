@@ -13,7 +13,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   /// Only equivalent between modules if one is a clone of the other.
   /// </summary>
   public Guid CloneId { get; set; } = Guid.NewGuid();
-  
+
   public override string WhatKind { get { return "module"; } }
   [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
@@ -33,10 +33,9 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, 
-    Attributes attributes, bool isRefining) 
-    : base(rangeToken, name, enclosingModule, typeArgs, attributes, isRefining)
-  {
+  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
+    Attributes attributes, bool isRefining)
+    : base(rangeToken, name, enclosingModule, typeArgs, attributes, isRefining) {
   }
 
   protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)

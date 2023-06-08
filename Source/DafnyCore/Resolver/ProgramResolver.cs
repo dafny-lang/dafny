@@ -214,7 +214,7 @@ public class ProgramResolver {
       foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
         classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
       }
-      
+
       foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
         Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);

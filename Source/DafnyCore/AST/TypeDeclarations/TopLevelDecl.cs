@@ -13,8 +13,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
-  protected TopLevelDecl(Cloner cloner, TopLevelDecl original) : base(cloner, original)
-  {
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
   }
 

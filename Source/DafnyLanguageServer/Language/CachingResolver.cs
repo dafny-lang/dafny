@@ -9,19 +9,18 @@ public class CachingResolver : ProgramResolver {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
 
-  public CachingResolver(Program program, 
-    ILogger<CachingResolver> logger, 
-    PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache) 
-    : base(program) 
-  {
+  public CachingResolver(Program program,
+    ILogger<CachingResolver> logger,
+    PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache)
+    : base(program) {
     this.logger = logger;
     this.resolutionCache = resolutionCache;
   }
-  
+
   protected override ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
     var hash = DetermineHash(decl);
     hashes[decl] = hash;
-      
+
     if (!resolutionCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Resolution cache miss for {decl}");
       result = base.ResolveModuleDeclaration(compilation, decl);
@@ -39,13 +38,11 @@ public class CachingResolver : ProgramResolver {
     return result!;
   }
 
-  private byte[] DetermineHash(ModuleDecl moduleDeclaration)
-  {
+  private byte[] DetermineHash(ModuleDecl moduleDeclaration) {
     var moduleVertex = dependencies.FindVertex(moduleDeclaration);
     var hashAlgorithm = HashAlgorithm.Create("SHA256")!;
     hashAlgorithm.Initialize();
-    foreach (var dependencyVertex in moduleVertex.Successors)
-    {
+    foreach (var dependencyVertex in moduleVertex.Successors) {
       var dependency = dependencyVertex.N;
       var dependencyHash = hashes[dependency];
       hashAlgorithm.TransformBlock(dependencyHash, 0, dependencyHash.Length, null, 0);
