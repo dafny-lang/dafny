@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly IDocumentDatabase documents;
     private DafnyOptions options;
 
-    private const int RuLimitToBeOverCostly = 10000000;
+    private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
@@ -313,12 +313,33 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string FormatResourceCount(int nodeResourceCount) {
-      var suffix = 0;
-      while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
-        nodeResourceCount /= 1000;
-        suffix += 1;
+    private static readonly int SignificativeDigits = 3;
+
+    public static long RoundToSignificativeDigits(long nodeResourceCount) {
+      var nDigits = ("" + nodeResourceCount).Length;
+      if (nDigits > SignificativeDigits) {
+        var toRemove = (long)Math.Pow(10, nDigits - SignificativeDigits);
+        nodeResourceCount += toRemove / 2;
+        nodeResourceCount -= (nodeResourceCount % toRemove);
       }
+
+      return nodeResourceCount;
+    }
+
+    public static string FormatResourceCount(long nodeResourceCount) {
+      var suffix = 0;
+      var fractional = 0;
+      nodeResourceCount = RoundToSignificativeDigits(nodeResourceCount);
+
+      while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
+        fractional = (int)(nodeResourceCount % 1000);
+        nodeResourceCount /= 1000;
+        suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
+      }
+      var nodeResourceCountStr = $"{nodeResourceCount:n0}";
+      var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
+        "" :
+        "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);
       var letterSuffix = suffix switch {
         0 => "",
         1 => "K",
@@ -326,7 +347,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         3 => "G",
         _ => "T"
       };
-      return $"{nodeResourceCount:n0}{letterSuffix} RU";
+      return $"{nodeResourceCountStr}{fractionalStr}{letterSuffix} RU";
     }
 
     private static string AddAssertionBatchDocumentation(string batchReference) {
