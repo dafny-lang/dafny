@@ -5853,7 +5853,7 @@ namespace Microsoft.Dafny {
     }
 
     public record MethodCallInformation(IToken Tok, MemberSelectExpr Callee, List<ActualBinding> ActualParameters);
-    
+
     public MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(resolutionContext != null);
