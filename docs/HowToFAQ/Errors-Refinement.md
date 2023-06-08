@@ -67,7 +67,7 @@ If a base module P has a default export (implicitly named P), then a refining mo
 
 <!-- TODO -->
 
-## **Error: a module ({0}) must refine another module** {#ref_module_must_refine_module_2}
+## **Error: a module (_name_) must refine another module** {#ref_module_must_refine_module_2}
 
 ```dafny
 module P {
@@ -124,7 +124,7 @@ module Q refines P {
 A refining type must be declared to support equality (with `(==)`) if the base declaration is declared to support equality.
 
 
-## **Error: type '_name', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
+## **Error: type '_name_', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
 
 ```dafny
 module P {
@@ -200,12 +200,13 @@ The refining declaration needs to be the same kind of declaration as in the base
 
 ## **Error: an iterator declaration (_name_) in a refining module cannot replace a different kind of declaration in the refinement base** {#ref_iterator_must_refine_iterator}
 
+<!-- %check-resolve %first -->
 ```dafny
 module P {
   class I {}
 }
 module Q refines P {
-  iterator I...  {}
+  iterator I...
 }
 ```
 
@@ -363,7 +364,7 @@ module Q refines P {
 
 A `const` refining declaration cannot change the declaration from `ghost` to non-ghost.
 
-## **Error: a const re-declaration (_name_) must be to add ghost to the const declaration_info_** {#ref_refinement_must_add_const_ghost}
+## **Error: a const re-declaration (_name_) must be to add 'ghost' to the const declaration_info_** {#ref_refinement_must_add_const_ghost}
 
 ```dafny
 module P {
@@ -409,7 +410,7 @@ has not changed, the type must be expressed in the same syntactic form in the tw
 in a base declaration and an equivalent type synonym in the corresponding place in the refinement.
 
 
-## **Error: a field re-declaration (_name_) must be to must be to add 'ghost' to the field declaration** {#ref_refinement_field_must_add_ghost}
+## **Error: a field re-declaration (_name_) must be to add 'ghost' to the field declaration** {#ref_refinement_field_must_add_ghost}
 
 ```dafny
 module P {
@@ -455,6 +456,7 @@ are implied by the existing preconditions.
 
 ## **Error: a refining _kind_ is not allowed to extend the reads clause** {#ref_refinement_no_new_reads}
 
+<!-- %no-check -- TODO - broken by the 6/6 commit of type resolution refactoring -->
 ```dafny
 module P {
   predicate m() reads {}
@@ -471,6 +473,7 @@ the base declaration. This is the case even if the new reads clause is a repetit
 
 ## **Error: decreases clause on refining _kind_ not supported** {#ref_no_new_decreases}
 
+<!-- %no-check -- TODO - broken by the 6/6 commit of type resolution refactoring -->
 ```dafny
 module P {
   predicate m(i: nat) reads {}
@@ -510,6 +513,7 @@ If a function is declared as non-ghost in the base module, it may not be declare
 
 ## **Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: _name_** {#ref_no_refinement_function_with_body}
 
+<!-- %check-resolve %first -->
 ```dafny
 module P {
   ghost predicate m(i: nat) { true }

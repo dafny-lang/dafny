@@ -654,10 +654,8 @@ namespace Microsoft.Dafny {
   /// * To get the .RefinementBase, it redirects using the given mapping
   /// </summary>
   class CompilationCloner : DeepModuleSignatureCloner {
-    Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones;
-    public CompilationCloner(Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones)
+    public CompilationCloner()
       : base(false) {
-      this.compilationModuleClones = compilationModuleClones;
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {

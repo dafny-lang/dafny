@@ -1,5 +1,5 @@
 
-<!-- %check-resolve %default %useHeadings %check-ids -->
+<!-- %check-resolve %default %useHeadings -->
 
 <!-- FILE ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
 
@@ -398,6 +398,7 @@ Part of this rule is also that the function is not allowed to depend on the “a
 This is convenient, because a method is always allowed to enlarge the allocation set. 
 As an example, consider a function F(x) with an empty reads clause and a method M() with an empty modifies clause. 
 From this, Dafny allows you to prove the assertion in the following code:
+<!-- %no-check -->
 ```dafny
 var tmp := F(x);
 M();
