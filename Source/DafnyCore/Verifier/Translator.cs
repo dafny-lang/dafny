@@ -322,11 +322,10 @@ namespace Microsoft.Dafny {
         return new Bpl.CtorType(Token.NoToken, finite ? mapTypeCtor : imapTypeCtor, new List<Bpl.Type> { tya, tyb });
       }
 
-      public Bpl.Type SeqType(Bpl.IToken tok, Bpl.Type ty) {
+      public Bpl.Type SeqType(Bpl.IToken tok) {
         Contract.Requires(tok != null);
-        Contract.Requires(ty != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
-        return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { ty });
+        return new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { });
       }
 
       public Bpl.Type FieldName(Bpl.IToken tok, Bpl.Type ty) {
@@ -7338,7 +7337,7 @@ namespace Microsoft.Dafny {
       } else if (type is MapType) {
         return predef.MapType(Token.NoToken, ((MapType)type).Finite, predef.BoxType, predef.BoxType);
       } else if (type is SeqType) {
-        return predef.SeqType(Token.NoToken, predef.BoxType);
+        return predef.SeqType(Token.NoToken);
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type

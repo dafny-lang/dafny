@@ -4,7 +4,7 @@
 // This example was listed in IronClad's notebook as one place were z3 picked
 // much too liberal triggers. THe Boogie code for this is shown below:
 //
-// forall k#2: Seq Box :: $Is(k#2, TSeq(TInt)) && $IsAlloc(k#2, TSeq(TInt), $Heap)
+// forall k#2: Seq :: $Is(k#2, TSeq(TInt)) && $IsAlloc(k#2, TSeq(TInt), $Heap)
 //                   ==> Seq#Equal(_module.__default.HashtableLookup($Heap, h1#0, k#2),
 //                                 _module.__default.HashtableLookup($Heap, h2#0, k#2))
 //
