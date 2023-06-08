@@ -15,7 +15,10 @@ using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
-  public record ModuleResolutionResult(Dictionary<ModuleDefinition, ModuleSignature> Signatures);
+  public record ModuleResolutionResult(
+    Dictionary<ModuleDefinition, ModuleSignature> Signatures,
+    Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
+    );
   
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
@@ -60,11 +63,24 @@ namespace Microsoft.Dafny {
       return freshTempVarName;
     }
 
-    public readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
+    public readonly HashSet<RevealableTypeDecl> revealableTypes = new();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
-    public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =>
-      ProgramResolver.classMembers;
+    public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> moduleClassMembers = new();
+
+    public void AddClassMembers(TopLevelDeclWithMembers key, Dictionary<string, MemberDecl> members) {
+      moduleClassMembers[key] = members;
+    }
+
+    public Dictionary<string, MemberDecl> GetClassMember(TopLevelDeclWithMembers key) {
+      if (moduleClassMembers.TryGetValue(key, out var result)) {
+        return result;
+      }
+      if (ProgramResolver.classMembers.TryGetValue(key, out result)) {
+        return result;
+      }
+      return null;
+    }
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
 
@@ -88,7 +104,6 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
-      Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
 
     public void FillInAdditionalInformation(ModuleDefinition module) {
@@ -198,7 +213,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
 
-      return new ModuleResolutionResult(signatures);
+      return new ModuleResolutionResult(signatures, moduleClassMembers);
     }
 
     // Resolve the exports and detect cycles.
@@ -256,13 +271,11 @@ namespace Microsoft.Dafny {
           // if the name of the export set coincides with something else that's declared at the top
           // level of the module, then this export declaration is more likely an error--the user probably
           // forgot the "provides" or "reveals" keyword.
-          Dictionary<string, MemberDecl> members;
-          MemberDecl member;
+          
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (classMembers.TryGetValue((DefaultClassDecl)defaultClass, out members) &&
-              members.TryGetValue(d.Name, out member)) {
+          if (GetClassMember((DefaultClassDecl)defaultClass)?.TryGetValue(d.Name, out var member) == true) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, d.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
@@ -682,7 +695,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
           var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList());
           sig.TopLevels["_default"] = cl;
-          resolver.classMembers[cl] = cl.Members.ToDictionary(m => m.Name);
+          resolver.AddClassMembers(cl, cl.Members.ToDictionary(m => m.Name));
         }
       }
     }
@@ -843,7 +856,7 @@ namespace Microsoft.Dafny {
           var cl = (TopLevelDeclWithMembers)d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
+          AddClassMembers(cl, members);
           RegisterMembers(moduleDef, cl, members);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
@@ -854,7 +867,7 @@ namespace Microsoft.Dafny {
 
           // register the names of the class members
           var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(defaultClassDecl, members);
+          AddClassMembers(defaultClassDecl, members);
           RegisterMembers(moduleDef, defaultClassDecl, members);
 
           Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
@@ -876,7 +889,7 @@ namespace Microsoft.Dafny {
 
           // register the names of the class members
           var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
+          AddClassMembers(cl, members);
           RegisterMembers(moduleDef, cl, members);
 
           Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
@@ -888,7 +901,7 @@ namespace Microsoft.Dafny {
           dt.ConstructorsByName = new();
           // ... and of the other members
           var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(dt, members);
+          AddClassMembers(dt, members);
 
           foreach (DatatypeCtor ctor in dt.Ctors) {
             if (ctor.Name.EndsWith("?")) {
@@ -978,7 +991,7 @@ namespace Microsoft.Dafny {
           var cl = (ValuetypeDecl)d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
+          AddClassMembers(cl, members);
           RegisterMembers(moduleDef, cl, members);
         }
       }
@@ -1528,7 +1541,7 @@ namespace Microsoft.Dafny {
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
-            foreach (var member in classMembers[dd].Values) {
+            foreach (var member in GetClassMember(dd)!.Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
                 var rolemodel = dtor.CorrespondingFormals[0];
@@ -3286,7 +3299,7 @@ namespace Microsoft.Dafny {
       // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
       var inheritedMembers = new Dictionary<string, MemberDecl>();
       foreach (var trait in cl.ParentTraitHeads) {
-        foreach (var traitMember in classMembers[trait].Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
+        foreach (var traitMember in GetClassMember(trait)!.Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
           if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
             // record "traitMember" as an inherited member
             inheritedMembers.Add(traitMember.Name, traitMember);
@@ -3309,7 +3322,7 @@ namespace Microsoft.Dafny {
         }
       }
       // Incorporate the inherited members into the name->MemberDecl mapping of "cl"
-      var members = classMembers[cl];
+      var members = GetClassMember(cl);
       foreach (var entry in inheritedMembers) {
         var name = entry.Key;
         var traitMember = entry.Value;
@@ -3398,7 +3411,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(cl.ParentTypeInformation != null);
 
-      foreach (var member in classMembers[cl].Values) {
+      foreach (var member in GetClassMember(cl).Values) {
         if (member is PrefixPredicate || member is PrefixLemma) {
           // these are handled with the corresponding extreme predicate/lemma
           continue;
@@ -4223,8 +4236,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(memberName != null);
       Contract.Requires(foundSoFar != null);
-      MemberDecl member;
-      if (classMembers[cl].TryGetValue(memberName, out member)) {
+      if (GetClassMember(cl).TryGetValue(memberName, out var member)) {
         foundSoFar.Add(member);
       }
       cl.ParentTraitHeads.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));

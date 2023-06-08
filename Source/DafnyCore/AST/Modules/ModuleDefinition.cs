@@ -583,7 +583,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (TopLevelDeclWithMembers)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, this, members);
       } else if (d is IteratorDecl) {
         var iter = (IteratorDecl)d;
@@ -594,7 +594,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(defaultClassDecl, members);
+        resolver.AddClassMembers(defaultClassDecl, members);
         defaultClassDecl.RegisterMembers(resolver, this, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
@@ -616,7 +616,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, this, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
@@ -628,7 +628,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         dt.ConstructorsByName = new();
         // ... and of the other members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(dt, members);
+        resolver.AddClassMembers(dt, members);
 
         foreach (DatatypeCtor ctor in dt.Ctors) {
           if (ctor.Name.EndsWith("?")) {
@@ -718,7 +718,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         var cl = (ValuetypeDecl)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
-        resolver.classMembers.Add(cl, members);
+        resolver.AddClassMembers(cl, members);
         cl.RegisterMembers(resolver, this, members);
       }
     }

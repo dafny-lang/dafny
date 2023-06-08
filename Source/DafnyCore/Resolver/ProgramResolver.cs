@@ -198,6 +198,10 @@ public class ProgramResolver {
     systemModuleResolver.ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
       new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
+    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers) {
+      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
+    }
+    
     foreach (var rewriter in rewriters) {
       rewriter.PreResolve(prog);
     }
@@ -206,6 +210,9 @@ public class ProgramResolver {
       var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
       foreach (var sig in moduleResolutionResult.Signatures) {
         prog.ModuleSigs[sig.Key] = sig.Value;
+      }
+      foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
+        classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
       }
     }
 
