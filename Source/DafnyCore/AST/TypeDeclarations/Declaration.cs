@@ -136,6 +136,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
+  protected Declaration(Cloner cloner, RangeNode original) : base(cloner, original)
+  {
+  }
+
   protected Declaration(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

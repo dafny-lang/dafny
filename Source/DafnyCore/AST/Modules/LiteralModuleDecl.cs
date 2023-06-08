@@ -34,6 +34,16 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
   public override IEnumerable<Node> Children => new[] { ModuleDef };
   public override IEnumerable<Node> PreResolveChildren => Children;
 
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent) : base(cloner, original)
+  {
+    var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
+    ModuleDef = newModuleDefinition;
+    DefaultExport = original.DefaultExport;
+    BodyStartTok = ModuleDef.BodyStartTok;
+    TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
+    EnclosingModuleDefinition = parent;
+  }
+
   public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
     : base(module.RangeToken, module.NameNode, parent, false, false) {
     ModuleDef = module;
@@ -82,7 +92,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public ModuleSignature Resolve(ModuleResolver resolver, CompilationData compilation, int beforeModuleResolutionErrorCount) {
+  public ModuleSignature Resolve(ModuleResolver resolver, CompilationData compilation) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in
@@ -137,11 +147,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
 
-    /* It's strange to stop here when _any_ module has had resolution errors.
-     * Either stop here when _this_ module has had errors,
-     * or completely stop module resolution after one of them has errors
-     */
-    if (resolver.reporter.ErrorCount != beforeModuleResolutionErrorCount) {
+    if (resolver.reporter.ErrorCount > 0) {
       return sig;
     }
 

@@ -15,7 +15,7 @@ public class ProgramResolver {
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
   public ModuleSignature systemNameInfo;
-  readonly Graph<ModuleDecl> dependencies = new();
+  protected readonly Graph<ModuleDecl> dependencies = new();
 
   public FreshIdGenerator defaultTempVarIdGenerator = new();
   public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
@@ -207,12 +207,17 @@ public class ProgramResolver {
     }
 
     foreach (var decl in sortedDecls) {
-      var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
+      var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl);
       foreach (var sig in moduleResolutionResult.Signatures) {
         prog.ModuleSigs[sig.Key] = sig.Value;
       }
       foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
         classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
+      }
+      
+      foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
+        Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+          diagnostic.Message);
       }
     }
 
@@ -223,7 +228,7 @@ public class ProgramResolver {
     Type.DisableScopes();
     CheckDupModuleNames(prog);
 
-    foreach (var module in prog.Modules()) {
+    foreach (var module in prog.Modules()) { // TODO move this inside cached module resolution?
       foreach (var rewriter in rewriters) {
         rewriter.PostResolve(module);
       }
@@ -234,9 +239,9 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount) {
+  protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
     var moduleResolver = new ModuleResolver(this);
-    return moduleResolver.ResolveModuleDeclaration(compilation, decl, origErrorCount);
+    return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 
   private static void SetHeights(List<ModuleDecl> sortedDecls) {

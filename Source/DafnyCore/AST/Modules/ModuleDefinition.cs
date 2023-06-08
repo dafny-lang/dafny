@@ -11,7 +11,6 @@ namespace Microsoft.Dafny;
 public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Module);
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
-  public Guid UniqueParseContentHash { get; set; }
 
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;

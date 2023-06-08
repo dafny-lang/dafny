@@ -12,7 +12,7 @@ public class DafnyLangSymbolResolverTest {
   public DafnyLangSymbolResolverTest() {
     var loggerFactory = new Mock<ILoggerFactory>();
     dafnyLangSymbolResolver = new DafnyLangSymbolResolver(
-      loggerFactory.Object.CreateLogger<DafnyLangSymbolResolver>()
+      loggerFactory.Object
     );
   }
 

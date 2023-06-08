@@ -16,6 +16,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
   public record ModuleResolutionResult(
+    BatchErrorReporter ErrorReporter,
     Dictionary<ModuleDefinition, ModuleSignature> Signatures,
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
@@ -98,7 +99,7 @@ namespace Microsoft.Dafny {
       DominatingStatementLabels = new Scope<Label>(Options);
 
       builtIns = programResolver.BuiltIns;
-      reporter = programResolver.Reporter;
+      reporter = new BatchErrorReporter(Options);
     }
 
     [ContractInvariantMethod]
@@ -181,10 +182,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
+    public ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
       Dictionary<ModuleDefinition, ModuleSignature> signatures = new();
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        var signature = literalModuleDecl.Resolve(this, compilation, beforeModuleResolutionErrorCount);
+        var signature = literalModuleDecl.Resolve(this, compilation);
         signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
@@ -213,7 +214,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
 
-      return new ModuleResolutionResult(signatures, moduleClassMembers);
+      return new ModuleResolutionResult((BatchErrorReporter)reporter, signatures, moduleClassMembers);
     }
 
     // Resolve the exports and detect cycles.
@@ -582,10 +583,9 @@ namespace Microsoft.Dafny {
         reporter = new ErrorReporterWrapper(reporter,
           $"Raised while checking export set {exportDecl.Name}: ");
         var testSig = RegisterTopLevelDecls(exportView, true);
-        //testSig.Refines = refinementTransformer.RefinedSig;
         exportView.Resolve(testSig, this, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
-        reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
+        reporter = (BatchErrorReporter)((ErrorReporterWrapper)reporter).WrappedReporter;
 
         if (wasError) {
           reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
@@ -4108,7 +4108,7 @@ namespace Microsoft.Dafny {
     public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
-      var origReporter = this.reporter;
+      var origReporter = reporter;
       this.reporter = new ErrorReporterSink(Options);
 
       var isFailure = ResolveMember(tok, tp, "IsFailure", out _);
@@ -4135,7 +4135,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      void checkIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
+      void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
         if (memberDecl == null || memberDecl is Function) {
           // fine
         } else if (allowMethod && memberDecl is Method) {
@@ -4150,12 +4150,12 @@ namespace Microsoft.Dafny {
         }
       }
 
-      checkIsFunction(isFailure, false);
+      CheckIsFunction(isFailure, false);
       if (!hasKeywordToken) {
-        checkIsFunction(propagateFailure, true);
+        CheckIsFunction(propagateFailure, true);
       }
       if (expectExtract) {
-        checkIsFunction(extract, true);
+        CheckIsFunction(extract, true);
       }
 
       this.reporter = origReporter;

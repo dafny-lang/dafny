@@ -12,6 +12,12 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
   public readonly List<IToken> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
+  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original) : base(cloner, original)
+  {
+    TargetQId = original.TargetQId?.Clone(false);
+    Exports = original.Exports;
+  }
+
   public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
     : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(path != null && path.Path.Count > 0);

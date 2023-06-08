@@ -13,6 +13,11 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
+  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original) : base(cloner, original) {
+    Exports = original.Exports;
+    QId = original.QId?.Clone(false);
+  }
+
   public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
     : base(rangeToken, name, parent, opened, false) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
