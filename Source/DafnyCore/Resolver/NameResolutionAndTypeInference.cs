@@ -3907,7 +3907,7 @@ namespace Microsoft.Dafny {
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
 
@@ -5877,23 +5877,23 @@ namespace Microsoft.Dafny {
         r = new IdentifierExpr(expr.tok, v);
       } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out var members) && members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
-        Expression receiver;
-        if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, UserDefinedType.FromTopLevelDecl(expr.tok, currentClass, currentClass.TypeArgs), (TopLevelDeclWithMembers)member.EnclosingClass, true);
-        } else {
+
+        if (!member.IsStatic) {
           if (!scope.AllowInstance) {
             if (complain) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
+              reporter.Error(MessageSource.Resolver, expr.tok,
+                "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             } else {
               expr.ResolvedExpression = null;
               return null;
             }
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
-          receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = GetThisType(expr.tok, currentClass);  // resolve here
         }
-        r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+
+        var token = expr.tok;
+        var receiver = GetReceiver(currentClass, member, token);
+        r = ResolveExprDotCall(token, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out var pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
@@ -5979,6 +5979,20 @@ namespace Microsoft.Dafny {
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
+      Expression receiver;
+      if (member.IsStatic) {
+        receiver = new StaticReceiverExpr(token,
+          UserDefinedType.FromTopLevelDecl(token, container, container.TypeArgs),
+          (TopLevelDeclWithMembers)member.EnclosingClass, true);
+      } else {
+        receiver = new ImplicitThisExpr(token);
+        receiver.Type = GetThisType(token, container); // resolve here
+      }
+
+      return receiver;
     }
 
     private bool ResolveDatatypeConstructor(NameSegment expr, List<ActualBinding>/*?*/ args, ResolutionContext resolutionContext, bool complain, Tuple<DatatypeCtor, bool> pair, string name, ref Expression r, ref Expression rWithArgs) {
@@ -6172,7 +6186,7 @@ namespace Microsoft.Dafny {
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
         var ri = (Resolver_IdentifierExpr)lhs;
-        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(useCompileSignatures);
+        var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = GetSignature(sig);
         // For 0:
         // For 1:
@@ -6291,7 +6305,7 @@ namespace Microsoft.Dafny {
         // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .Type
         expr.Type = new InferredTypeProxy();
       } else {
-        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, useCompileSignatures, isLastNameSegment);
+        CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.tok, false, isLastNameSegment);
         expr.ResolvedExpression = r;
         expr.Type = r.Type;
       }
