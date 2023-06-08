@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
 
-      return useCompileSignatures || d.IsRevealedInScope(moduleInfo.VisibilityScope);
+      return d.IsRevealedInScope(moduleInfo.VisibilityScope);
     }
 
     private bool VisibleInScope(Declaration d) {
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moduleInfo != null);
       Contract.Requires(moduleInfo.VisibilityScope != null);
 
-      return useCompileSignatures || d.IsVisibleInScope(moduleInfo.VisibilityScope);
+      return d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
     public FreshIdGenerator defaultTempVarIdGenerator = new FreshIdGenerator();
@@ -82,9 +82,6 @@ namespace Microsoft.Dafny {
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     public ModuleSignature systemNameInfo = null;
-    public bool useCompileSignatures = false;
-
-    public List<IRewriter> rewriters;
     public RefinementTransformer refinementTransformer;
 
     public Resolver(DafnyOptions options) {
@@ -277,54 +274,11 @@ namespace Microsoft.Dafny {
         h++;
       }
 
-      rewriters = new List<IRewriter>();
-
-      if (Options.AuditProgram) {
-        rewriters.Add(new Auditor.Auditor(reporter));
-      }
-
+      prog.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
       refinementTransformer = new RefinementTransformer(prog);
-      rewriters.Add(refinementTransformer);
-      if (!Options.VerifyAllModules) {
-        rewriters.Add(new IncludedLemmaBodyRemover(prog, reporter));
-      }
-      rewriters.Add(new AutoContractsRewriter(reporter, builtIns));
-      rewriters.Add(new OpaqueMemberRewriter(this.reporter));
-      rewriters.Add(new AutoReqFunctionRewriter(this.reporter, this.builtIns));
-      rewriters.Add(new TimeLimitRewriter(reporter));
-      rewriters.Add(new ForallStmtRewriter(reporter));
-      rewriters.Add(new ProvideRevealAllRewriter(this.reporter));
-      rewriters.Add(new MatchFlattener(this.reporter, defaultTempVarIdGenerator));
-
-      if (Options.AutoTriggers) {
-        rewriters.Add(new QuantifierSplittingRewriter(reporter));
-        rewriters.Add(new TriggerGeneratingRewriter(reporter));
-      }
-
-      if (Options.TestContracts != DafnyOptions.ContractTestingMode.None) {
-        rewriters.Add(new ExpectContracts(reporter));
-      }
-
-      if (Options.RunAllTests) {
-        rewriters.Add(new RunAllTestsMainMethod(reporter));
-      }
-
-      rewriters.Add(new InductionRewriter(reporter));
-      rewriters.Add(new PrintEffectEnforcement(reporter));
-      rewriters.Add(new BitvectorOptimization(reporter));
-
-      if (Options.DisallowConstructorCaseWithoutParentheses) {
-        rewriters.Add(new ConstructorWarning(reporter));
-      }
-      rewriters.Add(new LocalLinter(reporter));
-      rewriters.Add(new PrecedenceLinter(reporter));
-
-      foreach (var plugin in Options.Plugins) {
-        rewriters.AddRange(plugin.GetRewriters(reporter));
-      }
+      prog.Rewriters.Insert(0, refinementTransformer);
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
-      prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
@@ -342,7 +296,7 @@ namespace Microsoft.Dafny {
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
         new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in prog.Rewriters) {
         rewriter.PreResolve(prog);
       }
 
@@ -358,12 +312,12 @@ namespace Microsoft.Dafny {
       CheckDupModuleNames(prog);
 
       foreach (var module in prog.Modules()) {
-        foreach (var rewriter in rewriters) {
+        foreach (var rewriter in prog.Rewriters) {
           rewriter.PostResolve(module);
         }
       }
 
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in prog.Rewriters) {
         rewriter.PostResolve(prog);
       }
     }
@@ -405,7 +359,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ComputeIsRecursiveBit(ModuleDefinition module) {
+    public void ComputeIsRecursiveBit(Program program, ModuleDefinition module) {
       // compute IsRecursive bit for mutually recursive functions and methods
       foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
         if (clbl is Function) {
@@ -438,14 +392,14 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var rewriter in rewriters) {
+      foreach (var rewriter in program.Rewriters) {
         rewriter.PostCyclicityResolve(module);
       }
     }
 
     private void ResolveModuleDeclaration(Program prog, ModuleDecl decl, int beforeModuleResolutionErrorCount) {
       if (decl is LiteralModuleDecl literalModuleDecl) {
-        literalModuleDecl.Resolve(this, prog, beforeModuleResolutionErrorCount);
+        literalModuleDecl.ResolveLiteralModuleDeclaration(this, prog, beforeModuleResolutionErrorCount);
       } else if (decl is AliasModuleDecl alias) {
         // resolve the path
         ModuleSignature p;
@@ -858,7 +812,7 @@ namespace Microsoft.Dafny {
           String.Format("Raised while checking export set {0}: ", exportDecl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
-        exportView.Resolve(testSig, this, true);
+        exportView.ResolveModuleDefinition(testSig, this, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -1159,15 +1113,14 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures,
-      Resolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       var topLevelDeclReplacements = new List<TopLevelDecl>();
       foreach (var top in declarations) {
         if (top is ModuleDecl md && md.Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures, out var topLevelDeclReplacement);
+          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, out var topLevelDeclReplacement);
           if (topLevelDeclReplacement != null) {
             topLevelDeclReplacements.Add(topLevelDeclReplacement);
           }
@@ -1207,10 +1160,10 @@ namespace Microsoft.Dafny {
     /// to the caller, and let the caller remap the symbol after all opened imports have been processed.
     /// </summary>
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
-      bool useCompileSignatures, out TopLevelDecl topLevelDeclReplacement) {
+      out TopLevelDecl topLevelDeclReplacement) {
 
       topLevelDeclReplacement = null;
-      var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
+      var s = GetSignatureExt(im.AccessibleSignature(false));
 
       if (importedSigs.Contains(s)) {
         return; // we've already got these declarations
@@ -1593,7 +1546,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
+    public static void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
       var tok = f.ByMethodTok;
@@ -1641,10 +1594,9 @@ namespace Microsoft.Dafny {
 
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
-      sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
-      var good = mod.Resolve(sig, this);
+      var good = mod.ResolveModuleDefinition(sig, this);
       if (good && reporter.Count(ErrorLevel.Error) == errCount) {
         mod.SuccessfullyResolved = true;
       }
@@ -1761,12 +1713,6 @@ namespace Microsoft.Dafny {
             Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
             ModuleSignature merged = MergeSignature(p, pp.Signature);
             merged.ModuleDef = pp.Signature.ModuleDef;
-            if (p.CompileSignature != null) {
-              Contract.Assert(pp.Signature.CompileSignature != null);
-              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
-            } else {
-              Contract.Assert(pp.Signature.CompileSignature == null);
-            }
             p = merged;
           } else {
             reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
@@ -3695,7 +3641,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    TopLevelDeclWithMembers currentClass;
+    private TopLevelDeclWithMembers currentClass;
     readonly Scope<TypeParameter>/*!*/ allTypeParameters;
     public readonly Scope<IVariable>/*!*/ scope;
 
@@ -5061,19 +5007,14 @@ namespace Microsoft.Dafny {
       return isGhost ? "ghost " : "";
     }
 
-    private static ModuleSignature GetSignatureExt(ModuleSignature sig, bool useCompileSignatures) {
+    private static ModuleSignature GetSignatureExt(ModuleSignature sig) {
       Contract.Requires(sig != null);
       Contract.Ensures(Contract.Result<ModuleSignature>() != null);
-      if (useCompileSignatures) {
-        while (sig.CompileSignature != null) {
-          sig = sig.CompileSignature;
-        }
-      }
       return sig;
     }
 
     private ModuleSignature GetSignature(ModuleSignature sig) {
-      return GetSignatureExt(sig, useCompileSignatures);
+      return GetSignatureExt(sig);
     }
 
     public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
