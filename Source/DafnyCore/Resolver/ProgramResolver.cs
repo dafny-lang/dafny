@@ -205,7 +205,7 @@ public class ProgramResolver {
     foreach (var decl in sortedDecls) {
       var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl, origErrorCount);
       foreach (var sig in moduleResolutionResult.Signatures) {
-        prog.ModuleSigs.Add(sig.Key, sig.Value);
+        prog.ModuleSigs[sig.Key] = sig.Value;
       }
     }
 
