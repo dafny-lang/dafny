@@ -286,7 +286,10 @@ namespace DafnyTestGeneration {
           var asBasicSeqType = GetBasicType(asType, type => type is SeqType) as SeqType;
           var seqVar = variable as SeqVariable;
           if (seqVar?.GetLength() == -1) {
-            return AddValue(asType ?? variableType, seqType.Arg is CharType ? "\"\"" : "[]");
+            if (seqType.Arg is CharType) {
+              return "\"\"";
+            }
+            return AddValue(asType ?? variableType, "[]");
           }
           for (var i = 0; i < seqVar?.GetLength(); i++) {
             var element = seqVar?[i];
@@ -315,10 +318,10 @@ namespace DafnyTestGeneration {
             return string.Join("+", chunkStrs);
           }
 
-
-          return AddValue(asType ?? variableType, seqType.Arg is CharType
-            ? $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\""
-            : $"[{string.Join(", ", elements)}]");
+          if (seqType.Arg is CharType) {
+            return $"\"{string.Join("", elements.SelectMany(c => c[1..^1]))}\"";
+          }
+          return AddValue(asType ?? variableType, $"[{string.Join(", ", elements)}]");
         case SetType:
           var asBasicSetType = GetBasicType(asType, type => type is SetType) as SetType;
           if (!variable.Children.ContainsKey("true")) {
