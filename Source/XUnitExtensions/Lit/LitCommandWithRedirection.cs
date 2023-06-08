@@ -81,16 +81,16 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };
-      if (outputFile != null) {
-        outputWriters.Add(new StreamWriter(outputFile, append));
+      if (OutputFile != null) {
+        outputWriters.Add(new StreamWriter(OutputFile, Append));
       }
-      inputReader = inputFile != null ? new StreamReader(inputFile) : inputReader;
+      inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
 
       var errorWriters = new List<TextWriter> { errWriter };
-      if (errorFile != null) {
-        errorWriters.Add(new StreamWriter(errorFile, append));
+      if (ErrorFile != null) {
+        errorWriters.Add(new StreamWriter(ErrorFile, Append));
       }
-      var result = command.Execute(inputReader,
+      var result = Command.Execute(inputReader,
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
       inputReader.Close();
