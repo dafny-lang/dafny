@@ -4,7 +4,7 @@ entire module must be supplied.
 """
 
 import sys, _dafny
-import Wrappers_Compile
+import Wrappers
 
 assert "Library" == __name__
 Library = sys.modules[__name__]
@@ -75,11 +75,11 @@ class AllExtern:
 
     @staticmethod
     def MaybeInt():
-        return Wrappers_Compile.Option_Some(42)
+        return Wrappers.Option_Some(42)
 
     @staticmethod
     def IntPair():
-        return Wrappers_Compile.Pair_Pair(3, 7)
+        return Wrappers.Pair_Pair(3, 7)
 
 class SingletonOptimization:
     @staticmethod

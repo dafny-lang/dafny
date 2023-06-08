@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Plugins;
 using Action = System.Action;
 
 namespace Microsoft.Dafny {
@@ -33,6 +34,8 @@ namespace Microsoft.Dafny {
     public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
   }
   public class Program : TokenNode {
+    public IList<IRewriter> Rewriters { get; set; }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(FullName != null);
@@ -56,7 +59,7 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public List<ModuleDefinition> CompileModules;
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { BuiltIns.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
@@ -79,7 +82,6 @@ namespace Microsoft.Dafny {
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
       AlreadyCompiledRoots = alreadyCompiledRoots;
       ModuleSigs = new Dictionary<ModuleDefinition, ModuleSignature>();
-      CompileModules = new List<ModuleDefinition>();
     }
 
     //Set appropriate visibilty before presenting module
