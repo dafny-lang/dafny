@@ -50,10 +50,10 @@ let Library = (function() {
       process.stdout.write("AllExtern.P\n");
     }
     static MaybeInt() {
-      return Wrappers_Compile.Option.create_Some(42)
+      return Wrappers.Option.create_Some(42)
     }
     static IntPair() {
-      return Wrappers_Compile.Pair.create_Pair(3, 7)
+      return Wrappers.Pair.create_Pair(3, 7)
     }
   };
 

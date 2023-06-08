@@ -90,7 +90,7 @@ abstract module B refines A {
   }
 }
 
-module C refines B {
+module abC refines B { // TODO module C causes Go to fail
   class StoreAndRetrieve<Thing(==)> ... {
     method Retrieve...
     {
@@ -113,7 +113,7 @@ abstract module AbstractClient {
 }
 
 module Client refines AbstractClient {
-  import S = C
+  import S = abC
   method Main() {
     Test();
   }

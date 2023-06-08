@@ -34,6 +34,37 @@ method {:test} BarTest()
   expect y == 30;
 }
 
+function {:extern} FunctionWithUnnamedResult(x: int): int 
+  requires x > 3
+  ensures x > 3
+
+method {:test} FunctionWithUnnamedResultTest()
+{
+  var y1 := FunctionWithUnnamedResult(4);
+  var y2 := FunctionWithUnnamedResult(3); // Fails
+  expect false;
+}
+
+function {:extern} GenFunction<T>(x: int, y: T): T
+  requires x > 3
+
+method {:test} GenFunctionTest()
+{
+  var y1 := GenFunction(4, 10);
+  var y2 := GenFunction(3, 10); // Fails
+  expect false;
+}
+
+method {:extern} GenMethod<T>(x: int, y: T) returns (z: T)
+  requires x > 3
+
+method {:test} GenMethodTest()
+{
+  var y1 := GenMethod(4, 10);
+  var y2 := GenMethod(3, 10); // Fails
+  expect false;
+}
+
 function {:extern} Baz(x: int): (y: int)
   ensures y == x
 
