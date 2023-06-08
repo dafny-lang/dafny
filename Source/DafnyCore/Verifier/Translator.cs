@@ -170,6 +170,7 @@ namespace Microsoft.Dafny {
     [Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
+
       if (!d.ShouldVerify(program)) {
         return false;
       }

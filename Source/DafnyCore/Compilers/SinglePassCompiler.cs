@@ -1325,7 +1325,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareExternType(AbstractTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
 
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
-      modules = program.CompileModules;
+      modules = program.CompileModules.ToList();
     }
 
     public void Compile(Program program, ConcreteSyntaxTree wrx) {
@@ -1335,8 +1335,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitBuiltInDecls(program.BuiltIns, wrx);
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
-      program.CompileModules = temp;
-      foreach (ModuleDefinition m in program.CompileModules) {
+      foreach (var m in temp) {
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
