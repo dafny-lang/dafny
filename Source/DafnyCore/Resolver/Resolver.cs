@@ -1494,7 +1494,7 @@ namespace Microsoft.Dafny {
               // the original declaration.
               return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
             } else if (topLevelDecl is ModuleDecl moduleDecl) {
-              var signature = moduleDecl.AccessibleSignature(useCompileSignatures);
+              var signature = moduleDecl.AccessibleSignature(false);
               s = GetSignature(signature);
             } else {
               return null;
