@@ -31,6 +31,7 @@ namespace Microsoft.Dafny {
   public partial class Translator {
     private DafnyOptions options;
     public const string NameSeparator = "$$";
+    private bool filterOnlyMembers;
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -784,22 +785,34 @@ namespace Microsoft.Dafny {
       mods.Remove(forModule);
       mods.Insert(0, forModule);
 
-      foreach (ModuleDefinition m in mods) {
-        foreach (TopLevelDecl d in m.TopLevelDecls.Where(VisibleInScope)) {
-          currentDeclaration = d;
-          if (d is AbstractTypeDecl) {
-            var dd = (AbstractTypeDecl)d;
-            AddTypeDecl(dd);
-            AddClassMembers(dd, true, true);
-          } else if (d is ModuleDecl) {
-            // submodules have already been added as a top level module, ignore this.
-          } else if (d is RevealableTypeDecl) {
-            AddTypeDecl((RevealableTypeDecl)d);
-          } else {
-            Contract.Assert(false);
-          }
+      var visibleTopLevelDecls =
+        mods.SelectMany(m => m.TopLevelDecls.Where(VisibleInScope));
+
+      if (visibleTopLevelDecls.Any(
+            d => d is TopLevelDeclWithMembers memberContainer &&
+                 memberContainer.Members.Any(
+                   member =>
+                     Attributes.Contains(member.Attributes, "only")
+                 ))) {
+        filterOnlyMembers = true;
+      }
+
+      foreach (TopLevelDecl d in visibleTopLevelDecls) {
+        currentDeclaration = d;
+        if (d is AbstractTypeDecl) {
+          var dd = (AbstractTypeDecl)d;
+          AddTypeDecl(dd);
+          AddClassMembers(dd, true, true);
+        } else if (d is ModuleDecl) {
+          // submodules have already been added as a top level module, ignore this.
+        } else if (d is RevealableTypeDecl) {
+          AddTypeDecl((RevealableTypeDecl)d);
+        } else {
+          Contract.Assert(false);
         }
       }
+
+      filterOnlyMembers = false;
 
       foreach (var c in tytagConstants.Values) {
         sink.AddTopLevelDeclaration(c);
