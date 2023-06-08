@@ -241,7 +241,8 @@ namespace Microsoft.Dafny {
         }
 
         if (Options.Get(DafnyConsolePrinter.ShowSnippets)
-              && tok != Token.NoToken && !String.IsNullOrEmpty(tok.filename)) {
+              && tok != Token.NoToken && !String.IsNullOrEmpty(tok.ActualFilename)
+              && !tok.Filepath.Contains("<stdin>")) {
           TextWriter tw = new StringWriter();
           new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
           Options.OutputWriter.Write(tw.ToString());
