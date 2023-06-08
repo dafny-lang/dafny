@@ -5,7 +5,7 @@
 
 ## **Error: No compiler found for target _target_; expecting one of _known_** {#cli_unknown_compiler}
 
-<!-- %check-cli -->
+<!-- %check-cli %err -->
 ```bash
 dafny build -t:zzz
 ```
@@ -16,7 +16,7 @@ This error message says that the named language is not supported.
 
 ## **Error: No input files were specified in command-line _command_** {#cli_no_files}
 
-<!-- %check-cli -->
+<!-- %check-cli  %err-->
 ```bash
 dafny resolve
 ```
@@ -61,9 +61,9 @@ The named command-line argument is either a misspelled option or a filename
 in an unrecognized form (e.g., with no filename extension).
 An invalid option with a filename as value can look like either one, such as `--out:a.doo`.
 
-## **Error: Command-line argument '_arg_' is neither a recognized option nor a filename with a supported extension (_ext_).** {#cli_bad_option_legacy}
+## **Error: unknown switch: -zzz** {#cli_bad_option_legacy}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash
 dafny -zzz
 ```
@@ -84,13 +84,15 @@ target programming language being used, such as `.dll` files for C#
 or `.java` or `.jar` files for Java. The stated extension is not
 recognized.
 
+<!--
 ## **Error: The command-line contains no .dfy files** {#cli-no-dafny-file_2}
 
-<!-- TODO - this appears to be no longer reachable -->
+ TODO - this appears to be no longer reachable -->
 
+<!--
 ## **Error: The command-line contains no .dfy files** {#cli-no-dafny-folder}
 
-<!-- TODO - this appears to be no longer reachable -->
+ TODO - this appears to be no longer reachable -->
 
 ## **Error: Only one .dfy file can be specified for testing** {#cli-test-generation}
 
@@ -134,7 +136,7 @@ omission can be corrected.
 
 ## **Please use the '--check' and/or '--print' option as stdin cannot be formatted in place.** {#f_missing_format_option}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash
 dafny format --stdin
 ```
@@ -158,9 +160,9 @@ You can use `--print` to see the output. Also for an input file `test.dfy`, the 
 
 <!-- DafnyCore/DafnyOptions.cs -->
 
-## **dafny: Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
+## **Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -printMode:zzz
 ```
@@ -168,9 +170,9 @@ dafny -printMode:zzz
 The `printMode` option has a number of alternative values that are spelled out in the help document (`dafny -?`).
 It is also recommended to use the new CLI, with the option `--print-mode`.
 
-## Unsupported diagnostic format: _format_; expecting one of 'json', 'text'.** {#cli_diagnostic_format}
+## **Error: Unsupported diagnostic format: _format_; expecting one of 'json', 'text'.** {#cli_diagnostic_format}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash
 dafny /diagnosticsFormat:zzz
 ```
@@ -178,9 +180,9 @@ dafny /diagnosticsFormat:zzz
 This option controls the format of error messages. Typically the 'text' format is used (and is the default).
 But 'json' is also an option. Any other choice is illegal and results in this error message.
 
-## **dafny: Error: Invalid argument _argument_ to option functionSyntax_help_** {#cli_function_syntax}
+## **Error: Invalid argument _argument_ to option functionSyntax_help_** {#cli_function_syntax}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -functionSyntax:z
 ```
@@ -189,9 +191,9 @@ The `functionSyntax` option has a number of alternative values that are spelled 
 most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
 It is also recommended to use the new CLI, with the option `--function-syntax`.
 
-## **dafny: Error: Invalid argument _argument_ to option quantifierSyntax_help_** {#cli_quantifier_syntax}
+## **Error: Invalid argument _argument_ to option quantifierSyntax_help_** {#cli_quantifier_syntax}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -quantifierSyntax:z
 ```
@@ -200,9 +202,9 @@ The `quantifierSyntax ` option has a number of alternative values that are spell
 most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
 It is also recommended to use the new CLI, with the option `--quantifier-syntax`.
 
-## **dafny: Error: Invalid argument _argument_ to option verificationLogger _help_** {#cli_verification_logger}
+## **Error: Invalid argument _argument_ to option verificationLogger_help_** {#cli_verification_logger}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -verificationLogger:z
 ```
@@ -210,9 +212,9 @@ dafny -verificationLogger:z
 The `verificationLogger` option has these alternatives: trx, csv, text.
 The option name in the new CLI is `--log-format`.
 
-## **dafny: Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
+## **Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -testContracts:z
 ```
@@ -220,9 +222,9 @@ dafny -testContracts:z
 The `testContracts` option has these alternatives: Externs, TestedExterns.
 The similar option in the new CLI is `--test-assumptions`.
 
-## **dafny: Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
+## **Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash 
 dafny -printIncludes:z
 ```
@@ -247,7 +249,7 @@ in the help document (`dafny -?` or `dafny <command> -h`).
 
 ## **Error: unknown switch: _switch_** {#cli_unknown_legacy_option}
 
-<!-- %check-cli -->
+<!-- %check-cli %err %first -->
 ```bash
 dafny --stdin
 ```

@@ -173,6 +173,7 @@ module Tests {
     }
 
     method N(m: nat) returns (n: nat)
+      decreases m
   }
   /*-- non-null type
   type {:axiom} CC(==) = c: CC? | c != null /*special witness*/
