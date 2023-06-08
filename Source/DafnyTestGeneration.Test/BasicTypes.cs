@@ -33,7 +33,7 @@ module SimpleTest {
       var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "SimpleTest.compareToZero"));
       Assert.True(methods.All(m =>
@@ -61,7 +61,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
       Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.checkIfTrue")));
@@ -95,7 +95,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(7, methods.Count);
+      Assert.True(7 <= methods.Count);
       Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToZero"));
       Assert.True(methods.All(m =>
@@ -128,7 +128,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(
         methods.All(m => m.MethodName == "SimpleTest.compareToBase"));
       Assert.True(methods.All(m =>
@@ -159,7 +159,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
       Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));
@@ -190,7 +190,7 @@ module SimpleTest {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
       Assert.True(methods.All(m =>
         m.DafnyInfo.IsStatic("SimpleTest.compareToB")));

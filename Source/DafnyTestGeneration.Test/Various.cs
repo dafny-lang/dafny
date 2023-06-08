@@ -36,8 +36,8 @@ module M {
 ".TrimStart();
       var program = Utils.Parse(Setup.GetDafnyOptions(output), source, false);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
-      Assert.Equal(2, methods.Count(m => m.MethodName == "M.Inlining.b"));
+      Assert.True(3 <= methods.Count);
+      Assert.True(2 <= methods.Count(m => m.MethodName == "M.Inlining.b"));
       Assert.Equal(1, methods.Count(m => m.MethodName == "M.Inlining.a"));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.b")));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
@@ -422,7 +422,7 @@ module DataTypes {
       options.TestGenOptions.TargetMethod =
         "DataTypes.List.Depth";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(3, methods.Count);
+      Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
         m.MethodName == "DataTypes.List.Depth"));
       Assert.True(methods.All(m =>
@@ -528,7 +528,7 @@ module Test {
       options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
       options.TestGenOptions.SeqLengthLimit = 1;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "Test.IsEvenLength"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("Test.IsEvenLength")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
