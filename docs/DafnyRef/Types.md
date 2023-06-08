@@ -4291,7 +4291,7 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was declared with an `opaque` modifier, as explained
-in [Section 11.2.8](#sec-opaque)),
+in [Section 11.2.9](#sec-opaque)),
 the reveal statement ([Section 8.20](#sec-reveal-statement)),
 and whether it was `reveal`ed in an export set.
 

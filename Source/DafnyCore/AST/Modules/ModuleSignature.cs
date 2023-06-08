@@ -12,7 +12,6 @@ public class ModuleSignature {
   public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
   public ModuleDefinition ModuleDef = null; // Note: this is null if this signature does not correspond to a specific definition (i.e.
   // it is abstract). Otherwise, it points to that definition.
-  public ModuleSignature CompileSignature = null; // This is the version of the signature that should be used at compile time.
   public ModuleSignature Refines = null;
   public bool IsAbstract = false;
   public ModuleSignature() { }
