@@ -240,7 +240,8 @@ namespace Microsoft.Dafny {
           errorLine += "\n";
         }
 
-        if (Options.Get(DafnyConsolePrinter.ShowSnippets)) {
+        if (Options.Get(DafnyConsolePrinter.ShowSnippets)
+              && tok != Token.NoToken && !String.IsNullOrEmpty(tok.filename)) {
           TextWriter tw = new StringWriter();
           new DafnyConsolePrinter(Options).WriteSourceCodeSnippet(tok.ToRange(), tw);
           Options.OutputWriter.Write(tw.ToString());
