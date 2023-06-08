@@ -456,7 +456,6 @@ are implied by the existing preconditions.
 
 ## **Error: a refining _kind_ is not allowed to extend the reads clause** {#ref_refinement_no_new_reads}
 
-<!-- %no-check -- TODO - broken by the 6/6 commit of type resolution refactoring -->
 ```dafny
 module P {
   predicate m() reads {}
@@ -473,7 +472,6 @@ the base declaration. This is the case even if the new reads clause is a repetit
 
 ## **Error: decreases clause on refining _kind_ not supported** {#ref_no_new_decreases}
 
-<!-- %no-check -- TODO - broken by the 6/6 commit of type resolution refactoring -->
 ```dafny
 module P {
   predicate m(i: nat) reads {}
