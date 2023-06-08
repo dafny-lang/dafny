@@ -90,7 +90,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     base.Resolve(resolver, resolutionContext);
 
     IToken firstEffectfulRhs = null;
-    MethodCallInformation methodCallInfo = null;
+    Resolver.MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {
       bool isEffectful;

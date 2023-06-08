@@ -448,10 +448,10 @@ func (_this ArrayCell) String() string {
   switch data := _this.Get().(type) {
     case nil: return "null"
     case ArrayCell_Set: {
-      return "dafny_Compile.ArrayCell.Set" + "(" + String(data.Value) + ")"
+      return "DafnyGo.ArrayCell.Set" + "(" + String(data.Value) + ")"
     }
     case ArrayCell_Unset: {
-      return "dafny_Compile.ArrayCell.Unset"
+      return "DafnyGo.ArrayCell.Unset"
     }
     default: {
       return "<unexpected>"

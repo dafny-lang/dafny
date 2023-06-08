@@ -20,10 +20,15 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<Statement, Statement> statementClones = new();
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
+    private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
     private readonly bool cloneLiteralModuleDefinition;
 
     public void AddStatementClone(Statement original, Statement clone) {
       statementClones.Add(original, clone);
+    }
+
+    public TopLevelDecl GetCloneIfAvailable(TopLevelDecl topLevelDecl) {
+      return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
@@ -184,7 +189,9 @@ namespace Microsoft.Dafny {
     }
 
     public TypeParameter CloneTypeParam(TypeParameter tp) {
-      return new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax, CloneTPChar(tp.Characteristics));
+      return (TypeParameter)typeParameterClones.GetOrCreate(tp,
+        () => new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax,
+          CloneTPChar(tp.Characteristics)));
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member, bool isReference) {
@@ -634,78 +641,11 @@ namespace Microsoft.Dafny {
   /// It does not clone method bodies, and it copies module signatures.
   /// </summary>
   class ClonerButDropMethodBodies : DeepModuleSignatureCloner {
-    public ClonerButDropMethodBodies()
-      : base() {
+    public ClonerButDropMethodBodies(bool cloneResolvedFields = false) : base(cloneResolvedFields) {
     }
 
     public override BlockStmt CloneBlockStmt(BlockStmt stmt) {
       return null;
     }
   }
-
-  /// <summary>
-  /// This cloner is used to clone a module into a _Compile module.  This is different from
-  /// the standard cloner in the following ways:
-  ///  TODO remove this behavior since it's no longer needed.
-  /// * "match" statements and "match" expressions obtain their original form, which may include
-  ///   nested patterns.  The resolver will turn these into nested "match" constructs with simple
-  ///   patterns.
-  /// * The various module-signature fields of modules are set to whatever they were in the original.
-  /// * To get the .RefinementBase, it redirects using the given mapping
-  /// </summary>
-  class CompilationCloner : DeepModuleSignatureCloner {
-    public CompilationCloner()
-      : base(false) {
-    }
-
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var r = base.CloneDeclaration(d, m);
-      if (d is AliasModuleDecl importDeclSource) {
-        var importDeclClone = (AliasModuleDecl)r;  // if d is AliasModuleDecl, then we expect base to return an AliasModuleDecl
-        importDeclClone.ShadowsLiteralModule = importDeclSource.ShadowsLiteralModule;
-      }
-      return r;
-    }
-
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is MatchExpr { OrigUnresolved: { } origUnresolved }) {
-        return CloneExpr(origUnresolved);
-      }
-      return base.CloneExpr(expr);
-    }
-
-    public ModuleSignature CloneModuleSignature(ModuleSignature org, ModuleSignature newSig) {
-      var sig = new ModuleSignature();
-      sig.ModuleDef = newSig.ModuleDef;
-      sig.IsAbstract = newSig.IsAbstract;
-      sig.VisibilityScope = new VisibilityScope();
-      sig.VisibilityScope.Augment(newSig.VisibilityScope);
-
-      foreach (var kv in org.TopLevels) {
-        if (newSig.TopLevels.TryGetValue(kv.Key, out var d)) {
-          sig.TopLevels.Add(kv.Key, d);
-        }
-      }
-
-      foreach (var kv in org.ExportSets) {
-        if (newSig.ExportSets.TryGetValue(kv.Key, out var d)) {
-          sig.ExportSets.Add(kv.Key, d);
-        }
-      }
-
-      foreach (var kv in org.Ctors) {
-        if (newSig.Ctors.TryGetValue(kv.Key, out var pair)) {
-          sig.Ctors.Add(kv.Key, pair);
-        }
-      }
-
-      foreach (var kv in org.StaticMembers) {
-        if (newSig.StaticMembers.TryGetValue(kv.Key, out var md)) {
-          sig.StaticMembers.Add(kv.Key, md);
-        }
-      }
-      return sig;
-    }
-  }
-
 }

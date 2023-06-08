@@ -11,7 +11,7 @@ module P {
   type T = t:T_ | true ghost witness T()
 }
 
-module C refines P {
+module C1 refines P {
   datatype C = C(t: T)  // this had once caused a bogus error about cyclic dependencies
 }
 
@@ -38,8 +38,8 @@ module OtherNamesWithSpecialCharacters?_ {
 }
 
 method Main() {
-  var t: C.T := C.T;  // this had once caused malformed Java, because of a missing qualified name
-  var c := C.C(t);
+  var t: C1.T := C1.T;  // this had once caused malformed Java, because of a missing qualified name
+  var c := C1.C(t);
   print c, "\n"; // C_Compile.T_.T
 
   var pt: P.T := P.T;
