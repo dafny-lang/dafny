@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
   public partial class ModuleResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
-    public readonly BuiltIns builtIns;
+    public readonly BuiltIns builtIns; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
 
     public IList<IRewriter> rewriters => ProgramResolver.rewriters;
 
