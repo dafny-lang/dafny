@@ -61,6 +61,11 @@
 d=$(dirname ${BASH_SOURCE[0]})
 cd $d
 
+keepTmp=0
+if [ "$1" == "-k" ]; then 
+  keepTmp=1
+fi
+
 # Relative path to source code, for convenience
 D=../../Source/DafnyCore
 
@@ -97,5 +102,8 @@ echo ">>>> RESOLUTION"
 csfiles="../../Source/DafnyCore/Resolver/ExpressionTester.cs ../../Source/DafnyCore/Resolver/TypeInferenceChecker.cs ../../Source/DafnyCore/Resolver/GhostInterestVisitor.cs"
 ./check-errors-a Errors-Resolution.md ../../Source/DafnyCore/Resolver/ResolutionErrors.cs "$csfiles"
 
+if [ "$keepTmp" == "0" ]; then
+  rm -f tmp-ids*
+fi
 exit 0
 

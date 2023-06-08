@@ -12,7 +12,6 @@ namespace Microsoft.Dafny {
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
-    public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
     public bool DisablePrune = false;
@@ -58,10 +57,6 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestVerbose":
-          Verbose = true;
-          return true;
-
         case "generateTestNoPrune":
           DisablePrune = true;
           return true;
@@ -87,8 +82,6 @@ namespace Microsoft.Dafny {
     If specified, only this method will be tested.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
-/generateTestVerbose
-    Print various debugging info as comments for the generated tests.
 /generateTestNoPrune
     Disable axiom pruning that Dafny uses to speed up verification.";
 

@@ -2,7 +2,7 @@
 // RUN: java -cp %binaryDir/DafnyRuntime.jar:%S/Output/DafnyConsole.jar DafnyConsole >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module DafnyConsole {
+module DafnyConsoleMod { // TODO if we name this DafnyConsole, then Java compilation fails
   method Main() {
     print "bye\n";
   }

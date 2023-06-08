@@ -58,7 +58,7 @@ public abstract class MemberDecl : Declaration {
     return false;
   }
 
-  public MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+  protected MemberDecl(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

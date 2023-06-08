@@ -1551,7 +1551,7 @@ scanner recognizes. The only pragma ever recognized was `#line`.
 
 <!-- ./DafnyCore/AST/Grammar/ProgramParser.cs -->
 
-## **Warning: File has no code** {#p_file_has_no_code}
+## **Warning: File contains no code** {#p_file_has_no_code}
 
 <!-- %check-resolve-warn -->
 ```dafny

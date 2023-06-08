@@ -3,7 +3,7 @@ package Library
 import (
   "dafny"
   "fmt"
-  Wrappers "Wrappers_Compile"
+  Wrappers "Wrappers"
 )
 
 type CompanionStruct_LibClass_ struct{}
