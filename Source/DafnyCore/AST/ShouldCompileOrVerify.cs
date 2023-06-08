@@ -13,12 +13,12 @@ public class CompilationData {
     AlreadyVerifiedRoots = alreadyVerifiedRoots;
     AlreadyCompiledRoots = alreadyCompiledRoots;
   }
-  
+
   public IList<IRewriter> Rewriters { get; set; }
 
   public DafnyOptions Options { get; }
   public IList<Uri> RootSourceUris { get; }
-  
+
   public ISet<Uri> AlreadyVerifiedRoots { get; }
   public ISet<Uri> AlreadyCompiledRoots { get; }
 
@@ -29,7 +29,7 @@ public class CompilationData {
   // TODO move to DocumentAfterParsing once that's used by the CLI
   [FilledInDuringResolution]
   public ISet<Uri> UrisToCompile;
-  
+
 }
 public static class ShouldCompileOrVerify {
 

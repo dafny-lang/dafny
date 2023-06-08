@@ -73,7 +73,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     if (Mod.Expressions != null) {
       usesHeap = true;  // bearing a modifies clause counts as using the heap
     }
-    
+
     Contract.Assert(BodySurrogate == null); // .BodySurrogate is set only once
     var loopFrame = new List<IVariable>();
     if (this is ForLoopStmt forLoopStmt) {

@@ -12,7 +12,7 @@ public record PrefixNameModule(IReadOnlyList<IToken> Parts, LiteralModuleDecl Mo
 
 public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
   public Guid UniqueParseContentHash { get; set; }
-  
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -478,15 +478,13 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings)
-  {
+  private void BindPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings) {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
     //     "A"   ->   (A.B.C  ,  module D { ... })
     var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var prefixNameModule in PrefixNamedModules)
-    {
+    foreach (var prefixNameModule in PrefixNamedModules) {
       var firstPartName = prefixNameModule.Parts[0].val;
       var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
       prev.Add(prefixNameModule);
@@ -495,11 +493,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     PrefixNamedModules.Clear();
 
     // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>())
-    {
+    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
       // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules))
-      {
+      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
         prefixModulesByFirstPart.Remove(subdecl.Name);
         prefixModules = prefixModules.ConvertAll(ShortenPrefix);
       }
@@ -508,8 +504,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixModulesByFirstPart)
-    {
+    foreach (var entry in prefixModulesByFirstPart) {
       var prefixNamedModules = entry.Value;
       var tok = prefixNamedModules.First().Parts[0];
       var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,

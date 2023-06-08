@@ -18,8 +18,8 @@ public class ProgramResolver {
   readonly Graph<ModuleDecl> dependencies = new();
 
   public FreshIdGenerator defaultTempVarIdGenerator = new();
-  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new ();
-    
+  public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
+
   public ProgramResolver(Program program) {
     BuiltIns = program.BuiltIns;
     Reporter = program.Reporter;
@@ -201,7 +201,7 @@ public class ProgramResolver {
     foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
-    
+
     foreach (var rewriter in rewriters) {
       rewriter.PreResolve(prog);
     }
@@ -234,20 +234,16 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount)
-  {
+  protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl, int origErrorCount) {
     var moduleResolver = new ModuleResolver(this);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl, origErrorCount);
   }
 
-  private static void SetHeights(List<ModuleDecl> sortedDecls)
-  {
-    foreach (var withIndex in sortedDecls.Zip(Enumerable.Range(0, int.MaxValue)))
-    {
+  private static void SetHeights(List<ModuleDecl> sortedDecls) {
+    foreach (var withIndex in sortedDecls.Zip(Enumerable.Range(0, int.MaxValue))) {
       var md = withIndex.First;
       md.Height = withIndex.Second;
-      if (md is LiteralModuleDecl literalModuleDecl)
-      {
+      if (md is LiteralModuleDecl literalModuleDecl) {
         var mdef = literalModuleDecl.ModuleDef;
         mdef.Height = withIndex.Second;
       }

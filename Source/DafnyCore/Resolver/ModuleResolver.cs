@@ -19,7 +19,7 @@ namespace Microsoft.Dafny {
     Dictionary<ModuleDefinition, ModuleSignature> Signatures,
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
-  
+
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
           // if the name of the export set coincides with something else that's declared at the top
           // level of the module, then this export declaration is more likely an error--the user probably
           // forgot the "provides" or "reveals" keyword.
-          
+
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
