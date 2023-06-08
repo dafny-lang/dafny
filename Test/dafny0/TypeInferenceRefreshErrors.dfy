@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /typeSystemRefresh:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Frames {

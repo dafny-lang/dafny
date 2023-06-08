@@ -311,12 +311,15 @@ namespace Microsoft.Dafny {
           var (_, tentativeRootPreType) = FindMember(expr.tok, e.Root.PreType, memberName);
           if (tentativeRootPreType != null) {
             if (tentativeRootPreType.Decl is DatatypeDecl datatypeDecl) {
-              var let = ResolveDatatypeUpdate(expr.tok, tentativeRootPreType, e.Root, datatypeDecl, e.Updates, resolutionContext, out var legalSourceConstructors);
+              var (ghostLet, compiledLet) = ResolveDatatypeUpdate(expr.tok, tentativeRootPreType, e.Root, datatypeDecl, e.Updates,
+                resolutionContext, out var members, out var legalSourceConstructors);
               // if 'let' returns as 'null', an error has already been reported
-              if (let != null) {
-                e.ResolvedExpression = let;
+              if (ghostLet != null) {
+                e.ResolvedExpression = ghostLet;
+                e.ResolvedCompiledExpression = compiledLet;
+                e.Members = members;
                 e.LegalSourceConstructors = legalSourceConstructors;
-                AddEqualityConstraint(expr.PreType, let.PreType, expr.tok,
+                AddEqualityConstraint(expr.PreType, ghostLet.PreType, expr.tok,
                   "result of datatype update expression of type '{1}' is used as if it were of type '{0}'");
               }
             } else {
@@ -1724,10 +1727,19 @@ namespace Microsoft.Dafny {
     /// Upon success, return that rewritten expression and set "legalSourceConstructors".
     /// Upon some resolution error, report an error and return null (caller should not use "legalSourceConstructors").
     /// Note, "root.PreType" is allowed to be different from "rootPreType"; in particular, "root.PreType" may still be a proxy.
+    ///
+    /// Actually, the method returns two expressions (or returns "(null, null)"). The first expression is the desugaring to be
+    /// used when the DatatypeUpdateExpr is used in a ghost context. The second is to be used for a compiled context. In either
+    /// case, "legalSourceConstructors" contains both ghost and compiled constructors.
+    ///
+    /// The reason for computing both desugarings here is that it's too early to tell if the DatatypeUpdateExpr is being used in
+    /// a ghost or compiled context. This is a consequence of doing the deguaring so early. But it's also convenient to do the
+    /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
+    /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, DPreType rootPreType, Expression root, DatatypeDecl dt,
+    (Expression, Expression) ResolveDatatypeUpdate(IToken tok, DPreType rootPreType, Expression root, DatatypeDecl dt,
       List<Tuple<IToken, string, Expression>> memberUpdates,
-      ResolutionContext resolutionContext, out List<DatatypeCtor> legalSourceConstructors) {
+      ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(rootPreType != null);
@@ -1736,6 +1748,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       legalSourceConstructors = null;
+      members = new List<MemberDecl>();
       Contract.Assert(rootPreType.Decl == dt);
       Contract.Assert(rootPreType.Arguments.Count == dt.TypeArgs.Count);
 
@@ -1752,9 +1765,10 @@ namespace Microsoft.Dafny {
           memberNames.Add(updateName);
           if (!resolver.classMembers[dt].TryGetValue(updateName, out var member)) {
             ReportError(updateToken, "member '{0}' does not exist in datatype '{1}'", updateName, dt.Name);
-          } else if (!(member is DatatypeDestructor)) {
+          } else if (member is not DatatypeDestructor) {
             ReportError(updateToken, "member '{0}' is not a destructor in datatype '{1}'", updateName, dt.Name);
           } else {
+            members.Add(member);
             var destructor = (DatatypeDestructor)member;
             var intersection = new List<DatatypeCtor>(candidateResultCtors.Intersect(destructor.EnclosingCtors));
             if (intersection.Count == 0) {
@@ -1776,7 +1790,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (candidateResultCtors.Count == 0) {
-        return null;
+        return (null, null);
       }
 
       // Check that every candidate result constructor has given a name to all of its parameters.
@@ -1789,14 +1803,20 @@ namespace Microsoft.Dafny {
         }
       }
       if (hasError) {
-        return null;
+        return (null, null);
       }
 
       // The legal source constructors are the candidate result constructors. (Yep, two names for the same thing.)
       legalSourceConstructors = candidateResultCtors;
       Contract.Assert(1 <= legalSourceConstructors.Count);
 
-      return DesugarDatatypeUpdate(tok, root, dt, resolutionContext, rootPreType, candidateResultCtors, rhsBindings);
+      var desugaringForGhostContext = DesugarDatatypeUpdate(tok, root, rootPreType, candidateResultCtors, rhsBindings, resolutionContext);
+      var nonGhostConstructors = candidateResultCtors.Where(ctor => !ctor.IsGhost).ToList();
+      if (nonGhostConstructors.Count == candidateResultCtors.Count) {
+        return (desugaringForGhostContext, desugaringForGhostContext);
+      }
+      var desugaringForCompiledContext = DesugarDatatypeUpdate(tok, root, rootPreType, nonGhostConstructors, rhsBindings, resolutionContext);
+      return (desugaringForGhostContext, desugaringForCompiledContext);
     }
 
     /// <summary>
@@ -1814,8 +1834,9 @@ namespace Microsoft.Dafny {
     ///       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
     ///
     /// </summary>
-    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, ResolutionContext resolutionContext, DPreType rootPreType,
-      List<DatatypeCtor> candidateResultCtors, Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings) {
+    private Expression DesugarDatatypeUpdate(IToken tok, Expression root, DPreType rootPreType,
+      List<DatatypeCtor> candidateResultCtors, Dictionary<string, Tuple<BoundVar, IdentifierExpr, Expression>> rhsBindings,
+      ResolutionContext resolutionContext) {
       Contract.Requires(1 <= candidateResultCtors.Count);
 
       // Create a unique name for d', the variable we introduce in the let expression

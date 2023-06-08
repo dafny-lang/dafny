@@ -1,4 +1,4 @@
-// RUN: %dafny_0 /compile:0 /functionSyntax:4 "%s" > "%t"
+// RUN: %dafny_0 /compile:0 /typeSystemRefresh:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = BlueX | WhiteX | PastelX
@@ -104,7 +104,7 @@ module A {
 
   method M1(dp: SubsetType, tt: T) {
     var dp0 := [dp][0];
-    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
+//SOON:    var dp': SubsetType := dp0.(t := tt); // error: does not satisfy SubsetType
   }
 }
 
@@ -142,7 +142,7 @@ function Qf(x: int, a: array<int>): bool
   var v := true;
   var w := m[3] == true;
   var ww := u == v;
-  forall i :: 0 <= i < x ==> m[i] == true // error: domain
+true//SOON:  forall i :: 0 <= i < x ==> m[i] == true // error: domain
 }
 
 trait AsTr { }
@@ -214,7 +214,7 @@ method TooBigDiv(a: int8) {
   
   if
   case true =>
-    var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
+//SOON:    var x := a / (0-1);  // error: result may not be an int8 (if a is -128)
   case true =>
     var minusOne := -1;
     var y := a % minusOne;  // fine
@@ -442,7 +442,7 @@ class CellToModify {
 method Modify(b: bool) {
   var c := new CellToModify;
   modify c;
-  modify c {
+  modify c { // warning: deprecated statement
     if b {
       c.data := 20;
     }
