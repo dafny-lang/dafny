@@ -313,26 +313,33 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    public static string FormatResourceCount(long nodeResourceCount) {
-      var suffix = 0;
-      var fractional = 0;
-      // First, round up nodeResourceCount to 3 significant digits.
+    private static readonly int SignificativeDigits = 3;
+
+    public static long RoundToSignificativeDigits(long nodeResourceCount) {
       var nDigits = ("" + nodeResourceCount).Length;
-      if (nDigits > 3) {
-        var toRemove = (long)Math.Pow(10, nDigits - 3);
+      if (nDigits > SignificativeDigits) {
+        var toRemove = (long)Math.Pow(10, nDigits - SignificativeDigits);
         nodeResourceCount += toRemove / 2;
         nodeResourceCount -= (nodeResourceCount % toRemove);
       }
 
+      return nodeResourceCount;
+    }
+
+    public static string FormatResourceCount(long nodeResourceCount) {
+      var suffix = 0;
+      var fractional = 0;
+      nodeResourceCount = RoundToSignificativeDigits(nodeResourceCount);
+
       while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
         fractional = (int)(nodeResourceCount % 1000);
         nodeResourceCount /= 1000;
-        suffix += 1;
+        suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
       }
       var nodeResourceCountStr = $"{nodeResourceCount:n0}";
-      var fractionalStr = nodeResourceCountStr.Length >= 3 || suffix == 0 ?
+      var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
         "" :
-        ($".{fractional:000}").Remove(4 - nodeResourceCountStr.Length);
+        "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);
       var letterSuffix = suffix switch {
         0 => "",
         1 => "K",
