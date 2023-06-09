@@ -1,3 +1,55 @@
+
+Dafny program verifier finished with 12 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+16
+16
+12 30 30
+Result.Success(8) Result.Failure(_module.MyClassException)
+{100} {100} {100}
+{MoreTests.C} {MoreTests.C} {MoreTests.C}
+100 100 100
+MoreTests.C MoreTests.C MoreTests.C
+Conveyance.NonVariantResult.NVSuccess(Conveyance.Car) Conveyance.CovariantResult.CVSuccess(Conveyance.Car)
+M.Stream.Next
+
+Dafny program verifier did not attempt verification
+16
+16
+12 30 30
+Result.Success(8) Result.Failure(_module.MyClassException)
+{100} {100} {100}
+{MoreTests.C} {MoreTests.C} {MoreTests.C}
+100 100 100
+MoreTests.C MoreTests.C MoreTests.C
+Conveyance.NonVariantResult.NVSuccess(Conveyance.Car) Conveyance.CovariantResult.CVSuccess(Conveyance.Car)
+M.Stream.Next
+
+Dafny program verifier did not attempt verification
+16
+16
+12 30 30
+Result.Success(8) Result.Failure(_module.MyClassException)
+{100} {100} {100}
+{MoreTests.C} {MoreTests.C} {MoreTests.C}
+100 100 100
+MoreTests.C MoreTests.C MoreTests.C
+Conveyance.NonVariantResult.NVSuccess(Conveyance.Car) Conveyance.CovariantResult.CVSuccess(Conveyance.Car)
+M.Stream.Next
+
+Dafny program verifier did not attempt verification
+16
+16
+12 30 30
+Result.Success(8) Result.Failure(_module.MyClassException)
+{100} {100} {100}
+{MoreTests.C} {MoreTests.C} {MoreTests.C}
+100 100 100
+MoreTests.C MoreTests.C MoreTests.C
+Conveyance.NonVariantResult.NVSuccess(Conveyance.Car) Conveyance.CovariantResult.CVSuccess(Conveyance.Car)
+M.Stream.Next
+
+Dafny program verifier did not attempt verification
 16
 16
 12 30 30

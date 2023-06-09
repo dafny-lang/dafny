@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /print:"%t.print" /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 newtype NT = x | 0 <= x < 100
 newtype UT = NT
