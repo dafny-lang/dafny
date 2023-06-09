@@ -168,8 +168,7 @@ public class ProgramResolver {
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
-    prog.ModuleSigs = sortedDecls.OfType<LiteralModuleDecl>()
-      .ToDictionary(l => l.ModuleDef, l => (ModuleSignature)null);
+    prog.ModuleSigs = new();
 
     SetHeights(sortedDecls);
 
