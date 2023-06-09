@@ -137,3 +137,7 @@ method AssertOnly() {
   assert {:only} true;
   assert false;
 }
+
+method {:only} MethodOnly() {
+  assert false;
+}
