@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /printTooltips /rprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --show-tooltips
 
 datatype Dt = Green | Dog
 

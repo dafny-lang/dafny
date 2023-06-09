@@ -1,5 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 module ListLibrary {
   datatype List<B> = Nil | Cons(head: B, tail: List<B>)

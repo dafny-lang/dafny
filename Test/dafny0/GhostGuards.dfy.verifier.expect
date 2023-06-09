@@ -1,0 +1,5 @@
+GhostGuards.dfy(11,9): Info: ghost if
+GhostGuards.dfy(17,2): Info: ghost if
+GhostGuards.dfy(27,2): Info: ghost while
+GhostGuards.dfy(40,2): Info: ghost while
+GhostGuards.dfy(53,2): Info: ghost match
