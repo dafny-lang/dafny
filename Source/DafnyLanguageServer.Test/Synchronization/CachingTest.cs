@@ -31,7 +31,9 @@ public class CachingTest : ClientBasedLanguageServerTest {
 include ""./A.dfy""
 include ""./B.dfy""
 module ModC {
+  import ModB;
   lemma Lem() ensures false {}
+  var z := ModB.y + 1;
 }
 ".TrimStart();
     var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
