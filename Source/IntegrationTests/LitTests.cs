@@ -202,7 +202,7 @@ namespace IntegrationTests {
         case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
-            Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NON-UNIFORM <reason>' command");
+            Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NONUNIFORM <reason>' command");
           }
           break;
         case null or "":
@@ -273,7 +273,7 @@ namespace IntegrationTests {
           return true;
         }
         // MultiBackendTest always adds all three of these to temporary files.
-        if (arg.StartsWith("/print") || arg.StartsWith("/dprint") || arg.StartsWith("/rprint")) {
+        if (arg.StartsWith("/print:") || arg.StartsWith("/dprint:") || arg.StartsWith("/rprint:")) {
           return true;
         }
         if (arg.StartsWith("/env")) {
