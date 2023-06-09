@@ -1,3 +1,4 @@
+DividedConstructors.dfy(62,9): Warning: the ... refinement feature in statements is deprecated
 
 Dafny program verifier finished with 17 verified, 0 errors
 37, 17, 3.14
