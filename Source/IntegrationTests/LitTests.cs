@@ -47,7 +47,7 @@ namespace IntegrationTests {
       // Set this to true in order to debug the execution of commands like %dafny.
       // This is false by default because the main dafny CLI implementation currently has shared static state, which
       // causes errors when invoking the CLI in the same process on multiple inputs in sequence, much less in parallel.
-      InvokeMainMethodsDirectly = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TEST_IN_PROCESS") == "true";
+      InvokeMainMethodsDirectly = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_IN_PROCESS") == "true";
 
       // Allow extra arguments to Dafny subprocesses. This can be especially
       // useful for capturing prover logs.
@@ -191,15 +191,15 @@ namespace IntegrationTests {
       })]
     public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
-      var uniformTestingMode = Environment.GetEnvironmentVariable("DAFNY_UNIFORM_BACKEND_TESTING_MODE");
-      switch (uniformTestingMode) {
-        case "convert":
+      var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");
+      switch (mode) {
+        case "uniform-convert":
           // Need to convert the original source path,
           // not the copy in the output directory of this project.
-          var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TEST_DIR"), testPath);
+          var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"), testPath);
           ConvertToMultiBackendTestIfNecessary(sourcePath);
           return;
-        case "check":
+        case "uniform-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
             Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NON-UNIFORM <reason>' command");
@@ -210,7 +210,7 @@ namespace IntegrationTests {
           break;
         default:
           throw new ArgumentException(
-            $"Unrecognized value of DAFNY_UNIFORM_BACKEND_TESTING_MODE environment variable: {uniformTestingMode}");
+            $"Unrecognized value of DAFNY_INTEGRATION_TESTS_MODE environment variable: {uniformTestingMode}");
       }
     }
 
@@ -272,7 +272,7 @@ namespace IntegrationTests {
         if (arg.StartsWith("--target") || arg.StartsWith("-t:") || arg.StartsWith("-t=")) {
           return true;
         }
-        // TODO: keep these (by always using them in MultiBackendTest)
+        // MultiBackendTest always adds all three of these to temporary files.
         if (arg.StartsWith("/print") || arg.StartsWith("/dprint") || arg.StartsWith("/rprint")) {
           return true;
         }
@@ -424,7 +424,7 @@ namespace IntegrationTests {
       };
       newLines.AddRange(testFileLines.Where(line => ILitCommand.Parse(line, Config) == null));
       if (exceptions) {
-        // This is by far the most common source of inconsistent output.
+        // This is currently the most common source of inconsistent output by far.
         newLines.Insert(0, "// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108");
       }
 
@@ -470,7 +470,6 @@ namespace IntegrationTests {
     }
 
     private static string? GetBackendFromCommand(IEnumerable<string> arguments) {
-
       if (arguments.Any(arg => arg is "/compile:0" or "verify")) {
         return null;
       }
