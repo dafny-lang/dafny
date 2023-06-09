@@ -193,13 +193,13 @@ namespace IntegrationTests {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
       var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");
       switch (mode) {
-        case "uniform-convert":
+        case "uniformity-convert":
           // Need to convert the original source path,
           // not the copy in the output directory of this project.
           var sourcePath = Path.Join(Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR"), testPath);
           ConvertToMultiBackendTestIfNecessary(sourcePath);
           return;
-        case "uniform-check":
+        case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
             Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NON-UNIFORM <reason>' command");
@@ -210,7 +210,7 @@ namespace IntegrationTests {
           break;
         default:
           throw new ArgumentException(
-            $"Unrecognized value of DAFNY_INTEGRATION_TESTS_MODE environment variable: {uniformTestingMode}");
+            $"Unrecognized value of DAFNY_INTEGRATION_TESTS_MODE environment variable: {mode}");
       }
     }
 
