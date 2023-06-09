@@ -166,7 +166,8 @@ public class InferDecreasesClause {
           var boundedPool = collectionType.GetBoundedPool(e);
 
           // Add:  set x :: x in e
-          var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), collectionType.Arg);
+          var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"),
+            collectionType.Arg.NormalizeExpand());
           var bvIE = new IdentifierExpr(e.tok, bv.Name) {
             Var = bv,
             Type = bv.Type
