@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 /print:"%t.print" /env:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // Note the difference in output in Java's case is due to
 // https://github.com/dafny-lang/dafny/issues/4152

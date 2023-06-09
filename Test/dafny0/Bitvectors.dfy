@@ -1,4 +1,7 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:0 /print:"%t.print" /env:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // Note the difference in Java output is due to
 // https://github.com/dafny-lang/dafny/issues/4152

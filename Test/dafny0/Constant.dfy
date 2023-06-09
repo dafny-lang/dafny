@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3  "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 const one:int := 1
 const two:int := one * 2

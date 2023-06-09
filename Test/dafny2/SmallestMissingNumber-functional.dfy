@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // Smallest missing number problem, functional version without duplicates.
 // A purely functional solution to the programming problem in Richard Bird's
