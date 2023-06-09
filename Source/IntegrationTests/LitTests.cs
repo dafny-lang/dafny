@@ -362,7 +362,7 @@ namespace IntegrationTests {
         // Need to adjust the line numbers of any warnings or errors
         // since we're replacing many individual RUN lines with one :P
         var adjustedVerifierChunk = AdjustLineNumbers(verifierChunk, 1 - testCase.Commands.Count());
-        
+
         File.WriteAllText(verifierExpectPath, adjustedVerifierChunk);
       }
 
@@ -441,7 +441,7 @@ namespace IntegrationTests {
       );
       return string.Join("", adjusted);
     }
-    
+
     private static ILitCommand GetLeafCommand(ILitCommand command) {
       if (command is LitCommandWithRedirection lcwr) {
         return GetLeafCommand(lcwr.Command);
