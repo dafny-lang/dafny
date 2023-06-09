@@ -36,29 +36,87 @@ module ModC {
   var z := ModB.y + 1;
 }
 ".TrimStart();
-    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var hits0 = await WaitAndCountHits();
-    Assert.Equal(0, hits0);
+    Assert.Equal(0, hits0.ParseHits);
+    Assert.Equal(0, hits0.ResolveHits);
 
-    async Task<int> WaitAndCountHits() {
+    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits() {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolve cache hit"));
+      return (parseHits, resolveHits);
     }
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits();
-    Assert.Equal(2, hitCount1);
+    Assert.Equal(2, hitCount1.ParseHits);
+    Assert.Equal(2, hitCount1.ResolveHits);
 
     // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
     var hitCount2 = await WaitAndCountHits();
-    Assert.Equal(hitCount1 + 1, hitCount2);
+    Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
+    Assert.Equal(hitCount1.ResolveHits + 1, hitCount2.ResolveHits);
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), @"include ""./B.dfy""\n");
     var hitCount3 = await WaitAndCountHits();
     // No hit for B.dfy, since it was previously pruned
-    Assert.Equal(hitCount2 + 1, hitCount3);
+    Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
+    
+    
+  }
+  
+  
+  [Fact]
+  public async Task ResolutionInSingleFileIsCached() {
+    var source = $@"
+module A {
+}
+
+module B {
+}
+module ModC {{
+  import ModB;
+  lemma Lem() ensures false {{}}
+  var z := ModB.y + 1;
+}}
+".TrimStart();
+
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var hits0 = await WaitAndCountHits();
+    Assert.Equal(0, hits0.ParseHits);
+    Assert.Equal(0, hits0.ResolveHits);
+
+    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits() {
+      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolve cache hit"));
+      return (parseHits, resolveHits);
+    }
+
+    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
+    var hitCount1 = await WaitAndCountHits();
+    Assert.Equal(2, hitCount1.ParseHits);
+    Assert.Equal(2, hitCount1.ResolveHits);
+
+    // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
+    ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
+    var hitCount2 = await WaitAndCountHits();
+    Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
+    Assert.Equal(hitCount1.ResolveHits + 1, hitCount2.ResolveHits);
+
+    ApplyChange(ref documentItem, ((0, 0), (0, 0)), @"include ""./B.dfy""\n");
+    var hitCount3 = await WaitAndCountHits();
+    // No hit for B.dfy, since it was previously pruned
+    Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
+    
+    
   }
 
   /// <summary>
