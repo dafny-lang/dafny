@@ -407,7 +407,6 @@ namespace IntegrationTests {
           "/verifyAllModules" => "--verify-included-files",
           "/errorLimit:0" => "--error-limit:0",
           "/deprecation:0" => "--warn-deprecation:false",
-          "/printTooltips" => "--show-tooltips",
           _ => extraOption
         });
       }
