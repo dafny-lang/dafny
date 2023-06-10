@@ -1,4 +1,10 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
 
 newtype sreal = r: real | r > -4 as real
 newtype sint = r: int | r > -4 as int

@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:3 /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 datatype Enum = One | Two | Three {
   predicate Even() {
