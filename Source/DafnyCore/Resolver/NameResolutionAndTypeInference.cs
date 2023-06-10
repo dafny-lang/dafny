@@ -5568,9 +5568,10 @@ namespace Microsoft.Dafny {
     /// "context == Non" says that "type" must not vary at all.
     /// * "lax" says that the context is not strict -- type parameters declared to be strict must not be used in a lax context
     /// </summary>
-    public void CheckVariance(Type type, ICallable enclosingTypeDefinition, TypeParameter.TPVariance context, bool lax) {
+    public void CheckVariance(Type type, TopLevelDecl enclosingTypeDefinition, TypeParameter.TPVariance context, bool lax) {
       Contract.Requires(type != null);
       Contract.Requires(enclosingTypeDefinition != null);
+      Contract.Requires(!lax || enclosingTypeDefinition is ICallable);
 
       type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
       if (type is BasicType) {
@@ -5608,9 +5609,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
           if (lax) {
             // we have to be careful about uses of the type being defined
-            var cg = enclosingTypeDefinition.EnclosingModule.CallGraph;
+            var cg = enclosingTypeDefinition.EnclosingModuleDefinition.CallGraph;
             var t0 = resolvedClass as ICallable;
-            if (t0 != null && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative(enclosingTypeDefinition)) {
+            if (t0 != null && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative((ICallable)enclosingTypeDefinition)) {
               reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }
           }

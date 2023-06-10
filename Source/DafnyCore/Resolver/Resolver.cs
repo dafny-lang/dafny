@@ -2866,6 +2866,12 @@ namespace Microsoft.Dafny {
               ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
             }
           }
+
+          if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+            foreach (var parentTrait in topLevelDeclWithMembers.ParentTraits) {
+              CheckVariance(parentTrait, topLevelDeclWithMembers, TypeParameter.TPVariance.Co, false);
+            }
+          }
         }
       }
 
