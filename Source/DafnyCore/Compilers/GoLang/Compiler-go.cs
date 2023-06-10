@@ -532,7 +532,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       //
       // // For uniformity with co-datatypes
-      // func (_this Dt) Get() Data_Dt_ {
+      // func (_this Dt) Get_() Data_Dt_ {
       //   return _this.Data_Dt_
       // }
       //
@@ -626,7 +626,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       //
       // type Iface_Dt_ interface {
-      //   Get() Data_Dt_
+      //   Get_() Data_Dt_
       // }
       //
       // type lazyDt struct {
@@ -634,9 +634,9 @@ namespace Microsoft.Dafny.Compilers {
       //   init func() Dt
       // }
       //
-      // func (_this * lazyDt) Get() *Iface_Dt {
+      // func (_this * lazyDt) Get_() *Iface_Dt {
       //   if _this.value == nil {
-      //      _this.value = _this.init().Get()
+      //      _this.value = _this.init().Get_()
       //      _this.init = nil // allow GC of values in closure
       //   }
       //   return _this.value
@@ -652,7 +652,7 @@ namespace Microsoft.Dafny.Compilers {
       //   return Dt{*Dt_Ctor0{type0, type1}}
       // }
       //
-      // func (_this * Dt_Ctor0) Get() Dt {
+      // func (_this * Dt_Ctor0) Get_() Dt {
       //   return _this
       // }
       if (dt is TupleTypeDecl) {
@@ -679,7 +679,7 @@ namespace Microsoft.Dafny.Compilers {
         wStruct.WriteLine(dataName);
 
         wr.WriteLine();
-        var wGet = wr.NewNamedBlock("func (_this {0}) Get() {1}", name, dataName);
+        var wGet = wr.NewNamedBlock("func (_this {0}) Get_() {1}", name, dataName);
         wGet.WriteLine("return _this.{0}", dataName);
       } else {
         var wDt = wr.NewNamedBlock("type {0} struct", name);
@@ -687,7 +687,7 @@ namespace Microsoft.Dafny.Compilers {
 
         wr.WriteLine();
         var wIface = wr.NewNamedBlock("type {0} interface", ifaceName);
-        wIface.WriteLine("Get() {0}", dataName);
+        wIface.WriteLine("Get_() {0}", dataName);
 
         wr.WriteLine();
         var wLazy = wr.NewNamedBlock("type lazy_{0}_ struct", name);
@@ -695,9 +695,9 @@ namespace Microsoft.Dafny.Compilers {
         wLazy.WriteLine("init func() {0}", name);
 
         wr.WriteLine();
-        var wLazyGet = wr.NewNamedBlock("func (_this *lazy_{0}_) Get() {1}", name, dataName);
+        var wLazyGet = wr.NewNamedBlock("func (_this *lazy_{0}_) Get_() {1}", name, dataName);
         var wIf = wLazyGet.NewBlock("if _this.value == nil");
-        wIf.WriteLine("_this.value = _this.init().Get()");
+        wIf.WriteLine("_this.value = _this.init().Get_()");
         wIf.WriteLine("_this.init = nil"); // allow GC of values in closure
 
         wLazyGet.WriteLine("return _this.value");
@@ -751,12 +751,12 @@ namespace Microsoft.Dafny.Compilers {
 
         wr.WriteLine();
         var wCheck = wr.NewNamedBlock("func (_this {0}) {1}() bool", name, FormatDatatypeConstructorCheckName(ctor.GetCompileName(Options)));
-        wCheck.WriteLine("_, ok := _this.Get().({0})", StructOfCtor(ctor));
+        wCheck.WriteLine("_, ok := _this.Get_().({0})", StructOfCtor(ctor));
         wCheck.WriteLine("return ok");
 
         if (dt is CoDatatypeDecl) {
           wr.WriteLine();
-          var wGet = wr.NewNamedBlock("func (_this *{0}) Get() {1}", ctorStructName, dataName);
+          var wGet = wr.NewNamedBlock("func (_this *{0}) Get_() {1}", ctorStructName, dataName);
           wGet.WriteLine("return _this");
         }
       }
@@ -810,9 +810,9 @@ namespace Microsoft.Dafny.Compilers {
               var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.Get().({0}).{1}", StructOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
+                wDtor.WriteLine("return _this.Get_().({0}).{1}", StructOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
               } else {
-                wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
+                wDtor = wDtor.NewBlock("switch data := _this.Get_().(type)");
                 var compiledConstructorsProcessed = 0;
                 for (var i = 0; i < n; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
@@ -839,7 +839,7 @@ namespace Microsoft.Dafny.Compilers {
         var w = wr.NewNamedBlock("func (_this {0}) String() string", name);
         // TODO Avoid switch if only one branch
         var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => !ctor.IsGhost && ctor.Formals.Exists(arg => !arg.IsGhost));
-        w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
+        w = w.NewNamedBlock("switch {0}_this.Get_().(type)", needData ? "data := " : "");
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           var wCase = w.NewNamedBlock("case {0}:", StructOfCtor(ctor));
@@ -885,13 +885,13 @@ namespace Microsoft.Dafny.Compilers {
         // TODO: Way to implement shortcut check for address equality?
         var needData1 = dt.Ctors.Exists(ctor => !ctor.IsGhost && ctor.Formals.Exists(arg => !arg.IsGhost));
 
-        wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
+        wEquals = wEquals.NewNamedBlock("switch {0}_this.Get_().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
           var wCase = wEquals.NewNamedBlock("case {0}:", StructOfCtor(ctor));
 
           var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
 
-          wCase.WriteLine("{0}, ok := other.Get().({1})", needData2 ? "data2" : "_", StructOfCtor(ctor));
+          wCase.WriteLine("{0}, ok := other.Get_().({1})", needData2 ? "data2" : "_", StructOfCtor(ctor));
           wCase.Write("return ok");
           var k = 0;
           foreach (Formal arg in ctor.Formals) {
@@ -3048,7 +3048,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         wr = EmitCoercionIfNecessary(from: dtor.Type, to: bvType, tok: dtor.tok, wr: wr);
-        wr.Write("{0}.Get().({1}).{2}", source, TypeName_Constructor(ctor, wr), dtorName);
+        wr.Write("{0}.Get_().({1}).{2}", source, TypeName_Constructor(ctor, wr), dtorName);
       }
     }
 

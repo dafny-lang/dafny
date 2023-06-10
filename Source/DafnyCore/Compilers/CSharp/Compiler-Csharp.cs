@@ -836,13 +836,18 @@ namespace Microsoft.Dafny.Compilers {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
               if ((member is Function f && f.Formals.Exists(InvalidFormal))
-                  || (member is Method m && m.Ins.Exists(InvalidFormal))) { return true; }
+                  || (member is Method m && m.Ins.Exists(InvalidFormal))
+                  || NeedsTypeDescriptor(tp)) {
+                return true;
+              }
               break;
             //Can only be in input
             case TypeParameter.TPVariance.Contra:
               if ((member is Function fn && InvalidType(fn.ResultType))
                   || (member is Method me && me.Outs.Exists(InvalidFormal))
-                  || (member is ConstantField c && InvalidType(c.Type))) { return true; }
+                  || (member is ConstantField c && InvalidType(c.Type))) {
+                return true;
+              }
               break;
           }
         }

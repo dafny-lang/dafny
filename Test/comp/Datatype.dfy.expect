@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 List.Nil
@@ -24,6 +24,7 @@ Record.Record(58, true)
 199
 800 801 802
 800 801 802
+TypeDescriptorsInCovariantPositions_Compile.Unit.Unit 0.0 0.0
 
 Dafny program verifier did not attempt verification
 List.Nil
@@ -48,6 +49,7 @@ Record.Record(58, true)
 199
 800 801 802
 800 801 802
+TypeDescriptorsInCovariantPositions_Compile.Unit.Unit 0.0 0.0
 
 Dafny program verifier did not attempt verification
 List.Nil
@@ -72,6 +74,7 @@ Record.Record(58, true)
 199
 800 801 802
 800 801 802
+TypeDescriptorsInCovariantPositions_Compile.Unit.Unit 0.0 0.0
 
 Dafny program verifier did not attempt verification
 List.Nil
@@ -96,6 +99,7 @@ Record.Record(58, true)
 199
 800 801 802
 800 801 802
+TypeDescriptorsInCovariantPositions_Compile.Unit.Unit 0.0 0.0
 
 Dafny program verifier did not attempt verification
 List.Nil
@@ -120,3 +124,4 @@ Record.Record(58, true)
 199
 800 801 802
 800 801 802
+TypeDescriptorsInCovariantPositions_Compile.Unit.Unit 0.0 0.0
