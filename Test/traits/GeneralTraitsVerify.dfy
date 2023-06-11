@@ -419,3 +419,53 @@ module MoreEquality {
     assert false; // error: the previous two lines should not cause any contradiction
   }
 }
+
+module InferredDecreasesClauseForReceiver {
+  trait Parent {
+    // The following method and function each gets an automatic "decreases a" (without "this")
+    method M(a: int) returns (r: int)
+    function F(a: int): int
+  }
+
+  datatype Unit<X(0)> extends Parent = Unit
+  {
+    // These overrides had better also omit "this" from "decreases a", or else they won't be pass the override tests
+    method M(a: int) returns (r: int) {
+      r := a;
+    }
+    function F(a: int): int {
+      a
+    }
+  }
+
+  type AbstractType<X(0)> extends Parent {
+    // These overrides had better also omit "this" from "decreases a", or else they won't be pass the override tests
+    method M(a: int) returns (r: int) {
+      r := a;
+    }
+    function F(a: int): int {
+      a
+    }
+  }
+
+  class Class<X(0)> extends Parent {
+    // These overrides had better also omit "this" from "decreases a", or else they won't be pass the override tests
+    method M(a: int) returns (r: int) {
+      r := a;
+    }
+    function F(a: int): int {
+      a
+    }
+  }
+
+  newtype MyInt extends Parent = int
+  {
+    // These overrides had better also omit "this" from "decreases a", or else they won't be pass the override tests
+    method M(a: int) returns (r: int) {
+      r := a;
+    }
+    function F(a: int): int {
+      a
+    }
+  }
+}
