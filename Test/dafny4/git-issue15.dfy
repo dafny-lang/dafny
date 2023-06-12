@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny  /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 datatype obj = Obj(fooBar:map<foo,int>)
 datatype foo = Foo

@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %dafny /compile:4 /compileTarget:py "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method Main() {
     var x: multiset<int> := multiset{};
