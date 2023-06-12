@@ -698,7 +698,7 @@ Overrides the `/subsumption` command-line setting for this assertion.
 `{:subsumption 0}` checks an assertion but does not assume it after proving it.
 You can achieve the same effect using [labelled assertions](#sec-labeling-revealing-assertions).
 
-### 11.3.4. `{:error "errorMessage", "successMessage"}` {#sec-error-attribute}
+### 11.3.5. `{:error "errorMessage", "successMessage"}` {#sec-error-attribute}
 Provides a custom error message in case the assertion fails.
 As a hint, messages indicating what the user needs to do to fix the error are usually better than messages that indicate the error only.
 For example:
