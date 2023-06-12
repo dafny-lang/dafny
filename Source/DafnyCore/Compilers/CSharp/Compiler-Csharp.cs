@@ -483,7 +483,7 @@ namespace Microsoft.Dafny.Compilers {
       var simplifiedType = DatatypeWrapperEraser.SimplifyType(Options, UserDefinedType.FromTopLevelDecl(dt.tok, dt));
       var simplifiedTypeName = TypeName(simplifiedType, wr, dt.tok);
 
-      // ContreteSyntaxTree for the interface
+      // ConcreteSyntaxTree for the interface
       wr.Write($"public interface _I{dt.GetCompileName(Options)}{TypeParameters(nonGhostTypeArgs, true)}");
       var superTraits = dt.ParentTypeInformation.UniqueParentTraits();
       if (superTraits.Any()) {
