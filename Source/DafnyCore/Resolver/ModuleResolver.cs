@@ -16,6 +16,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
   public record ModuleResolutionResult(
+    ModuleDecl ResolvedDeclaration,
     BatchErrorReporter ErrorReporter,
     Dictionary<ModuleDefinition, ModuleSignature> Signatures,
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
@@ -1249,7 +1250,7 @@ namespace Microsoft.Dafny {
           var m = p.ExportSets.GetValueOrDefault(decl.Name, null);
           if (m == null) {
             // no default view is specified.
-            reporter.Error(MessageSource.Resolver, qid.rootToken(), "no default export set declared in module: {0}", decl.Name);
+            reporter.Error(MessageSource.Resolver, qid.RootToken(), "no default export set declared in module: {0}", decl.Name);
             return false;
           }
           p = m.AccessibleSignature();
@@ -1346,7 +1347,7 @@ namespace Microsoft.Dafny {
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
-            reporter.Error(MessageSource.Resolver, am.TargetQId.rootToken(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
+            reporter.Error(MessageSource.Resolver, am.TargetQId.RootToken(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;

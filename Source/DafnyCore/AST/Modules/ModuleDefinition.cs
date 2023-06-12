@@ -464,7 +464,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
           if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
             resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
           } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
-                     importDecl.Name == importDecl.TargetQId.rootName()) {
+                     importDecl.Name == importDecl.TargetQId.RootName()) {
             importDecl.ShadowsLiteralModule = true;
           } else {
             resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok,

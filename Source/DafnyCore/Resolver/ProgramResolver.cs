@@ -243,7 +243,7 @@ public class ProgramResolver {
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 
-  private static void SetHeights(List<ModuleDecl> sortedDecls) {
+  private static void SetHeights(IEnumerable<ModuleDecl> sortedDecls) {
     foreach (var withIndex in sortedDecls.Zip(Enumerable.Range(0, int.MaxValue))) {
       var md = withIndex.First;
       md.Height = withIndex.Second;
@@ -333,13 +333,12 @@ public class ProgramResolver {
     Graph<ModuleDecl> dependencies) {
     Contract.Assert(decl is LiteralModuleDecl);
     if (m.RefinementQId != null) {
-      ModuleDecl other;
-      bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out other);
+      bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out var other);
       if (!res) {
-        Reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(),
+        Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(),
           $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
       } else if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-        Reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(), "module cannot refine itself: {0}",
+        Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(), "module cannot refine itself: {0}",
           m.RefinementQId.ToString());
       } else {
         Contract.Assert(other != null); // follows from postcondition of TryGetValue

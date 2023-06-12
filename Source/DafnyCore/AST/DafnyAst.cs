@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
-    public readonly LiteralModuleDecl DefaultModule;
+    public LiteralModuleDecl DefaultModule;
     public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
     public readonly BuiltIns BuiltIns;
     public DafnyOptions Options => Reporter.Options;
