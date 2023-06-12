@@ -14,6 +14,20 @@ namespace DafnyPipeline.Test;
 [Collection("Dafny implicit assertion test")]
 public class ImplicitAssertionTest {
   [Fact]
+  public void GitIssue4016ExplicitAssertionPrintNested() {
+    ShouldHaveImplicitCode(@"
+datatype D = C(value: int) | N
+
+function Test(e: D, inputs: map<int, int>): bool {
+  match e
+  case N => true
+  case C(index) => inputs[index] == index // Here
+}",
+    "index in inputs"
+);
+  }
+
+  [Fact]
   public void DivisionByZero() {
     ShouldHaveImplicitCode(@"
 method Test(x: int, y: int) returns (z: int) {
@@ -157,7 +171,7 @@ method Test(m: map<int, int>, x: int) {
             if (assertCmd.Description is ProofObligationDescription description) {
               var assertedExpr = description.GetAssertedExpr(options);
               if (assertedExpr != null) {
-                var str = Printer.ExprToString(options, assertedExpr);
+                var str = Printer.ExprToString(options, assertedExpr, new PrintFlags(UseOriginalDafnyNames: true));
                 if (str == expected) {
                   found = true;
                 } else {
