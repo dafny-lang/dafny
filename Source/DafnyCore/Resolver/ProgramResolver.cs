@@ -154,14 +154,14 @@ public class ProgramResolver {
     if (Reporter.ErrorCount > 0) {
       return;
     } // if there were errors, then the implict ModuleBindings data structure invariant
-    // is violated, so Processing dependencies will not succeed.
-    
+      // is violated, so Processing dependencies will not succeed.
+
     // TODO: If we merge ProcessDependencies and resolving individual modules, then we don't need these pointers.
     // Or we need to change when ModuleQualifiedId.Root is set. We could update ModuleBindings when resolving ModuleDecls.
     Dictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers = new();
-    
+
     // Default module is never cached so this is a noop
-    
+
     declarationPointers[prog.DefaultModule] = v => prog.DefaultModule = (LiteralModuleDecl)v;
     ProcessDependencies(prog.DefaultModule, b, dependencies, declarationPointers);
     // check for cycles in the import graph
@@ -216,7 +216,7 @@ public class ProgramResolver {
     foreach (var decl in sortedDecls) {
       var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl);
       declarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
-      
+
       foreach (var sig in moduleResolutionResult.Signatures) {
         prog.ModuleSigs[sig.Key] = sig.Value;
       }
@@ -361,7 +361,7 @@ public class ProgramResolver {
         declarationPointers.Add(moduleDecl, v => pointer.Set(v));
       }
     }
-    
+
     foreach (var toplevel in m.TopLevelDecls) {
       if (toplevel is ModuleDecl) {
         var d = (ModuleDecl)toplevel;
@@ -377,10 +377,9 @@ public class ProgramResolver {
     }
   }
 
-  private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings, 
+  private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings,
     Graph<ModuleDecl> dependencies,
-    IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) 
-  {
+    IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     dependencies.AddVertex(moduleDecl);
     if (moduleDecl is LiteralModuleDecl) {
       ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, dependencies, declarationPointers);
@@ -392,7 +391,7 @@ public class ProgramResolver {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
         Reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
       } else {
-        
+
         alias.TargetQId.Root = root;
         declarationPointers.AddOrUpdate(root, v => alias.TargetQId.Root = v, Util.Concat);
         dependencies.AddEdge(moduleDecl, root);

@@ -12,9 +12,8 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
   public readonly List<IToken> Exports; // list of exports sets
   [FilledInDuringResolution] public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition parent) 
-    : base(cloner, original, parent) 
-  {
+  public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
     TargetQId = original.TargetQId?.Clone(false);
     Exports = original.Exports;
   }

@@ -43,7 +43,7 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string FullName;
-    
+
     // TODO do we need this? And should it be in program? What about CompilationData?
     /*
      * Where do we want to store resolution state in the future? Where does Roslyn do that?

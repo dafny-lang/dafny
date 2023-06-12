@@ -134,7 +134,7 @@ module ModC {
     ApplyChange(ref secondFile, ((19, 0), (19, 0)), "// Make the file larger\n");
     Assert.Equal(0, await WaitAndCountHits());
   }
-  
+
   [Fact(Skip = "need hashing on modules to work")]
   public async Task ResolutionInSingleFileIsCached() {
     var source = @"

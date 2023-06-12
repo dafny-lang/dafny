@@ -34,9 +34,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
   public override IEnumerable<Node> Children => new[] { ModuleDef };
   public override IEnumerable<Node> PreResolveChildren => Children;
 
-  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent) 
-    : base(cloner, original, parent) 
-  {
+  public LiteralModuleDecl(Cloner cloner, LiteralModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
     var newModuleDefinition = cloner.CloneLiteralModuleDefinition ? cloner.CloneModuleDefinition(original.ModuleDef, parent) : original.ModuleDef;
     ModuleDef = newModuleDefinition;
     DefaultExport = original.DefaultExport;
