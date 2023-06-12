@@ -50,6 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private bool RunDafnyResolver(TextDocumentItem document, Program program) {
       var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
       resolver.ResolveProgram(program);
+      resolutionCache.Prune();
       int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
       if (resolverErrors > 0) {
         logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);

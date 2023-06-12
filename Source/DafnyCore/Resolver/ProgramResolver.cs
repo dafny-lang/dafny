@@ -156,6 +156,8 @@ public class ProgramResolver {
     } // if there were errors, then the implict ModuleBindings data structure invariant
     // is violated, so Processing dependencies will not succeed.
     
+    // TODO: If we merge ProcessDependencies and resolving individual modules, then we don't need these pointers.
+    // Or we need to change when ModuleQualifiedId.Root is set. We could update ModuleBindings when resolving ModuleDecls.
     Dictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers = new();
     
     // Default module is never cached so this is a noop

@@ -26,7 +26,7 @@ public class CachingTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
-  public async Task ParsingIsCachedAndCacheIsPruned() {
+  public async Task RootFileChangesTriggerParseAndResolutionCachingAndPruning() {
     var source = @"
 include ""./A.dfy""
 include ""./B.dfy""
@@ -68,8 +68,8 @@ module ModC {
     var hitCount3 = await WaitAndCountHits();
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
-    // Literal module A, alias module A was tainted because B.dfy was reparsed.
-    Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ResolveHits);
+    // The resolution cache was pruned after the previous change, so no cache hits here.
+    Assert.Equal(hitCount2.ResolveHits, hitCount3.ResolveHits);
   }
 
   /// <summary>
