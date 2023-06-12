@@ -59,7 +59,7 @@ jobs:
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack --no-build dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends
-      run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test Source/IntegrationTests
+      run: DAFNY_INTEGRATION_TESTS_MODE=uniformity-check dotnet test Source/IntegrationTests/IntegrationTests.csproj
 
   xunit-tests:
     needs: check-deep-tests
