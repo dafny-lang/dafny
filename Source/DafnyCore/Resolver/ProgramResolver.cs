@@ -122,7 +122,7 @@ public class ProgramResolver {
   }
 
   private void ResolveValuetypeDecls() {
-    var moduleResolver = new ModuleResolver(this);
+    var moduleResolver = new Resolver(this);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
@@ -166,7 +166,7 @@ public class ProgramResolver {
     ProcessDependencies(prog.DefaultModule, b, dependencies, declarationPointers);
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
-      ModuleResolver.ReportCycleError(Reporter, cycle, m => m.tok,
+      Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
         m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
         "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
     }
@@ -183,7 +183,7 @@ public class ProgramResolver {
     prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
     rewriters = prog.Compilation.Rewriters;
 
-    var systemModuleResolver = new ModuleResolver(this);
+    var systemModuleResolver = new Resolver(this);
 
     systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
     systemModuleResolver.moduleInfo = systemNameInfo;
@@ -249,7 +249,7 @@ public class ProgramResolver {
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
-    var moduleResolver = new ModuleResolver(this);
+    var moduleResolver = new Resolver(this);
     return moduleResolver.ResolveModuleDeclaration(compilation, decl);
   }
 

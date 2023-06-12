@@ -381,7 +381,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool Resolve(ModuleSignature sig, ModuleResolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -422,9 +422,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = ModuleResolver.MergeSignature(sig, resolver.ProgramResolver.systemNameInfo);
+    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    ModuleResolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
     var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
@@ -523,7 +523,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return tup with { Parts = rest };
   }
 
-  public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
+  public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
     sig.ModuleDef = this;

@@ -10,9 +10,9 @@ using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  public partial class ModuleResolver {
+  public partial class Resolver {
     private class BoundsDiscoveryVisitor : ASTVisitor<BoundsDiscoveryVisitor.BoundsDiscoveryContext> {
-      private readonly ModuleResolver resolver;
+      private readonly Resolver resolver;
 
       public class BoundsDiscoveryContext : IASTVisitorContext {
         private readonly IASTVisitorContext astVisitorContext;
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
 
       private readonly ErrorReporter reporter;
 
-      public BoundsDiscoveryVisitor(ModuleResolver resolver) {
+      public BoundsDiscoveryVisitor(Resolver resolver) {
         this.resolver = resolver;
         this.reporter = resolver.Reporter;
       }

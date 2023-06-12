@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
-  public partial class ModuleResolver {
+  public partial class Resolver {
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
     public readonly Scope<Label>/*!*/ DominatingStatementLabels;
     Scope<Statement>/*!*/ enclosingStatementLabels;

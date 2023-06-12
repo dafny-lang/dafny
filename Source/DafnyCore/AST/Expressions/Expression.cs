@@ -727,9 +727,9 @@ public abstract class Expression : TokenNode {
     // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
     var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
     var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
-    subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    subst = Resolver.AddParentTypeParameterSubstitutions(subst, receiverType);
     var exprDotName = new ExprDotName(call.tok, call.Receiver, call.Function.Name, call.TypeApplication_JustFunction) {
-      Type = ModuleResolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
+      Type = Resolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, builtIns)
     };
 
     subst = TypeParameter.SubstitutionMap(call.Function.TypeArgs, call.TypeApplication_JustFunction);

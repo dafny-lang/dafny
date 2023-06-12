@@ -91,7 +91,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
-  public ModuleSignature Resolve(ModuleResolver resolver, CompilationData compilation) {
+  public ModuleSignature Resolve(Resolver resolver, CompilationData compilation) {
     // The declaration is a literal module, so it has members and such that we need
     // to resolve. First we do refinement transformation. Then we construct the signature
     // of the module. This is the public, externally visible signature. Then we add in

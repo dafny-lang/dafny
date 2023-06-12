@@ -154,7 +154,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return Members.SelectMany(m => m.Assumptions(this));
   }
 
-  public void RegisterMembers(ModuleResolver resolver, ModuleDefinition moduleDef,
+  public void RegisterMembers(Resolver resolver, ModuleDefinition moduleDef,
     Dictionary<string, MemberDecl> members) {
     Contract.Requires(moduleDef != null);
     Contract.Requires(this != null);
@@ -231,7 +231,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
           extraMember.InheritVisibility(m, false);
           members.Add(extraName.Value, extraMember);
         } else if (m is Function f && f.ByMethodBody != null) {
-          ModuleResolver.RegisterByMethod(f, this);
+          Resolver.RegisterByMethod(f, this);
         }
       } else if (m is Constructor && !((Constructor)m).HasName) {
         resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");

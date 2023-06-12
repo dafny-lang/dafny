@@ -8,11 +8,11 @@ namespace Microsoft.Dafny;
 
 class GhostInterestVisitor {
   readonly ICodeContext codeContext;
-  readonly ModuleResolver resolver;
+  readonly Resolver resolver;
   private readonly ErrorReporter reporter;
   private readonly bool inConstructorInitializationPhase;
   private readonly bool allowAssumptionVariables;
-  public GhostInterestVisitor(ICodeContext codeContext, ModuleResolver resolver, ErrorReporter reporter, bool inConstructorInitializationPhase, bool allowAssumptionVariables) {
+  public GhostInterestVisitor(ICodeContext codeContext, Resolver resolver, ErrorReporter reporter, bool inConstructorInitializationPhase, bool allowAssumptionVariables) {
     Contract.Requires(codeContext != null);
     Contract.Requires(resolver != null);
     this.codeContext = codeContext;

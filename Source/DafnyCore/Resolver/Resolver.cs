@@ -23,12 +23,12 @@ namespace Microsoft.Dafny {
     );
 
   interface ICanResolve {
-    void Resolve(ModuleResolver resolver, ResolutionContext context);
+    void Resolve(Resolver resolver, ResolutionContext context);
   }
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
-  public partial class ModuleResolver {
+  public partial class Resolver { // TODO rename to ModuleResolver in fast-follow-up
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     public readonly BuiltIns builtIns; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
@@ -86,11 +86,11 @@ namespace Microsoft.Dafny {
 
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
 
-    public ModuleResolver(DafnyOptions options) {
+    public Resolver(DafnyOptions options) {
       Options = options;
     }
 
-    public ModuleResolver(ProgramResolver programResolver) {
+    public Resolver(ProgramResolver programResolver) {
       this.ProgramResolver = programResolver;
       Options = programResolver.Options;
 
@@ -667,7 +667,7 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, ModuleResolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
@@ -3016,7 +3016,7 @@ namespace Microsoft.Dafny {
     /// This method computes ghost interests in the statement portion of StmtExpr's and
     /// checks for hint restrictions in any CalcStmt.
     /// </summary>
-    void CheckExpression(Expression expr, ModuleResolver resolver, ICodeContext codeContext) {
+    void CheckExpression(Expression expr, Resolver resolver, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
@@ -3029,7 +3029,7 @@ namespace Microsoft.Dafny {
     /// changes the bound variables of all let- and let-such-that expressions to ghost.
     /// It also performs substitutions in DefaultValueExpression's.
     /// </summary>
-    void CheckExpression(Statement stmt, ModuleResolver resolver, ICodeContext codeContext) {
+    void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
@@ -3038,7 +3038,7 @@ namespace Microsoft.Dafny {
     }
     class CheckExpression_Visitor : ResolverBottomUpVisitor {
       readonly ICodeContext CodeContext;
-      public CheckExpression_Visitor(ModuleResolver resolver, ICodeContext codeContext)
+      public CheckExpression_Visitor(Resolver resolver, ICodeContext codeContext)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(codeContext != null);
@@ -3120,7 +3120,7 @@ namespace Microsoft.Dafny {
     }
 
     class ReportOtherAdditionalInformation_Visitor : ResolverBottomUpVisitor {
-      public ReportOtherAdditionalInformation_Visitor(ModuleResolver resolver)
+      public ReportOtherAdditionalInformation_Visitor(Resolver resolver)
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
@@ -4495,9 +4495,9 @@ namespace Microsoft.Dafny {
     }
 
     class DefaultValueSubstituter : Substituter {
-      private readonly ModuleResolver resolver;
+      private readonly Resolver resolver;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
-      public DefaultValueSubstituter(ModuleResolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
+      public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
         Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
         : base(receiverReplacement, substMap, typeMap) {
         Contract.Requires(resolver != null);

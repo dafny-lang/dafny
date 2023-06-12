@@ -33,7 +33,7 @@ public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration
   public override IEnumerable<Node> PreResolveChildren => Children;
 
   public void Resolve(
-    ModuleResolver resolver,
+    Resolver resolver,
     ResolutionContext resolutionContext,
     Dictionary<TypeParameter, Type> subst,
     Type sourceType) {

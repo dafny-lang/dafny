@@ -234,8 +234,8 @@ namespace Microsoft.Dafny {
       var prev = module.RefinementQId.Def;
 
       //copy the signature, including its opened imports
-      refinedSigOpened = ModuleResolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      ModuleResolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, null);
+      refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
+      Resolver.ResolveOpenedImports(refinedSigOpened, module.RefinementQId.Def, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, IPointer<TopLevelDecl>>();
