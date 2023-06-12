@@ -223,7 +223,8 @@ namespace DafnyTestGeneration {
           $"e.g. if branching is conditional on the result of a trait instance " +
           $"method call.");
       }
-      return testMethod;
+      // return testMethod;
+      return null;
     }
     
     public bool IsCovered(Modifications cache) => cache.NumberOfBlocksCovered(implementation, CapturedStates) == CapturedStates.Count;
