@@ -27,8 +27,7 @@ namespace IntegrationTests {
     private static readonly Assembly TestDafnyAssembly = typeof(TestDafny.MultiBackendTest).Assembly;
     private static readonly Assembly DafnyServerAssembly = typeof(Server).Assembly;
 
-    private static readonly string
-      RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
+    private static readonly string RepositoryRoot = Path.GetFullPath("../../../../../"); // Up from Source/IntegrationTests/bin/Debug/net6.0/
 
     private static readonly string[] DefaultBoogieArguments = new[] {
       "/infer:j",
@@ -59,13 +58,10 @@ namespace IntegrationTests {
       }
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename" };
-      string[] defaultVerifyArgs = new[]
-        { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
       //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultBuildArgs = new[]
-        { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
-      string[] defaultRunArgs = new[]
-        { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
+      string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--cores:2", "--verification-time-limit:300" };
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
@@ -102,11 +98,8 @@ namespace IntegrationTests {
             MainMethodLitCommand.Parse(TestDafnyAssembly, new[] { "for-each-compiler" }.Concat(args), config,
               InvokeMainMethodsDirectly)
         }, {
-          "%server", (args, config) => // TODO
-          {
-            var shellArguments = new[] { DafnyServerAssembly.Location }.Concat(args);
-            return new ShellLitCommand("dotnet", shellArguments, config.PassthroughEnvironmentVariables);
-          }
+          "%server", (args, config) =>
+            MainMethodLitCommand.Parse(DafnyServerAssembly, args, config, InvokeMainMethodsDirectly)
         }, {
           "%boogie", (args, config) => // TODO
             new DotnetToolCommand("boogie",
@@ -169,8 +162,7 @@ namespace IntegrationTests {
       Config = new LitTestConfiguration(substitutions, commands, features, DafnyDriver.ReferencedEnvironmentVariables);
     }
 
-    public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config,
-      bool invokeDirectly) {
+    public static ILitCommand DafnyCommand(IEnumerable<string> arguments, LitTestConfiguration config, bool invokeDirectly) {
       return invokeDirectly
         ? new DafnyDriverLitCommand(arguments, config)
         : new ShellLitCommand("dotnet", new[] { DafnyDriverAssembly.Location }.Concat(arguments),
@@ -184,11 +176,9 @@ namespace IntegrationTests {
     }
 
     [FileTheory]
-    [FileData(
-      Includes = new[] { "**/*.dfy", "**/*.transcript" },
-      Excludes = new[] {
-        "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
-      })]
+    [FileData(Includes = new[] { "**/*.dfy", "**/*.transcript" },
+              Excludes = new[] { "**/Inputs/**/*", "**/Output/**/*", "libraries/**/*"
+              })]
     public void LitTest(string path) {
       var testPath = path.Replace("TestFiles/LitTests/LitTest", "");
       var mode = Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_MODE");
@@ -294,40 +284,40 @@ namespace IntegrationTests {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
           case ShellLitCommand or DafnyDriverLitCommand: {
-              var arguments = GetDafnyArguments(leafCommand);
-              if (arguments == null) {
-                throw new ArgumentException();
-              }
-
-              if (arguments.Any(arg => arg.StartsWith("/compile"))) {
-                wasLegacyCli = true;
-              }
-
-              var backend = GetBackendFromCommand(arguments);
-              if (backends.Contains(backend)) {
-                throw new ArgumentException($"More than one command for the same backend: {backend}");
-              }
-              backends.Add(backend);
-
-              // Filter out options we can ignore
-              var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
-              if (extraOptionsLocked) {
-                foreach (string arg in options) {
-                  if (!commonExtraOptions.Contains(arg)) {
-                    throw new ArgumentException($"Inconsistent option: {arg}");
-                  }
-                }
-              } else {
-                foreach (var arg in options) {
-                  commonExtraOptions.Add(arg);
-                }
-                if (backend != null) {
-                  extraOptionsLocked = true;
-                }
-              }
-
-              break;
+            var arguments = GetDafnyArguments(leafCommand);
+            if (arguments == null) {
+              throw new ArgumentException();
             }
+
+            if (arguments.Any(arg => arg.StartsWith("/compile"))) {
+              wasLegacyCli = true;
+            }
+
+            var backend = GetBackendFromCommand(arguments);
+            if (backends.Contains(backend)) {
+              throw new ArgumentException($"More than one command for the same backend: {backend}");
+            }
+            backends.Add(backend);
+
+            // Filter out options we can ignore
+            var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
+            if (extraOptionsLocked) {
+              foreach (string arg in options) {
+                if (!commonExtraOptions.Contains(arg)) {
+                  throw new ArgumentException($"Inconsistent option: {arg}");
+                }
+              }
+            } else {
+              foreach (var arg in options) {
+                commonExtraOptions.Add(arg);
+              }
+              if (backend != null) {
+                extraOptionsLocked = true;
+              }
+            }
+
+            break;
+          }
           case DiffCommand diffCommand:
             // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
             expectFile = diffCommand.ExpectedPath;

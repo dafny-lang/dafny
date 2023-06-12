@@ -76,7 +76,7 @@ public class MultiBackendTest {
     // but this was never meaningful and only added maintenance burden.
     // Here we only ensure that the exit code is 0.
 
-    // We also use --print and --print-bpl to catch bugs with valid but unprintable programs.
+    // We also use --(r|b)print to catch bugs with valid but unprintable programs.
     string fileName = Path.GetFileName(options.TestFile!);
     var testDir = Path.GetDirectoryName(options.TestFile!);
     var tmpDPrint = Path.Join(testDir, "Output", $"{fileName}.dprint");
@@ -160,7 +160,10 @@ public class MultiBackendTest {
     }
   }
 
-  private bool OptionAppliesToVerifyCommand(string option) {
+  // Necessary to avoid passing invalid options to the first `dafny verify` command.
+  // Ideally we could hook into the general `dafny` options parsing logic
+  // and `ICommandSpec` commands instead.
+  private static bool OptionAppliesToVerifyCommand(string option) {
     if (option is "--spill-translation") {
       return false;
     }
