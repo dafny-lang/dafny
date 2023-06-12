@@ -3684,7 +3684,7 @@ namespace Microsoft.Dafny {
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassDecl)func.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassLikeDecl)func.EnclosingClass);
         var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
