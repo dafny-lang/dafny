@@ -12,8 +12,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 public class IncludeFileTest : ClientBasedLanguageServerTest {
 
   [Fact]
-  public async Task DirectlyIncludedFileFailsSyntax() {
+  public async Task DirectlyIncludedFileFails() {
     var source = @"
+include ""./syntaxError.dfy""
+".TrimStart();
+    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Single(diagnostics);
+    Assert.Contains("the included file", diagnostics[0].Message);
+    Assert.Contains("syntaxError.dfy", diagnostics[0].Message);
+  }
+
+  [Fact]
+  public async Task IndirectlyIncludedFileFailsSyntax() {
+    var source = @"
+include ""./includesSyntaxError.dfy""
 include ""./syntaxError.dfy""
 ".TrimStart();
     var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
