@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3  "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This method can be used to test compilation.
 method Main()
