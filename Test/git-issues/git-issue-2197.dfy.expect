@@ -28,7 +28,7 @@ git-issue-2197.dfy(22,2): Error: a precondition for this call could not be prove
 22 |   Never();
    |   ^^^^^^^^
 
-git-issue-2197.dfy(26,11): Related location: this is the precondition that could not be proved
+git-issue-2197.dfy(26,11): Related location: the precondition could not be proved
    |
 26 |   requires 1 == 0
    |            ^^^^^^

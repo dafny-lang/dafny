@@ -31,7 +31,7 @@ SmallTests.dfy(243,30): Error: assertion might not hold
 SmallTests.dfy(253,25): Error: assertion might not hold
 SmallTests.dfy(255,30): Error: assertion might not hold
 SmallTests.dfy(303,23): Error: a precondition for this call could not be proved
-SmallTests.dfy(281,16): Related location: this is the precondition that could not be proved
+SmallTests.dfy(281,16): Related location: the precondition could not be proved
 SmallTests.dfy(408,11): Error: assertion might not hold
 SmallTests.dfy(418,11): Error: assertion might not hold
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause

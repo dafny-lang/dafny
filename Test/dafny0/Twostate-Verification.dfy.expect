@@ -27,7 +27,7 @@ Twostate-Verification.dfy(277,4): Error: a postcondition could not be proved on 
 Twostate-Verification.dfy(276,26): Related location: This is the postcondition that might not hold.
 Twostate-Verification.dfy(313,38): Error: assertion might not hold
 Twostate-Verification.dfy(337,23): Error: a precondition for this call could not be proved
-Twostate-Verification.dfy(317,29): Related location: this is the precondition that could not be proved
+Twostate-Verification.dfy(317,29): Related location: the precondition could not be proved
 Twostate-Verification.dfy(359,18): Error: assertion might not hold
 Twostate-Verification.dfy(361,18): Error: assertion might not hold
 Twostate-Verification.dfy(384,17): Error: receiver argument might not be allocated in the two-state function's previous state

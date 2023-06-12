@@ -22,12 +22,12 @@ git-issue-1989.dfy(126,2): Error: a postcondition could not be proved on this re
 git-issue-1989.dfy(122,22): Related location: This is the postcondition that might not hold.
 git-issue-1989.dfy(150,23): Error: assertion might not hold
 git-issue-1989.dfy(156,20): Error: a precondition for this call could not be proved
-git-issue-1989.dfy(130,18): Related location: this is the precondition that could not be proved
+git-issue-1989.dfy(130,18): Related location: the precondition could not be proved
 git-issue-1989.dfy(181,24): Error: assertion might not hold
 git-issue-1989.dfy(199,17): Error: a precondition for this call could not be proved
-git-issue-1989.dfy(130,18): Related location: this is the precondition that could not be proved
+git-issue-1989.dfy(130,18): Related location: the precondition could not be proved
 git-issue-1989.dfy(221,24): Error: assertion might not hold
 git-issue-1989.dfy(233,17): Error: a precondition for this call could not be proved
-git-issue-1989.dfy(130,18): Related location: this is the precondition that could not be proved
+git-issue-1989.dfy(130,18): Related location: the precondition could not be proved
 
 Dafny program verifier finished with 17 verified, 7 errors
