@@ -37,11 +37,11 @@ public class DocumentAfterParsing : Document {
   }
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
-    foreach (var include in Program.Includes) {
+    foreach (var include in Program.Includes.Select(i => i.IncludedFilename).Distinct()) {
       var messageForIncludedFile =
-        ResolutionDiagnostics.GetOrDefault(include.IncludedFilename, Enumerable.Empty<DafnyDiagnostic>);
+        ResolutionDiagnostics.GetOrDefault(include, Enumerable.Empty<DafnyDiagnostic>);
       if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
-        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.IncludedFilename.LocalPath + " contains error(s)",
+        var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), "the included file " + include.LocalPath + " contains error(s)",
           MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
         yield return diagnostic;
       }
