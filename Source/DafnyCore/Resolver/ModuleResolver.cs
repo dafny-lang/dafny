@@ -189,9 +189,7 @@ namespace Microsoft.Dafny {
         var signature = literalModuleDecl.Resolve(this, compilation);
         signatures[literalModuleDecl.ModuleDef] = signature;
       } else if (decl is AliasModuleDecl alias) {
-        // resolve the path
-        ModuleSignature p;
-        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter)) {
+        if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out var p, reporter)) {
           if (alias.Signature == null) {
             alias.Signature = p;
           }
@@ -199,23 +197,22 @@ namespace Microsoft.Dafny {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
       } else if (decl is AbstractModuleDecl abs) {
-        ModuleSignature p;
-        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
-          abs.OriginalSignature = p;
-          abs.Signature = MakeAbstractSignature(p, abs.FullSanitizedName, abs.Height, signatures);
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out var originalSignature, reporter)) {
+          abs.OriginalSignature = originalSignature;
+          abs.Signature = MakeAbstractSignature(originalSignature, abs.FullSanitizedName, abs.Height, signatures);
         } else {
           abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
-      } else if (decl is ModuleExportDecl) {
-        ((ModuleExportDecl)decl).SetupDefaultSignature();
+      } else if (decl is ModuleExportDecl exportDecl) {
+        exportDecl.SetupDefaultSignature();
 
-        Contract.Assert(decl.Signature != null);
-        Contract.Assert(decl.Signature.VisibilityScope != null);
+        Contract.Assert(exportDecl.Signature != null);
+        Contract.Assert(exportDecl.Signature.VisibilityScope != null);
       } else {
         Contract.Assert(false); // Unknown kind of ModuleDecl
       }
 
-      return new ModuleResolutionResult((BatchErrorReporter)reporter, signatures, moduleClassMembers);
+      return new ModuleResolutionResult(decl, (BatchErrorReporter)reporter, signatures, moduleClassMembers);
     }
 
     // Resolve the exports and detect cycles.

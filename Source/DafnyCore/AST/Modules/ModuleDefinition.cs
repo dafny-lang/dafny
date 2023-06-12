@@ -449,27 +449,29 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    BindPrefixNamedModules(resolver, bindings);
+    BindChildrenAndPrefixNamedModules(resolver, bindings);
 
     // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
     foreach (var tld in TopLevelDecls) {
-      if (tld is AbstractModuleDecl || tld is AliasModuleDecl) {
-        var subdecl = (ModuleDecl)tld;
-        if (bindings.BindName(subdecl.Name, subdecl, null)) {
-          // the add was successful
+      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+        continue;
+      }
+
+      var subdecl = (ModuleDecl)tld;
+      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+        // the add was successful
+      } else {
+        // there's already something with this name
+        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        Contract.Assert(yes);
+        if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
+          resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+                   importDecl.Name == importDecl.TargetQId.RootName()) {
+          importDecl.ShadowsLiteralModule = true;
         } else {
-          // there's already something with this name
-          var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
-          Contract.Assert(yes);
-          if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-            resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-          } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
-                     importDecl.Name == importDecl.TargetQId.RootName()) {
-            importDecl.ShadowsLiteralModule = true;
-          } else {
-            resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok,
-              "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
-          }
+          resolver.Reporter.Error(MessageSource.Resolver, subdecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
         }
       }
     }
@@ -477,7 +479,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings) {
+  private void BindChildrenAndPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings) {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
