@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
@@ -397,8 +397,7 @@ public class IdCtx : MatchingContext {
           newArguments.Add(curr);
           break;
         case IdCtx argId:
-          MatchingContext newarg;
-          foundHole = argId.ReplaceLeftmost(curr, out newarg);
+          foundHole = argId.ReplaceLeftmost(curr, out var newarg);
           newArguments.Add(newarg);
           break;
         default:
@@ -420,8 +419,7 @@ public class IdCtx : MatchingContext {
   }
 
   public override MatchingContext FillHole(MatchingContext curr) {
-    MatchingContext newContext;
-    ReplaceLeftmost(curr, out newContext);
+    ReplaceLeftmost(curr, out var newContext);
     return newContext;
   }
 }

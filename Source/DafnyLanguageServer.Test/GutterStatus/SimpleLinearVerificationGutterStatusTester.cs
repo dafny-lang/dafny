@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Diagnostics;
 
@@ -10,6 +11,19 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
   // To add a new test, just call VerifyTrace on a given program,
   // the test will fail and give the correct output that can be use for the test
   // Add '//Next<n>:' to edit a line multiple times
+
+  [Fact]
+  public async Task GitIssue3821GutterIgnoredProblem() {
+    await VerifyTrace(@"
+ | :function fib(n: nat): nat {
+ | :  if n <= 1 then n else fib(n-1) + fib(n-2)
+ | :}
+ | :
+[ ]:method {:rlimit 1} Test(s: seq<nat>)
+[=]:  requires |s| >= 1 && s[0] >= 0 {
+[=]:  assert fib(10) == 1; assert {:split_here} s[0] >= 0;
+[ ]:}", intermediates: false);
+  }
 
   [Fact]
   public async Task NoGutterNotificationsReceivedWhenTurnedOff() {
@@ -196,5 +210,8 @@ method Foo() ensures false { } ";
  .  |  |  | :predicate test2(x: nat) {
  .  |  |  | :  true
  .  |  |  | :}");
+  }
+
+  public SimpleLinearVerificationGutterStatusTester(ITestOutputHelper output) : base(output) {
   }
 }

@@ -16,14 +16,14 @@ ghost function F(n: nat, p: int): nat
 }
 
 lemma MM(n: nat) returns (y: nat)
-  decreases n, 0;
+  decreases n, 0
 {
   if n != 0 {
     y := FF(n-1);
   }
 }
 ghost function FF(n: nat): nat
-  decreases n, 1;
+  decreases n, 1
 {
   calc {
     100;
@@ -68,7 +68,7 @@ ghost function Fact(n: nat): nat
 }
 
 lemma L(n: nat)
-  ensures 1 <= Fact(n);
+  ensures 1 <= Fact(n)
 {
 }
 

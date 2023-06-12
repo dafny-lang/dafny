@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly IDocumentDatabase documents;
     private DafnyOptions options;
 
-    private const int RuLimitToBeOverCostly = 10000000;
+    private const long RuLimitToBeOverCostly = 10000000;
     private const string OverCostlyMessage =
       " [⚠](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-debugging-slow)";
 
@@ -125,8 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           return information;
         }
         // Ok no assertion here. Maybe a method?
-        if (node.Position.Line == position.Line &&
-            node.Filename == state.Uri.ToString()) {
+        if (node.Position.Line == position.Line && node.Uri == state.Uri) {
           areMethodStatistics = true;
           return GetTopLevelInformation(node, orderedAssertionBatches);
         }
@@ -149,7 +148,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchesToReport.Count == 0 && node.Finished) {
         information += "No assertions.";
       } else if (assertionBatchesToReport.Count >= 1) {
-        information += $"- Total resource usage: {formatResourceCount(node.ResourceCount)}";
+        information += $"- Total resource usage: {FormatResourceCount(node.ResourceCount)}";
         if (node.ResourceCount > RuLimitToBeOverCostly) {
           information += OverCostlyMessage;
         }
@@ -172,7 +171,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             result.Add(("#" + costlierAssertionBatch.RelativeNumber, item.ToString(),
               costlierAssertionBatch.Children.Count + "",
               costlierAssertionBatch.Children.Count != 1 ? "s" : "",
-              formatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
+              FormatResourceCount(costlierAssertionBatch.ResourceCount), overCostly));
           }
 
           var maxIndexLength = result.Select(item => item.index.Length).Max();
@@ -242,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       string information = "";
 
-      string CouldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
+      string couldProveOrNotPrefix = (assertionNode.StatusVerification) switch {
         GutterVerificationStatus.Verified => "Did prove: ",
         GutterVerificationStatus.Error => "Could not prove: ",
         GutterVerificationStatus.Inconclusive => "Not able to prove: ",
@@ -264,7 +263,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
           if (errorToken is BoogieRangeToken rangeToken && !hoveringPostcondition) {
             var originalText = rangeToken.PrintOriginal();
-            deltaInformation += "  \n" + (token == null ? CouldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
+            deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 
           hoveringPostcondition = false;
@@ -319,10 +318,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if (assertionBatchCount > 1) {
         information += AddAssertionBatchDocumentation("Batch") +
                        $" #{assertionBatch.RelativeNumber} resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       } else {
         information += "Resource usage: " +
-                       formatResourceCount(assertionBatch.ResourceCount);
+                       FormatResourceCount(assertionBatch.ResourceCount);
       }
 
       // Not the main error displayed in diagnostics
@@ -341,12 +340,33 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return information;
     }
 
-    private string formatResourceCount(int nodeResourceCount) {
-      var suffix = 0;
-      while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
-        nodeResourceCount /= 1000;
-        suffix += 1;
+    private static readonly int SignificativeDigits = 3;
+
+    public static long RoundToSignificativeDigits(long nodeResourceCount) {
+      var nDigits = ("" + nodeResourceCount).Length;
+      if (nDigits > SignificativeDigits) {
+        var toRemove = (long)Math.Pow(10, nDigits - SignificativeDigits);
+        nodeResourceCount += toRemove / 2;
+        nodeResourceCount -= (nodeResourceCount % toRemove);
       }
+
+      return nodeResourceCount;
+    }
+
+    public static string FormatResourceCount(long nodeResourceCount) {
+      var suffix = 0;
+      var fractional = 0;
+      nodeResourceCount = RoundToSignificativeDigits(nodeResourceCount);
+
+      while (nodeResourceCount / 1000 >= 1 && suffix < 4) {
+        fractional = (int)(nodeResourceCount % 1000);
+        nodeResourceCount /= 1000;
+        suffix += 1; // We don't go past 4 because no suffix beyond T should be useful
+      }
+      var nodeResourceCountStr = $"{nodeResourceCount:n0}";
+      var fractionalStr = nodeResourceCountStr.Length >= SignificativeDigits || suffix == 0 ?
+        "" :
+        "." + $"{fractional:000}".Remove(SignificativeDigits - nodeResourceCountStr.Length);
       var letterSuffix = suffix switch {
         0 => "",
         1 => "K",
@@ -354,7 +374,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         3 => "G",
         _ => "T"
       };
-      return $"{nodeResourceCount:n0}{letterSuffix} RU";
+      return $"{nodeResourceCountStr}{fractionalStr}{letterSuffix} RU";
     }
 
     private static string AddAssertionBatchDocumentation(string batchReference) {
@@ -373,7 +393,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private string CreateSymbolMarkdown(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
-      return $"```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```";
+      var docString = symbol.Node is IHasDocstring nodeWithDocstring ? nodeWithDocstring.GetDocstring(options) : "";
+      return (docString + $"\n```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```").TrimStart();
     }
   }
 }

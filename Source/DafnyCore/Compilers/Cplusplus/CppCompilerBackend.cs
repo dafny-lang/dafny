@@ -14,11 +14,12 @@ public class CppCompilerBackend : ExecutableBackend {
     return Path.ChangeExtension(Path.GetFullPath(targetFilename), "exe");
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
+    string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
     var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Contract.Assert(assemblyLocation != null);
-    var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+    var codebase = Path.GetDirectoryName(assemblyLocation);
     Contract.Assert(codebase != null);
     compilationResult = null;
     var psi = PrepareProcessStartInfo("g++", new List<string> {
@@ -36,18 +37,19 @@ public class CppCompilerBackend : ExecutableBackend {
       "-o", ComputeExeName(targetFilename),
       targetFilename
     });
-    return 0 == RunProcess(psi, outputWriter, "Error while compiling C++ files.");
+    return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling C++ files.");
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter) {
+  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == RunProcess(psi, outputWriter);
+    return 0 == RunProcess(psi, outputWriter, errorWriter);
   }
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".h" };
 
-  public override string TargetLanguage => "C++";
+  public override string TargetName => "C++";
   public override string TargetExtension => "cpp";
 
   public override bool SupportsInMemoryCompilation => false;

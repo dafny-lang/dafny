@@ -1,0 +1,4 @@
+includes = ["**/*.dfy"]
+
+[options]
+warn-shadowing = false

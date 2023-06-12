@@ -6,13 +6,12 @@ namespace Microsoft.Dafny {
 
   public class TestGenerationOptions {
 
+    public static readonly string TestInlineAttribute = "testInline";
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint SeqLengthLimit = 0;
-    public uint TestInlineDepth = 0;
-    public bool Verbose = false;
     [CanBeNull] public string PrintBpl = null;
     [CanBeNull] public string PrintStats = null;
     public bool DisablePrune = false;
@@ -52,21 +51,10 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "generateTestInlineDepth":
-          var depth = 0;
-          if (ps.GetIntArgument(ref depth)) {
-            TestInlineDepth = (uint)depth;
-          }
-          return true;
-
         case "generateTestPrintBpl":
           if (ps.ConfirmArgumentCount(1)) {
             PrintBpl = args[ps.i];
           }
-          return true;
-
-        case "generateTestVerbose":
-          Verbose = true;
           return true;
 
         case "generateTestNoPrune":
@@ -92,14 +80,8 @@ namespace Microsoft.Dafny {
     than <n>. 0 (default) indicates no limit.
 /generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
-/generateTestInlineDepth:<n>
-    0 is the default. When used in conjunction with /testTargetMethod,
-    this argument specifies the depth up to which all non-tested methods
-    should be inlined.
 /generateTestPrintBpl:<fileName>
     Print the Boogie code used during test generation.
-/generateTestVerbose
-    Print various debugging info as comments for the generated tests.
 /generateTestNoPrune
     Disable axiom pruning that Dafny uses to speed up verification.";
 

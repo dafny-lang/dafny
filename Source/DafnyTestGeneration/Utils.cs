@@ -1,10 +1,14 @@
 #nullable disable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Errors = Microsoft.Dafny.Errors;
 using Function = Microsoft.Dafny.Function;
 using Parser = Microsoft.Dafny.Parser;
@@ -17,13 +21,32 @@ namespace DafnyTestGeneration {
   public static class Utils {
 
     /// <summary>
+    /// Call Translator with larger stack to prevent stack overflow
+    /// </summary>
+    public static List<Microsoft.Boogie.Program> Translate(Program program) {
+      var ret = new List<Microsoft.Boogie.Program> { };
+      var thread = new System.Threading.Thread(
+        () => {
+          ret = Translator
+            .Translate(program, program.Reporter)
+            .ToList().ConvertAll(tuple => tuple.Item2);
+        },
+        0x10000000); // 256MB stack size to prevent stack overflow
+      thread.Start();
+      thread.Join();
+      return ret;
+    }
+
+    /// <summary>
     /// Take a resolved type and change all names to fully-qualified.
     /// </summary>
     public static Type UseFullName(Type type) {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName ?? typ.Name,
+          typ?.ResolvedClass?.FullName == null ?
+            typ.Name :
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : ""),
           typ.TypeArgs));
     }
 
@@ -55,23 +78,19 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(DafnyOptions options, string source, string fileName = "") {
-      ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDefinition(), null);
-      var builtIns = new BuiltIns(options);
-      var reporter = new ConsoleErrorReporter(options);
-      var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
-        new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns,
-        new HashSet<string>(), new Errors(reporter)) == null;
-      Program/*?*/ program = null;
-      if (success) {
-        program = new Program(fileName, module, builtIns, reporter);
+    public static Program/*?*/ Parse(DafnyOptions options, string source, bool resolve = true, Uri uri = null) {
+      uri ??= new Uri(Path.GetTempPath());
+      var reporter = new BatchErrorReporter(options);
+
+      var program = new ProgramParser().ParseFiles(uri.LocalPath, new DafnyFile[] { new(reporter.Options, uri, new StringReader(source)) },
+        reporter, CancellationToken.None);
+
+      if (!resolve) {
+        return program;
       }
-      if (program == null) {
-        return null;
-      }
+
       // Substitute function methods with function-by-methods
       new AddByMethodRewriter(new ConsoleErrorReporter(options)).PreResolve(program);
-      program.Reporter = new ErrorReporterSink(options);
       new Resolver(program).ResolveProgram(program);
       return program;
     }
@@ -108,7 +127,7 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Turns each function-method into a function-by-method.
+    /// Turns each function into a function-by-method.
     /// Copies body of the function into the body of the corresponding method.
     /// </summary>
     private class AddByMethodRewriter : IRewriter {
@@ -121,7 +140,9 @@ namespace DafnyTestGeneration {
 
       private static void AddByMethod(TopLevelDecl d) {
         if (d is LiteralModuleDecl moduleDecl) {
-          moduleDecl.ModuleDef.TopLevelDecls.ForEach(AddByMethod);
+          foreach (var topLevelDecl in moduleDecl.ModuleDef.TopLevelDecls) {
+            AddByMethod(topLevelDecl);
+          }
         } else if (d is TopLevelDeclWithMembers withMembers) {
           withMembers.Members.OfType<Function>().Iter(AddByMethod);
         }
@@ -154,9 +175,43 @@ namespace DafnyTestGeneration {
           return;
         }
         var returnStatement = new ReturnStmt(new RangeToken(new Token(), new Token()),
-          new List<AssignmentRhs> { new ExprRhs(func.Body) });
-        func.ByMethodBody = new BlockStmt(new RangeToken(new Token(), new Token()),
+          new List<AssignmentRhs> { new ExprRhs(new Cloner().CloneExpr(func.Body)) });
+        func.ByMethodBody = new BlockStmt(
+          new RangeToken(new Token(), new Token()),
           new List<Statement> { returnStatement });
+      }
+    }
+
+    /// <summary>
+    /// Scan an unresolved dafny program to look for a specific attribute
+    /// </summary>
+    internal class AttributeFinder {
+
+      public static bool ProgramHasAttribute(Program program, string attribute) {
+        return DeclarationHasAttribute(program.DefaultModule, attribute);
+      }
+
+      private static bool DeclarationHasAttribute(TopLevelDecl decl, string attribute) {
+        if (decl is LiteralModuleDecl moduleDecl) {
+          return moduleDecl.ModuleDef.TopLevelDecls
+            .Any(declaration => DeclarationHasAttribute(declaration, attribute));
+        }
+        if (decl is TopLevelDeclWithMembers withMembers) {
+          return withMembers.Members
+            .Any(member => MembersHasAttribute(member, attribute));
+        }
+        return false;
+      }
+
+      private static bool MembersHasAttribute(MemberDecl member, string attribute) {
+        var attributes = member.Attributes;
+        while (attributes != null) {
+          if (attributes.Name == attribute) {
+            return true;
+          }
+          attributes = attributes.Prev;
+        }
+        return false;
       }
     }
   }

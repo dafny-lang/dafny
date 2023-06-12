@@ -1,13 +1,19 @@
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyTestGeneration.Test {
 
   public class Various {
+    private readonly TextWriter output;
 
+    public Various(ITestOutputHelper output) {
+      this.output = new WriterFromOutputHelper(output);
+    }
 
     [Fact]
     public async Task NoInlining() {
@@ -27,7 +33,7 @@ module M {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
       Assert.Equal(2, methods.Count(m => m.MethodName == "M.Inlining.b"));
@@ -47,7 +53,7 @@ module M {
       var source = @"
 module M {
   class Inlining {
-    method b (i:int) returns (r:int) {
+    method {:testInline 1} b (i:int) returns (r:int) {
       if (i == 0) {
           return 7;
       } else {
@@ -60,12 +66,11 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "M.Inlining.a";
-      options.TestGenOptions.TestInlineDepth = 2;
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(methods.Count >= 2);
       Assert.True(methods.All(m => m.MethodName == "M.Inlining.a"));
       Assert.True(methods.All(m => !m.DafnyInfo.IsStatic("M.Inlining.a")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
@@ -73,6 +78,112 @@ module M {
       Assert.True(methods.Exists(m => m.ArgValues[1] == "0"));
       Assert.True(methods.Exists(m =>
         Regex.IsMatch(m.ArgValues[1], "-?[1-9][0-9]*")));
+    }
+
+    [Fact]
+    public async Task NestedInlining() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
+    }
+    function {:testInline 1} max (a:int, b:int):int {
+      min(b, a)
+    }
+    method test (a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 2);
+    }
+
+    [Fact]
+    public async Task SelectiveInlining() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} min (a:int, b:int):int {
+      if a < b then a else b
+    }
+    function max (a:int, b:int):int {
+      if a > b then a else b
+    }
+    method test(a:int, b:int) returns (r:int) {
+      r := max(a, b);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count == 1);
+    }
+
+    [Fact]
+    public async Task InliningRecursion() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 2} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count >= 3);
+    }
+
+    [Fact]
+    public async Task InliningNoRecursion() {
+      var source = @"
+module M {
+  class Inlining {
+    function {:testInline 1} mod3 (n:int):int 
+      requires n >= 0
+      decreases n
+    {
+      if n == 0 then 0 else
+      if n == 1 then 1 else
+      if n == 2 then 2 else
+      mod3(n-3)
+    }
+    method test(n:int) returns (r:int) 
+      requires n >= 3
+    {
+      r := mod3(n);
+    }
+  }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod = "M.Inlining.test";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.True(methods.Count < 3);
     }
 
     [Fact]
@@ -100,7 +211,7 @@ module Paths {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.Mode =
         TestGenerationOptions.Modes.Path;
@@ -147,7 +258,7 @@ module Paths {
   }
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(methods.Count is >= 2 and <= 6);
       Assert.True(methods.All(m => m.MethodName == "Paths.eightPaths"));
@@ -191,7 +302,7 @@ module Objects {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "Objects.List.IsACircleOfLessThanThree";
@@ -205,26 +316,63 @@ module Objects {
       // This test is too specific. A test input may be valid and still not satisfy it.
       /*
       Assert.True(methods.Exists(m =>
-        (m.Assignments.Count == 1 && m.Assignments[0] == ("v0", "next", "v0") &&
+        (m.Assignments.Count == 1 && m.Assignments[0] == ("node0", "next", "node0") &&
         m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v0") &&
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "node0") &&
         m.ValueCreation.Count == 2)));
         */
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count > 2 && m.ValueCreation.Count > 2 &&
-        m.Assignments.Last() == ("v0", "next", "v1") &&
-        m.Assignments[^2] == ("v1", "next", "v2")) ||
+        m.Assignments.Last() == ("node0", "next", "node1") &&
+        m.Assignments[^2] == ("node1", "next", "node2")) ||
         (m.Assignments.Count == 2 && m.ValueCreation.Count == 2 &&
-        m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "v1"))));
+        m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "node1"))));
       Assert.True(methods.Exists(m =>
         (m.Assignments.Count == 1 &&
-        m.Assignments[0] == ("v0", "next", "null") &&
+        m.Assignments[0] == ("node0", "next", "null") &&
         m.ValueCreation.Count == 1) ||
-        (m.Assignments.Count == 2 && m.Assignments[1] == ("v0", "next", "v1") &&
-        m.Assignments[0] == ("v1", "next", "null") &&
+        (m.Assignments.Count == 2 && m.Assignments[1] == ("node0", "next", "node1") &&
+        m.Assignments[0] == ("node1", "next", "null") &&
         m.ValueCreation.Count == 2)));
+    }
+
+    /// <summary>
+    /// This test addresses the situation in which there is a class-type object
+    /// that does not matter for the construction of a counterexample.
+    /// Furthermore, this class-type object is self-referential,
+    /// with a field of the same type. Test generation must not enter infinite
+    /// loop and must figure out that it needs to set the field of the object
+    /// to itself.
+    /// </summary>
+    [Fact]
+    public async Task TestByDefaultConstructionOfSelfReferentialValue() {
+      var source = @"
+module M {
+
+    class LoopingList {
+
+        var next:LoopingList;
+        var value:int;
+
+        constructor() {
+            value := 0;
+            next := this;
+        }
+
+        method getValue() returns (value:int) {
+            return this.value;
+        }
+    }
+}
+".TrimStart();
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source);
+      options.TestGenOptions.TargetMethod =
+        "M.LoopingList.getValue";
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Single(methods);
     }
 
     [Fact]
@@ -245,7 +393,7 @@ module DataTypes {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "DataTypes.List.Depth";
@@ -283,7 +431,7 @@ module Module {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod =
         "Module.ignoreNonNullableObject";
@@ -311,11 +459,11 @@ module M {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
-      Assert.Contains("Code at (6,14) is potentially unreachable.", stats);
+      Assert.Contains(stats, s => s.Contains("(6,14) is potentially unreachable."));
       Assert.Equal(2, stats.Count); // second is line with stats
     }
 
@@ -330,7 +478,7 @@ method m(a:int) returns (b:int)
   return 1;
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.WarnDeadCode = true;
       var stats = await Main.GetDeadCodeStatistics(program).ToListAsync();
@@ -351,7 +499,7 @@ module Test {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       options.TestGenOptions.TargetMethod = "Test.IsEvenLength";
       options.TestGenOptions.SeqLengthLimit = 1;
@@ -371,7 +519,7 @@ module Test {
     public async Task FunctionMethod() {
       var source = @"
 module Math {
-  function Max(a:int, b:int):int {
+  function {:testInline 1} Max(a:int, b:int):int {
     if (a > b) then a else b
   }
   function Min(a:int, b:int):int {
@@ -379,9 +527,8 @@ module Math {
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 2;
       options.TestGenOptions.TargetMethod = "Math.Min";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
@@ -401,19 +548,18 @@ module ShortCircuit {
   function Or(a:bool):bool {
     a || OnlyFalse(a)
   }
-  function OnlyFalse(a:bool):bool
+  function {:testInline 1} OnlyFalse(a:bool):bool
     requires !a
   {
     false
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
-      options.TestGenOptions.TestInlineDepth = 1;
       options.TestGenOptions.TargetMethod = "ShortCircuit.Or";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "ShortCircuit.Or"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("ShortCircuit.Or")));
       Assert.True(methods.All(m => m.ArgValues.Count == 1));
@@ -439,7 +585,7 @@ module C {
   function m(r:real):real requires r == 0.0 { r }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
+      var options = Setup.GetDafnyOptions(output);
       var program = Utils.Parse(options, source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Equal(3, methods.Count);
@@ -479,7 +625,7 @@ module M {
   }  
 }
 ".TrimStart();
-      var program = Utils.Parse(Setup.GetDafnyOptions(), source);
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
       Assert.Single(methods);
       Assert.True(methods.All(m =>
@@ -487,7 +633,28 @@ module M {
       Assert.True(methods.All(m =>
         !m.DafnyInfo.IsStatic("M.Instance.setI")));
       Assert.True(methods.All(m => m.ArgValues.Count == 2));
-      Assert.True(methods.All(m => m.ToString().Contains("expect v0.i == 10")));
+      Assert.True(methods.All(m => m.ToString().Contains("expect instance0.i == 10")));
+    }
+
+    /// <summary>
+    /// This test may fail if function to method translation implemented by AddByMethodRewriter
+    /// does not use the cloner to copy the body of the function
+    /// </summary>
+    [Fact]
+    public async Task FunctionToMethodTranslation() {
+      var source = @"
+module M {
+
+  function test(b: bool): bool {
+      assert true by {
+        calc { true; }
+      }
+      true
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(Setup.GetDafnyOptions(output), source);
+      await Main.GetTestMethodsForProgram(program).ToListAsync();
     }
 
   }

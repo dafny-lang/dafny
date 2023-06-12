@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 class TailRecursion {
 
@@ -362,7 +362,7 @@ class TailRecursion {
     if (hasTailRecursionPreference && !tail) {
       // the user specifically requested no tail recursion, so do nothing else
     } else if (hasTailRecursionPreference && tail && f.IsGhost) {
-      reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for function that will be compiled, not for ghost functions");
+      reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for functions that will be compiled, not for ghost functions");
     } else {
       var module = f.EnclosingClass.EnclosingModuleDefinition;
       var sccSize = module.CallGraph.GetSCCSize(f);

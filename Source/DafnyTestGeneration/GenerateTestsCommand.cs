@@ -3,18 +3,25 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Linq;
+using DafnyCore;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class GenerateTestsCommand : ICommandSpec {
   public IEnumerable<Option> Options =>
     new Option[] {
+      // IMPORTANT: Before adding new options, make sure they are
+      // appropriately copied over in the CopyForProcedure method below
       LoopUnroll,
       SequenceLengthLimit,
       Target,
-      TestInlineDepth,
+      BoogieOptionBag.SolverLog,
+      BoogieOptionBag.SolverOption,
+      BoogieOptionBag.SolverOptionHelp,
+      BoogieOptionBag.SolverPath,
+      BoogieOptionBag.SolverPlugin,
+      BoogieOptionBag.SolverResourceLimit,
       BoogieOptionBag.VerificationTimeLimit,
-      Verbose,
       PrintBpl,
       DisablePrune
     }.Concat(ICommandSpec.ConsoleOutputOptions).
@@ -23,6 +30,19 @@ public class GenerateTestsCommand : ICommandSpec {
   private enum Mode {
     Path,
     Block
+  }
+
+  /// <summary>
+  /// Return a copy of the given DafnyOption instance that (for the purposes
+  /// of test generation) is identical to the <param name="options"></param>
+  /// parameter in everything except the value of the ProcsToCheck field that
+  /// determines the procedures to be verified and should be set to the value of
+  /// the <param name="procedureToVerify"></param> parameter.
+  /// </summary>
+  internal static DafnyOptions CopyForProcedure(DafnyOptions options, string procedureToVerify) {
+    var copy = new DafnyOptions(options);
+    copy.ProcsToCheck = new List<string>() { procedureToVerify };
+    return copy;
   }
 
   private readonly Argument<Mode> modeArgument = new("mode", @"
@@ -37,11 +57,13 @@ path - Prints path-coverage tests for the given program.");
   }
 
   public void PostProcess(DafnyOptions dafnyOptions, Options options, InvocationContext context) {
+    // IMPORTANT: Before adding new default options, make sure they are
+    // appropriately copied over in the CopyForProcedure method above
     dafnyOptions.CompilerName = "cs";
     dafnyOptions.Compile = true;
     dafnyOptions.RunAfterCompile = false;
     dafnyOptions.ForceCompile = false;
-    dafnyOptions.CompileVerbose = false;
+    dafnyOptions.DeprecationNoise = 0;
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
 
@@ -57,17 +79,11 @@ path - Prints path-coverage tests for the given program.");
     "If specified, only this method will be tested.") {
     ArgumentHelpName = "name"
   };
-  public static readonly Option<uint> TestInlineDepth = new("--inline-depth",
-    "0 is the default. When used in conjunction with --target-method, this argument specifies the depth up to which all non-tested methods should be inlined.") {
-  };
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.") {
   };
   public static readonly Option<int> LoopUnroll = new("--loop-unroll",
     "Higher values can improve accuracy of the analysis at the cost of taking longer to run.") {
-  };
-  public static readonly Option<bool> Verbose = new("--verbose",
-    "Print various debugging info as comments for the generated tests.") {
   };
   public static readonly Option<string> PrintBpl = new("--print-bpl",
     "Print the Boogie code used during test generation.") {
@@ -83,14 +99,8 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(SequenceLengthLimit, (options, value) => {
       options.TestGenOptions.SeqLengthLimit = value;
     });
-    DafnyOptions.RegisterLegacyBinding(TestInlineDepth, (options, value) => {
-      options.TestGenOptions.TestInlineDepth = value;
-    });
     DafnyOptions.RegisterLegacyBinding(Target, (options, value) => {
       options.TestGenOptions.TargetMethod = value;
-    });
-    DafnyOptions.RegisterLegacyBinding(Verbose, (options, value) => {
-      options.TestGenOptions.Verbose = value;
     });
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
@@ -98,5 +108,13 @@ path - Prints path-coverage tests for the given program.");
     DafnyOptions.RegisterLegacyBinding(DisablePrune, (options, value) => {
       options.TestGenOptions.DisablePrune = value;
     });
+
+    DooFile.RegisterNoChecksNeeded(
+      LoopUnroll,
+      SequenceLengthLimit,
+      Target,
+      PrintBpl,
+      DisablePrune
+    );
   }
 }

@@ -2,7 +2,7 @@ using System.IO;
 using System.Threading;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class StdInCommand : ILitCommand {
   private readonly string stdin;
@@ -13,9 +13,10 @@ public class StdInCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+  public (int, string, string) Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
     inputReader = new StringReader(stdin);
-    return operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+    return operand.Execute(inputReader, outputWriter, errorWriter);
   }
 
   public override string ToString() {

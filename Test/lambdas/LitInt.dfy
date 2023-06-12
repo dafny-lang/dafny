@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 const N: nat
-const M := 12;
+const M := 12
 
 ghost function Fibonacci(n: int): int
 {

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:3 /deprecation:0 /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The tests in this file are designed to run through the compiler.  They contain
@@ -352,6 +352,7 @@ class DigitUnderscore_Names_Functions_and_Methods {
 
   constructor 20_0(x: int)
   {
+    new;
     var u := this.88;
     assert u == DigitUnderscore_Names_Functions_and_Methods.88;
   }

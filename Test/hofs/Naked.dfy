@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %dafny /deprecation:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Functions {

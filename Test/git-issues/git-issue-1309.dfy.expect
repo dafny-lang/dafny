@@ -1,0 +1,2 @@
+git-issue-1309.dfy(24,22): Error: arguments must have comparable types (got C.Option and C.Option)
+1 resolution/type errors detected in git-issue-1309.dfy

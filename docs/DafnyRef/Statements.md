@@ -204,7 +204,7 @@ It assigns an arbitrary but type-correct value to the corresponding left-hand-si
 It can be mixed with other assignments of computed values.
 <!-- %no-check -->
 ```dafny
-a := *'
+a := *;
 a, b, c := 4, *, 5;
 ```
 
@@ -636,7 +636,7 @@ If there is a mix of failure-compatible types, then the program will need to use
 explicit handling of failure values.
 
 
-### 8.6.9. Failure returns and exceptions
+### 8.6.9. Failure returns and exceptions {#sec-failure-return-and-exceptions}
 
 The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 
@@ -957,8 +957,8 @@ Examples:
 method m() {
   var i := 10;
   while 0 < i
-    invariant 0 <= i <= 10;
-    decreases i;
+    invariant 0 <= i <= 10
+    decreases i
   {
     i := i-1;
   }
@@ -1027,7 +1027,7 @@ Edsger W. Dijkstra. For example:
 method m(n: int){
   var r := n;
   while
-    decreases if 0 <= r then r else -r;
+    decreases if 0 <= r then r else -r
   {
     case r < 0 =>
       r := r + 1;
@@ -2178,15 +2178,15 @@ into the new buffer.
 ```dafny
 class SimpleQueue<Data(0)>
 {
-  ghost var Contents: seq<Data>;
+  ghost var Contents: seq<Data>
   var a: array<Data>  // Buffer holding contents of queue.
   var m: int          // Index head of queue.
   var n: int          // Index just past end of queue
    
   method Enqueue(d: Data)
-    requires a.Length > 0;
-    requires 0 <= m <= n <= a.Length;
-    modifies this, this.a;
+    requires a.Length > 0
+    requires 0 <= m <= n <= a.Length
+    modifies this, this.a
     ensures Contents == old(Contents) + [d]
   {
     if n == a.Length {

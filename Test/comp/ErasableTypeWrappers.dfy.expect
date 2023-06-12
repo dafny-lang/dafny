@@ -19,7 +19,7 @@ true false
 18.0 4.0 true
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
-OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -39,7 +39,7 @@ true false
 18.0 4.0 true
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
-OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -59,7 +59,7 @@ true false
 18.0 4.0 true
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
-OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -79,7 +79,7 @@ true false
 18.0 4.0 true
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
-OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -99,4 +99,4 @@ true false
 18.0 4.0 true
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
-OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))

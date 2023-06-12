@@ -84,14 +84,14 @@ public class ForallStmtRewriter : IRewriter {
                 var range = Expression.CreateAnd(Resolver.GetImpliedTypeConstraint(i, i.Type), s.Range);
                 var vals = InvertExpression(i, j, range, Fi);
 #if DEBUG_PRINT
-          Console.WriteLine("DEBUG: Trying to invert:");
-          Console.WriteLine("DEBUG:   " + Printer.ExprToString(s.Range) + " && " + j.Name + " == " + Printer.ExprToString(Fi));
+          resolve.Options.Writer.WriteLine("DEBUG: Trying to invert:");
+          resolve.Options.Writer.WriteLine("DEBUG:   " + Printer.ExprToString(s.Range) + " && " + j.Name + " == " + Printer.ExprToString(Fi));
           if (vals == null) {
-            Console.WriteLine("DEBUG: Can't");
+            resolve.Options.Writer.WriteLine("DEBUG: Can't");
           } else {
-            Console.WriteLine("DEBUG: The inverse is the disjunction of the following:");
+            resolve.Options.Writer.WriteLine("DEBUG: The inverse is the disjunction of the following:");
             foreach (var val in vals) {
-              Console.WriteLine("DEBUG:   " + Printer.ExprToString(val.Range) + " && " + Printer.ExprToString(val.FInverse) + " == " + i.Name);
+              resolve.Options.Writer.WriteLine("DEBUG:   " + Printer.ExprToString(val.Range) + " && " + Printer.ExprToString(val.FInverse) + " == " + i.Name);
             }
           }
 #endif

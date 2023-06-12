@@ -5,7 +5,7 @@ using System.Threading;
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FunctionSymbol : MemberSymbol, ILocalizableSymbol {
     public Function Declaration { get; }
-    public object Node => Declaration;
+    public INode Node => Declaration;
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
 

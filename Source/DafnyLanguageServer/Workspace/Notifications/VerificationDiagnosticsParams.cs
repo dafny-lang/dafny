@@ -55,8 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
 
       // Render verification tree content into lines.
       foreach (var verificationTree in verificationTrees) {
-        if (verificationTree.Filename == uri.ToString() ||
-            "untitled:" + verificationTree.Filename == uri) {
+        if (verificationTree.Uri == uri) {
           verificationTree.RenderInto(result);
         }
       }
@@ -167,6 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
      // Used to re-trigger the verification of some diagnostics.
      string Identifier,
      string Filename,
+     Uri Uri,
      // The start and end of this verification tree
      Range Range,
      // The position of the symbol name attached to this node, or Range.Start if it's anonymous
@@ -187,13 +187,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DateTime EndTime { get; protected set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     // Resources allocated at the end of the computation.
-    public int ResourceCount { get; set; } = 0;
+    public long ResourceCount { get; set; } = 0;
 
 
 
     // Sub-diagnostics if any
     public List<VerificationTree> Children { get; set; } = new();
     public List<VerificationTree> NewChildren { get; set; } = new();
+
+    public void Visit(Action<VerificationTree> action) {
+      action(this);
+      foreach (var child in Children) {
+        child.Visit(action);
+      }
+    }
 
     public int GetNewChildrenCount() {
       return NewChildren.Count;
@@ -284,8 +291,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
               : LineVerificationStatus.Verified,
         // We don't display inconclusive on the gutter (user should focus on errors),
         // We display an error range instead
-        GutterVerificationStatus.Inconclusive =>
-          LineVerificationStatus.ErrorContext,
+        GutterVerificationStatus.Inconclusive => isFinalError
+          ? LineVerificationStatus.AssertionFailed
+          : LineVerificationStatus.ErrorContext,
         GutterVerificationStatus.Error => isFinalError
             ? LineVerificationStatus.AssertionFailed
             : LineVerificationStatus.ErrorContext,
@@ -359,6 +367,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   public record DocumentVerificationTree(
     DocumentTextBuffer TextDocumentItem
   ) : VerificationTree("Document", TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(), TextDocumentItem.Uri.ToString(),
+    TextDocumentItem.Uri.ToUri(),
     LinesToRange(TextDocumentItem.NumberOfLines), new Position(0, 0)) {
 
     public static Range LinesToRange(int lines) {
@@ -373,10 +382,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
+    Uri Uri,
     // The range of this node.
     Range Range,
     Position Position
-  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Range, Position) {
+  ) : VerificationTree(Kind, DisplayName, Identifier, Filename, Uri, Range, Position) {
     // Recomputed from the children which are ImplementationVerificationTree
     public ImmutableDictionary<AssertionBatchIndex, AssertionBatchVerificationTree> AssertionBatches { get; private set; } =
       new Dictionary<AssertionBatchIndex, AssertionBatchVerificationTree>().ToImmutableDictionary();
@@ -408,6 +418,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
             $"Assertion batch #{result.Count + 1}",
             $"assertion-batch-{implementationNumber}-{vcNum}",
             Filename,
+            Uri,
             new Range(minPosition, maxPosition)
           ) {
             Children = children,
@@ -443,9 +454,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
+    Uri Uri,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Range, Range.Start) {
+  ) : VerificationTree("Assertion Batch", DisplayName, Identifier, Filename, Uri, Range, Range.Start) {
     public int NumberOfAssertions => Children.Count;
 
     public AssertionBatchVerificationTree WithDuration(DateTime parentStartTime, int implementationNodeAssertionBatchTime) {
@@ -477,11 +489,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
+    Uri Uri,
     // The range of this node.
     Range Range,
     // The position as used by Boogie
     Position Position
-  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Range, Position) {
+  ) : VerificationTree("Implementation", DisplayName, Identifier, Filename, Uri, Range, Position) {
     // The index of ImplementationVerificationTree.AssertionBatchTimes
     // is the same as the AssertionVerificationTree.AssertionBatchIndex
     public ImmutableDictionary<int, AssertionBatchMetrics> AssertionBatchMetrics { get; private set; } =
@@ -540,11 +553,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     // Used to re-trigger the verification of some diagnostics.
     string Identifier,
     string Filename,
+    Uri Uri,
     // Used to relocate a assertion verification tree and to determine which function is currently verifying
     Position? SecondaryPosition,
     // The range of this node.
     Range Range
-  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Range, Range.Start) {
+  ) : VerificationTree("Assertion", DisplayName, Identifier, Filename, Uri, Range, Range.Start) {
     public AssertionVerificationTree WithDuration(DateTime parentStartTime, int batchTime) {
       Started = true;
       Finished = true;

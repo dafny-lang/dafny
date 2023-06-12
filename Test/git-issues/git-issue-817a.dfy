@@ -14,7 +14,7 @@ method M(a: array<int>, c: Cell) returns (r: Result<int>)
   requires a.Length == 10
   modifies a, c
   ensures r.Success? ==> r.value == 200
-  ensures c.data == 9;
+  ensures c.data == 9
 {
   a[7] := 180;
   c.data := 9;
@@ -35,6 +35,7 @@ method P() returns (r: Result<int>){
   assert a[7] == 200;
   assert c.data == 9;
   print c.data, " ", a[7], " ", a[9], "\n"; // 9 200 142
+  r := *;
 }
 
 method Main() {

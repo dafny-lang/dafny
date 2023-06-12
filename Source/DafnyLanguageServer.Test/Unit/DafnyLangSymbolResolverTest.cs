@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit; 
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class DafnyLangSymbolResolverTest {
   private DafnyLangSymbolResolver dafnyLangSymbolResolver;
@@ -17,7 +18,7 @@ public class DafnyLangSymbolResolverTest {
 
   class CollectingErrorReporter : BatchErrorReporter {
     public Dictionary<ErrorLevel, List<DafnyDiagnostic>> GetErrors() {
-      return this.AllMessages;
+      return this.AllMessagesByLevel;
     }
 
     public CollectingErrorReporter(DafnyOptions options) : base(options) {
@@ -26,7 +27,7 @@ public class DafnyLangSymbolResolverTest {
 
   class DummyModuleDecl : LiteralModuleDecl {
     public DummyModuleDecl() : base(
-      new DefaultModuleDefinition(), null) {
+      new DefaultModuleDefinition(new List<Uri>(), false), null) {
     }
     public override object Dereference() {
       return this;

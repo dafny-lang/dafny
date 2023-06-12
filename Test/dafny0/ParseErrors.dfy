@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %dafny /compile:0 /deprecation:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // ---------------------- chaining operators -----------------------------------
@@ -167,7 +167,7 @@ newtype Pos = x | 0 < x witness 1
   var x: int  // error: mutable fields not allowed in newtypes
 }
 type Opaque {
-  var x: int  // error: mutable field not allowed in opaque type
+  var x: int  // error: mutable field not allowed in abstract type
 }
 
 // ------------------------- nameonly parameters ------------------------------
