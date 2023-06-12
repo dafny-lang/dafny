@@ -2,9 +2,14 @@
 using System.Collections.Generic;
 using Microsoft.Dafny.LanguageServer.Language;
 using System.IO;
+using System.Linq;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Serilog;
+using Serilog.Sinks.InMemory;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -15,11 +20,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     private const string LanguageId = "dafny";
     private const int MaxTestExecutionTimeMs = 10_000;
     private DafnyLangParser parser;
-    private LastDebugLogger lastDebugLogger;
+    private readonly InMemorySink sink;
 
     public ParserExceptionTest(ITestOutputHelper output) {
-      lastDebugLogger = new LastDebugLogger();
-      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), lastDebugLogger);
+
+      sink = InMemorySink.Instance;
+      var logger = new LoggerConfiguration().MinimumLevel.Debug()
+        .WriteTo.InMemory().CreateLogger();
+      var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
+
+      parser = DafnyLangParser.Create(DafnyOptions.Create(new WriterFromOutputHelper(output)), Mock.Of<ITelemetryPublisher>(), factory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]
@@ -28,10 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var options = new DafnyOptions(DafnyOptions.DefaultImmutableOptions);
       var documentItem = CreateTestDocument(source, TestFilePath);
       var uri = new Uri("file:///" + TestFilePath);
-      var outerModule = new DefaultModuleDefinition(new List<Uri> { uri });
-      var errorReporter = new ParserExceptionSimulatingErrorReporter(options, outerModule);
-      parser.Parse(documentItem, errorReporter, default);
-      Assert.Equal($"encountered an exception while parsing {uri}", lastDebugLogger.LastDebugMessage);
+      var errorReporter = new ParserExceptionSimulatingErrorReporter(options);
+      parser.Parse(new DocumentTextBuffer(documentItem), errorReporter, default);
+      Assert.Contains(sink.LogEvents, le => le.MessageTemplate.Text.Contains($"encountered an exception while parsing {uri}"));
       Assert.Equal($"/{TestFilePath}(1,0): Error: [internal error] Parser exception: Simulated parser internal error", errorReporter.LastMessage);
     }
 
@@ -56,41 +65,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
 
       public override int Count(ErrorLevel level) {
-        throw new NotImplementedException();
+        return numberOfErrors;
       }
 
       public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
         throw new NotImplementedException();
       }
 
-      public ParserExceptionSimulatingErrorReporter(DafnyOptions options, DefaultModuleDefinition outerModule) : base(options, outerModule) {
-      }
-    }
-
-    // Helpers and definitions
-
-    /// <summary>
-    /// Retains the last debug logged message
-    /// </summary>
-    private class LastDebugLogger : ILogger<DafnyLangParser> {
-      public string LastDebugMessage = "";
-      public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) {
-        if (logLevel is LogLevel.Debug) {
-          LastDebugMessage = formatter(state, exception);
-          return;
-        }
-        if (logLevel is LogLevel.Trace or LogLevel.Information or LogLevel.Warning) {
-          return;
-        }
-        throw new NotImplementedException();
-      }
-
-      public bool IsEnabled(LogLevel logLevel) {
-        return true;
-      }
-
-      public IDisposable BeginScope<TState>(TState state) {
-        throw new NotImplementedException();
+      public ParserExceptionSimulatingErrorReporter(DafnyOptions options) : base(options) {
       }
     }
 

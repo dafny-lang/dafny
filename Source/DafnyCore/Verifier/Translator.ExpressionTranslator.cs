@@ -235,12 +235,6 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(tok, this.modifiesFrame, ty);
       }
 
-      public Boogie.IdentifierExpr Tick() {
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
-        Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
-        return new Boogie.IdentifierExpr(Token.NoToken, "$Tick", predef.TickType);
-      }
-
       public Boogie.IdentifierExpr ArbitraryBoxValue() {
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         return new Boogie.IdentifierExpr(Token.NoToken, "$ArbitraryBoxValue", predef.BoxType);
@@ -1262,10 +1256,7 @@ namespace Microsoft.Dafny {
 
                 Boogie.Expr antecedent = Boogie.Expr.True;
 
-                List<bool> freeOfAlloc = null;
-                if (options.FrugalHeapUseX) {
-                  freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-                }
+                List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
                 antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
 
                 Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
@@ -1286,10 +1277,8 @@ namespace Microsoft.Dafny {
             }
           case SetComprehension comprehension: {
               var e = comprehension;
-              List<bool> freeOfAlloc = null;
-              if (options.FrugalHeapUseX) {
-                freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-              }
+              List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+
               // Translate "set xs | R :: T" into:
               //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
               // or if "T" is "xs", then:
@@ -1338,10 +1327,7 @@ namespace Microsoft.Dafny {
               //          lambda w: BoxType :: G(unbox(w)),
               //          type)".
               List<Variable> bvars = new List<Variable>();
-              List<bool> freeOfAlloc = null;
-              if (options.FrugalHeapUseX) {
-                freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-              }
+              List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
@@ -1668,7 +1654,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         if (e.Function is TwoStateFunction) {
           args.Add(OldAt(e.AtLabel).HeapExpr);
         }
-        if (!omitHeapArgument && (options.AlwaysUseHeap || e.Function.ReadsHeap)) {
+        if (!omitHeapArgument && e.Function.ReadsHeap) {
           Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
           // If the function doesn't use the heap, but global settings say to use it,
@@ -1820,10 +1806,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             return BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // exists xs :: CorrectType(xs) && R && elmt==T
-            List<bool> freeOfAlloc = null;
-            if (options.FrugalHeapUseX) {
-              freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-            }
+            List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
             var bvars = new List<Variable>();
             Boogie.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars, false, freeOfAlloc) ?? Boogie.Expr.True;
             var eq = Boogie.Expr.Eq(elmtBox, BoxIfNecessary(GetToken(compr), TrExpr(compr.Term), compr.Term.Type));

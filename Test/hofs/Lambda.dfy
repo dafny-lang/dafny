@@ -38,8 +38,8 @@ method J(xs : List<int>) returns (z : int) {
 }
 
 ghost function Adder() : (int, int) -> int
-  ensures forall x, y :: Adder().requires(x, y);
-  ensures forall x, y :: (Adder())(x, y) == x + y;
+  ensures forall x, y :: Adder().requires(x, y)
+  ensures forall x, y :: (Adder())(x, y) == x + y
 {
   (x, y) => x + y
 }

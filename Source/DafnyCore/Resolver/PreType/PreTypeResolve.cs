@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
     }
 
     protected void ReportInfo(IToken tok, string msg, params object[] args) {
@@ -74,8 +74,8 @@ namespace Microsoft.Dafny {
       }
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
-        var at = resolver.builtIns.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true);
+        BuiltIns.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.builtIns);
         decl = resolver.builtIns.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
         var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny {
         ResultPreType = Type2PreType(resultType)
       };
       rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
-      bitvectorTypeDecl.Members.Add(name, rotateMember);
+      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -354,7 +354,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// For every declaration in "declarations", resolve names and determine pre-types.
     /// </summary>
-    public void ResolveDeclarations(List<TopLevelDecl> declarations, string moduleName) {
+    public void ResolveDeclarations(List<TopLevelDecl> declarations) {
       // under construction... (the CLI option --type-system-refresh has informed the user that this mode is not yet ready)
     }
 

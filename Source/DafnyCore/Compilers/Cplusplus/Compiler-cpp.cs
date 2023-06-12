@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, ConcreteSyntaxTree wr) {
-      var s = string.Format("namespace {0} ", IdProtect(moduleName));
+      var s = $"namespace {IdProtect(moduleName)} ";
       string footer = "// end of " + s + " declarations";
       this.modDeclWr = this.modDeclsWr.NewBlock(s, footer);
       string footer1 = "// end of " + s + " datatype declarations";
@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
-      } else if (cl is ClassDecl) {
+      } else if (cl is ClassLikeDecl or ArrowTypeDecl) {
         if (cl is ArrayClassDecl) {
           var arrayClass = (ArrayClassDecl)cl;
           Type elType = UserDefinedType.ArrayElementType(xType);
@@ -1125,7 +1125,7 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(CompilerErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.tok, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1642,7 +1642,7 @@ namespace Microsoft.Dafny.Compilers {
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.GetCompileName(Options));
-      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
+      } else if (cl is DefaultClassDecl && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule); // default module is not marked ":extern"

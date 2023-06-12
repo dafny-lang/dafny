@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
     [Fact]
     public async Task LoadReturnsCanceledTaskIfOperationIsCanceled() {
       var source = new CancellationTokenSource();
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(),
+      parser.Setup(p => p.Parse(It.IsAny<DocumentTextBuffer>(),
           It.IsAny<ErrorReporter>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
 
     [Fact]
     public async Task LoadReturnsFaultedTaskIfAnyExceptionOccured() {
-      parser.Setup(p => p.Parse(It.IsAny<TextDocumentItem>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
+      parser.Setup(p => p.Parse(It.IsAny<DocumentTextBuffer>(), It.IsAny<ErrorReporter>(), It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
       var task = textDocumentLoader.LoadAsync(DafnyOptions.Default, CreateTestDocument(), default);
       try {

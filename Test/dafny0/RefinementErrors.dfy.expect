@@ -1,7 +1,7 @@
 RefinementErrors.dfy(30,17): Error: a refining method is not allowed to add preconditions
 RefinementErrors.dfy(31,15): Error: a refining method is not allowed to extend the modifies clause
 RefinementErrors.dfy(34,20): Error: a predicate declaration (abc) can only refine a predicate
-RefinementErrors.dfy(35,8): Error: a field re-declaration (xyz) must be to ghostify the field
+RefinementErrors.dfy(35,8): Error: a field re-declaration (xyz) must be to add 'ghost' to the field declaration
 RefinementErrors.dfy(37,19): Error: a compiled function cannot be changed into a ghost function in a refining module: F
 RefinementErrors.dfy(38,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
 RefinementErrors.dfy(38,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')

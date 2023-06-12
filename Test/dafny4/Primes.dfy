@@ -87,7 +87,7 @@ lemma ProductPlusOneIsPrime(s: set<int>, q: int)
   }
 
   forall m | 2 <= m <= q && IsPrime(m)
-    ensures p % m != 0;
+    ensures p % m != 0
   {
     assert m in s;  // because AllPrimes(s, q) && m <= q && IsPrime(m)
     RemoveFactor(m, s);

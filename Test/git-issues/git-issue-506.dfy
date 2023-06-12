@@ -58,6 +58,6 @@ method Main() {
 }
 
 class F {
-  var f: int;
+  var f: int
   constructor (f: int) ensures this.f == f { this.f := f; }
 }

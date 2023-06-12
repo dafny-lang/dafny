@@ -75,13 +75,14 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
       Reporter = reporter;
       Coverage = new CoverageInstrumenter(this);
+      System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(CompilerErrors).TypeHandle);
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
-      reporter.Error(MessageSource.Compiler, tok, msg, args); // TODO - pass on ErrorId
+      reporter.Error(MessageSource.Compiler, errorId, tok, msg, args);
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
     }
 
@@ -998,7 +999,7 @@ namespace Microsoft.Dafny.Compilers {
     /// the target type.
     /// </summary>
     protected virtual void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      Contract.Requires(cl is DatatypeDecl || cl is ClassDecl);
+      Contract.Requires(cl is DatatypeDecl || cl is ClassLikeDecl);
       // TODO: Decide whether to express this as a Feature
       throw new NotImplementedException();
     }
@@ -1324,7 +1325,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void DeclareExternType(AbstractTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
 
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
-      modules = program.CompileModules;
+      modules = program.CompileModules.ToList();
     }
 
     public void Compile(Program program, ConcreteSyntaxTree wrx) {
@@ -1334,13 +1335,12 @@ namespace Microsoft.Dafny.Compilers {
       EmitBuiltInDecls(program.BuiltIns, wrx);
       var temp = new List<ModuleDefinition>();
       OrganizeModules(program, out temp);
-      program.CompileModules = temp;
-      foreach (ModuleDefinition m in program.CompileModules) {
+      foreach (var m in temp) {
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        if (!m.IsToBeCompiled) {
+        if (!m.ShouldCompile(program)) {
           continue;
         }
         var moduleIsExtern = false;
@@ -1371,11 +1371,11 @@ namespace Microsoft.Dafny.Compilers {
               if (exprs.Count == 1) {
                 DeclareExternType(at, exprs[0], wr);
               } else {
-                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
+                Error(ErrorId.c_abstract_type_needs_hint, d.tok, "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}", wr, at.FullName);
               }
               v.Visit(exprs);
             } else {
-              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Opaque type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
+              Error(ErrorId.c_abstract_type_cannot_be_compiled, d.tok, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
             }
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
@@ -1425,22 +1425,43 @@ namespace Microsoft.Dafny.Compilers {
             // writing the trait
             var w = CreateTrait(trait.GetCompileName(Options), trait.IsExtern(Options, out _, out _), trait.TypeArgs, trait, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(program, trait, w);
-          } else if (d is ClassDecl cl) {
-            var include = true;
-            if (cl.IsDefaultClass) {
-              Predicate<MemberDecl> compilationMaterial = x =>
-                !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
-              include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
-            }
+
+          } else if (d is DefaultClassDecl defaultClassDecl) {
+            Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
+            Predicate<MemberDecl> compilationMaterial = x =>
+              !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
+            var include = defaultClassDecl.Members.Exists(compilationMaterial);
             var classIsExtern = false;
             if (include) {
-              classIsExtern = (!Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern")) || (cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern"));
+              classIsExtern =
+                (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
+                Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
+              if (classIsExtern && defaultClassDecl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+                include = false;
+              }
+            }
+            if (include) {
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(defaultClassDecl),
+                classIsExtern, defaultClassDecl.FullName,
+                defaultClassDecl.TypeArgs, defaultClassDecl, defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.tok, wr);
+              CompileClassMembers(program, defaultClassDecl, cw);
+              cw.Finish();
+            } else {
+              // still check that given members satisfy compilation rules
+              var abyss = new NullClassWriter();
+              CompileClassMembers(program, defaultClassDecl, abyss);
+            }
+
+          } else if (d is ClassLikeDecl cl) {
+            var include = true;
+            var classIsExtern = false;
+            if (include) {
+              classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
             }
             if (Options.ForbidNondeterminism &&
-                !cl.IsDefaultClass &&
                 !classIsExtern &&
                 !cl.Members.Exists(member => member is Constructor) &&
                 cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
@@ -1736,7 +1757,7 @@ namespace Microsoft.Dafny.Compilers {
         if (cl is TraitDecl) {
           reason = "the method is not static and the enclosing type does not support auto-initialization";
           return false;
-        } else if (cl is ClassDecl) {
+        } else if (cl is ClassLikeDecl) {
           if (cl.Members.Exists(f => f is Constructor)) {
             reason = "the method is not static and the enclosing class has constructors";
             return false;
@@ -1947,7 +1968,7 @@ namespace Microsoft.Dafny.Compilers {
               } else if (c is TraitDecl) {
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
-              } else if (cf.Rhs == null && c is ClassDecl) {
+              } else if (cf.Rhs == null && c is ClassLikeDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
                 classWriter.DeclareField("_" + f.GetCompileName(Options), c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
@@ -1959,7 +1980,7 @@ namespace Microsoft.Dafny.Compilers {
               if (wBody != null) {
                 if (cf.Rhs != null) {
                   CompileReturnBody(cf.Rhs, cf.Type, wBody, null);
-                } else if (!cf.IsStatic && c is ClassDecl) {
+                } else if (!cf.IsStatic && c is ClassLikeDecl) {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
@@ -2484,7 +2505,7 @@ namespace Microsoft.Dafny.Compilers {
           receiver = new LocalVariable(m.RangeToken, "b", ty, false) {
             type = ty
           };
-          if (m.EnclosingClass is ClassDecl) {
+          if (m.EnclosingClass is ClassLikeDecl) {
             var wStmts = w.Fork();
             var wRhs = DeclareLocalVar(IdName(receiver), ty, m.tok, w);
             EmitNew(ty, m.tok, null, wRhs, wStmts);

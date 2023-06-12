@@ -3,7 +3,7 @@
 
 abstract module Spec {
     method Greet(b: bool)
-        requires b;
+        requires b
 }
 
 module Impl refines Spec {
@@ -12,7 +12,7 @@ module Impl refines Spec {
     }
 
     method Xyzzy(b: bool)
-        requires b;
+        requires b
     {}
 
     method Main() {

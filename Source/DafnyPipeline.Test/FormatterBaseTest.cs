@@ -7,6 +7,8 @@ using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -42,6 +44,7 @@ namespace DafnyPipeline.Test {
     protected void FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
       var options = DafnyOptions.Create(output);
+      options.DisallowIncludes = true;
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;
@@ -54,16 +57,13 @@ namespace DafnyPipeline.Test {
           : removeTrailingNewlineRegex.Replace(programString, "");
 
         var uri = new Uri("virtual:virtual");
-        var outerModule = new DefaultModuleDefinition(new List<Uri>() { uri });
-        BatchErrorReporter reporter = new BatchErrorReporter(options, outerModule);
-        var module = new LiteralModuleDecl(outerModule, null);
+        var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
-        BuiltIns builtIns = new BuiltIns(options);
-        Parser.Parse(programNotIndented, uri, module, builtIns, reporter);
-        var dafnyProgram = new Program("programName", module, builtIns, reporter);
+
+        var dafnyProgram = new ProgramParser().Parse(programNotIndented, uri, reporter);
 
         if (reporter.ErrorCount > 0) {
-          var error = reporter.AllMessages[ErrorLevel.Error][0];
+          var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }
 
@@ -95,14 +95,11 @@ namespace DafnyPipeline.Test {
         var initErrorCount = reporter.ErrorCount;
 
         // Verify that the formatting is stable.
-        module = new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>() { uri }), null);
         Microsoft.Dafny.Type.ResetScopes();
-        builtIns = new BuiltIns(options);
-        Parser.Parse(reprinted, uri, module, builtIns, reporter);
-        dafnyProgram = new Program("programName", module, builtIns, reporter);
+        var newReporter = new BatchErrorReporter(options);
+        dafnyProgram = new ProgramParser().Parse(reprinted, uri, newReporter); ;
 
-        var newReporter = (BatchErrorReporter)dafnyProgram.Reporter;
-        Assert.Equal(initErrorCount, newReporter.ErrorCount);
+        Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTopLevelToken();
         var reprinted2 = firstToken != null && firstToken.line > 0
           ? Formatting.__default.ReindentProgramFromFirstToken(firstToken,

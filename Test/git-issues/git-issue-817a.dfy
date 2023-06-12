@@ -14,7 +14,7 @@ method M(a: array<int>, c: Cell) returns (r: Result<int>)
   requires a.Length == 10
   modifies a, c
   ensures r.Success? ==> r.value == 200
-  ensures c.data == 9;
+  ensures c.data == 9
 {
   a[7] := 180;
   c.data := 9;

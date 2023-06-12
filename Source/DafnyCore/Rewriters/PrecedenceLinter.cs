@@ -11,7 +11,7 @@ using System;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
-using static Microsoft.Dafny.ErrorRegistry;
+using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny {
 
@@ -227,7 +227,7 @@ namespace Microsoft.Dafny {
         var st = new LeftMargin(leftMargin);
         Visit(expr, st);
         if (st.Column < leftMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, ErrorRegistry.NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_start, errorToken,
             $"unusual indentation in {what} (which starts at {LineCol(expr.StartToken)}); do you perhaps need parentheses?");
         }
       }
@@ -243,13 +243,13 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken.WasIncluded(program)) {
+      if (expr is ParensExpression || errorToken.FromIncludeDirective(program)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);
         Visit(expr, st);
         if (st.Column < rightMargin) {
-          this.reporter.Warning(MessageSource.Rewriter, NoneId, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_end, errorToken,
             $"unusual indentation in {what} (which ends at {LineCol(expr.RangeToken.EndToken)}); do you perhaps need parentheses?");
         }
       }

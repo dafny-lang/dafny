@@ -172,15 +172,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       Treat all export sets as 'export reveal *'. i.e. don't hide function
       bodies or type definitions during translation.
   
-  /allowGlobals
-      Allow the implicit class '_default' to contain fields, instance
-      functions, and instance methods. These class members are declared at
-      the module scope, outside of explicit classes. This command-line
-      option is provided to simplify a transition from the behavior in the
-      language prior to version 1.9.3, from which point onward all
-      functions and methods declared at the module scope are implicitly
-      static and fields declarations are not allowed at the module scope.
-  
   ---- Warning selection -----------------------------------------------------
   
   /warnShadowing
@@ -194,7 +185,6 @@ Usage: dafny [ option ... ] [ filename ... ]
   /deprecation:<n>
       0 - Don't give any warnings about deprecated features.
       1 (default) - Show warnings about deprecated features.
-      2 - Also point out where there's new simpler syntax.
   
   /warningsAsErrors
       Treat warnings as errors.
@@ -236,17 +226,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       and resource use costs for each assertion, allowing identification
       of especially expensive assertions.
   
-  /mimicVerificationOf:<Dafny version>
-      Let Dafny attempt to mimic the verification as it was in a previous
-      version of Dafny. Useful during migration to a newer version of
-      Dafny when a Dafny program has proofs, such as methods or lemmas,
-      that are unstable in the sense that their verification may become
-      slower or fail altogether after logically irrelevant changes are
-      made in the verification input.
-  
-      Accepted versions are: 3.3 (note that this turns off features that
-      prevent classes of verification instability)
-  
   /noCheating:<n>
       0 (default) - Allow assume statements and free invariants.
       1 - Treat all assumptions as asserts, and drop free.
@@ -273,31 +252,6 @@ Usage: dafny [ option ... ] [ filename ... ]
          effects.
       1 - A compiled method, constructor, or iterator is allowed to have
          print effects only if it is marked with {:print}.
-  
-  /allocated:<n>
-      This option is deprecated. Going forward, only what is /allocated:4
-      will be supported.
-      Specify defaults for where Dafny should assert and assume
-      allocated(x) for various parameters x, local variables x, bound
-      variables x, etc. Lower <n> may require more manual allocated(x)
-      annotations and thus may be more difficult to use. Warning: this
-      option should be chosen consistently across an entire project; it
-      would be unsound to use different defaults for different files or
-      modules within a project. And even so, modes /allocated:0 and
-      /allocated:1 let functions depend on the allocation state, which is
-      not sound in general.
-  
-      0 - Nowhere (never assume/assert allocated(x) by default).
-      1 - Assume allocated(x) only for non-ghost variables and fields
-          (these assumptions are free, since non-ghost variables always
-          contain allocated values at run-time). This option may speed up
-          verification relative to /allocated:2.
-      2 - Assert/assume allocated(x) on all variables, even bound
-          variables in quantifiers. This option is the easiest to use for
-          heapful code.
-      3 - Frugal use of heap parameter (not sound).
-      4 - (default) Mode 3 but with alloc antecedents when ranges don't imply
-          allocatedness.
   
   /definiteAssignment:<n>
       0 - Ignores definite-assignment rules. This mode is for testing
@@ -386,8 +340,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       If specified, only this method will be tested.
   /generateTestPrintBpl:<fileName>
       Print the Boogie code used during test generation.
-  /generateTestVerbose
-      Print various debugging info as comments for the generated tests.
   /generateTestNoPrune
       Disable axiom pruning that Dafny uses to speed up verification.
   ---- Compilation options ---------------------------------------------------
@@ -636,8 +588,8 @@ Usage: dafny [ option ... ] [ filename ... ]
                 do not verify layers <n> and below
   /trustLayersDownto:<n>
                 do not verify layers <n> and above
-  /trustInductiveSequentialization
-                do not perform inductive sequentialization checks
+  /trustSequentialization
+                do not perform sequentialization checks
   /civlDesugaredFile:<file>
                 print plain Boogie program to <file>
 
@@ -699,18 +651,17 @@ Usage: dafny [ option ... ] [ filename ... ]
                 invocation during smoke test, defaults to 10.
   /causalImplies
                 Translate Boogie's A ==> B into prover's A ==> A && B.
-  /typeEncoding:<m>
+  /typeEncoding:<t>
                 Encoding of types when generating VC of a polymorphic program:
-                   p = predicates (default)
+                   m = monomorphic (default)
+                   p = predicates
                    a = arguments
                 Boogie automatically detects monomorphic programs and enables
                 monomorphic VC generation, thereby overriding the above option.
-  /monomorphize
-                Try to monomorphize program. An error is reported if
-                monomorphization is not possible. This feature is experimental!
-  /useArrayTheory
-                Use the SMT theory of arrays (as opposed to axioms). Supported
-                only for monomorphic programs.
+                If the latter two options are used, then arrays are handled via axioms.
+  /useArrayAxioms
+                If monomorphic type encoding is used, arrays are handled by default with
+                the SMT theory of arrays. This option allows the use of axioms instead.
   /reflectAdd   In the VC, generate an auxiliary symbol, elsewhere defined
                 to be +, instead of +.
   /prune
@@ -724,10 +675,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   /relaxFocus   Process foci in a bottom-up fashion. This way only generates
                 a linear number of splits. The default way (top-down) is more
                 aggressive and it may create an exponential number of splits.
-
   /randomSeed:<s>
                 Supply the random seed for /randomizeVcIterations option.
-
   /randomizeVcIterations:<n>
                 Turn on randomization of the input that Boogie passes to the
                 SMT solver and turn on randomization in the SMT solver itself.
