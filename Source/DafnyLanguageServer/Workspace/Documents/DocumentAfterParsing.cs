@@ -37,7 +37,6 @@ public class DocumentAfterParsing : Document {
   }
 
   private IEnumerable<DafnyDiagnostic> GetIncludeErrorDiagnostics() {
-
     var graph = new Graph<Uri>();
     foreach (var edgesForUri in Program.Includes.GroupBy(i => i.IncluderFilename)) {
       foreach (var edge in edgesForUri) {
@@ -45,7 +44,9 @@ public class DocumentAfterParsing : Document {
       }
     }
 
-    foreach (var include in graph.TopologicallySortedComponents()) {
+    var sortedUris = graph.TopologicallySortedComponents();
+    var sortedUrisWithoutRoot = sortedUris.SkipLast(1);
+    foreach (var include in sortedUrisWithoutRoot) {
       var messageForIncludedFile =
         ResolutionDiagnostics.GetOrDefault(include, Enumerable.Empty<DafnyDiagnostic>);
       if (messageForIncludedFile.Any(m => m.Level == ErrorLevel.Error)) {
