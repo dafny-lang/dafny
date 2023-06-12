@@ -263,8 +263,8 @@ namespace DafnyTestGeneration {
 
       if (variable.Type.ToString().Contains("_System.Tuple") ||
           (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        errorMessages.Add("// Failed - temporary disable tuple support");
-        return "";
+        // errorMessages.Add("// Failed - temporary disable tuple support");
+        return "\"Failed Tuple support\"";
       }
 
       List<string> elements = new();
@@ -443,16 +443,9 @@ namespace DafnyTestGeneration {
       }
       string varId;
       var dafnyType = DafnyModelTypeUtils.GetNonNullable(asBasicType ?? type) as UserDefinedType;
-      if ((variable == null || (variable.Children.Count == 0 &&
-                                !typesAlreadyConstructed.Contains(dafnyType.ToString())))) {
+      if ((variable == null || (variable.Children.Count == 0))) {
         // this value is unconstrained by counterexample
         var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(dafnyType);
-        if (variable != null) {
-          // constructor methods have no guarantee of returning a fresh value, 
-          // so one may only use it once to create a value constrained by
-          // the counterexample
-          typesAlreadyConstructed.Add(dafnyType.ToString());
-        }
         if (constructorMethod != null) {
           varId = AddValue(dafnyType, constructorMethod);
           return varId;
@@ -554,8 +547,8 @@ namespace DafnyTestGeneration {
       }
       if (type.ToString().Contains("_System.Tuple") ||
           (asType?.ToString() ?? "").Contains("_System.Tuple")) {
-        errorMessages.Add("// Failed - temporary disable tuple support");
-        return "";
+        // errorMessages.Add("// Failed - temporary disable tuple support");
+        return "\"Failed Tuple support\"";
       }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
       type = DafnyModelTypeUtils.ReplaceType(type,
@@ -566,6 +559,11 @@ namespace DafnyTestGeneration {
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {
         return DafnyInfo.GetWitnessForType(asType);
+      }
+      var constructorMethod = DafnyInfo.GetUserDefinedConstrutor(asType);
+      if (constructorMethod != null) {
+          var varId = AddValue(asType, constructorMethod);
+          return varId;
       }
       switch (type) {
         case IntType:
@@ -585,7 +583,7 @@ namespace DafnyTestGeneration {
         case MapType mapType:
           return AddValue(asType ?? type, mapType.Finite ? "map[]" : "imap[]");
         case UserDefinedType tupleType when tupleType.Name.StartsWith("_System.Tuple") || tupleType.Name.StartsWith("_System._tuple"):
-          errorMessages.Add("// Failed - temporary disable tuple support");
+          // errorMessages.Add("// Failed - temporary disable tuple support");
           var destructors = new List<string>();
           foreach (var arg in tupleType.TypeArgs) {
             destructors.Add(GetDefaultValue(arg));

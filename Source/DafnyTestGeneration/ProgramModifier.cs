@@ -181,6 +181,11 @@ namespace DafnyTestGeneration {
         return node;
       }
 
+      public override Procedure VisitProcedure(Procedure node) {
+        toVerbose[node.Name] = node.VerboseName;
+        return base.VisitProcedure(node);
+      }
+
       public sealed override Program VisitProgram(Program node) {
         node = base.VisitProgram(node);
         return node;
@@ -221,7 +226,7 @@ namespace DafnyTestGeneration {
         }
       }
 
-      /*private void PrintCallGraph(string caller) {
+      private void PrintCallGraph(string caller) {
         if (caller == null) {
           return;
         }
@@ -277,7 +282,7 @@ namespace DafnyTestGeneration {
          return toVerbose[node].Split(" ").First() + " [recurse]";
         }
         return toVerbose[node].Split(" ").First() + " [" + pathsToNode[node] + "]";
-      }*/
+      }
     }
 
     /// <summary>

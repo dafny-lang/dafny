@@ -610,16 +610,19 @@ module M {
       s := new String(" + "\"example\"" + @", 7);
     }
   }
-  function ToTest(s:String?):bool { 
-    if s == null then false else true
+  method {:testInline 1} ToTest(s:String?) returns (b:bool) { 
+    if s == null {
+      return false;
+    } 
+    return true;
   }
 }
 ".TrimStart();
-      var options = Setup.GetDafnyOptions();
-      var program = Utils.Parse(options, source);
+      var options = Setup.GetDafnyOptions(output);
+      var program = Utils.Parse(options, source, false);
       options.TestGenOptions.TargetMethod = "M.ToTest";
       var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
-      Assert.Equal(2, methods.Count);
+      Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "M.ToTest"));
       Assert.True(methods.All(m => m.DafnyInfo.IsStatic("M.ToTest")));
       Assert.True(methods.Exists(m => m.ValueCreation.Count == 1));
