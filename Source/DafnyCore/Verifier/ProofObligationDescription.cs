@@ -1041,8 +1041,8 @@ public class LetSuchThatUnique : ProofObligationDescription {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
     var bvarprimes = bvars.Select(bvar => new BoundVar(bvar.tok, bvar.Name + "'", bvar.Type)).ToList();
     var bvarprimesExprs = bvarprimes.Select(bvar => new IdentifierExpr(bvar.tok, bvar) as Expression).ToList();
-    var subContract = new Substituter(null,
-      bvars.Zip(bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
+    var subContract = new Substituter(null, Enumerable.Zip(
+      bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
         item => item.Item1, item => item.Item2),
       new Dictionary<TypeParameter, Type>()
     );
