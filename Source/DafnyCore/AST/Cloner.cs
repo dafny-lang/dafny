@@ -144,10 +144,10 @@ namespace Microsoft.Dafny {
           return new LiteralModuleDecl(this, moduleDecl, parent);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(this, a);
+          return new AliasModuleDecl(this, a, parent);
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(this, a);
+          return new AbstractModuleDecl(this, a, parent);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
           return new ModuleExportDecl(this, a, parent);

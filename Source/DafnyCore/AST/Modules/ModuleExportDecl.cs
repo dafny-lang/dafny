@@ -22,8 +22,9 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent) : base(cloner, original) {
-    EnclosingModuleDefinition = parent;
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent) 
+    : base(cloner, original, parent) 
+  {
     Exports = original.Exports;
     Extends = original.Extends;
     ProvideAll = original.ProvideAll;

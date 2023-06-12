@@ -28,7 +28,9 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
 
   public readonly bool Opened;
 
-  protected ModuleDecl(Cloner cloner, ModuleDecl original) : base(cloner, original) {
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent) 
+    : base(cloner, original, parent) 
+  {
     Opened = original.Opened;
     CloneId = original.CloneId;
   }

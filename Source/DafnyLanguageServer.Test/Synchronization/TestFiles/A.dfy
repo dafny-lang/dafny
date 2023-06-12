@@ -1,3 +1,3 @@
 module ModA {
-  var x: int := 3;  
+  const x: int := 3;  
 }

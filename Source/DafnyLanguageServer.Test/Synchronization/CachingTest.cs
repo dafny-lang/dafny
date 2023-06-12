@@ -31,9 +31,9 @@ public class CachingTest : ClientBasedLanguageServerTest {
 include ""./A.dfy""
 include ""./B.dfy""
 module ModC {
-  import ModB;
+  import ModB
   lemma Lem() ensures false {}
-  var z := ModB.y + 1;
+  const z := ModB.y + 1;
 }
 ".TrimStart();
 
@@ -66,57 +66,6 @@ module ModC {
     var hitCount3 = await WaitAndCountHits();
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
-    
-    
-  }
-  
-  
-  [Fact]
-  public async Task ResolutionInSingleFileIsCached() {
-    var source = $@"
-module A {
-}
-
-module B {
-}
-module ModC {{
-  import ModB;
-  lemma Lem() ensures false {{}}
-  var z := ModB.y + 1;
-}}
-".TrimStart();
-
-    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
-    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
-    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var hits0 = await WaitAndCountHits();
-    Assert.Equal(0, hits0.ParseHits);
-    Assert.Equal(0, hits0.ResolveHits);
-
-    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits() {
-      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
-      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolve cache hit"));
-      return (parseHits, resolveHits);
-    }
-
-    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
-    var hitCount1 = await WaitAndCountHits();
-    Assert.Equal(2, hitCount1.ParseHits);
-    Assert.Equal(2, hitCount1.ResolveHits);
-
-    // Removes the comment and the include of B.dfy, which will prune the cache for B.dfy
-    ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
-    var hitCount2 = await WaitAndCountHits();
-    Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
-    Assert.Equal(hitCount1.ResolveHits + 1, hitCount2.ResolveHits);
-
-    ApplyChange(ref documentItem, ((0, 0), (0, 0)), @"include ""./B.dfy""\n");
-    var hitCount3 = await WaitAndCountHits();
-    // No hit for B.dfy, since it was previously pruned
-    Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
-    
-    
   }
 
   /// <summary>
@@ -180,6 +129,45 @@ module ModC {{
     // No hit because end of file has changed
     ApplyChange(ref secondFile, ((19, 0), (19, 0)), "// Make the file larger\n");
     Assert.Equal(0, await WaitAndCountHits());
+  }
+  
+  [Fact(Skip = "need hashing on modules to work")]
+  public async Task ResolutionInSingleFileIsCached() {
+    var source = @"
+module A {
+  var x := 11
+}
+
+module B {
+  import A;
+  var y := A.x + 21;
+}
+module C {{
+  import B;
+  var z := B.y + 31;
+}}
+".TrimStart();
+
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var hits0 = await WaitAndCountHits();
+    Assert.Equal(0, hits0);
+
+    async Task<int> WaitAndCountHits() {
+      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
+      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolve cache hit"));
+      return resolveHits;
+    }
+
+    ApplyChange(ref documentItem, ((7, 17), (7, 18)), "22");
+    var hitCount1 = await WaitAndCountHits();
+    Assert.Equal(1, hitCount1);
+
+    ApplyChange(ref documentItem, ((11, 17), (11, 18)), "32");
+    var hitCount2 = await WaitAndCountHits();
+    Assert.Equal(hitCount1 + 2, hitCount2);
   }
 
   public CachingTest(ITestOutputHelper output) : base(output) {

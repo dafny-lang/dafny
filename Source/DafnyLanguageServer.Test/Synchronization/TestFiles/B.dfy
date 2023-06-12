@@ -1,5 +1,5 @@
 include "./A.dfy"
 module ModB {
-  import ModA;
-  var y = ModA.x + 2;
+  import ModA
+  const y := ModA.x + 2;
 }

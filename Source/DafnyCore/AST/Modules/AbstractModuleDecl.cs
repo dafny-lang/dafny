@@ -13,7 +13,9 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 
-  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original) : base(cloner, original) {
+  public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent) 
+    : base(cloner, original, parent) 
+  {
     Exports = original.Exports;
     QId = original.QId?.Clone(false);
   }
