@@ -1,4 +1,4 @@
-// RUN: %baredafny build %args -t:go "%s" > "%t"
+// RUN: %baredafny run %args -t:go "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() returns ()
