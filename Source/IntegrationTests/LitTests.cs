@@ -284,40 +284,40 @@ namespace IntegrationTests {
         var leafCommand = GetLeafCommand(command);
         switch (leafCommand) {
           case ShellLitCommand or DafnyDriverLitCommand: {
-            var arguments = GetDafnyArguments(leafCommand);
-            if (arguments == null) {
-              throw new ArgumentException();
-            }
+              var arguments = GetDafnyArguments(leafCommand);
+              if (arguments == null) {
+                throw new ArgumentException();
+              }
 
-            if (arguments.Any(arg => arg.StartsWith("/compile"))) {
-              wasLegacyCli = true;
-            }
+              if (arguments.Any(arg => arg.StartsWith("/compile"))) {
+                wasLegacyCli = true;
+              }
 
-            var backend = GetBackendFromCommand(arguments);
-            if (backends.Contains(backend)) {
-              throw new ArgumentException($"More than one command for the same backend: {backend}");
-            }
-            backends.Add(backend);
+              var backend = GetBackendFromCommand(arguments);
+              if (backends.Contains(backend)) {
+                throw new ArgumentException($"More than one command for the same backend: {backend}");
+              }
+              backends.Add(backend);
 
-            // Filter out options we can ignore
-            var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
-            if (extraOptionsLocked) {
-              foreach (string arg in options) {
-                if (!commonExtraOptions.Contains(arg)) {
-                  throw new ArgumentException($"Inconsistent option: {arg}");
+              // Filter out options we can ignore
+              var options = arguments.Where(arg => !IgnoreArgument(arg, testCase.FilePath));
+              if (extraOptionsLocked) {
+                foreach (string arg in options) {
+                  if (!commonExtraOptions.Contains(arg)) {
+                    throw new ArgumentException($"Inconsistent option: {arg}");
+                  }
+                }
+              } else {
+                foreach (var arg in options) {
+                  commonExtraOptions.Add(arg);
+                }
+                if (backend != null) {
+                  extraOptionsLocked = true;
                 }
               }
-            } else {
-              foreach (var arg in options) {
-                commonExtraOptions.Add(arg);
-              }
-              if (backend != null) {
-                extraOptionsLocked = true;
-              }
-            }
 
-            break;
-          }
+              break;
+            }
           case DiffCommand diffCommand:
             // The last line should be the standard '// RUN: %diff "%s.expect" "%t"' line
             expectFile = diffCommand.ExpectedPath;
