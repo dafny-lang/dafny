@@ -1,4 +1,3 @@
-// NONUNIFORM: Multiple testing scenarios, highly backend sensitive, testing CLI
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %run --no-verify --target:cs "%s" Csharp 1 >> "%t"
 // RUN: %run --no-verify --target:cpp --unicode-char:false "%s" Cpp Yipee >> "%t"

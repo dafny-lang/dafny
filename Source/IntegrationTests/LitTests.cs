@@ -202,7 +202,7 @@ namespace IntegrationTests {
         case "uniformity-check":
           var testCase = LitTestCase.Read(path, Config);
           if (NeedsConverting(testCase)) {
-            Assert.Fail($"Non-uniform test case: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NONUNIFORM <reason>' command");
+            Assert.Fail($"Non-uniform test case that exercises backends: {testPath}\nConvert to using %testDafnyForEachCompiler or add a '// NONUNIFORM: <reason>' command");
           }
           break;
         case null or "":
@@ -456,8 +456,8 @@ namespace IntegrationTests {
     private static IList<string>? GetDafnyArguments(ILitCommand command) {
       switch (command) {
         case ShellLitCommand slc:
-          if (slc.Arguments.Length >= 2 && slc.Arguments[0] == "dotnet" && slc.Arguments[1].EndsWith("Dafny.dll")) {
-            return slc.Arguments[2..];
+          if (slc.Arguments.Length >= 1 && slc.Arguments[0].EndsWith("Dafny.dll")) {
+            return slc.Arguments[1..];
           } else {
             return null;
           }
