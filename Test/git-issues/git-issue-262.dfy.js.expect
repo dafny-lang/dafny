@@ -1,6 +1,0 @@
-tst(x) {
-      return (x).plus(_dafny.ONE);
-    }
-tst(x) {
-      return (x).plus(_dafny.ONE);
-    }
