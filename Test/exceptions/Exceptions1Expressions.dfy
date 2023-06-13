@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" /rprint:"%t.rprint" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 include "./NatOutcomeDt.dfy"
 include "./VoidOutcomeDt.dfy"
 
