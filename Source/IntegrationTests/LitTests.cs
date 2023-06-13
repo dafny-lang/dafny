@@ -413,8 +413,10 @@ namespace IntegrationTests {
       };
       newLines.AddRange(testFileLines.Where(line => ILitCommand.Parse(line, Config) == null));
       if (exceptions) {
-        // This is currently the most common source of inconsistent output by far.
-        newLines.Insert(0, "// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108");
+        // Intentionally leaving the reason off to force a manual review
+        // to specify the right reason (likely a GitHub issue),
+        // since the command will fail to parse without a reason.
+        newLines.Insert(0, "// NONUNIFORM:");
       }
 
       File.WriteAllLines(testCase.FilePath, newLines);
