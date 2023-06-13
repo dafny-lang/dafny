@@ -360,11 +360,11 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
     "this postcondition holds";
 
   public override string DefaultFailureDescription =>
-    "This is the postcondition that might not hold.";
+    "this postcondition could not be proved";
 
   // Same as FailureDescription but used not as a "related" error, but as an error by itself
   public string FailureDescriptionSingle =>
-    customErrMsg ?? "this postcondition might not hold on a return path";
+    customErrMsg ?? "this postcondition could not be proved on a return path";
 
   public string FailureAtPathDescription =>
     customErrMsg ?? new PostconditionDescription().FailureDescription;

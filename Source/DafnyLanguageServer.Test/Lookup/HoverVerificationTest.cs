@@ -50,7 +50,7 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy");
       // When hovering the postcondition, it should display the position of the failing path
       await AssertHoverMatches(documentItem, (2, 15),
-        @"[**Error:**](???) this postcondition might not hold on a return path  
+        @"[**Error:**](???) this postcondition could not be proved on a return path  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
@@ -405,7 +405,7 @@ method Test(i: int) returns (j: nat)
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (12, 11),
-        @"**Error:**???this postcondition might not hold on a return path???
+        @"**Error:**???this postcondition could not be proved on a return path???
 Could not prove: `i == j || -i == j`???
 Return path: testfile2.dfy(18, 5)"
       );
