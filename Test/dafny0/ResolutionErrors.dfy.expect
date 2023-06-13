@@ -95,7 +95,7 @@ ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, mult
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
 ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(795,17): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(795,17): Error: the method returns 1 value but is assigned to 0 variable (all return values must be assigned)
 ResolutionErrors.dfy(816,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(827,40): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
