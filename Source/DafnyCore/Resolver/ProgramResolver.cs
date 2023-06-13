@@ -343,16 +343,18 @@ public class ProgramResolver {
     if (m.RefinementQId != null) {
       bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out var other);
       m.RefinementQId.Root = other;
-      declarationPointers.AddOrUpdate(other, v => m.RefinementQId.Root = v, Util.Concat);
       if (!res) {
         Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(),
           $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
-      } else if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-        Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(), "module cannot refine itself: {0}",
-          m.RefinementQId.ToString());
       } else {
-        Contract.Assert(other != null); // follows from postcondition of TryGetValue
-        dependencies.AddEdge(decl, other);
+        declarationPointers.AddOrUpdate(other, v => m.RefinementQId.Root = v, Util.Concat);
+        if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
+          Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(), "module cannot refine itself: {0}",
+            m.RefinementQId.ToString());
+        } else {
+          Contract.Assert(other != null); // follows from postcondition of TryGetValue
+          dependencies.AddEdge(decl, other);
+        }
       }
     }
 
@@ -391,7 +393,6 @@ public class ProgramResolver {
         //        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
         Reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
       } else {
-
         alias.TargetQId.Root = root;
         declarationPointers.AddOrUpdate(root, v => alias.TargetQId.Root = v, Util.Concat);
         dependencies.AddEdge(moduleDecl, root);
