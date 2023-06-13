@@ -164,7 +164,7 @@ Did prove: `i > 0`"
 Could not prove: `i % 2 == 0`"
       );
       await AssertHoverMatches(documentItem, (7, 6),
-        @"**Error:**???the precondition could not be proved  
+        @"**Error:**???this is the precondition that could not be proved  
 Could not prove: `i > 0`"
       );
     }
