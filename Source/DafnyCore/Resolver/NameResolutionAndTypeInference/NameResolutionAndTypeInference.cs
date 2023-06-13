@@ -3096,7 +3096,9 @@ namespace Microsoft.Dafny {
         if (isInitCall) {
           reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
         } else {
-          reporter.Error(MessageSource.Resolver, s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
+          reporter.Error(MessageSource.Resolver, s,
+            "the method returns {1} value{3} but is assigned to {0} variable{2} (all return values must be assigned)",
+            s.Lhs.Count, callee.Outs.Count, s.Lhs.Count > 1 ? "s" : "", callee.Outs.Count > 1 ? "s" : "");
           tryToResolve = true;
         }
       } else {

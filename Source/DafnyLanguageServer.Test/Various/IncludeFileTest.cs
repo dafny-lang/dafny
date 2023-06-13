@@ -28,6 +28,7 @@ include ""./syntaxError.dfy""
   public async Task IndirectlyIncludedFileFails() {
     var source = @"
 include ""./includesSyntaxError.dfy""
+include ""./syntaxError.dfy""
 ".TrimStart();
     var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);

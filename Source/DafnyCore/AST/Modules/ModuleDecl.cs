@@ -15,7 +15,13 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   public Guid CloneId { get; set; } = Guid.NewGuid();
 
   public override string WhatKind { get { return "module"; } }
-  [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
+
+  [field: FilledInDuringResolution]
+  public ModuleSignature Signature {
+    get;
+    set;
+  }
+
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
     Contract.Requires(Signature != null);
     return Signature;
