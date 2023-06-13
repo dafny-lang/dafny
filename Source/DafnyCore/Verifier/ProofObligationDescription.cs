@@ -395,7 +395,7 @@ public class CalculationStep : ProofObligationDescriptionWithNoExpr {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line might not hold";
+    "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
 }
