@@ -1,9 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // This file contains an example chain of module refinements, starting from a
 // simple interface M0 to an implementation M3. Module Client.Test() is

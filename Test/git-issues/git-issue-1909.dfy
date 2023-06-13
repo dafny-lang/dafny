@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype ABC = ABC(nameonly a: int, nameonly b: int, nameonly c: int)
 

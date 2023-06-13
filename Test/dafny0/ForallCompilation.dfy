@@ -1,3 +1,4 @@
+// NONUNIFORM: New CLI doesn't support /autoTriggers:0
 // RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
