@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -29,6 +30,7 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
     IsRefining = original.IsRefining;
+    ThisScope = new VisibilityScope(FullSanitizedName);
   }
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
