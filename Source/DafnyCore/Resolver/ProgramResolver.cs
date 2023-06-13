@@ -283,8 +283,7 @@ public class ProgramResolver {
       }
 
       string compileName = m.GetCompileName(Options);
-      ModuleDefinition priorModDef;
-      if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
+      if (compileNameMap.TryGetValue(compileName, out var priorModDef)) {
         Reporter.Error(MessageSource.Resolver, m.tok,
           "modules '{0}' and '{1}' both have CompileName '{2}'",
           priorModDef.tok.val, m.tok.val, compileName);
