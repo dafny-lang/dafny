@@ -164,7 +164,7 @@ Did prove: `i > 0`"
 Could not prove: `i % 2 == 0`"
       );
       await AssertHoverMatches(documentItem, (7, 6),
-        @"**Error:**???a precondition could not be proven  
+        @"**Error:**???a precondition could not be proved  
 Could not prove: `i > 0`"
       );
     }
@@ -340,7 +340,7 @@ datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
 }
 ", "testfile2.dfy");
       await AssertHoverMatches(documentItem, (10, 16),
-        @"**Error:**???function precondition might not hold???
+        @"**Error:**???function precondition could not be proved???
 Inside `Valid()`  
 Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())`  "
       );
@@ -415,7 +415,7 @@ Inside `Q(i, j)`???
 Could not prove: `i == j || -i == j`"
       );
       await AssertHoverMatches(documentItem, (17, 13),
-        @"**Error:**???function precondition might not hold???
+        @"**Error:**???function precondition could not be proved???
 Inside `P(i)`???
 Could not prove: `i <= 0`"
       );

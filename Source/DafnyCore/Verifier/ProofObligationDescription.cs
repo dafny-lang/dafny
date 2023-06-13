@@ -345,7 +345,7 @@ public class RequiresDescription : ProofObligationDescriptionCustomMessages {
     "the precondition always holds";
 
   public override string DefaultFailureDescription =>
-    "the precondition could not be proved";
+    "a precondition could not be proved";
 
   public override string ShortDescription => "requires";
 
