@@ -315,7 +315,7 @@ namespace Microsoft.Dafny {
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
                   return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
-                    idPattern.Arguments.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);
