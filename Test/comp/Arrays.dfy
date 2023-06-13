@@ -1,4 +1,4 @@
-// NONUNIFORM:
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/2582
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --unicode-char:false
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)

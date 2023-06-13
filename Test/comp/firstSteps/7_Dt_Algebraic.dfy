@@ -1,4 +1,4 @@
-// NONUNIFORM:
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // This fragment of comp/Dt.dfy serves to facilitate incremental compiler development.
