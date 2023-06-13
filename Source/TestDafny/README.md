@@ -51,6 +51,12 @@ for individual backends:
 
 2. `<test file>.<target ID>.check`
 
-   Similarly, these files provide the output patterns to look for
+   Similarly, these files provide the [OutputCheck](https://github.com/stp/OutputCheck) patterns to look for
    when a backend is known to fail on a particular input program.
    `TestDafny` only looks for these files when `dafny` produces a non-zero exit code.
+   For example (from `Bug116.dfy.js.check` at the time of writing this):
+
+   ```
+   // https://github.com/dafny-lang/dafny/issues/4161
+   // CHECK: SyntaxError: Unexpected reserved word
+   ```

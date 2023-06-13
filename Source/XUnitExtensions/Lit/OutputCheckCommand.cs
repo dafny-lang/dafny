@@ -188,8 +188,8 @@ namespace XUnitExtensions.Lit {
   public static IList<CheckDirective> ParseCheckFile(string fileName) {
     var result = File.ReadAllLines(fileName)
       .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
-      .Where(e => e != null).Cast<CheckDirective>()
-      .Select(e => e!)
+      .Where(e => e != null)
+      .Cast<CheckDirective>()
       .ToList();
     if (!result.Any()) {
       throw new ArgumentException($"'{fileName}' does not contain any CHECK directives");
