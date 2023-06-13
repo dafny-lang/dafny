@@ -13,7 +13,6 @@ public class ProgramResolver {
 
   public IList<IRewriter> rewriters;
 
-  internal readonly ValuetypeDecl[] valuetypeDecls;
   public ModuleSignature systemNameInfo;
   protected readonly Graph<ModuleDecl> dependencies = new();
 
@@ -24,96 +23,11 @@ public class ProgramResolver {
     BuiltIns = program.BuiltIns;
     Reporter = program.Reporter;
     Options = program.Options;
-
-    // Map#Items relies on the two destructors for 2-tuples
-    BuiltIns.TupleType(Token.NoToken, 2, true);
-    // Several methods and fields rely on 1-argument arrow types
-    BuiltIns.CreateArrowTypeDecl(1);
-
-    valuetypeDecls = new[] {
-        new ValuetypeDecl("bool", BuiltIns.SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", BuiltIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", BuiltIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
-        new ValuetypeDecl("ORDINAL", BuiltIns.SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("_bv", BuiltIns.SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
-        new ValuetypeDecl("map", BuiltIns.SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
-        new ValuetypeDecl("imap", BuiltIns.SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
-      };
-    BuiltIns.SystemModule.SourceDecls.AddRange(valuetypeDecls);
-    // Resolution error handling relies on being able to get to the 0-tuple declaration
-    BuiltIns.TupleType(Token.NoToken, 0, true);
-
-    // Populate the members of the basic types
-
-    void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
-      var enclosingType = valuetypeDecls[(int)valuetypeVariety];
-      member.EnclosingClass = enclosingType;
-      member.AddVisibilityScope(program.BuiltIns.SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(member);
-    }
-
-    var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
-    AddMember(floor, ValuetypeVariety.Real);
-
-    var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
-    AddMember(isLimit, ValuetypeVariety.BigOrdinal);
-
-    var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
-    AddMember(isSucc, ValuetypeVariety.BigOrdinal);
-
-    var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
-    AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
-    BuiltIns.ORDINAL_Offset = limitOffset;
-
-    var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
-    AddMember(isNat, ValuetypeVariety.BigOrdinal);
-
-    // Add "Keys", "Values", and "Items" to map, imap
-    foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
-      var vtd = valuetypeDecls[(int)typeVariety];
-      var isFinite = typeVariety == ValuetypeVariety.Map;
-
-      var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
-      var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
-
-      r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-      var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
-
-      var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-      var dt = BuiltIns.TupleType(Token.NoToken, 2, true);
-      var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
-      r = new SetType(isFinite, tupleType);
-      var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
-
-      foreach (var memb in new[] { keys, values, items }) {
-        AddMember(memb, typeVariety);
-      }
-    }
-
-    // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
-    // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
-    AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
-    AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
-  }
-
-  public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
-    var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-    var rotateMember = new SpecialFunction(RangeToken.NoToken, name, BuiltIns.SystemModule, false, false,
-      new List<TypeParameter>(), formals, resultType,
-      new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null), null, null, null);
-    rotateMember.EnclosingClass = enclosingType;
-    rotateMember.AddVisibilityScope(BuiltIns.SystemModule.VisibilityScope, false);
-    enclosingType.Members.Add(rotateMember);
   }
 
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
-    foreach (var vtd in valuetypeDecls) {
+    foreach (var vtd in BuiltIns.valuetypeDecls) {
       if (vtd.IsThisType(t)) {
         return vtd;
       }
@@ -121,10 +35,10 @@ public class ProgramResolver {
     return null;
   }
 
-  private void ResolveValuetypeDecls() {
+  private void ResolveValueTypeDecls() {
     var moduleResolver = new Resolver(this);
     moduleResolver.moduleInfo = systemNameInfo;
-    foreach (var valueTypeDecl in valuetypeDecls) {
+    foreach (var valueTypeDecl in BuiltIns.valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
@@ -189,7 +103,7 @@ public class ProgramResolver {
     systemModuleResolver.moduleInfo = systemNameInfo;
 
     systemModuleResolver.RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
-    ResolveValuetypeDecls();
+    ResolveValueTypeDecls();
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:
