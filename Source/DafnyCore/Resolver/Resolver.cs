@@ -297,9 +297,9 @@ namespace Microsoft.Dafny {
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
         new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
-      cancellationToken.ThrowIfCancellationRequested();
 
       foreach (var rewriter in prog.Rewriters) {
+        cancellationToken.ThrowIfCancellationRequested();
         rewriter.PreResolve(prog);
       }
 
@@ -316,15 +316,15 @@ namespace Microsoft.Dafny {
       CheckDupModuleNames(prog);
 
       foreach (var module in prog.Modules()) {
-        cancellationToken.ThrowIfCancellationRequested();
         foreach (var rewriter in prog.Rewriters) {
+          cancellationToken.ThrowIfCancellationRequested();
           rewriter.PostResolve(module);
         }
       }
 
-      cancellationToken.ThrowIfCancellationRequested();
 
       foreach (var rewriter in prog.Rewriters) {
+        cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(prog);
       }
     }
