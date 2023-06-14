@@ -1,0 +1,3 @@
+// https://github.com/dafny-lang/dafny/issues/4104
+// CHECK: error: illegal underscore
+// CHECK-NEXT: public class 0_IKnowThisMuchIs {

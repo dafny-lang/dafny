@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 class List<T> {
   ghost var Contents: seq<T>
