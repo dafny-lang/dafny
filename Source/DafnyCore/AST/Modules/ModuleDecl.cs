@@ -11,10 +11,13 @@ namespace Microsoft.Dafny;
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   /// <summary>
   /// Only equivalent between modules if one is a clone of the other.
+  /// This property is used to determine if two module declarations have the same contents when doing resolution caching
+  /// This should be replaced by using content hashes of module declaration contents, at which point this property
+  /// becomes obsolete.
   /// </summary>
-  public Guid CloneId { get; set; } = Guid.NewGuid();
+  public Guid CloneId { get; }
 
-  public override string WhatKind { get { return "module"; } }
+  public override string WhatKind => "module";
 
   [field: FilledInDuringResolution]
   public ModuleSignature Signature {
@@ -41,15 +44,17 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   }
 
   protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
-    Attributes attributes, bool isRefining)
+    Attributes attributes, bool isRefining, Guid cloneId)
     : base(rangeToken, name, enclosingModule, typeArgs, attributes, isRefining) {
+    CloneId = cloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
+  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Height = -1;
     Signature = null;
     Opened = opened;
+    CloneId = cloneId;
   }
   public abstract object Dereference();
 

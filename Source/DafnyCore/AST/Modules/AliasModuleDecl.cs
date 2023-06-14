@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -18,8 +19,9 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
     Exports = original.Exports;
   }
 
-  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name, ModuleDefinition parent, bool opened, List<IToken> exports)
-    : base(rangeToken, name, parent, opened, false) {
+  public AliasModuleDecl(RangeToken rangeToken, ModuleQualifiedId path, Name name,
+    ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
+    : base(rangeToken, name, parent, opened, false, cloneId) {
     Contract.Requires(path != null && path.Path.Count > 0);
     Contract.Requires(exports != null);
     Contract.Requires(exports.Count == 0 || path.Path.Count == 1);

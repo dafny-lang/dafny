@@ -1716,7 +1716,8 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends,
+            dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

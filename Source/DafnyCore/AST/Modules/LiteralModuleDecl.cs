@@ -43,8 +43,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     TokenWithTrailingDocString = ModuleDef.TokenWithTrailingDocString;
   }
 
-  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-    : base(module.RangeToken, module.NameNode, parent, false, false) {
+  public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent, Guid cloneId)
+    : base(module.RangeToken, module.NameNode, parent, false, false, cloneId) {
     ModuleDef = module;
     BodyStartTok = module.BodyStartTok;
     TokenWithTrailingDocString = module.TokenWithTrailingDocString;
@@ -176,11 +176,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     if (prefixModules != null) {
       foreach (var tup in prefixModules) {
         if (tup.Parts.Count == 0) {
-          tup.Module.ModuleDef.EnclosingModule =
-            ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef) {
-            CloneId = CloneId // this will create a ModuleDecl with the right parent
-          };
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          tup.Module.ModuleDef.EnclosingModule = ModuleDef;
+          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef, CloneId);
           ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
           ModuleDef.PrefixNamedModules.Add(tup);
@@ -188,7 +186,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       }
     }
 
-    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings, this);
     if (!parentBindings.BindName(Name, this, bindings)) {
       resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
     }

@@ -1156,13 +1156,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(mods != null);
       Contract.Requires(name != null);
 
-      if (d is AbstractModuleDecl) {
-        var abs = (AbstractModuleDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, name + "." + abs.Name, abs.Height, mods);
-        var a = new AbstractModuleDecl(abs.RangeToken, abs.QId, abs.NameNode, m, abs.Opened, abs.Exports);
-        a.Signature = sig;
-        a.OriginalSignature = abs.OriginalSignature;
-        return a;
+      if (d is AbstractModuleDecl abstractDecl) {
+        var sig = MakeAbstractSignature(abstractDecl.OriginalSignature, name + "." + abstractDecl.Name, abstractDecl.Height, mods);
+        var result = new AbstractModuleDecl(abstractDecl.RangeToken, abstractDecl.QId, abstractDecl.NameNode,
+          m, abstractDecl.Opened, abstractDecl.Exports, Guid.NewGuid()) {
+          Signature = sig,
+          OriginalSignature = abstractDecl.OriginalSignature
+        };
+        return result;
       } else {
         return new AbstractSignatureCloner(scope).CloneDeclaration(d, m);
       }

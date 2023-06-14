@@ -49,9 +49,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         Sets.Empty<Uri>());
       return new SignatureAndCompletionTable(
         NullLogger<SignatureAndCompletionTable>.Instance,
-        new CompilationUnit(textDocument.Uri.ToUri(), new Dafny.Program(
+        new CompilationUnit(textDocument.Uri.ToUri(), new Program(
           textDocument.Uri.ToString(),
-          new LiteralModuleDecl(outerModule, null),
+          new LiteralModuleDecl(outerModule, null, Guid.NewGuid()),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
           new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
           errorReporter, compilation

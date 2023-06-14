@@ -62,8 +62,8 @@ public class ProgramResolver {
     prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
     var origErrorCount = Reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
     var bindings = new ModuleBindings(null);
-    var b = prog.DefaultModuleDef.BindModuleNames(this, bindings);
-    bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
+    var bindings2 = prog.DefaultModuleDef.BindModuleNames(this, bindings, prog.DefaultModule);
+    bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, bindings2);
 
     if (Reporter.ErrorCount > 0) {
       return;
@@ -77,7 +77,7 @@ public class ProgramResolver {
     // Default module is never cached so this is a noop
 
     declarationPointers[prog.DefaultModule] = v => prog.DefaultModule = (LiteralModuleDecl)v;
-    ProcessDependencies(prog.DefaultModule, b, dependencies, declarationPointers);
+    ProcessDependencies(prog.DefaultModule, bindings2, dependencies, declarationPointers);
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
       Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
