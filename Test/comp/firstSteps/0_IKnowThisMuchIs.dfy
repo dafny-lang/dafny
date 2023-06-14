@@ -1,6 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 //
 // An extremely small program intended to be the first target input for
 // brand new Dafny compilers. Avoids any use of strings (and therefore sequences)

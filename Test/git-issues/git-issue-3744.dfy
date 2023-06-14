@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple test scenarios (could be split)
 // RUN: %baredafny test "%s" > "%t"
 // RUN: %baredafny run "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"

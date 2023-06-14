@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 datatype T = Leaf(x: int) | T(t: T) {
   function {:tailrecursion} TR() : int {
@@ -8,5 +8,5 @@ datatype T = Leaf(x: int) | T(t: T) {
 }
 
 method Main() {
-  print Leaf(0).TR(), '\n';
+  print Leaf(0).TR(), "\n";
 }

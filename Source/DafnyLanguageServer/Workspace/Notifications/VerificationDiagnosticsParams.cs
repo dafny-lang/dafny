@@ -187,7 +187,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     public DateTime EndTime { get; protected set; }
     public int TimeSpent => (int)(Finished ? ((TimeSpan)(EndTime - StartTime)).TotalMilliseconds : Started ? (DateTime.Now - StartTime).TotalMilliseconds : 0);
     // Resources allocated at the end of the computation.
-    public int ResourceCount { get; set; } = 0;
+    public long ResourceCount { get; set; } = 0;
 
 
 
