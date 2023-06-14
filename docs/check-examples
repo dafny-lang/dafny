@@ -380,7 +380,7 @@ do
         else
           if [ "$command" == "%check-legacy" ]; then
             isverbose=-compileVerbose:$checkIds
-            (cd "$dir"; "$dafny" $verb /showSnippets:0 $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
+            (cd "$dir"; "$dafny" /showSnippets:0 $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
