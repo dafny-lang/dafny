@@ -12,4 +12,3 @@ class Class {
 
   constructor () { }
 }
-//
