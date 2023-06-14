@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Security.Policy;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -22,6 +24,30 @@ public class BuiltIns { // TODO rename to SystemModule<Suffix>
 
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
+
+  private byte[] hash;
+
+  public byte[] MyHash {
+    get {
+      if (hash == null) {
+        var tupleInts = tupleTypeDecls.Keys.SelectMany(t => new[] { t.Count}.Concat(t.Select(b => b ? 1 : 0)));
+        var ints =
+          new[] {
+            arrayTypeDecls.Count, ArrowTypeDecls.Count, PartialArrowTypeDecls.Count, TotalArrowTypeDecls.Count,
+            tupleTypeDecls.Count
+          }.
+            Concat(arrayTypeDecls.Keys).
+            Concat(ArrowTypeDecls.Keys).
+            Concat(PartialArrowTypeDecls.Keys).
+            Concat(TotalArrowTypeDecls.Keys).
+            Concat(tupleInts);
+        var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
+        hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
+      }
+
+      return hash;
+    }
+  }
 
   public readonly ISet<int> Bitwidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator

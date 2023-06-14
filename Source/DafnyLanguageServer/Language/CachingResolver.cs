@@ -28,7 +28,7 @@ public class CachingResolver : ProgramResolver {
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
-    if (cache.Builtins == null) {
+    if (cache.Builtins == null || cache.Builtins.MyHash != program.BuiltIns.MyHash) {
       var systemClassMembers = base.ResolveBuiltins(program);
       cache.Builtins = program.BuiltIns;
       cache.SystemClassMembers = systemClassMembers;
@@ -70,6 +70,7 @@ public class CachingResolver : ProgramResolver {
       hashAlgorithm.TransformBlock(dependencyHash, 0, dependencyHash.Length, null, 0);
     }
 
+    hashAlgorithm.TransformBlock(cache.Builtins!.MyHash, 0, cache.Builtins!.MyHash.Length, null, 0);
     var parseHash = moduleDeclaration.CloneId.ToByteArray();
     hashAlgorithm.TransformFinalBlock(parseHash, 0, parseHash.Length);
 

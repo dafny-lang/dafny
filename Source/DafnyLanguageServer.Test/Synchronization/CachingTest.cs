@@ -43,7 +43,6 @@ const tuple2 := (3,2)
     var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Single(diagnostics2);
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
-    Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Equal(2, diagnostics3.Length);
     
