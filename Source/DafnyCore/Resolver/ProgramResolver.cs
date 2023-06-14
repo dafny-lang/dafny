@@ -6,9 +6,10 @@ using System.Linq;
 namespace Microsoft.Dafny; 
 
 public class ProgramResolver {
+  public Program Program { get; }
 
   public DafnyOptions Options { get; }
-  public BuiltIns BuiltIns { get; }
+  public BuiltIns BuiltIns => Program.BuiltIns;
   public ErrorReporter Reporter { get; }
 
   public IList<IRewriter> rewriters;
@@ -20,7 +21,7 @@ public class ProgramResolver {
   public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new();
 
   public ProgramResolver(Program program) {
-    BuiltIns = program.BuiltIns;
+    this.Program = program;
     Reporter = program.Reporter;
     Options = program.Options;
   }
@@ -97,31 +98,7 @@ public class ProgramResolver {
     prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
     rewriters = prog.Compilation.Rewriters;
 
-    var systemModuleResolver = new Resolver(this);
-
-    systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
-    systemModuleResolver.moduleInfo = systemNameInfo;
-
-    systemModuleResolver.RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
-    ResolveValueTypeDecls();
-
-    // The SystemModule is constructed with all its members already being resolved. Except for
-    // the non-null type corresponding to class types.  They are resolved here:
-    var systemModuleClassesWithNonNullTypes =
-      prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
-    foreach (var cl in systemModuleClassesWithNonNullTypes) {
-      var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
-      systemModuleResolver.allTypeParameters.PushMarker();
-      systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
-      systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
-      systemModuleResolver.allTypeParameters.PopMarker();
-    }
-    systemModuleResolver.ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
-
-    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers) {
-      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
-    }
+    ResolveBuiltins(prog);
 
     foreach (var rewriter in rewriters) {
       rewriter.PreResolve(prog);
@@ -159,6 +136,39 @@ public class ProgramResolver {
 
     foreach (var rewriter in rewriters) {
       rewriter.PostResolve(prog);
+    }
+  }
+
+  protected virtual void ResolveBuiltins(Program program)
+  {
+    var systemModuleResolver = new Resolver(this);
+
+    systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
+    systemModuleResolver.moduleInfo = systemNameInfo;
+
+    systemModuleResolver.RevealAllInScope(program.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
+    ResolveValueTypeDecls();
+
+    // The SystemModule is constructed with all its members already being resolved. Except for
+    // the non-null type corresponding to class types.  They are resolved here:
+    var systemModuleClassesWithNonNullTypes =
+      program.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
+    foreach (var cl in systemModuleClassesWithNonNullTypes)
+    {
+      var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
+      systemModuleResolver.allTypeParameters.PushMarker();
+      systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
+      systemModuleResolver.ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
+      systemModuleResolver.allTypeParameters.PopMarker();
+    }
+
+    systemModuleResolver.ResolveTopLevelDecls_Core(
+      ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.BuiltIns.SystemModule.Name);
+
+    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers)
+    {
+      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
   }
 

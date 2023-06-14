@@ -47,9 +47,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private readonly PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache = new(new HashEquality());
+    private BuiltIns? builtIns;
     private bool RunDafnyResolver(TextDocumentItem document, Program program) {
-      var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
+      var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache, builtIns);
       resolver.ResolveProgram(program);
+      builtIns = program.BuiltIns;
       resolutionCache.Prune();
       int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
       if (resolverErrors > 0) {

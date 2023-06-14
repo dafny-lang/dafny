@@ -31,7 +31,8 @@ namespace Microsoft.Dafny {
   public partial class Resolver { // TODO rename to ModuleResolver in fast-follow-up
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
-    public readonly BuiltIns builtIns; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
+    private Program program;
+    public BuiltIns builtIns => program.BuiltIns; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
 
     public IList<IRewriter> rewriters => ProgramResolver.rewriters;
 
@@ -99,7 +100,7 @@ namespace Microsoft.Dafny {
       enclosingStatementLabels = new Scope<Statement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
-      builtIns = programResolver.BuiltIns;
+      program = programResolver.Program;
       reporter = new BatchErrorReporter(Options);
     }
 

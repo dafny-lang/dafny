@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class BuiltIns {
+public class BuiltIns { // TODO rename to SystemModule<Suffix>
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
     false, false, null, null, null, true, false);
@@ -15,7 +15,7 @@ public class BuiltIns {
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
   public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new();  // same keys as arrowTypeDecl
   readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
-  
+
   internal readonly ValuetypeDecl[] valuetypeDecls;
   
   public int MaxNonGhostTupleSizeUsed { get; private set; }
@@ -224,7 +224,7 @@ public class BuiltIns {
         : new TypeParameter(RangeToken.NoToken, new Name("R"), TypeParameter.TPVarianceSyntax.Covariant_Strict));
     var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
 
-    Function createMember(string name, Type resultType, Function readsFunction = null) {
+    Function CreateMember(string name, Type resultType, Function readsFunction = null) {
       var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
       var argExprs = args.ConvertAll(a =>
         (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
@@ -243,8 +243,8 @@ public class BuiltIns {
       return function;
     }
 
-    var reads = createMember("reads", new SetType(true, ObjectQ()), null);
-    var req = createMember("requires", Type.Bool, reads);
+    var reads = CreateMember("reads", new SetType(true, ObjectQ()), null);
+    var req = CreateMember("requires", Type.Bool, reads);
 
     var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
     ArrowTypeDecls.Add(arity, arrowDecl);
