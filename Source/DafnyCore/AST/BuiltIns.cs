@@ -19,7 +19,7 @@ public class BuiltIns { // TODO rename to SystemModule<Suffix>
   internal readonly ValuetypeDecl[] valuetypeDecls;
 
   public ModuleSignature systemNameInfo;
-  
+
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
 

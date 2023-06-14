@@ -165,7 +165,7 @@ public class ProgramResolver {
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
       new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.BuiltIns.SystemModule.Name);
- 
+
     return systemModuleResolver.moduleClassMembers;
   }
 

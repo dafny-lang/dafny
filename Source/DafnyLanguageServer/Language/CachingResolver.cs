@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 public class ResolutionCache {
   public PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> Modules { get; } = new(new HashEquality());
   public BuiltIns? Builtins { get; set; }
-  public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> SystemClassMembers { get; set; }
+  public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>? SystemClassMembers { get; set; }
 
   public void Prune() {
     Modules.Prune();
@@ -17,8 +17,8 @@ public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
   private readonly ResolutionCache cache;
-  
-  
+
+
   public CachingResolver(Program program,
     ILogger<CachingResolver> logger,
     ResolutionCache cache)
@@ -36,7 +36,7 @@ public class CachingResolver : ProgramResolver {
       program.BuiltIns = cache.Builtins;
     }
 
-    return cache.SystemClassMembers;
+    return cache.SystemClassMembers!;
   }
 
   protected override ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
