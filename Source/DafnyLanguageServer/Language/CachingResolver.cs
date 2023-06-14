@@ -32,8 +32,10 @@ public class CachingResolver : ProgramResolver {
       var systemClassMembers = base.ResolveBuiltins(program);
       cache.Builtins = program.BuiltIns;
       cache.SystemClassMembers = systemClassMembers;
+      logger.LogDebug($"Resolution cache miss for system module");
     } else {
       program.BuiltIns = cache.Builtins;
+      logger.LogDebug($"Resolution cache hit for system module");
     }
 
     return cache.SystemClassMembers!;

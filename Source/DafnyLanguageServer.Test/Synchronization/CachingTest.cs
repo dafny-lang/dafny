@@ -67,6 +67,15 @@ module ModC {
   const tuple2User := ModA.tuple2.0
   const tuple3User := ModA.tuple3.1
   const prefixUser := ModA.FilledWithPrefixes.PrefixContent.x + ModA.StandalonePrefix.Prefix.x + Content.x
+
+  function MatchUser(x: int): int {
+    match x {
+      case 0 => 1
+      case 1 => 2
+      case _ => 3
+    }
+  }
+  const matchUserUser := MatchUser(4)
 }
 ".TrimStart();
 
@@ -91,7 +100,8 @@ module ModC {
     Assert.Equal(2, hitCount1.ParseHits);
     // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file.
     // 4 hits for the prefix modules
-    Assert.Equal(9, hitCount1.ResolveHits);
+    // 1 hit for system module
+    Assert.Equal(10, hitCount1.ResolveHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
@@ -104,8 +114,8 @@ module ModC {
     var hitCount3 = await WaitAndCountHits();
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
-    // The resolution cache was pruned after the previous change, so no cache hits here.
-    Assert.Equal(hitCount2.ResolveHits, hitCount3.ResolveHits);
+    // The resolution cache was pruned after the previous change, so no cache hits here, except for the system module
+    Assert.Equal(hitCount2.ResolveHits + 1, hitCount3.ResolveHits);
   }
 
   /// <summary>

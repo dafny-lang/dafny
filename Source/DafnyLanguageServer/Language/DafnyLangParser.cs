@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
       try {
@@ -60,11 +60,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
+        cachingParser.Prune();
         telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         return result;
       }
       finally {
-        cachingParser.Prune();
         mutex.Release();
       }
     }
