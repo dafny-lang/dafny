@@ -1,9 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype List<T> = Nil | Cons(T, List<T>) {
   function App(ys: List<T>): List<T> {
