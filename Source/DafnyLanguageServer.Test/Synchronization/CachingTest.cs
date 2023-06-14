@@ -6,6 +6,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Serilog.Sinks.InMemory;
@@ -32,8 +33,12 @@ include ""./A.dfy""
 include ""./B.dfy""
 module ModC {
   import ModB
-  const z := ModB.y + 1;
+  import ModA
+  const z := ModB.y + 1
   lemma Lem() ensures false {}
+
+  const usage := ModB.calledModAFunction
+  const calledModAFunction := ModA.TakesIdentityAndAppliesIt((x, _) => x, 3)
 }
 ".TrimStart();
 
@@ -53,6 +58,8 @@ module ModC {
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits();
+    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
     Assert.Equal(2, hitCount1.ParseHits);
     // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file. 
     Assert.Equal(3, hitCount1.ResolveHits);
