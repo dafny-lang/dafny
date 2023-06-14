@@ -922,7 +922,8 @@ the same as for match expressions and is described in
 
 The selector need not be enclosed in parentheses; the sequence of cases may but need not be enclosed in braces.
 The cases need not be disjoint.
-The cases must be exhaustive, but you can use a wild variable (`_`) or a simple identifier to indicate "match anything". It is possible to shadow existing variable names.
+The cases must be exhaustive, but you can use a wild variable (`_`) or a simple identifier to indicate "match anything".
+Please refer to the [section about case patterns](#sec-case-pattern) to learn more about shadowing, constants, etc.
 
 The code below shows an example of a match statement.
 
