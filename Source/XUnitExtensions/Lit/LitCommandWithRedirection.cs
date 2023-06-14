@@ -65,32 +65,32 @@ namespace XUnitExtensions.Lit {
       return new LitCommandWithRedirection(new DelayedLitCommand(CreateCommand), inputFile, outputFile, appendOutput, errorFile);
     }
 
-    private readonly ILitCommand command;
-    private readonly string? inputFile;
-    private readonly string? outputFile;
-    private readonly bool append;
-    private readonly string? errorFile;
+    public ILitCommand Command;
+    public string? InputFile;
+    public string? OutputFile;
+    public bool Append;
+    public string? ErrorFile;
 
     public LitCommandWithRedirection(ILitCommand command, string? inputFile, string? outputFile, bool append, string? errorFile) {
-      this.command = command;
-      this.inputFile = inputFile;
-      this.outputFile = outputFile;
-      this.append = append;
-      this.errorFile = errorFile;
+      this.Command = command;
+      this.InputFile = inputFile;
+      this.OutputFile = outputFile;
+      this.Append = append;
+      this.ErrorFile = errorFile;
     }
 
     public (int, string, string) Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };
-      if (outputFile != null) {
-        outputWriters.Add(new StreamWriter(outputFile, append));
+      if (OutputFile != null) {
+        outputWriters.Add(new StreamWriter(OutputFile, Append));
       }
-      inputReader = inputFile != null ? new StreamReader(inputFile) : inputReader;
+      inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
 
       var errorWriters = new List<TextWriter> { errWriter };
-      if (errorFile != null) {
-        errorWriters.Add(new StreamWriter(errorFile, append));
+      if (ErrorFile != null) {
+        errorWriters.Add(new StreamWriter(ErrorFile, Append));
       }
-      var result = command.Execute(inputReader,
+      var result = Command.Execute(inputReader,
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));
       inputReader.Close();
@@ -111,18 +111,18 @@ namespace XUnitExtensions.Lit {
 
     public override string ToString() {
       var builder = new StringBuilder();
-      builder.Append(command);
-      if (inputFile != null) {
+      builder.Append(Command);
+      if (InputFile != null) {
         builder.Append(" < ");
-        builder.Append(inputFile);
+        builder.Append(InputFile);
       }
-      if (outputFile != null) {
-        builder.Append(append ? " >> " : " > ");
-        builder.Append(outputFile);
+      if (OutputFile != null) {
+        builder.Append(Append ? " >> " : " > ");
+        builder.Append(OutputFile);
       }
-      if (errorFile != null) {
+      if (ErrorFile != null) {
         builder.Append(" 2> ");
-        builder.Append(errorFile);
+        builder.Append(ErrorFile);
       }
       return builder.ToString();
     }

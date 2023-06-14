@@ -1,3 +1,4 @@
+// NONUNIFORM: Too slow on other backends
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 
 const REPEAT := 100_000

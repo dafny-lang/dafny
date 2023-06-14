@@ -1,10 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
-// RUN: %baredafny run %args --no-verify --target=cs --spill-translation "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:py "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 datatype PhantomData<T> = PhantomData(ghost value: T)
 

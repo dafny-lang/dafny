@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 method Main() {
   var a := new Issue.Foo<int>();
