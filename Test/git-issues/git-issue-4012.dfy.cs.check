@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4125
+// CHECK-L: Unhandled exception. System.OverflowException: Value was either too large or too small for an Int32.

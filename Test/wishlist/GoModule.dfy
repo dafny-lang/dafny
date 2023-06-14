@@ -1,3 +1,4 @@
+// NONUNIFORM: Go-specific extern test
 // RUN: %exits-with 3 %dafny /compile:3 /unicodeChar:0 /spillTargetCode:2 "%s" /compileTarget:go 2> "%t"
 // note: putting /compileTarget:go after "%s" overrides user-provided option
 // RUN: %OutputCheck --file-to-check "%t" "%s"

@@ -1,3 +1,5 @@
+// NONUNIFORM: /compileVerbose:1 output is backend sensitive
+// (although the second set of comamnds could be separated out)
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:cs /compile:3 "%s" > "%t"
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:js /compile:3 "%s" >> "%t"
 // RUN: %dafny /unicodeChar:0 /compileVerbose:1 /compileTarget:go /compile:3 "%s" >> "%t"

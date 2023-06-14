@@ -19,7 +19,7 @@ namespace XUnitExtensions.Lit {
 
   public readonly record struct OutputCheckCommand(OutputCheckOptions options) : ILitCommand {
 
-    private abstract record CheckDirective(string File, int LineNumber) {
+    public abstract record CheckDirective(string File, int LineNumber) {
 
     private static readonly Dictionary<string, Func<string, int, string, CheckDirective>> DirectiveParsers = new();
     static CheckDirective() {
@@ -185,6 +185,19 @@ namespace XUnitExtensions.Lit {
     return result!;
   }
 
+  public static IList<CheckDirective> ParseCheckFile(string fileName) {
+    var result = File.ReadAllLines(fileName)
+      .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
+      .Where(e => e != null)
+      .Cast<CheckDirective>()
+      .ToList();
+    if (!result.Any()) {
+      throw new ArgumentException($"'{fileName}' does not contain any CHECK directives");
+    }
+
+    return result;
+  }
+
   public (int, string, string) Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     if (options.FileToCheck == null) {
@@ -196,16 +209,12 @@ namespace XUnitExtensions.Lit {
     if (fileName == null) {
       return (0, "", "");
     }
+    var checkDirectives = ParseCheckFile(options.CheckFile!);
 
-    var checkDirectives = File.ReadAllLines(options.CheckFile!)
-      .Select((line, index) => CheckDirective.Parse(fileName, index + 1, line))
-      .Where(e => e != null).Cast<CheckDirective>()
-      .Select(e => e!)
-      .ToList();
-    if (!checkDirectives.Any()) {
-      return (1, "", $"ERROR: '{fileName}' does not contain any CHECK directives");
-    }
+    return Execute(linesToCheck, checkDirectives);
+  }
 
+  public static (int, string, string) Execute(IEnumerable<string> linesToCheck, IEnumerable<CheckDirective> checkDirectives) {
     IEnumerator<string> lineEnumerator = linesToCheck.GetEnumerator();
     IEnumerator<string>? notCheckingEnumerator = null;
     foreach (var directive in checkDirectives) {
@@ -215,22 +224,24 @@ namespace XUnitExtensions.Lit {
         notCheckingEnumerator = new CheckingEnumerator(lineEnumerator, line => {
           if (pattern.IsMatch(line)) {
             throw new Exception($"Match found for {directive}: {line}");
-          };
+          }
         });
       } else if (directive is CheckNotLiteral(var _, var _, var literal)) {
         notCheckingEnumerator = new CheckingEnumerator(lineEnumerator, line => {
           if (literal == line.Trim()) {
             throw new Exception($"Match found for {directive}: {line}");
-          };
+          }
         });
       } else {
         var enumerator = notCheckingEnumerator ?? lineEnumerator;
         if (!directive.FindMatch(enumerator)) {
           return (1, "", $"ERROR: Could not find a match for {directive}");
         }
+
         notCheckingEnumerator = null;
       }
     }
+
     if (notCheckingEnumerator != null) {
       // Traverse the rest of the enumerator to make sure the CHECK-NOT[-L] directive is fully tested.
       while (notCheckingEnumerator.MoveNext()) { }

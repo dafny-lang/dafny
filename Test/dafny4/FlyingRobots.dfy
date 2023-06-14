@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 // The flying robots examples from an F* tutorial.  It demonstrates how to specify
 // mutable data structures in the heap.
