@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
-using Microsoft.Boogie;
-using Microsoft.Boogie.Clustering;
 
 namespace Microsoft.Dafny {
   /// <summary>
