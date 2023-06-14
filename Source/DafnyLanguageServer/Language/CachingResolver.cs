@@ -8,23 +8,24 @@ public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
-  private readonly BuiltIns? builtIns;
+  public BuiltIns? CachedBuiltins { get; private set; }
 
   public CachingResolver(Program program,
     ILogger<CachingResolver> logger,
     PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache,
-    BuiltIns? builtIns)
+    BuiltIns? cachedBuiltins)
     : base(program) {
     this.logger = logger;
     this.resolutionCache = resolutionCache;
-    this.builtIns = builtIns;
+    this.CachedBuiltins = cachedBuiltins;
   }
 
   protected override void ResolveBuiltins(Program program) {
-    if (builtIns == null) {
+    if (CachedBuiltins == null) {
       base.ResolveBuiltins(program);
+      CachedBuiltins = program.BuiltIns;
     } else {
-      program.BuiltIns = builtIns;
+      program.BuiltIns = CachedBuiltins;
     }
   }
 

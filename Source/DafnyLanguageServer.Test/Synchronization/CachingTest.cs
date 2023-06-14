@@ -35,7 +35,7 @@ module ModC {
   import ModB
   import ModA
   const z := ModB.y + 1
-  lemma Lem() ensures false {}
+  lemma Lem() ensures true {}
 
   const usage := ModB.calledModAFunction
   const calledModAFunction := ModA.TakesIdentityAndAppliesIt((x, _) => x, 3)

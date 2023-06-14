@@ -14,7 +14,6 @@ public class ProgramResolver {
 
   public IList<IRewriter> rewriters;
 
-  public ModuleSignature systemNameInfo;
   protected readonly Graph<ModuleDecl> dependencies = new();
 
   public FreshIdGenerator defaultTempVarIdGenerator = new();
@@ -36,17 +35,17 @@ public class ProgramResolver {
     return null;
   }
 
-  private void ResolveValueTypeDecls() {
-    var moduleResolver = new Resolver(this);
-    moduleResolver.moduleInfo = systemNameInfo;
-    foreach (var valueTypeDecl in BuiltIns.valuetypeDecls) {
+  private static void ResolveValueTypeDecls(ProgramResolver programResolver) {
+    var moduleResolver = new Resolver(programResolver);
+    moduleResolver.moduleInfo = programResolver.BuiltIns.systemNameInfo;
+    foreach (var valueTypeDecl in programResolver.BuiltIns.valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
-          CallGraphBuilder.VisitFunction(function, Reporter);
+          CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
         } else if (member is Method method) {
           moduleResolver.ResolveMethodSignature(method);
-          CallGraphBuilder.VisitMethod(method, Reporter);
+          CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
         }
       }
     }
@@ -142,11 +141,11 @@ public class ProgramResolver {
   protected virtual void ResolveBuiltins(Program program) {
     var systemModuleResolver = new Resolver(this);
 
-    systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
-    systemModuleResolver.moduleInfo = systemNameInfo;
+    BuiltIns.systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
+    systemModuleResolver.moduleInfo = BuiltIns.systemNameInfo;
 
-    systemModuleResolver.RevealAllInScope(program.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
-    ResolveValueTypeDecls();
+    systemModuleResolver.RevealAllInScope(program.BuiltIns.SystemModule.TopLevelDecls, BuiltIns.systemNameInfo.VisibilityScope);
+    ResolveValueTypeDecls(this);
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:

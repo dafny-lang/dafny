@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private bool RunDafnyResolver(TextDocumentItem document, Program program) {
       var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache, builtIns);
       resolver.ResolveProgram(program);
-      builtIns = program.BuiltIns;
+      builtIns = resolver.CachedBuiltins;
       resolutionCache.Prune();
       int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
       if (resolverErrors > 0) {

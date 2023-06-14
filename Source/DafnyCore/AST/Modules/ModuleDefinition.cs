@@ -385,7 +385,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    sig.VisibilityScope.Augment(resolver.ProgramResolver.systemNameInfo.VisibilityScope);
+    sig.VisibilityScope.Augment(resolver.ProgramResolver.BuiltIns.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
       if (d is AliasModuleDecl || d is AbstractModuleDecl) {
@@ -422,7 +422,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     var oldModuleInfo = resolver.moduleInfo;
-    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.systemNameInfo);
+    resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.BuiltIns.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
     Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
