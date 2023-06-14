@@ -178,7 +178,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
         if (tup.Parts.Count == 0) {
           tup.Module.ModuleDef.EnclosingModule =
             ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef); // this will create a ModuleDecl with the right parent
+          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef) {
+            CloneId = CloneId // this will create a ModuleDecl with the right parent
+          };
           ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
           ModuleDef.PrefixNamedModules.Add(tup);
