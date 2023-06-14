@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Block<Hash,Transaction,VProof> =
   Block(prevBlockHash:Hash, txs:seq<Transaction>, proof:VProof)

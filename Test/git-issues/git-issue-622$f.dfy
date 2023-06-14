@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:java /spillTargetCode:3 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
 method Main() {
 }

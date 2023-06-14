@@ -1,3 +1,4 @@
+// NONUNIFORM: Javascript-specific extern test
 // RUN: %dafny /compile:3 /unicodeChar:0 "%s" /compileTarget:js > "%t"
 // note: putting /compileTarget:js after "%s" overrides user-provided option
 // RUN: %diff "%s.expect" "%t"

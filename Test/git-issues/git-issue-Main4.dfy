@@ -1,3 +1,4 @@
+// NONUNIFORM: Multiple test scenarios (could be split)
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /Main:A.AA.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.AA.Test "%s" >> "%t"

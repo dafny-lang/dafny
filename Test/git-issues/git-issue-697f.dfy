@@ -1,5 +1,4 @@
-// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 ghost function ghostPredicate(x: int): bool {
   x % 2 == 0
