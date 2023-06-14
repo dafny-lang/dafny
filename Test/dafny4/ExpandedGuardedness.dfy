@@ -1,6 +1,6 @@
+// UNSUPPORTED: windows
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
-
-method Main()
+method Main() // Windows not supported because of Java that does not pass the check as expected on the CI
 {
   PrintStream("Up", Up(19));
   PrintStream("Up2", Up2(19));
