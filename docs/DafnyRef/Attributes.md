@@ -703,9 +703,10 @@ Provides a custom error message in case the assertion fails.
 As a hint, messages indicating what the user needs to do to fix the error are usually better than messages that indicate the error only.
 For example:
 
-```
+<!-- %check-resolve -->
+```dafny
 method Process(instances: int, price: int)
-  requires {:error "There should be an even number of instances", "The number of instances is always even"} i % 2 == 0
+  requires {:error "There should be an even number of instances", "The number of instances is always even"} instances % 2 == 0
   requires {:error "Could not prove that the price is positive", "The price is always positive"} price >= 0
 {
 }
