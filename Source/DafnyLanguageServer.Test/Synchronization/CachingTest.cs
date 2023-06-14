@@ -36,6 +36,7 @@ module ModC {
   import ModA
   import ModA.StandalonePrefix.Prefix
   import ModA.FilledWithPrefixes.PrefixContent
+  import PrefixModuleInDefaultModule.Content
 
   const z := ModB.y + 1
   lemma Lem() ensures true {}
@@ -44,7 +45,7 @@ module ModC {
   const calledModAFunction := ModA.TakesIdentityAndAppliesIt((x, _) => x, 3)
   const tuple2User := ModA.tuple2.0
   const tuple3User := ModA.tuple3.1
-  const prefixUser := ModA.FilledWithPrefixes.PrefixContent.x + ModA.StandalonePrefix.Prefix.x
+  const prefixUser := ModA.FilledWithPrefixes.PrefixContent.x + ModA.StandalonePrefix.Prefix.x + Content.x
 }
 ".TrimStart();
 
@@ -64,12 +65,12 @@ module ModC {
 
     ApplyChange(ref documentItem, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits();
-    var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-    Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
     Assert.Equal(2, hitCount1.ParseHits);
     // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file.
     // 4 hits for the prefix modules
-    Assert.Equal(7, hitCount1.ResolveHits);
+    Assert.Equal(9, hitCount1.ResolveHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");

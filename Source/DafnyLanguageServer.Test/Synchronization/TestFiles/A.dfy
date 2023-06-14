@@ -19,3 +19,7 @@ module ModA {
     const x := 3
   }
 }
+
+module PrefixModuleInDefaultModule.Content {
+  const x := 3
+}
