@@ -62,7 +62,7 @@ public class ProgramResolver {
     prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
     var origErrorCount = Reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
     var bindings = new ModuleBindings(null);
-    var bindings2 = prog.DefaultModuleDef.BindModuleNames(this, bindings, prog.DefaultModule);
+    var bindings2 = prog.DefaultModuleDef.BindModuleNames(this, bindings);
     bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, bindings2);
 
     if (Reporter.ErrorCount > 0) {

@@ -446,10 +446,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return true;
   }
 
-  public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings, LiteralModuleDecl enclosingLiteral) {
+  public ModuleBindings BindModuleNames(ProgramResolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    BindChildrenAndPrefixNamedModules(resolver, bindings, enclosingLiteral);
+    BindChildrenAndPrefixNamedModules(resolver, bindings);
 
     // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
     foreach (var tld in TopLevelDecls) {
@@ -479,7 +479,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     return bindings;
   }
 
-  private void BindChildrenAndPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings, LiteralModuleDecl enclosingLiteral) {
+  private void BindChildrenAndPrefixNamedModules(ProgramResolver resolver, ModuleBindings bindings) {
     // moduleDecl.PrefixNamedModules is a list of pairs like:
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
@@ -511,7 +511,9 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
-      var subdecl = new LiteralModuleDecl(modDef, this, enclosingLiteral.CloneId);
+      
+      var cloneId = prefixNamedModules.Count == 1 ? prefixNamedModules[0].Module.CloneId : Guid.NewGuid();
+      var subdecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subdecl);
       subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
     }

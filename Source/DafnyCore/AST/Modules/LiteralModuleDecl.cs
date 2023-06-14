@@ -178,7 +178,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
         if (tup.Parts.Count == 0) {
           // change the parent, now that we have found the right parent module for the prefix-named module
           tup.Module.ModuleDef.EnclosingModule = ModuleDef;
-          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef, CloneId);
+          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef, tup.Module.CloneId);
           ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
           ModuleDef.PrefixNamedModules.Add(tup);
@@ -186,7 +186,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
       }
     }
 
-    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings, this);
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
     if (!parentBindings.BindName(Name, this, bindings)) {
       resolver.Reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
     }
