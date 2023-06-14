@@ -1,14 +1,15 @@
 // RUN: %baredafny verify %args %s > %t
 // RUN: %diff "%s.expect" "%t"
 
-method test() {
-    var c := new Class();
+method test(c: Class) {
     reveal Class.P();
+    reveal Class.Q();
+    
     assert c.P();
+    assert c.Q();
 }
 
 class Class {
   opaque function P() : bool { true }
-
-  constructor () { }
+  opaque twostate function Q() : bool { true }
 }

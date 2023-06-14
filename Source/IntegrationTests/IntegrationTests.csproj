@@ -47,16 +47,6 @@
         <Content Include="..\..\node_modules\**\*.*" LinkBase="TestFiles\LitTests\LitTest\node_modules">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Update="..\..\Test\git-issues\github-issue-4176.dfy">
-          <Link>TestFiles\LitTests\LitTest\git-issues\github-issue-4176.dfy</Link>
-        </Content>
-        <Content Update="..\..\Test\git-issues\github-issue-4176.dfy.expect">
-          <Link>TestFiles\LitTests\LitTest\git-issues\github-issue-4176.dfy.expect</Link>
-        </Content>
-    </ItemGroup>
-    
-    <ItemGroup>
-      <Folder Include="TestFiles\LitTests\LitTest\git-issues\" />
     </ItemGroup>
     
 </Project>
