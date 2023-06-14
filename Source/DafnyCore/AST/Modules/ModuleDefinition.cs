@@ -511,7 +511,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
-      
+
       var cloneId = prefixNamedModules.Count == 1 ? prefixNamedModules[0].Module.CloneId : Guid.NewGuid();
       var subdecl = new LiteralModuleDecl(modDef, this, cloneId);
       ResolvedPrefixNamedModules.Add(subdecl);

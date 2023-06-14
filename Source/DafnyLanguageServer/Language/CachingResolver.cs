@@ -28,7 +28,7 @@ public class CachingResolver : ProgramResolver {
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
-    if (cache.Builtins == null || cache.Builtins.MyHash != program.BuiltIns.MyHash) {
+    if (cache.Builtins == null || !new HashEquality().Equals(cache.Builtins.MyHash, program.BuiltIns.MyHash)) {
       var systemClassMembers = base.ResolveBuiltins(program);
       cache.Builtins = program.BuiltIns;
       cache.SystemClassMembers = systemClassMembers;

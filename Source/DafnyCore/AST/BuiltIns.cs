@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security.Cryptography;
@@ -30,17 +32,24 @@ public class BuiltIns { // TODO rename to SystemModule<Suffix>
   public byte[] MyHash {
     get {
       if (hash == null) {
-        var tupleInts = tupleTypeDecls.Keys.SelectMany(t => new[] { t.Count}.Concat(t.Select(b => b ? 1 : 0)));
+
+        var tupleInts = tupleTypeDecls.Keys.Select(tuple => {
+          var vector32 = new BitVector32();
+          for (var index = 0; index < tuple.Count; index++) {
+            vector32[index] = tuple[index];
+          }
+          return vector32.Data;
+        });
         var ints =
           new[] {
             arrayTypeDecls.Count, ArrowTypeDecls.Count, PartialArrowTypeDecls.Count, TotalArrowTypeDecls.Count,
             tupleTypeDecls.Count
           }.
-            Concat(arrayTypeDecls.Keys).
-            Concat(ArrowTypeDecls.Keys).
-            Concat(PartialArrowTypeDecls.Keys).
-            Concat(TotalArrowTypeDecls.Keys).
-            Concat(tupleInts);
+            Concat(arrayTypeDecls.Keys.OrderBy(x => x)).
+            Concat(ArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(PartialArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(TotalArrowTypeDecls.Keys.OrderBy(x => x)).
+            Concat(tupleInts.OrderBy(x => x));
         var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
         hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
       }
