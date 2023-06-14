@@ -27,6 +27,28 @@ public class CachingTest : ClientBasedLanguageServerTest {
   }
 
   [Fact]
+  public async Task GrowingSystemModule() {
+    
+    var source = @"
+const tuple2 := (3,2)
+".TrimStart();
+
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    
+    var diagnostics1 = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.Empty(diagnostics1);
+    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple3: (int, int, bool) := (1,2,3) \n");
+    var diagnostics2 = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.Single(diagnostics2);
+    ApplyChange(ref documentItem, ((0, 0), (0, 0)), "const tuple4: (int, int, bool, bool) := (1,2,3, true) \n");
+    Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
+    var diagnostics3 = await GetLastDiagnostics(documentItem, CancellationToken);
+    Assert.Equal(2, diagnostics3.Length);
+    
+  }
+  [Fact]
   public async Task RootFileChangesTriggerParseAndResolutionCachingAndPruning() {
     var source = @"
 include ""./A.dfy""
