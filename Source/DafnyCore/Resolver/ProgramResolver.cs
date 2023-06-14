@@ -52,18 +52,18 @@ public class ProgramResolver {
   }
 
 
-  public void ResolveProgram(Program prog) {
-    Contract.Requires(prog != null);
+  public void Resolve(Program program) {
+    Contract.Requires(program != null);
     Type.ResetScopes();
 
     Type.EnableScopes();
     // For the formatter, we ensure we take snapshots of the PrefixNamedModules
     // and topleveldecls
-    prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
+    program.DefaultModuleDef.PreResolveSnapshotForFormatter();
     var origErrorCount = Reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
     var bindings = new ModuleBindings(null);
-    var bindings2 = prog.DefaultModuleDef.BindModuleNames(this, bindings);
-    bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, bindings2);
+    var bindings2 = program.DefaultModuleDef.BindModuleNames(this, bindings);
+    bindings.BindName(program.DefaultModule.Name, program.DefaultModule, bindings2);
 
     if (Reporter.ErrorCount > 0) {
       return;
@@ -76,8 +76,8 @@ public class ProgramResolver {
 
     // Default module is never cached so this is a noop
 
-    declarationPointers[prog.DefaultModule] = v => prog.DefaultModule = (LiteralModuleDecl)v;
-    ProcessDependencies(prog.DefaultModule, bindings2, dependencies, declarationPointers);
+    declarationPointers[program.DefaultModule] = v => program.DefaultModule = (LiteralModuleDecl)v;
+    ProcessDependencies(program.DefaultModule, bindings2, dependencies, declarationPointers);
     // check for cycles in the import graph
     foreach (var cycle in dependencies.AllCycles()) {
       Resolver.ReportCycleError(Reporter, cycle, m => m.tok,
@@ -90,28 +90,28 @@ public class ProgramResolver {
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
-    prog.ModuleSigs = new();
+    program.ModuleSigs = new();
 
     SetHeights(sortedDecls);
 
-    prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
-    rewriters = prog.Compilation.Rewriters;
+    program.Compilation.Rewriters = Rewriters.GetRewriters(program, defaultTempVarIdGenerator);
+    rewriters = program.Compilation.Rewriters;
 
-    var systemClassMembers = ResolveBuiltins(prog);
+    var systemClassMembers = ResolveBuiltins(program);
     foreach (var moduleClassMembers in systemClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
 
     foreach (var rewriter in rewriters) {
-      rewriter.PreResolve(prog);
+      rewriter.PreResolve(program);
     }
 
     foreach (var decl in sortedDecls) {
-      var moduleResolutionResult = ResolveModuleDeclaration(prog.Compilation, decl);
+      var moduleResolutionResult = ResolveModuleDeclaration(program.Compilation, decl);
       declarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
 
       foreach (var sig in moduleResolutionResult.Signatures) {
-        prog.ModuleSigs[sig.Key] = sig.Value;
+        program.ModuleSigs[sig.Key] = sig.Value;
       }
       foreach (var moduleClassMembers in moduleResolutionResult.ClassMembers) {
         classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
@@ -128,16 +128,16 @@ public class ProgramResolver {
     }
 
     Type.DisableScopes();
-    CheckDupModuleNames(prog);
+    CheckDupModuleNames(program);
 
-    foreach (var module in prog.Modules()) { // TODO move this inside cached module resolution?
+    foreach (var module in program.Modules()) { // TODO move this inside cached module resolution?
       foreach (var rewriter in rewriters) {
         rewriter.PostResolve(module);
       }
     }
 
     foreach (var rewriter in rewriters) {
-      rewriter.PostResolve(prog);
+      rewriter.PostResolve(program);
     }
   }
 
