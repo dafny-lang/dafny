@@ -105,7 +105,7 @@ public class Compilation {
     if (!options.Verify) {
       throw new OperationCanceledException();
     }
-    if (parsedCompilation is not DocumentAfterResolution resolvedCompilation) {
+    if (parsedCompilation is not DocumentAfterResolution resolvedCompilation || resolvedCompilation.Program.Reporter.HasErrors) {
       throw new OperationCanceledException();
     }
 

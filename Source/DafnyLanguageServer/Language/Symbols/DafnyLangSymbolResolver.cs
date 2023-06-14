@@ -24,39 +24,32 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       logger = loggerFactory.CreateLogger<DafnyLangSymbolResolver>();
     }
 
-    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Dafny.Program program, out bool canDoVerification, CancellationToken cancellationToken) {
+    public CompilationUnit ResolveSymbols(TextDocumentItem textDocument, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        if (!RunDafnyResolver(textDocument, program)) {
-          // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
-          // access a property without potential contract violations. For example, a variable may have an
-          // unresolved type represented by null. However, the contract prohibits the use of the type property
-          // because it must not be null.
-          canDoVerification = false;
+        RunDafnyResolver(program);
+        // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
+        // access a property without potential contract violations. For example, a variable may have an
+        // unresolved type represented by null. However, the contract prohibits the use of the type property
+        // because it must not be null.
+        if (program.Reporter.HasErrors) {
           return new CompilationUnit(textDocument.Uri.ToUri(), program);
         }
       }
       finally {
         resolverMutex.Release();
       }
-      canDoVerification = true;
       return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(textDocument.Uri.ToUri(), program);
     }
 
     private readonly ResolutionCache resolutionCache = new();
-    private bool RunDafnyResolver(TextDocumentItem document, Program program) {
+    private void RunDafnyResolver(Program program) {
       var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
       resolver.Resolve(program);
       resolutionCache.Prune();
-      int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
-      if (resolverErrors > 0) {
-        logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
-        return false;
-      }
-      return true;
     }
 
     private class SymbolDeclarationResolver {

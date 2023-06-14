@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
-      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, out _, cancellationToken);
+      var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
       var symbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
       var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
