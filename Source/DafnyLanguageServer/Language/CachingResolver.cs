@@ -2,41 +2,51 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.Dafny.LanguageServer.Language; 
+namespace Microsoft.Dafny.LanguageServer.Language;
 
+public class ResolutionCache {
+  public PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> Modules { get; } = new(new HashEquality());
+  public BuiltIns? Builtins { get; set; }
+  public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> SystemClassMembers { get; set; }
+
+  public void Prune() {
+    Modules.Prune();
+  }
+}
 public class CachingResolver : ProgramResolver {
   private readonly ILogger<CachingResolver> logger;
-  private readonly PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache;
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
-  public BuiltIns? CachedBuiltins { get; private set; }
-
+  private readonly ResolutionCache cache;
+  
+  
   public CachingResolver(Program program,
     ILogger<CachingResolver> logger,
-    PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache,
-    BuiltIns? cachedBuiltins)
+    ResolutionCache cache)
     : base(program) {
     this.logger = logger;
-    this.resolutionCache = resolutionCache;
-    this.CachedBuiltins = cachedBuiltins;
+    this.cache = cache;
   }
 
-  protected override void ResolveBuiltins(Program program) {
-    if (CachedBuiltins == null) {
-      base.ResolveBuiltins(program);
-      CachedBuiltins = program.BuiltIns;
+  protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
+    if (cache.Builtins == null) {
+      var systemClassMembers = base.ResolveBuiltins(program);
+      cache.Builtins = program.BuiltIns;
+      cache.SystemClassMembers = systemClassMembers;
     } else {
-      program.BuiltIns = CachedBuiltins;
+      program.BuiltIns = cache.Builtins;
     }
+
+    return cache.SystemClassMembers;
   }
 
   protected override ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
     var hash = DetermineHash(decl);
     hashes[decl] = hash;
 
-    if (!resolutionCache.TryGet(hash, out var result)) {
+    if (!cache.Modules.TryGet(hash, out var result)) {
       logger.LogDebug($"Resolution cache miss for {decl}");
       result = base.ResolveModuleDeclaration(compilation, decl);
-      resolutionCache.Set(hash, result);
+      cache.Modules.Set(hash, result);
     } else {
       logger.LogDebug($"Resolution cache hit for {decl}");
     }

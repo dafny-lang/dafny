@@ -97,7 +97,10 @@ public class ProgramResolver {
     prog.Compilation.Rewriters = Rewriters.GetRewriters(prog, defaultTempVarIdGenerator);
     rewriters = prog.Compilation.Rewriters;
 
-    ResolveBuiltins(prog);
+    var systemClassMembers = ResolveBuiltins(prog);
+    foreach (var moduleClassMembers in systemClassMembers) {
+      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
+    }
 
     foreach (var rewriter in rewriters) {
       rewriter.PreResolve(prog);
@@ -138,7 +141,7 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual void ResolveBuiltins(Program program) {
+  protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
     var systemModuleResolver = new Resolver(this);
 
     BuiltIns.systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
@@ -162,10 +165,8 @@ public class ProgramResolver {
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
       new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.BuiltIns.SystemModule.Name);
-
-    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers) {
-      classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
-    }
+ 
+    return systemModuleResolver.moduleClassMembers;
   }
 
   protected virtual ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {

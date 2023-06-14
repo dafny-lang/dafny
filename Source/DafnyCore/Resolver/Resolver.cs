@@ -75,7 +75,7 @@ namespace Microsoft.Dafny {
       moduleClassMembers[key] = members;
     }
 
-    public Dictionary<string, MemberDecl> GetClassMember(TopLevelDeclWithMembers key) {
+    public Dictionary<string, MemberDecl> GetClassMembers(TopLevelDeclWithMembers key) {
       if (moduleClassMembers.TryGetValue(key, out var result)) {
         return result;
       }
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (GetClassMember((DefaultClassDecl)defaultClass)?.TryGetValue(exportDecl.Name, out var member) == true) {
+          if (GetClassMembers((DefaultClassDecl)defaultClass)?.TryGetValue(exportDecl.Name, out var member) == true) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.tok,
               "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
@@ -1530,7 +1530,7 @@ namespace Microsoft.Dafny {
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
-            foreach (var member in GetClassMember(dd)!.Values) {
+            foreach (var member in GetClassMembers(dd)!.Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
                 var rolemodel = dtor.CorrespondingFormals[0];
@@ -3288,7 +3288,7 @@ namespace Microsoft.Dafny {
       // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
       var inheritedMembers = new Dictionary<string, MemberDecl>();
       foreach (var trait in cl.ParentTraitHeads) {
-        foreach (var traitMember in GetClassMember(trait)!.Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
+        foreach (var traitMember in GetClassMembers(trait)!.Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
           if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
             // record "traitMember" as an inherited member
             inheritedMembers.Add(traitMember.Name, traitMember);
@@ -3311,7 +3311,7 @@ namespace Microsoft.Dafny {
         }
       }
       // Incorporate the inherited members into the name->MemberDecl mapping of "cl"
-      var members = GetClassMember(cl);
+      var members = GetClassMembers(cl);
       foreach (var entry in inheritedMembers) {
         var name = entry.Key;
         var traitMember = entry.Value;
@@ -3400,7 +3400,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(cl.ParentTypeInformation != null);
 
-      foreach (var member in GetClassMember(cl).Values) {
+      foreach (var member in GetClassMembers(cl).Values) {
         if (member is PrefixPredicate || member is PrefixLemma) {
           // these are handled with the corresponding extreme predicate/lemma
           continue;
@@ -4225,7 +4225,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       Contract.Requires(memberName != null);
       Contract.Requires(foundSoFar != null);
-      if (GetClassMember(cl).TryGetValue(memberName, out var member)) {
+      if (GetClassMembers(cl).TryGetValue(memberName, out var member)) {
         foundSoFar.Add(member);
       }
       cl.ParentTraitHeads.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));

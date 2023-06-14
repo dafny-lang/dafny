@@ -39,6 +39,8 @@ module ModC {
 
   const usage := ModB.calledModAFunction
   const calledModAFunction := ModA.TakesIdentityAndAppliesIt((x, _) => x, 3)
+  const tuple2User := ModA.tuple2.0
+  const tuple3User := ModA.tuple3.1
 }
 ".TrimStart();
 

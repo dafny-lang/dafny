@@ -4,4 +4,7 @@ module ModA {
   function TakesIdentityAndAppliesIt<T>(f: (T, T) -> T, x: T): T {
     f(x, x)
   }
+  
+  const tuple3 := (2,3,4)
+  const tuple2 := (2,3)
 }

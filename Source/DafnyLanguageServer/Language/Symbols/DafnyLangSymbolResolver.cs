@@ -46,12 +46,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(textDocument.Uri.ToUri(), program);
     }
 
-    private readonly PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache = new(new HashEquality());
-    private BuiltIns? builtIns;
+    private readonly ResolutionCache resolutionCache = new();
     private bool RunDafnyResolver(TextDocumentItem document, Program program) {
-      var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache, builtIns);
+      var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
       resolver.ResolveProgram(program);
-      builtIns = resolver.CachedBuiltins;
       resolutionCache.Prune();
       int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
       if (resolverErrors > 0) {
