@@ -67,8 +67,9 @@ module ModC {
     var diagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
     Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
     Assert.Equal(2, hitCount1.ParseHits);
-    // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file. 
-    Assert.Equal(3, hitCount1.ResolveHits);
+    // literal A, alias A (in Literal B), and literal B. Alias B's CloneId is tainted because it resides in the changed file.
+    // 4 hits for the prefix modules
+    Assert.Equal(7, hitCount1.ResolveHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref documentItem, ((2, 0), (3, 0)), "");
