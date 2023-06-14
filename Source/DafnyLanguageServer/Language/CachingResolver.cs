@@ -12,7 +12,7 @@ public class CachingResolver : ProgramResolver {
 
   public CachingResolver(Program program,
     ILogger<CachingResolver> logger,
-    PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache, 
+    PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> resolutionCache,
     BuiltIns? builtIns)
     : base(program) {
     this.logger = logger;

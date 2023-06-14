@@ -17,7 +17,7 @@ public class BuiltIns { // TODO rename to SystemModule<Suffix>
   readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
-  
+
   public int MaxNonGhostTupleSizeUsed { get; private set; }
   public IToken MaxNonGhostTupleSizeToken { get; private set; }
   public readonly ISet<int> Bitwidths = new HashSet<int>();
@@ -56,7 +56,7 @@ public class BuiltIns { // TODO rename to SystemModule<Suffix>
     // Arrow types of other dimensions may be added during parsing as the parser detects the need for these.  For the 0-arity
     // arrow type, the resolver adds a Valid() predicate for iterators, whose corresponding arrow type is conveniently created here.
     CreateArrowTypeDecl(0);
-    
+
 
     // Map#Items relies on the two destructors for 2-tuples
     TupleType(Token.NoToken, 2, true);

@@ -139,8 +139,7 @@ public class ProgramResolver {
     }
   }
 
-  protected virtual void ResolveBuiltins(Program program)
-  {
+  protected virtual void ResolveBuiltins(Program program) {
     var systemModuleResolver = new Resolver(this);
 
     systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
@@ -153,8 +152,7 @@ public class ProgramResolver {
     // the non-null type corresponding to class types.  They are resolved here:
     var systemModuleClassesWithNonNullTypes =
       program.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
-    foreach (var cl in systemModuleClassesWithNonNullTypes)
-    {
+    foreach (var cl in systemModuleClassesWithNonNullTypes) {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
       systemModuleResolver.ResolveTypeParameters(d.TypeArgs, true, d);
@@ -166,8 +164,7 @@ public class ProgramResolver {
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
       new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.BuiltIns.SystemModule.Name);
 
-    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers)
-    {
+    foreach (var moduleClassMembers in systemModuleResolver.moduleClassMembers) {
       classMembers[moduleClassMembers.Key] = moduleClassMembers.Value;
     }
   }
