@@ -7,4 +7,15 @@ module ModA {
   
   const tuple3 := (2,3,4)
   const tuple2 := (2,3)
+  
+  module FilledWithPrefixes {
+  }
+  
+  module FilledWithPrefixes.PrefixContent {
+    const x := 3 
+  }
+  
+  module StandalonePrefix.Prefix {
+    const x := 3
+  }
 }

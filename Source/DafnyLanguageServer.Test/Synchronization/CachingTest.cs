@@ -34,6 +34,9 @@ include ""./B.dfy""
 module ModC {
   import ModB
   import ModA
+  import ModA.StandalonePrefix.Prefix
+  import ModA.FilledWithPrefixes.PrefixContent
+
   const z := ModB.y + 1
   lemma Lem() ensures true {}
 
@@ -41,6 +44,7 @@ module ModC {
   const calledModAFunction := ModA.TakesIdentityAndAppliesIt((x, _) => x, 3)
   const tuple2User := ModA.tuple2.0
   const tuple3User := ModA.tuple3.1
+  const prefixUser := ModA.FilledWithPrefixes.PrefixContent.x + ModA.StandalonePrefix.Prefix.x
 }
 ".TrimStart();
 
