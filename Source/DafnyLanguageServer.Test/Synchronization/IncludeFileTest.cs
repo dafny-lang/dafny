@@ -46,9 +46,10 @@ include ""./cycleA.dfy""
     var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Single(diagnostics);
-    Assert.Contains("the included file", diagnostics[0].Message);
-    Assert.Contains("cycleB.dfy", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains("cycle of includes", diagnostics[0].Message);
+    Assert.Contains("the included file", diagnostics[1].Message);
+    Assert.Contains("cycleB.dfy", diagnostics[1].Message);
   }
 
   [Fact]
