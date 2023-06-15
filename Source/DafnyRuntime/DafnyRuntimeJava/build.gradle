@@ -16,7 +16,7 @@ dependencies {
 
 group = 'dafny.lang'
 sourceCompatibility = '1.11'
-targetCompatibility = '1.8'
+targetCompatibility = '1.11'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
