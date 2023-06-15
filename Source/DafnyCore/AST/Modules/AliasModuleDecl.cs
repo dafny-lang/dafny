@@ -15,7 +15,9 @@ public class AliasModuleDecl : ModuleDecl, IHasUsages, ICanFormat {
 
   public AliasModuleDecl(Cloner cloner, AliasModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
-    TargetQId = original.TargetQId?.Clone(false);
+    if (original.TargetQId != null) { // TODO is this null check necessary?
+      TargetQId = new ModuleQualifiedId(cloner, original.TargetQId);
+    }
     Exports = original.Exports;
   }
 

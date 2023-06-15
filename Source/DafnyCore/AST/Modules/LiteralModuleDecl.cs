@@ -104,8 +104,8 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
-      ModuleDecl md = resolver.ResolveModuleQualifiedId(module.RefinementQId.Root, module.RefinementQId, resolver.reporter);
-      module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
+      var md = module.RefinementQId.ResolveTarget(resolver.reporter);
+      module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
     foreach (var rewriter in compilation.Rewriters) {

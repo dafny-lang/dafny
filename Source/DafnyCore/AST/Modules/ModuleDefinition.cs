@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Auditor;
+using static Microsoft.Dafny.ModuleDefinition;
 
 namespace Microsoft.Dafny;
 
@@ -424,10 +425,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     var oldModuleInfo = resolver.moduleInfo;
     resolver.moduleInfo = Resolver.MergeSignature(sig, resolver.ProgramResolver.BuiltIns.systemNameInfo);
     Type.PushScope(resolver.moduleInfo.VisibilityScope);
-    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
+    Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver.Reporter, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-    var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
+    var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
     int prevErrorCount = resolver.reporter.Count(ErrorLevel.Error);
     resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
     Contract.Assert(resolver.AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints

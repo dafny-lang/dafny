@@ -17,7 +17,9 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Exports = original.Exports;
-    QId = original.QId?.Clone(false);
+    if (original.QId != null) { // TODO is this null check necessary?
+      QId = new ModuleQualifiedId(cloner, original.QId);
+    }
   }
 
   public AbstractModuleDecl(RangeToken rangeToken, ModuleQualifiedId qid, Name name,
@@ -29,6 +31,7 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
     QId = qid;
     Exports = exports;
   }
+
   public override object Dereference() { return this; }
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     foreach (var token in OwnedTokens) {

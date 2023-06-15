@@ -18,7 +18,6 @@ public class CachingResolver : ProgramResolver {
   private readonly Dictionary<ModuleDecl, byte[]> hashes = new();
   private readonly ResolutionCache cache;
 
-
   public CachingResolver(Program program,
     ILogger<CachingResolver> logger,
     ResolutionCache cache)

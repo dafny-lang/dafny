@@ -35,7 +35,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   }
   public int Height;
 
-  public readonly bool Opened;
+  public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
   protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {

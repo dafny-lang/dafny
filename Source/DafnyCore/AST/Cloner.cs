@@ -608,13 +608,13 @@ namespace Microsoft.Dafny {
 
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
           if (sourcefacade.QId.Root != null) {
-            ((AbstractModuleDecl)dd).QId.SetRoot((ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m));
+            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
 
           if (sourcealias.TargetQId.Root != null) {
-            ((AliasModuleDecl)dd).TargetQId.SetRoot((ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m));
+            ((AliasModuleDecl)dd).TargetQId.Root = (ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m);
           }
         }
       }

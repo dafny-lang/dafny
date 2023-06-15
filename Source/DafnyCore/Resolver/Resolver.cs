@@ -658,17 +658,15 @@ namespace Microsoft.Dafny {
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, Resolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, ErrorReporter reporter, Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
       var importedSigs = new HashSet<ModuleSignature>() { sig };
 
       var topLevelDeclReplacements = new List<TopLevelDecl>();
-      foreach (var top in declarations) {
-        if (top is ModuleDecl md && md.Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, out var topLevelDeclReplacement);
-          if (topLevelDeclReplacement != null) {
-            topLevelDeclReplacements.Add(topLevelDeclReplacement);
-          }
+      foreach (var importDeclaration in declarations.OfType<ModuleDecl>().Where(d => d.Opened)) {
+        ResolveOpenedImportsWorker(reporter, sig, moduleDef, importDeclaration, importedSigs, out var topLevelDeclReplacement);
+        if (topLevelDeclReplacement != null) {
+          topLevelDeclReplacements.Add(topLevelDeclReplacement);
         }
       }
       foreach (var topLevelDeclReplacement in topLevelDeclReplacements) {
@@ -689,9 +687,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static TopLevelDecl ResolveAlias(TopLevelDecl dd) {
+    private static TopLevelDecl ResolveAlias(TopLevelDecl dd, ErrorReporter reporter) {
       while (dd is AliasModuleDecl amd) {
-        dd = amd.TargetQId.Root;
+        dd = amd.TargetQId.ResolveTarget(reporter);
       }
       return dd;
     }
@@ -704,30 +702,28 @@ namespace Microsoft.Dafny {
     /// name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping
     /// to the caller, and let the caller remap the symbol after all opened imports have been processed.
     /// </summary>
-    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs,
+    private static void ResolveOpenedImportsWorker(ErrorReporter reporter, ModuleSignature importerSignature, ModuleDefinition importer,
+      ModuleDecl import, ISet<ModuleSignature> importedSigs,
       out TopLevelDecl topLevelDeclReplacement) {
 
       topLevelDeclReplacement = null;
-      var s = GetSignatureExt(im.AccessibleSignature(false));
+      var importSignature = GetSignatureExt(import.AccessibleSignature(false));
 
-      if (importedSigs.Contains(s)) {
-        return; // we've already got these declarations
+      if (!importedSigs.Add(importSignature)) {
+        return;
       }
 
-      importedSigs.Add(s);
-
       // top-level declarations:
-      foreach (var kv in s.TopLevels) {
+      foreach (var kv in importSignature.TopLevels) {
         if (!kv.Value.CanBeExported()) {
           continue;
         }
 
-        if (!sig.TopLevels.TryGetValue(kv.Key, out var d)) {
-          sig.TopLevels.Add(kv.Key, kv.Value);
-        } else if (d.EnclosingModuleDefinition == moduleDef) {
-          if (kv.Value.EnclosingModuleDefinition.DafnyName != kv.Key) {
-            // declarations in the importing module take priority over opened-import declarations
-          } else {
+        if (!importerSignature.TopLevels.TryGetValue(kv.Key, out var sameNameSymbolInImporter)) {
+          importerSignature.TopLevels.Add(kv.Key, kv.Value);
+        } else if (sameNameSymbolInImporter.EnclosingModuleDefinition == importer) {
+          // declarations in the importing module take priority over opened-import declarations
+          if (kv.Value.EnclosingModuleDefinition.DafnyName == kv.Key) {
             // As an exception to the rule, for an "import opened M" that contains a top-level symbol "M", unambiguously map the
             // name "M" to that top-level symbol in "sig". To achieve the "unambiguously" part, return the desired mapping to
             // the caller, and let the caller remap the symbol after all opened imports have been processed.
@@ -736,54 +732,54 @@ namespace Microsoft.Dafny {
         } else {
           bool unambiguous = false;
           // keep just one if they normalize to the same entity
-          if (d == kv.Value) {
+          if (sameNameSymbolInImporter == kv.Value) {
             unambiguous = true;
-          } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
-            var dd = ResolveAlias(d);
-            var dk = ResolveAlias(kv.Value);
+          } else if (sameNameSymbolInImporter is ModuleDecl || kv.Value is ModuleDecl) {
+            var dd = ResolveAlias(sameNameSymbolInImporter, reporter);
+            var dk = ResolveAlias(kv.Value, reporter);
             unambiguous = dd == dk;
           } else {
             // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
             // if both are type synonyms for "int".
             var scope = Type.GetScope();
-            if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
-              var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+            if (sameNameSymbolInImporter.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+              var dType = UserDefinedType.FromTopLevelDecl(sameNameSymbolInImporter.tok, sameNameSymbolInImporter);
               var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
               unambiguous = dType.Equals(vType, true);
             }
           }
           if (!unambiguous) {
-            sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+            importerSignature.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(importer, sameNameSymbolInImporter, kv.Value);
           }
         }
       }
 
       // constructors:
-      foreach (var kv in s.Ctors) {
-        if (sig.Ctors.TryGetValue(kv.Key, out var pair)) {
+      foreach (var kv in importSignature.Ctors) {
+        if (importerSignature.Ctors.TryGetValue(kv.Key, out var pair)) {
           // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
           // they are not duplicates.
-          if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
+          if (!ReferenceEquals(kv.Value.Item1, pair.Item1)) {
             // mark it as a duplicate
-            sig.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
+            importerSignature.Ctors[kv.Key] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
           }
         } else {
           // add new
-          sig.Ctors.Add(kv.Key, kv.Value);
+          importerSignature.Ctors.Add(kv.Key, kv.Value);
         }
       }
 
       // static members:
-      foreach (var kv in s.StaticMembers) {
+      foreach (var kv in importSignature.StaticMembers) {
         if (!kv.Value.CanBeExported()) {
           continue;
         }
 
-        if (sig.StaticMembers.TryGetValue(kv.Key, out var md)) {
-          sig.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(moduleDef, md, kv.Value);
+        if (importerSignature.StaticMembers.TryGetValue(kv.Key, out var md)) {
+          importerSignature.StaticMembers[kv.Key] = AmbiguousMemberDecl.Create(importer, md, kv.Value);
         } else {
           // add new
-          sig.StaticMembers.Add(kv.Key, kv.Value);
+          importerSignature.StaticMembers.Add(kv.Key, kv.Value);
         }
       }
     }
@@ -1169,66 +1165,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Returns the resolved Module declaration corresponding to the qualified module id
-    // Requires the root to have been resolved
-    // Issues an error and returns null if the path is not valid
-    public ModuleDecl ResolveModuleQualifiedId(ModuleDecl root, ModuleQualifiedId qid, ErrorReporter reporter) {
-
-      Contract.Requires(qid != null);
-      Contract.Requires(qid.Path.Count > 0);
-
-      List<Name> Path = qid.Path;
-      ModuleDecl decl = root;
-      ModuleSignature p;
-      for (int k = 1; k < Path.Count; k++) {
-        if (decl is LiteralModuleDecl) {
-          p = ((LiteralModuleDecl)decl).DefaultExport;
-          if (p == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
-              ProgramResolver.ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
-            return null;
-          }
-        } else {
-          p = decl.Signature;
-        }
-
-        var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
-        if (!(tld is ModuleDecl dd)) {
-          if (decl.Signature.ModuleDef == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
-              ProgramResolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
-          } else {
-            reporter.Error(MessageSource.Resolver, Path[k], ProgramResolver.ModuleNotFoundErrorMessage(k, Path));
-          }
-          return null;
-        }
-
-        // Any aliases along the qualified path ought to be already resolved,
-        // else the modules are not being resolved in the right order
-        if (dd is AliasModuleDecl amd) {
-          Contract.Assert(amd.Signature != null);
-        }
-        decl = dd;
-      }
-
-      return decl;
-    }
-
 
     public bool ResolveExport(ModuleDecl alias, ModuleDefinition parent, ModuleQualifiedId qid,
-      List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
+      List<IToken> exports, out ModuleSignature p, ErrorReporter reporter) {
       Contract.Requires(qid != null);
       Contract.Requires(qid.Path.Count > 0);
-      Contract.Requires(Exports != null);
+      Contract.Requires(exports != null);
 
-      ModuleDecl root = qid.Root;
-      ModuleDecl decl = ResolveModuleQualifiedId(root, qid, reporter);
+      ModuleDecl decl = qid.ResolveTarget(reporter);
       if (decl == null) {
         p = null;
         return false;
       }
       p = decl.Signature;
-      if (Exports.Count == 0) {
+      if (exports.Count == 0) {
         if (p.ExportSets.Count == 0) {
           if (decl is LiteralModuleDecl) {
             p = ((LiteralModuleDecl)decl).DefaultExport;
@@ -1246,15 +1196,15 @@ namespace Microsoft.Dafny {
         }
       } else {
         ModuleExportDecl pp;
-        if (decl.Signature.ExportSets.TryGetValue(Exports[0].val, out pp)) {
+        if (decl.Signature.ExportSets.TryGetValue(exports[0].val, out pp)) {
           p = pp.AccessibleSignature();
         } else {
-          reporter.Error(MessageSource.Resolver, Exports[0], "no export set '{0}' in module '{1}'", Exports[0].val, decl.Name);
+          reporter.Error(MessageSource.Resolver, exports[0], "no export set '{0}' in module '{1}'", exports[0].val, decl.Name);
           p = null;
           return false;
         }
 
-        foreach (IToken export in Exports.Skip(1)) {
+        foreach (IToken export in exports.Skip(1)) {
           if (decl.Signature.ExportSets.TryGetValue(export.val, out pp)) {
             Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
             ModuleSignature merged = MergeSignature(p, pp.Signature);
