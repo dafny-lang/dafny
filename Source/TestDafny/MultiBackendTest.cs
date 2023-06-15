@@ -105,7 +105,7 @@ public class MultiBackendTest {
     if (File.Exists(expectFileForVerifier)) {
       var expectedOutput = File.ReadAllText(expectFileForVerifier);
       // Chop off the "Dafny program verifier finished with..." trailer
-      var trailer = new Regex("\nDafny program verifier[^\n]*\n").Match(outputString);
+      var trailer = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
       var actualOutput = outputString.Remove(trailer.Index, trailer.Length);
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, actualOutput);
       if (diffMessage == null) {
