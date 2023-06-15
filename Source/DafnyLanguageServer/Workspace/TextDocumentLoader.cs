@@ -94,7 +94,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       statusPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionStarted);
       var compilationUnit = symbolResolver.ResolveSymbols(textDocument, program, cancellationToken);
-      var symbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
+      var legacySymbolTable = symbolTableFactory.CreateFrom(compilationUnit, cancellationToken);
 
       var newSymbolTable = errorReporter.HasErrors ? null : symbolTableFactory.CreateFrom(program, documentAfterParsing, cancellationToken);
       if (errorReporter.HasErrors) {
@@ -103,13 +103,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         statusPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
       }
 
-      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(symbolTable, cancellationToken).ToArray();
+      var ghostDiagnostics = ghostStateDiagnosticCollector.GetGhostStateDiagnostics(legacySymbolTable, cancellationToken).ToArray();
 
       return new DocumentAfterResolution(textDocument,
         program,
         errorReporter.AllDiagnosticsCopy,
         newSymbolTable,
-        symbolTable,
+        legacySymbolTable,
         ghostDiagnostics
       );
     }

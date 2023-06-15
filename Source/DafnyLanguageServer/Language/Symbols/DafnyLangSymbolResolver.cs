@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         // access a property without potential contract violations. For example, a variable may have an
         // unresolved type represented by null. However, the contract prohibits the use of the type property
         // because it must not be null.
-        if (program.Reporter.HasErrors) {
+        if (program.Reporter.HasErrorsUntilResolver) {
           return new CompilationUnit(textDocument.Uri.ToUri(), program);
         }
       }
