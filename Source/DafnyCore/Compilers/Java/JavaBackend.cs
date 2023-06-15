@@ -97,7 +97,7 @@ public class JavaBackend : ExecutableBackend {
       if (Options.SpillTargetCode == 0) {
         Directory.Delete(targetDirectory, true);
       } else {
-        classFiles.ForEach(f => File.Delete(f));
+        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
       }
     }
 

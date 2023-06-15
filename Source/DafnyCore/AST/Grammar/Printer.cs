@@ -339,7 +339,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.WriteLine();
           }
 
-          if (options.DafnyPrintResolvedFile != null) {
+          if (afterResolver) {
             // also print the members that were created as part of the interpretation of the iterator
             Contract.Assert(iter.Members.Count != 0);  // filled in during resolution
             Indent(indent); wr.WriteLine("/*---------- iterator members ----------");
