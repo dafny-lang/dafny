@@ -32,7 +32,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl {
 
   public override IEnumerable<Node> Children =>
     base.Children.Concat(new[] { Constraint }).Concat(
-      Witness != null ? new []{Witness} :
+      Witness != null ? new[] { Witness } :
         Enumerable.Empty<Node>()
       );
 
