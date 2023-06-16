@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return compilationUnit;
     }
 
-    private bool RunDafnyResolver(TextDocumentItem document, Program program, CancellationToken cancellationToken) {
+    private void RunDafnyResolver(TextDocumentItem document, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = new CachingResolver(program, loggerFactory.CreateLogger<CachingResolver>(), resolutionCache);
@@ -62,10 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         if (resolverErrors > 0) {
           logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
             document.Uri);
-          return false;
         }
-
-        return true;
       }
       finally {
         telemetryPublisher.PublishTime("Resolution", document.Uri.ToString(), DateTime.Now - beforeResolution);
