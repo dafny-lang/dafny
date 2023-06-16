@@ -1709,14 +1709,14 @@ namespace Microsoft.Dafny {
 
       return tok;
     }
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-      var dd = base.CloneDeclaration(d, m);
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
+      var dd = base.CloneDeclaration(d, newParent);
       if (dd is ModuleExportDecl ddex) {
         // In refinement cloning, a default export set from the parent should, in the
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
-        if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, m, dex.Exports, dex.Extends,
+        if (dex.IsDefault && d.Name != newParent.Name) {
+          ddex = new ModuleExportDecl(dex.RangeToken, d.NameNode, newParent, dex.Exports, dex.Extends,
             dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();

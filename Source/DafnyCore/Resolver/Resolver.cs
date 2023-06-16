@@ -1148,23 +1148,23 @@ namespace Microsoft.Dafny {
       return sig;
     }
 
-    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m,
+    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition newParent,
       Dictionary<ModuleDefinition, ModuleSignature> mods, string name) {
       Contract.Requires(d != null);
-      Contract.Requires(m != null);
+      Contract.Requires(newParent != null);
       Contract.Requires(mods != null);
       Contract.Requires(name != null);
 
       if (d is AbstractModuleDecl abstractDecl) {
         var sig = MakeAbstractSignature(abstractDecl.OriginalSignature, name + "." + abstractDecl.Name, abstractDecl.Height, mods);
         var result = new AbstractModuleDecl(abstractDecl.RangeToken, abstractDecl.QId, abstractDecl.NameNode,
-          m, abstractDecl.Opened, abstractDecl.Exports, Guid.NewGuid()) {
+          newParent, abstractDecl.Opened, abstractDecl.Exports, Guid.NewGuid()) {
           Signature = sig,
           OriginalSignature = abstractDecl.OriginalSignature
         };
         return result;
       } else {
-        return new AbstractSignatureCloner(scope).CloneDeclaration(d, m);
+        return new AbstractSignatureCloner(scope).CloneDeclaration(d, newParent);
       }
     }
 

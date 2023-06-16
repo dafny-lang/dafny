@@ -285,7 +285,10 @@ public class ProgramResolver {
 
     foreach (var pointer in m.TopLevelDeclPointers) {
       if (pointer.Get() is ModuleDecl moduleDecl) {
-        declarationPointers.Add(moduleDecl, v => pointer.Set(v));
+        declarationPointers.Add(moduleDecl, v => {
+          pointer.Set(v);
+          v.EnclosingModuleDefinition = m; // TODO still need test that fails if this line is not here.
+        });
       }
     }
 
