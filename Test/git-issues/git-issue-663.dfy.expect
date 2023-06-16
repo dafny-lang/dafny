@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 23 verified, 0 errors
+Dafny program verifier finished with 24 verified, 0 errors
 git-issue-663.dfy(239,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(242,10): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
 git-issue-663.dfy(245,16): Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)
