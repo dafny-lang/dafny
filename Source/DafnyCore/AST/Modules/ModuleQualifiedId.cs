@@ -28,11 +28,11 @@ public class ModuleQualifiedId : Node, IHasUsages {
     return cl;
   }
 
-  public string rootName() {
+  public string RootName() {
     return Path[0].Value;
   }
 
-  public IToken rootToken() {
+  public IToken RootToken() {
     return Path[0].StartToken;
   }
 
