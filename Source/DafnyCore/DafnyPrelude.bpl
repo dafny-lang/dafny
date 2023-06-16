@@ -1106,6 +1106,10 @@ axiom (forall<T> s, t: Seq T, n: int ::
   Seq#Take(Seq#Append(s, t), n) == s &&
   Seq#Drop(Seq#Append(s, t), n) == t);
 
+axiom (forall<T> s : Seq T ::
+  { Seq#Take(s, Seq#Length(s)) }
+  Seq#Take(s, Seq#Length(s)) == s);
+
 function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
