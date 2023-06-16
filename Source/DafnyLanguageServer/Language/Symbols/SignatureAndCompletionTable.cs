@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           textDocument.Uri.ToString(),
           new LiteralModuleDecl(outerModule, null),
           // BuiltIns cannot be initialized without Type.ResetScopes() before.
-          new BuiltIns(options), // TODO creating a BuiltIns is a heavy operation
+          new SystemModuleManager(options), // TODO creating a BuiltIns is a heavy operation
           errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
         )),
         new Dictionary<object, ILocalizableSymbol>(),

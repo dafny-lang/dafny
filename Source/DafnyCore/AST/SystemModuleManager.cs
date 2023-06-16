@@ -6,7 +6,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class BuiltIns {
+public class SystemModuleManager {
   public DafnyOptions Options { get; }
   public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
     false, false, null, null, null, true, false);
@@ -28,7 +28,7 @@ public class BuiltIns {
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
   }
 
-  public BuiltIns(DafnyOptions options) {
+  public SystemModuleManager(DafnyOptions options) {
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
@@ -75,7 +75,7 @@ public class BuiltIns {
     return result;
   }
 
-  public static (UserDefinedType type, Action<BuiltIns> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
+  public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IToken tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
     Contract.Requires(tok != null);
     Contract.Requires(1 <= dims);
     Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // ideally, it is 1, but more will generate an error later, and null means it will be filled in automatically
@@ -86,7 +86,7 @@ public class BuiltIns {
       arrayName += "?";
     }
 
-    void ModifyBuiltins(BuiltIns builtIns) {
+    void ModifyBuiltins(SystemModuleManager builtIns) {
       if (!allowCreationOfNewClass || builtIns.arrayTypeDecls.ContainsKey(dims)) {
         return;
       }

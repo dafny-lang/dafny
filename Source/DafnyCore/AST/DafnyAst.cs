@@ -59,17 +59,17 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { BuiltIns.SystemModule }.Concat(Modules());
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
     public readonly LiteralModuleDecl DefaultModule;
     public readonly DefaultModuleDefinition DefaultModuleDef;
-    public readonly BuiltIns BuiltIns;
+    public readonly SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
       ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
       FullName = name;
       DefaultModule = module;
       DefaultModuleDef = (DefaultModuleDefinition)module.ModuleDef;
-      BuiltIns = builtIns;
+      SystemModuleManager = systemModuleManager;
       this.Reporter = reporter;
       AlreadyVerifiedRoots = alreadyVerifiedRoots;
       AlreadyCompiledRoots = alreadyCompiledRoots;

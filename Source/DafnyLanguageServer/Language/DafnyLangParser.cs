@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         document.Uri.ToString(),
         new LiteralModuleDecl(new DefaultModuleDefinition(new List<Uri>(), false), null),
         // BuiltIns cannot be initialized without Type.ResetScopes() before.
-        new BuiltIns(errorReporter.Options),
+        new SystemModuleManager(errorReporter.Options),
         errorReporter, Sets.Empty<Uri>(), Sets.Empty<Uri>()
       );
     }

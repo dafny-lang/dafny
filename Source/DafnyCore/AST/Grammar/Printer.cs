@@ -201,9 +201,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog, prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog, prog.SystemModuleManager.SystemModule, null, 0, null, Path.GetFullPath(options.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
-        foreach (var w in prog.BuiltIns.Bitwidths) {
+        foreach (var w in prog.SystemModuleManager.Bitwidths) {
           wr.Write(" bv{0}", w);
         }
         wr.WriteLine();
@@ -738,7 +738,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         PrintArrowType(ArrowType.PARTIAL_ARROW, name, typeArgs);
       } else if (ArrowType.IsTotalArrowTypeName(name)) {
         PrintArrowType(ArrowType.TOTAL_ARROW, name, typeArgs);
-      } else if (BuiltIns.IsTupleTypeName(name)) {
+      } else if (SystemModuleManager.IsTupleTypeName(name)) {
         wr.Write(" /*{0}*/ ({1})", name, Util.Comma(typeArgs, TypeParamString));
       } else {
         wr.Write(" {0}", name);
@@ -1516,7 +1516,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write("case");
           PrintAttributes(mc.Attributes);
           wr.Write(" ");
-          if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          if (!mc.Ctor.Name.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
             wr.Write(mc.Ctor.Name);
           }
 
@@ -2171,7 +2171,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         bool printParens;
-        if (dtv.MemberName.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        if (dtv.MemberName.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           // we're looking at a tuple, whose printed constructor name is essentially the empty string
           printParens = true;
         } else {
@@ -2905,7 +2905,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintType(": ", v.OptionalType);
         }
       } else {
-        if (pat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+        if (pat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           Contract.Assert(pat.Arguments != null);
         } else {
           wr.Write(pat.Id);
@@ -2928,7 +2928,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(pat != null);
       switch (pat) {
         case IdPattern idPat:
-          if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          if (idPat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           } else if (idPat.IsWildcardPattern) {
             // In case of the universal match pattern, print '_' instead of
             // its node identifier, otherwise the printed program becomes

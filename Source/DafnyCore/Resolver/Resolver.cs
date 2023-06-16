@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
 
   public partial class Resolver {
     public DafnyOptions Options { get; }
-    public readonly BuiltIns builtIns;
+    public readonly SystemModuleManager SystemModuleManager;
 
     public ErrorReporter reporter;
     public ModuleSignature moduleInfo = null;
@@ -99,37 +99,37 @@ namespace Microsoft.Dafny {
 
       Contract.Requires(prog != null);
 
-      builtIns = prog.BuiltIns;
+      SystemModuleManager = prog.SystemModuleManager;
       reporter = prog.Reporter;
 
       // Map#Items relies on the two destructors for 2-tuples
-      builtIns.TupleType(Token.NoToken, 2, true);
+      SystemModuleManager.TupleType(Token.NoToken, 2, true);
       // Several methods and fields rely on 1-argument arrow types
-      builtIns.CreateArrowTypeDecl(1);
+      SystemModuleManager.CreateArrowTypeDecl(1);
 
       valuetypeDecls = new ValuetypeDecl[] {
-        new ValuetypeDecl("bool", builtIns.SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", builtIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", builtIns.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
-        new ValuetypeDecl("ORDINAL", builtIns.SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("_bv", builtIns.SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
-        new ValuetypeDecl("map", builtIns.SystemModule,
+        new ValuetypeDecl("bool", SystemModuleManager.SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
+        new ValuetypeDecl("int", SystemModuleManager.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
+        new ValuetypeDecl("real", SystemModuleManager.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+        new ValuetypeDecl("ORDINAL", SystemModuleManager.SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
+        new ValuetypeDecl("_bv", SystemModuleManager.SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
+        new ValuetypeDecl("map", SystemModuleManager.SystemModule,
           new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict , TypeParameter.TPVarianceSyntax.Covariant_Strict },
           t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
-        new ValuetypeDecl("imap", builtIns.SystemModule,
+        new ValuetypeDecl("imap", SystemModuleManager.SystemModule,
           new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
           t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
       };
-      builtIns.SystemModule.SourceDecls.AddRange(valuetypeDecls);
+      SystemModuleManager.SystemModule.SourceDecls.AddRange(valuetypeDecls);
       // Resolution error handling relies on being able to get to the 0-tuple declaration
-      builtIns.TupleType(Token.NoToken, 0, true);
+      SystemModuleManager.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
 
       void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
         var enclosingType = valuetypeDecls[(int)valuetypeVariety];
         member.EnclosingClass = enclosingType;
-        member.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+        member.AddVisibilityScope(prog.SystemModuleManager.SystemModule.VisibilityScope, false);
         enclosingType.Members.Add(member);
       }
 
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
 
       var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
       AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
-      builtIns.ORDINAL_Offset = limitOffset;
+      SystemModuleManager.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
       AddMember(isNat, ValuetypeVariety.BigOrdinal);
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
         var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
 
         var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-        var dt = builtIns.TupleType(Token.NoToken, 2, true);
+        var dt = SystemModuleManager.TupleType(Token.NoToken, 2, true);
         var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
         r = new SetType(isFinite, tupleType);
         var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
@@ -179,18 +179,18 @@ namespace Microsoft.Dafny {
 
     public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
       var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, builtIns.SystemModule, false, false,
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateMember.EnclosingClass = enclosingType;
-      rotateMember.AddVisibilityScope(builtIns.SystemModule.VisibilityScope, false);
+      rotateMember.AddVisibilityScope(SystemModuleManager.SystemModule.VisibilityScope, false);
       enclosingType.Members.Add(rotateMember);
     }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(builtIns != null);
+      Contract.Invariant(SystemModuleManager != null);
       Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
     }
@@ -279,14 +279,14 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       prog.Rewriters.Insert(0, refinementTransformer);
 
-      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
-      RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
+      systemNameInfo = RegisterTopLevelDecls(prog.SystemModuleManager.SystemModule, false);
+      RevealAllInScope(prog.SystemModuleManager.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes =
-        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
+        prog.SystemModuleManager.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
         var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
@@ -295,7 +295,7 @@ namespace Microsoft.Dafny {
         allTypeParameters.PopMarker();
       }
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
+        new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.SystemModuleManager.SystemModule.Name);
 
 
       foreach (var rewriter in prog.Rewriters) {
@@ -2595,7 +2595,7 @@ namespace Microsoft.Dafny {
             //     forall k', params | k' < _k && Precondition {
             //       pp(k', params);
             //     }
-            Contract.Assume(builtIns.ORDINAL_Offset != null); // should have been filled in earlier
+            Contract.Assume(SystemModuleManager.ORDINAL_Offset != null); // should have been filled in earlier
             var kId = new IdentifierExpr(com.tok, k);
             var kprimeVar = new BoundVar(com.tok, "_k'", Type.BigOrdinal);
             var kprime = new IdentifierExpr(com.tok, kprimeVar);
@@ -4534,8 +4534,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
-      var (at, modBuiltins) = BuiltIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
-      modBuiltins(builtIns);
+      var (at, modBuiltins) = SystemModuleManager.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      modBuiltins(SystemModuleManager);
       ResolveType(tok, at, resolutionContext, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }
@@ -4756,15 +4756,15 @@ namespace Microsoft.Dafny {
       EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
     }
 
-    public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, BuiltIns builtIns) {
+    public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, SystemModuleManager systemModuleManager) {
       return SelectAppropriateArrowType(function.tok,
         function.Formals.ConvertAll(formal => formal.Type.Subst(subst)),
         function.ResultType.Subst(subst),
         function.Reads.Count != 0, function.Req.Count != 0,
-        builtIns);
+        systemModuleManager);
     }
 
-    public static Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq, BuiltIns builtIns) {
+    public static Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq, SystemModuleManager systemModuleManager) {
       Contract.Requires(tok != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(resultType != null);
@@ -4772,13 +4772,13 @@ namespace Microsoft.Dafny {
       var typeArgsAndResult = Util.Snoc(typeArgs, resultType);
       if (hasReads) {
         // any arrow
-        return new ArrowType(tok, builtIns.ArrowTypeDecls[arity], typeArgsAndResult);
+        return new ArrowType(tok, systemModuleManager.ArrowTypeDecls[arity], typeArgsAndResult);
       } else if (hasReq) {
         // partial arrow
-        return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), builtIns.PartialArrowTypeDecls[arity], typeArgsAndResult);
+        return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), systemModuleManager.PartialArrowTypeDecls[arity], typeArgsAndResult);
       } else {
         // total arrow
-        return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), builtIns.TotalArrowTypeDecls[arity], typeArgsAndResult);
+        return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), systemModuleManager.TotalArrowTypeDecls[arity], typeArgsAndResult);
       }
     }
 
