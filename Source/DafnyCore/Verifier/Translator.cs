@@ -1274,14 +1274,19 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      if (dd.Var != null) {
-        AddWellformednessCheck(dd);
-        currentModule = dd.EnclosingModuleDefinition;
-        // Add $Is and $IsAlloc axioms for the newtype
-        AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
-        AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
-        currentModule = null;
+      if (dd.Var == null) {
+        dd.Var = new BoundVar(dd.tok, "x", dd.BaseType) {
+          IsTypeExplicit = true
+        };
+        dd.Constraint = Expression.CreateBoolLiteral(dd.tok, true);
       }
+
+      AddWellformednessCheck(dd);
+      currentModule = dd.EnclosingModuleDefinition;
+      // Add $Is and $IsAlloc axioms for the newtype
+      AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
+      AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
+      currentModule = null;
       this.fuelContext = oldFuelContext;
     }
 
