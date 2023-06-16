@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -232,7 +233,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveProgram(Program prog) {
+    public void ResolveProgram(Program prog, CancellationToken cancellationToken) {
       Contract.Requires(prog != null);
       Type.ResetScopes();
 
@@ -296,11 +297,14 @@ namespace Microsoft.Dafny {
       ResolveTopLevelDecls_Core(ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
         new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), prog.BuiltIns.SystemModule.Name);
 
+
       foreach (var rewriter in prog.Rewriters) {
+        cancellationToken.ThrowIfCancellationRequested();
         rewriter.PreResolve(prog);
       }
 
       foreach (var decl in sortedDecls) {
+        cancellationToken.ThrowIfCancellationRequested();
         ResolveModuleDeclaration(prog, decl, origErrorCount);
       }
 
@@ -313,11 +317,14 @@ namespace Microsoft.Dafny {
 
       foreach (var module in prog.Modules()) {
         foreach (var rewriter in prog.Rewriters) {
+          cancellationToken.ThrowIfCancellationRequested();
           rewriter.PostResolve(module);
         }
       }
 
+
       foreach (var rewriter in prog.Rewriters) {
+        cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(prog);
       }
     }

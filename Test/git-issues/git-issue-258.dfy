@@ -1,9 +1,5 @@
-// RUN: %dafny /compile:0 /unicodeChar:0 "%s" > "%t"
-// RUN: %dafny /compile:3 /unicodeChar:0 /spillTargetCode:3 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /compile:3 /unicodeChar:0 /spillTargetCode:3 /compileTarget:java "%s" >> "%t"
-// RUN: %dafny /compile:3 /unicodeChar:0 /spillTargetCode:3 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /unicodeChar:0 /spillTargetCode:3 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// NONUNIFORM: https://github.com/dafny-lang/dafny/issues/2582
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
 
 method pr<T>(s: seq<T>) {
   print s, "\n";
