@@ -271,7 +271,7 @@ public class ProgramParser {
       batchErrorReporter.Warning(MessageSource.Parser, ErrorId.p_file_has_no_code, new Token(1, 1) { Uri = uri }, "File contains no code");
     }
 
-    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SysteModuleModifiers);
+    return new DfyParseResult(batchErrorReporter, parser.theModule, parser.SystemModuleModifiers);
   }
 
   private static Parser SetupParser(string /*!*/ s, Uri /*!*/ uri, ErrorReporter /*!*/ errorReporter) {

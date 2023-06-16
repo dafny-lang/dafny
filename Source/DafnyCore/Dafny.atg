@@ -27,7 +27,7 @@ readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
 public readonly FileModuleDefinition theModule;
-public readonly List<Action<SystemModuleManager>> SysteModuleModifiers = new();
+public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = new();
 DafnyOptions theOptions;
 int anonymousIds = 0;
 
@@ -2241,7 +2241,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions", startToken);
                                        (ty, var bMod) = SystemModuleManager.ArrayType(tok, dims, gt, true, q);
-                                       SysteModuleModifiers.Add(bMod);
+                                       SystemModuleModifiers.Add(bMod);
                                     .)
   | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostTokens>
   | NamedType<out ty, out tok, inExpressionContext>
@@ -2267,7 +2267,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
          gt = tupleArgTypes;
        }
        var arity = gt.Count;
-       SysteModuleModifiers.Add(b => b.CreateArrowTypeDecl(arity));
+       SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(arity));
        if (arrowKind == 0) {
          ty = new ArrowType(tok, gt, t2);
        } else {
@@ -2307,7 +2307,7 @@ TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<I
                                        var dims = tupleArgTypes.Count;
                                        var argumentGhostness = argumentGhostTokens.ConvertAll(tok => tok != null);
                                        var tokCopy = tok;
-                                       SysteModuleModifiers.Add(b => b.TupleType(tokCopy, dims, true, argumentGhostness));  // make sure the tuple type exists
+                                       SystemModuleModifiers.Add(b => b.TupleType(tokCopy, dims, true, argumentGhostness));  // make sure the tuple type exists
                                        ty = new UserDefinedType(tok, SystemModuleManager.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
                                   .)
@@ -2687,10 +2687,10 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      }
      f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
-     SysteModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count));
+     SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count));
      if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate
-       SysteModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count + 1));
+       SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count + 1));
      }
   .)
   .
@@ -3095,7 +3095,7 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
   | Expressions<ee>
     "]"                              (. // make sure an array class with this dimensionality exists
                                         var eeCopy = ee;
-                                        SysteModuleModifiers.Add(b => b.ArrayType(eeCopy.Count, new IntType(), true));
+                                        SystemModuleModifiers.Add(b => b.ArrayType(eeCopy.Count, new IntType(), true));
                                      .)
     [ "(" Expression<out arrayElementInit, true, true>
       ")"
@@ -3494,7 +3494,7 @@ SingleExtendedPattern<.out ExtendedPattern pat.>
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
     ")"                                    (. // make sure the tuple type exists
-                                              SysteModuleModifiers.Add(b => b.TupleType(id, arguments.Count, true));
+                                              SystemModuleModifiers.Add(b => b.TupleType(id, arguments.Count, true));
                                               //use the TupleTypeCtors
                                               string ctor = SystemModuleManager.TupleTypeCtorName(arguments.Count);
                                               pat = new IdPattern(id, ctor, arguments);
@@ -4380,7 +4380,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, reads, body);
-     SysteModuleModifiers.Add(b => b.CreateArrowTypeDecl(bvs.Count));
+     SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(bvs.Count));
   .)
   .
 
@@ -4426,7 +4426,7 @@ ParensExpression<out Expression e>
        }
        var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       SysteModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
+       SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
        e = new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
      }
   .)
@@ -4981,7 +4981,7 @@ Suffix<ref Expression e>
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
-           SysteModuleModifiers.Add(b => b.ArrayType(multipleIndices.Count, new IntType(), true));
+           SystemModuleModifiers.Add(b => b.ArrayType(multipleIndices.Count, new IntType(), true));
          } else {
            if (!anyDots && e0 == null) {
              /* a parsing error occurred */
