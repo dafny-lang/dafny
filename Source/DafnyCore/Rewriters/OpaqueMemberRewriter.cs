@@ -139,7 +139,7 @@ public class OpaqueMemberRewriter : IRewriter {
       ens.Add(new AttributedExpression(new BinaryExpr(c.tok, BinaryExpr.Opcode.Eq, new NameSegment(c.Tok, c.Name, null), c.Rhs)));
     }
     Method reveal;
-    var isStatic = (m.EnclosingClass is not DefaultClassDecl);
+    var isStatic = m.HasStaticKeyword || ((m.EnclosingClass is not DefaultClassDecl) && (m.EnclosingClass is not null));
     if (m is TwoStateFunction) {
       reveal = new TwoStateLemma(m.RangeToken, m.NameNode.Prepend("reveal_"), isStatic, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
         new Specification<FrameExpression>(new List<FrameExpression>(), null), ens,
