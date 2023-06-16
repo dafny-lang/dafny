@@ -51,13 +51,14 @@ public class DocumentAfterParsing : Document {
     foreach (var include in sortedUrisWithoutRoot) {
       var messageForIncludedFile =
         ResolutionDiagnostics.GetOrDefault(include, () => (IReadOnlyList<DafnyDiagnostic>)ImmutableList<DafnyDiagnostic>.Empty);
-      var errorMessages = messageForIncludedFile;
-      if (errorMessages.All(m => m.Level != ErrorLevel.Error)) {
+      var errorMessages = messageForIncludedFile.Where(m => m.Level == ErrorLevel.Error);
+      var firstErrorMessage = errorMessages.FirstOrDefault();
+      if (firstErrorMessage == null) {
         continue;
       }
 
       var containsErrorSTheFirstOneIs = "the included file " + include.LocalPath + " contains error(s). The first one is:"
-                                        + messageForIncludedFile.First();
+                                        + firstErrorMessage;
       var diagnostic = new DafnyDiagnostic(null, Program.GetFirstTopLevelToken(), containsErrorSTheFirstOneIs,
         MessageSource.Parser, ErrorLevel.Error, new DafnyRelatedInformation[] { });
       yield return diagnostic;
