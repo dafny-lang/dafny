@@ -10,7 +10,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
-    this.Path = path; // note that the list is aliased -- not to be modified after construction
+    Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
   // Creates a clone, including a copy of the list;
@@ -19,11 +19,11 @@ public class ModuleQualifiedId : Node, IHasUsages {
     var newlist = new List<Name>(Path);
     ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
     if (includeResInfo) {
-      cl.Root = this.Root;
-      cl.Decl = this.Decl;
-      cl.Def = this.Def;
-      cl.Sig = this.Sig;
-      Contract.Assert(this.Def == this.Sig.ModuleDef);
+      cl.Root = Root;
+      cl.Decl = Decl;
+      cl.Def = Def;
+      cl.Sig = Sig;
+      Contract.Assert(Def == Sig.ModuleDef);
     }
     return cl;
   }
@@ -46,18 +46,18 @@ public class ModuleQualifiedId : Node, IHasUsages {
   }
 
   public void SetRoot(ModuleDecl m) {
-    this.Root = m;
+    Root = m;
   }
 
   public void Set(ModuleDecl m) {
     if (m == null) {
-      this.Decl = null;
-      this.Def = null;
-      this.Sig = null;
+      Decl = null;
+      Def = null;
+      Sig = null;
     } else {
-      this.Decl = m;
-      this.Def = m.Signature.ModuleDef;
-      this.Sig = m.Signature;
+      Decl = m;
+      Def = m.Signature.ModuleDef;
+      Sig = m.Signature;
     }
   }
 
