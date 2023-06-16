@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace;
 public class DocumentAfterResolution : DocumentAfterParsing {
   public DocumentAfterResolution(DocumentTextBuffer textDocumentItem,
     Dafny.Program program,
-    IReadOnlyDictionary<DocumentUri, IList<DafnyDiagnostic>> diagnostics,
+    IReadOnlyDictionary<DocumentUri, List<DafnyDiagnostic>> diagnostics,
     SymbolTable? symbolTable,
     SignatureAndCompletionTable signatureAndCompletionTable,
     IReadOnlyList<Diagnostic> ghostDiagnostics) :
