@@ -22,6 +22,16 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleDefinition EffectiveModule = null;
 
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    Exports = original.Exports;
+    Extends = original.Extends;
+    ProvideAll = original.ProvideAll;
+    RevealAll = original.RevealAll;
+    IsRefining = original.IsRefining;
+    ThisScope = new VisibilityScope(FullSanitizedName);
+  }
+
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
     List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
     : base(rangeToken, name, parent, false, isRefining) {

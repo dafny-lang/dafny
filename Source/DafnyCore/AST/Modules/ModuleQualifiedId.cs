@@ -13,19 +13,16 @@ public class ModuleQualifiedId : Node, IHasUsages {
     Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
-  // Creates a clone, including a copy of the list;
-  // if the argument is true, resolution information is included
-  public ModuleQualifiedId Clone(bool includeResInfo) {
-    var newlist = new List<Name>(Path);
-    ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
-    if (includeResInfo) {
-      cl.Root = Root;
-      cl.Decl = Decl;
-      cl.Def = Def;
-      cl.Sig = Sig;
-      Contract.Assert(Def == Sig.ModuleDef);
-    }
-    return cl;
+  public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
+    Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+
+    // TODO decide what to do with this. It's commented out because the conditioned used to be a custom bool parameter that was always false.
+    // if (cloner.CloneResolvedFields) {
+    //   Root = original.Root;
+    //   Decl = original.Decl;
+    //   Def = original.Def;
+    //   Sig = original.Sig;
+    // }
   }
 
   public string RootName() {
