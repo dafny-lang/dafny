@@ -1274,12 +1274,8 @@ namespace Microsoft.Dafny {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-      if (dd.Var == null) {
-        dd.Var = new BoundVar(dd.tok, "x", dd.BaseType) {
-          IsTypeExplicit = true
-        };
-        dd.Constraint = Expression.CreateBoolLiteral(dd.tok, true);
-      }
+      dd.Var ??= new BoundVar(dd.tok, "x", dd.BaseType) { IsTypeExplicit = true };
+      dd.Constraint ??= Expression.CreateBoolLiteral(dd.tok, true);
 
       AddWellformednessCheck(dd);
       currentModule = dd.EnclosingModuleDefinition;
