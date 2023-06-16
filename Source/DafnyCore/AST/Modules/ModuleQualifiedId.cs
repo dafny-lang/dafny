@@ -88,4 +88,49 @@ public class ModuleQualifiedId : Node, IHasUsages {
   public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
     return Enumerable.Repeat(Decl, 1);
   }
+
+  /// <summary>
+  /// Returns the resolved Module declaration corresponding to the qualified module id
+  /// Requires the root to have been resolved
+  /// Issues an error and returns null if the path is not valid
+  /// </summary>
+  public ModuleDecl ResolveTarget(ModuleDecl root, ErrorReporter reporter) {
+    Contract.Requires(this != null);
+    Contract.Requires(Path.Count > 0);
+
+    ModuleDecl decl = root;
+    ModuleSignature p;
+    for (int k = 1; k < Path.Count; k++) {
+      if (decl is LiteralModuleDecl) {
+        p = ((LiteralModuleDecl)decl).DefaultExport;
+        if (p == null) {
+          reporter.Error(MessageSource.Resolver, Path[k],
+            Resolver.ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
+          return null;
+        }
+      } else {
+        p = decl.Signature;
+      }
+
+      var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
+      if (!(tld is ModuleDecl dd)) {
+        if (decl.Signature.ModuleDef == null) {
+          reporter.Error(MessageSource.Resolver, Path[k],
+            Resolver.ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
+        } else {
+          reporter.Error(MessageSource.Resolver, Path[k], Resolver.ModuleNotFoundErrorMessage(k, Path));
+        }
+        return null;
+      }
+
+      // Any aliases along the qualified path ought to be already resolved,
+      // else the modules are not being resolved in the right order
+      if (dd is AliasModuleDecl amd) {
+        Contract.Assert(amd.Signature != null);
+      }
+      decl = dd;
+    }
+
+    return decl;
+  }
 }

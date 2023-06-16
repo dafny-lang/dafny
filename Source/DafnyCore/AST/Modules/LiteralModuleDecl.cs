@@ -93,7 +93,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
-      ModuleDecl md = resolver.ResolveModuleQualifiedId(module.RefinementQId.Root, module.RefinementQId, resolver.reporter);
+      ModuleDecl md = module.RefinementQId.ResolveTarget(module.RefinementQId.Root, resolver.reporter);
       module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
     }
 

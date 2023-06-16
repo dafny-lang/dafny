@@ -935,7 +935,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
+    public static string ModuleNotFoundErrorMessage(int i, List<Name> path, string tail = "") {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
       return "module " + path[i].Value + " does not exist" +
@@ -1439,51 +1439,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Returns the resolved Module declaration corresponding to the qualified module id
-    // Requires the root to have been resolved
-    // Issues an error and returns null if the path is not valid
-    public ModuleDecl ResolveModuleQualifiedId(ModuleDecl root, ModuleQualifiedId qid, ErrorReporter reporter) {
-
-      Contract.Requires(qid != null);
-      Contract.Requires(qid.Path.Count > 0);
-
-      List<Name> Path = qid.Path;
-      ModuleDecl decl = root;
-      ModuleSignature p;
-      for (int k = 1; k < Path.Count; k++) {
-        if (decl is LiteralModuleDecl) {
-          p = ((LiteralModuleDecl)decl).DefaultExport;
-          if (p == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
-              ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
-            return null;
-          }
-        } else {
-          p = decl.Signature;
-        }
-
-        var tld = p.TopLevels.GetValueOrDefault(Path[k].Value, null);
-        if (!(tld is ModuleDecl dd)) {
-          if (decl.Signature.ModuleDef == null) {
-            reporter.Error(MessageSource.Resolver, Path[k],
-              ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
-          } else {
-            reporter.Error(MessageSource.Resolver, Path[k], ModuleNotFoundErrorMessage(k, Path));
-          }
-          return null;
-        }
-
-        // Any aliases along the qualified path ought to be already resolved,
-        // else the modules are not being resolved in the right order
-        if (dd is AliasModuleDecl amd) {
-          Contract.Assert(amd.Signature != null);
-        }
-        decl = dd;
-      }
-
-      return decl;
-    }
-
 
     public bool ResolveExport(ModuleDecl alias, ModuleDefinition parent, ModuleQualifiedId qid,
       List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
@@ -1492,7 +1447,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(Exports != null);
 
       ModuleDecl root = qid.Root;
-      ModuleDecl decl = ResolveModuleQualifiedId(root, qid, reporter);
+      ModuleDecl decl = qid.ResolveTarget(root, reporter);
       if (decl == null) {
         p = null;
         return false;
