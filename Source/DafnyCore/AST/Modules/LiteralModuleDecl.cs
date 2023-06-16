@@ -174,14 +174,14 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     // Transfer prefix-named modules downwards into the sub-module
     if (prefixModules != null) {
-      foreach (var tup in prefixModules) {
-        if (tup.Parts.Count == 0) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
           // change the parent, now that we have found the right parent module for the prefix-named module
-          tup.Module.ModuleDef.EnclosingModule = ModuleDef;
-          var sm = new LiteralModuleDecl(tup.Module.ModuleDef, ModuleDef, tup.Module.CloneId);
+          prefixModule.Module.ModuleDef.EnclosingModule = ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, ModuleDef, prefixModule.Module.CloneId);
           ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
-          ModuleDef.PrefixNamedModules.Add(tup);
+          ModuleDef.PrefixNamedModules.Add(prefixModule);
         }
       }
     }

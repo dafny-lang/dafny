@@ -154,9 +154,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     return Members.SelectMany(m => m.Assumptions(this));
   }
 
-  public void RegisterMembers(Resolver resolver, ModuleDefinition moduleDef,
-    Dictionary<string, MemberDecl> members) {
-    Contract.Requires(moduleDef != null);
+  public void RegisterMembers(Resolver resolver, Dictionary<string, MemberDecl> members) {
     Contract.Requires(this != null);
     Contract.Requires(members != null);
 

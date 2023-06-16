@@ -149,7 +149,7 @@ public class ProgramResolver {
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
     var systemModuleResolver = new Resolver(this);
 
-    SystemModuleManager.systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.SystemModuleManager.SystemModule, false);
+    SystemModuleManager.systemNameInfo = program.SystemModuleManager.SystemModule.RegisterTopLevelDecls(systemModuleResolver, false);
     systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
 
     systemModuleResolver.RevealAllInScope(program.SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
@@ -343,14 +343,3 @@ public class ProgramResolver {
     }
   }
 }
-
-enum ValuetypeVariety {
-  Bool = 0,
-  Int,
-  Real,
-  BigOrdinal,
-  Bitvector,
-  Map,
-  IMap,
-  None
-} // note, these are ordered, so they can be used as indices into valuetypeDecls

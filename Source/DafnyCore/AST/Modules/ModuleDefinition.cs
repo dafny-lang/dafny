@@ -520,10 +520,10 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  private PrefixNameModule ShortenPrefix(PrefixNameModule tup) {
-    Contract.Requires(tup.Parts.Count != 0);
-    var rest = tup.Parts.Skip(1).ToList();
-    return tup with { Parts = rest };
+  private PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
+    Contract.Requires(prefixNameModule.Parts.Count != 0);
+    var rest = prefixNameModule.Parts.Skip(1).ToList();
+    return prefixNameModule with { Parts = rest };
   }
 
   public ModuleSignature RegisterTopLevelDecls(Resolver resolver, bool useImports) {
@@ -583,7 +583,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
         resolver.AddClassMembers(cl, members);
-        cl.RegisterMembers(resolver, this, members);
+        cl.RegisterMembers(resolver, members);
       } else if (d is IteratorDecl) {
         var iter = (IteratorDecl)d;
         iter.Resolve(resolver);
@@ -594,7 +594,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
         resolver.AddClassMembers(defaultClassDecl, members);
-        defaultClassDecl.RegisterMembers(resolver, this, members);
+        defaultClassDecl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
 
@@ -616,7 +616,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         // register the names of the class members
         var members = new Dictionary<string, MemberDecl>();
         resolver.AddClassMembers(cl, members);
-        cl.RegisterMembers(resolver, this, members);
+        cl.RegisterMembers(resolver, members);
 
         Contract.Assert(preMemberErrs != resolver.reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
 
@@ -711,14 +711,14 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
         }
 
         // finally, add any additional user-defined members
-        dt.RegisterMembers(resolver, this, members);
+        dt.RegisterMembers(resolver, members);
 
       } else {
         var cl = (ValuetypeDecl)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
         resolver.AddClassMembers(cl, members);
-        cl.RegisterMembers(resolver, this, members);
+        cl.RegisterMembers(resolver, members);
       }
     }
 

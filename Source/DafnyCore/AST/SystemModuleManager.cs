@@ -447,3 +447,14 @@ public class SystemModuleManager {
     return TupleTypeCtorNamePrefix + dims;
   }
 }
+
+enum ValuetypeVariety {
+  Bool = 0,
+  Int,
+  Real,
+  BigOrdinal,
+  Bitvector,
+  Map,
+  IMap,
+  None
+} // note, these are ordered, so they can be used as indices into valuetypeDecls

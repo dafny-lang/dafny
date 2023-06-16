@@ -43,12 +43,6 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
     CloneId = original.CloneId;
   }
 
-  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
-    Attributes attributes, bool isRefining, Guid cloneId)
-    : base(rangeToken, name, enclosingModule, typeArgs, attributes, isRefining) {
-    CloneId = cloneId;
-  }
-
   protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining, Guid cloneId)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Height = -1;
