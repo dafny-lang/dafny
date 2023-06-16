@@ -449,51 +449,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   public ModuleBindings BindModuleNames(Resolver resolver, ModuleBindings parentBindings) {
     var bindings = new ModuleBindings(parentBindings);
 
-    // moduleDecl.PrefixNamedModules is a list of pairs like:
-    //     A.B.C  ,  module D { ... }
-    // We collect these according to the first component of the prefix, like so:
-    //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var tup in PrefixNamedModules) {
-      var id = tup.Parts[0].val;
-      if (!prefixNames.TryGetValue(id, out var prev)) {
-        prev = new List<PrefixNameModule>();
-      }
-
-      prev.Add(tup);
-      prefixNames[id] = prev;
-    }
-
-    PrefixNamedModules.Clear();
-
-    // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var tld in TopLevelDecls) {
-      if (tld is LiteralModuleDecl) {
-        var subdecl = (LiteralModuleDecl)tld;
-        // Transfer prefix-named modules downwards into the sub-module
-        List<PrefixNameModule> prefixModules;
-        if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
-          prefixNames.Remove(subdecl.Name);
-          prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-        } else {
-          prefixModules = null;
-        }
-
-        subdecl.BindModuleName(resolver, prefixModules, bindings);
-      }
-    }
-
-    // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixNames) {
-      var name = entry.Key;
-      var prefixNamedModules = entry.Value;
-      var tok = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, this, null, false);
-      // Add the new module to the top-level declarations of its parent and then bind its names as usual
-      var subdecl = new LiteralModuleDecl(modDef, this);
-      ResolvedPrefixNamedModules.Add(subdecl);
-      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-    }
+    BindChildrenAndPrefixNamedModules(resolver, bindings);
 
     // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
     foreach (var tld in TopLevelDecls) {
@@ -520,6 +476,64 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
 
     return bindings;
+  }
+
+  private void BindChildrenAndPrefixNamedModules(Resolver resolver, ModuleBindings bindings)
+  {
+    // moduleDecl.PrefixNamedModules is a list of pairs like:
+    //     A.B.C  ,  module D { ... }
+    // We collect these according to the first component of the prefix, like so:
+    //     "A"   ->   (A.B.C  ,  module D { ... })
+    var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
+    foreach (var tup in PrefixNamedModules)
+    {
+      var id = tup.Parts[0].val;
+      if (!prefixNames.TryGetValue(id, out var prev))
+      {
+        prev = new List<PrefixNameModule>();
+      }
+
+      prev.Add(tup);
+      prefixNames[id] = prev;
+    }
+
+    PrefixNamedModules.Clear();
+
+    // First, register all literal modules, and transferring their prefix-named modules downwards
+    foreach (var tld in TopLevelDecls)
+    {
+      if (tld is LiteralModuleDecl)
+      {
+        var subdecl = (LiteralModuleDecl)tld;
+        // Transfer prefix-named modules downwards into the sub-module
+        List<PrefixNameModule> prefixModules;
+        if (prefixNames.TryGetValue(subdecl.Name, out prefixModules))
+        {
+          prefixNames.Remove(subdecl.Name);
+          prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+        }
+        else
+        {
+          prefixModules = null;
+        }
+
+        subdecl.BindModuleName(resolver, prefixModules, bindings);
+      }
+    }
+
+    // Next, add new modules for any remaining entries in "prefixNames".
+    foreach (var entry in prefixNames)
+    {
+      var name = entry.Key;
+      var prefixNamedModules = entry.Value;
+      var tok = prefixNamedModules.First().Parts[0];
+      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false,
+        false, null, this, null, false);
+      // Add the new module to the top-level declarations of its parent and then bind its names as usual
+      var subdecl = new LiteralModuleDecl(modDef, this);
+      ResolvedPrefixNamedModules.Add(subdecl);
+      subdecl.BindModuleName(resolver, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+    }
   }
 
   public static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
