@@ -418,7 +418,7 @@ internal class Name {
   }
 }
 
-public static class Program {
+public static class AutoProgram {
   private const string Placeholder = "{{{AutoExtern}}}";
 
   private static void Fail(string msg) {
