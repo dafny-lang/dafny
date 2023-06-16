@@ -138,6 +138,9 @@ method Test(m: map<int, int>, x: int) {
 }
 ", "x + 2 in m");
   }
+  /** Look at the line containing "// Here", and for every assertion there,
+  look if they contain an implicit assertion that, if printed,
+  would generate the string "expected" */
   private void ShouldHaveImplicitCode(string program, string expected, DafnyOptions options = null) {
     if (program.IndexOf("// Here", StringComparison.Ordinal) == -1) {
       Assert.Fail("Test is missing // Here");
