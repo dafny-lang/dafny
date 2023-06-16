@@ -288,6 +288,9 @@ public class ProgramResolver {
         declarationPointers.Add(moduleDecl, v => {
           pointer.Set(v);
           v.EnclosingModuleDefinition = m; // TODO still need test that fails if this line is not here.
+          if (v is LiteralModuleDecl literalModuleDecl) {
+            literalModuleDecl.ModuleDef.EnclosingModule = m;
+          }
         });
       }
     }
