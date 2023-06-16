@@ -43,11 +43,22 @@ namespace DafnyTestGeneration {
       return DafnyModelTypeUtils
         .ReplaceType(type, _ => true, typ => new UserDefinedType(
           new Token(),
-          typ?.ResolvedClass?.FullName == null ?
+          RemoveSystemPrefixForTuples(
+            typ?.ResolvedClass?.FullName == null ?
             typ.Name :
-            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : ""),
+            typ.ResolvedClass.FullName + (typ.Name.Last() == '?' ? "?" : "")),
           typ.TypeArgs));
     }
+
+    private static string RemoveSystemPrefixForTuples(string typeName) {
+      if (typeName.ToLower().StartsWith("_system._tuple#")) {
+        return typeName[8..];
+      }
+      if (typeName.StartsWith("_System.Tuple")) {
+        return "_tuple#" + typeName[13..];
+      }
+      return typeName;
+    } 
 
     /// <summary>
     /// Copy a <param name="type"></param> and recursively replace type

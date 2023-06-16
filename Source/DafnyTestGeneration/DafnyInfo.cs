@@ -296,7 +296,7 @@ namespace DafnyTestGeneration {
         return new List<(string name, Type type, bool mutable, string/*?*/ defValue)>();
       }
 
-      var relevantFields = classes[type.Name].Members.OfType<Field>()
+      var relevantFields = classes[type.Name].Members.Union(classes[type.Name].InheritedMembers).OfType<Field>()
         .Where(field => !field.IsGhost);
       var result = new List<(string name, Type type, bool mutable, string defValue)>();
       foreach (var field in relevantFields) {
@@ -323,17 +323,17 @@ namespace DafnyTestGeneration {
       if (type == null || !classes.ContainsKey(type.Name)) {
         Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Cannot identify type {type?.Name ?? " (null) "}");
         SetNonZeroExitCode = true;
-        return true;
+        return false;
       }
       return classes[type.Name] is TraitDecl;
     }
 
     public List<Type>/*?*/ GetTypesForTrait(UserDefinedType/*?*/ type) {
-      if (!IsTrait(type) || classes[type.Name] is not TraitDecl traitDecl) {
+      if (!IsTrait(type) || !classes.ContainsKey(type.Name) || classes[type.Name] is not TraitDecl traitDecl) {
         return null;
       }
       var result = new List<Type>();
-      foreach (var member in traitDecl.Members) {
+      foreach (var member in traitDecl.Members.Union(traitDecl.InheritedMembers)) {
         switch (member) {
           case Function function when !function.IsGhost:
             var resultType = Utils.CopyWithReplacements(
@@ -353,7 +353,7 @@ namespace DafnyTestGeneration {
     public List<string> GetEnsuresForTrait(UserDefinedType/*?*/ type, string name, Dictionary<string, string> arguments) {
       var result = new List<string>();
       var traitDecl = (TraitDecl)classes[type.Name];
-      foreach (var member in traitDecl.Members) {
+      foreach (var member in traitDecl.Members.Union(traitDecl.InheritedMembers)) {
         switch (member) {
           case Function function when !function.IsGhost:
             var resultType = Utils.CopyWithReplacements(

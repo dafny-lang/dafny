@@ -77,6 +77,12 @@ namespace DafnyServer.CounterexampleGeneration {
       newName = newName.Split("@")[0];
       // The code below converts every "__" to "_":
       newName = UnderscoreRemovalRegex.Replace(newName, "_");
+      if (newName.ToLower().StartsWith("_system._tuple#")) {
+        newName = newName[8..];
+      }
+      if (newName.StartsWith("_System.Tuple")) {
+        newName = "_tuple#" + newName[13..];
+      }
       var newType = new UserDefinedType(new Token(), newName,
         type.TypeArgs.ConvertAll(t => TransformType(t, GetInDafnyFormat)));
       if (type is DatatypeType) {
