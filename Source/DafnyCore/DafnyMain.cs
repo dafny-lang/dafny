@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
       }
 
       var programResolver = new ProgramResolver(program);
-      LargeStackFactory.StartNew(() => programResolver.Resolve(program)).Wait();
+      LargeStackFactory.StartNew(() => programResolver.Resolve(program, CancellationToken.None)).Wait();
       MaybePrintProgram(program, program.Options.DafnyPrintResolvedFile, true);
 
       if (program.Reporter.ErrorCountUntilResolver != 0) {

@@ -117,8 +117,7 @@ public class ProgramParser {
         diagnostic.Message);
     }
 
-    foreach (var declToMove in fileModule.TopLevelDecls) 
-    {
+    foreach (var declToMove in fileModule.TopLevelDecls) {
       declToMove.EnclosingModuleDefinition = defaultModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;

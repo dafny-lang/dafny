@@ -52,8 +52,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
+      var beforeParsing = DateTime.Now;
       try {
-        var beforeParsing = DateTime.Now;
         var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
@@ -61,10 +61,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           },
           errorReporter, cancellationToken);
         cachingParser.Prune();
-        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         return result;
       }
       finally {
+        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         mutex.Release();
       }
     }

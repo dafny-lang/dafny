@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Threading;
 
 namespace Microsoft.Dafny; 
 
@@ -52,7 +53,7 @@ public class ProgramResolver {
   }
 
 
-  public void Resolve(Program program) {
+  public void Resolve(Program program, CancellationToken cancellationToken) {
     Contract.Requires(program != null);
     Type.ResetScopes();
 
@@ -103,10 +104,12 @@ public class ProgramResolver {
     }
 
     foreach (var rewriter in rewriters) {
+      cancellationToken.ThrowIfCancellationRequested();
       rewriter.PreResolve(program);
     }
 
     foreach (var decl in sortedDecls) {
+      cancellationToken.ThrowIfCancellationRequested();
       var moduleResolutionResult = ResolveModuleDeclaration(program.Compilation, decl);
       declarationPointers[decl](moduleResolutionResult.ResolvedDeclaration);
 
@@ -132,11 +135,13 @@ public class ProgramResolver {
 
     foreach (var module in program.Modules()) { // TODO move this inside cached module resolution?
       foreach (var rewriter in rewriters) {
+        cancellationToken.ThrowIfCancellationRequested();
         rewriter.PostResolve(module);
       }
     }
 
     foreach (var rewriter in rewriters) {
+      cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(program);
     }
   }
