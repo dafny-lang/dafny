@@ -140,7 +140,7 @@ namespace Microsoft.Dafny {
       prog.DefaultModuleDef.PreResolveSnapshotForFormatter();
       var origErrorCount = reporter.ErrorCount; //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
-      var b = BindModuleNames(prog.DefaultModuleDef, bindings);
+      var b = prog.DefaultModuleDef.BindModuleNames(this, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
       if (reporter.ErrorCount > 0) {
         return;
@@ -728,114 +728,6 @@ namespace Microsoft.Dafny {
       }
 
       moduleInfo = oldModuleInfo;
-    }
-
-    private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
-      var bindings = new ModuleBindings(parentBindings);
-
-      // moduleDecl.PrefixNamedModules is a list of pairs like:
-      //     A.B.C  ,  module D { ... }
-      // We collect these according to the first component of the prefix, like so:
-      //     "A"   ->   (A.B.C  ,  module D { ... })
-      var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
-      foreach (var tup in moduleDecl.PrefixNamedModules) {
-        var id = tup.Parts[0].val;
-        if (!prefixNames.TryGetValue(id, out var prev)) {
-          prev = new List<PrefixNameModule>();
-        }
-
-        prev.Add(tup);
-        prefixNames[id] = prev;
-      }
-
-      moduleDecl.PrefixNamedModules.Clear();
-
-      // First, register all literal modules, and transferring their prefix-named modules downwards
-      foreach (var tld in moduleDecl.TopLevelDecls) {
-        if (tld is LiteralModuleDecl) {
-          var subdecl = (LiteralModuleDecl)tld;
-          // Transfer prefix-named modules downwards into the sub-module
-          List<PrefixNameModule> prefixModules;
-          if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
-            prefixNames.Remove(subdecl.Name);
-            prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-          } else {
-            prefixModules = null;
-          }
-
-          BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
-        }
-      }
-
-      // Next, add new modules for any remaining entries in "prefixNames".
-      foreach (var entry in prefixNames) {
-        var name = entry.Key;
-        var prefixNamedModules = entry.Value;
-        var tok = prefixNamedModules.First().Parts[0];
-        var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false, false, null, moduleDecl, null, false);
-        // Add the new module to the top-level declarations of its parent and then bind its names as usual
-        var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
-        moduleDecl.ResolvedPrefixNamedModules.Add(subdecl);
-        BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
-      }
-
-      // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
-      foreach (var tld in moduleDecl.TopLevelDecls) {
-        if (tld is AbstractModuleDecl || tld is AliasModuleDecl) {
-          var subdecl = (ModuleDecl)tld;
-          if (bindings.BindName(subdecl.Name, subdecl, null)) {
-            // the add was successful
-          } else {
-            // there's already something with this name
-            ModuleDecl prevDecl;
-            var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
-            Contract.Assert(yes);
-            if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
-                       importDecl.Name == importDecl.TargetQId.RootName()) {
-              importDecl.ShadowsLiteralModule = true;
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok,
-                "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
-            }
-          }
-        }
-      }
-
-      return bindings;
-    }
-
-    private PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
-      Contract.Requires(prefixNameModule.Parts.Count != 0);
-      var rest = prefixNameModule.Parts.Skip(1).ToList();
-      return prefixNameModule with { Parts = rest };
-    }
-
-    private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod,
-      List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
-      Contract.Requires(litmod != null);
-      Contract.Requires(parentBindings != null);
-
-      // Transfer prefix-named modules downwards into the sub-module
-      if (prefixModules != null) {
-        foreach (var prefixModule in prefixModules) {
-          if (prefixModule.Parts.Count == 0) {
-            prefixModule.Module.ModuleDef.EnclosingModule =
-              litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-            var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef,
-              litmod.ModuleDef); // this will create a ModuleDecl with the right parent
-            litmod.ModuleDef.ResolvedPrefixNamedModules.Add(sm);
-          } else {
-            litmod.ModuleDef.PrefixNamedModules.Add(prefixModule);
-          }
-        }
-      }
-
-      var bindings = BindModuleNames(litmod.ModuleDef, parentBindings);
-      if (!parentBindings.BindName(litmod.Name, litmod, bindings)) {
-        reporter.Error(MessageSource.Resolver, litmod.tok, "Duplicate module name: {0}", litmod.Name);
-      }
     }
 
     private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,

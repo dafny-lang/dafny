@@ -161,4 +161,30 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     Type.PopScope(tempVis);
   }
+
+  public void BindModuleName(Resolver resolver,
+    List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+    Contract.Requires(this != null);
+    Contract.Requires(parentBindings != null);
+
+    // Transfer prefix-named modules downwards into the sub-module
+    if (prefixModules != null) {
+      foreach (var prefixModule in prefixModules) {
+        if (prefixModule.Parts.Count == 0) {
+          prefixModule.Module.ModuleDef.EnclosingModule =
+            ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef,
+            ModuleDef); // this will create a ModuleDecl with the right parent
+          ModuleDef.ResolvedPrefixNamedModules.Add(sm);
+        } else {
+          ModuleDef.PrefixNamedModules.Add(prefixModule);
+        }
+      }
+    }
+
+    var bindings = ModuleDef.BindModuleNames(resolver, parentBindings);
+    if (!parentBindings.BindName(Name, this, bindings)) {
+      resolver.reporter.Error(MessageSource.Resolver, tok, "Duplicate module name: {0}", Name);
+    }
+  }
 }
