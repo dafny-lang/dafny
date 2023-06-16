@@ -74,18 +74,18 @@ namespace Microsoft.Dafny {
       }
       if (IsArrayName(name, out var dims)) {
         // make sure the array class has been created
-        BuiltIns.ArrayType(Token.NoToken, dims,
-          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.builtIns);
-        decl = resolver.builtIns.arrayTypeDecls[dims];
+        SystemModuleManager.ArrayType(Token.NoToken, dims,
+          new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.SystemModuleManager);
+        decl = resolver.SystemModuleManager.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
-        var bvDecl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, t => t.IsBitVectorType,
+        var bvDecl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, t => t.IsBitVectorType,
           typeArgs => new BitvectorType(resolver.Options, width));
         preTypeBuiltins.Add(name, bvDecl);
         AddRotateMember(bvDecl, "RotateLeft", width);
         AddRotateMember(bvDecl, "RotateRight", width);
         return bvDecl;
       } else {
-        foreach (var valueTypeDecl in resolver.ProgramResolver.BuiltIns.valuetypeDecls) {
+        foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
           if (valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;
@@ -95,12 +95,12 @@ namespace Microsoft.Dafny {
         if (decl == null) {
           if (name == "set" || name == "seq" || name == "multiset") {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict };
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else if (name == "iset") {
             var variances = new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive };
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, variances, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, variances, _ => false, null);
           } else {
-            decl = new ValuetypeDecl(name, resolver.builtIns.SystemModule, _ => false, null);
+            decl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, _ => false, null);
           }
         }
       }
@@ -109,21 +109,21 @@ namespace Microsoft.Dafny {
     }
 
     public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
-      var argumentType = resolver.builtIns.Nat();
+      var argumentType = resolver.SystemModuleManager.Nat();
       var formals = new List<Formal> {
         new Formal(Token.NoToken, "w", argumentType, true, false, null, false) {
           PreType = Type2PreType(argumentType)
         }
       };
       var resultType = new BitvectorType(resolver.Options, width);
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.builtIns.SystemModule, false, false,
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null), null, null, null) {
         EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
       };
-      rotateMember.AddVisibilityScope(resolver.builtIns.SystemModule.VisibilityScope, false);
+      rotateMember.AddVisibilityScope(resolver.SystemModuleManager.SystemModule.VisibilityScope, false);
       bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
       var name = ArrowType.ArrowTypeName(arity);
       if (!preTypeBuiltins.TryGetValue(name, out var decl)) {
         // the arrow type declaration should already have been created by the parser
-        decl = resolver.builtIns.ArrowTypeDecls[arity];
+        decl = resolver.SystemModuleManager.ArrowTypeDecls[arity];
         preTypeBuiltins.Add(name, decl);
       }
       return decl;
@@ -274,7 +274,7 @@ namespace Microsoft.Dafny {
         if (decl is TraitDecl trait && trait.IsObjectTrait) {
           // don't return object itself
         } else {
-          yield return resolver.builtIns.ObjectQ();
+          yield return resolver.SystemModuleManager.ObjectQ();
         }
       }
     }
@@ -311,7 +311,7 @@ namespace Microsoft.Dafny {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
           // object is also a parent type
-          ComputeAncestors(resolver.builtIns.ObjectDecl, ancestors);
+          ComputeAncestors(resolver.SystemModuleManager.ObjectDecl, ancestors);
         }
       }
     }

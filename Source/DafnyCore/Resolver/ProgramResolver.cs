@@ -10,7 +10,7 @@ public class ProgramResolver {
   public Program Program { get; }
 
   public DafnyOptions Options { get; }
-  public BuiltIns BuiltIns => Program.BuiltIns;
+  public SystemModuleManager SystemModuleManager => Program.SystemModuleManager;
   public ErrorReporter Reporter { get; }
 
   public IList<IRewriter> rewriters;
@@ -28,7 +28,7 @@ public class ProgramResolver {
 
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
-    foreach (var vtd in BuiltIns.valuetypeDecls) {
+    foreach (var vtd in SystemModuleManager.valuetypeDecls) {
       if (vtd.IsThisType(t)) {
         return vtd;
       }
@@ -38,8 +38,8 @@ public class ProgramResolver {
 
   private static void ResolveValueTypeDecls(ProgramResolver programResolver) {
     var moduleResolver = new Resolver(programResolver);
-    moduleResolver.moduleInfo = programResolver.BuiltIns.systemNameInfo;
-    foreach (var valueTypeDecl in programResolver.BuiltIns.valuetypeDecls) {
+    moduleResolver.moduleInfo = programResolver.SystemModuleManager.systemNameInfo;
+    foreach (var valueTypeDecl in programResolver.SystemModuleManager.valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
@@ -149,16 +149,16 @@ public class ProgramResolver {
   protected virtual Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
     var systemModuleResolver = new Resolver(this);
 
-    BuiltIns.systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.BuiltIns.SystemModule, false);
-    systemModuleResolver.moduleInfo = BuiltIns.systemNameInfo;
+    SystemModuleManager.systemNameInfo = systemModuleResolver.RegisterTopLevelDecls(program.SystemModuleManager.SystemModule, false);
+    systemModuleResolver.moduleInfo = SystemModuleManager.systemNameInfo;
 
-    systemModuleResolver.RevealAllInScope(program.BuiltIns.SystemModule.TopLevelDecls, BuiltIns.systemNameInfo.VisibilityScope);
+    systemModuleResolver.RevealAllInScope(program.SystemModuleManager.SystemModule.TopLevelDecls, SystemModuleManager.systemNameInfo.VisibilityScope);
     ResolveValueTypeDecls(this);
 
     // The SystemModule is constructed with all its members already being resolved. Except for
     // the non-null type corresponding to class types.  They are resolved here:
     var systemModuleClassesWithNonNullTypes =
-      program.BuiltIns.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
+      program.SystemModuleManager.SystemModule.TopLevelDecls.Where(d => (d as ClassLikeDecl)?.NonNullTypeDecl != null).ToList();
     foreach (var cl in systemModuleClassesWithNonNullTypes) {
       var d = ((ClassLikeDecl)cl).NonNullTypeDecl;
       systemModuleResolver.allTypeParameters.PushMarker();
@@ -169,7 +169,7 @@ public class ProgramResolver {
 
     systemModuleResolver.ResolveTopLevelDecls_Core(
       ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(systemModuleClassesWithNonNullTypes).ToList(),
-      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.BuiltIns.SystemModule.Name);
+      new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>(), program.SystemModuleManager.SystemModule.Name);
 
     return systemModuleResolver.moduleClassMembers;
   }

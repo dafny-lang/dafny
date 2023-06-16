@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class ResolutionCache {
   public PruneIfNotUsedSinceLastPruneCache<byte[], ModuleResolutionResult> Modules { get; } = new(new HashEquality());
-  public BuiltIns? Builtins { get; set; }
+  public SystemModuleManager? Builtins { get; set; }
   public Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>? SystemClassMembers { get; set; }
 
   public void Prune() {
@@ -27,13 +27,13 @@ public class CachingResolver : ProgramResolver {
   }
 
   protected override Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ResolveBuiltins(Program program) {
-    if (cache.Builtins == null || !new HashEquality().Equals(cache.Builtins.MyHash, program.BuiltIns.MyHash)) {
+    if (cache.Builtins == null || !new HashEquality().Equals(cache.Builtins.MyHash, program.SystemModuleManager.MyHash)) {
       var systemClassMembers = base.ResolveBuiltins(program);
-      cache.Builtins = program.BuiltIns;
+      cache.Builtins = program.SystemModuleManager;
       cache.SystemClassMembers = systemClassMembers;
       logger.LogDebug($"Resolution cache miss for system module");
     } else {
-      program.BuiltIns = cache.Builtins;
+      program.SystemModuleManager = cache.Builtins;
       logger.LogDebug($"Resolution cache hit for system module");
     }
 

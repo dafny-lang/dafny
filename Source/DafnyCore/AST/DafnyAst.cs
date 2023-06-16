@@ -51,24 +51,24 @@ namespace Microsoft.Dafny {
     [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
     // Resolution essentially flattens the module hierarchy, for
     // purposes of translation and compilation.
-    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { BuiltIns.SystemModule }.Concat(Modules());
+    [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
     // Contains the definitions to be used for compilation.
 
     public Method MainMethod; // Method to be used as main if compiled
     public LiteralModuleDecl DefaultModule;
     public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
-    public BuiltIns BuiltIns;
+    public SystemModuleManager SystemModuleManager;
     public DafnyOptions Options => Reporter.Options;
     public ErrorReporter Reporter { get; set; }
 
-    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] BuiltIns builtIns, ErrorReporter reporter,
+    public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
       CompilationData compilation) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(reporter != null);
       FullName = name;
       DefaultModule = module;
-      BuiltIns = builtIns;
+      SystemModuleManager = systemModuleManager;
       this.Reporter = reporter;
       Compilation = compilation;
     }

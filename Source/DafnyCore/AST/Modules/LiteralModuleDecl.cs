@@ -129,7 +129,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
 
     var tempVis = new VisibilityScope();
     tempVis.Augment(sig.VisibilityScope);
-    tempVis.Augment(resolver.ProgramResolver.BuiltIns.systemNameInfo.VisibilityScope);
+    tempVis.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     Type.PushScope(tempVis);
 
     foreach (var rewriter in compilation.Rewriters) {

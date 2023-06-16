@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     private Program program;
-    public BuiltIns builtIns => program.BuiltIns; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
+    public SystemModuleManager SystemModuleManager => program.SystemModuleManager; // TODO is this mutated? Also, everything from the system module should also be cached right? Because other things refer to it.
 
     public IList<IRewriter> rewriters => ProgramResolver.rewriters;
 
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(builtIns != null);
+      Contract.Invariant(SystemModuleManager != null);
     }
 
     public void FillInAdditionalInformation(ModuleDefinition module) {
@@ -2087,7 +2087,7 @@ namespace Microsoft.Dafny {
             //     forall k', params | k' < _k && Precondition {
             //       pp(k', params);
             //     }
-            Contract.Assume(builtIns.ORDINAL_Offset != null); // should have been filled in earlier
+            Contract.Assume(SystemModuleManager.ORDINAL_Offset != null); // should have been filled in earlier
             var kId = new IdentifierExpr(com.tok, k);
             var kprimeVar = new BoundVar(com.tok, "_k'", Type.BigOrdinal);
             var kprime = new IdentifierExpr(com.tok, kprimeVar);
@@ -4026,8 +4026,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(1 <= dims);
       Contract.Requires(arg != null);
-      var (at, modBuiltins) = BuiltIns.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
-      modBuiltins(builtIns);
+      var (at, modBuiltins) = SystemModuleManager.ArrayType(tok, dims, new List<Type> { arg }, false, useClassNameType);
+      modBuiltins(SystemModuleManager);
       ResolveType(tok, at, resolutionContext, ResolveTypeOptionEnum.DontInfer, null);
       return at;
     }
@@ -4247,15 +4247,15 @@ namespace Microsoft.Dafny {
       EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
     }
 
-    public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, BuiltIns builtIns) {
+    public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, SystemModuleManager systemModuleManager) {
       return SelectAppropriateArrowType(function.tok,
         function.Formals.ConvertAll(formal => formal.Type.Subst(subst)),
         function.ResultType.Subst(subst),
         function.Reads.Count != 0, function.Req.Count != 0,
-        builtIns);
+        systemModuleManager);
     }
 
-    public static Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq, BuiltIns builtIns) {
+    public static Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq, SystemModuleManager systemModuleManager) {
       Contract.Requires(tok != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(resultType != null);
@@ -4263,13 +4263,13 @@ namespace Microsoft.Dafny {
       var typeArgsAndResult = Util.Snoc(typeArgs, resultType);
       if (hasReads) {
         // any arrow
-        return new ArrowType(tok, builtIns.ArrowTypeDecls[arity], typeArgsAndResult);
+        return new ArrowType(tok, systemModuleManager.ArrowTypeDecls[arity], typeArgsAndResult);
       } else if (hasReq) {
         // partial arrow
-        return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), builtIns.PartialArrowTypeDecls[arity], typeArgsAndResult);
+        return new UserDefinedType(tok, ArrowType.PartialArrowTypeName(arity), systemModuleManager.PartialArrowTypeDecls[arity], typeArgsAndResult);
       } else {
         // total arrow
-        return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), builtIns.TotalArrowTypeDecls[arity], typeArgsAndResult);
+        return new UserDefinedType(tok, ArrowType.TotalArrowTypeName(arity), systemModuleManager.TotalArrowTypeDecls[arity], typeArgsAndResult);
       }
     }
 

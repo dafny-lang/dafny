@@ -384,11 +384,11 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, IHasDocstring {
     });
     // add the additional special variables as fields
     Member_Reads = new SpecialField(RangeToken, "_reads", SpecialField.ID.Reads, null, true, false, false,
-      new SetType(true, resolver.builtIns.ObjectQ()), null);
+      new SetType(true, resolver.SystemModuleManager.ObjectQ()), null);
     Member_Modifies = new SpecialField(RangeToken, "_modifies", SpecialField.ID.Modifies, null, true, false,
-      false, new SetType(true, resolver.builtIns.ObjectQ()), null);
+      false, new SetType(true, resolver.SystemModuleManager.ObjectQ()), null);
     Member_New = new SpecialField(RangeToken, "_new", SpecialField.ID.New, null, true, true, true,
-      new SetType(true, resolver.builtIns.ObjectQ()), null);
+      new SetType(true, resolver.SystemModuleManager.ObjectQ()), null);
     foreach (var field in new List<Field>() { Member_Reads, Member_Modifies, Member_New }) {
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
