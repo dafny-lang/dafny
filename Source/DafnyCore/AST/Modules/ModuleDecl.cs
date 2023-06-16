@@ -19,11 +19,8 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
 
   public override string WhatKind => "module";
 
-  [field: FilledInDuringResolution]
-  public ModuleSignature Signature {
-    get;
-    set;
-  }
+  [FilledInDuringResolution]
+  public ModuleSignature Signature { get; set; }
 
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
     Contract.Requires(Signature != null);
