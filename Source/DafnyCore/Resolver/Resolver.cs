@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
       refinementTransformer = new RefinementTransformer(prog);
       prog.Rewriters.Insert(0, refinementTransformer);
 
-      systemNameInfo = RegisterTopLevelDecls(prog.SystemModuleManager.SystemModule, false);
+      systemNameInfo = prog.SystemModuleManager.SystemModule.RegisterTopLevelDecls(this, false);
       RevealAllInScope(prog.SystemModuleManager.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
 
@@ -714,7 +714,7 @@ namespace Microsoft.Dafny {
 
         reporter = new ErrorReporterWrapper(reporter,
           String.Format("Raised while checking export set {0}: ", exportDecl.Name));
-        var testSig = RegisterTopLevelDecls(exportView, true);
+        var testSig = exportView.RegisterTopLevelDecls(this, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         exportView.ResolveModuleDefinition(testSig, this, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
@@ -1038,222 +1038,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
-      Contract.Requires(moduleDef != null);
-      var sig = new ModuleSignature();
-      sig.ModuleDef = moduleDef;
-      sig.IsAbstract = moduleDef.IsAbstract;
-      sig.VisibilityScope = new VisibilityScope();
-      sig.VisibilityScope.Augment(moduleDef.VisibilityScope);
-
-      // This is solely used to detect duplicates amongst the various e
-      Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
-      // Now add the things present
-      var anonymousImportCount = 0;
-      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
-        Contract.Assert(d != null);
-
-        if (d is RevealableTypeDecl) {
-          revealableTypes.Add((RevealableTypeDecl)d);
-        }
-
-        // register the class/datatype/module name
-        {
-          TopLevelDecl registerThisDecl = null;
-          string registerUnderThisName = null;
-          if (d is ModuleExportDecl export) {
-            if (sig.ExportSets.ContainsKey(d.Name)) {
-              reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
-            } else {
-              sig.ExportSets[d.Name] = export;
-            }
-          } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
-            // add under an anonymous name
-            registerThisDecl = d;
-            registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
-            anonymousImportCount++;
-          } else if (toplevels.ContainsKey(d.Name)) {
-            reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-          } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
-            registerThisDecl = nntd;
-            registerUnderThisName = d.Name;
-          } else {
-            registerThisDecl = d;
-            registerUnderThisName = d.Name;
-          }
-
-          if (registerThisDecl != null) {
-            toplevels[registerUnderThisName] = registerThisDecl;
-            sig.TopLevels[registerUnderThisName] = registerThisDecl;
-          }
-        }
-        if (d is ModuleDecl) {
-          // nothing to do
-        } else if (d is TypeSynonymDecl) {
-          // nothing more to register
-        } else if (d is NewtypeDecl || d is AbstractTypeDecl) {
-          var cl = (TopLevelDeclWithMembers)d;
-          // register the names of the type members
-          var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
-          cl.RegisterMembers(this, members);
-        } else if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
-          iter.Resolve(this);
-
-        } else if (d is DefaultClassDecl defaultClassDecl) {
-          var preMemberErrs = reporter.Count(ErrorLevel.Error);
-
-          // register the names of the class members
-          var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(defaultClassDecl, members);
-          defaultClassDecl.RegisterMembers(this, members);
-
-          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !defaultClassDecl.Members.Except(members.Values).Any());
-
-          foreach (MemberDecl m in members.Values) {
-            Contract.Assert(!m.HasStaticKeyword);
-            if (m is Function or Method or ConstantField) {
-              sig.StaticMembers[m.Name] = m;
-            }
-
-            if (toplevels.ContainsKey(m.Name)) {
-              reporter.Error(MessageSource.Resolver, m.tok, $"duplicate declaration for name {m.Name}");
-            }
-          }
-
-        } else if (d is ClassLikeDecl) {
-          var cl = (ClassLikeDecl)d;
-          var preMemberErrs = reporter.Count(ErrorLevel.Error);
-
-          // register the names of the class members
-          var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
-          cl.RegisterMembers(this, members);
-
-          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
-
-        } else if (d is DatatypeDecl) {
-          var dt = (DatatypeDecl)d;
-
-          // register the names of the constructors
-          dt.ConstructorsByName = new();
-          // ... and of the other members
-          var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(dt, members);
-
-          foreach (DatatypeCtor ctor in dt.Ctors) {
-            if (ctor.Name.EndsWith("?")) {
-              reporter.Error(MessageSource.Resolver, ctor,
-                "a datatype constructor name is not allowed to end with '?'");
-            } else if (dt.ConstructorsByName.ContainsKey(ctor.Name)) {
-              reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
-            } else {
-              dt.ConstructorsByName.Add(ctor.Name, ctor);
-              ctor.InheritVisibility(dt);
-
-              // create and add the query "method" (field, really)
-              var queryName = ctor.NameNode.Append("?");
-              var query = new DatatypeDiscriminator(ctor.RangeToken, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.GetCompileName(Options),
-                ctor.IsGhost, Type.Bool, null);
-              query.InheritVisibility(dt);
-              query.EnclosingClass = dt; // resolve here
-              members.Add(queryName.Value, query);
-              ctor.QueryField = query;
-
-              // also register the constructor name globally
-              Tuple<DatatypeCtor, bool> pair;
-              if (sig.Ctors.TryGetValue(ctor.Name, out pair)) {
-                // mark it as a duplicate
-                sig.Ctors[ctor.Name] = new Tuple<DatatypeCtor, bool>(pair.Item1, true);
-              } else {
-                // add new
-                sig.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
-              }
-            }
-          }
-
-          // add deconstructors now (that is, after the query methods have been added)
-          foreach (DatatypeCtor ctor in dt.Ctors) {
-            var formalsUsedInThisCtor = new HashSet<string>();
-            var duplicates = new HashSet<Formal>();
-            foreach (var formal in ctor.Formals) {
-              MemberDecl previousMember = null;
-              var localDuplicate = false;
-              if (formal.HasName) {
-                if (members.TryGetValue(formal.Name, out previousMember)) {
-                  localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
-                  if (localDuplicate) {
-                    reporter.Error(MessageSource.Resolver, ctor,
-                      "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
-                    duplicates.Add(formal);
-                  } else if (previousMember is DatatypeDestructor) {
-                    // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
-                  } else {
-                    reporter.Error(MessageSource.Resolver, ctor,
-                      "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
-                  }
-                }
-
-                formalsUsedInThisCtor.Add(formal.Name);
-              }
-
-              DatatypeDestructor dtor;
-              if (!localDuplicate && previousMember is DatatypeDestructor) {
-                // a destructor with this name already existed in (a different constructor in) the datatype
-                dtor = (DatatypeDestructor)previousMember;
-                dtor.AddAnotherEnclosingCtor(ctor, formal);
-              } else {
-                // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-                dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
-                  formal.IsGhost, formal.Type, null);
-                dtor.InheritVisibility(dt);
-                dtor.EnclosingClass = dt; // resolve here
-                if (formal.HasName && !localDuplicate && previousMember == null) {
-                  // the destructor has an explict name and there was no member at all with this name before
-                  members.Add(formal.Name, dtor);
-                }
-              }
-
-              ctor.Destructors.Add(dtor);
-            }
-
-            foreach (var duplicate in duplicates) {
-              ctor.Formals.Remove(duplicate);
-            }
-          }
-
-          // finally, add any additional user-defined members
-          dt.RegisterMembers(this, members);
-
-        } else {
-          var cl = (ValuetypeDecl)d;
-          // register the names of the type members
-          var members = new Dictionary<string, MemberDecl>();
-          classMembers.Add(cl, members);
-          cl.RegisterMembers(this, members);
-        }
-      }
-
-      // Now, for each class, register its possibly-null type
-      foreach (TopLevelDecl d in moduleDef.TopLevelDecls) {
-        if ((d as ClassLikeDecl)?.NonNullTypeDecl != null) {
-          var name = d.Name + "?";
-          TopLevelDecl prev;
-          if (toplevels.TryGetValue(name, out prev)) {
-            reporter.Error(MessageSource.Resolver, d,
-              "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
-              name, d.WhatKind, d.Name);
-          } else {
-            toplevels[name] = d;
-            sig.TopLevels[name] = d;
-          }
-        }
-      }
-
-      return sig;
-    }
-
     public static void RegisterByMethod(Function f, TopLevelDeclWithMembers cl) {
       Contract.Requires(f != null && f.ByMethodBody != null);
 
@@ -1300,7 +1084,7 @@ namespace Microsoft.Dafny {
       var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
       mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, Name);
 
-      var sig = RegisterTopLevelDecls(mod, true);
+      var sig = mod.RegisterTopLevelDecls(this, true);
       sig.Refines = p.Refines;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
