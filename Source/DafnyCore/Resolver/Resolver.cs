@@ -7,18 +7,12 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.IO;
-using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
-using Microsoft.BaseTypes;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny {
@@ -68,18 +62,6 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
       new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
 
-    enum ValuetypeVariety {
-      Bool = 0,
-      Int,
-      Real,
-      BigOrdinal,
-      Bitvector,
-      Map,
-      IMap,
-      None
-    } // note, these are ordered, so they can be used as indices into valuetypeDecls
-
-    internal readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     public ModuleSignature systemNameInfo = null;
@@ -101,91 +83,6 @@ namespace Microsoft.Dafny {
 
       SystemModuleManager = prog.SystemModuleManager;
       reporter = prog.Reporter;
-
-      // Map#Items relies on the two destructors for 2-tuples
-      SystemModuleManager.TupleType(Token.NoToken, 2, true);
-      // Several methods and fields rely on 1-argument arrow types
-      SystemModuleManager.CreateArrowTypeDecl(1);
-
-      valuetypeDecls = new ValuetypeDecl[] {
-        new ValuetypeDecl("bool", SystemModuleManager.SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", SystemModuleManager.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", SystemModuleManager.SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
-        new ValuetypeDecl("ORDINAL", SystemModuleManager.SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("_bv", SystemModuleManager.SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
-        new ValuetypeDecl("map", SystemModuleManager.SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
-        new ValuetypeDecl("imap", SystemModuleManager.SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
-      };
-      SystemModuleManager.SystemModule.SourceDecls.AddRange(valuetypeDecls);
-      // Resolution error handling relies on being able to get to the 0-tuple declaration
-      SystemModuleManager.TupleType(Token.NoToken, 0, true);
-
-      // Populate the members of the basic types
-
-      void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
-        var enclosingType = valuetypeDecls[(int)valuetypeVariety];
-        member.EnclosingClass = enclosingType;
-        member.AddVisibilityScope(prog.SystemModuleManager.SystemModule.VisibilityScope, false);
-        enclosingType.Members.Add(member);
-      }
-
-      var floor = new SpecialField(RangeToken.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
-      AddMember(floor, ValuetypeVariety.Real);
-
-      var isLimit = new SpecialField(RangeToken.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
-      AddMember(isLimit, ValuetypeVariety.BigOrdinal);
-
-      var isSucc = new SpecialField(RangeToken.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
-      AddMember(isSucc, ValuetypeVariety.BigOrdinal);
-
-      var limitOffset = new SpecialField(RangeToken.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
-      AddMember(limitOffset, ValuetypeVariety.BigOrdinal);
-      SystemModuleManager.ORDINAL_Offset = limitOffset;
-
-      var isNat = new SpecialField(RangeToken.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
-      AddMember(isNat, ValuetypeVariety.BigOrdinal);
-
-      // Add "Keys", "Values", and "Items" to map, imap
-      foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
-        var vtd = valuetypeDecls[(int)typeVariety];
-        var isFinite = typeVariety == ValuetypeVariety.Map;
-
-        var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
-        var keys = new SpecialField(RangeToken.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
-
-        r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-        var values = new SpecialField(RangeToken.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
-
-        var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-        var dt = SystemModuleManager.TupleType(Token.NoToken, 2, true);
-        var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
-        r = new SetType(isFinite, tupleType);
-        var items = new SpecialField(RangeToken.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
-
-        foreach (var memb in new[] { keys, values, items }) {
-          AddMember(memb, typeVariety);
-        }
-      }
-
-      // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
-      // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
-      AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
-      AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
-    }
-
-    public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
-      var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModuleManager.SystemModule, false, false,
-        new List<TypeParameter>(), formals, resultType,
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateMember.EnclosingClass = enclosingType;
-      rotateMember.AddVisibilityScope(SystemModuleManager.SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(rotateMember);
     }
 
     [ContractInvariantMethod]
@@ -197,7 +94,7 @@ namespace Microsoft.Dafny {
 
     public ValuetypeDecl AsValuetypeDecl(Type t) {
       Contract.Requires(t != null);
-      foreach (var vtd in valuetypeDecls) {
+      foreach (var vtd in SystemModuleManager.valuetypeDecls) {
         if (vtd.IsThisType(t)) {
           return vtd;
         }
@@ -437,7 +334,7 @@ namespace Microsoft.Dafny {
 
     private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
-      foreach (var valueTypeDecl in valuetypeDecls) {
+      foreach (var valueTypeDecl in SystemModuleManager.valuetypeDecls) {
         foreach (var member in valueTypeDecl.Members) {
           if (member is Function function) {
             ResolveFunctionSignature(function);

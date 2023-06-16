@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
         AddRotateMember(bvDecl, "RotateRight", width);
         return bvDecl;
       } else {
-        foreach (var valueTypeDecl in resolver.valuetypeDecls) {
+        foreach (var valueTypeDecl in resolver.SystemModuleManager.valuetypeDecls) {
           if (valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;

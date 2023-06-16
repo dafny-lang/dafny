@@ -4531,7 +4531,7 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      foreach (var valuet in valuetypeDecls) {
+      foreach (var valuet in SystemModuleManager.valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
           if (classMembers[valuet].TryGetValue(memberName, out var member)) {
             SelfType resultType = null;
