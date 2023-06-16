@@ -117,9 +117,8 @@ public class ProgramParser {
         diagnostic.Message);
     }
 
-    foreach (var declToMove in fileModule.TopLevelDecls.
-               Where(d => d != null) // Can occur when there are parse errors. Error correction is at fault but we workaround it here
-             ) {
+    foreach (var declToMove in fileModule.TopLevelDecls) 
+    {
       declToMove.EnclosingModuleDefinition = defaultModule;
       if (declToMove is LiteralModuleDecl literalModuleDecl) {
         literalModuleDecl.ModuleDef.EnclosingModule = defaultModule;

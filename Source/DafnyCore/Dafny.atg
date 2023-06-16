@@ -980,7 +980,9 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     var tup = new PrefixNameModule(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(tup);
                                                   } else {
-                                                    module.SourceDecls.Add(submodule);
+                                                    if (submodule != null) {
+                                                      module.SourceDecls.Add(submodule);
+                                                    }
                                                   }
                                                .)
   | ClassDecl<dmod, module, out td>            (. module.SourceDecls.Add(td); .)
