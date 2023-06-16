@@ -239,6 +239,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Predicates;
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
@@ -800,7 +801,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    static protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    protected static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
@@ -1562,7 +1563,7 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   }
 
   public override void Error(string message, params string[] args) {
-    errors.SemErr(GenericErrors.ErrorId.g_cli_option_error, token, string.Format(message, args));
+    errors.SemErr(GenericErrors.ErrorId.g_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
   }
 }

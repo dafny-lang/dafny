@@ -11,12 +11,12 @@ namespace XUnitExtensions.Lit {
   /// </summary>
   public class DiffCommand : ILitCommand {
 
-    private readonly string expectedPath;
-    private readonly string actualPath;
+    public string ExpectedPath { get; }
+    public string ActualPath { get; }
 
     private DiffCommand(string expectedPath, string actualPath) {
-      this.expectedPath = expectedPath;
-      this.actualPath = actualPath;
+      ExpectedPath = expectedPath;
+      ActualPath = actualPath;
     }
 
     public static ILitCommand Parse(string[] args) {
@@ -30,14 +30,14 @@ namespace XUnitExtensions.Lit {
 
     public (int, string, string) Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var expected = File.ReadAllText(expectedPath);
-      var actual = File.ReadAllText(actualPath);
+      var expected = File.ReadAllText(ExpectedPath);
+      var actual = File.ReadAllText(ActualPath);
       var diffMessage = AssertWithDiff.GetDiffMessage(expected, actual);
       return diffMessage == null ? (0, "", "") : (1, diffMessage, "");
     }
 
     public override string ToString() {
-      return $"DiffCommand {expectedPath} {actualPath}";
+      return $"DiffCommand {ExpectedPath} {ActualPath}";
     }
   }
 }

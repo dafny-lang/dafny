@@ -69,6 +69,8 @@
 ##    %save <file> -- save the code block (including anything appended from %use) in the given temporary file
 ##    %use <file> -- append to the code block the content of the given file (often a temporary saved by a previous %save)
 ##    %nomsg -- forget the error pattern from the heading (in the case of subsequent working examples in the explanation)
+##    %first -- only look at the first error message produced (usually because the error recovery is poor)
+##    %err -- check stderr output instead of stdout
 ##    %exit <n> -- set the expected exit code of the command.
 ##       If not set, the default set in the %default command is used.
 ##       If that is not set,  The default exit code is
@@ -113,14 +115,10 @@
 
 dir=$(dirname "${BASH_SOURCE[0]}")
 dir=`cd "$dir" && pwd`
-dafny="$dir/../Scripts/dafny"
+dafnydir=$dir/../Scripts
+dafny="$dafnydir/dafny"
 outdir="$dir/../Test/docexamples"
 
-defaultCommand=
-defaultExit=
-defaultLang=
-useHeadings=0
-checkIds=0
 coverage=0
 defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName"
@@ -137,15 +135,21 @@ ANYFAIL=0
 
 ## Loop over all remaining command-line arguments
 for file in $@ ; do
-if [ "$coverage" == "1" ]; then echo "FILE $file" ; fi
 dir=$(dirname "$file")
 dir=`cd "$dir" && pwd`
+
+defaultCommand=
+defaultExit=
+defaultLang=
+useHeadings=0
+checkIds=0
 
 ## Temporary files
 text="$dir/text.dfy"
 actualOut="$dir/actual_out.tmp"
 actualMsgs="$dir/actual_msgs.tmp"
 actualError="$dir/actual_error.tmp"
+tocheck="$actualOut"
 
 ## Whether this file fails
 FAIL=0
@@ -160,6 +164,8 @@ expectedExit=
 command=
 expectFile=
 options=( )
+first=0
+checkerr=0
 default=0
 globalDefaultExit=
 ## Read and process each line of the file.  The file is input on stdin 
@@ -212,6 +218,12 @@ do
         elif [ "${contents[0]}" == "%exit" ]; then
           expectedExit=${contents[1]}
           contents=( ${contents[@]:2} )
+        elif [ "${contents[0]}" == "%err" ]; then
+          tocheck="$actualError"
+          contents=( ${contents[@]:1} )
+        elif [ "${contents[0]}" == "%first" ]; then
+          first=1
+          contents=( ${contents[@]:1} )
         elif [ "${contents[0]}" == "%nomsg" ]; then
           msg=
           contents=( ${contents[@]:1} )
@@ -297,18 +309,29 @@ do
         else
           isverbose=
           if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-          . $text $isverbose > "$actualOut" 2> "$actualError"
+          PATH="$dafnydir:$PATH" . $text $isverbose > "$actualOut" 2> "$actualError"
           actualExit=$?
           if [ "$actualExit" != "$expectedExit" ]; then
-             echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
-             FAIL=1
+             if [ "$actualExit" == "127" -a "$expectedExit" == "1" ]; then
+               echo EXIT CODE is $actualExit
+               which dafny
+             else
+               echo EXPECTED EXIT CODE OF $expectedExit, GOT $actualExit
+               FAIL=1
+             fi
+          fi
+          if [ "$first" == "1" ]; then
+            act=`cat "$tocheck" | head -1 | sed -e 's/^.*Error/Error/'`
           else
-            act=`cat "$actualOut" | sed -e 's/^[*]*[ ]*//'`
-            dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
-            if [ -n "$dif" ]; then
-              echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
-              FAIL=1
-            fi
+            act=`cat "$tocheck" | sed -e 's/^.*Error/Error/'`
+          fi
+          dif=`echo "$act" | tr "\n" " " | sed -e 's/[ ]*$//' -e "s@$msg@@"`
+          if [ -n "$dif" ]; then
+            echo ACTUAL OUTPUT DOES NOT MATCH EXPECTED: "$msg" VS "$act"
+            FAIL=1
+          elif [ -z "$act" -a "$useHeadings" == "1" ]; then
+            echo "NO OUTPUT TO COMPARE"
+            FAIL=1
           fi
         fi
       elif [ "$ischeck" == "1" ]; then ## Not cli though
@@ -356,22 +379,31 @@ do
         else
           if [ "$command" == "%check-legacy" ]; then
             isverbose=-compileVerbose:$checkIds
-            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut"
+            (cd "$dir"; "$dafny" $verb $dOptions $isverbose ${options[@]} $text   ) > "$actualOut" 2> "$actualError"
           else
             isverbose=
             if [ "$checkIds" == "1" ]; then isverbose="--verbose" ; fi
-            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut"
+            ( cd "$dir" ; "$dafny" $verb $isverbose $dOptions ${options[@]} $text ) > "$actualOut" 2> "$actualError"
           fi
           actualExit=$?
           if [ "$useHeadings" == "1" ]; then
-            cat "$actualOut" | grep -E '(Error|Warning):' > "$actualMsgs"
+            if [ "$first" == "1" ]; then
+              cat "$actualOut" | grep -E '(Error|Warning):' | head -1 > "$actualMsgs"
+            else
+              cat "$actualOut" | grep -E '(Error|Warning):' > "$actualMsgs"
+            fi
             actualid=
             grep 'ID:' "$actualMsgs" > /dev/null
             if [ "$?" == "0" -a "$checkIds" == "1" ]; then
-              actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//'`
+              num=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//' | sort -u | wc -l | sed -e 's/[ \t]*//'`
+              if [ "$num" != "1" ]; then
+                 echo "UNEXPECTED NUMBER OF DIFFERENT IDS: $num"
+                 FAIL=1
+              fi
+              actualid=`cat "$actualMsgs" | sed -e 's/^.*[\(]ID: //' -e 's/[\)]$//' | sort -u`
             fi
-            act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' | sort -u`
-            if [ "$checkIds" == "1" -a "$actualid" != "$expid" ] ; then
+            act=`cat "$actualMsgs" | sed -e 's/^[^:]*: //' -e 's/ [ ]*[\(]ID: .*$//' `
+            if [ "$checkIds" == "1" -a "$actualid" != "$expid" -a -n "$msg" ] ; then
               echo ERROR ID MISMATCH "$actualid : $expid"
               cat "$actualMsgs"
             fi
@@ -388,8 +420,8 @@ do
                  echo DIF "$dif"
                  FAIL=1
               fi
-              if [ "$actualExit" != "$defaultExit" ]; then
-                echo EXPECTED EXIT CODE $defaultExit, got $actualec
+              if [ "$actualExit" != "$expectedExit" ]; then
+                echo EXPECTED EXIT CODE $expectedExit, got $actualec
                 FAIL=1
               fi
             else 
@@ -421,7 +453,7 @@ do
               FAIL=1
             fi
             if [ -e "$dir/$expect" ]; then
-              diff "$actualOut" "$dir/$expect"
+              diff -b -B "$actualOut" "$dir/$expect"
               if [ "$?" != "0" ]; then
                 FAIL=1
                 echo Actual output differs from expected
@@ -430,7 +462,6 @@ do
                 cat "$actualOut"
               fi
             else
-              echo EXPECT FILE $expect DOES NOT EXIST
               cat "$actualOut"
               FAIL=1
             fi
@@ -445,6 +476,8 @@ do
       expect=
       expectedExit=
       options=( )
+      first=0
+      tocheck="$actualOut"
   fi
 done < "$file"
 rm -rf *.tmp $text.*

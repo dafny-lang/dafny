@@ -52,18 +52,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public Dafny.Program Parse(DocumentTextBuffer document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       mutex.Wait(cancellationToken);
 
+      var beforeParsing = DateTime.Now;
       try {
-        var beforeParsing = DateTime.Now;
         var result = cachingParser.ParseFiles(document.Uri.ToString(),
           new DafnyFile[]
           {
             new(errorReporter.Options, document.Uri.ToUri(), document.Content)
           },
           errorReporter, cancellationToken);
-        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         return result;
       }
       finally {
+        telemetryPublisher.PublishTime("Parse", document.Uri.ToString(), DateTime.Now - beforeParsing);
         cachingParser.Prune();
         mutex.Release();
       }

@@ -339,7 +339,7 @@ namespace DafnyTestGeneration {
             continue;
           }
           recorded[callee] = toInline;
-          if (info.Options.TestGenOptions.Verbose) {
+          if (info.Options.Verbose) {
             Console.Out.WriteLine($"// Will inline calls to {callee} with recursion unrolling depth set to {toInline}.");
           }
           GetCalleesRecursively(callee, recorded);

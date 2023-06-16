@@ -318,7 +318,32 @@ lemma Correspondence()
 }
 ```
 
-### 11.2.9. `{:opaque}` {#sec-opaque}
+### 11.2.9. `{:only}` {#sec-only-functions-methods}
+
+`method {:only} X() {}` or `function {:only} X() {}`  temporarily disables the verification of all other non-`{:only}` members, e.g. other functions and methods, in the same file, even if they contain [assertions with `{:only}`](#sec-only).
+
+<!-- %no-check -->
+```dafny
+method {:only} TestVerified() {
+  assert true;                  // Unchecked
+  assert {:only} true by {      // Checked
+    assert true;                // Checked
+  }
+  assert true;                  // Unchecked
+}
+
+method TestUnverified() {
+  assert true;                  // Unchecked
+  assert {:only} true by {      // Unchecked because of {:only} Test()
+    assert true;                // Unchecked
+  }
+  assert true;                  // Unchecked
+}
+```
+
+`{:only}` can help focusing on a particular member, for example a lemma or a function, as it simply disables the verification of all other lemmas, methods and functions in the same file. It's equivalent to adding [`{:verify false}`](#sec-verify) to all other declarations simulatenously on the same file. Since it's meant to be a temporary construct, it always emits a warning.
+
+### 11.2.10. `{:opaque}` {#sec-opaque}
 
 _This attribute is replaced by the keyword `opaque`; the attribute is deprecated._
 
@@ -330,7 +355,7 @@ or if the programmer specifically asks to see it via the statement `reveal foo()
 
 More information about the Boogie implementation of `{:opaque}` is [here](https://github.com/dafny-lang/dafny/blob/master/docs/Compilation/Boogie.md).
 
-### 11.2.10. `{:print}` {#sec-print}
+### 11.2.11. `{:print}` {#sec-print}
 This attribute declares that a method may have print effects,
 that is, it may use `print` statements and may call other methods
 that have print effects. The attribute can be applied to compiled
@@ -340,11 +365,11 @@ allowed to use a `{:print}` attribute only if the overridden method
 does.
 Print effects are enforced only with `--track-print-effects`.
 
-### 11.2.11. `{:priority}`
+### 11.2.12. `{:priority}`
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 11.2.12. `{:rlimit}` {#sec-rlimit}
+### 11.2.13. `{:rlimit}` {#sec-rlimit}
 
 `{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
 This is the per-method equivalent of the command-line flag `/rlimit:N`.
@@ -390,14 +415,14 @@ To give orders of magnitude about resource usage, here is a list of examples ind
 
 Note that, the default solver Z3 tends to overshoot by `7K` to `8K`, so if you put `{:rlimit 20}` in the last example, the total resource usage would be `27K`.
 
-### 11.2.13. `{:selective_checking}`
+### 11.2.14. `{:selective_checking}`
 Turn all assertions into assumptions except for the ones reachable from after the
 assertions marked with the attribute `{:start_checking_here}`.
 Thus, `assume {:start_checking_here} something;` becomes an inverse
 of `assume false;`: the first one disables all verification before
 it, and the second one disables all verification after.
 
-### 11.2.14. `{:tailrecursion}`
+### 11.2.15. `{:tailrecursion}`
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a `false` value, it means the user specifically
@@ -413,7 +438,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 11.2.15. `{:test}` {#sec-test-attribute}
+### 11.2.16. `{:test}` {#sec-test-attribute}
 This attribute indicates the target function or method is meant
 to be executed at runtime in order to test that the program is working as intended.
 
@@ -451,10 +476,10 @@ harness that supplies input arguments but has no inputs of its own and that
 checks any output values, perhaps with `expect` statements. The test harness
 is then the method marked with `{:test}`.
 
-### 11.2.16. `{:timeLimit N}` {#sec-time-limit}
+### 11.2.17. `{:timeLimit N}` {#sec-time-limit}
 Set the time limit for verifying a given function or method.
 
-### 11.2.17. `{:timeLimitMultiplier X}`
+### 11.2.18. `{:timeLimitMultiplier X}`
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timeLimit Y}` attribute is passed on to Boogie
@@ -462,14 +487,16 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `-timeLimit` command-line option.
 
-### 11.2.18. `{:verify false}` {#sec-verify}
+### 11.2.19. `{:verify false}` {#sec-verify}
      
 Skip verification of a function or a method altogether,
 not even trying to verify the well-formedness of postconditions and preconditions.
 We discourage using this attribute and prefer [`{:axiom}`](#sec-axiom),
 which performs these minimal checks while not checking that the body satisfies the postconditions.
 
-### 11.2.19. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
+If you simply want to temporarily disable all verification except on a single function or method, use the [`{:only}`](#sec-only-functions-methods) attribute on that function or method.
+
+### 11.2.20. `{:vcs_max_cost N}` {#sec-vcs_max_cost}
 Per-method version of the command-line option `/vcsMaxCost`.
 
 The [assertion batch](#sec-assertion-batches) of a method
@@ -478,7 +505,7 @@ number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.20. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
+### 11.2.21. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
 Per-method version of the command-line option `/vcsMaxKeepGoingSplits`.
 If set to more than 1, activates the _keep going mode_ where, after the first round of splitting,
@@ -489,7 +516,7 @@ case an error is reported for that assertion).
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.21. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
+### 11.2.22. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
 Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
@@ -497,14 +524,14 @@ In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first 
 Defaults to 1.
 If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
 
-### 11.2.22. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
+### 11.2.23. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
 Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
 This is mostly helpful for debugging which assertion is taking the most time to prove, e.g. to profile them.
 
-### 11.2.23. `{:synthesize}` {#sec-synthesize-attr}
+### 11.2.24. `{:synthesize}` {#sec-synthesize-attr}
 
 The `{:synthesize}` attribute must be used on methods that have no body and
 return one or more fresh objects. During compilation, 
@@ -538,7 +565,7 @@ BOUNDVARS = ID : ID
           | BOUNDVARS, BOUNDVARS
 ```
 
-### 11.2.24. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
+### 11.2.25. `{:options OPT0, OPT1, ... }` {#sec-attr-options}
 
 This attribute applies only to modules. It configures Dafny as if
 `OPT0`, `OPT1`, … had been passed on the command line.  Outside of the module,
@@ -583,6 +610,8 @@ The start of an asserted expression is used to determines if it's inside a verif
 For example, in `assert B ==> (assert {:only "after"} true; C)`, `C` is actually the start of the asserted expression, so it is verified because it's after `assert {:only "after"} true`.
 
 As soon as a declaration contains one `assert {:only}`, none of the postconditions are verified; you'd need to make them explicit with assertions if you wanted to verify them at the same time.
+
+You can also isolate the verification of a single member using [a similar `{:only}` attribute](#sec-only-functions-methods).
 
 ### 11.3.2. `{:focus}` {#sec-focus}
 `assert {:focus} X;` splits verification into two [assertion batches](#sec-assertion-batches).
