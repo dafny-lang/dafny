@@ -8,6 +8,19 @@ namespace Microsoft.Dafny;
 public class ModuleQualifiedId : Node, IHasUsages {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
+  // The following are filled in during resolution
+  // Note that the root (first path segment) is resolved initially,
+  // as it is needed to determine dependency relationships.
+  // Then later the rest of the path is resolved, at which point all of the
+  // ids in the path have been fully resolved
+  // Note also that the resolution of the root depends on the syntactice location
+  // of the qualified id; the resolution of subsequent ids depends on the
+  // default export set of the previous id.
+  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[0].val
+  [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
+  [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
+  [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
+
   public ModuleQualifiedId(List<Name> path) {
     Contract.Assert(path != null && path.Count > 0);
     Path = path; // note that the list is aliased -- not to be modified after construction
@@ -46,7 +59,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
     Root = m;
   }
 
-  public void Set(ModuleDecl m) {
+  public void SetTarget(ModuleDecl m) {
     if (m == null) {
       Decl = null;
       Def = null;
@@ -57,19 +70,6 @@ public class ModuleQualifiedId : Node, IHasUsages {
       Sig = m.Signature;
     }
   }
-
-  // The following are filled in during resolution
-  // Note that the root (first path segment) is resolved initially,
-  // as it is needed to determine dependency relationships.
-  // Then later the rest of the path is resolved, at which point all of the
-  // ids in the path have been fully resolved
-  // Note also that the resolution of the root depends on the syntactice location
-  // of the qualified id; the resolution of subsequent ids depends on the
-  // default export set of the previous id.
-  [FilledInDuringResolution] public ModuleDecl Root; // the module corresponding to Path[0].val
-  [FilledInDuringResolution] public ModuleDecl Decl; // the module corresponding to the full path
-  [FilledInDuringResolution] public ModuleDefinition Def; // the module definition corresponding to the full path
-  [FilledInDuringResolution] public ModuleSignature Sig; // the module signature corresponding to the full path
 
   public override IToken Tok => Path.Last().Tok;
   public override IEnumerable<Node> Children => Enumerable.Empty<Node>();

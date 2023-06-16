@@ -105,7 +105,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     var errorCount = resolver.reporter.ErrorCount;
     if (module.RefinementQId != null) {
       ModuleDecl md = module.RefinementQId.ResolveTarget(module.RefinementQId.Root, resolver.reporter);
-      module.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
+      module.RefinementQId.SetTarget(md); // If module is not found, md is null and an error message has been emitted
     }
 
     foreach (var rewriter in compilation.Rewriters) {
@@ -120,7 +120,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     var preResolveErrorCount = resolver.reporter.ErrorCount;
 
     resolver.ResolveModuleExport(this, sig);
-    var good = module.ResolveModuleDefinition(sig, resolver);
+    var good = module.Resolve(sig, resolver);
 
     if (good && resolver.reporter.ErrorCount == preResolveErrorCount) {
       // Check that the module export gives a self-contained view of the module.
@@ -173,8 +173,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     Type.PopScope(tempVis);
   }
 
-  public void BindModuleName(Resolver resolver,
-    List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
+  public void BindModuleName(Resolver resolver, List<PrefixNameModule> /*?*/ prefixModules, ModuleBindings parentBindings) {
     Contract.Requires(this != null);
     Contract.Requires(parentBindings != null);
 
@@ -182,10 +181,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat {
     if (prefixModules != null) {
       foreach (var prefixModule in prefixModules) {
         if (prefixModule.Parts.Count == 0) {
-          prefixModule.Module.ModuleDef.EnclosingModule =
-            ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
-          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef,
-            ModuleDef); // this will create a ModuleDecl with the right parent
+          // change the parent, now that we have found the right parent module for the prefix-named module
+          prefixModule.Module.ModuleDef.EnclosingModule = ModuleDef;
+          var sm = new LiteralModuleDecl(prefixModule.Module.ModuleDef, ModuleDef);
           ModuleDef.ResolvedPrefixNamedModules.Add(sm);
         } else {
           ModuleDef.PrefixNamedModules.Add(prefixModule);

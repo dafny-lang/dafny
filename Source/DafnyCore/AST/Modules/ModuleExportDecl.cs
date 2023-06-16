@@ -33,7 +33,8 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
   }
 
   public ModuleExportDecl(RangeToken rangeToken, Name name, ModuleDefinition parent,
-    List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+    List<ExportSignature> exports, List<IToken> extends,
+    bool provideAll, bool revealAll, bool isDefault, bool isRefining)
     : base(rangeToken, name, parent, false, isRefining) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;

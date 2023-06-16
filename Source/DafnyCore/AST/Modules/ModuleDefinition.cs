@@ -381,7 +381,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
   /// resolved, a caller has to check for both a change in error count and a "false"
   /// return value.
   /// </summary>
-  public bool ResolveModuleDefinition(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
+  public bool Resolve(ModuleSignature sig, Resolver resolver, bool isAnExport = false) {
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
@@ -427,7 +427,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     Resolver.ResolveOpenedImports(resolver.moduleInfo, this, resolver); // opened imports do not persist
     var datatypeDependencies = new Graph<IndDatatypeDecl>();
     var codatatypeDependencies = new Graph<CoDatatypeDecl>();
-    var allDeclarations = ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
+    var allDeclarations = AllDeclarationsAndNonNullTypeDecls(TopLevelDecls).ToList();
     int prevErrorCount = resolver.reporter.Count(ErrorLevel.Error);
     resolver.ResolveTopLevelDecls_Signatures(this, sig, allDeclarations, datatypeDependencies, codatatypeDependencies);
     Contract.Assert(resolver.AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
@@ -453,24 +453,25 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
 
     // Finally, go through import declarations (that is, AbstractModuleDecl's and AliasModuleDecl's).
     foreach (var tld in TopLevelDecls) {
-      if (tld is AbstractModuleDecl || tld is AliasModuleDecl) {
-        var subdecl = (ModuleDecl)tld;
-        if (bindings.BindName(subdecl.Name, subdecl, null)) {
-          // the add was successful
+      if (tld is not (AbstractModuleDecl or AliasModuleDecl)) {
+        continue;
+      }
+
+      var subdecl = (ModuleDecl)tld;
+      if (bindings.BindName(subdecl.Name, subdecl, null)) {
+        // the add was successful
+      } else {
+        // there's already something with this name
+        var yes = bindings.TryLookup(subdecl.tok, out var prevDecl);
+        Contract.Assert(yes);
+        if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
+          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+        } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+                   importDecl.Name == importDecl.TargetQId.RootName()) {
+          importDecl.ShadowsLiteralModule = true;
         } else {
-          // there's already something with this name
-          ModuleDecl prevDecl;
-          var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
-          Contract.Assert(yes);
-          if (prevDecl is AbstractModuleDecl || prevDecl is AliasModuleDecl) {
-            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-          } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
-                     importDecl.Name == importDecl.TargetQId.RootName()) {
-            importDecl.ShadowsLiteralModule = true;
-          } else {
-            resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
-              "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
-          }
+          resolver.reporter.Error(MessageSource.Resolver, subdecl.tok,
+            "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
         }
       }
     }
@@ -483,42 +484,31 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     //     A.B.C  ,  module D { ... }
     // We collect these according to the first component of the prefix, like so:
     //     "A"   ->   (A.B.C  ,  module D { ... })
-    var prefixNames = new Dictionary<string, List<PrefixNameModule>>();
-    foreach (var tup in PrefixNamedModules) {
-      var id = tup.Parts[0].val;
-      if (!prefixNames.TryGetValue(id, out var prev)) {
-        prev = new List<PrefixNameModule>();
-      }
-
-      prev.Add(tup);
-      prefixNames[id] = prev;
+    var prefixModulesByFirstPart = new Dictionary<string, List<PrefixNameModule>>();
+    foreach (var prefixNameModule in PrefixNamedModules) {
+      var firstPartName = prefixNameModule.Parts[0].val;
+      var prev = prefixModulesByFirstPart.GetOrCreate(firstPartName, () => new List<PrefixNameModule>());
+      prev.Add(prefixNameModule);
     }
 
     PrefixNamedModules.Clear();
 
     // First, register all literal modules, and transferring their prefix-named modules downwards
-    foreach (var tld in TopLevelDecls) {
-      if (tld is LiteralModuleDecl) {
-        var subdecl = (LiteralModuleDecl)tld;
-        // Transfer prefix-named modules downwards into the sub-module
-        List<PrefixNameModule> prefixModules;
-        if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
-          prefixNames.Remove(subdecl.Name);
-          prefixModules = prefixModules.ConvertAll(ShortenPrefix);
-        } else {
-          prefixModules = null;
-        }
-
-        subdecl.BindModuleName(resolver, prefixModules, bindings);
+    foreach (var subdecl in TopLevelDecls.OfType<LiteralModuleDecl>()) {
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModulesByFirstPart.TryGetValue(subdecl.Name, out var prefixModules)) {
+        prefixModulesByFirstPart.Remove(subdecl.Name);
+        prefixModules = prefixModules.ConvertAll(ShortenPrefix);
       }
+
+      subdecl.BindModuleName(resolver, prefixModules, bindings);
     }
 
     // Next, add new modules for any remaining entries in "prefixNames".
-    foreach (var entry in prefixNames) {
-      var name = entry.Key;
+    foreach (var entry in prefixModulesByFirstPart) {
       var prefixNamedModules = entry.Value;
       var tok = prefixNamedModules.First().Parts[0];
-      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), name), new List<IToken>(), false,
+      var modDef = new ModuleDefinition(tok.ToRange(), new Name(tok.ToRange(), entry.Key), new List<IToken>(), false,
         false, null, this, null, false);
       // Add the new module to the top-level declarations of its parent and then bind its names as usual
       var subdecl = new LiteralModuleDecl(modDef, this);
@@ -527,7 +517,7 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
     }
   }
 
-  public static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
+  private static PrefixNameModule ShortenPrefix(PrefixNameModule prefixNameModule) {
     Contract.Requires(prefixNameModule.Parts.Count != 0);
     var rest = prefixNameModule.Parts.Skip(1).ToList();
     return prefixNameModule with { Parts = rest };
@@ -553,35 +543,34 @@ public class ModuleDefinition : RangeNode, IDeclarationOrUsage, IAttributeBearin
       }
 
       // register the class/datatype/module name
-      {
-        TopLevelDecl registerThisDecl = null;
-        string registerUnderThisName = null;
-        if (d is ModuleExportDecl export) {
-          if (sig.ExportSets.ContainsKey(d.Name)) {
-            resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
-          } else {
-            sig.ExportSets[d.Name] = export;
-          }
-        } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
-          // add under an anonymous name
-          registerThisDecl = d;
-          registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
-          anonymousImportCount++;
-        } else if (toplevels.ContainsKey(d.Name)) {
-          resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-        } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
-          registerThisDecl = nntd;
-          registerUnderThisName = d.Name;
+      TopLevelDecl registerThisDecl = null;
+      string registerUnderThisName = null;
+      if (d is ModuleExportDecl export) {
+        if (sig.ExportSets.ContainsKey(d.Name)) {
+          resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
         } else {
-          registerThisDecl = d;
-          registerUnderThisName = d.Name;
+          sig.ExportSets[d.Name] = export;
         }
-
-        if (registerThisDecl != null) {
-          toplevels[registerUnderThisName] = registerThisDecl;
-          sig.TopLevels[registerUnderThisName] = registerThisDecl;
-        }
+      } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
+        // add under an anonymous name
+        registerThisDecl = d;
+        registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
+        anonymousImportCount++;
+      } else if (toplevels.ContainsKey(d.Name)) {
+        resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+        registerThisDecl = nntd;
+        registerUnderThisName = d.Name;
+      } else {
+        registerThisDecl = d;
+        registerUnderThisName = d.Name;
       }
+
+      if (registerThisDecl != null) {
+        toplevels[registerUnderThisName] = registerThisDecl;
+        sig.TopLevels[registerUnderThisName] = registerThisDecl;
+      }
+
       if (d is ModuleDecl) {
         // nothing to do
       } else if (d is TypeSynonymDecl) {
