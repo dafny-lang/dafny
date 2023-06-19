@@ -205,48 +205,48 @@ public class ProgramResolver {
              : "");
   }
 
-  private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
+  private void ProcessDependenciesDefinition(LiteralModuleDecl literalDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
-    Contract.Assert(decl is LiteralModuleDecl);
-    if (m.RefinementQId != null) {
-      bool res = bindings.ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, m.RefinementQId, out var other);
-      m.RefinementQId.Root = other;
+    var module = literalDecl.ModuleDef;
+    if (module.RefinementQId != null) {
+      bool res = bindings.ResolveQualifiedModuleIdRootRefines(literalDecl.ModuleDef, module.RefinementQId, out var other);
+      module.RefinementQId.Root = other;
       if (!res) {
-        Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(),
-          $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
+        Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(),
+          $"module {module.RefinementQId.ToString()} named as refinement base does not exist");
       } else {
-        declarationPointers.AddOrUpdate(other, v => m.RefinementQId.Root = v, Util.Concat);
-        if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-          Reporter.Error(MessageSource.Resolver, m.RefinementQId.RootToken(), "module cannot refine itself: {0}",
-            m.RefinementQId.ToString());
+        declarationPointers.AddOrUpdate(other, v => module.RefinementQId.Root = v, Util.Concat);
+        if (other is LiteralModuleDecl otherLiteral && otherLiteral.ModuleDef == module) {
+          Reporter.Error(MessageSource.Resolver, module.RefinementQId.RootToken(), "module cannot refine itself: {0}",
+            module.RefinementQId.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
-          dependencies.AddEdge(decl, other);
+          dependencies.AddEdge(literalDecl, other);
         }
       }
     }
 
-    foreach (var pointer in m.TopLevelDeclPointers) {
+    foreach (var pointer in module.TopLevelDeclPointers) {
       if (pointer.Get() is ModuleDecl moduleDecl) {
         declarationPointers.Add(moduleDecl, v => {
           pointer.Set(v);
-          v.EnclosingModuleDefinition = m;
+          v.EnclosingModuleDefinition = module;
           if (v is LiteralModuleDecl literalModuleDecl) {
-            literalModuleDecl.ModuleDef.EnclosingModule = m;
+            literalModuleDecl.ModuleDef.EnclosingModule = module;
           }
         });
       }
     }
 
-    foreach (var toplevel in m.TopLevelDecls) {
+    foreach (var toplevel in module.TopLevelDecls) {
       if (toplevel is not ModuleDecl moduleDecl) {
         continue;
       }
 
-      dependencies.AddEdge(decl, moduleDecl);
+      dependencies.AddEdge(literalDecl, moduleDecl);
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (!m.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
+      if (!module.IsAbstract && moduleDecl is AbstractModuleDecl && ((AbstractModuleDecl)moduleDecl).QId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
           "The abstract import named {0} (using :) may only be used in an abstract module declaration",
           moduleDecl.Name);
@@ -257,8 +257,8 @@ public class ProgramResolver {
   private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     dependencies.AddVertex(moduleDecl);
-    if (moduleDecl is LiteralModuleDecl) {
-      ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, declarationPointers);
+    if (moduleDecl is LiteralModuleDecl literalDecl) {
+      ProcessDependenciesDefinition(literalDecl, bindings, declarationPointers);
     } else if (moduleDecl is AliasModuleDecl aliasDecl) {
       // TryLookupFilter works outward, looking for a match to the filter for
       // each enclosing module.
