@@ -138,7 +138,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, Resolver resolver) {
     if (Arguments != null) {
-      if (Id == BuiltIns.TupleTypeCtorName(1)) {
+      if (Id == SystemModuleManager.TupleTypeCtorName(1)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Tok, "parentheses are not allowed around a pattern");
       } else {
         resolver.reporter.Error(MessageSource.Resolver, this.Tok, "member {0} does not exist in type {1}", this.Id, type);

@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
           var ctorId = matchCase.Ctor.Name;
           if (match.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)match.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
+            ctorId = SystemModuleManager.TupleTypeCtorName(tuple.Dims);
           }
 
           if (constructors.ContainsKey(ctorId)) {

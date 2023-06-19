@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           cancellationToken.ThrowIfCancellationRequested();
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
-        compilationUnit.Modules.Add(ProcessModule(compilationUnit, compilationUnit.Program.BuiltIns.SystemModule));
+        compilationUnit.Modules.Add(ProcessModule(compilationUnit, compilationUnit.Program.SystemModuleManager.SystemModule));
         return compilationUnit;
       }
 
