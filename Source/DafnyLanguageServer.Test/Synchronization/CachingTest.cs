@@ -220,6 +220,34 @@ module C {{
     Assert.Equal(hitCount1 + 2, hitCount2);
   }
 
+  [Fact]
+  public async Task ImportFromRefinedModuleAndParseCaching() {
+
+    var usingFile = @"
+include ""./importFromRefinedModuleUsingField.dfy""
+
+module A {
+  import Refiner
+  import Library
+
+  method Bar() {
+    var c := Library.True;
+    var x := Refiner.Foo(c);
+  }
+}
+";
+    var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
+    var documentItem1 = CreateTestDocument(usingFile, Path.Combine(testFiles, "test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
+    var diagnostics1 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    Assert.Empty(diagnostics1);
+    
+    var documentItem2 = CreateTestDocument(usingFile, Path.Combine(testFiles, "test2.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem2, CancellationToken);
+    var diagnostics2 = await GetLastDiagnostics(documentItem1, CancellationToken);
+    Assert.Empty(diagnostics2);
+  }
+
   public CachingTest(ITestOutputHelper output) : base(output) {
   }
 }

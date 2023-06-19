@@ -90,6 +90,9 @@
     <None Update="Synchronization\TestFiles\cycleB.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Synchronization\TestFiles\importFromRefinedModuleUsingField.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
