@@ -39,6 +39,20 @@ include ""./syntaxError.dfy""
   }
 
   [Fact]
+  public async Task IncludeCycle() {
+    var source = @"
+include ""./cycleA.dfy""
+".TrimStart();
+    var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains("cycle of includes", diagnostics[0].Message);
+    Assert.Contains("the included file", diagnostics[1].Message);
+    Assert.Contains("cycleB.dfy", diagnostics[1].Message);
+  }
+
+  [Fact]
   public async Task IndirectlyIncludedFileFailsSemantic() {
     var source = @"
 include ""./includesSemanticError.dfy""
@@ -50,15 +64,6 @@ include ""./semanticError.dfy""
     Assert.Single(diagnostics);
     Assert.Contains("the included file", diagnostics[0].Message);
     Assert.Contains("semanticError.dfy", diagnostics[0].Message);
-  }
-
-  [Fact]
-  public async Task MutuallyRecursiveIncludes() {
-    string rootFile = Path.Combine(Directory.GetCurrentDirectory(), "Various", "TestFiles", "includesBincludesA.dfy");
-    var documentItem2 = CreateTestDocument(await File.ReadAllTextAsync(rootFile), rootFile);
-    client.OpenDocument(documentItem2);
-    var verificationDiagnostics = await GetLastDiagnostics(documentItem2, CancellationToken);
-    Assert.Empty(verificationDiagnostics);
   }
 
   [Fact]

@@ -100,8 +100,26 @@ public class ProgramParser {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
     }
 
+    ShowWarningsForIncludeCycles(program);
+
 
     return program;
+  }
+
+  private void ShowWarningsForIncludeCycles(Program program) {
+    var graph = new Graph<Uri>();
+    foreach (var edgesForUri in program.Includes.GroupBy(i => i.IncluderFilename)) {
+      foreach (var edge in edgesForUri) {
+        graph.AddEdge(edge.IncluderFilename, edge.IncludedFilename);
+      }
+    }
+
+    var sortedSccRoots = graph.TopologicallySortedComponents();
+    var includeCycles = sortedSccRoots.Select(graph.GetSCC).Where(scc => scc.Count > 1);
+    foreach (var cycle in includeCycles) {
+      program.Reporter.Info(MessageSource.Parser, program.GetFirstTopLevelToken(),
+        $"Program contains a cycle of includes, consisting of:\n{string.Join("\n", cycle.Select(c => c.LocalPath))}");
+    }
   }
 
   public static void AddParseResultToProgram(DfyParseResult parseResult, Program program) {
