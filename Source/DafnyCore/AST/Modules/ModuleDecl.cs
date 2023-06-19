@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Represents a submodule declaration at module level scope
 /// </summary>
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
-  public override string WhatKind { get { return "module"; } }
+  public override string WhatKind => "module";
   [FilledInDuringResolution] public ModuleSignature Signature; // filled in topological order.
   public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
     Contract.Requires(Signature != null);
@@ -20,9 +20,14 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring {
   }
   public int Height;
 
-  public readonly bool Opened;
+  public readonly bool Opened; // TODO: Only true for Abstract and Alias module declarations. It seems like they need a common superclass since there's also code of the form 'd is AliasModuleDecl || d is AbstractModuleDecl'
 
-  public ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
+  protected ModuleDecl(Cloner cloner, ModuleDecl original, ModuleDefinition parent)
+    : base(cloner, original, parent) {
+    Opened = original.Opened;
+  }
+
+  protected ModuleDecl(RangeToken rangeToken, Name name, ModuleDefinition parent, bool opened, bool isRefining)
     : base(rangeToken, name, parent, new List<TypeParameter>(), null, isRefining) {
     Height = -1;
     Signature = null;

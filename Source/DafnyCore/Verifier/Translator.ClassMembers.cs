@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
           // $Is(o, ..)
           is_o = MkIs(o, o_ty);
           Bpl.Expr rhs;
-          if (c == program.BuiltIns.ObjectDecl) {
+          if (c == program.SystemModuleManager.ObjectDecl) {
             rhs = Bpl.Expr.True;
           } else if (c is TraitDecl) {
             //generating $o == null || implements$J(dtype(x), typeArgs)
