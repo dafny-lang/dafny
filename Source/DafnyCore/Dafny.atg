@@ -985,12 +985,30 @@ TopDecl<. ModuleDefinition module, bool isTopLevel, bool isAbstract .>
                                                     }
                                                   }
                                                .)
-  | ClassDecl<dmod, module, out td>            (. module.SourceDecls.Add(td); .)
-  | DatatypeDecl<dmod, module, out dt>         (. module.SourceDecls.Add(dt); .)
-  | NewtypeDecl<dmod, module, out td>          (. module.SourceDecls.Add(td); .)
-  | SynonymTypeDecl<dmod, module, out td>      (. module.SourceDecls.Add(td); .)
-  | IteratorDecl<dmod, module, out iter>       (. module.SourceDecls.Add(iter); .)
-  | TraitDecl<dmod, module, out trait>         (. module.SourceDecls.Add(trait); .)
+  | ClassDecl<dmod, module, out td>            (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | DatatypeDecl<dmod, module, out dt>         (. if (dt != null) {
+                                                    module.SourceDecls.Add(dt);
+                                                  } 
+                                               .)
+  | NewtypeDecl<dmod, module, out td>          (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | SynonymTypeDecl<dmod, module, out td>      (. if (td != null) {
+                                                    module.SourceDecls.Add(td);
+                                                  } 
+                                               .)
+  | IteratorDecl<dmod, module, out iter>       (. if (iter != null) {
+                                                    module.SourceDecls.Add(iter);
+                                                  } 
+                                               .)
+  | TraitDecl<dmod, module, out trait>         (. if (trait != null) {
+                                                    module.SourceDecls.Add(trait);
+                                                  } 
+                                               .)
   | ClassMemberDecl<dmod, module.DefaultClass.Members, false, true, true> (. module.DefaultClass.SetMembersBeforeResolution(); .)
   )
   .

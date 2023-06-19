@@ -180,7 +180,6 @@ public class ProgramResolver {
     }
   }
 
-
   /// <summary>
   /// Check that now two modules that are being compiled have the same CompileName.
   ///
