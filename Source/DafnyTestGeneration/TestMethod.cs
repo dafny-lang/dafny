@@ -560,7 +560,7 @@ namespace DafnyTestGeneration {
       }
       switch (type) {
         case IntType:
-          return GetPrimitiveAsType("0", asType);
+          return GetPrimitiveAsType("987654321", asType);
         case RealType:
           return GetPrimitiveAsType("0.0", asType);
         case BoolType:
@@ -570,7 +570,7 @@ namespace DafnyTestGeneration {
         case BitvectorType bitvectorType:
           return GetPrimitiveAsType($"(0 as bv{bitvectorType.Width})", asType);
         case SeqType seqType:
-          return seqType.Arg is CharType ? "\"\"" : AddValue(asType ?? type, "[]");
+          return seqType.Arg is CharType ? "\"DefaultStringValue\"" : AddValue(asType ?? type, "[]");
         case SetType:
           return AddValue(asType ?? type, "{}");
         case MapType mapType:
