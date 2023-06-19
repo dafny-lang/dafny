@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -20,6 +20,8 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+'D' 'D'
+5 5
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -40,6 +42,8 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+'D' 'D'
+5 5
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -60,6 +64,8 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+'D' 'D'
+5 5
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -80,6 +86,8 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+'D' 'D'
+5 5
 
 Dafny program verifier did not attempt verification
 62 63 (2, 5) (2, 5) 3 <gen>
@@ -100,3 +108,5 @@ true false
 HasConst.MakeC(4) (4, 4)
 4 (4, 4)
 OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.Ints(5, 7) OptimizationChecks_Compile.Ints.AnotherIntsWrapper(OptimizationChecks_Compile.Ints.Ints(5, 7))
+'D' 'D'
+5 5

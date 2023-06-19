@@ -2175,6 +2175,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree EmitToString(ConcreteSyntaxTree wr, Type type) {
       Contract.Requires(!type.IsArrayType);
       ConcreteSyntaxTree argumentWriter;
+      type = DatatypeWrapperEraser.SimplifyType(Options, type, true);
       if (AsNativeType(type) != null && AsNativeType(type).LowerBound >= 0) {
         var nativeName = GetNativeTypeName(AsNativeType(type));
         switch (AsNativeType(type).Sel) {
